@@ -285,14 +285,18 @@ struct DirectChatView: View {
     @StateObject private var presenter: DirectChatPresenter
     @FocusState private var composerFocused: Bool
 
-    @State private var showOverflowMenu = false
     @State private var overflowAnchorGlobal: CGRect = .zero
-    @State private var pendingDestructive: DestructiveOverflowAction?
     @State private var scrollToBottomCoalesceTask: Task<Void, Never>?
+    /// Custom overlay only (no `confirmationDialog` / `Menu` / `contextMenu`).
+    @State private var chatOverflowPhase: ChatOverflowPhase = .hidden
+    /// Quick emoji strip above composer; off by default, toggled by smiley (does not use the system emoji keyboard).
+    @State private var showEmojiQuickTray = false
 
-    private enum DestructiveOverflowAction {
-        case clearHistory
-        case removeFriend
+    private enum ChatOverflowPhase: Equatable {
+        case hidden
+        case actions
+        case confirmClearHistory
+        case confirmRemoveFriend
     }
 
     init(friend: UserPreview) {
@@ -351,7 +355,7 @@ struct DirectChatView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 8) {
+        .safeAreaInset(edge: .bottom, spacing: 6) {
             composer
         }
         .background(Color(.systemGroupedBackground))
@@ -370,8 +374,12 @@ struct DirectChatView: View {
                 Button {
                     resignComposerFirstResponder()
                     composerFocused = false
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
-                        showOverflowMenu.toggle()
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                        if chatOverflowPhase == .hidden {
+                            chatOverflowPhase = .actions
+                        } else {
+                            chatOverflowPhase = .hidden
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
@@ -394,49 +402,18 @@ struct DirectChatView: View {
         .onPreferenceChange(ChatOverflowAnchorKey.self) { rect in
             overflowAnchorGlobal = rect
         }
-        .overlay {
-            if showOverflowMenu {
-                chatOverflowMenuOverlay
-                    .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .topTrailing)))
+        .overlay(alignment: .topTrailing) {
+            if chatOverflowPhase != .hidden {
+                chatOverflowChromeOverlay
+                    .transition(.scale(scale: 0.96, anchor: .topTrailing).combined(with: .opacity))
+                    .zIndex(10)
             }
         }
-        .zIndex(showOverflowMenu ? 50 : 0)
-        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: showOverflowMenu)
-        .confirmationDialog(
-            "",
-            isPresented: Binding(
-                get: { pendingDestructive != nil },
-                set: { if !$0 { pendingDestructive = nil } }
-            ),
-            titleVisibility: .hidden
-        ) {
-            Group {
-                if pendingDestructive == .clearHistory {
-                    Button("Clear Chat History", role: .destructive) {
-                        Task { await runClearHistoryConfirmed() }
-                    }
-                    Button("Cancel", role: .cancel) {
-                        pendingDestructive = nil
-                    }
-                } else if pendingDestructive == .removeFriend {
-                    Button("Remove Friend", role: .destructive) {
-                        Task { await runRemoveFriendConfirmed() }
-                    }
-                    Button("Cancel", role: .cancel) {
-                        pendingDestructive = nil
-                    }
-                }
-            }
-        } message: {
-            if pendingDestructive == .clearHistory {
-                Text("This clears the conversation history for both of you.")
-            } else if pendingDestructive == .removeFriend {
-                Text("You will unfriend \(presenter.friend.displayName) and leave this chat.")
-            }
-        }
+        .zIndex(chatOverflowPhase != .hidden ? 50 : 0)
+        .animation(.spring(response: 0.42, dampingFraction: 0.88), value: chatOverflowPhase)
         .onChange(of: composerFocused) { _, focused in
             if focused {
-                dismissOverflowMenu()
+                dismissChatOverflow()
             }
         }
         .task {
@@ -466,7 +443,7 @@ struct DirectChatView: View {
         }
         .onDisappear {
             chatViewModel.hidesFloatingTabBarForDirectChat = false
-            showOverflowMenu = false
+            chatOverflowPhase = .hidden
             Task {
                 await presenter.flushMarkReadNow()
                 await chatViewModel.refreshInboxSummaries()
@@ -474,9 +451,9 @@ struct DirectChatView: View {
         }
     }
 
-    private func dismissOverflowMenu() {
-        withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
-            showOverflowMenu = false
+    private func dismissChatOverflow() {
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+            chatOverflowPhase = .hidden
         }
     }
 
@@ -487,13 +464,11 @@ struct DirectChatView: View {
     }
 
     private func runClearHistoryConfirmed() async {
-        pendingDestructive = nil
         await presenter.clearChatHistory()
         await chatViewModel.refreshInboxSummaries()
     }
 
     private func runRemoveFriendConfirmed() async {
-        pendingDestructive = nil
         do {
             try await presenter.removeFriend()
             await chatViewModel.refresh()
@@ -503,74 +478,145 @@ struct DirectChatView: View {
         }
     }
 
-    private var chatOverflowMenuOverlay: some View {
-        GeometryReader { geo in
-            let containerGlobal = geo.frame(in: .global)
-            ZStack(alignment: .topLeading) {
-                ZStack {
-                    Rectangle().fill(.ultraThinMaterial)
-                    Rectangle().fill(Color.black.opacity(0.18))
-                }
-                .ignoresSafeArea()
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        dismissOverflowMenu()
-                    }
+    private static let overflowMenuWidth: CGFloat = 305
+    private static let overflowMenuHeight: CGFloat = 132
+    private static let overflowMenuCornerRadius: CGFloat = 28
+    private static let overflowMenuTopPadding: CGFloat = 92
+    private static let overflowMenuTrailingPadding: CGFloat = 34
+    private static let overflowMenuTextHorizontalPadding: CGFloat = 44
+    private static let overflowMenuRowHeight: CGFloat = 66
+    private static let overflowMenuFontSize: CGFloat = 23
 
-                let menuWidth: CGFloat = 248
-                let anchor = overflowAnchorGlobal
-                let topLeftGlobal = CGPoint(x: anchor.maxX - menuWidth, y: anchor.maxY + 6)
-                let x = topLeftGlobal.x - containerGlobal.minX
-                let y = topLeftGlobal.y - containerGlobal.minY
-
-                VStack(alignment: .leading, spacing: 0) {
-                    overflowMenuRow(title: "Clear Chat History", systemImage: "trash", role: .destructive) {
-                        dismissOverflowMenu()
-                        pendingDestructive = .clearHistory
-                    }
-                    Divider().padding(.leading, 12)
-                    overflowMenuRow(title: "Remove Friend", systemImage: "person.fill.xmark", role: .destructive) {
-                        dismissOverflowMenu()
-                        pendingDestructive = .removeFriend
-                    }
-                }
-                .frame(width: menuWidth, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color(.secondarySystemGroupedBackground))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.22), radius: 22, y: 10)
-                .offset(x: max(12, min(x, geo.size.width - menuWidth - 12)), y: max(geo.safeAreaInsets.top + 4, y))
-                .accessibilityElement(children: .contain)
+    /// Fixed top-trailing placement (no centering, no full-width card). Light dim only; chat stays visible.
+    private var chatOverflowChromeOverlay: some View {
+        ZStack(alignment: .topTrailing) {
+            Rectangle()
+                .fill(Color.white.opacity(0.02))
+            .ignoresSafeArea()
+            .contentShape(Rectangle())
+            .onTapGesture {
+                dismissChatOverflow()
             }
+
+            Group {
+                switch chatOverflowPhase {
+                case .hidden:
+                    EmptyView()
+                case .actions:
+                    chatOverflowActionsCard()
+                case .confirmClearHistory:
+                    chatOverflowConfirmCard(
+                        title: "Clear chat history?",
+                        message: "This clears the conversation history for both of you.",
+                        confirmTitle: "Clear chat history",
+                        onConfirm: {
+                            Task {
+                                await runClearHistoryConfirmed()
+                                await MainActor.run { dismissChatOverflow() }
+                            }
+                        }
+                    )
+                case .confirmRemoveFriend:
+                    chatOverflowConfirmCard(
+                        title: "Remove friend?",
+                        message: "You will unfriend \(presenter.friend.displayName) and leave this chat.",
+                        confirmTitle: "Remove friend",
+                        onConfirm: {
+                            Task {
+                                await runRemoveFriendConfirmed()
+                                await MainActor.run { dismissChatOverflow() }
+                            }
+                        }
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(.top, Self.overflowMenuTopPadding)
+            .padding(.trailing, Self.overflowMenuTrailingPadding)
         }
     }
 
-    private func overflowMenuRow(
-        title: String,
-        systemImage: String,
-        role: ButtonRole?,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(role: role, action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .font(.body.weight(.semibold))
-                    .frame(width: 22, alignment: .center)
-                Text(title)
-                    .font(.body.weight(.medium))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+    private func chatOverflowActionsCard() -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            overflowMenuActionRow(title: "Clear chat history") {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    chatOverflowPhase = .confirmClearHistory
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+            Rectangle()
+                .fill(Color.primary.opacity(0.02))
+                .frame(height: 0.5)
+                .padding(.horizontal, Self.overflowMenuTextHorizontalPadding)
+            overflowMenuActionRow(title: "Remove friend") {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    chatOverflowPhase = .confirmRemoveFriend
+                }
+            }
+        }
+        .padding(.vertical, 0)
+        .frame(width: Self.overflowMenuWidth, height: Self.overflowMenuHeight, alignment: .top)
+        .background {
+            RoundedRectangle(cornerRadius: Self.overflowMenuCornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+        .accessibilityElement(children: .contain)
+    }
+
+    private func chatOverflowConfirmCard(
+        title: String,
+        message: String,
+        confirmTitle: String,
+        onConfirm: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(.primary)
+            Text(message)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 12) {
+                Button("Cancel") {
+                    dismissChatOverflow()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Button(confirmTitle, action: onConfirm)
+                    .buttonStyle(.plain)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(Color.red)
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(width: Self.overflowMenuWidth, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: Self.overflowMenuCornerRadius, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+    }
+
+    private func overflowMenuActionRow(title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: Self.overflowMenuFontSize, weight: .regular))
+                .foregroundStyle(Color.red.opacity(0.9))
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: Self.overflowMenuRowHeight)
+                .padding(.horizontal, Self.overflowMenuTextHorizontalPadding)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(role == .destructive ? Color.red : Color.primary)
     }
 
     private var messagesScroll: some View {
@@ -603,7 +649,7 @@ struct DirectChatView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
-                .padding(.bottom, 12)
+                .padding(.bottom, 20)
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
@@ -680,21 +726,19 @@ struct DirectChatView: View {
         }
     }
 
+    /// Bottom input: optional slim emoji strip above composer; moves with keyboard via `safeAreaInset`.
     private var composer: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.primary.opacity(0.08))
-                .frame(height: 0.5)
-                .accessibilityHidden(true)
-
-            VStack(spacing: 10) {
+        VStack(spacing: showEmojiQuickTray ? 4 : 0) {
+            if showEmojiQuickTray {
                 quickReactionTray
-                composerInputRow
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
+            composerInputRow
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
+        .animation(.spring(response: 0.34, dampingFraction: 0.92), value: showEmojiQuickTray)
         .background {
             Rectangle()
                 .fill(.ultraThinMaterial)
@@ -703,19 +747,31 @@ struct DirectChatView: View {
     }
 
     private var composerInputRow: some View {
-        HStack(alignment: .bottom, spacing: 10) {
+        HStack(alignment: .bottom, spacing: 8) {
+            Button {
+                showEmojiQuickTray.toggle()
+            } label: {
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 22, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(showEmojiQuickTray ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 40, height: 40)
+            .accessibilityLabel("Toggle emoji reactions")
+
             TextField("Message", text: $presenter.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.body)
                 .lineLimit(1...5)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
                 .background(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(Color(.secondarySystemGroupedBackground))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .strokeBorder(
                             composerFocused
                                 ? Color.accentColor.opacity(0.38)
@@ -728,16 +784,16 @@ struct DirectChatView: View {
                 .onChange(of: presenter.draft) { _, _ in
                     presenter.trimDraftIfNeeded()
                 }
-                .frame(minHeight: 40, alignment: .center)
+                .frame(minHeight: 38, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 Task { await presenter.sendDraft() }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
+                    .font(.system(size: 30))
                     .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.white, Color.accentColor)
+                    .foregroundStyle(Color.white, Color.blue)
             }
             .disabled(!presenter.canSend)
             .frame(width: 40, height: 40)
@@ -746,35 +802,36 @@ struct DirectChatView: View {
         }
     }
 
+    /// Slim horizontal strip (~40–46 pt tall); no per-emoji cards; tray hidden unless `showEmojiQuickTray`.
     private var quickReactionTray: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
+            HStack(spacing: 9) {
                 ForEach(DirectChatQuickReactions.emojis, id: \.self) { emoji in
                     Button {
                         Task { await presenter.sendQuickReaction(emoji) }
                     } label: {
                         Text(emoji)
-                            .font(.system(size: 22))
-                            .frame(minWidth: 36, minHeight: 36)
+                            .font(.system(size: 23))
+                            .frame(width: 32, height: 32)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Send \(emoji) reaction")
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 12)
             .padding(.vertical, 4)
         }
+        .frame(height: 42)
         .scrollBounceBehavior(.basedOnSize)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground).opacity(0.94))
-        )
+        .background {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(.systemGray6).opacity(0.28))
+        }
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
         )
-        .shadow(color: Color.black.opacity(0.05), radius: 6, y: 2)
     }
 }
 
