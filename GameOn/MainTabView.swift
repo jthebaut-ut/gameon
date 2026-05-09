@@ -253,9 +253,10 @@ struct MainTabView: View {
     private var accountTabAvatar: some View {
         Group {
             if viewModel.isLoggedIn,
-               let urlString = ImageDisplayURL.forList(
+               let urlString = ImageDisplayURL.forListDisplay(
                 thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                full: viewModel.currentUserAvatarURL
+                full: viewModel.currentUserAvatarURL,
+                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
                ),
                let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in

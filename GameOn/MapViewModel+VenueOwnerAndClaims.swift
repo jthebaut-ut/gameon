@@ -518,27 +518,29 @@ extension MapViewModel {
         reservationInfo: String,
         socialCoordination: String
     ) {
-        Task { _ = await saveVenueGameListingAsync(
-            gameTitle: gameTitle,
-            sport: sport,
-            gameDate: gameDate,
-            gameStartTime: gameStartTime,
-            soundOn: soundOn,
-            audioType: audioType,
-            teamFanbase: teamFanbase,
-            atmosphere: atmosphere,
-            crowdLevel: crowdLevel,
-            liveOccupancy: liveOccupancy,
-            seating: seating,
-            numberOfTVs: numberOfTVs,
-            drinkSpecial: drinkSpecial,
-            coverCharge: coverCharge,
-            reservationInfo: reservationInfo,
-            socialCoordination: socialCoordination
-        ) }
+        Task {
+            _ = await saveVenueGameListingAsync(
+                gameTitle: gameTitle,
+                sport: sport,
+                gameDate: gameDate,
+                gameStartTime: gameStartTime,
+                soundOn: soundOn,
+                audioType: audioType,
+                teamFanbase: teamFanbase,
+                atmosphere: atmosphere,
+                crowdLevel: crowdLevel,
+                liveOccupancy: liveOccupancy,
+                seating: seating,
+                numberOfTVs: numberOfTVs,
+                drinkSpecial: drinkSpecial,
+                coverCharge: coverCharge,
+                reservationInfo: reservationInfo,
+                socialCoordination: socialCoordination
+            )
+        }
     }
 
-    /// Same insert as ``saveVenueGameListing``; returns `nil` on success or a user-facing error string.
+    /// Same insert as ``saveVenueGameListing``. On success returns ``.success`` with the inserted row (and updates local Discover/calendar state). On failure returns ``.failure`` with a user-facing ``LocalizedError``.
     func saveVenueGameListingAsync(
         gameTitle: String,
         sport: String,
@@ -556,7 +558,7 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String
-    ) async -> String? {
+    ) async -> Result<VenueEventRow, Error> {
         do {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -581,16 +583,30 @@ extension MapViewModel {
                 waitlist_available: !reservationInfo.isEmpty
             )
 
-            try await supabase
+            let inserted: [VenueEventRow] = try await supabase
                 .from("venue_events")
                 .insert(newGame)
+                .select()
                 .execute()
+                .value
+
+            guard let row = inserted.first else {
+                return .failure(
+                    NSError(
+                        domain: "VenueGameListing",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Game saved, but the app couldn’t read it back. Pull to refresh in a moment."]
+                    )
+                )
+            }
+
+            applyCreatedVenueEventLocally(row)
 
             print("GAME LISTING SAVED")
-            return nil
+            return .success(row)
         } catch {
             print("ERROR SAVING GAME LISTING:", error)
-            return error.localizedDescription
+            return .failure(error)
         }
     }
 

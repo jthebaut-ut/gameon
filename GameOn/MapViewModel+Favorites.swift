@@ -25,6 +25,7 @@ extension MapViewModel {
 
             guard !email.isEmpty else {
                 favoriteVenueIDs = []
+                clearFollowingTabCaches()
                 return
             }
 
@@ -70,14 +71,14 @@ extension MapViewModel {
                 .execute()
 
             await loadFavoriteVenuesFromSupabase()
-
-        
+            await refreshFollowingTabDataGlobally()
 
         } catch {
             let message = error.localizedDescription.lowercased()
 
             if message.contains("duplicate key") || message.contains("23505") {
                 await loadFavoriteVenuesFromSupabase()
+                await refreshFollowingTabDataGlobally()
             } else {
                 print("ERROR SAVING FAVORITE VENUE:", error)
             }
@@ -96,6 +97,7 @@ extension MapViewModel {
                 .execute()
 
             await loadFavoriteVenuesFromSupabase()
+            await refreshFollowingTabDataGlobally()
 
             print("FAVORITE VENUE REMOVED")
 
@@ -143,12 +145,14 @@ extension MapViewModel {
             }
 
             await loadFavoriteVenuesFromSupabase()
+            await refreshFollowingTabDataGlobally()
             return true
         } catch {
             let message = error.localizedDescription.lowercased()
 
             if isFavorite, message.contains("duplicate key") || message.contains("23505") {
                 await loadFavoriteVenuesFromSupabase()
+                await refreshFollowingTabDataGlobally()
                 return true
             }
 

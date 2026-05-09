@@ -5,6 +5,105 @@ import Supabase
 
 extension MapViewModel {
 
+    private static func logPostgrestError(_ prefix: String, _ error: Error) {
+        print("\(prefix):", error)
+        if let pe = error as? PostgrestError {
+            print(
+                "\(prefix) PostgrestError code=\(pe.code ?? "nil") message=\(pe.message) detail=\(pe.detail ?? "nil") hint=\(pe.hint ?? "nil")"
+            )
+        }
+        let ns = error as NSError
+        print("\(prefix) NSError domain=\(ns.domain) code=\(ns.code) userInfo=\(ns.userInfo)")
+    }
+
+    /// Ensures `public.user_profiles` has a row with `id == auth.uid`; inserts a minimal row if missing. Does not use email as PK or random UUIDs.
+    func ensureUserProfileExists() async {
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            return
+        }
+
+        let authId = session.user.id
+#if DEBUG
+        print("[ProfileBootstrap] auth uid = \(authId)")
+#endif
+
+        do {
+            let existing: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                .eq("id", value: authId)
+                .limit(1)
+                .execute()
+                .value
+
+            if existing.first != nil {
+#if DEBUG
+                print("[ProfileBootstrap] profile found")
+#endif
+                await MainActor.run { currentUserAuthId = authId }
+                return
+            }
+        } catch {
+            Self.logPostgrestError("[ProfileBootstrap] error querying user_profiles by id", error)
+            return
+        }
+
+#if DEBUG
+        print("[ProfileBootstrap] profile missing -> creating")
+#endif
+
+        let emailFromSession = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let emailForRow: String
+        if !emailFromSession.isEmpty {
+            emailForRow = emailFromSession
+        } else {
+            let fallback = await MainActor.run {
+                currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            guard !fallback.isEmpty else {
+#if DEBUG
+                print("[ProfileBootstrap] cannot insert user_profiles: no email on session or in memory")
+#endif
+                return
+            }
+            emailForRow = fallback
+        }
+
+        let row = UserProfileBootstrapInsert(
+            id: authId,
+            email: emailForRow,
+            display_name: "",
+            avatar_url: "",
+            avatar_thumbnail_url: nil
+        )
+
+        do {
+            try await supabase
+                .from("user_profiles")
+                .insert(row)
+                .execute()
+#if DEBUG
+            print("[ProfileBootstrap] profile created successfully")
+#endif
+            await MainActor.run { currentUserAuthId = authId }
+        } catch {
+            Self.logPostgrestError("[ProfileBootstrap] insert failed", error)
+            if let pe = error as? PostgrestError, pe.code == "23505" {
+#if DEBUG
+                print("[ProfileBootstrap] profile already exists (unique violation); continuing")
+#endif
+                await MainActor.run { currentUserAuthId = authId }
+            }
+        }
+    }
+
+    func bumpCurrentUserAvatarDisplayRefresh() {
+        currentUserAvatarDisplayRefreshToken = UUID()
+    }
+
     /// Public URLs for a full-size avatar and its list thumbnail (see ``ImageCompression/UploadPreset-swift.enum.avatarThumbnail``).
     struct UploadedAvatarURLs: Sendable {
         let fullURL: String
@@ -39,7 +138,15 @@ extension MapViewModel {
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 venueOwnerEmail = ""
+                bumpCurrentUserAvatarDisplayRefresh()
+                clearFollowingTabCaches()
             }
+            if let session = try? await supabase.auth.session {
+                await MainActor.run { currentUserAuthId = session.user.id }
+            }
+
+            await ensureUserProfileExists()
+            await loadUserProfile()
         } catch {
             print("User registration failed:", error)
         }
@@ -66,13 +173,22 @@ extension MapViewModel {
                 venueOwnerEmail = ""
 
                 authErrorMessage = ""
+                bumpCurrentUserAvatarDisplayRefresh()
+                clearFollowingTabCaches()
             }
 
+            if let session = try? await supabase.auth.session {
+                await MainActor.run { currentUserAuthId = session.user.id }
+            }
+
+            await ensureUserProfileExists()
             await loadUserProfile()
             await loadFavoriteVenuesFromSupabase()
+            await refreshFollowingTabDataGlobally()
         } catch {
             await MainActor.run {
                 isLoggedIn = false
+                currentUserAuthId = nil
 
                 let message = error.localizedDescription.lowercased()
 
@@ -103,6 +219,9 @@ extension MapViewModel {
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 venueOwnerEmail = ""
+                bumpCurrentUserAvatarDisplayRefresh()
+                clearFollowingTabCaches()
+                currentUserAuthId = nil
             }
         } catch {
             print("Logout failed:", error)
@@ -123,8 +242,8 @@ extension MapViewModel {
     func restoreSession() async {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
-            currentUserAvatarURL = UserDefaults.standard.string(forKey: "cachedUserAvatarURL") ?? ""
-            currentUserAvatarThumbnailURL = UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL") ?? ""
+            currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
+            currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
         }
         do {
             let session = try await supabase.auth.session
@@ -135,20 +254,64 @@ extension MapViewModel {
                 isLoggedIn = !email.isEmpty
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                currentUserAuthId = session.user.id
             }
 
+            await ensureUserProfileExists()
             await loadUserProfile()
             await loadFavoriteVenuesFromSupabase()
+            await refreshFollowingTabDataGlobally()
 
             print("SESSION RESTORED:", email)
 
         } catch {
+            await MainActor.run { currentUserAuthId = nil }
             print("NO ACTIVE SESSION")
         }
     }
 
-    // Fetches the row for the current user or venue-owner email into `currentUserDisplayName` / `currentUserAvatarURL`.
+    // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).
     func loadUserProfile() async {
+        if let session = try? await supabase.auth.session {
+            let authId = session.user.id
+            do {
+                let rows: [UserProfileRow] = try await supabase
+                    .from("user_profiles")
+                    .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                    .eq("id", value: authId)
+                    .limit(1)
+                    .execute()
+                    .value
+
+                if let profile = rows.first {
+                    await MainActor.run {
+                        if let em = profile.email?.trimmingCharacters(in: .whitespacesAndNewlines), !em.isEmpty {
+                            currentUserEmail = em
+                        }
+                        currentUserDisplayName = profile.display_name ?? ""
+                        currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
+                        currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
+                        currentUserAuthId = authId
+                        cacheCurrentUserProfileLocally()
+                    }
+
+                    print("USER PROFILE LOADED")
+                } else {
+                    await MainActor.run {
+                        currentUserDisplayName = ""
+                        currentUserAvatarURL = ""
+                        currentUserAvatarThumbnailURL = ""
+                    }
+
+                    print("NO USER PROFILE FOUND")
+                }
+
+            } catch {
+                print("ERROR LOADING USER PROFILE:", error)
+            }
+            return
+        }
+
         let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
 
         guard !email.isEmpty else {
@@ -168,8 +331,8 @@ extension MapViewModel {
             if let profile = rows.first {
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
-                    currentUserAvatarURL = profile.avatar_url ?? ""
-                    currentUserAvatarThumbnailURL = profile.avatar_thumbnail_url ?? ""
+                    currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
+                    currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
                     cacheCurrentUserProfileLocally()
                 }
 
@@ -189,72 +352,121 @@ extension MapViewModel {
         }
     }
 
-    // Upserts `user_profiles` and mirrors the result into published fields and `UserDefaults` cache.
-    func saveUserProfile(displayName: String, avatarURL: String, avatarThumbnailURL: String? = nil) async {
-        let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
-
-        guard !email.isEmpty else {
-            print("NO USER EMAIL FOR PROFILE SAVE")
-            return
+    /// Upserts `user_profiles` keyed by authenticated user id. Returns `nil` on success, or a user-visible error string.
+    @discardableResult
+    func saveUserProfile(displayName: String, avatarURL: String, avatarThumbnailURL: String? = nil) async -> String? {
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+#if DEBUG
+            print("[ProfileSave] no authenticated session; skipping user_profiles upsert")
+#endif
+            return "You need to be signed in to save your profile."
         }
 
+        let authId = session.user.id
+        let emailFromSession = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let emailForRow: String
+        if !emailFromSession.isEmpty {
+            emailForRow = emailFromSession
+        } else {
+            let fallback = currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !fallback.isEmpty else {
+#if DEBUG
+                print("[ProfileSave] auth user id = \(authId)")
+                print("[ProfileSave] profile upsert id = \(authId)")
+                print("[ProfileSave] current email = (empty — cannot upsert user_profiles without email)")
+#endif
+                return "You need to be signed in to save your profile."
+            }
+            emailForRow = fallback
+        }
+
+#if DEBUG
+        print("[ProfileSave] auth user id = \(authId)")
+        print("[ProfileSave] profile upsert id = \(authId)")
+        print("[ProfileSave] current email = \(emailForRow)")
+#endif
+
+        if let cached = currentUserAuthId, cached != authId {
+#if DEBUG
+            print("[ProfileSave] warning: currentUserAuthId \(cached) differs from session \(authId); using session id")
+#endif
+        }
+        await MainActor.run { currentUserAuthId = authId }
+
         do {
+            let canonFull = ImageDisplayURL.canonicalStorageURLString(avatarURL)
+
             let resolvedThumb: String? = {
                 if let t = avatarThumbnailURL {
                     let x = t.trimmingCharacters(in: .whitespacesAndNewlines)
-                    return x.isEmpty ? nil : x
+                    guard !x.isEmpty else { return nil }
+                    let c = ImageDisplayURL.canonicalStorageURLString(x)
+                    return c.isEmpty ? nil : c
                 }
                 let x = currentUserAvatarThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
-                return x.isEmpty ? nil : x
+                guard !x.isEmpty else { return nil }
+                let c = ImageDisplayURL.canonicalStorageURLString(x)
+                return c.isEmpty ? nil : c
             }()
 
             let profile = UserProfileInsert(
-                email: email,
+                id: authId,
+                email: emailForRow,
                 display_name: displayName,
-                avatar_url: avatarURL,
+                avatar_url: canonFull,
                 avatar_thumbnail_url: resolvedThumb
             )
 
             try await supabase
                 .from("user_profiles")
-                .upsert(profile, onConflict: "email")
+                .upsert(profile, onConflict: "id")
                 .execute()
 
             await MainActor.run {
+                if currentUserEmail != emailForRow {
+                    currentUserEmail = emailForRow
+                }
                 currentUserDisplayName = displayName
-                currentUserAvatarURL = avatarURL
+                currentUserAvatarURL = canonFull
                 currentUserAvatarThumbnailURL = resolvedThumb ?? ""
                 cacheCurrentUserProfileLocally()
+                bumpCurrentUserAvatarDisplayRefresh()
             }
 
             print("USER PROFILE SAVED")
+            return nil
 
         } catch {
             print("ERROR SAVING USER PROFILE:", error)
+            return "Couldn’t save your profile. Please try again."
         }
     }
 
-    /// Uploads full + thumbnail JPEGs to `user-avatars` (stable paths per email folder).
+    /// Uploads full + thumbnail JPEGs to `user-avatars` under `{auth_user_uuid}/` (RLS: first path segment must equal `auth.uid()`).
     func uploadUserAvatar(data: Data, fileName: String) async -> UploadedAvatarURLs? {
-        let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
-
-        guard !email.isEmpty else {
-            print("NO USER EMAIL FOR AVATAR UPLOAD")
-            return nil
-        }
-
         do {
-            let safeEmail = email
-                .lowercased()
-                .replacingOccurrences(of: "@", with: "_")
-                .replacingOccurrences(of: ".", with: "_")
+            let session = try await supabase.auth.session
+            let authUserId = session.user.id
+#if DEBUG
+            print("[ProfileSave] auth user id = \(authUserId) (avatar storage path prefix)")
+#endif
+            let folder = authUserId.uuidString.lowercased()
 
-            let pathFull = "\(safeEmail)/\(fileName)"
-            let thumbName = Self.companionAvatarThumbnailFileName(for: fileName)
-            let pathThumb = "\(safeEmail)/\(thumbName)"
+            let normalizedFileName = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalizedFileName.isEmpty else {
+                print("INVALID AVATAR FILE NAME")
+                return nil
+            }
 
-            let oldFull = currentUserAvatarURL
-            let oldThumb = currentUserAvatarThumbnailURL
+            let pathFull = "\(folder)/\(normalizedFileName)"
+            let thumbName = Self.companionAvatarThumbnailFileName(for: normalizedFileName)
+            let pathThumb = "\(folder)/\(thumbName)"
+
+            let oldFull = ImageDisplayURL.canonicalStorageURLString(currentUserAvatarURL)
+            let oldThumb = ImageDisplayURL.canonicalStorageURLString(currentUserAvatarThumbnailURL)
 
             let uploadFull = ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
             let uploadThumb = ImageCompression.jpegDataForUpload(from: data, preset: .avatarThumbnail)
@@ -288,16 +500,17 @@ extension MapViewModel {
                 .from("user-avatars")
                 .getPublicURL(path: pathThumb)
 
-            let fullStr = publicFull.absoluteString
-            let thumbStr = publicThumb.absoluteString
+            let fullStr = ImageDisplayURL.canonicalStorageURLString(publicFull.absoluteString)
+            let thumbStr = ImageDisplayURL.canonicalStorageURLString(publicThumb.absoluteString)
 
-            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldFull, newPublicURL: fullStr, bucket: "user-avatars")
-            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldThumb, newPublicURL: thumbStr, bucket: "user-avatars")
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldFull.isEmpty ? nil : oldFull, newPublicURL: fullStr, bucket: "user-avatars")
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldThumb.isEmpty ? nil : oldThumb, newPublicURL: thumbStr, bucket: "user-avatars")
 
             return UploadedAvatarURLs(fullURL: fullStr, thumbnailURL: thumbStr)
 
         } catch {
             print("ERROR UPLOADING USER AVATAR:", error)
+            print("hint: Require a signed-in Supabase session with a user id; path must be user-avatars/{auth.uid}/… and Storage RLS must allow that folder.")
             return nil
         }
     }

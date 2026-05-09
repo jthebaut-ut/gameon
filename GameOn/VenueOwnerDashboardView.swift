@@ -1208,7 +1208,7 @@ struct VenueOwnerDashboardView: View {
             clearManageGamesBanners()
         }
 
-        let err = await viewModel.saveVenueGameListingAsync(
+        let result = await viewModel.saveVenueGameListingAsync(
             gameTitle: trimmedTitle,
             sport: viewModel.ownerVenuePrimarySport,
             gameDate: gameDate,
@@ -1229,10 +1229,11 @@ struct VenueOwnerDashboardView: View {
 
         await MainActor.run {
             isSavingNewGame = false
-            if let err {
-                manageGamesError = err
+            switch result {
+            case .failure(let err):
+                manageGamesError = err.localizedDescription
                 manageGamesFeedback = ""
-            } else {
+            case .success:
                 manageGamesError = ""
                 manageGamesFeedback = "Game created."
                 resetAddGameFormAfterSave()
@@ -1240,7 +1241,7 @@ struct VenueOwnerDashboardView: View {
             }
         }
 
-        if err == nil {
+        if case .success = result {
             await refreshManageGamesList(isInitialPick: false)
         }
     }
@@ -1967,31 +1968,3 @@ private struct VenueOwnerGameAnalyticsCard: View {
     }
 }
 
-struct VenueFeatureIcon: View {
-    let systemName: String
-    let title: String
-    let enabled: Bool
-
-    var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Image(systemName: systemName)
-                    .font(.title2)
-                    .foregroundStyle(enabled ? .green : .gray)
-
-                if !enabled {
-                    Image(systemName: "slash.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .offset(x: 12, y: -12)
-                }
-            }
-
-            Text(title)
-                .font(.caption2)
-                .fontWeight(.semibold)
-                .multilineTextAlignment(.center)
-        }
-        .frame(width: 72)
-    }
-}

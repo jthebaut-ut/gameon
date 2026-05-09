@@ -156,7 +156,95 @@ extension MapViewModel {
         events = next
     }
 
+    /// After a venue owner inserts a game, patch in-memory Discover/calendar/map state so the new listing appears without waiting for the next full fetch.
+    func applyCreatedVenueEventLocally(_ row: VenueEventRow) {
+        if let id = row.id {
+            venueEventRows.removeAll { $0.id == id }
+        }
+        venueEventRows.append(row)
+
+        rebuildVenueEventIDsByKey(from: venueEventRows)
+        mergeVenueSliceIntoEvents(venueRows: venueEventRows)
+
+        if let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines),
+           let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !venueName.isEmpty,
+           !title.isEmpty {
+            bars = bars.map { bar in
+                guard bar.name.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(venueName) == .orderedSame else {
+                    return bar
+                }
+                if bar.games.contains(title) { return bar }
+                var nextGames = bar.games
+                nextGames.append(title)
+                nextGames.sort { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+                return BarVenue(
+                    id: bar.id,
+                    name: bar.name,
+                    address: bar.address,
+                    phone: bar.phone,
+                    primarySport: bar.primarySport,
+                    distance: bar.distance,
+                    rating: bar.rating,
+                    tags: bar.tags,
+                    games: nextGames,
+                    coordinate: bar.coordinate,
+                    goingCounts: bar.goingCounts,
+                    screenCount: bar.screenCount,
+                    servesFood: bar.servesFood,
+                    hasWifi: bar.hasWifi,
+                    hasGarden: bar.hasGarden,
+                    hasProjector: bar.hasProjector,
+                    petFriendly: bar.petFriendly,
+                    coverPhotoURL: bar.coverPhotoURL,
+                    menuPhotoURL: bar.menuPhotoURL,
+                    coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,
+                    menuPhotoThumbnailURL: bar.menuPhotoThumbnailURL,
+                    ownerEmail: bar.ownerEmail
+                )
+            }
+        }
+
+        discoverVenueEventsFetchCache = nil
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+
+        recomputeCalendarDotDates()
+        pruneSelectionIfNeededAfterFilterChange()
+
+        #if DEBUG
+        let dateStr = row.event_date ?? "?"
+        let titleStr = row.event_title ?? "?"
+        let idStr = row.id?.uuidString ?? "nil"
+        print("[VenueGameSave] inserted local row id=\(idStr) date=\(dateStr) title=\(titleStr)")
+        print("[VenueGameSave] recomputed calendar dots count=\(calendarDotDates.count)")
+        print("[VenueGameSave] cleared discover venue-event cache")
+        #endif
+    }
+
     /// Venue rows in the current map bounds (shared by map reload and schedule hydration).
+    /// Single venue by id (for Following → Discover when the venue is outside the current map bounds query).
+    func fetchBarVenueByIdFromSupabase(id: UUID) async -> BarVenue? {
+        do {
+            let rows: [VenueRow] = try await supabase
+                .from("venues")
+                .select(discoverVenueRowSelectColumns)
+                .eq("id", value: id)
+                .limit(1)
+                .execute()
+                .value
+
+            guard let row = rows.first else { return nil }
+            let (mapped, _) = DiscoverVenueLoadAssembler.buildMappedBars(venueRows: [row], fetchedVenueEventRows: [])
+            return mapped.first
+        } catch {
+#if DEBUG
+            print("[FollowingNav] fetchBarVenueByIdFromSupabase failed id=\(id):", error)
+#endif
+            return nil
+        }
+    }
+
     func fetchVenueRowsInCurrentBounds(limit: Int = 200) async throws -> [VenueRow] {
         guard let bounds = currentMapRegionBounds() else { return [] }
         return try await supabase

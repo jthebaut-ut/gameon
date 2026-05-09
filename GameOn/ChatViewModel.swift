@@ -10,7 +10,10 @@ final class ChatViewModel: ObservableObject {
     /// Compact friendship state for comment rows (and similar surfaces). Absence in ``friendshipChipByOtherUserId`` means treat as stranger → Add Friend.
     enum FriendshipChipKind: Equatable {
         case addFriend
-        case pending
+        /// Viewer sent a request to this user (show “Requested”).
+        case pendingOutgoing
+        /// This user sent the viewer a request (show inbox-style hint; not “Requested”).
+        case pendingIncoming
         case friends
     }
 
@@ -658,7 +661,7 @@ final class ChatViewModel: ObservableObject {
             return
         }
         let previous = friendshipChipByOtherUserId[addresseeId]
-        friendshipChipByOtherUserId[addresseeId] = .pending
+        friendshipChipByOtherUserId[addresseeId] = .pendingOutgoing
         do {
             let me = try await service.currentUserId()
             try await service.sendFriendRequest(requesterId: me, addresseeId: addresseeId)
@@ -693,13 +696,13 @@ final class ChatViewModel: ObservableObject {
         for row in outgoingPending {
             let other = row.addressee_id
             if next[other] != .friends {
-                next[other] = .pending
+                next[other] = .pendingOutgoing
             }
         }
         for row in incomingPending {
             let other = row.requester_id
-            if next[other] != .friends {
-                next[other] = .pending
+            if next[other] != .friends, next[other] != .pendingOutgoing {
+                next[other] = .pendingIncoming
             }
         }
         friendshipChipByOtherUserId = next

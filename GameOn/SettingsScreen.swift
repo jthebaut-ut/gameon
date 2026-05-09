@@ -970,7 +970,12 @@ private struct SettingsProfileHero: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle().fill(Color.white.opacity(0.10))
-                if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
+                if let urlString = ImageDisplayURL.forListDisplay(
+                    thumbnail: viewModel.currentUserAvatarThumbnailURL,
+                    full: viewModel.currentUserAvatarURL,
+                    refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
+                ),
+                   let url = URL(string: urlString) {
                     AsyncImage(url: url) { image in
                         image.resizable().scaledToFill()
                     } placeholder: {
@@ -1829,7 +1834,7 @@ private struct SettingsProfileButton: View {
             showProfileScreen = true
         } label: {
             HStack {
-                SettingsAccountProfileImage(avatarURLString: viewModel.currentUserAvatarURL)
+                SettingsAccountProfileImage(viewModel: viewModel)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("My Profile")
@@ -1859,12 +1864,16 @@ private struct SettingsProfileButton: View {
 }
 
 private struct SettingsAccountProfileImage: View {
-    let avatarURLString: String
+    @ObservedObject var viewModel: MapViewModel
 
     var body: some View {
         Group {
-            if let url = URL(string: avatarURLString),
-               !avatarURLString.isEmpty {
+            if let urlString = ImageDisplayURL.forListDisplay(
+                thumbnail: viewModel.currentUserAvatarThumbnailURL,
+                full: viewModel.currentUserAvatarURL,
+                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
+            ),
+               let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()

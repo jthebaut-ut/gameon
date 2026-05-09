@@ -98,11 +98,15 @@ extension MapViewModel {
             goingUserProfiles = []
             goingProfilesByVenueEventID = [:]
             isLoggedIn = false
+            currentUserAuthId = nil
+
+            bumpCurrentUserAvatarDisplayRefresh()
 
             favoriteVenueIDs = []
             interestedVenueEventKeys = []
             venueEventInterestIDs = []
             venueEventInterestCounts = [:]
+            clearFollowingTabCaches()
             myVenueEventVibes = [:]
             userProfilesByEmail = [:]
 

@@ -79,11 +79,11 @@ extension MapViewModel {
         bars.filter { !matchingEventsForDiscoverFilter(bar: $0).isEmpty }
     }
 
-    /// Clears map preview selection when the venue no longer matches filters (date, sport, search).
+    /// Clears map preview selection when the venue is no longer present in loaded map data (e.g. region reload).
+    /// Keeps ``selectedBar`` when the venue still exists in ``bars`` but has no games for the current date/sport filter (e.g. Following → saved venue).
     func pruneSelectionIfNeededAfterFilterChange() {
         guard let bar = selectedBar else { return }
-        let stillVisible = filteredBars.contains { $0.id == bar.id }
-        if !stillVisible {
+        if !bars.contains(where: { $0.id == bar.id }) {
             selectedBar = nil
             selectedEvent = nil
         }

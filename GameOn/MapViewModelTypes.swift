@@ -175,8 +175,20 @@ struct UserProfileRow: Decodable {
 }
 
 struct UserProfileInsert: Encodable {
+    /// Must equal `auth.users.id` (`user_profiles_id_fkey`).
+    let id: UUID
     let email: String
     let display_name: String
+    let avatar_url: String
+    let avatar_thumbnail_url: String?
+}
+
+/// Initial `user_profiles` row when auth exists but no row yet (`insert` only — never random `id`).
+struct UserProfileBootstrapInsert: Encodable {
+    let id: UUID
+    let email: String
+    let display_name: String
+    /// Empty string when the column is `NOT NULL` and no asset yet.
     let avatar_url: String
     let avatar_thumbnail_url: String?
 }
@@ -190,6 +202,16 @@ struct FavoriteVenueRow: Decodable {
 struct FavoriteVenueInsert: Encodable {
     let user_email: String
     let venue_id: UUID
+}
+
+/// One row in the Following tab “I’m Going” list (global fetch; not tied to Discover map region).
+struct FollowingGoingDisplayItem: Identifiable {
+    let id: UUID
+    let venueEvent: VenueEventRow
+    let bar: BarVenue
+    let attendeeCount: Int
+    /// `true` when the user has a `venue_event_interests` row; `false` when only tracked locally as Interested.
+    let isServerGoing: Bool
 }
 
 struct VenueEventCommentRow: Decodable, Identifiable {

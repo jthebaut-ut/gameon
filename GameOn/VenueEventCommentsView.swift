@@ -40,6 +40,13 @@ struct VenueEventCommentsView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
+                        if !viewModel.isLoggedIn, !comments.isEmpty {
+                            Text("Sign in to add friends and see friendship status on updates.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
                         if comments.isEmpty {
                             Text("No updates yet. Be the first to share audio, crowd, or seating info.")
                                 .font(.caption)
@@ -188,7 +195,7 @@ struct VenueEventCommentsView: View {
 
                     Spacer(minLength: 8)
 
-                    // Report / friend chip / delete — keep intrinsic width so the Add Friend chip is never squeezed to zero.
+                    // Trailing: report (others) → Add Friend / status (others) → delete (self, rightmost).
                     HStack(spacing: 8) {
                         if let email = comment.user_email,
                            !isAuthoredByCurrentUser(email: email),
@@ -383,9 +390,10 @@ struct VenueEventCommentsView: View {
 
         let avatarURL: String = {
             if isAuthoredByCurrentUser(email: email) {
-                return ImageDisplayURL.forList(
+                return ImageDisplayURL.forListDisplay(
                     thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                    full: viewModel.currentUserAvatarURL
+                    full: viewModel.currentUserAvatarURL,
+                    refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
                 ) ?? ""
             }
 

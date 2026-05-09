@@ -166,29 +166,8 @@ struct VenueDetailView: View {
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Venue Features")
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ],
-                        spacing: 18
-                    ) {
-                        VenueFeatureIcon(systemName: "tv.fill", title: "14 Screens", enabled: true)
-                        VenueFeatureIcon(systemName: "projector.fill", title: "Projector", enabled: false)
-                        VenueFeatureIcon(systemName: "wifi", title: "WiFi", enabled: true)
-                        VenueFeatureIcon(systemName: "tree.fill", title: "Garden", enabled: false)
-                        VenueFeatureIcon(systemName: "video.fill", title: "Projector", enabled: false)
-                        VenueFeatureIcon(systemName: "pawprint.fill", title: "Pet Friendly", enabled: true)
-                    }
-                    .padding()
-                    .background(Color.gray.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
+                VStack(alignment: .leading, spacing: 12) {
+                    VenuePublicFeaturesCard(bar: bar)
                     FlowTags(tags: bar.tags)
                 }
             }

@@ -22,6 +22,8 @@ final class MapViewModel: ObservableObject {
     @Published var selectedTimeZone: TimeZoneOption = .mountain
     @Published var isLoggedIn: Bool = false
     @Published var currentUserEmail: String = ""
+    /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
+    @Published var currentUserAuthId: UUID?
     @Published var venueOwnerMode: Bool = false
     @Published var ownerVenueName: String = ""
     @Published var ownerVenueAddress: String = ""
@@ -110,16 +112,31 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserDisplayName: String = ""
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
+    /// Bumped after avatar profile save (and related clears) so UI uses a new `?v=` display URL while stored URLs stay canonical.
+    @Published var currentUserAvatarDisplayRefreshToken: UUID = UUID()
     @Published var goingUserProfiles: [UserProfileRow] = []
     @Published var venueSearchResults: [BarVenue] = []
     /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).
     @Published var discoverNavigateToAccountForUserAuth: Bool = false
     /// Following → Saved Venues: Discover tab consumes this to focus the map (see ``MapViewModel+FollowingMapNavigation``).
     @Published var pendingFollowingMapVenueID: UUID?
+    /// Venue snapshot from Following so navigation works when ``bars`` does not yet include this id (map region elsewhere).
+    @Published var pendingFollowingMapVenueSnapshot: BarVenue?
     /// Brief user-visible hint when opening a saved venue on the map fails (geocode / missing row).
     @Published var followingMapNavigationMessage: String?
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
+
+    // MARK: - Following tab (global; independent of Discover map region)
+
+    /// Saved venues resolved from `favorite_venues` + `venues` by id (not filtered through ``bars``).
+    @Published var followingTabSavedVenues: [BarVenue] = []
+    /// Games the user is going / interested in, loaded from Supabase + venue rows, independent of ``venueEventRows``.
+    @Published var followingTabGoingItems: [FollowingGoingDisplayItem] = []
+    /// Going / interest counts for ``followingTabGoingItems`` ids only (does not depend on map-visible interest fetch).
+    @Published var followingTabGoingInterestCounts: [UUID: Int] = [:]
+    /// All `venue_event_interests` rows for the current user (global), for Following attendance UI.
+    @Published var followingTabUserVenueEventInterestIDs: Set<UUID> = []
 
     // MARK: - Venue owner analytics (realtime)
 

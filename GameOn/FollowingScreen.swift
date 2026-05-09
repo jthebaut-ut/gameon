@@ -8,45 +8,6 @@ struct FollowingScreen: View {
     /// Venue events the user marked "Interested" from Following without a Supabase row (table has no status column).
     @AppStorage("gameon.following.interestedOnlyVenueEventIDs") private var interestedOnlyEncoded: String = ""
 
-    var favoriteVenues: [BarVenue] {
-        guard viewModel.isLoggedIn else { return [] }
-        return viewModel.bars.filter {
-            viewModel.favoriteVenueIDs.contains($0.id)
-        }
-    }
-
-    /// Games tracked on Following: Supabase "Going" plus locally stored "Interested" rows.
-    private var attendancePlans: [FollowingAttendancePlan] {
-        guard viewModel.isLoggedIn else { return [] }
-        let localInterested = decodeInterestedOnlyUUIDs(from: interestedOnlyEncoded)
-        var plans: [FollowingAttendancePlan] = []
-
-        for row in viewModel.venueEventRows {
-            guard let id = row.id, let title = row.event_title else { continue }
-
-            let serverGoing = viewModel.isInterestedInVenueEvent(id)
-            let localInterestedOnly = localInterested.contains(id)
-            guard serverGoing || localInterestedOnly else { continue }
-
-            guard let bar = barMatchingVenueEvent(row: row, gameTitle: title) else { continue }
-
-            let count = viewModel.venueEventInterestCounts[id] ?? 0
-            plans.append(
-                FollowingAttendancePlan(
-                    id: id,
-                    bar: bar,
-                    gameTitle: title,
-                    date: row.event_date ?? "Date TBD",
-                    time: row.event_time ?? "Time TBD",
-                    attendeeCount: count,
-                    isServerGoing: serverGoing
-                )
-            )
-        }
-
-        return plans
-    }
-
     var body: some View {
         ZStack {
             Color.black.opacity(0.94)
@@ -57,6 +18,10 @@ struct FollowingScreen: View {
             } else {
                 loggedOutContent
             }
+        }
+        .onAppear {
+            guard viewModel.isLoggedIn else { return }
+            Task { await viewModel.refreshFollowingTabDataGlobally() }
         }
         .onChange(of: viewModel.isLoggedIn) { _, isLoggedIn in
             if isLoggedIn {
@@ -143,7 +108,7 @@ struct FollowingScreen: View {
 
                 sectionTitle("I’m Going")
 
-                if attendancePlans.isEmpty {
+                if viewModel.followingTabGoingItems.isEmpty {
                     emptyCard(
                         icon: "person.badge.plus",
                         title: "No plans yet",
@@ -151,15 +116,15 @@ struct FollowingScreen: View {
                     )
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(attendancePlans) { plan in
-                            goingPlanCard(plan)
+                        ForEach(viewModel.followingTabGoingItems) { item in
+                            goingPlanCard(item)
                         }
                     }
                 }
 
                 sectionTitle("Saved Venues")
 
-                if favoriteVenues.isEmpty {
+                if viewModel.followingTabSavedVenues.isEmpty {
                     emptyCard(
                         icon: "heart",
                         title: "No saved venues yet",
@@ -167,7 +132,7 @@ struct FollowingScreen: View {
                     )
                 } else {
                     VStack(spacing: 12) {
-                        ForEach(favoriteVenues) { bar in
+                        ForEach(viewModel.followingTabSavedVenues) { bar in
                             venueCard(bar)
                         }
                     }
@@ -177,19 +142,22 @@ struct FollowingScreen: View {
             .padding(.horizontal)
             .padding(.bottom, 110)
         }
+        .refreshable {
+            await viewModel.refreshFollowingTabDataGlobally()
+        }
     }
 
     // MARK: - Session / cache (Following tab only)
 
     private func clearFollowingUserSpecificState() {
+        viewModel.clearFollowingTabCaches()
         viewModel.favoriteVenueIDs = []
         viewModel.venueEventInterestIDs = []
         viewModel.interestedVenueEventKeys = []
     }
 
     private func reloadFollowingDataForCurrentUser() async {
-        await viewModel.loadFavoriteVenuesFromSupabase()
-        await viewModel.loadVisibleVenueEventInterests()
+        await viewModel.refreshFollowingTabDataGlobally()
     }
 
     // MARK: - Attendance actions
@@ -205,28 +173,28 @@ struct FollowingScreen: View {
     }
 
     @MainActor
-    private func applyAttendance(_ plan: FollowingAttendancePlan, target: FollowingAttendanceTarget) async {
+    private func applyAttendance(_ item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) async {
         guard viewModel.isLoggedIn else { return }
 
         let localInterested = decodeInterestedOnlyUUIDs(from: interestedOnlyEncoded)
 
         switch target {
         case .going:
-            if plan.isServerGoing, !localInterested.contains(plan.id) { return }
-            setInterestedOnlyLocally(plan.id, false)
-            await viewModel.markInterestedInVenueEvent(venueEventID: plan.id)
+            if item.isServerGoing, !localInterested.contains(item.id) { return }
+            setInterestedOnlyLocally(item.id, false)
+            await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: false)
         case .interested:
-            if !plan.isServerGoing, localInterested.contains(plan.id) { return }
-            await viewModel.removeInterestInVenueEvent(venueEventID: plan.id)
-            setInterestedOnlyLocally(plan.id, true)
+            if !item.isServerGoing, localInterested.contains(item.id) { return }
+            await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            setInterestedOnlyLocally(item.id, true)
         case .notGoing:
-            if !plan.isServerGoing, !localInterested.contains(plan.id) { return }
-            await viewModel.removeInterestInVenueEvent(venueEventID: plan.id)
-            setInterestedOnlyLocally(plan.id, false)
+            if !item.isServerGoing, !localInterested.contains(item.id) { return }
+            await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            setInterestedOnlyLocally(item.id, false)
         }
 
-        await viewModel.loadVisibleVenueEventInterests()
-        await viewModel.loadGoingUserProfiles(for: plan.id)
+        await viewModel.refreshFollowingTabDataGlobally()
+        await viewModel.loadGoingUserProfiles(for: item.id)
     }
 
     // MARK: - Shared UI pieces
@@ -259,10 +227,12 @@ struct FollowingScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
-    private func goingPlanCard(_ plan: FollowingAttendancePlan) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func goingPlanCard(_ item: FollowingGoingDisplayItem) -> some View {
+        let title = item.venueEvent.event_title ?? "Event"
+
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 10) {
-                Text(plan.gameTitle)
+                Text(title)
                     .font(.headline)
                     .fontWeight(.bold)
                     .foregroundStyle(.primary)
@@ -270,27 +240,29 @@ struct FollowingScreen: View {
 
                 Spacer(minLength: 8)
 
-                attendanceMenu(plan: plan)
+                attendanceMenu(item: item)
             }
 
-            if !plan.date.isEmpty || !plan.time.isEmpty {
-                Text([plan.date, plan.time].filter { !$0.isEmpty }.joined(separator: " · "))
+            let datePart = item.venueEvent.event_date ?? ""
+            let timePart = item.venueEvent.event_time ?? ""
+            if !datePart.isEmpty || !timePart.isEmpty {
+                Text([datePart, timePart].filter { !$0.isEmpty }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Text(plan.bar.name)
+            Text(item.bar.name)
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .foregroundStyle(.primary)
 
-            Text(plan.bar.address)
+            Text(item.bar.address)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                GoingAvatarStack(profiles: viewModel.goingProfiles(for: plan.id))
-                Label("\(plan.attendeeCount) people interested / going", systemImage: "person.3.fill")
+                GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id))
+                Label("\(item.attendeeCount) people interested / going", systemImage: "person.3.fill")
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(.green)
@@ -300,45 +272,45 @@ struct FollowingScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .task(id: plan.id) {
+        .task(id: item.id) {
             guard viewModel.isLoggedIn else { return }
-            await viewModel.loadGoingUserProfiles(for: plan.id)
+            await viewModel.loadGoingUserProfiles(for: item.id)
         }
     }
 
     @ViewBuilder
-    private func attendanceMenu(plan: FollowingAttendancePlan) -> some View {
+    private func attendanceMenu(item: FollowingGoingDisplayItem) -> some View {
         if viewModel.isLoggedIn {
             Menu {
                 Button {
-                    Task { await applyAttendance(plan, target: .going) }
+                    Task { await applyAttendance(item, target: .going) }
                 } label: {
                     Label("Going ✅", systemImage: "checkmark.circle.fill")
                 }
 
                 Button {
-                    Task { await applyAttendance(plan, target: .interested) }
+                    Task { await applyAttendance(item, target: .interested) }
                 } label: {
                     Label("Interested 👀", systemImage: "eye")
                 }
 
                 Button(role: .destructive) {
-                    Task { await applyAttendance(plan, target: .notGoing) }
+                    Task { await applyAttendance(item, target: .notGoing) }
                 } label: {
                     Label("Not going ❌", systemImage: "xmark.circle")
                 }
             } label: {
-                attendancePill(plan: plan)
+                attendancePill(item: item)
             }
             .buttonStyle(.plain)
         } else {
-            attendancePill(plan: plan)
+            attendancePill(item: item)
                 .opacity(0.45)
         }
     }
 
-    private func attendancePill(plan: FollowingAttendancePlan) -> some View {
-        let isGoing = plan.isServerGoing
+    private func attendancePill(item: FollowingGoingDisplayItem) -> some View {
+        let isGoing = item.isServerGoing
         return HStack(spacing: 6) {
             Text(isGoing ? "Going" : "Interested")
                 .font(.caption)
@@ -429,33 +401,6 @@ struct FollowingScreen: View {
             }
         }
     }
-
-    // MARK: - Venue row matching (mirrors ``MapViewModel/interestedPlans()``)
-
-    private func barMatchingVenueEvent(row: VenueEventRow, gameTitle: String) -> BarVenue? {
-        viewModel.bars.first { bar in
-            if let venueName = row.venue_name, bar.name == venueName {
-                return true
-            }
-            if bar.games.contains(gameTitle) {
-                return true
-            }
-            return false
-        }
-    }
-}
-
-// MARK: - Following attendance models (file-local)
-
-private struct FollowingAttendancePlan: Identifiable {
-    let id: UUID
-    let bar: BarVenue
-    let gameTitle: String
-    let date: String
-    let time: String
-    let attendeeCount: Int
-    /// `true` when the signed-in user has a `venue_event_interests` row (Going). `false` when only locally tracked as Interested.
-    let isServerGoing: Bool
 }
 
 private enum FollowingAttendanceTarget {

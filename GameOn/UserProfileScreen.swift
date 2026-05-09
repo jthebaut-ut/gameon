@@ -140,9 +140,10 @@ struct UserProfileScreen: View {
     private var profileAvatar: some View {
         ZStack {
             Circle().fill(Color.gray.opacity(0.18))
-            if let urlString = ImageDisplayURL.forDetail(
+            if let urlString = ImageDisplayURL.forDetailDisplay(
                 thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                full: viewModel.currentUserAvatarURL
+                full: viewModel.currentUserAvatarURL,
+                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
             ),
                let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in
@@ -171,11 +172,14 @@ struct UserProfileScreen: View {
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
-        await viewModel.saveUserProfile(
+        if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: viewModel.currentUserAvatarURL,
             avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL
-        )
+        ) {
+            await MainActor.run { message = err }
+            return
+        }
         await MainActor.run { message = "Saved." }
         onDone()
     }
@@ -201,11 +205,14 @@ struct UserProfileScreen: View {
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
-        await viewModel.saveUserProfile(
+        if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: urls.fullURL,
             avatarThumbnailURL: urls.thumbnailURL
-        )
+        ) {
+            await MainActor.run { message = err }
+            return
+        }
         await MainActor.run { message = "Avatar updated." }
     }
 }

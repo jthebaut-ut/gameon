@@ -7,7 +7,7 @@ extension MapViewModel {
         !currentUserEmail.isEmpty || !venueOwnerEmail.isEmpty
     }
 
-    func markInterestedInVenueEvent(venueEventID: UUID) async {
+    func markInterestedInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
         let session = try? await supabase.auth.session
         let interestEmail = session?.user.email ?? ""
 
@@ -35,6 +35,10 @@ extension MapViewModel {
                 venueEventInterestCounts[venueEventID, default: 0] += 1
             }
 
+            if refreshFollowing {
+                await refreshFollowingTabDataGlobally()
+            }
+
             print("INTEREST SAVED")
 
         } catch {
@@ -42,7 +46,7 @@ extension MapViewModel {
         }
     }
 
-    func removeInterestInVenueEvent(venueEventID: UUID) async {
+    func removeInterestInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
         let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
         guard !interestEmail.isEmpty else { return }
 
@@ -57,6 +61,10 @@ extension MapViewModel {
             await MainActor.run {
                 venueEventInterestIDs.remove(venueEventID)
                 venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 1) - 1, 0)
+            }
+
+            if refreshFollowing {
+                await refreshFollowingTabDataGlobally()
             }
 
             print("INTEREST REMOVED")
