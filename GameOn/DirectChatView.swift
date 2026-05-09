@@ -478,20 +478,88 @@ struct DirectChatView: View {
         }
     }
 
-    private static let overflowMenuWidth: CGFloat = 305
-    private static let overflowMenuHeight: CGFloat = 132
-    private static let overflowMenuCornerRadius: CGFloat = 28
-    private static let overflowMenuTopPadding: CGFloat = 92
-    private static let overflowMenuTrailingPadding: CGFloat = 34
-    private static let overflowMenuTextHorizontalPadding: CGFloat = 44
-    private static let overflowMenuRowHeight: CGFloat = 66
-    private static let overflowMenuFontSize: CGFloat = 23
+    // Tuned to match Screenshot 2 (pre-recovery target).
+    private static let overflowMenuWidth: CGFloat = 244
+    private static let overflowMenuHeight: CGFloat = 112
+    private static let overflowMenuCornerRadius: CGFloat = 30
+    private static let overflowMenuTopPadding: CGFloat = 54
+    private static let overflowMenuTrailingPadding: CGFloat = 16
+    private static let overflowMenuTextHorizontalPadding: CGFloat = 16
+    private static let overflowMenuRowHeight: CGFloat = 56
+    private static let overflowMenuFontSize: CGFloat = 20
+
+    /// Adds specular highlights + subtle color refraction to create a "liquid glass" look.
+    private func liquidGlassBackground(cornerRadius: CGFloat) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return shape
+            .fill(.ultraThinMaterial)
+            .overlay(
+                // Specular highlight (top-left)
+                shape.fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.55),
+                            Color.white.opacity(0.16),
+                            Color.clear,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .blendMode(.screen)
+                .opacity(0.45)
+            )
+            .overlay(
+                // Subtle refraction tints (like Screenshot 2's soft color bloom)
+                shape.fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 1.0, green: 0.75, blue: 0.82).opacity(0.22),
+                            Color.clear,
+                        ],
+                        center: .topLeading,
+                        startRadius: 10,
+                        endRadius: 160
+                    )
+                )
+                .blendMode(.screen)
+            )
+            .overlay(
+                shape.fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.62, green: 0.86, blue: 1.0).opacity(0.18),
+                            Color.clear,
+                        ],
+                        center: .topTrailing,
+                        startRadius: 12,
+                        endRadius: 180
+                    )
+                )
+                .blendMode(.screen)
+            )
+            .overlay(
+                // Glass edge + slight inner contrast
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.35),
+                            Color.white.opacity(0.12),
+                            Color.black.opacity(0.06),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            )
+    }
 
     /// Fixed top-trailing placement (no centering, no full-width card). Light dim only; chat stays visible.
     private var chatOverflowChromeOverlay: some View {
         ZStack(alignment: .topTrailing) {
             Rectangle()
-                .fill(Color.white.opacity(0.02))
+                .fill(Color.clear)
             .ignoresSafeArea()
             .contentShape(Rectangle())
             .onTapGesture {
@@ -544,9 +612,9 @@ struct DirectChatView: View {
                 }
             }
             Rectangle()
-                .fill(Color.primary.opacity(0.02))
-                .frame(height: 0.5)
-                .padding(.horizontal, Self.overflowMenuTextHorizontalPadding)
+                .fill(Color.primary.opacity(0.0))
+                .frame(height: 0.0)
+                .padding(.horizontal, 30)
             overflowMenuActionRow(title: "Remove friend") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmRemoveFriend
@@ -556,8 +624,7 @@ struct DirectChatView: View {
         .padding(.vertical, 0)
         .frame(width: Self.overflowMenuWidth, height: Self.overflowMenuHeight, alignment: .top)
         .background {
-            RoundedRectangle(cornerRadius: Self.overflowMenuCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
+            liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
         }
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
         .accessibilityElement(children: .contain)
@@ -599,8 +666,7 @@ struct DirectChatView: View {
         .padding(.vertical, 16)
         .frame(width: Self.overflowMenuWidth, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: Self.overflowMenuCornerRadius, style: .continuous)
-                .fill(.ultraThinMaterial)
+            liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
         }
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
     }
@@ -610,8 +676,8 @@ struct DirectChatView: View {
             Text(title)
                 .font(.system(size: Self.overflowMenuFontSize, weight: .regular))
                 .foregroundStyle(Color.red.opacity(0.9))
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .center)
                 .frame(height: Self.overflowMenuRowHeight)
                 .padding(.horizontal, Self.overflowMenuTextHorizontalPadding)
                 .contentShape(Rectangle())

@@ -91,6 +91,16 @@ struct FriendsTabView: View {
     @ObservedObject var viewModel: ChatViewModel
     var isTabSelected: Bool
 
+    @State private var selectedSection: ChatSection = .friends
+    @State private var showingAddFriendSheet = false
+    @State private var manualFriendIdDraft: String = ""
+
+    private enum ChatSection: String, CaseIterable, Identifiable {
+        case friends = "Friends"
+        case requests = "Requests"
+        var id: String { rawValue }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -103,87 +113,53 @@ struct FriendsTabView: View {
                 } else if viewModel.isLoading && viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
                     ProgressView("Loading…")
                 } else {
-                    List {
-                        if !viewModel.friends.isEmpty {
-                            Section("Friends") {
-                                ForEach(viewModel.friends) { item in
-                                    NavigationLink {
-                                        DirectChatView(friend: item.preview)
-                                    } label: {
-                                        friendRow(item)
-                                    }
-                                }
+                    VStack(spacing: 12) {
+                        Picker("", selection: $selectedSection) {
+                            ForEach(ChatSection.allCases) { tab in
+                                Text(tab.rawValue).tag(tab)
                             }
                         }
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 4)
 
-                        if !viewModel.incomingRequests.isEmpty {
-                            Section("Requests") {
-                                ForEach(viewModel.incomingRequests) { item in
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack(spacing: 10) {
-                                            ProfileAvatarView(preview: item.requester, size: 40)
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(item.requester.displayName)
-                                                    .font(.subheadline.weight(.semibold))
-                                                Text("Wants to connect")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                        HStack(spacing: 10) {
-                                            Button("Accept") {
-                                                Task { await viewModel.accept(item) }
-                                            }
-                                            .buttonStyle(.borderedProminent)
-
-                                            Button("Decline") {
-                                                Task { await viewModel.reject(item) }
-                                            }
-                                            .buttonStyle(.bordered)
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
+                        Group {
+                            switch selectedSection {
+                            case .friends:
+                                friendsList
+                            case .requests:
+                                requestsList
                             }
                         }
-
-                        if !viewModel.outgoingRequests.isEmpty {
-                            Section("Sent") {
-                                ForEach(viewModel.outgoingRequests) { item in
-                                    HStack(spacing: 10) {
-                                        ProfileAvatarView(preview: item.addressee, size: 36)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(item.addressee.displayName)
-                                                .font(.subheadline.weight(.semibold))
-                                            Text("Pending")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        Spacer()
-                                        Button("Cancel") {
-                                            Task { await viewModel.cancel(item) }
-                                        }
-                                        .font(.caption.weight(.semibold))
-                                    }
-                                }
-                            }
-                        }
-
-                        if viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty && viewModel.outgoingRequests.isEmpty {
-                            ContentUnavailableView(
-                                "No conversations yet",
-                                systemImage: "bubble.left.and.bubble.right",
-                                description: Text("Accept a friend request or start chatting from a venue.")
-                            )
-                        }
-                    }
-                    .refreshable {
-                        await viewModel.refresh()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
             }
             .navigationTitle("Chat")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingAddFriendSheet = true
+                    } label: {
+                        Image(systemName: "person.badge.plus")
+                            .font(.system(size: 18, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .accessibilityLabel("Add friend")
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddFriendSheet) {
+            AddFriendGlassSheet(
+                manualId: $manualFriendIdDraft,
+                onClose: { showingAddFriendSheet = false },
+                onSend: { uuid in
+                    Task { await viewModel.sendFriendRequest(to: uuid) }
+                    showingAddFriendSheet = false
+                    manualFriendIdDraft = ""
+                }
+            )
         }
         .onChange(of: isTabSelected) { _, on in
             viewModel.setInboxRealtimeEnabled(on)
@@ -198,6 +174,63 @@ struct FriendsTabView: View {
         }
         .onDisappear {
             viewModel.setInboxRealtimeEnabled(false)
+        }
+    }
+
+    private var friendsList: some View {
+        Group {
+            if viewModel.friends.isEmpty {
+                ContentUnavailableView(
+                    "No conversations yet",
+                    systemImage: "bubble.left.and.bubble.right",
+                    description: Text("Accept a friend request or start chatting from a venue.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    ForEach(viewModel.friends) { item in
+                        NavigationLink {
+                            DirectChatView(friend: item.preview)
+                        } label: {
+                            friendRow(item)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .refreshable { await viewModel.refreshInboxSummaries() }
+            }
+        }
+    }
+
+    private var requestsList: some View {
+        Group {
+            if viewModel.incomingRequests.isEmpty && viewModel.outgoingRequests.isEmpty {
+                ContentUnavailableView(
+                    "No pending requests",
+                    systemImage: "person.2",
+                    description: Text("When someone adds you, it will show up here.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                List {
+                    if !viewModel.incomingRequests.isEmpty {
+                        Section("Requests") {
+                            ForEach(viewModel.incomingRequests) { item in
+                                requestRowIncoming(item)
+                            }
+                        }
+                    }
+                    if !viewModel.outgoingRequests.isEmpty {
+                        Section("Sent") {
+                            ForEach(viewModel.outgoingRequests) { item in
+                                requestRowOutgoing(item)
+                            }
+                        }
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .refreshable { await viewModel.refresh() }
+            }
         }
     }
 
@@ -220,7 +253,174 @@ struct FriendsTabView: View {
                 }
             }
             Spacer(minLength: 0)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(Self.inboxTimeLabel(item.lastMessageAt))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary.opacity(0.65))
+            }
         }
         .padding(.vertical, 2)
+    }
+
+    private func requestRowIncoming(_ item: ChatViewModel.IncomingRequestDisplay) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                ProfileAvatarView(preview: item.requester, size: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.requester.displayName)
+                        .font(.subheadline.weight(.semibold))
+                    Text("Wants to connect")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(spacing: 10) {
+                Button("Accept") { Task { await viewModel.accept(item) } }
+                    .buttonStyle(.borderedProminent)
+                Button("Decline") { Task { await viewModel.reject(item) } }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func requestRowOutgoing(_ item: ChatViewModel.OutgoingRequestDisplay) -> some View {
+        HStack(spacing: 10) {
+            ProfileAvatarView(preview: item.addressee, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.addressee.displayName)
+                    .font(.subheadline.weight(.semibold))
+                Text("Pending")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button("Cancel") { Task { await viewModel.cancel(item) } }
+                .font(.caption.weight(.semibold))
+        }
+        .padding(.vertical, 4)
+    }
+
+    private static func inboxTimeLabel(_ date: Date?) -> String {
+        guard let date else { return "" }
+        let cal = Calendar.current
+        if cal.isDateInToday(date) {
+            let df = DateFormatter()
+            df.timeStyle = .short
+            df.dateStyle = .none
+            return df.string(from: date)
+        }
+        if cal.isDateInYesterday(date) { return "Yesterday" }
+        let df = DateFormatter()
+        df.locale = .autoupdatingCurrent
+        df.setLocalizedDateFormatFromTemplate("MMM d")
+        return df.string(from: date)
+    }
+}
+
+// MARK: - Add Friend (Liquid Glass sheet)
+
+private struct AddFriendGlassSheet: View {
+    @Binding var manualId: String
+    let onClose: () -> Void
+    let onSend: (UUID) -> Void
+
+    private var parsedUUID: UUID? {
+        UUID(uuidString: manualId.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            header
+
+            infoPill
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Manual add")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                TextField("Paste friend ID (advanced)", text: $manualId)
+                    .textFieldStyle(.plain)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color(.secondarySystemGroupedBackground).opacity(0.7))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                    )
+
+                Text("Usually you will not need this. If someone sent you a code or ID, paste it here.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 18)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 14)
+        .presentationDetents([.height(420)])
+        .presentationDragIndicator(.visible)
+        .presentationCornerRadius(34)
+        .presentationBackground(.ultraThinMaterial)
+    }
+
+    private var header: some View {
+        HStack {
+            Button("Close", action: onClose)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .frame(width: 68, alignment: .leading)
+
+            Spacer()
+
+            Text("Add friend")
+                .font(.headline.weight(.semibold))
+
+            Spacer()
+
+            Button("Send") {
+                if let id = parsedUUID { onSend(id) }
+            }
+            .buttonStyle(.plain)
+            .font(.headline.weight(.semibold))
+            .foregroundStyle(parsedUUID == nil ? Color.secondary : Color.accentColor)
+            .disabled(parsedUUID == nil)
+            .frame(width: 68, alignment: .trailing)
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 2)
+    }
+
+    private var infoPill: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text("Add friends from comments, activity, and live event interactions.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground).opacity(0.55))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .padding(.horizontal, 18)
     }
 }
