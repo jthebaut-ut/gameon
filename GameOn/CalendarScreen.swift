@@ -43,7 +43,7 @@ struct CalendarScreen: View {
             .padding(.top, 18)
         }
         .sheet(isPresented: $showDatePicker) {
-            EventCalendarPickerSheet(
+            LiquidGlassCalendarPicker(
                 events: viewModel.events,
                 bars: viewModel.filteredBars,
                 useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
@@ -58,7 +58,7 @@ struct CalendarScreen: View {
                     showDatePicker = false
                 }
             }
-            .eventCalendarPickerSheetPresentation(selection: $calendarDatePickerDetent)
+            .liquidGlassCalendarSheetPresentation(selection: $calendarDatePickerDetent, backdrop: .frostedDim)
         }
         .onChange(of: showDatePicker) { _, isPresented in
             if isPresented {

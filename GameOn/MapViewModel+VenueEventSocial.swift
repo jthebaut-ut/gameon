@@ -158,7 +158,13 @@ extension MapViewModel {
             }
 
         } catch {
-            print("ERROR LOADING GOING USER PROFILES:", error)
+            if error is CancellationError {
+#if DEBUG
+                print("[LoadCancelled] going profiles")
+#endif
+            } else {
+                print("ERROR LOADING GOING USER PROFILES:", error)
+            }
         }
     }
 

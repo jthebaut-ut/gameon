@@ -17,28 +17,37 @@ enum EventCalendarSheetLayout {
     }
 }
 
-// MARK: - Liquid Glass chrome (calendar date-picker sheets only)
+// MARK: - Liquid Glass chrome (shared Discover overlay + Calendar tab sheet)
 
 private enum EventCalendarLiquidGlass {
-    static let cardCornerRadius: CGFloat = 38
+    static let cardCornerRadius: CGFloat = 32
 
-    /// Floating glass panel: material blur + translucent white + glossy gradient + soft rim (no opaque system fill).
+    /// One shared frosted card: map/tab colors read through; white veils capped at **0.10** (never solid `Color.white` fills).
     @ViewBuilder
-    static func cardChrome() -> some View {
+    static func calendarGlassCard() -> some View {
+        let r = cardCornerRadius
         ZStack {
-            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: r, style: .continuous)
                 .fill(.ultraThinMaterial)
 
-            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
-                .fill(Color.white.opacity(0.11))
-
-            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: r, style: .continuous)
                 .fill(
                     LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(0.26), location: 0),
-                            .init(color: Color.white.opacity(0.06), location: 0.42),
-                            .init(color: Color.clear, location: 1)
+                        colors: [
+                            Color.white.opacity(0.10),
+                            Color.white.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            RoundedRectangle(cornerRadius: r, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.45, green: 0.78, blue: 0.95).opacity(0.05),
+                            Color(red: 0.25, green: 0.62, blue: 0.48).opacity(0.035)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -46,11 +55,11 @@ private enum EventCalendarLiquidGlass {
                 )
                 .blendMode(.plusLighter)
 
-            RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            RoundedRectangle(cornerRadius: r, style: .continuous)
                 .stroke(Color.white.opacity(0.22), lineWidth: 1)
         }
-        .shadow(color: Color.black.opacity(0.28), radius: 32, x: 0, y: 18)
-        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(0.18), radius: 16, x: 0, y: 10)
+        .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
     }
 
     static func monthNavButton(systemName: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
@@ -62,9 +71,19 @@ private enum EventCalendarLiquidGlass {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.42),
-                                Color.white.opacity(0.12),
-                                Color.white.opacity(0.04)
+                                Color.white.opacity(0.10),
+                                Color.white.opacity(0.03)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.45, green: 0.78, blue: 0.95).opacity(0.05),
+                                Color(red: 0.28, green: 0.68, blue: 0.52).opacity(0.03)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -72,31 +91,42 @@ private enum EventCalendarLiquidGlass {
                     )
                     .blendMode(.plusLighter)
                 Circle()
-                    .stroke(Color.white.opacity(0.28), lineWidth: 1)
+                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
 
                 Image(systemName: systemName)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.blue)
             }
             .frame(width: 42, height: 42)
-            .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// Translucent glass capsule (Today).
     @ViewBuilder
     static func todayGlassCapsule() -> some View {
         ZStack {
             Capsule(style: .continuous)
                 .fill(.ultraThinMaterial)
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.10))
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.10),
+                            Color.white.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.22), Color.white.opacity(0.04)],
+                        colors: [
+                            Color(red: 0.42, green: 0.76, blue: 0.92).opacity(0.045),
+                            Color(red: 0.28, green: 0.65, blue: 0.50).opacity(0.03)
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -107,24 +137,23 @@ private enum EventCalendarLiquidGlass {
         }
     }
 
-    /// Glossy translucent black glass (Done).
     @ViewBuilder
     static func doneGlassCapsule() -> some View {
         ZStack {
             Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.58))
+                .fill(Color.black.opacity(0.32))
 
             Capsule(style: .continuous)
                 .fill(.ultraThinMaterial)
-                .opacity(0.35)
+                .opacity(0.38)
                 .blendMode(.overlay)
 
             Capsule(style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.22),
-                            Color.white.opacity(0.06),
+                            Color.white.opacity(0.10),
+                            Color.white.opacity(0.04),
                             Color.clear
                         ],
                         startPoint: .topLeading,
@@ -139,8 +168,8 @@ private enum EventCalendarLiquidGlass {
     }
 }
 
-/// Single standard calendar body for every `.sheet` date picker: scrollable on short detents / small phones, shared bottom inset for floating tab + home indicator.
-struct EventCalendarPickerSheet: View {
+/// Shared Liquid Glass calendar used from Discover (in-tab overlay) and Calendar tab (sheet). Day grid + dots live in ``EventCalendarView``.
+struct LiquidGlassCalendarPicker: View {
     let events: [SportsEvent]
     let bars: [BarVenue]
     let useVisibleMapRegionOnly: Bool
@@ -151,7 +180,6 @@ struct EventCalendarPickerSheet: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            // No opaque system fill: scrim lives in ``eventCalendarPickerSheetPresentation`` so the map (Discover) or host tab shows through blur + dim.
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -168,7 +196,7 @@ struct EventCalendarPickerSheet: View {
                 .padding(.horizontal, 22)
                 .padding(.vertical, 20)
                 .background {
-                    EventCalendarLiquidGlass.cardChrome()
+                    EventCalendarLiquidGlass.calendarGlassCard()
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, EventCalendarSheetLayout.sheetTopContentInset)
@@ -183,21 +211,51 @@ struct EventCalendarPickerSheet: View {
     }
 }
 
+/// Backdrop for ``LiquidGlassCalendarPicker`` when presented as a **sheet** (Calendar tab).
+enum LiquidGlassCalendarSheetBackdrop {
+    /// Full transparency — use with Discover overlay (no system sheet).
+    case transparent
+    /// Light frosted scrim behind the floating card (not solid white).
+    case frostedDim
+}
+
 extension View {
-    /// Sheet chrome for ``EventCalendarPickerSheet``: detents, grabber, scroll resize; **non-opaque** presentation so the map (or host tab) stays visible through blur + dim (replaces default white sheet fill).
-    func eventCalendarPickerSheetPresentation(selection: Binding<PresentationDetent>) -> some View {
-        presentationDetents([.medium, .large], selection: selection)
-            .presentationDragIndicator(.visible)
-            .presentationContentInteraction(.scrolls)
-            .presentationCornerRadius(40)
-            .presentationBackground {
-                ZStack {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                    Rectangle()
-                        .fill(Color.black.opacity(0.12))
+    /// Detents + drag indicator + presentation background for sheet-hosted ``LiquidGlassCalendarPicker``.
+    @ViewBuilder
+    func liquidGlassCalendarSheetPresentation(
+        selection: Binding<PresentationDetent>,
+        backdrop: LiquidGlassCalendarSheetBackdrop
+    ) -> some View {
+        switch backdrop {
+        case .transparent:
+            self.presentationDetents([.medium, .large], selection: selection)
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+                .presentationCornerRadius(40)
+                .presentationBackground(.clear)
+        case .frostedDim:
+            self.presentationDetents([.medium, .large], selection: selection)
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+                .presentationCornerRadius(40)
+                .presentationBackground {
+                    ZStack {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                        Rectangle()
+                            .fill(Color.black.opacity(0.08))
+                    }
                 }
-            }
+        }
+    }
+
+    /// Legacy name for ``liquidGlassCalendarSheetPresentation(selection:backdrop:)``.
+    @ViewBuilder
+    func eventCalendarPickerSheetPresentation(selection: Binding<PresentationDetent>, discoverMapBackdrop: Bool = false) -> some View {
+        liquidGlassCalendarSheetPresentation(
+            selection: selection,
+            backdrop: discoverMapBackdrop ? .transparent : .frostedDim
+        )
     }
 }
 
@@ -372,6 +430,7 @@ struct EventCalendarView: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
+        .background(Color.clear)
         .onAppear {
             displayedMonth = startOfMonth(selectedDate)
         }

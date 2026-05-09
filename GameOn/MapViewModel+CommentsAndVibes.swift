@@ -3,6 +3,17 @@ import Supabase
 
 // Venue-event social layer: vibe votes, threaded comments, reports, and moderation helpers for venue owners.
 
+/// Task cancellation during overlapping loads is expected; do not log as ERROR.
+private func logVenueEventSocialLoadError(_ prefix: String, loadCancelledTag: String, error: Error) {
+    if error is CancellationError {
+#if DEBUG
+        print("[LoadCancelled] \(loadCancelledTag)")
+#endif
+        return
+    }
+    print(prefix, error)
+}
+
 private enum VenueEventCommentsPagination {
     static let initialLimit = 100
     static let pageLimit = 50
@@ -58,7 +69,7 @@ extension MapViewModel {
             print("LOADED VIBES:", counts)
 
         } catch {
-            print("ERROR LOADING VIBES:", error)
+            logVenueEventSocialLoadError("ERROR LOADING VIBES:", loadCancelledTag: "vibes", error: error)
         }
     }
 
@@ -134,7 +145,7 @@ extension MapViewModel {
             #endif
             return hasMore
         } catch {
-            print("ERROR LOADING COMMENTS:", error)
+            logVenueEventSocialLoadError("ERROR LOADING COMMENTS:", loadCancelledTag: "comments", error: error)
             await MainActor.run {
                 venueEventComments[venueEventID] = []
             }
@@ -177,7 +188,7 @@ extension MapViewModel {
             #endif
             return hasMore
         } catch {
-            print("ERROR LOADING OLDER COMMENTS:", error)
+            logVenueEventSocialLoadError("ERROR LOADING OLDER COMMENTS:", loadCancelledTag: "comments", error: error)
             return true
         }
     }

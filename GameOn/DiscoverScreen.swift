@@ -7,7 +7,6 @@ struct DiscoverScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
-    @State private var discoverDatePickerDetent: PresentationDetent = .large
     @State private var selectedCommentsEventID: UUID?
     @State private var showVenueRatingSheet = false
     @State private var mapVenueReloadTask: Task<Void, Never>?
@@ -70,8 +69,10 @@ struct DiscoverScreen: View {
             .padding(.horizontal)
             .padding(.top, 14)
             .padding(.bottom, 85)
-           
-            
+
+            if showDatePicker {
+                discoverMapDatePickerOverlay
+            }
         }
     .task {
         viewModel.reloadVenueUserRatingsFromStorage()
@@ -195,27 +196,44 @@ struct DiscoverScreen: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showDatePicker) {
-            EventCalendarPickerSheet(
-                events: viewModel.events,
-                bars: viewModel.bars,
-                useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
-                eventDotDates: viewModel.calendarDotDates,
-                dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
-                selectedDate: $viewModel.selectedDate
-            ) {
-                withAnimation(.spring()) {
-                    viewModel.dateChanged()
+    }
+
+    /// Discover date chip opens this overlay (not a sheet) so the map stays visible—no UIKit sheet white chrome or Calendar tab behind it.
+    private var discoverMapDatePickerOverlay: some View {
+        ZStack {
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                        showDatePicker = false
+                    }
                 }
-                showDatePicker = false
+
+            VStack {
+                Spacer(minLength: 0)
+                LiquidGlassCalendarPicker(
+                    events: viewModel.events,
+                    bars: viewModel.bars,
+                    useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
+                    eventDotDates: viewModel.calendarDotDates,
+                    dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
+                    selectedDate: $viewModel.selectedDate
+                ) {
+                    withAnimation(.spring()) {
+                        viewModel.dateChanged()
+                    }
+                    showDatePicker = false
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 100)
+                Spacer(minLength: 0)
             }
-            .eventCalendarPickerSheetPresentation(selection: $discoverDatePickerDetent)
         }
-        .onChange(of: showDatePicker) { _, isPresented in
-            if isPresented {
-                discoverDatePickerDetent = .large
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.clear)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
+        .zIndex(900)
     }
 
     /// Returns true when center or zoom changed enough to warrant another venue fetch.
@@ -236,6 +254,31 @@ struct DiscoverScreen: View {
         viewModel.eventsForSelectedDate
     }
 
+    /// Chooses pin chrome from **venue + cached engagement** first; map zoom (`mapPinDisplayMode`) only caps density. Multi-game / trending venues never stay on the tiny sport-only pin at wide zoom.
+    private func venueMarkerPinPresentation(
+        bar: BarVenue,
+        gamesToday: [SportsEvent],
+        base: MapViewModel.MapPinDisplayMode
+    ) -> (mode: MapViewModel.MapPinDisplayMode, energy: Int, wantsEnriched: Bool) {
+        let energy = viewModel.mapPinEnergyScore(bar: bar, gamesOnMapDay: gamesToday)
+        let gamesOnSelectedDay = gamesToday.count
+        let scheduledVenueGames = bar.games.count
+        let wantsEnriched = gamesOnSelectedDay >= 2 || scheduledVenueGames >= 2 || energy > 0
+
+        guard wantsEnriched else { return (base, energy, false) }
+
+        let mode: MapViewModel.MapPinDisplayMode
+        switch base {
+        case .simple:
+            mode = .compact
+        case .compact:
+            mode = .compact
+        case .detailed:
+            mode = gamesToday.isEmpty ? .compact : .detailed
+        }
+        return (mode, energy, true)
+    }
+
     @ViewBuilder
     private func singleVenueMapPinButton(bar: BarVenue, dayEvents: [SportsEvent]) -> some View {
         let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
@@ -246,13 +289,34 @@ struct DiscoverScreen: View {
             return total
         }
 
+        let pin = venueMarkerPinPresentation(
+            bar: bar,
+            gamesToday: gamesToday,
+            base: viewModel.mapPinDisplayMode
+        )
+        let effectiveMode = pin.mode
+
+#if DEBUG
+        let _: Void = {
+            guard pin.wantsEnriched else { return }
+            let style: String = {
+                switch effectiveMode {
+                case .simple: return "simple"
+                case .compact: return "compact"
+                case .detailed: return "detailed"
+                }
+            }()
+            print("[MapMarker] venue=\(bar.name) games=\(gamesToday.count)/\(bar.games.count) score=\(pin.energy) style=\(style)")
+        }()
+#endif
+
         Button {
             withAnimation(.spring()) {
                 viewModel.centerMap(on: bar)
             }
         } label: {
             Group {
-                switch viewModel.mapPinDisplayMode {
+                switch effectiveMode {
                 case .simple:
                     simpleMapPin(bar: bar, gamesToday: gamesToday)
 
@@ -420,7 +484,9 @@ struct DiscoverScreen: View {
                 HStack(spacing: 10) {
 
                     Button {
-                        showDatePicker = true
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                            showDatePicker = true
+                        }
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "calendar")
@@ -852,59 +918,59 @@ struct DiscoverScreen: View {
             } else if gamesToday.isEmpty {
                 noVenueGamesView
             } else if filtered.isEmpty {
-                venueGameFilterEmptyView(filter: venuePreviewGameFilter)
+                venueGameFilterEmptyView()
             } else {
                 ForEach(Array(filtered.prefix(12)), id: \.id) { event in
                     gameInterestRow(bar: bar, event: event)
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.18), value: venuePreviewGameFilter)
     }
 
     private var venuePreviewGameFilterPicker: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             ForEach(VenuePreviewGameFilter.allCases) { mode in
                 let isOn = venuePreviewGameFilter == mode
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.easeInOut(duration: 0.18)) {
                         venuePreviewGameFilter = mode
                     }
                 } label: {
                     Text(mode.segmentTitle)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 10, weight: .semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .foregroundStyle(isOn ? Color.white : Color.primary)
+                        .minimumScaleFactor(0.72)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .foregroundStyle(isOn ? Color.white : Color.primary.opacity(0.88))
                         .background(
-                            Group {
-                                if isOn {
-                                    Capsule().fill(Color.black)
-                                } else {
-                                    Capsule().fill(Color.clear)
-                                }
-                            }
+                            Capsule(style: .continuous)
+                                .fill(isOn ? Color.black : Color.clear)
                         )
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(4)
+        .padding(.horizontal, 2)
+        .padding(.vertical, 2)
         .background {
-            ZStack {
-                Capsule()
-                    .fill(.ultraThinMaterial)
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-            }
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
         }
         .overlay(
-            Capsule()
-                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+            Capsule(style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
         )
-        .clipShape(Capsule())
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Same as ``gameInterestRow`` `alreadyInterested` (local key or ``isInterestedInVenueEvent``).
+    private func venuePreviewCurrentUserIsGoing(bar: BarVenue, game: SportsEvent) -> Bool {
+        if viewModel.isInterested(in: bar, gameTitle: game.title) { return true }
+        guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
+        return viewModel.isInterestedInVenueEvent(id)
     }
 
     private func gamesFilteredForVenuePreview(
@@ -915,38 +981,34 @@ struct DiscoverScreen: View {
         switch filter {
         case .all:
             return gamesToday
+
         case .imGoing:
+            // Show rows with the black “I’m going” button:
+            // current user is NOT already going, but there is activity/interest.
             return gamesToday.filter { game in
                 guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
-                return viewModel.isInterestedInVenueEvent(id)
+                guard viewModel.interestCountForVenueEvent(id) > 0 else { return false }
+                return !venuePreviewCurrentUserIsGoing(bar: bar, game: game)
             }
+
         case .going:
-            return gamesToday.filter { game in
-                guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
-                return viewModel.interestCountForVenueEvent(id) > 0
+            // Show rows with the green “Going” button:
+            // current user IS already going.
+            return gamesToday.filter {
+                venuePreviewCurrentUserIsGoing(bar: bar, game: $0)
             }
         }
     }
 
-    private func venueGameFilterEmptyView(filter: VenuePreviewGameFilter) -> some View {
-        let message: String = {
-            switch filter {
-            case .all:
-                return "No games here yet"
-            case .imGoing:
-                return "You're not going to any games here yet"
-            case .going:
-                return "No one is going yet"
-            }
-        }()
-
-        return Text(message)
-            .font(.caption)
+    private func venueGameFilterEmptyView() -> some View {
+        Text("No games match this filter.")
+            .font(.caption2)
             .foregroundStyle(.secondary)
-            .padding()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.gray.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {
