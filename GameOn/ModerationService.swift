@@ -27,6 +27,35 @@ enum ModerationReportCategory: String, CaseIterable, Identifiable {
 /// Lightweight moderation helpers used by Chat surfaces.
 /// - Important: Client checks are UX-only. **Server-side RLS + RPC rate limits** are required for real enforcement.
 struct ModerationService {
+
+    /// User-visible copy when a report insert fails (missing migration, RLS, etc.).
+    static func userFacingReportSubmitError(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        let s = raw.lowercased()
+        if s.contains("could not find the table")
+            || (s.contains("relation") && s.contains("does not exist"))
+            || s.contains("schema cache") || s.contains("pgrst205")
+            || s.contains("42p01") {
+            return "Reporting isn’t available on the server yet. Please try again after an update, or contact support if this continues."
+        }
+        if s.contains("42703") || s.contains("undefined column") || (s.contains("column") && s.contains("does not exist")) {
+            return "The reporting database isn’t fully updated yet. Please try again later or contact support."
+        }
+        if s.contains("user_reports") || s.contains("conversation_reports") || s.contains("message_reports") {
+            return "We couldn’t save your report. This feature may still be rolling out—please try again later."
+        }
+        if s.contains("permission denied") || s.contains("new row violates row-level security") || s.contains("rls") {
+            return "We couldn’t save your report. Please sign in again or contact support if this keeps happening."
+        }
+        return raw
+    }
+
+    static func logReportSubmitFailure(_ error: Error, context: String) {
+#if DEBUG
+        print("Moderation: report insert failed [\(context)]:", error)
+#endif
+    }
+
     enum ModerationError: LocalizedError {
         case notSignedIn
         case unexpected
@@ -114,6 +143,9 @@ struct ModerationService {
         let detailsCopy = details
         let categoryRaw = category.rawValue
         Task.detached { [supabase] in
+#if DEBUG
+            print("Moderation: notify-moderation-report fire-and-forget started (type=\(reportType))")
+#endif
             let payload = NotifyModerationReportPayload(
                 report_type: reportType,
                 reporter_user_id: reporterUserId,
@@ -131,20 +163,20 @@ struct ModerationService {
                     options: FunctionInvokeOptions(method: .post, body: payload)
                 )
 #if DEBUG
-                print("Moderation: notify-moderation-report ok=\(response.ok ?? false) error=\(response.error ?? "nil")")
+                print("Moderation: notify-moderation-report finished ok=\(response.ok ?? false) error=\(response.error ?? "nil")")
 #endif
             } catch let error as FunctionsError {
 #if DEBUG
                 if case let .httpError(status, data) = error {
                     let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
-                    print("Moderation: notify-moderation-report httpError status=\(status) body=\(body)")
+                    print("Moderation: notify-moderation-report email notify failed httpError status=\(status) body=\(body)")
                 } else {
-                    print("Moderation: notify-moderation-report FunctionsError:", error)
+                    print("Moderation: notify-moderation-report email notify failed FunctionsError:", error)
                 }
 #endif
             } catch {
 #if DEBUG
-                print("Moderation: notify-moderation-report error:", error)
+                print("Moderation: notify-moderation-report email notify failed:", error)
 #endif
             }
         }

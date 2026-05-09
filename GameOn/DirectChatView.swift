@@ -341,8 +341,13 @@ struct DirectChatView: View {
     /// Quick emoji strip above composer; off by default, toggled by smiley (does not use the system emoji keyboard).
     @State private var showEmojiQuickTray = false
     @State private var reportSheet: DirectChatReportSheetKind?
-    @State private var reportCategory: ModerationReportCategory = .other
+    /// `nil` until the reporter picks a category (required before submit).
+    @State private var reportCategory: ModerationReportCategory?
     @State private var reportDetails: String = ""
+    @State private var isSubmittingReport = false
+    @State private var reportSheetError: String?
+
+    private static let reportSubmittedBannerText = "Report submitted. GameOn administration will review it."
 
     private enum ChatOverflowPhase: Equatable {
         case hidden
@@ -426,13 +431,30 @@ struct DirectChatView: View {
             }
 
             if let banner = presenter.menuBanner, !banner.isEmpty {
-                Text(banner)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: banner == Self.reportSubmittedBannerText ? "checkmark.circle.fill" : "info.circle.fill")
+                        .font(.body)
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(banner == Self.reportSubmittedBannerText ? Color.green : Color.secondary)
+                    Text(banner)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                        )
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 6) {
@@ -535,8 +557,18 @@ struct DirectChatView: View {
         }
         .onChange(of: reportSheet) { _, newValue in
             if newValue != nil {
-                reportCategory = .other
+                reportCategory = nil
                 reportDetails = ""
+                reportSheetError = nil
+                isSubmittingReport = false
+            } else {
+                reportSheetError = nil
+                isSubmittingReport = false
+            }
+        }
+        .onChange(of: reportCategory) { _, _ in
+            if reportSheet != nil {
+                reportSheetError = nil
             }
         }
     }
@@ -591,28 +623,72 @@ struct DirectChatView: View {
     private func directChatReportSheet(kind: DirectChatReportSheetKind) -> some View {
         NavigationStack {
             Form {
-                Picker("Category", selection: $reportCategory) {
-                    ForEach(ModerationReportCategory.allCases) { c in
-                        Text(c.displayTitle).tag(c)
+                Section {
+                    Picker("Category", selection: $reportCategory) {
+                        Text("Select category").tag(Optional<ModerationReportCategory>.none)
+                        ForEach(ModerationReportCategory.allCases) { c in
+                            Text(c.displayTitle).tag(Optional(c))
+                        }
+                    }
+                    .disabled(isSubmittingReport)
+                } footer: {
+                    if reportCategory == nil {
+                        Text("Choose a category to submit this report.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
+
                 Section {
                     TextField("Details (optional)", text: $reportDetails, axis: .vertical)
                         .lineLimit(3...6)
+                        .disabled(isSubmittingReport)
+                }
+
+                if isSubmittingReport {
+                    Section {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Submitting…")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
+                if let reportSheetError, !reportSheetError.isEmpty {
+                    Section {
+                        Text(reportSheetError)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                    }
                 }
             }
             .navigationTitle(reportNavigationTitle(for: kind))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { reportSheet = nil }
+                    Button("Cancel") {
+                        reportSheet = nil
+                    }
+                    .disabled(isSubmittingReport)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Submit") {
-                        Task { await submitDirectChatReport(kind: kind) }
+                    if isSubmittingReport {
+                        ProgressView()
+                            .padding(.trailing, 4)
+                    } else {
+                        Button("Submit") {
+                            Task { await submitDirectChatReport(kind: kind) }
+                        }
+                        .disabled(reportCategory == nil)
                     }
                 }
             }
+            .interactiveDismissDisabled(isSubmittingReport)
         }
     }
 
@@ -625,25 +701,45 @@ struct DirectChatView: View {
     }
 
     private func submitDirectChatReport(kind: DirectChatReportSheetKind) async {
+        guard let category = reportCategory else {
+            await MainActor.run {
+                reportSheetError = "Please choose a category."
+            }
+            return
+        }
+
         let moderation = ModerationService()
         let trimmedDetails = reportDetails.trimmingCharacters(in: .whitespacesAndNewlines)
         let detailsOpt = trimmedDetails.isEmpty ? nil : trimmedDetails
+        let contextLabel: String = {
+            switch kind {
+            case .user: return "report_user"
+            case .conversation: return "report_conversation"
+            case .message: return "report_message"
+            }
+        }()
+
+        await MainActor.run {
+            isSubmittingReport = true
+            reportSheetError = nil
+        }
+
         do {
             switch kind {
             case .user:
-                try await moderation.reportUser(reportedUserId: presenter.friend.id, category: reportCategory, details: detailsOpt)
+                try await moderation.reportUser(reportedUserId: presenter.friend.id, category: category, details: detailsOpt)
             case .conversation:
                 guard let cid = presenter.conversationId else {
                     await MainActor.run {
-                        presenter.menuBanner = "Conversation isn’t ready yet."
-                        reportSheet = nil
+                        isSubmittingReport = false
+                        reportSheetError = "Conversation isn’t ready yet. Try again in a moment."
                     }
                     return
                 }
                 try await moderation.reportConversation(
                     conversationId: cid,
                     otherUserId: presenter.friend.id,
-                    category: reportCategory,
+                    category: category,
                     details: detailsOpt
                 )
             case .message(let row):
@@ -651,18 +747,22 @@ struct DirectChatView: View {
                     messageId: row.id,
                     reportedUserId: row.sender_id,
                     messageTextSnapshot: row.body,
-                    category: reportCategory,
+                    category: category,
                     details: detailsOpt,
                     conversationId: presenter.conversationId
                 )
             }
             await MainActor.run {
+                isSubmittingReport = false
                 reportSheet = nil
-                presenter.menuBanner = "Thanks — we received your report."
+                presenter.menuBanner = Self.reportSubmittedBannerText
             }
         } catch {
+            ModerationService.logReportSubmitFailure(error, context: contextLabel)
+            let message = ModerationService.userFacingReportSubmitError(error)
             await MainActor.run {
-                presenter.menuBanner = error.localizedDescription
+                isSubmittingReport = false
+                reportSheetError = message
             }
         }
     }
