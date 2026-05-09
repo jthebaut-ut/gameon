@@ -200,45 +200,65 @@ extension MapViewModel {
     }
 
     // Uploads a compressed JPEG to the `user-avatars` bucket; returns the public URL for storing on the profile.
+    // - Important: Path is unique per user id (App Store-friendly). Old avatar is deleted after replacement when possible.
     func uploadUserAvatar(data: Data, fileName: String) async -> String? {
-        let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
-
-        guard !email.isEmpty else {
-            print("NO USER EMAIL FOR AVATAR UPLOAD")
-            return nil
-        }
-
         do {
-            let safeEmail = email
-                .lowercased()
-                .replacingOccurrences(of: "@", with: "_")
-                .replacingOccurrences(of: ".", with: "_")
-
-            let path = "\(safeEmail)/\(fileName)"
+            let session = try await supabase.auth.session
+            let userId = session.user.id.uuidString.lowercased()
 
             let uploadData = ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
+
+            // Unique per upload so we can safely delete old objects later.
+            let objectPath = "\(userId)/avatar-\(UUID().uuidString.lowercased()).jpg"
 
             try await supabase.storage
                 .from("user-avatars")
                 .upload(
-                    path,
+                    objectPath,
                     data: uploadData,
                     options: FileOptions(
                         contentType: "image/jpeg",
-                        upsert: true
+                        upsert: false
                     )
                 )
 
             let publicURL = try supabase.storage
                 .from("user-avatars")
-                .getPublicURL(path: path)
+                .getPublicURL(path: objectPath)
 
             return publicURL.absoluteString
-
         } catch {
             print("ERROR UPLOADING USER AVATAR:", error)
             return nil
         }
+    }
+
+    /// Attempts to delete a previously uploaded user avatar object from Storage.
+    /// TODO: Consider storing the exact storage path in `user_profiles` to avoid URL parsing.
+    func deleteUserAvatarIfPossible(previousAvatarURL: String) async {
+        let trimmed = previousAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let objectPath = Self.storageObjectPathFromPublicURL(trimmed, bucket: "user-avatars") else { return }
+        do {
+            _ = try await supabase.storage
+                .from("user-avatars")
+                .remove(paths: [objectPath])
+        } catch {
+#if DEBUG
+            print("AvatarDelete: failed (non-fatal):", error)
+#endif
+        }
+    }
+
+    private static func storageObjectPathFromPublicURL(_ urlString: String, bucket: String) -> String? {
+        // Expected format:
+        // .../storage/v1/object/public/<bucket>/<path>
+        guard let url = URL(string: urlString) else { return nil }
+        let path = url.path
+        let needle = "/object/public/\(bucket)/"
+        guard let range = path.range(of: needle) else { return nil }
+        let object = String(path[range.upperBound...])
+        return object.isEmpty ? nil : object
     }
 
     // Batch-loads display names/avatars for a set of emails (e.g. “who’s going”) into `userProfilesByEmail`.

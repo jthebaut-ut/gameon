@@ -390,11 +390,14 @@ private struct SettingsUserSection: View {
     @Binding var password: String
     @Binding var showRegisterMode: Bool
     @Binding var showProfileScreen: Bool
+    @State private var selectedAvatarItem: PhotosPickerItem?
+    @State private var isUploadingAvatar: Bool = false
+    @State private var avatarMessage: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             if viewModel.isLoggedIn {
-                SettingsProfileButton(viewModel: viewModel, showProfileScreen: $showProfileScreen)
+                userProfileHubCard
                 SettingsGameNotificationsCard(viewModel: viewModel)
                 SettingsSavedGamesCard()
             }
@@ -412,6 +415,127 @@ private struct SettingsUserSection: View {
                 SettingsFanAccountSecurityCard(viewModel: viewModel)
             }
         }
+        .onChange(of: selectedAvatarItem) { _, item in
+            guard let item else { return }
+            Task {
+                isUploadingAvatar = true
+                avatarMessage = "Uploading avatar..."
+                let oldURL = viewModel.currentUserAvatarURL
+                do {
+                    guard let data = try? await item.loadTransferable(type: Data.self) else {
+                        avatarMessage = "Unable to read photo."
+                        isUploadingAvatar = false
+                        return
+                    }
+                    guard let newURL = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
+                        avatarMessage = "Unable to upload avatar."
+                        isUploadingAvatar = false
+                        return
+                    }
+                    let display = resolvedDisplayName
+                    await viewModel.saveUserProfile(displayName: display, avatarURL: newURL)
+                    await viewModel.deleteUserAvatarIfPossible(previousAvatarURL: oldURL)
+                    avatarMessage = "Avatar updated."
+                } catch {
+                    avatarMessage = "Unable to upload avatar."
+                }
+                isUploadingAvatar = false
+            }
+        }
+    }
+
+    private var resolvedDisplayName: String {
+        let current = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !current.isEmpty { return current }
+        // Default display name from email local-part (e.g., peter@email.com -> Peter)
+        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let local = email.split(separator: "@").first.map(String.init) ?? ""
+        guard !local.isEmpty else { return "" }
+        return local.prefix(1).uppercased() + local.dropFirst()
+    }
+
+    private var initials: String {
+        let name = resolvedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty {
+            let parts = name.split(separator: " ").filter { !$0.isEmpty }
+            if parts.count >= 2 {
+                return "\(parts[0].prefix(1))\(parts[1].prefix(1))".uppercased()
+            }
+            return "\(name.prefix(2))".uppercased()
+        }
+        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let local = email.split(separator: "@").first.map(String.init) ?? ""
+        return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
+    }
+
+    private var userProfileHubCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.black.opacity(0.06))
+                    if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                    } else {
+                        Text(initials)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.primary)
+                    }
+                }
+                .frame(width: 52, height: 52)
+                .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                        .font(.headline.weight(.bold))
+                    Text(viewModel.currentUserEmail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Button {
+                    showProfileScreen = true
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
+                HStack {
+                    if isUploadingAvatar {
+                        ProgressView().tint(.primary)
+                    }
+                    Text(isUploadingAvatar ? "Uploading..." : "Update avatar")
+                        .fontWeight(.bold)
+                    Spacer()
+                }
+                .padding()
+                .background(Color.black.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .disabled(isUploadingAvatar)
+
+            if !avatarMessage.isEmpty {
+                Text(avatarMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -1239,6 +1363,10 @@ private struct SettingsVenueOwnerCard: View {
                 
                 Button {
                     Task {
+                        // Avoid mixed account state: if a fan user is signed in, sign them out before venue owner auth.
+                        if viewModel.isLoggedIn {
+                            await viewModel.logoutUser()
+                        }
                         if showVenueRegisterMode {
                             await viewModel.registerVenueOwner(
                                 email: viewModel.venueOwnerEmail,
