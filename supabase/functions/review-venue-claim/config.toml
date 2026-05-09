@@ -1,0 +1,5 @@
+## Public moderation endpoint (email links)
+## Auth is handled via HMAC-signed expiring token in query params.
+## DO NOT require Supabase JWT for this function.
+verify_jwt = false
+

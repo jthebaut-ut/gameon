@@ -133,15 +133,36 @@ extension MapViewModel {
         Task {
             do {
                 struct NotifyVenueClaimPayload: Encodable {
-                    let venue_name: String
+                    let claim_id: String
                     let owner_email: String
-                    let address: String
-                    let phone: String
-                    let website: String
-                    let description: String
-                    let photo_urls: [String]
+                    let venue_name: String
                     let created_at: String
                     let approval_status: String
+
+                    let venue_address: String
+                    let venue_city: String
+                    let venue_state: String
+                    let venue_zip_code: String
+                    let venue_phone: String
+                    let venue_website: String
+                    let venue_description: String
+                    let venue_features: String
+
+                    let screen_count: Int
+                    let serves_food: Bool
+                    let has_wifi: Bool
+                    let has_garden: Bool
+                    let has_projector: Bool
+                    let pet_friendly: Bool
+
+                    let cover_photo_url: String
+                    let menu_photo_url: String
+                    let venue_crowd_photo_url: String
+                    let venue_tv_wall_photo_url: String
+                    let venue_specials_photo_url: String
+                    let proof_note: String
+
+                    let photo_urls: [String]
                 }
 
                 func isoNow() -> String {
@@ -172,10 +193,18 @@ extension MapViewModel {
                     proof_note: venueProofNote
                 )
 
-                try await supabase
+                struct InsertedClaimRow: Decodable {
+                    let id: String?
+                    let created_at: String?
+                    let approval_status: String?
+                }
+                let inserted: InsertedClaimRow = try await supabase
                     .from("venue_claims")
                     .insert(claim)
+                    .select("id,created_at,approval_status")
+                    .single()
                     .execute()
+                    .value
 
                 await MainActor.run {
                     venueClaimSubmitted = true
@@ -185,21 +214,43 @@ extension MapViewModel {
                 // Fire-and-forget admin email notification (does NOT block claim submission).
                 // TODO: If Edge Function/RLS evolves, consider moving this to a DB trigger so emails cannot be bypassed.
                 struct NotifyVenueClaimResponse: Decodable { let ok: Bool? }
+                let claimIdForEmail = (inserted.id ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if claimIdForEmail.isEmpty {
+#if DEBUG
+                    print("VenueClaim: missing inserted claim id; skipping notify-venue-claim")
+#endif
+                    return
+                }
                 let payload = NotifyVenueClaimPayload(
-                    venue_name: ownerVenueName,
+                    claim_id: claimIdForEmail,
                     owner_email: venueOwnerEmail,
-                    address: [
-                        ownerVenueAddress,
-                        ownerVenueCity,
-                        ownerVenueState,
-                        ownerVenueZipCode,
-                    ]
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: ", "),
-                    phone: ownerVenuePhone,
-                    website: ownerVenueWebsite,
-                    description: ownerVenueDescription,
+                    venue_name: ownerVenueName,
+                    created_at: inserted.created_at ?? isoNow(),
+                    approval_status: (inserted.approval_status ?? "pending"),
+
+                    venue_address: ownerVenueAddress,
+                    venue_city: ownerVenueCity,
+                    venue_state: ownerVenueState,
+                    venue_zip_code: ownerVenueZipCode,
+                    venue_phone: ownerVenuePhone,
+                    venue_website: ownerVenueWebsite,
+                    venue_description: ownerVenueDescription,
+                    venue_features: ownerVenueFeatures,
+
+                    screen_count: ownerVenueScreenCount,
+                    serves_food: ownerVenueServesFood,
+                    has_wifi: ownerVenueHasWifi,
+                    has_garden: ownerVenueHasGarden,
+                    has_projector: ownerVenueHasProjector,
+                    pet_friendly: ownerVenuePetFriendly,
+
+                    cover_photo_url: venueCoverPhotoURL,
+                    menu_photo_url: venueMenuPhotoURL,
+                    venue_crowd_photo_url: venueCrowdPhotoURL,
+                    venue_tv_wall_photo_url: venueTVWallPhotoURL,
+                    venue_specials_photo_url: venueSpecialsPhotoURL,
+                    proof_note: venueProofNote,
+
                     photo_urls: [
                         venueCoverPhotoURL,
                         venueMenuPhotoURL,
@@ -207,10 +258,8 @@ extension MapViewModel {
                         venueTVWallPhotoURL,
                         venueSpecialsPhotoURL,
                     ]
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty },
-                    created_at: isoNow(),
-                    approval_status: "pending"
+                        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                        .filter { !$0.isEmpty }
                 )
 
                 Task.detached {
