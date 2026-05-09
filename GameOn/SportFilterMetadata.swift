@@ -73,27 +73,29 @@ struct SportFilterChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 7) {
+            HStack(alignment: .center, spacing: 2) {
                 if sport == "All" {
                     Image(systemName: visual.systemImage)
-                        .font(.subheadline.weight(.bold))
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundStyle(isSelected ? Color.white : visual.accent)
                 } else if !visual.emoji.isEmpty {
                     Text(visual.emoji)
-                        .font(.title3)
-                        .shadow(color: .black.opacity(0.06), radius: 0.5, x: 0, y: 0.5)
+                        .font(.system(size: 17))
+                        .baselineOffset(-0.5)
+                        .shadow(color: .black.opacity(0.03), radius: 0.5, x: 0, y: 0.5)
                 } else {
                     Image(systemName: visual.systemImage)
-                        .font(.body.weight(.bold))
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundStyle(visual.accent)
                 }
 
                 Text(sport)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
-            .padding(.horizontal, 13)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 5)
+            .frame(height: 39, alignment: .center)
             .foregroundStyle(isSelected ? Color.white : Color.primary)
             .background {
                 Group {
@@ -119,12 +121,14 @@ struct SportFilterChip: View {
             .overlay(
                 Capsule()
                     .strokeBorder(
-                        isSelected ? Color.white.opacity(0.22) : visual.accent.opacity(0.38),
-                        lineWidth: isSelected ? 1 : 1
+                        isSelected ? Color.white.opacity(0.22) : visual.accent.opacity(0.36),
+                        lineWidth: 1
                     )
             )
-            .shadow(color: isSelected ? visual.accent.opacity(0.35) : .black.opacity(0.06), radius: isSelected ? 8 : 3, x: 0, y: isSelected ? 3 : 1)
+            .contentShape(Capsule())
+            .shadow(color: isSelected ? visual.accent.opacity(0.26) : .black.opacity(0.045), radius: isSelected ? 5 : 2, x: 0, y: isSelected ? 2 : 1)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(sport)
     }
 }

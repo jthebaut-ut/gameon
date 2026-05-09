@@ -465,41 +465,105 @@ extension MapViewModel {
         reservationInfo: String,
         socialCoordination: String
     ) {
-        Task {
-            do {
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "yyyy-MM-dd"
-                
-                let timeFormatter = DateFormatter()
-                timeFormatter.dateFormat = "h:mm a"
-                
-                let newGame = VenueEventInsert(
-                    owner_email: venueOwnerEmail,
-                    venue_name: ownerVenueName,
-                    event_title: gameTitle,
-                    sport: sport,
-                    event_date: dateFormatter.string(from: gameDate),
-                    event_time: timeFormatter.string(from: gameStartTime),
-                    sound_on: soundOn,
-                    audio_type: audioType.rawValue,
-                    drink_special: drinkSpecial,
-                    cover_charge: coverCharge,
-                    expected_crowd: crowdLevel,
-                    available_seating: seating,
-                    reservations_available: !reservationInfo.isEmpty,
-                    waitlist_available: !reservationInfo.isEmpty
-                )
-                
-                try await supabase
-                    .from("venue_events")
-                    .insert(newGame)
-                    .execute()
-                
-                print("GAME LISTING SAVED")
-                
-            } catch {
-                print("ERROR SAVING GAME LISTING:", error)
-            }
+        Task { _ = await saveVenueGameListingAsync(
+            gameTitle: gameTitle,
+            sport: sport,
+            gameDate: gameDate,
+            gameStartTime: gameStartTime,
+            soundOn: soundOn,
+            audioType: audioType,
+            teamFanbase: teamFanbase,
+            atmosphere: atmosphere,
+            crowdLevel: crowdLevel,
+            liveOccupancy: liveOccupancy,
+            seating: seating,
+            numberOfTVs: numberOfTVs,
+            drinkSpecial: drinkSpecial,
+            coverCharge: coverCharge,
+            reservationInfo: reservationInfo,
+            socialCoordination: socialCoordination
+        ) }
+    }
+
+    /// Same insert as ``saveVenueGameListing``; returns `nil` on success or a user-facing error string.
+    func saveVenueGameListingAsync(
+        gameTitle: String,
+        sport: String,
+        gameDate: Date,
+        gameStartTime: Date,
+        soundOn: Bool,
+        audioType: VenueAudioType,
+        teamFanbase: String,
+        atmosphere: String,
+        crowdLevel: String,
+        liveOccupancy: String,
+        seating: String,
+        numberOfTVs: String,
+        drinkSpecial: String,
+        coverCharge: String,
+        reservationInfo: String,
+        socialCoordination: String
+    ) async -> String? {
+        do {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a"
+
+            let newGame = VenueEventInsert(
+                owner_email: venueOwnerEmail,
+                venue_name: ownerVenueName,
+                event_title: gameTitle,
+                sport: sport,
+                event_date: dateFormatter.string(from: gameDate),
+                event_time: timeFormatter.string(from: gameStartTime),
+                sound_on: soundOn,
+                audio_type: audioType.rawValue,
+                drink_special: drinkSpecial,
+                cover_charge: coverCharge,
+                expected_crowd: crowdLevel,
+                available_seating: seating,
+                reservations_available: !reservationInfo.isEmpty,
+                waitlist_available: !reservationInfo.isEmpty
+            )
+
+            try await supabase
+                .from("venue_events")
+                .insert(newGame)
+                .execute()
+
+            print("GAME LISTING SAVED")
+            return nil
+        } catch {
+            print("ERROR SAVING GAME LISTING:", error)
+            return error.localizedDescription
+        }
+    }
+
+    /// Updates only `event_title` for a venue-owned game (Manage Games title edit).
+    func updateVenueGameEventTitle(id: UUID, newTitle: String) async -> String? {
+        struct VenueEventTitlePatch: Encodable {
+            let event_title: String
+        }
+
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Title can’t be empty." }
+
+        do {
+            let patch = VenueEventTitlePatch(event_title: trimmed)
+            let _: [VenueEventRow] = try await supabase
+                .from("venue_events")
+                .update(patch)
+                .eq("id", value: id.uuidString.lowercased())
+                .select()
+                .execute()
+                .value
+
+            return nil
+        } catch {
+            print("ERROR UPDATING VENUE GAME TITLE:", error)
+            return error.localizedDescription
         }
     }
 
@@ -596,20 +660,75 @@ extension MapViewModel {
         }
     }
 
-    func deleteVenueGame(_ game: VenueEventRow) async {
-        guard let id = game.id else { return }
+    /// Deletes the venue event row. Returns `nil` on success or an error message.
+    func deleteVenueGame(_ game: VenueEventRow) async -> String? {
+        guard let id = game.id else { return "This game can’t be removed (missing id)." }
 
         do {
-            let _ = try await supabase
+            try await supabase
                 .from("venue_events")
                 .delete()
                 .eq("id", value: id.uuidString.lowercased())
                 .execute()
 
             print("VENUE GAME DELETED")
-
+            return nil
         } catch {
             print("ERROR DELETING VENUE GAME:", error)
+            return error.localizedDescription
         }
+    }
+
+    // MARK: - Venue owner analytics (interest counts for owned events)
+
+    /// Fetches `venue_event_interests` rows for the given events and merges counts into `venueEventInterestCounts`
+    /// without replacing counts for unrelated events (unlike ``loadVisibleVenueEventInterests()``).
+    func loadInterestCountsForVenueEventIDs(_ eventIDs: [UUID]) async {
+        guard !eventIDs.isEmpty else { return }
+
+        do {
+            let rows: [VenueEventInterestRow] = try await supabase
+                .from("venue_event_interests")
+                .select()
+                .in("venue_event_id", values: eventIDs)
+                .execute()
+                .value
+
+            var counts: [UUID: Int] = [:]
+            for row in rows {
+                guard let eventID = row.venue_event_id else { continue }
+                counts[eventID, default: 0] += 1
+            }
+
+            await MainActor.run {
+                for id in eventIDs {
+                    venueEventInterestCounts[id] = counts[id] ?? 0
+                }
+            }
+        } catch {
+            print("ERROR LOADING INTEREST COUNTS FOR VENUE EVENT IDS:", error)
+        }
+    }
+
+    /// Engagement score for owner analytics: going/interested count + fan updates + all vibe taps.
+    func venueOwnerEngagementScore(venueEventID: UUID) -> Int {
+        let going = interestCountForVenueEvent(venueEventID)
+        let comments = venueEventComments[venueEventID]?.count ?? 0
+        let vibeTaps = venueEventVibeCounts[venueEventID]?.values.reduce(0, +) ?? 0
+        return going + comments + vibeTaps
+    }
+
+    /// Trend label buckets for venue-owner analytics (distinct from map pin copy).
+    func venueOwnerEngagementTrendLabel(score: Int) -> String {
+        if score >= 40 {
+            return "👑 Trending now"
+        }
+        if score >= 16 {
+            return "🚀 Hot"
+        }
+        if score >= 6 {
+            return "🔥 Active"
+        }
+        return "✨ Starting up"
     }
 }

@@ -219,7 +219,7 @@ struct FollowingScreen: View {
             if !plan.isServerGoing, localInterested.contains(plan.id) { return }
             await viewModel.removeInterestInVenueEvent(venueEventID: plan.id)
             setInterestedOnlyLocally(plan.id, true)
-        case .notGoing, .removeFromFollowing:
+        case .notGoing:
             if !plan.isServerGoing, !localInterested.contains(plan.id) { return }
             await viewModel.removeInterestInVenueEvent(venueEventID: plan.id)
             setInterestedOnlyLocally(plan.id, false)
@@ -322,18 +322,10 @@ struct FollowingScreen: View {
                     Label("Interested 👀", systemImage: "eye")
                 }
 
-                Divider()
-
                 Button(role: .destructive) {
                     Task { await applyAttendance(plan, target: .notGoing) }
                 } label: {
                     Label("Not going ❌", systemImage: "xmark.circle")
-                }
-
-                Button(role: .destructive) {
-                    Task { await applyAttendance(plan, target: .removeFromFollowing) }
-                } label: {
-                    Label("Remove from Following", systemImage: "trash")
                 }
             } label: {
                 attendancePill(plan: plan)
@@ -470,7 +462,6 @@ private enum FollowingAttendanceTarget {
     case going
     case interested
     case notGoing
-    case removeFromFollowing
 }
 
 private func decodeInterestedOnlyUUIDs(from encoded: String) -> Set<UUID> {

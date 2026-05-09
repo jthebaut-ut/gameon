@@ -4,6 +4,7 @@ import MapKit
 import Combine
 import CoreLocation
 import EventKit
+import Supabase
 
 /// Central `@MainActor` observable object: map camera and selection, venue and schedule data, Supabase auth, venue-owner tools, favorites, and social (interests, comments, vibes).
 ///
@@ -113,6 +114,13 @@ final class MapViewModel: ObservableObject {
     @Published var followingMapNavigationMessage: String?
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
+
+    // MARK: - Venue owner analytics (realtime)
+
+    /// Postgres changes listener for ``VenueOwnerDashboardView`` analytics tab.
+    var venueOwnerAnalyticsRealtimeTask: Task<Void, Never>?
+    var venueOwnerAnalyticsRealtimeChannel: RealtimeChannelV2?
+    var venueOwnerAnalyticsDebounceTask: Task<Void, Never>?
     /// User’s 1–5 star rating per venue (local only).
     @Published var venueUserStarRatings: [UUID: Int] = [:]
     /// How many times the user saved a rating (drives review count display).

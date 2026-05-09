@@ -15,10 +15,26 @@ struct DiscoverScreen: View {
     @State private var clusterForSheet: VenueCluster?
     /// After opening Account from the Discover gate, restore this venue once fan login succeeds.
     @State private var pendingResumeVenueIDAfterLogin: UUID?
+    /// Per-venue preview: local filter for the game list (does not change global map filters).
+    @State private var venuePreviewGameFilter: VenuePreviewGameFilter = .all
     private let livePulseThreshold = 16
 
-    
-    
+    private enum VenuePreviewGameFilter: Int, CaseIterable, Identifiable {
+        case all
+        case imGoing
+        case going
+
+        var id: Int { rawValue }
+
+        var segmentTitle: String {
+            switch self {
+            case .all: return "All"
+            case .imGoing: return "I'm Going"
+            case .going: return "Going"
+            }
+        }
+    }
+
     var body: some View {
         ZStack {
             mapLayer
@@ -743,6 +759,9 @@ struct DiscoverScreen: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
+        .onChange(of: viewModel.selectedBar?.id) { _, _ in
+            venuePreviewGameFilter = .all
+        }
     }
 
     
@@ -812,21 +831,115 @@ struct DiscoverScreen: View {
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let filtered = gamesFilteredForVenuePreview(bar: bar, gamesToday: gamesToday, filter: venuePreviewGameFilter)
+
+        return VStack(alignment: .leading, spacing: 8) {
             Text("Showing")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            venuePreviewGameFilterPicker
 
             if viewModel.isLoadingEvents {
                 loadingVenueGamesView
             } else if gamesToday.isEmpty {
                 noVenueGamesView
+            } else if filtered.isEmpty {
+                venueGameFilterEmptyView(filter: venuePreviewGameFilter)
             } else {
-                ForEach(gamesToday.prefix(3), id: \.id) { event in
+                ForEach(Array(filtered.prefix(12)), id: \.id) { event in
                     gameInterestRow(bar: bar, event: event)
                 }
             }
         }
+    }
+
+    private var venuePreviewGameFilterPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(VenuePreviewGameFilter.allCases) { mode in
+                let isOn = venuePreviewGameFilter == mode
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        venuePreviewGameFilter = mode
+                    }
+                } label: {
+                    Text(mode.segmentTitle)
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .foregroundStyle(isOn ? Color.white : Color.primary)
+                        .background(
+                            Group {
+                                if isOn {
+                                    Capsule().fill(Color.black)
+                                } else {
+                                    Capsule().fill(Color.clear)
+                                }
+                            }
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background {
+            ZStack {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+            }
+        }
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+        .clipShape(Capsule())
+    }
+
+    private func gamesFilteredForVenuePreview(
+        bar: BarVenue,
+        gamesToday: [SportsEvent],
+        filter: VenuePreviewGameFilter
+    ) -> [SportsEvent] {
+        switch filter {
+        case .all:
+            return gamesToday
+        case .imGoing:
+            return gamesToday.filter { game in
+                guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
+                return viewModel.isInterestedInVenueEvent(id)
+            }
+        case .going:
+            return gamesToday.filter { game in
+                guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
+                return viewModel.interestCountForVenueEvent(id) > 0
+            }
+        }
+    }
+
+    private func venueGameFilterEmptyView(filter: VenuePreviewGameFilter) -> some View {
+        let message: String = {
+            switch filter {
+            case .all:
+                return "No games here yet"
+            case .imGoing:
+                return "You're not going to any games here yet"
+            case .going:
+                return "No one is going yet"
+            }
+        }()
+
+        return Text(message)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.gray.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
     }
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {
@@ -1036,7 +1149,7 @@ struct DiscoverScreen: View {
     }
     
     private var noVenueGamesView: some View {
-        Text("No games scheduled for this day")
+        Text("No games here yet")
             .font(.caption)
             .foregroundStyle(.secondary)
             .padding()
