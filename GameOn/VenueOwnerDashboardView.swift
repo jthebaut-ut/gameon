@@ -37,6 +37,8 @@ struct VenueOwnerDashboardView: View {
     @State private var photoReviewStatus: String = ""
     @State private var pendingCoverUploaded: Bool = false
     @State private var pendingMenuUploaded: Bool = false
+    @State private var isUploadingCoverPhoto: Bool = false
+    @State private var isUploadingMenuPhoto: Bool = false
     
     
     
@@ -96,24 +98,51 @@ struct VenueOwnerDashboardView: View {
         
         .onChange(of: selectedCoverPhoto) { _, newItem in
             Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                guard let newItem else { return }
+                isUploadingCoverPhoto = true
+                profileSaveMessage = "Uploading cover photo..."
+                let oldURL = viewModel.venueCoverPhotoURL
+
+                if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
                         viewModel.venueCoverPhotoURL = url
                         profileSaveMessage = "Cover photo uploaded. Tap Save Profile to save changes."
                     }
+                    // Safe deletion: only delete old object when NOT approved (no pending moderation dependency).
+                    if !viewModel.venueIsApproved {
+                        await viewModel.deleteVenuePhotoIfPossible(previousPhotoURL: oldURL)
+                    }
+                } else {
+                    await MainActor.run {
+                        profileSaveMessage = "Unable to upload cover photo."
+                    }
                 }
+                isUploadingCoverPhoto = false
             }
         }
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                guard let newItem else { return }
+                isUploadingMenuPhoto = true
+                profileSaveMessage = "Uploading menu photo..."
+                let oldURL = viewModel.venueMenuPhotoURL
+
+                if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
                     await MainActor.run {
                         viewModel.venueMenuPhotoURL = url
                         profileSaveMessage = "Menu photo uploaded. Tap Save Profile to save changes."
                     }
+                    if !viewModel.venueIsApproved {
+                        await viewModel.deleteVenuePhotoIfPossible(previousPhotoURL: oldURL)
+                    }
+                } else {
+                    await MainActor.run {
+                        profileSaveMessage = "Unable to upload menu photo."
+                    }
                 }
+                isUploadingMenuPhoto = false
             }
         }
     }
@@ -215,8 +244,18 @@ struct VenueOwnerDashboardView: View {
             }
 
             PhotosPicker(selection: $selectedCoverPhoto, matching: .images) {
-                primaryButtonText(viewModel.venueCoverPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
+                HStack {
+                    if isUploadingCoverPhoto { ProgressView().tint(.white) }
+                    Text(isUploadingCoverPhoto ? "Uploading..." : (viewModel.venueCoverPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo"))
+                        .fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.black)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .disabled(isUploadingCoverPhoto)
 
             venuePhotoCard(
                 title: "Menu Photo",
@@ -226,8 +265,18 @@ struct VenueOwnerDashboardView: View {
             )
 
             PhotosPicker(selection: $selectedMenuPhoto, matching: .images) {
-                primaryButtonText(viewModel.venueMenuPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
+                HStack {
+                    if isUploadingMenuPhoto { ProgressView().tint(.white) }
+                    Text(isUploadingMenuPhoto ? "Uploading..." : (viewModel.venueMenuPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo"))
+                        .fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.black)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .disabled(isUploadingMenuPhoto)
 
             PhotosPicker(
                 selection: $selectedMenuPhoto,

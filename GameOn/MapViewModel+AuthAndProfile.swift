@@ -206,7 +206,10 @@ extension MapViewModel {
             let session = try await supabase.auth.session
             let userId = session.user.id.uuidString.lowercased()
 
-            let uploadData = ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
+            // Compress off-main-thread to keep Settings smooth.
+            let uploadData = await Task.detached {
+                ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
+            }.value
 
             // Unique per upload so we can safely delete old objects later.
             let objectPath = "\(userId)/avatar-\(UUID().uuidString.lowercased()).jpg"

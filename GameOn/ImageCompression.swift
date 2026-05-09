@@ -10,15 +10,15 @@ enum ImageCompression {
 
         fileprivate var maxLongEdge: CGFloat {
             switch self {
-            case .avatar: return 768
-            case .venuePhoto: return 1800
+            case .avatar: return 512
+            case .venuePhoto: return 1500
             }
         }
 
         fileprivate var jpegQuality: CGFloat {
             switch self {
-            case .avatar: return 0.85
-            case .venuePhoto: return 0.82
+            case .avatar: return 0.78
+            case .venuePhoto: return 0.72
             }
         }
 
@@ -74,6 +74,31 @@ enum ImageCompression {
         print("[ImageUpload] \(preset.debugLabel) original: \(originalCount) bytes, compressed: \(jpeg.count) bytes")
 #endif
         return jpeg
+    }
+
+    /// Optional smaller JPEG for preview/future use (not currently uploaded).
+    static func jpegThumbnailData(from imageData: Data, maxLongEdge: CGFloat = 360, jpegQuality: CGFloat = 0.70) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+        let pixel = pixelSize(for: image)
+        let longEdge = max(pixel.width, pixel.height)
+        let downscale = longEdge > maxLongEdge ? maxLongEdge / longEdge : 1
+        let targetWidth = max(1, round(pixel.width * downscale))
+        let targetHeight = max(1, round(pixel.height * downscale))
+
+        let imageToEncode: UIImage
+        if downscale < 1 {
+            let format = UIGraphicsImageRendererFormat.default()
+            format.scale = 1
+            format.opaque = true
+            let size = CGSize(width: targetWidth, height: targetHeight)
+            let renderer = UIGraphicsImageRenderer(size: size, format: format)
+            imageToEncode = renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: size))
+            }
+        } else {
+            imageToEncode = image
+        }
+        return imageToEncode.jpegData(compressionQuality: jpegQuality)
     }
 
     private static func pixelSize(for image: UIImage) -> CGSize {

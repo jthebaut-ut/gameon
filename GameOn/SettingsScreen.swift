@@ -92,11 +92,16 @@ struct SettingsScreen: View {
             Task {
                 isUploadingClaimCoverPhoto = true
                 claimPhotoMessage = "Uploading bar photo..."
+                let oldURL = viewModel.venueCoverPhotoURL
 
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "claim-cover.jpg") {
                     viewModel.venueCoverPhotoURL = url
                     claimPhotoMessage = "Bar photo uploaded."
+                    // Safe deletion: only for pre-approval claim drafting.
+                    if !viewModel.venueIsApproved {
+                        await viewModel.deleteVenuePhotoIfPossible(previousPhotoURL: oldURL)
+                    }
                 } else {
                     claimPhotoMessage = "Unable to upload bar photo."
                 }
@@ -110,11 +115,16 @@ struct SettingsScreen: View {
             Task {
                 isUploadingClaimMenuPhoto = true
                 claimPhotoMessage = "Uploading menu photo..."
+                let oldURL = viewModel.venueMenuPhotoURL
 
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "claim-menu.jpg") {
                     viewModel.venueMenuPhotoURL = url
                     claimPhotoMessage = "Menu photo uploaded."
+                    // Safe deletion: only for pre-approval claim drafting.
+                    if !viewModel.venueIsApproved {
+                        await viewModel.deleteVenuePhotoIfPossible(previousPhotoURL: oldURL)
+                    }
                 } else {
                     claimPhotoMessage = "Unable to upload menu photo."
                 }

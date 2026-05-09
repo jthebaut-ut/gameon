@@ -622,9 +622,16 @@ extension MapViewModel {
                 .replacingOccurrences(of: "@", with: "_")
                 .replacingOccurrences(of: ".", with: "_")
 
-            let path = "\(safeEmail)/\(fileName)"
+            // Use unique object keys so approved public photos are not overwritten when replacements are pending review.
+            let base = fileName
+                .replacingOccurrences(of: ".jpg", with: "", options: .caseInsensitive)
+                .replacingOccurrences(of: ".jpeg", with: "", options: .caseInsensitive)
+            let path = "\(safeEmail)/\(base)-\(UUID().uuidString.lowercased()).jpg"
 
-            let uploadData = ImageCompression.jpegDataForUpload(from: data, preset: .venuePhoto)
+            // Compress off-main-thread to keep UI responsive.
+            let uploadData = await Task.detached {
+                ImageCompression.jpegDataForUpload(from: data, preset: .venuePhoto)
+            }.value
 
             try await supabase.storage
                 .from("venue-photos")
@@ -633,7 +640,7 @@ extension MapViewModel {
                     data: uploadData,
                     options: FileOptions(
                         contentType: "image/jpeg",
-                        upsert: true
+                        upsert: false
                     )
                 )
 
@@ -647,6 +654,32 @@ extension MapViewModel {
             print("ERROR UPLOADING PHOTO:", error)
             return nil
         }
+    }
+
+    /// Attempts to delete a previously uploaded venue photo object from Storage.
+    /// - Important: For approved venues with pending replacements, do not delete the old public photo until moderation approves.
+    func deleteVenuePhotoIfPossible(previousPhotoURL: String) async {
+        let trimmed = previousPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard let objectPath = Self.storageObjectPathFromPublicURL(trimmed, bucket: "venue-photos") else { return }
+        do {
+            _ = try await supabase.storage
+                .from("venue-photos")
+                .remove(paths: [objectPath])
+        } catch {
+#if DEBUG
+            print("VenuePhotoDelete: failed (non-fatal):", error)
+#endif
+        }
+    }
+
+    private static func storageObjectPathFromPublicURL(_ urlString: String, bucket: String) -> String? {
+        guard let url = URL(string: urlString) else { return nil }
+        let path = url.path
+        let needle = "/object/public/\(bucket)/"
+        guard let range = path.range(of: needle) else { return nil }
+        let object = String(path[range.upperBound...])
+        return object.isEmpty ? nil : object
     }
 
     func saveVenueGameListing(
