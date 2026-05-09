@@ -132,6 +132,42 @@ extension MapViewModel {
     func submitVenueClaim() {
         Task {
             do {
+                func trimmed(_ s: String) -> String {
+                    s.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+
+                // Backend safety: validate required fields before inserting or emailing.
+                // NOTE: UI also disables submission until valid, but this prevents bypass.
+                let missingRequiredPhotos = trimmed(venueCoverPhotoURL).isEmpty || trimmed(venueMenuPhotoURL).isEmpty
+                let missingRequiredFields =
+                    trimmed(ownerVenueName).isEmpty
+                        || trimmed(ownerVenueAddress).isEmpty
+                        || trimmed(ownerVenueCity).isEmpty
+                        || trimmed(ownerVenueState).isEmpty
+                        || trimmed(ownerVenueZipCode).isEmpty
+                        || trimmed(ownerVenuePhone).isEmpty
+                        || trimmed(ownerVenueDescription).isEmpty
+                        || trimmed(ownerVenueFeatures).isEmpty
+
+                if missingRequiredPhotos {
+                    await MainActor.run {
+                        venueAuthErrorMessage = "Please upload a venue photo and menu photo before submitting."
+                    }
+#if DEBUG
+                    print("VenueClaim: blocked submit (missing required photos)")
+#endif
+                    return
+                }
+                if missingRequiredFields {
+                    await MainActor.run {
+                        venueAuthErrorMessage = "Please complete all required venue information before submitting."
+                    }
+#if DEBUG
+                    print("VenueClaim: blocked submit (missing required fields)")
+#endif
+                    return
+                }
+
                 struct NotifyVenueClaimPayload: Encodable {
                     let claim_id: String
                     let owner_email: String

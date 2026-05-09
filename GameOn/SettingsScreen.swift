@@ -1156,6 +1156,39 @@ private struct SettingsVenueOwnerCard: View {
     @Binding var selectedClaimMenuPhoto: PhotosPickerItem?
     let claimPhotoMessage: String
     @Binding var showVenueDashboard: Bool
+    @State private var claimValidationMessage: String = ""
+
+    private func trimmed(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isClaimReadyToSubmit: Bool {
+        trimmed(viewModel.ownerVenueName).isEmpty == false
+            && trimmed(viewModel.ownerVenueAddress).isEmpty == false
+            && trimmed(viewModel.ownerVenueCity).isEmpty == false
+            && trimmed(viewModel.ownerVenueState).isEmpty == false
+            && trimmed(viewModel.ownerVenueZipCode).isEmpty == false
+            && trimmed(viewModel.ownerVenuePhone).isEmpty == false
+            && trimmed(viewModel.ownerVenueDescription).isEmpty == false
+            && trimmed(viewModel.ownerVenueFeatures).isEmpty == false
+            && trimmed(viewModel.venueCoverPhotoURL).isEmpty == false
+            && trimmed(viewModel.venueMenuPhotoURL).isEmpty == false
+    }
+
+    private var claimMissingMessage: String? {
+        if trimmed(viewModel.venueCoverPhotoURL).isEmpty || trimmed(viewModel.venueMenuPhotoURL).isEmpty {
+            return "Please upload a venue photo and menu photo before submitting."
+        }
+        if trimmed(viewModel.ownerVenueName).isEmpty { return "Please enter your venue name." }
+        if trimmed(viewModel.ownerVenueAddress).isEmpty { return "Please enter your street address." }
+        if trimmed(viewModel.ownerVenueCity).isEmpty { return "Please enter your city." }
+        if trimmed(viewModel.ownerVenueState).isEmpty { return "Please enter your state." }
+        if trimmed(viewModel.ownerVenueZipCode).isEmpty { return "Please enter your ZIP Code." }
+        if trimmed(viewModel.ownerVenuePhone).isEmpty { return "Please enter your business phone." }
+        if trimmed(viewModel.ownerVenueDescription).isEmpty { return "Please enter a short description." }
+        if trimmed(viewModel.ownerVenueFeatures).isEmpty { return "Please enter your venue features." }
+        return nil
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1332,7 +1365,8 @@ private struct SettingsVenueOwnerCard: View {
                     VenueClaimPhotoCard(
                         title: "Bar Photo",
                         subtitle: "Main photo of your venue",
-                        imageURL: viewModel.venueCoverPhotoURL
+                        imageURL: viewModel.venueCoverPhotoURL,
+                        isRequired: true
                     )
 
                     PhotosPicker(selection: $selectedClaimCoverPhoto, matching: .images) {
@@ -1344,7 +1378,8 @@ private struct SettingsVenueOwnerCard: View {
                     VenueClaimPhotoCard(
                         title: "Menu Photo",
                         subtitle: "Food or drink menu photo",
-                        imageURL: viewModel.venueMenuPhotoURL
+                        imageURL: viewModel.venueMenuPhotoURL,
+                        isRequired: true
                     )
 
                     PhotosPicker(selection: $selectedClaimMenuPhoto, matching: .images) {
@@ -1366,6 +1401,11 @@ private struct SettingsVenueOwnerCard: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
 
                     Button {
+                        claimValidationMessage = ""
+                        if let msg = claimMissingMessage {
+                            claimValidationMessage = msg
+                            return
+                        }
                         viewModel.submitVenueClaim()
                     } label: {
                         Text("Submit Venue Claim")
@@ -1375,6 +1415,14 @@ private struct SettingsVenueOwnerCard: View {
                             .background(Color.black)
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                    .disabled(!isClaimReadyToSubmit)
+                    .opacity(isClaimReadyToSubmit ? 1 : 0.55)
+
+                    if !claimValidationMessage.isEmpty {
+                        Text(claimValidationMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
@@ -1482,12 +1530,24 @@ private struct VenueClaimPhotoCard: View {
     let title: String
     let subtitle: String
     let imageURL: String
+    var isRequired: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .fontWeight(.bold)
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                if isRequired {
+                    Text("Required")
+                        .font(.caption2.weight(.bold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(imageURL.isEmpty ? Color.red.opacity(0.14) : Color.green.opacity(0.14))
+                        .foregroundStyle(imageURL.isEmpty ? Color.red : Color.green)
+                        .clipShape(Capsule())
+                }
+            }
 
             Text(subtitle)
                 .font(.caption)
@@ -1519,6 +1579,10 @@ private struct VenueClaimPhotoCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .strokeBorder(isRequired && imageURL.isEmpty ? Color.red.opacity(0.35) : Color.clear, lineWidth: 1)
+                )
         }
     }
 }
