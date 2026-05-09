@@ -102,6 +102,7 @@ private final class DirectChatPresenter: ObservableObject {
     private let service = DirectChatService()
     private let moderation = ModerationService()
     private var blockedUserIds: Set<UUID> = []
+    private var inboxRefreshDebounceTask: Task<Void, Never>?
 
     @Published private(set) var messages: [DirectMessageRow] = []
     @Published private(set) var conversationId: UUID?
@@ -179,7 +180,15 @@ private final class DirectChatPresenter: ObservableObject {
                 messages.append(row)
                 if row.sender_id != me {
                     await flushMarkReadNow()
-                    await chatViewModel.refreshInboxSummaries()
+                    // Debounce inbox refreshes to avoid network spam during rapid incoming messages.
+                    inboxRefreshDebounceTask?.cancel()
+                    inboxRefreshDebounceTask = Task { [weak chatViewModel] in
+                        do {
+                            try await Task.sleep(nanoseconds: 700_000_000) // ~700ms
+                        } catch { return }
+                        guard !Task.isCancelled else { return }
+                        await chatViewModel?.refreshInboxSummaries()
+                    }
                 }
             }
         } catch is CancellationError {
@@ -187,6 +196,8 @@ private final class DirectChatPresenter: ObservableObject {
             realtimeNotice = error.localizedDescription
         }
 
+        inboxRefreshDebounceTask?.cancel()
+        inboxRefreshDebounceTask = nil
         await service.removeRealtimeChannel(channel)
     }
 

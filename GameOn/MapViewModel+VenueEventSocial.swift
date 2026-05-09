@@ -316,8 +316,13 @@ extension MapViewModel {
             }
 
             await MainActor.run {
-                venueEventInterestCounts = counts
-                venueEventInterestIDs = myInterests
+                // Avoid large published invalidations when values didn't change.
+                if venueEventInterestCounts != counts {
+                    venueEventInterestCounts = counts
+                }
+                if venueEventInterestIDs != myInterests {
+                    venueEventInterestIDs = myInterests
+                }
             }
 
             print("LOADED VISIBLE VENUE EVENT INTERESTS:", rows.count)

@@ -7,13 +7,32 @@ extension MapViewModel {
     func loadVenuesFromSupabase() async {
         do {
             guard let bounds = currentMapRegionBounds() else {
-                print("NO MAP REGION BOUNDS")
                 return
             }
 
             let venueRowsAll: [VenueRow] = try await supabase
                 .from("venues")
-                .select()
+                // Avoid selecting unused columns in this hot path.
+                .select("""
+                    id,
+                    venue_name,
+                    owner_email,
+                    latitude,
+                    longitude,
+                    address,
+                    city,
+                    state,
+                    zip_code,
+                    phone,
+                    screen_count,
+                    serves_food,
+                    has_wifi,
+                    has_garden,
+                    has_projector,
+                    pet_friendly,
+                    cover_photo_url,
+                    menu_photo_url
+                """)
                 .gte("latitude", value: bounds.minLat)
                 .lte("latitude", value: bounds.maxLat)
                 .gte("longitude", value: bounds.minLon)
@@ -81,11 +100,35 @@ extension MapViewModel {
                 }
             }
 
+            // Restrict venue events to a recent window (same as the games feed).
+            // This avoids pulling the entire table during map camera changes.
             let venueEventRows: [VenueEventRow] = try await supabase
                 .from("venue_events")
-                .select()
+                .select("owner_email, venue_name, event_title, event_date")
+                .gte("event_date", value: tenDaysAgoString())
                 .execute()
                 .value
+
+            // Pre-index venue events once so mapping venues is O(N), not O(N×M).
+            func norm(_ raw: String?) -> String? {
+                let s = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                return s.isEmpty ? nil : s.lowercased()
+            }
+            var eventsByOwnerEmail: [String: [String]] = [:]
+            var eventsByVenueName: [String: [String]] = [:]
+            eventsByOwnerEmail.reserveCapacity(venueRows.count)
+            eventsByVenueName.reserveCapacity(venueRows.count)
+
+            for ev in venueEventRows {
+                guard let title = ev.event_title?.trimmingCharacters(in: .whitespacesAndNewlines),
+                      !title.isEmpty else { continue }
+                if let ownerKey = norm(ev.owner_email) {
+                    eventsByOwnerEmail[ownerKey, default: []].append(title)
+                }
+                if let venueKey = norm(ev.venue_name) {
+                    eventsByVenueName[venueKey, default: []].append(title)
+                }
+            }
 
             let mappedBars: [BarVenue] = venueRows.compactMap { row -> BarVenue? in
                 guard
@@ -96,24 +139,16 @@ extension MapViewModel {
                     return nil
                 }
 
-                let gamesForThisVenue = venueEventRows
-                    .filter { eventRow in
-                        if let eventOwnerEmail = eventRow.owner_email,
-                           let venueOwnerEmail = row.owner_email {
-                            return eventOwnerEmail == venueOwnerEmail
-                        }
-
-                        if let eventVenueName = eventRow.venue_name {
-                            return eventVenueName == name
-                        }
-
-                        return false
+                // Prefer owner_email mapping when available (stable key), else fall back to venue name.
+                let gamesForThisVenue: [String] = {
+                    if let ownerKey = norm(row.owner_email), let byOwner = eventsByOwnerEmail[ownerKey] {
+                        return byOwner
                     }
-                    .compactMap { $0.event_title }
-
-                print("PHOTO URLS FOR:", name)
-                print("COVER:", row.cover_photo_url ?? "nil")
-                print("MENU:", row.menu_photo_url ?? "nil")
+                    if let venueKey = norm(name), let byName = eventsByVenueName[venueKey] {
+                        return byName
+                    }
+                    return []
+                }()
 
                 return BarVenue(
                     id: row.id ?? UUID(),
@@ -150,12 +185,15 @@ extension MapViewModel {
             }
 
             if SampleData.includeSampleData {
-                bars = mappedBars + SampleData.bars
+                let next = mappedBars + SampleData.bars
+                if bars.map(\.id) != next.map(\.id) {
+                    bars = next
+                }
             } else {
-                bars = mappedBars
+                if bars.map(\.id) != mappedBars.map(\.id) {
+                    bars = mappedBars
+                }
             }
-
-            print("Loaded venues from Supabase:", mappedBars.count)
 
         } catch {
             print("ERROR LOADING VENUES FROM SUPABASE:", error)
