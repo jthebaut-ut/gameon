@@ -11,6 +11,33 @@ extension MapViewModel {
         }
     }
 
+    /// Calendar green dots: sport-filtered; when ``calendarUsesVisibleMapRegionOnly`` is on, only venue-backed games on currently loaded map bars.
+    var eventsForCalendarDots: [SportsEvent] {
+        var list = events
+        if selectedSport != "All" {
+            list = list.filter { $0.sport == selectedSport }
+        }
+        if calendarUsesVisibleMapRegionOnly {
+            let venueGameTitles = Set(bars.flatMap(\.games))
+            list = list.filter { event in
+                event.league == "Venue Event" && venueGameTitles.contains(event.title)
+            }
+        }
+        return list
+    }
+
+    func recomputeCalendarDotDates() {
+        #if DEBUG
+        let t0 = Date()
+        #endif
+        let cal = Calendar.current
+        calendarDotDates = Set(eventsForCalendarDots.map { cal.startOfDay(for: $0.date) })
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[DiscoverPerf] calendar dots recompute ms=\(ms) n=\(calendarDotDates.count) regionOnly=\(calendarUsesVisibleMapRegionOnly) sport=\(selectedSport)")
+        #endif
+    }
+
     var datesWithEvents: Set<DateComponents> {
         Set(events.map {
             Calendar.current.dateComponents([.year, .month, .day], from: $0.date)

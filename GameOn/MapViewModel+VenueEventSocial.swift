@@ -267,26 +267,53 @@ extension MapViewModel {
     }
 
     func venueEventID(for bar: BarVenue, gameTitle: String) async -> UUID? {
+        let key = venueEventLookupKey(for: bar, gameTitle: gameTitle)
+        if let cached = venueEventIDsByKey[key] {
+            return cached
+        }
+
+        if let row = venueEventRows.first(where: { row in
+            guard row.event_title == gameTitle else { return false }
+            if row.venue_name == bar.name { return true }
+            if let o = row.owner_email, let bo = bar.ownerEmail, o == bo { return true }
+            return false
+        }), let id = row.id {
+            venueEventIDsByKey[key] = id
+            return id
+        }
+
         do {
-            let rows: [VenueEventRow] = try await supabase
+            var q = supabase
                 .from("venue_events")
-                .select()
+                .select("id,owner_email,venue_name,event_title")
                 .eq("event_title", value: gameTitle)
+
+            if let owner = bar.ownerEmail?.trimmingCharacters(in: .whitespacesAndNewlines), !owner.isEmpty {
+                q = q.eq("owner_email", value: owner)
+            } else {
+                q = q.eq("venue_name", value: bar.name)
+            }
+
+            let rows: [VenueEventRow] = try await q
                 .limit(1)
                 .execute()
                 .value
 
-            print("🔍 QUERY RESULT:", rows)
+            #if DEBUG
+            print("[DiscoverPerf] venueEventID network lookup title=\(gameTitle) rows=\(rows.count)")
+            #endif
 
             if let id = rows.first?.id {
-                venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: gameTitle)] = id
+                venueEventIDsByKey[key] = id
                 return id
             }
 
             return nil
 
         } catch {
+            #if DEBUG
             print("ERROR FINDING VENUE EVENT ID:", error)
+            #endif
             return nil
         }
     }
@@ -298,26 +325,36 @@ extension MapViewModel {
             return
         }
 
-        do {
-            let rows: [VenueEventInterestRow] = try await supabase
-                .from("venue_event_interests")
-                .select()
-                .in("venue_event_id", values: visibleEventIDs)
-                .execute()
-                .value
+        let t0 = Date()
+        let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
+        let selectCols = "venue_event_id,user_email"
+        let chunkSize = 90
 
+        do {
             var counts: [UUID: Int] = [:]
             var myInterests: Set<UUID> = []
+            var totalRows = 0
 
-            let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
+            var index = 0
+            while index < visibleEventIDs.count {
+                let end = min(index + chunkSize, visibleEventIDs.count)
+                let chunk = Array(visibleEventIDs[index..<end])
+                index = end
 
-            for row in rows {
-                guard let eventID = row.venue_event_id else { continue }
+                let rows: [VenueEventInterestRow] = try await supabase
+                    .from("venue_event_interests")
+                    .select(selectCols)
+                    .in("venue_event_id", values: chunk)
+                    .execute()
+                    .value
 
-                counts[eventID, default: 0] += 1
-
-                if row.user_email == interestEmail {
-                    myInterests.insert(eventID)
+                totalRows += rows.count
+                for row in rows {
+                    guard let eventID = row.venue_event_id else { continue }
+                    counts[eventID, default: 0] += 1
+                    if row.user_email == interestEmail {
+                        myInterests.insert(eventID)
+                    }
                 }
             }
 
@@ -326,10 +363,15 @@ extension MapViewModel {
                 venueEventInterestIDs = myInterests
             }
 
-            print("LOADED VISIBLE VENUE EVENT INTERESTS:", rows.count)
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[DiscoverPerf] visible interests loaded events=\(visibleEventIDs.count) rows=\(totalRows) ms=\(ms)")
+            #endif
 
         } catch {
+            #if DEBUG
             print("ERROR LOADING VISIBLE VENUE EVENT INTERESTS:", error)
+            #endif
         }
     }
 }

@@ -686,27 +686,40 @@ extension MapViewModel {
     func loadInterestCountsForVenueEventIDs(_ eventIDs: [UUID]) async {
         guard !eventIDs.isEmpty else { return }
 
-        do {
-            let rows: [VenueEventInterestRow] = try await supabase
-                .from("venue_event_interests")
-                .select()
-                .in("venue_event_id", values: eventIDs)
-                .execute()
-                .value
+        let unique = Array(Set(eventIDs))
+        let chunkSize = 90
 
+        do {
             var counts: [UUID: Int] = [:]
-            for row in rows {
-                guard let eventID = row.venue_event_id else { continue }
-                counts[eventID, default: 0] += 1
+
+            var index = 0
+            while index < unique.count {
+                let end = min(index + chunkSize, unique.count)
+                let chunk = Array(unique[index..<end])
+                index = end
+
+                let rows: [VenueEventInterestRow] = try await supabase
+                    .from("venue_event_interests")
+                    .select("venue_event_id")
+                    .in("venue_event_id", values: chunk)
+                    .execute()
+                    .value
+
+                for row in rows {
+                    guard let eventID = row.venue_event_id else { continue }
+                    counts[eventID, default: 0] += 1
+                }
             }
 
             await MainActor.run {
-                for id in eventIDs {
+                for id in unique {
                     venueEventInterestCounts[id] = counts[id] ?? 0
                 }
             }
         } catch {
+            #if DEBUG
             print("ERROR LOADING INTEREST COUNTS FOR VENUE EVENT IDS:", error)
+            #endif
         }
     }
 

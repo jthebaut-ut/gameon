@@ -44,6 +44,9 @@ struct BarVenue: Identifiable, Equatable {
     let coverPhotoURL: String?
     let menuPhotoURL: String?
 
+    /// Supabase `venues.owner_email` when known (Discover scoped queries / venue_event lookup).
+    let ownerEmail: String?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -63,7 +66,8 @@ struct BarVenue: Identifiable, Equatable {
         hasProjector: Bool = false,
         petFriendly: Bool = false,
         coverPhotoURL: String? = nil,
-        menuPhotoURL: String? = nil
+        menuPhotoURL: String? = nil,
+        ownerEmail: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -84,6 +88,7 @@ struct BarVenue: Identifiable, Equatable {
         self.petFriendly = petFriendly
         self.coverPhotoURL = coverPhotoURL
         self.menuPhotoURL = menuPhotoURL
+        self.ownerEmail = ownerEmail
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {

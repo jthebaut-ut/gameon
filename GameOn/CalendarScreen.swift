@@ -47,6 +47,8 @@ struct CalendarScreen: View {
                     events: viewModel.events,
                     bars: viewModel.filteredBars,
                     useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
+                    eventDotDates: viewModel.calendarDotDates,
+                    dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
                     selectedDate: $viewModel.selectedDate
                 ) {
                     withAnimation(.spring()) {
@@ -62,6 +64,12 @@ struct CalendarScreen: View {
         }
         .task {
             viewModel.loadGamesFromSupabase()
+        }
+        .onChange(of: viewModel.calendarUsesVisibleMapRegionOnly) { _, _ in
+            viewModel.recomputeCalendarDotDates()
+        }
+        .onChange(of: viewModel.selectedSport) { _, _ in
+            viewModel.recomputeCalendarDotDates()
         }
     }
     

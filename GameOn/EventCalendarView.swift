@@ -5,6 +5,10 @@ struct EventCalendarView: View {
     /// Passed from Discover/Calendar for API compatibility; dots are driven by `events` only for now.
     let bars: [BarVenue]
     let useVisibleMapRegionOnly: Bool
+    /// Precomputed start-of-day keys for green dots (O(1) per cell). When empty, falls back to scanning `events`.
+    let eventDotDates: Set<Date>
+    /// Subtle loading hint for region-backed dots only (does not block interaction).
+    let dotsLoading: Bool
     @Binding var selectedDate: Date
     let onDone: () -> Void
 
@@ -12,12 +16,16 @@ struct EventCalendarView: View {
         events: [SportsEvent],
         bars: [BarVenue] = [],
         useVisibleMapRegionOnly: Bool = false,
+        eventDotDates: Set<Date> = [],
+        dotsLoading: Bool = false,
         selectedDate: Binding<Date>,
         onDone: @escaping () -> Void
     ) {
         self.events = events
         self.bars = bars
         self.useVisibleMapRegionOnly = useVisibleMapRegionOnly
+        self.eventDotDates = eventDotDates
+        self.dotsLoading = dotsLoading
         self._selectedDate = selectedDate
         self.onDone = onDone
     }
@@ -91,9 +99,13 @@ struct EventCalendarView: View {
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                 
-                                if hasEvents(on: date) {
+                                if hasEventDot(on: date) {
                                     Circle()
                                         .fill(Color.green)
+                                        .frame(width: 7, height: 7)
+                                } else if dotsLoading && useVisibleMapRegionOnly {
+                                    Circle()
+                                        .strokeBorder(Color.green.opacity(0.35), lineWidth: 1.2)
                                         .frame(width: 7, height: 7)
                                 } else {
                                     Circle()
@@ -186,8 +198,15 @@ struct EventCalendarView: View {
         return days
     }
     
-    private func hasEvents(on date: Date) -> Bool {
-        events.contains {
+    private func hasEventDot(on date: Date) -> Bool {
+        let sod = calendar.startOfDay(for: date)
+        if useVisibleMapRegionOnly {
+            return eventDotDates.contains(sod)
+        }
+        if !eventDotDates.isEmpty {
+            return eventDotDates.contains(sod)
+        }
+        return events.contains {
             calendar.isDate($0.date, inSameDayAs: date)
         }
     }

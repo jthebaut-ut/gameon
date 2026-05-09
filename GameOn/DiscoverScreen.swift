@@ -82,6 +82,12 @@ struct DiscoverScreen: View {
     .onChange(of: viewModel.searchText) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
     }
+    .onChange(of: viewModel.calendarUsesVisibleMapRegionOnly) { _, _ in
+        viewModel.recomputeCalendarDotDates()
+    }
+    .onChange(of: viewModel.selectedSport) { _, _ in
+        viewModel.recomputeCalendarDotDates()
+    }
     .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
         guard id != nil else { return }
         Task {
@@ -193,6 +199,8 @@ struct DiscoverScreen: View {
                 events: viewModel.events,
                 bars: viewModel.bars,
                 useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
+                eventDotDates: viewModel.calendarDotDates,
+                dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
                 selectedDate: $viewModel.selectedDate
             ) {
                 withAnimation(.spring()) {
@@ -238,15 +246,6 @@ struct DiscoverScreen: View {
         Button {
             withAnimation(.spring()) {
                 viewModel.centerMap(on: bar)
-            }
-
-            if viewModel.isLoggedIn {
-                Task {
-                    if let firstGame = gamesToday.first,
-                       let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: firstGame.title) {
-                        await viewModel.loadGoingUserProfiles(for: venueEventID)
-                    }
-                }
             }
         } label: {
             Group {
@@ -762,6 +761,16 @@ struct DiscoverScreen: View {
         .onChange(of: viewModel.selectedBar?.id) { _, _ in
             venuePreviewGameFilter = .all
         }
+        .task(id: bar.id) {
+            await viewModel.prefetchDiscoverVenueImages(for: bar, includeMenu: false)
+            guard viewModel.isLoggedIn else { return }
+            let dayEvents = viewModel.eventsForSelectedDate.filter { bar.games.contains($0.title) }
+            for game in dayEvents.prefix(5) {
+                if let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: game.title) {
+                    await viewModel.loadGoingUserProfiles(for: venueEventID)
+                }
+            }
+        }
     }
 
     
@@ -770,11 +779,7 @@ struct DiscoverScreen: View {
             if let urlString = bar.coverPhotoURL,
                let url = URL(string: urlString),
                !urlString.isEmpty {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
+                DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(Color.gray.opacity(0.18))
                 }
@@ -1099,18 +1104,15 @@ struct DiscoverScreen: View {
                 )
         )
         .task(id: venueEventID ?? event.id) {
-            if let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) {
-                await viewModel.loadComments(for: id)
-                await viewModel.loadVibes(for: id)
-                await viewModel.loadGoingUserProfiles(for: id)
+            guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) else { return }
+            async let comments: Void = viewModel.loadComments(for: id)
+            async let vibes: Void = viewModel.loadVibes(for: id)
+            async let going: Void = viewModel.loadGoingUserProfiles(for: id)
+            _ = await (comments, vibes, going)
 
-                let emails = (viewModel.venueEventComments[id] ?? [])
-                    .compactMap { $0.user_email }
-
-                await viewModel.loadUserProfilesForEmails(emails)
-            }
-
-            await viewModel.loadVisibleVenueEventInterests()
+            let emails = (viewModel.venueEventComments[id] ?? [])
+                .compactMap { $0.user_email }
+            await viewModel.loadUserProfilesForEmails(emails)
         }
     }
 

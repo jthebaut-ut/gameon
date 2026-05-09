@@ -10,7 +10,7 @@ extension MapViewModel {
         do {
             let rows: [VenueEventVibeRow] = try await supabase
                 .from("venue_event_vibes")
-                .select()
+                .select("venue_event_id,user_email,vibe_type")
                 .eq("venue_event_id", value: venueEventID.uuidString)
                 .execute()
                 .value
@@ -87,7 +87,7 @@ extension MapViewModel {
         do {
             let rows: [VenueEventCommentRow] = try await supabase
                 .from("venue_event_comments")
-                .select()
+                .select("id,venue_event_id,user_email,comment,created_at")
                 .eq("venue_event_id", value: venueEventID)
                 .order("created_at", ascending: true)
                 .limit(100)

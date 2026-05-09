@@ -191,13 +191,7 @@ struct MapVenuePreviewCard: View {
                let url = URL(string: urlString),
                !urlString.isEmpty {
 
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-
-                } placeholder: {
-
+                DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
                 }

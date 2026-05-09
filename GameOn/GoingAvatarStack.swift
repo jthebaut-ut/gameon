@@ -24,15 +24,8 @@ struct GoingAvatarStack: View {
         if let raw = row.avatar_url?.trimmingCharacters(in: .whitespacesAndNewlines),
            !raw.isEmpty,
            let url = URL(string: raw) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    placeholder(initial: row.display_name ?? row.email)
-                }
+            DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
+                placeholder(initial: row.display_name ?? row.email)
             }
         } else {
             placeholder(initial: row.display_name ?? row.email)

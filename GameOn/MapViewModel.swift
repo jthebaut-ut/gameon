@@ -93,6 +93,7 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingEvents: Bool = false
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = []
+    @Published var isLoadingMapVenues: Bool = false
     @Published var calendarUsesVisibleMapRegionOnly: Bool = false
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
@@ -102,6 +103,8 @@ final class MapViewModel: ObservableObject {
     )
     @Published var calendarSyncMessage: String = ""
     @Published var venueEventRows: [VenueEventRow] = []
+    /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
+    @Published var calendarDotDates: Set<Date> = []
     @Published var currentUserDisplayName: String = ""
     @Published var currentUserAvatarURL: String = ""
     @Published var goingUserProfiles: [UserProfileRow] = []
@@ -139,5 +142,13 @@ final class MapViewModel: ObservableObject {
     let venueExperiences = SampleData.venueExperiences
     let reminderMinuteOptions = [15, 30, 60, 120, 180, 1440]
     let repeatMinuteOptions = [15, 30, 60, 120]
-    
+
+    // MARK: - Discover / map venue_events fetch cache (region + sport + date window)
+
+    /// In-memory reuse for identical region/sport/window fetches (see ``MapViewModel+VenueAndGameData``).
+    var discoverVenueEventsFetchCache: (key: String, rows: [VenueEventRow], fetchedAt: Date)?
+
+    /// Memo for ``clusteredBars()`` so SwiftUI map body does not rebuild clusters every frame.
+    var discoverClusteredBarsCacheKey: String?
+    var discoverClusteredBarsCache: [VenueCluster]?
 }

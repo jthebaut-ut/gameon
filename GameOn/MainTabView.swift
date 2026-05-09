@@ -71,10 +71,8 @@ struct MainTabView: View {
         .task {
             await viewModel.restoreSession()
 
-            //viewModel.loadFavoriteVenueIDs()
-
-            await viewModel.loadVenuesFromSupabase()
-
+            // Map + schedule: do not block the first frame on venues; games hydrate in parallel.
+            Task { await viewModel.loadVenuesFromSupabase() }
             viewModel.loadGamesFromSupabase()
 
             await chatViewModel.loadIfNeeded()

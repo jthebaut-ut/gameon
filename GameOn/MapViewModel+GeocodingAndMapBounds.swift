@@ -11,7 +11,20 @@ extension MapViewModel {
 
     func clusteredBars() -> [VenueCluster] {
         let source = filteredBars
-        guard !source.isEmpty else { return [] }
+        guard !source.isEmpty else {
+            discoverClusteredBarsCache = nil
+            discoverClusteredBarsCacheKey = nil
+            return []
+        }
+
+        let dayBucket = Int(selectedDate.timeIntervalSince1970 / 86400)
+        let coordFingerprint = source.prefix(64).reduce(into: 0.0) { partial, bar in
+            partial += bar.coordinate.latitude + bar.coordinate.longitude + Double(bar.games.count)
+        }
+        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(searchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
+        if cacheKey == discoverClusteredBarsCacheKey, let cached = discoverClusteredBarsCache {
+            return cached
+        }
 
         var gridSize = 0.035
         if visibleLatitudeDelta > 0.35 {
@@ -24,7 +37,7 @@ extension MapViewModel {
             return "\(latKey)-\(lonKey)"
         }
 
-        return grouped.map { key, bars in
+        let clusters = grouped.map { key, bars in
             let avgLat = bars.map { $0.coordinate.latitude }.reduce(0, +) / Double(bars.count)
             let avgLon = bars.map { $0.coordinate.longitude }.reduce(0, +) / Double(bars.count)
             return VenueCluster(
@@ -33,6 +46,10 @@ extension MapViewModel {
                 coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon)
             )
         }
+
+        discoverClusteredBarsCacheKey = cacheKey
+        discoverClusteredBarsCache = clusters
+        return clusters
     }
 
     /// Zoom in on a multi-venue cluster (Discover); uses current span so repeated taps keep tightening.
@@ -92,6 +109,9 @@ extension MapViewModel {
     }
 
     func centerMap(on bar: BarVenue, selectForPreview: Bool = true) {
+        #if DEBUG
+        let t0 = Date()
+        #endif
         if selectForPreview {
             selectedBar = bar
         }
@@ -102,6 +122,12 @@ extension MapViewModel {
                 span: MKCoordinateSpan(latitudeDelta: spanVal, longitudeDelta: spanVal)
             )
         )
+        #if DEBUG
+        if selectForPreview {
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[DiscoverPerf] venue preview open (centerMap) ms=\(ms) venue=\(bar.name)")
+        }
+        #endif
     }
 
     /// Centers the map on a coordinate (e.g. geocoded address) while optionally keeping a venue selected for the preview card.
