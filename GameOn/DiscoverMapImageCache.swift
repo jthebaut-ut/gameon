@@ -86,12 +86,12 @@ extension MapViewModel {
     /// Warms the Discover image cache for thumbnails. Menu URLs are optional (heavier / rarely shown on the map card).
     func prefetchDiscoverVenueImages(for bar: BarVenue, includeMenu: Bool = false) async {
         var urls: [URL] = []
-        if let s = bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+        if let s = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
            let u = URL(string: s) {
             urls.append(u)
         }
         if includeMenu,
-           let s = bar.menuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           let s = ImageDisplayURL.forList(thumbnail: bar.menuPhotoThumbnailURL, full: bar.menuPhotoURL),
            let u = URL(string: s) {
             urls.append(u)
         }

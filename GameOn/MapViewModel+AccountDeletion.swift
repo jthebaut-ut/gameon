@@ -94,6 +94,7 @@ extension MapViewModel {
             currentUserEmail = ""
             currentUserDisplayName = ""
             currentUserAvatarURL = ""
+            currentUserAvatarThumbnailURL = ""
             goingUserProfiles = []
             goingProfilesByVenueEventID = [:]
             isLoggedIn = false

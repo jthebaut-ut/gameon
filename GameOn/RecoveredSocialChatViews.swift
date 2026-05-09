@@ -8,8 +8,7 @@ struct ProfileAvatarView: View {
 
     var body: some View {
         Group {
-            if let raw = preview.avatarURL?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !raw.isEmpty,
+            if let raw = ImageDisplayURL.forList(thumbnail: preview.avatarThumbnailURL, full: preview.avatarURL),
                let url = URL(string: raw) {
                 AsyncImage(url: url) { phase in
                     switch phase {

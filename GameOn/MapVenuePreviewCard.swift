@@ -187,9 +187,8 @@ struct MapVenuePreviewCard: View {
 
         ZStack(alignment: .bottomLeading) {
 
-            if let urlString = bar.coverPhotoURL,
-               let url = URL(string: urlString),
-               !urlString.isEmpty {
+            if let urlString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
+               let url = URL(string: urlString) {
 
                 DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                     Rectangle()

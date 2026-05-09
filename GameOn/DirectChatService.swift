@@ -10,6 +10,10 @@ final class DirectChatService {
 
     private let client: SupabaseClient
 
+    /// Minimal columns for list/decoding (avoid `select()` wildcard at scale).
+    private static let directMessageListColumns =
+        "id,conversation_id,sender_id,body,created_at,deleted_at,report_count,is_deleted"
+
     init(client: SupabaseClient = supabase) {
         self.client = client
     }
@@ -46,16 +50,64 @@ final class DirectChatService {
             .execute()
     }
 
-    /// Latest `limit` messages, oldest-first for natural scrolling.
+    /// Latest `limit` messages, oldest-first for natural scrolling (key-ordered by `created_at`, `id` DESC server-side).
     func fetchLatestMessages(conversationId: UUID, limit: Int = 50) async throws -> [DirectMessageRow] {
+        #if DEBUG
+        let t0 = CFAbsoluteTimeGetCurrent()
+        #endif
+        let rows: [DirectMessageRow]
         do {
-            return try await fetchLatestMessagesWithIsDeletedFilter(conversationId: conversationId, limit: limit)
+            rows = try await fetchLatestMessagesWithIsDeletedFilter(conversationId: conversationId, limit: limit)
         } catch {
             if Self.shouldFallbackToLegacyDirectMessagesQuery(error) {
-                return try await fetchLatestMessagesDeletedAtOnly(conversationId: conversationId, limit: limit)
+                rows = try await fetchLatestMessagesDeletedAtOnly(conversationId: conversationId, limit: limit)
+            } else {
+                throw error
             }
-            throw error
         }
+        #if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+        print("[DMPagination] initial load: \(String(format: "%.1f", ms))ms rows=\(rows.count) limit=\(limit)")
+        #endif
+        return rows
+    }
+
+    /// Older messages strictly before `(beforeCreatedAt, beforeMessageId)` in `(created_at DESC, id DESC)` order.
+    /// Returns oldest-first within the page (ready to prepend to an existing oldest-first timeline).
+    func fetchOlderMessages(
+        conversationId: UUID,
+        beforeCreatedAt: Date,
+        beforeMessageId: UUID,
+        limit: Int = 50
+    ) async throws -> [DirectMessageRow] {
+        #if DEBUG
+        let t0 = CFAbsoluteTimeGetCurrent()
+        #endif
+        let rows: [DirectMessageRow]
+        do {
+            rows = try await fetchOlderMessagesWithIsDeletedFilter(
+                conversationId: conversationId,
+                beforeCreatedAt: beforeCreatedAt,
+                beforeMessageId: beforeMessageId,
+                limit: limit
+            )
+        } catch {
+            if Self.shouldFallbackToLegacyDirectMessagesQuery(error) {
+                rows = try await fetchOlderMessagesDeletedAtOnly(
+                    conversationId: conversationId,
+                    beforeCreatedAt: beforeCreatedAt,
+                    beforeMessageId: beforeMessageId,
+                    limit: limit
+                )
+            } else {
+                throw error
+            }
+        }
+        #if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+        print("[DMPagination] older page: \(String(format: "%.1f", ms))ms rows=\(rows.count) limit=\(limit)")
+        #endif
+        return rows
     }
 
     func sendMessage(conversationId: UUID, senderId: UUID, body: String) async throws -> DirectMessageRow {
@@ -180,14 +232,22 @@ final class DirectChatService {
         return rows.compactMap(\.id)
     }
 
+    /// PostgREST `or` for keyset “older than” `(created_at, id)` when listing in `created_at DESC, id DESC` order.
+    private static func keysetOlderThanOrFilter(createdAt: Date, messageId: UUID) -> String {
+        let iso = isoTimestamp(createdAt)
+        let uid = messageId.uuidString.lowercased()
+        return "created_at.lt.\(iso),and(created_at.eq.\(iso),id.lt.\(uid))"
+    }
+
     private func fetchLatestMessagesWithIsDeletedFilter(conversationId: UUID, limit: Int) async throws -> [DirectMessageRow] {
         let rows: [DirectMessageRow] = try await client
             .from("direct_messages")
-            .select()
+            .select(Self.directMessageListColumns)
             .eq("conversation_id", value: conversationId)
             .is("deleted_at", value: nil)
             .or("is_deleted.is.null,is_deleted.eq.false")
             .order("created_at", ascending: false)
+            .order("id", ascending: false)
             .limit(limit)
             .execute()
             .value
@@ -197,10 +257,52 @@ final class DirectChatService {
     private func fetchLatestMessagesDeletedAtOnly(conversationId: UUID, limit: Int) async throws -> [DirectMessageRow] {
         let rows: [DirectMessageRow] = try await client
             .from("direct_messages")
-            .select()
+            .select(Self.directMessageListColumns)
             .eq("conversation_id", value: conversationId)
             .is("deleted_at", value: nil)
             .order("created_at", ascending: false)
+            .order("id", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.reversed()
+    }
+
+    private func fetchOlderMessagesWithIsDeletedFilter(
+        conversationId: UUID,
+        beforeCreatedAt: Date,
+        beforeMessageId: UUID,
+        limit: Int
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or("is_deleted.is.null,is_deleted.eq.false")
+            .or(Self.keysetOlderThanOrFilter(createdAt: beforeCreatedAt, messageId: beforeMessageId))
+            .order("created_at", ascending: false)
+            .order("id", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.reversed()
+    }
+
+    private func fetchOlderMessagesDeletedAtOnly(
+        conversationId: UUID,
+        beforeCreatedAt: Date,
+        beforeMessageId: UUID,
+        limit: Int
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or(Self.keysetOlderThanOrFilter(createdAt: beforeCreatedAt, messageId: beforeMessageId))
+            .order("created_at", ascending: false)
+            .order("id", ascending: false)
             .limit(limit)
             .execute()
             .value

@@ -43,6 +43,8 @@ struct BarVenue: Identifiable, Equatable {
     // New photo URLs
     let coverPhotoURL: String?
     let menuPhotoURL: String?
+    let coverPhotoThumbnailURL: String?
+    let menuPhotoThumbnailURL: String?
 
     /// Supabase `venues.owner_email` when known (Discover scoped queries / venue_event lookup).
     let ownerEmail: String?
@@ -67,6 +69,8 @@ struct BarVenue: Identifiable, Equatable {
         petFriendly: Bool = false,
         coverPhotoURL: String? = nil,
         menuPhotoURL: String? = nil,
+        coverPhotoThumbnailURL: String? = nil,
+        menuPhotoThumbnailURL: String? = nil,
         ownerEmail: String? = nil
     ) {
         self.id = id
@@ -88,6 +92,8 @@ struct BarVenue: Identifiable, Equatable {
         self.petFriendly = petFriendly
         self.coverPhotoURL = coverPhotoURL
         self.menuPhotoURL = menuPhotoURL
+        self.coverPhotoThumbnailURL = coverPhotoThumbnailURL
+        self.menuPhotoThumbnailURL = menuPhotoThumbnailURL
         self.ownerEmail = ownerEmail
     }
 

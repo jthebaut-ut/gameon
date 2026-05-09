@@ -76,6 +76,8 @@ enum DiscoverVenueLoadAssembler {
                 petFriendly: row.pet_friendly ?? false,
                 coverPhotoURL: row.cover_photo_url,
                 menuPhotoURL: row.menu_photo_url,
+                coverPhotoThumbnailURL: row.cover_photo_thumbnail_url,
+                menuPhotoThumbnailURL: row.menu_photo_thumbnail_url,
                 ownerEmail: row.owner_email
             )
         }

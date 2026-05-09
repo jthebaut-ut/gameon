@@ -140,7 +140,11 @@ struct UserProfileScreen: View {
     private var profileAvatar: some View {
         ZStack {
             Circle().fill(Color.gray.opacity(0.18))
-            if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
+            if let urlString = ImageDisplayURL.forDetail(
+                thumbnail: viewModel.currentUserAvatarThumbnailURL,
+                full: viewModel.currentUserAvatarURL
+            ),
+               let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
@@ -167,7 +171,11 @@ struct UserProfileScreen: View {
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
-        await viewModel.saveUserProfile(displayName: nextName, avatarURL: viewModel.currentUserAvatarURL)
+        await viewModel.saveUserProfile(
+            displayName: nextName,
+            avatarURL: viewModel.currentUserAvatarURL,
+            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL
+        )
         await MainActor.run { message = "Saved." }
         onDone()
     }
@@ -182,20 +190,22 @@ struct UserProfileScreen: View {
         defer { isUploadingAvatar = false }
         await MainActor.run { message = "Uploading avatar..." }
 
-        // NOTE: The current avatar upload path may be stable (upsert) depending on backend configuration.
-        // TODO: If uploads are changed to unique object keys, delete the previous object after a successful replacement.
         guard let data = try? await item.loadTransferable(type: Data.self) else {
             await MainActor.run { message = "Unable to read photo." }
             return
         }
-        guard let newURL = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
+        guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
             await MainActor.run { message = "Unable to upload avatar." }
             return
         }
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
-        await viewModel.saveUserProfile(displayName: nextName, avatarURL: newURL)
+        await viewModel.saveUserProfile(
+            displayName: nextName,
+            avatarURL: urls.fullURL,
+            avatarThumbnailURL: urls.thumbnailURL
+        )
         await MainActor.run { message = "Avatar updated." }
     }
 }

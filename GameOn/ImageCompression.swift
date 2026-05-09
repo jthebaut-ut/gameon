@@ -5,27 +5,39 @@ import UIKit
 enum ImageCompression {
 
     enum UploadPreset {
+        /// Full-size user avatar stored at `avatar.jpg` (list/detail fallback).
         case avatar
+        /// Companion `avatar_thumb.jpg` (~224px) for lists and small circles.
+        case avatarThumbnail
+        /// Venue / menu full image (max long edge 1500).
         case venuePhoto
+        /// Venue / menu list preview (~520px long edge).
+        case venuePhotoThumbnail
 
         fileprivate var maxLongEdge: CGFloat {
             switch self {
             case .avatar: return 768
-            case .venuePhoto: return 1800
+            case .avatarThumbnail: return 224
+            case .venuePhoto: return 1500
+            case .venuePhotoThumbnail: return 520
             }
         }
 
         fileprivate var jpegQuality: CGFloat {
             switch self {
             case .avatar: return 0.85
+            case .avatarThumbnail: return 0.82
             case .venuePhoto: return 0.82
+            case .venuePhotoThumbnail: return 0.78
             }
         }
 
         fileprivate var debugLabel: String {
             switch self {
             case .avatar: return "avatar"
+            case .avatarThumbnail: return "avatar_thumb"
             case .venuePhoto: return "venue"
+            case .venuePhotoThumbnail: return "venue_thumb"
             }
         }
     }

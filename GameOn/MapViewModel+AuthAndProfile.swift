@@ -5,6 +5,21 @@ import Supabase
 
 extension MapViewModel {
 
+    /// Public URLs for a full-size avatar and its list thumbnail (see ``ImageCompression/UploadPreset-swift.enum.avatarThumbnail``).
+    struct UploadedAvatarURLs: Sendable {
+        let fullURL: String
+        let thumbnailURL: String
+    }
+
+    private static func companionAvatarThumbnailFileName(for fullFileName: String) -> String {
+        if let dot = fullFileName.lastIndex(of: "."), dot < fullFileName.endIndex {
+            let base = String(fullFileName[..<dot])
+            let ext = String(fullFileName[fullFileName.index(after: dot)...])
+            return "\(base)_thumb.\(ext)"
+        }
+        return fullFileName + "_thumb.jpg"
+    }
+
     func registerUser(email: String, password: String) async {
         do {
             _ = try await supabase.auth.signUp(
@@ -16,6 +31,7 @@ extension MapViewModel {
                 currentUserEmail = email
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
+                currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
 
@@ -40,6 +56,7 @@ extension MapViewModel {
                 currentUserEmail = email
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
+                currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
 
@@ -78,6 +95,7 @@ extension MapViewModel {
                 currentUserEmail = ""
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
+                currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
 
@@ -106,6 +124,7 @@ extension MapViewModel {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserAvatarURL = UserDefaults.standard.string(forKey: "cachedUserAvatarURL") ?? ""
+            currentUserAvatarThumbnailURL = UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL") ?? ""
         }
         do {
             let session = try await supabase.auth.session
@@ -140,7 +159,7 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select()
+                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
                 .eq("email", value: email)
                 .limit(1)
                 .execute()
@@ -150,6 +169,7 @@ extension MapViewModel {
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
                     currentUserAvatarURL = profile.avatar_url ?? ""
+                    currentUserAvatarThumbnailURL = profile.avatar_thumbnail_url ?? ""
                     cacheCurrentUserProfileLocally()
                 }
 
@@ -158,6 +178,7 @@ extension MapViewModel {
                 await MainActor.run {
                     currentUserDisplayName = ""
                     currentUserAvatarURL = ""
+                    currentUserAvatarThumbnailURL = ""
                 }
 
                 print("NO USER PROFILE FOUND")
@@ -169,7 +190,7 @@ extension MapViewModel {
     }
 
     // Upserts `user_profiles` and mirrors the result into published fields and `UserDefaults` cache.
-    func saveUserProfile(displayName: String, avatarURL: String) async {
+    func saveUserProfile(displayName: String, avatarURL: String, avatarThumbnailURL: String? = nil) async {
         let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
 
         guard !email.isEmpty else {
@@ -178,10 +199,20 @@ extension MapViewModel {
         }
 
         do {
+            let resolvedThumb: String? = {
+                if let t = avatarThumbnailURL {
+                    let x = t.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return x.isEmpty ? nil : x
+                }
+                let x = currentUserAvatarThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                return x.isEmpty ? nil : x
+            }()
+
             let profile = UserProfileInsert(
                 email: email,
                 display_name: displayName,
-                avatar_url: avatarURL
+                avatar_url: avatarURL,
+                avatar_thumbnail_url: resolvedThumb
             )
 
             try await supabase
@@ -192,6 +223,7 @@ extension MapViewModel {
             await MainActor.run {
                 currentUserDisplayName = displayName
                 currentUserAvatarURL = avatarURL
+                currentUserAvatarThumbnailURL = resolvedThumb ?? ""
                 cacheCurrentUserProfileLocally()
             }
 
@@ -202,8 +234,8 @@ extension MapViewModel {
         }
     }
 
-    // Uploads a compressed JPEG to the `user-avatars` bucket; returns the public URL for storing on the profile.
-    func uploadUserAvatar(data: Data, fileName: String) async -> String? {
+    /// Uploads full + thumbnail JPEGs to `user-avatars` (stable paths per email folder).
+    func uploadUserAvatar(data: Data, fileName: String) async -> UploadedAvatarURLs? {
         let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
 
         guard !email.isEmpty else {
@@ -217,26 +249,52 @@ extension MapViewModel {
                 .replacingOccurrences(of: "@", with: "_")
                 .replacingOccurrences(of: ".", with: "_")
 
-            let path = "\(safeEmail)/\(fileName)"
+            let pathFull = "\(safeEmail)/\(fileName)"
+            let thumbName = Self.companionAvatarThumbnailFileName(for: fileName)
+            let pathThumb = "\(safeEmail)/\(thumbName)"
 
-            let uploadData = ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
+            let oldFull = currentUserAvatarURL
+            let oldThumb = currentUserAvatarThumbnailURL
+
+            let uploadFull = ImageCompression.jpegDataForUpload(from: data, preset: .avatar)
+            let uploadThumb = ImageCompression.jpegDataForUpload(from: data, preset: .avatarThumbnail)
 
             try await supabase.storage
                 .from("user-avatars")
                 .upload(
-                    path,
-                    data: uploadData,
+                    pathFull,
+                    data: uploadFull,
                     options: FileOptions(
                         contentType: "image/jpeg",
                         upsert: true
                     )
                 )
 
-            let publicURL = try supabase.storage
+            try await supabase.storage
                 .from("user-avatars")
-                .getPublicURL(path: path)
+                .upload(
+                    pathThumb,
+                    data: uploadThumb,
+                    options: FileOptions(
+                        contentType: "image/jpeg",
+                        upsert: true
+                    )
+                )
 
-            return publicURL.absoluteString
+            let publicFull = try supabase.storage
+                .from("user-avatars")
+                .getPublicURL(path: pathFull)
+            let publicThumb = try supabase.storage
+                .from("user-avatars")
+                .getPublicURL(path: pathThumb)
+
+            let fullStr = publicFull.absoluteString
+            let thumbStr = publicThumb.absoluteString
+
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldFull, newPublicURL: fullStr, bucket: "user-avatars")
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldThumb, newPublicURL: thumbStr, bucket: "user-avatars")
+
+            return UploadedAvatarURLs(fullURL: fullStr, thumbnailURL: thumbStr)
 
         } catch {
             print("ERROR UPLOADING USER AVATAR:", error)
@@ -253,7 +311,7 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select()
+                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
                 .in("email", values: uniqueEmails)
                 .execute()
                 .value
@@ -274,6 +332,7 @@ extension MapViewModel {
     func cacheCurrentUserProfileLocally() {
         UserDefaults.standard.set(currentUserDisplayName, forKey: "cachedUserDisplayName")
         UserDefaults.standard.set(currentUserAvatarURL, forKey: "cachedUserAvatarURL")
+        UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
     }
 
     enum PasswordResetAccountKind {

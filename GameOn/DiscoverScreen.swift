@@ -776,9 +776,8 @@ struct DiscoverScreen: View {
     
     private func barThumbnail(_ bar: BarVenue) -> some View {
         Group {
-            if let urlString = bar.coverPhotoURL,
-               let url = URL(string: urlString),
-               !urlString.isEmpty {
+            if let urlString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
+               let url = URL(string: urlString) {
                 DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(Color.gray.opacity(0.18))

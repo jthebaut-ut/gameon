@@ -112,7 +112,9 @@ extension MapViewModel {
             ownerVenuePrimarySport = "Soccer"
 
             venueCoverPhotoURL = ""
+            venueCoverPhotoThumbnailURL = ""
             venueMenuPhotoURL = ""
+            venueMenuPhotoThumbnailURL = ""
             venueCrowdPhotoURL = ""
             venueTVWallPhotoURL = ""
             venueSpecialsPhotoURL = ""

@@ -70,6 +70,8 @@ struct VenueProfileInsert: Encodable {
     let longitude: Double?
     let cover_photo_url: String
     let menu_photo_url: String
+    let cover_photo_thumbnail_url: String?
+    let menu_photo_thumbnail_url: String?
 }
 
 struct VenueProfileRow: Decodable {
@@ -91,6 +93,8 @@ struct VenueProfileRow: Decodable {
     let pet_friendly: Bool?
     let cover_photo_url: String?
     let menu_photo_url: String?
+    let cover_photo_thumbnail_url: String?
+    let menu_photo_thumbnail_url: String?
 }
 
 struct VenueRow: Decodable {
@@ -115,6 +119,8 @@ struct VenueRow: Decodable {
     let longitude: Double?
     let cover_photo_url: String?
     let menu_photo_url: String?
+    let cover_photo_thumbnail_url: String?
+    let menu_photo_thumbnail_url: String?
 }
 
 struct VenueClaimInsert: Encodable {
@@ -165,12 +171,14 @@ struct UserProfileRow: Decodable {
     let email: String?
     let display_name: String?
     let avatar_url: String?
+    let avatar_thumbnail_url: String?
 }
 
 struct UserProfileInsert: Encodable {
     let email: String
     let display_name: String
     let avatar_url: String
+    let avatar_thumbnail_url: String?
 }
 
 struct FavoriteVenueRow: Decodable {

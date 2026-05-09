@@ -253,8 +253,11 @@ struct MainTabView: View {
     private var accountTabAvatar: some View {
         Group {
             if viewModel.isLoggedIn,
-               let url = URL(string: viewModel.currentUserAvatarURL),
-               !viewModel.currentUserAvatarURL.isEmpty {
+               let urlString = ImageDisplayURL.forList(
+                thumbnail: viewModel.currentUserAvatarThumbnailURL,
+                full: viewModel.currentUserAvatarURL
+               ),
+               let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()

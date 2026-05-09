@@ -10,6 +10,15 @@ struct UserPreview: Identifiable, Hashable, Codable {
     let id: UUID
     let displayName: String
     let avatarURL: String?
+    /// Smaller avatar for lists/chips; falls back to ``avatarURL`` in views when nil/empty.
+    let avatarThumbnailURL: String?
+
+    init(id: UUID, displayName: String, avatarURL: String?, avatarThumbnailURL: String? = nil) {
+        self.id = id
+        self.displayName = displayName
+        self.avatarURL = avatarURL
+        self.avatarThumbnailURL = avatarThumbnailURL
+    }
 }
 
 // MARK: - PostgREST rows (`friendships`, `direct_messages`, inbox RPC)
@@ -39,6 +48,8 @@ struct DmInboxSummaryRow: Codable, Hashable {
     let friend_user_id: UUID
     let friend_display_name: String?
     let friend_avatar_url: String?
+    /// Present when RPC / view exposes `user_profiles.avatar_thumbnail_url` for the friend.
+    let friend_avatar_thumbnail_url: String?
     let last_message_body: String?
     let last_message_sender_id: UUID?
     let last_message_created_at: String?

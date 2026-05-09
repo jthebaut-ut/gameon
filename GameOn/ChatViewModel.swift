@@ -392,7 +392,8 @@ final class ChatViewModel: ObservableObject {
                 let preview = UserPreview(
                     id: row.friend_user_id,
                     displayName: displayName,
-                    avatarURL: row.friend_avatar_url
+                    avatarURL: row.friend_avatar_url,
+                    avatarThumbnailURL: row.friend_avatar_thumbnail_url
                 )
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
@@ -509,7 +510,8 @@ final class ChatViewModel: ObservableObject {
                 let preview = UserPreview(
                     id: row.friend_user_id,
                     displayName: displayName,
-                    avatarURL: row.friend_avatar_url
+                    avatarURL: row.friend_avatar_url,
+                    avatarThumbnailURL: row.friend_avatar_thumbnail_url
                 )
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
@@ -707,7 +709,7 @@ final class ChatViewModel: ObservableObject {
         if let row = profileById[userId] {
             let name = row.display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             let resolved = (name?.isEmpty == false) ? name! : "Player"
-            return UserPreview(id: userId, displayName: resolved, avatarURL: row.avatar_url)
+            return UserPreview(id: userId, displayName: resolved, avatarURL: row.avatar_url, avatarThumbnailURL: row.avatar_thumbnail_url)
         }
         return UserPreview(id: userId, displayName: "Player", avatarURL: nil)
     }

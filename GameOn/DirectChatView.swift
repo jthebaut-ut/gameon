@@ -104,6 +104,9 @@ private final class DirectChatPresenter: ObservableObject {
     @Published private(set) var messages: [DirectMessageRow] = []
     @Published private(set) var conversationId: UUID?
     @Published private(set) var isLoadingInitial = true
+    /// More history may exist before the oldest loaded row (keyset pagination).
+    @Published private(set) var hasOlderMessages = false
+    @Published private(set) var isLoadingOlderMessages = false
     @Published private(set) var loadError: String?
     @Published var sendError: String?
     /// Subscribe/connect failure; live inserts may be unavailable until reopening the thread.
@@ -170,11 +173,52 @@ private final class DirectChatPresenter: ObservableObject {
 
             let rows = try await service.fetchLatestMessages(conversationId: conversationId, limit: 50)
             messages = rows
+            hasOlderMessages = rows.count >= 50
         } catch {
             loadError = error.localizedDescription
             messages = []
+            hasOlderMessages = false
         }
         isLoadingInitial = false
+    }
+
+    /// Prepends older pages (keyset on `created_at` + `id`); keeps realtime/new sends unchanged.
+    func loadOlderMessages() async {
+        guard !isLoadingOlderMessages, hasOlderMessages else { return }
+        guard let oldest = messages.first,
+              let oldestDate = DirectChatTimeGrouping.parseDate(oldest.created_at),
+              let cid = conversationId else {
+            hasOlderMessages = false
+            return
+        }
+
+        isLoadingOlderMessages = true
+        defer { isLoadingOlderMessages = false }
+
+        do {
+            let page = try await service.fetchOlderMessages(
+                conversationId: cid,
+                beforeCreatedAt: oldestDate,
+                beforeMessageId: oldest.id,
+                limit: 50
+            )
+            if page.isEmpty {
+                hasOlderMessages = false
+                return
+            }
+            let existing = Set(messages.map(\.id))
+            let mergedPrefix = page.filter { !existing.contains($0.id) }
+            if mergedPrefix.isEmpty {
+                hasOlderMessages = false
+                return
+            }
+            messages = mergedPrefix + messages
+            if page.count < 50 {
+                hasOlderMessages = false
+            }
+        } catch {
+            // Non-fatal: user can retry “Load older”.
+        }
     }
 
     /// Upserts read cursor with `Date()` so `last_read_at` is never behind DB `created_at` microsecond precision.
@@ -299,6 +343,7 @@ private final class DirectChatPresenter: ObservableObject {
                 .rpc("clear_direct_conversation", params: Params(p_conversation_id: conversationId))
                 .execute()
             messages = []
+            hasOlderMessages = false
         } catch {
             menuBanner = "Couldn’t clear chat on the server. Nothing was removed.\n\(error.localizedDescription)"
         }
@@ -1008,6 +1053,27 @@ struct DirectChatView: View {
                             .padding(.top, 40)
                             .padding(.bottom, 6)
                     } else {
+                        if presenter.hasOlderMessages || presenter.isLoadingOlderMessages {
+                            HStack(spacing: 10) {
+                                if presenter.isLoadingOlderMessages {
+                                    ProgressView()
+                                        .scaleEffect(0.85)
+                                }
+                                if presenter.hasOlderMessages {
+                                    Button {
+                                        Task { await presenter.loadOlderMessages() }
+                                    } label: {
+                                        Text("Load older messages")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(presenter.isLoadingOlderMessages)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.bottom, 4)
+                        }
                         let entries = DirectChatTimeGrouping.buildTimeline(from: presenter.messages)
                         ForEach(entries) { entry in
                             switch entry {

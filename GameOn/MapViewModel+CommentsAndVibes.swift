@@ -3,6 +3,26 @@ import Supabase
 
 // Venue-event social layer: vibe votes, threaded comments, reports, and moderation helpers for venue owners.
 
+private enum VenueEventCommentsPagination {
+    static let initialLimit = 100
+    static let pageLimit = 50
+    static let selectColumns = "id,venue_event_id,user_email,comment,created_at"
+}
+
+private enum VenueEventCommentsQuery {
+    static func isoTimestamp(_ date: Date) -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.string(from: date)
+    }
+
+    static func keysetOlderThanOrFilter(createdAt: Date, commentId: UUID) -> String {
+        let iso = isoTimestamp(createdAt)
+        let uid = commentId.uuidString.lowercased()
+        return "created_at.lt.\(iso),and(created_at.eq.\(iso),id.lt.\(uid))"
+    }
+}
+
 extension MapViewModel {
 
     // Fetches aggregate vibe tallies and the current user’s selections for one event.
@@ -82,15 +102,24 @@ extension MapViewModel {
         }
     }
 
-    // Loads up to 100 comments for an event into `venueEventComments`.
+    /// Loads the first page of fan updates (newest first server-side, stored unsorted; views sort for display).
     func loadComments(for venueEventID: UUID) async {
+        _ = await loadCommentsFirstPage(for: venueEventID)
+    }
+
+    /// Keyset-paginated first page. Returns `true` if older rows may exist (page was full).
+    func loadCommentsFirstPage(for venueEventID: UUID) async -> Bool {
+        #if DEBUG
+        let t0 = CFAbsoluteTimeGetCurrent()
+        #endif
         do {
             let rows: [VenueEventCommentRow] = try await supabase
                 .from("venue_event_comments")
-                .select("id,venue_event_id,user_email,comment,created_at")
+                .select(VenueEventCommentsPagination.selectColumns)
                 .eq("venue_event_id", value: venueEventID)
-                .order("created_at", ascending: true)
-                .limit(100)
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(VenueEventCommentsPagination.initialLimit)
                 .execute()
                 .value
 
@@ -98,10 +127,58 @@ extension MapViewModel {
                 venueEventComments[venueEventID] = rows
             }
 
-            print("LOADED COMMENTS:", rows.count)
-
+            let hasMore = rows.count >= VenueEventCommentsPagination.initialLimit
+            #if DEBUG
+            let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+            print("[VenueCommentsPagination] initial: \(String(format: "%.1f", ms))ms rows=\(rows.count) limit=\(VenueEventCommentsPagination.initialLimit) hasMore=\(hasMore)")
+            #endif
+            return hasMore
         } catch {
             print("ERROR LOADING COMMENTS:", error)
+            await MainActor.run {
+                venueEventComments[venueEventID] = []
+            }
+            return false
+        }
+    }
+
+    /// Older fan updates before `(beforeCreatedAt, beforeId)` in `(created_at DESC, id DESC)` order. Returns whether more may exist.
+    func loadOlderVenueComments(for venueEventID: UUID, beforeCreatedAt: Date, beforeId: UUID) async -> Bool {
+        #if DEBUG
+        let t0 = CFAbsoluteTimeGetCurrent()
+        #endif
+        do {
+            let rows: [VenueEventCommentRow] = try await supabase
+                .from("venue_event_comments")
+                .select(VenueEventCommentsPagination.selectColumns)
+                .eq("venue_event_id", value: venueEventID)
+                .or(VenueEventCommentsQuery.keysetOlderThanOrFilter(createdAt: beforeCreatedAt, commentId: beforeId))
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(VenueEventCommentsPagination.pageLimit)
+                .execute()
+                .value
+
+            await MainActor.run {
+                var list = venueEventComments[venueEventID] ?? []
+                var existing = Set(list.compactMap(\.id))
+                for row in rows {
+                    guard let rid = row.id, !existing.contains(rid) else { continue }
+                    list.append(row)
+                    existing.insert(rid)
+                }
+                venueEventComments[venueEventID] = list
+            }
+
+            let hasMore = rows.count >= VenueEventCommentsPagination.pageLimit
+            #if DEBUG
+            let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
+            print("[VenueCommentsPagination] older page: \(String(format: "%.1f", ms))ms rows=\(rows.count) hasMore=\(hasMore)")
+            #endif
+            return hasMore
+        } catch {
+            print("ERROR LOADING OLDER COMMENTS:", error)
+            return true
         }
     }
 
@@ -122,12 +199,25 @@ extension MapViewModel {
                 comment: cleanText
             )
 
-            try await supabase
+            let row: VenueEventCommentRow = try await supabase
                 .from("venue_event_comments")
                 .insert(newComment)
+                .select(VenueEventCommentsPagination.selectColumns)
+                .single()
                 .execute()
+                .value
 
-            await loadComments(for: venueEventID)
+            await MainActor.run {
+                var list = venueEventComments[venueEventID] ?? []
+                if let nid = row.id {
+                    if !list.contains(where: { $0.id == nid }) {
+                        list.append(row)
+                    }
+                } else {
+                    list.append(row)
+                }
+                venueEventComments[venueEventID] = list
+            }
 
             print("COMMENT ADDED")
 
@@ -148,7 +238,9 @@ extension MapViewModel {
                 .execute()
 
             if let venueEventID = comment.venue_event_id {
-                await loadComments(for: venueEventID)
+                await MainActor.run {
+                    venueEventComments[venueEventID]?.removeAll { $0.id == id }
+                }
             }
 
             print("COMMENT DELETED")

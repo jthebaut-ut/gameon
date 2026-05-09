@@ -346,12 +346,13 @@ struct ModerationService {
             let email: String?
             let display_name: String?
             let avatar_url: String?
+            let avatar_thumbnail_url: String?
         }
 
         do {
             let rows: [ProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,avatar_url")
+                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
                 .in("id", values: userIds)
                 .execute()
                 .value
@@ -360,7 +361,7 @@ struct ModerationService {
                 guard let id = row.id else { return nil }
                 let name = (row.display_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 let display = !name.isEmpty ? name : (row.email?.split(separator: "@").first.map(String.init) ?? "Player")
-                return UserPreview(id: id, displayName: display, avatarURL: row.avatar_url)
+                return UserPreview(id: id, displayName: display, avatarURL: row.avatar_url, avatarThumbnailURL: row.avatar_thumbnail_url)
             }
         } catch {
             return []

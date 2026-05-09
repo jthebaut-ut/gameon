@@ -14,6 +14,8 @@ struct VenueEventCommentsView: View {
     @State private var postMessage = ""
     @State private var isReportingComment = false
     @State private var sendingFriendRequestUserId: UUID?
+    @State private var commentsHasOlder = false
+    @State private var commentsLoadingOlder = false
 
     private let quickUpdates = [
         "🎙️ Audio confirmed",
@@ -26,7 +28,10 @@ struct VenueEventCommentsView: View {
     var comments: [VenueEventCommentRow] {
         (viewModel.venueEventComments[venueEventID] ?? [])
             .sorted {
-                ($0.created_at ?? "") > ($1.created_at ?? "")
+                let a = $0.created_at ?? ""
+                let b = $1.created_at ?? ""
+                if a != b { return a > b }
+                return ($0.id?.uuidString ?? "") > ($1.id?.uuidString ?? "")
             }
     }
 
@@ -52,7 +57,27 @@ struct VenueEventCommentsView: View {
                                 .foregroundStyle(.green)
                         }
 
-    
+                        if commentsHasOlder || commentsLoadingOlder {
+                            HStack(spacing: 10) {
+                                if commentsLoadingOlder {
+                                    ProgressView()
+                                        .scaleEffect(0.85)
+                                }
+                                if commentsHasOlder {
+                                    Button {
+                                        Task { await loadOlderCommentsTapped() }
+                                    } label: {
+                                        Text("Load older updates")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(commentsLoadingOlder)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
+                        }
                     }
                 }
             }
@@ -63,7 +88,8 @@ struct VenueEventCommentsView: View {
         .background(Color.white.opacity(0.85))
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task(id: venueEventID) {
-            await viewModel.loadComments(for: venueEventID)
+            commentsLoadingOlder = false
+            commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID)
 
             let emails = comments.compactMap { $0.user_email }
             await viewModel.loadUserProfilesForEmails(emails)
@@ -76,6 +102,34 @@ struct VenueEventCommentsView: View {
                 await refreshCommentFriendshipIfNeeded()
             }
         }
+    }
+
+    private func parseCommentCreatedAt(_ raw: String?) -> Date? {
+        guard let raw, !raw.isEmpty else { return nil }
+        let f1 = ISO8601DateFormatter()
+        f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = f1.date(from: raw) { return d }
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime]
+        return f2.date(from: raw)
+    }
+
+    private func loadOlderCommentsTapped() async {
+        guard let oldest = comments.last,
+              let oid = oldest.id,
+              let raw = oldest.created_at,
+              let od = parseCommentCreatedAt(raw) else {
+            commentsHasOlder = false
+            return
+        }
+        commentsLoadingOlder = true
+        defer { commentsLoadingOlder = false }
+        let more = await viewModel.loadOlderVenueComments(
+            for: venueEventID,
+            beforeCreatedAt: od,
+            beforeId: oid
+        )
+        commentsHasOlder = more
     }
 
     /// One friendship refresh for all visible comment authors (batched in ``ChatViewModel``).
@@ -329,10 +383,14 @@ struct VenueEventCommentsView: View {
 
         let avatarURL: String = {
             if isAuthoredByCurrentUser(email: email) {
-                return viewModel.currentUserAvatarURL
+                return ImageDisplayURL.forList(
+                    thumbnail: viewModel.currentUserAvatarThumbnailURL,
+                    full: viewModel.currentUserAvatarURL
+                ) ?? ""
             }
 
-            return userProfile(forAuthorEmail: email)?.avatar_url ?? ""
+            let p = userProfile(forAuthorEmail: email)
+            return ImageDisplayURL.forList(thumbnail: p?.avatar_thumbnail_url, full: p?.avatar_url) ?? ""
         }()
 
         let name = displayName(for: comment)

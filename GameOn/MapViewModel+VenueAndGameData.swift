@@ -13,7 +13,8 @@ private enum DiscoverVenueGameDateFormatting {
 
 private let discoverVenueRowSelectColumns =
     "id,owner_email,venue_name,address,city,state,zip_code,phone,website,description,features," +
-    "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url"
+    "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
+    "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
 
 extension MapViewModel {
 

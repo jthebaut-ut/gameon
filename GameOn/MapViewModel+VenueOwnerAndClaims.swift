@@ -6,6 +6,15 @@ import Supabase
 
 extension MapViewModel {
 
+    private static func companionVenueThumbnailFileName(for fullFileName: String) -> String {
+        if let dot = fullFileName.lastIndex(of: "."), dot < fullFileName.endIndex {
+            let base = String(fullFileName[..<dot])
+            let ext = String(fullFileName[fullFileName.index(after: dot)...])
+            return "\(base)_thumb.\(ext)"
+        }
+        return fullFileName + "_thumb.jpg"
+    }
+
     // Creates a Supabase auth user in venue-owner mode (separate from end-user `isLoggedIn` state).
     func registerVenueOwner(email: String, password: String) async {
         do {
@@ -368,6 +377,9 @@ extension MapViewModel {
 
             let coordinate = await geocodeAddress(fullAddress)
 
+            let coverThumb = venueCoverPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            let menuThumb = venueMenuPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
             let profile = VenueProfileInsert(
                 owner_email: venueOwnerEmail,
                 venue_name: ownerVenueName,
@@ -388,7 +400,9 @@ extension MapViewModel {
                 latitude: coordinate?.latitude,
                 longitude: coordinate?.longitude,
                 cover_photo_url: venueCoverPhotoURL,
-                menu_photo_url: venueMenuPhotoURL
+                menu_photo_url: venueMenuPhotoURL,
+                cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
+                menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
             )
 
             try await supabase
@@ -408,7 +422,7 @@ extension MapViewModel {
         }
     }
 
-    // Uploads a compressed JPEG under the owner’s email folder in `venue-photos` and returns its public URL.
+    // Uploads full + thumbnail JPEGs under the owner’s email folder in `venue-photos`; returns the full image public URL.
     func uploadVenuePhoto(data: Data, fileName: String) async -> String? {
         do {
             let session = try? await supabase.auth.session
@@ -420,26 +434,65 @@ extension MapViewModel {
                 .replacingOccurrences(of: "@", with: "_")
                 .replacingOccurrences(of: ".", with: "_")
 
-            let path = "\(safeEmail)/\(fileName)"
+            let pathFull = "\(safeEmail)/\(fileName)"
+            let thumbName = Self.companionVenueThumbnailFileName(for: fileName)
+            let pathThumb = "\(safeEmail)/\(thumbName)"
 
-            let uploadData = ImageCompression.jpegDataForUpload(from: data, preset: .venuePhoto)
+            let oldFull: String
+            let oldThumb: String
+            if fileName.lowercased().contains("menu") {
+                oldFull = venueMenuPhotoURL
+                oldThumb = venueMenuPhotoThumbnailURL
+            } else {
+                oldFull = venueCoverPhotoURL
+                oldThumb = venueCoverPhotoThumbnailURL
+            }
+
+            let uploadFull = ImageCompression.jpegDataForUpload(from: data, preset: .venuePhoto)
+            let uploadThumb = ImageCompression.jpegDataForUpload(from: data, preset: .venuePhotoThumbnail)
 
             try await supabase.storage
                 .from("venue-photos")
                 .upload(
-                    path,
-                    data: uploadData,
+                    pathFull,
+                    data: uploadFull,
                     options: FileOptions(
                         contentType: "image/jpeg",
                         upsert: true
                     )
                 )
 
-            let publicURL = try supabase.storage
+            try await supabase.storage
                 .from("venue-photos")
-                .getPublicURL(path: path)
+                .upload(
+                    pathThumb,
+                    data: uploadThumb,
+                    options: FileOptions(
+                        contentType: "image/jpeg",
+                        upsert: true
+                    )
+                )
 
-            return publicURL.absoluteString
+            let publicFull = try supabase.storage
+                .from("venue-photos")
+                .getPublicURL(path: pathFull)
+            let publicThumb = try supabase.storage
+                .from("venue-photos")
+                .getPublicURL(path: pathThumb)
+
+            let fullStr = publicFull.absoluteString
+            let thumbStr = publicThumb.absoluteString
+
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldFull, newPublicURL: fullStr, bucket: "venue-photos")
+            await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldThumb, newPublicURL: thumbStr, bucket: "venue-photos")
+
+            if fileName.lowercased().contains("menu") {
+                venueMenuPhotoThumbnailURL = thumbStr
+            } else {
+                venueCoverPhotoThumbnailURL = thumbStr
+            }
+
+            return fullStr
 
         } catch {
             print("ERROR UPLOADING PHOTO:", error)

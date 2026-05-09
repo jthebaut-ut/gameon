@@ -53,9 +53,11 @@ final class MapViewModel: ObservableObject {
     @Published var venuePasswordResetError = ""
     @Published var venueClaimSubmittedDate = ""
     @Published var venueCoverPhotoURL = ""
+    @Published var venueCoverPhotoThumbnailURL = ""
     @Published var venueCrowdPhotoURL = ""
     @Published var venueTVWallPhotoURL = ""
     @Published var venueMenuPhotoURL = ""
+    @Published var venueMenuPhotoThumbnailURL = ""
     @Published var venueSpecialsPhotoURL = ""
     @Published var ownerVenueScreenCount: Int = 1
     @Published var ownerVenueServesFood: Bool = false
@@ -107,6 +109,7 @@ final class MapViewModel: ObservableObject {
     @Published var calendarDotDates: Set<Date> = []
     @Published var currentUserDisplayName: String = ""
     @Published var currentUserAvatarURL: String = ""
+    @Published var currentUserAvatarThumbnailURL: String = ""
     @Published var goingUserProfiles: [UserProfileRow] = []
     @Published var venueSearchResults: [BarVenue] = []
     /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).

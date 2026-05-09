@@ -190,6 +190,11 @@ struct VenueOwnerDashboardView: View {
                 hasGarden = saved.has_garden ?? false
                 hasProjector = saved.has_projector ?? false
                 isPetFriendly = saved.pet_friendly ?? false
+
+                viewModel.venueCoverPhotoURL = saved.cover_photo_url ?? ""
+                viewModel.venueMenuPhotoURL = saved.menu_photo_url ?? ""
+                viewModel.venueCoverPhotoThumbnailURL = saved.cover_photo_thumbnail_url ?? ""
+                viewModel.venueMenuPhotoThumbnailURL = saved.menu_photo_thumbnail_url ?? ""
             }
         }
         
