@@ -344,30 +344,6 @@ struct VenueOwnerDashboardView: View {
                 primaryButtonText(viewModel.venueMenuPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
             }
 
-            PhotosPicker(
-                selection: $selectedMenuPhoto,
-                matching: .images
-            ) {
-                venuePhotoCard(
-                    title: "Menu Photo",
-                    subtitle: "Food or drink menu photo",
-                    imageURL: viewModel.venueMenuPhotoURL
-                )
-
-                PhotosPicker(
-                    selection: $selectedMenuPhoto,
-                    matching: .images
-                ) {
-                    Text("Tap to upload photo")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-            }
-            
             Button {
                 profileSaveMessage = "Saving..."
 
@@ -1295,23 +1271,6 @@ struct VenueOwnerDashboardView: View {
         let dict = viewModel.venueEventVibeCounts[eventID] ?? [:]
         return dict.values.reduce(0, +)
     }
-    
-    private var specialsSection: some View {
-        dashboardCard(title: "Game-Day Specials", subtitle: "Promotions users care about") {
-            field("Drink specials", text: $viewModel.ownerVenueFeatures)
-            field("Food special", text: $gameSpecial)
-            field("Cover charge", text: $coverCharge)
-            field("Reservations / waitlist info", text: $seating)
-            
-            Button {
-                // Later: save specials to Supabase.
-            } label: {
-                primaryButtonText("Save Specials")
-            }
-        }
-    }
-    
-    
     
     private func dashboardCard<Content: View>(
         title: String,

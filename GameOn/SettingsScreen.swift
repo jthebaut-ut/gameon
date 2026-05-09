@@ -5,7 +5,7 @@ import PhotosUI
 
 /// Scroll tail insets for the Account tab and settings-presented sheets.
 /// `floatingTabBarStackHeight` must stay aligned with ``MainTabView/floatingTabBarStackHeight``.
-private enum SettingsScrollBottomLayout {
+enum SettingsScrollBottomLayout {
     static let floatingTabBarStackHeight: CGFloat = 92
     static let breathingRoomBelowLastCard: CGFloat = 22
     static var accountTabScrollBottomInset: CGFloat {
@@ -14,133 +14,6 @@ private enum SettingsScrollBottomLayout {
 
     /// Sheets are not under the main floating tab; use for scrollable tails above the home indicator / drag handle.
     static let sheetScrollComfortInset: CGFloat = 32
-}
-
-// MARK: - Legal & Safety (draft copy until hosted policies ship)
-
-private enum SettingsLegalDocumentKind: String, Identifiable {
-    case privacyPolicy
-    case termsOfService
-    case communityGuidelines
-    case safetyReporting
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .privacyPolicy: return "Privacy Policy"
-        case .termsOfService: return "Terms of Service"
-        case .communityGuidelines: return "Community Guidelines"
-        case .safetyReporting: return "Safety & Reporting"
-        }
-    }
-
-    var rowSubtitle: String {
-        switch self {
-        case .privacyPolicy: return "How we use and protect your information."
-        case .termsOfService: return "Rules for using GameOn."
-        case .communityGuidelines: return "Be respectful and play fair."
-        case .safetyReporting: return "Get help and report concerns."
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .privacyPolicy: return "hand.raised.fill"
-        case .termsOfService: return "doc.text.fill"
-        case .communityGuidelines: return "person.3.fill"
-        case .safetyReporting: return "shield.lefthalf.filled"
-        }
-    }
-
-    /// Placeholder / draft for in-app display only (not legal advice).
-    var draftBody: String {
-        switch self {
-        case .privacyPolicy:
-            return """
-            Privacy Policy — Draft
-
-            GameOn is built to help fans discover games and connect with venues and friends. This draft explains, in plain language, what we expect a final policy to cover.
-
-            Information we may collect can include account details you provide (such as email and display name), content you create in the app (for example messages, comments, or favorites), and technical data needed to run the service (such as diagnostics and approximate location when you use map features).
-
-            We use this information to operate GameOn, personalize your experience, keep accounts secure, and improve reliability. We do not sell your personal information. Where we rely on service providers, they are expected to handle data only as instructed and with appropriate safeguards.
-
-            You can request access, correction, or deletion of certain personal data where applicable law allows. Parents and guardians should supervise minors’ use of social features.
-
-            This text is a placeholder draft. A final Privacy Policy will be published separately and may change as GameOn evolves.
-            """
-        case .termsOfService:
-            return """
-            Terms of Service — Draft
-
-            By using GameOn, you agree to follow these terms and any future updates we post in the app or on our website.
-
-            You agree to provide accurate information where required, keep your login credentials confidential, and use the service only for lawful purposes. You may not attempt to disrupt GameOn, scrape or overload our systems without permission, impersonate others, or misuse reporting and moderation tools.
-
-            Content you submit remains yours, but you grant GameOn a license to host, display, and distribute that content as needed to operate the service. We may suspend or terminate accounts that violate these terms or create risk for other users.
-
-            The service is provided “as is” to the extent permitted by law. Liability limits and dispute resolution terms will be spelled out in the final legal document.
-
-            This text is a placeholder draft. Official Terms of Service will replace this section when published.
-            """
-        case .communityGuidelines:
-            return """
-            Community Guidelines — Draft
-
-            GameOn works best when everyone treats others with respect. These guidelines describe the culture we want to encourage.
-
-            Be kind and honest. Do not harass, threaten, or bully other users. Do not share hateful, violent, or sexually explicit content directed at others. Do not spam, manipulate ratings, or mislead people about who you are.
-
-            Respect venues and staff: feedback should be fair and constructive. Keep debates civil and stay on topic in public comments.
-
-            Moderators may remove content or restrict accounts that break these rules. If you disagree with an action, use the appropriate appeals path once it is available.
-
-            This text is a placeholder draft. Final Community Guidelines may add examples and enforcement detail.
-            """
-        case .safetyReporting:
-            return """
-            Safety & Reporting — Draft
-
-            Your safety matters. If you feel unsafe, trust your instincts: stop engaging, preserve evidence where appropriate, and contact local emergency services if you are in immediate danger.
-
-            Inside GameOn you can block users to stop direct messages and reduce unwanted contact from them. You can report users, conversations, or individual messages when something violates our policies or makes you uncomfortable. Reports are reviewed by the GameOn team; we may take action such as warnings, content removal, or account suspension depending on severity.
-
-            We cannot guarantee every report will result in the outcome you prefer, but we take credible reports seriously. Do not abuse reporting tools — false or malicious reports may result in restrictions on your own account.
-
-            This text is a placeholder draft. Links to detailed help resources and contact channels will be added later.
-            """
-        }
-    }
-}
-
-private struct SettingsLegalDocumentSheet: View {
-    let document: SettingsLegalDocumentKind
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                Text(document.draftBody)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(20)
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-            }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle(document.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-            }
-        }
-    }
 }
 
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
@@ -277,6 +150,30 @@ struct SettingsScreen: View {
                             settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
                         }
                         .buttonStyle(.plain)
+
+                        if viewModel.isVenueOwnerLoggedIn {
+                            Button { showDeleteVenueOwnerSheet = true } label: {
+                                settingsRow(
+                                    title: "Delete venue owner access",
+                                    subtitle: "Remove venue owner profile, listings, and uploads.",
+                                    systemImage: "trash",
+                                    tint: .red
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                } else if viewModel.isVenueOwnerLoggedIn {
+                    Section("ACCOUNT") {
+                        Button { showDeleteVenueOwnerSheet = true } label: {
+                            settingsRow(
+                                title: "Delete Account",
+                                subtitle: "Permanently remove your venue owner profile and data.",
+                                systemImage: "trash",
+                                tint: .red
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -322,11 +219,6 @@ struct SettingsScreen: View {
                                 subtitle: "Review reported venue activity.",
                                 systemImage: "exclamationmark.bubble"
                             )
-                        }
-                        .buttonStyle(.plain)
-
-                        Button { showDeleteVenueOwnerSheet = true } label: {
-                            settingsRow(title: "Delete Venue Owner Account", subtitle: "Permanently remove venue owner access.", systemImage: "trash", tint: .red)
                         }
                         .buttonStyle(.plain)
                     } else {
@@ -1980,157 +1872,7 @@ private struct SettingsVenueSection: View {
             )
 
             SettingsVenuePasswordResetCard(viewModel: viewModel)
-
-            if viewModel.isVenueOwnerLoggedIn {
-                SettingsVenueOwnerDangerZoneCard(viewModel: viewModel)
-            }
         }
-    }
-}
-
-private struct SettingsVenueOwnerDangerZoneCard: View {
-    @ObservedObject var viewModel: MapViewModel
-    @State private var isShowingDeleteSheet = false
-    @State private var confirmationText = ""
-    @State private var isDeleting = false
-    @State private var errorMessage = ""
-    @State private var successMessage = ""
-
-    private var trimmedConfirmation: String {
-        confirmationText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var deletionEnabled: Bool {
-        let email = viewModel.venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !email.isEmpty else { return false }
-        return trimmedConfirmation.caseInsensitiveCompare("DELETE") == .orderedSame ||
-            trimmedConfirmation.caseInsensitiveCompare(email) == .orderedSame
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Danger zone")
-                .font(.headline)
-                .fontWeight(.bold)
-
-            Text("Deleting your venue owner account permanently removes your claims, listings, and venue photos. Your venue pin will remain, but it will no longer be linked to an owner.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Button {
-                errorMessage = ""
-                successMessage = ""
-                confirmationText = ""
-                isShowingDeleteSheet = true
-            } label: {
-                Label("Delete venue owner account permanently", systemImage: "trash")
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red.opacity(0.12))
-                    .foregroundStyle(.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-
-            if !successMessage.isEmpty {
-                Text(successMessage)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.green)
-            }
-
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .sheet(isPresented: $isShowingDeleteSheet) {
-            deleteSheet
-        }
-    }
-
-    private var deleteSheet: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Delete venue owner account permanently")
-                    .font(.title2)
-                    .fontWeight(.bold)
-
-                Text("This cannot be undone. Your venue owner access will be removed and your published listings and uploaded photos will be deleted. The venue pin will remain on the map without an owner.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text("To confirm, type your venue owner email or the word DELETE:")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                TextField("Type email or DELETE", text: $confirmationText)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                HStack(spacing: 10) {
-                    Button {
-                        isShowingDeleteSheet = false
-                    } label: {
-                        Text("Cancel")
-                            .fontWeight(.bold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.gray.opacity(0.14))
-                            .foregroundStyle(.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .disabled(isDeleting)
-
-                    Button {
-                        Task {
-                            isDeleting = true
-                            errorMessage = ""
-                            successMessage = ""
-
-                            do {
-                                try await viewModel.requestPermanentVenueOwnerAccountDeletion()
-                                successMessage = "Venue owner account deleted. You’ve been signed out."
-                                isShowingDeleteSheet = false
-                            } catch {
-                                errorMessage = error.localizedDescription
-                            }
-
-                            isDeleting = false
-                        }
-                    } label: {
-                        HStack {
-                            if isDeleting {
-                                ProgressView()
-                                    .tint(.red)
-                            }
-                            Text(isDeleting ? "Deleting..." : "Delete permanently")
-                                .fontWeight(.bold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.12))
-                        .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .disabled(!deletionEnabled || isDeleting)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-        }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 }
 

@@ -4,6 +4,7 @@ struct CalendarScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var selectedTab: MainTabView.AppTab
     @State private var showDatePicker = false
+    @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
     
     
@@ -42,25 +43,27 @@ struct CalendarScreen: View {
             .padding(.top, 18)
         }
         .sheet(isPresented: $showDatePicker) {
-            VStack {
-                EventCalendarView(
-                    events: viewModel.events,
-                    bars: viewModel.filteredBars,
-                    useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
-                    eventDotDates: viewModel.calendarDotDates,
-                    dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
-                    selectedDate: $viewModel.selectedDate
-                ) {
-                    withAnimation(.spring()) {
-                        viewModel.selectedBar = nil
-                        viewModel.selectedEvent = nil
-                        viewModel.dateChanged()
-                        showDatePicker = false
-                    }
+            EventCalendarPickerSheet(
+                events: viewModel.events,
+                bars: viewModel.filteredBars,
+                useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
+                eventDotDates: viewModel.calendarDotDates,
+                dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
+                selectedDate: $viewModel.selectedDate
+            ) {
+                withAnimation(.spring()) {
+                    viewModel.selectedBar = nil
+                    viewModel.selectedEvent = nil
+                    viewModel.dateChanged()
+                    showDatePicker = false
                 }
-                .padding()
             }
-            .presentationDetents([.medium, .large])
+            .eventCalendarPickerSheetPresentation(selection: $calendarDatePickerDetent)
+        }
+        .onChange(of: showDatePicker) { _, isPresented in
+            if isPresented {
+                calendarDatePickerDetent = .large
+            }
         }
         .task {
             viewModel.loadGamesFromSupabase()

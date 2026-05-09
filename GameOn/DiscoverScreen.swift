@@ -7,6 +7,7 @@ struct DiscoverScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
+    @State private var discoverDatePickerDetent: PresentationDetent = .large
     @State private var selectedCommentsEventID: UUID?
     @State private var showVenueRatingSheet = false
     @State private var mapVenueReloadTask: Task<Void, Never>?
@@ -195,7 +196,7 @@ struct DiscoverScreen: View {
             .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showDatePicker) {
-            EventCalendarView(
+            EventCalendarPickerSheet(
                 events: viewModel.events,
                 bars: viewModel.bars,
                 useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
@@ -208,10 +209,12 @@ struct DiscoverScreen: View {
                 }
                 showDatePicker = false
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .zIndex(1000)
-            .presentationDetents([.height(650)])
-            .presentationDragIndicator(.visible)
+            .eventCalendarPickerSheetPresentation(selection: $discoverDatePickerDetent)
+        }
+        .onChange(of: showDatePicker) { _, isPresented in
+            if isPresented {
+                discoverDatePickerDetent = .large
+            }
         }
     }
 

@@ -1,5 +1,62 @@
 import SwiftUI
 
+// MARK: - Shared calendar sheet layout (Discover + Calendar tab)
+
+/// Layout constants for date pickers presented while ``MainTabView`` floating tab bar may sit above tab content (`zIndex` 2). Scroll tail padding keeps the month grid and Today/Done tappable after scrolling to the end on SE through Pro Max.
+enum EventCalendarSheetLayout {
+    /// Matches `MainTabView.floatingTabBarStackHeight` (capsule + margins).
+    static let floatingTabChromeOverlapScrollInset: CGFloat = 92
+    /// Breathing room above the home indicator / sheet drag indicator when content is scrolled flush to the bottom.
+    static let sheetDragAndHomeComfortInset: CGFloat = 20
+    /// Small top inset so the title clears the sheet grabber on all phones.
+    static let sheetTopContentInset: CGFloat = 6
+
+    /// Total bottom padding **inside** the scroll view so the last row (Today/Done) clears floating chrome + home safe area when scrolled to the end.
+    static var scrollContentBottomInset: CGFloat {
+        floatingTabChromeOverlapScrollInset + sheetDragAndHomeComfortInset
+    }
+}
+
+/// Single standard calendar body for every `.sheet` date picker: scrollable on short detents / small phones, consistent background, shared bottom inset for floating tab + home indicator.
+struct EventCalendarPickerSheet: View {
+    let events: [SportsEvent]
+    let bars: [BarVenue]
+    let useVisibleMapRegionOnly: Bool
+    let eventDotDates: Set<Date>
+    let dotsLoading: Bool
+    @Binding var selectedDate: Date
+    let onDone: () -> Void
+
+    var body: some View {
+        ScrollView {
+            EventCalendarView(
+                events: events,
+                bars: bars,
+                useVisibleMapRegionOnly: useVisibleMapRegionOnly,
+                eventDotDates: eventDotDates,
+                dotsLoading: dotsLoading,
+                selectedDate: $selectedDate,
+                onDone: onDone
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.top, EventCalendarSheetLayout.sheetTopContentInset)
+            .padding(.bottom, EventCalendarSheetLayout.scrollContentBottomInset)
+        }
+        .scrollIndicators(.visible)
+        .scrollBounceBehavior(.basedOnSize)
+        .background(Color(.systemBackground).ignoresSafeArea())
+    }
+}
+
+extension View {
+    /// Standard Apple-style sheet chrome for ``EventCalendarPickerSheet``: medium + large detents, visible grabber, scroll-friendly interaction with the sheet resize gesture.
+    func eventCalendarPickerSheetPresentation(selection: Binding<PresentationDetent>) -> some View {
+        presentationDetents([.medium, .large], selection: selection)
+            .presentationDragIndicator(.visible)
+            .presentationContentInteraction(.scrolls)
+    }
+}
+
 struct EventCalendarView: View {
     let events: [SportsEvent]
     /// Passed from Discover/Calendar for API compatibility; dots are driven by `events` only for now.
@@ -46,10 +103,10 @@ struct EventCalendarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 11) {
             
             Text("Choose a date")
-                .font(.title2)
+                .font(.title3)
                 .fontWeight(.bold)
             
             HStack {
@@ -57,14 +114,14 @@ struct EventCalendarView: View {
                     changeMonth(by: -1)
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.title2)
+                        .font(.title3)
                         .fontWeight(.bold)
                 }
                 
                 Spacer()
                 
                 Text(monthTitle(displayedMonth))
-                    .font(.title3)
+                    .font(.headline)
                     .fontWeight(.bold)
                 
                 Spacer()
@@ -73,7 +130,7 @@ struct EventCalendarView: View {
                     changeMonth(by: 1)
                 } label: {
                     Image(systemName: "chevron.right")
-                        .font(.title2)
+                        .font(.title3)
                         .fontWeight(.bold)
                 }
             }
@@ -88,13 +145,14 @@ struct EventCalendarView: View {
                 }
             }
             
-            LazyVGrid(columns: columns, spacing: 14) {
-                ForEach(calendarDays, id: \.self) { date in
-                    if let date {
+            LazyVGrid(columns: columns, spacing: 8) {
+                // Index-based IDs: `id: \.self` on `[Date?]` is invalid because every `nil` is the same identity.
+                ForEach(0..<calendarDays.count, id: \.self) { index in
+                    if let date = calendarDays[index] {
                         Button {
                             selectedDate = date
                         } label: {
-                            VStack(spacing: 5) {
+                            VStack(spacing: 4) {
                                 Text("\(calendar.component(.day, from: date))")
                                     .font(.headline)
                                     .fontWeight(.semibold)
@@ -113,14 +171,14 @@ struct EventCalendarView: View {
                                         .frame(width: 7, height: 7)
                                 }
                             }
-                            .frame(width: 44, height: 52)
+                            .frame(width: 44, height: 48)
                             .foregroundStyle(isSelected(date) ? .white : .primary)
                             .background(isSelected(date) ? Color.black : Color.clear)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                     } else {
                         Color.clear
-                            .frame(width: 44, height: 52)
+                            .frame(width: 44, height: 48)
                     }
                 }
             }
@@ -130,22 +188,11 @@ struct EventCalendarView: View {
                     jumpToTodayAndApply()
                 } label: {
                     Text("Today")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 14)
-                        .frame(minWidth: 92)
-                        .background {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                        }
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
-                        )
-                        .foregroundStyle(.primary)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minWidth: 92, minHeight: 44)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.bordered)
+                .controlSize(.large)
                 .disabled(isAlreadyTodaySelection)
                 .opacity(isAlreadyTodaySelection ? 0.42 : 1)
 
@@ -153,17 +200,16 @@ struct EventCalendarView: View {
                     onDone()
                 } label: {
                     Text("Done")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.black)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.borderedProminent)
+                .tint(.black)
+                .controlSize(.large)
             }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .onAppear {
             displayedMonth = startOfMonth(selectedDate)
         }

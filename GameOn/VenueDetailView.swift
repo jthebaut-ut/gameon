@@ -142,7 +142,7 @@ struct VenueDetailView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                     
-                    ForEach(bar.games, id: \.self) { game in
+                    ForEach(Array(bar.games.enumerated()), id: \.offset) { _, game in
                         HStack {
                             Image(systemName: "tv.fill")
                             
