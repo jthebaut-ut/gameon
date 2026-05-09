@@ -257,9 +257,6 @@ struct FriendsTabView: View {
                 Text(Self.inboxTimeLabel(item.lastMessageAt))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary.opacity(0.65))
             }
         }
         .padding(.vertical, 2)
@@ -334,93 +331,158 @@ private struct AddFriendGlassSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        ZStack(alignment: .bottom) {
+            // Keep system dim/blur minimal by using a clear sheet background
+            // and a floating glass panel inside.
+            Color.clear
+
+            floatingPanel
+                .padding(.horizontal, 18)
+                .padding(.bottom, 14)
+        }
+        .presentationDetents([.height(420)])
+        .presentationDragIndicator(.hidden)
+        .presentationCornerRadius(28)
+        .presentationBackground(.clear)
+        .presentationBackgroundInteraction(.enabled(upThrough: .height(420)))
+    }
+
+    private var floatingPanel: some View {
+        VStack(spacing: 12) {
+            dragHandle
+                .padding(.top, 10)
+
             header
+                .padding(.top, 2)
 
             infoPill
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Manual add")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+            manualAddSection
 
-                TextField("Paste friend ID (advanced)", text: $manualId)
-                    .textFieldStyle(.plain)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color(.secondarySystemGroupedBackground).opacity(0.7))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-
-                Text("Usually you will not need this. If someone sent you a code or ID, paste it here.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 18)
-
-            Spacer(minLength: 0)
+            Spacer(minLength: 6)
         }
-        .padding(.top, 14)
-        .presentationDetents([.height(420)])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(34)
-        .presentationBackground(.ultraThinMaterial)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .opacity(0.90)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 18, x: 0, y: 10)
+    }
+
+    private var dragHandle: some View {
+        Capsule()
+            .fill(Color.primary.opacity(0.12))
+            .frame(width: 44, height: 4)
+            .accessibilityHidden(true)
     }
 
     private var header: some View {
         HStack {
             Button("Close", action: onClose)
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
-                .frame(width: 68, alignment: .leading)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary.opacity(0.78))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule()
+                        .fill(.thinMaterial)
+                )
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+                )
 
             Spacer()
 
             Text("Add friend")
-                .font(.headline.weight(.semibold))
+                .font(.subheadline.weight(.semibold))
 
             Spacer()
 
             Button("Send") {
                 if let id = parsedUUID { onSend(id) }
             }
-            .buttonStyle(.plain)
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(parsedUUID == nil ? Color.secondary : Color.accentColor)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(parsedUUID == nil ? Color.secondary.opacity(0.75) : Color.accentColor)
             .disabled(parsedUUID == nil)
-            .frame(width: 68, alignment: .trailing)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(.thinMaterial)
+                    .opacity(parsedUUID == nil ? 0.55 : 1)
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+            )
         }
-        .padding(.horizontal, 18)
-        .padding(.bottom, 2)
     }
 
     private var infoPill: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Image(systemName: "sparkles")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
             Text("Add friends from comments, activity, and live event interactions.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.footnote)
+                .foregroundStyle(.secondary.opacity(0.95))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground).opacity(0.55))
+                .fill(.thinMaterial)
+                .opacity(0.85)
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.10))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
         )
-        .padding(.horizontal, 18)
+    }
+
+    private var manualAddSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Manual add")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary.opacity(0.8))
+
+            TextField("Paste friend ID (advanced)", text: $manualId)
+                .textFieldStyle(.plain)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(.subheadline)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(.thinMaterial)
+                        .opacity(0.85)
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                )
+
+            Text("Usually you will not need this. If someone sent you a code or ID, paste it here.")
+                .font(.caption)
+                .foregroundStyle(.secondary.opacity(0.75))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
