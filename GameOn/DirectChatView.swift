@@ -100,6 +100,8 @@ private final class DirectChatPresenter: ObservableObject {
 
     let friend: UserPreview
     private let service = DirectChatService()
+    private let moderation = ModerationService()
+    private var blockedUserIds: Set<UUID> = []
 
     @Published private(set) var messages: [DirectMessageRow] = []
     @Published private(set) var conversationId: UUID?
@@ -126,6 +128,7 @@ private final class DirectChatPresenter: ObservableObject {
         do {
             let me = try await service.currentUserId()
             currentUserId = me
+            blockedUserIds = (try? await moderation.fetchBlockedUserIds(blockerUserId: me)) ?? []
 
             if conversationId == nil {
                 let cid = try await service.startDirectConversation(friendUserId: friend.id)
@@ -192,6 +195,10 @@ private final class DirectChatPresenter: ObservableObject {
         guard !trimmed.isEmpty else { return }
         guard trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
+        if blockedUserIds.contains(friend.id) {
+            sendError = "You blocked this user."
+            return
+        }
 
         sendError = nil
         draft = ""
@@ -210,6 +217,10 @@ private final class DirectChatPresenter: ObservableObject {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
+        if blockedUserIds.contains(friend.id) {
+            sendError = "You blocked this user."
+            return
+        }
 
         sendError = nil
         do {
@@ -291,12 +302,17 @@ struct DirectChatView: View {
     @State private var chatOverflowPhase: ChatOverflowPhase = .hidden
     /// Quick emoji strip above composer; off by default, toggled by smiley (does not use the system emoji keyboard).
     @State private var showEmojiQuickTray = false
+    @State private var reportCategory: ModerationService.ReportCategory = .spam
+    @State private var reportDetails: String = ""
+    @State private var moderationBanner: String?
 
     private enum ChatOverflowPhase: Equatable {
         case hidden
         case actions
         case confirmClearHistory
         case confirmRemoveFriend
+        case report
+        case confirmBlock
     }
 
     init(friend: UserPreview) {
@@ -346,6 +362,15 @@ struct DirectChatView: View {
             }
 
             if let banner = presenter.menuBanner, !banner.isEmpty {
+                Text(banner)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 4)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            if let banner = moderationBanner, !banner.isEmpty {
                 Text(banner)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -478,6 +503,39 @@ struct DirectChatView: View {
         }
     }
 
+    private func runBlockUserConfirmed() async {
+        moderationBanner = nil
+        do {
+            guard let me = presenter.currentUserId else {
+                moderationBanner = "You must be logged in."
+                return
+            }
+            try await ModerationService().block(blockerUserId: me, blockedUserId: presenter.friend.id)
+            moderationBanner = "User blocked."
+        } catch {
+            moderationBanner = "Couldn’t block user. \(error.localizedDescription)"
+        }
+    }
+
+    private func runReportUser() async {
+        moderationBanner = nil
+        do {
+            guard let me = presenter.currentUserId else {
+                moderationBanner = "You must be logged in."
+                return
+            }
+            try await ModerationService().report(
+                reporterUserId: me,
+                reportedUserId: presenter.friend.id,
+                category: reportCategory,
+                details: reportDetails
+            )
+            moderationBanner = "Report submitted."
+        } catch {
+            moderationBanner = "Couldn’t submit report. \(error.localizedDescription)"
+        }
+    }
+
     // Tuned to match Screenshot 2 (pre-recovery target).
     private static let overflowMenuWidth: CGFloat = 244
     private static let overflowMenuHeight: CGFloat = 112
@@ -596,6 +654,20 @@ struct DirectChatView: View {
                             }
                         }
                     )
+                case .report:
+                    chatOverflowReportCard()
+                case .confirmBlock:
+                    chatOverflowConfirmCard(
+                        title: "Block user?",
+                        message: "They won’t be able to message you. You can unblock later in a future update.",
+                        confirmTitle: "Block user",
+                        onConfirm: {
+                            Task {
+                                await runBlockUserConfirmed()
+                                await MainActor.run { dismissChatOverflow() }
+                            }
+                        }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
@@ -620,14 +692,91 @@ struct DirectChatView: View {
                     chatOverflowPhase = .confirmRemoveFriend
                 }
             }
+            Rectangle()
+                .fill(Color.primary.opacity(0.0))
+                .frame(height: 0.0)
+                .padding(.horizontal, 30)
+            overflowMenuActionRow(title: "Report user") {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    reportDetails = ""
+                    reportCategory = .spam
+                    chatOverflowPhase = .report
+                }
+            }
+            Rectangle()
+                .fill(Color.primary.opacity(0.0))
+                .frame(height: 0.0)
+                .padding(.horizontal, 30)
+            overflowMenuActionRow(title: "Block user") {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    chatOverflowPhase = .confirmBlock
+                }
+            }
         }
         .padding(.vertical, 0)
-        .frame(width: Self.overflowMenuWidth, height: Self.overflowMenuHeight, alignment: .top)
+        .frame(width: Self.overflowMenuWidth, height: Self.overflowMenuHeight + (Self.overflowMenuRowHeight * 2), alignment: .top)
         .background {
             liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
         }
         .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
         .accessibilityElement(children: .contain)
+    }
+
+    private func chatOverflowReportCard() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Report user")
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(.primary)
+
+            Picker("Category", selection: $reportCategory) {
+                ForEach(ModerationService.ReportCategory.allCases) { cat in
+                    Text(cat.rawValue).tag(cat)
+                }
+            }
+            .pickerStyle(.menu)
+
+            TextField("Optional details…", text: $reportDetails, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.system(size: 15))
+                .lineLimit(1...3)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.10))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                )
+
+            HStack(spacing: 12) {
+                Button("Cancel") { dismissChatOverflow() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+
+                Button("Submit") {
+                    Task {
+                        await runReportUser()
+                        await MainActor.run { dismissChatOverflow() }
+                    }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.red.opacity(0.92))
+            }
+            .padding(.top, 4)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .frame(width: Self.overflowMenuWidth, alignment: .topLeading)
+        .background {
+            liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
+        }
+        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
     }
 
     private func chatOverflowConfirmCard(

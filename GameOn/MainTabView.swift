@@ -6,6 +6,7 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var chatViewModel = ChatViewModel()
+    @StateObject private var notifications = InAppNotificationCenter.shared
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
 
     private var selectedTab: AppTab {
@@ -65,8 +66,18 @@ struct MainTabView: View {
             if !chatViewModel.hidesFloatingTabBarForDirectChat {
                 floatingTabBarChrome
             }
+
+            if let toast = notifications.toast {
+                inAppToast(toast)
+                    .transition(
+                        .move(edge: .top)
+                            .combined(with: .opacity)
+                    )
+                    .zIndex(20)
+            }
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
+        .animation(.spring(response: 0.34, dampingFraction: 0.92), value: notifications.toast)
         // Restore auth, then hydrate map data once; `loadGamesFromSupabase` also refreshes venue event rows and interest summaries.
         .task {
             await viewModel.restoreSession()
@@ -87,6 +98,49 @@ struct MainTabView: View {
             }
         }
         .environmentObject(chatViewModel)
+    }
+
+    private func inAppToast(_ toast: InAppNotificationCenter.Toast) -> some View {
+        VStack {
+            HStack(spacing: 10) {
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.primary)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(toast.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if let subtitle = toast.subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 10)
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
+            .onTapGesture { notifications.dismiss() }
+
+            Spacer()
+        }
+        .allowsHitTesting(true)
     }
 
     /// Independent overlay: does not participate in `DirectChatView` layout; hidden during DM threads via ``ChatViewModel/hidesFloatingTabBarForDirectChat``.
@@ -179,8 +233,8 @@ struct MainTabView: View {
                 .background(selectedTab == .chat ? Color.black : Color.clear)
                 .clipShape(Capsule())
 
-                if chatViewModel.pendingBadgeCount > 0 {
-                    Text(chatViewModel.pendingBadgeCount > 99 ? "99+" : "\(chatViewModel.pendingBadgeCount)")
+                if chatViewModel.unreadDirectMessageCount > 0 {
+                    Text(chatViewModel.unreadDirectMessageCount > 99 ? "99+" : "\(chatViewModel.unreadDirectMessageCount)")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 5)

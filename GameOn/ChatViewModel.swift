@@ -53,10 +53,14 @@ final class ChatViewModel: ObservableObject {
 
     private let service = FriendshipService()
     private let directChatService = DirectChatService()
+    private let moderationService = ModerationService()
+    private var blockedUserIds: Set<UUID> = []
     private var lastLoadAt: Date?
     private let minRefreshInterval: TimeInterval = 12
     private var lastInboxLoadAt: Date?
     private let minInboxRefreshInterval: TimeInterval = 2
+    // Used to avoid showing a "new request" toast on first load.
+    private var hasLoadedOnce: Bool = false
 
     // MARK: - Realtime (in-app inbox)
 
@@ -206,6 +210,9 @@ final class ChatViewModel: ObservableObject {
             return
         }
         do {
+            // Client-side block filter (defense-in-depth). TODO: enforce server-side for inbox queries.
+            blockedUserIds = (try? await moderationService.fetchBlockedUserIds(blockerUserId: me)) ?? []
+
             let rows = try await directChatService.fetchInboxSummaries()
             let displays = rows.map { row -> FriendDisplay in
                 let name = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
@@ -239,8 +246,11 @@ final class ChatViewModel: ObservableObject {
                 )
             }
 
-            friends = displays
-            let totalUnread = displays.reduce(0) { $0 + $1.unreadCount }
+            let filtered = displays
+                .filter { !blockedUserIds.contains($0.id) }
+                .sorted(by: Self.inboxSort)
+            friends = filtered
+            let totalUnread = filtered.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
             lastInboxLoadAt = Date()
             currentUserAuthId = me
@@ -271,6 +281,9 @@ final class ChatViewModel: ObservableObject {
                     return (id, row)
                 }
             )
+
+            // Client-side block filter (defense-in-depth). TODO: enforce server-side for inbox + requests.
+            blockedUserIds = (try? await moderationService.fetchBlockedUserIds(blockerUserId: me)) ?? []
 
             friends = inboxRows.map { row -> FriendDisplay in
                 let name = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
@@ -303,6 +316,9 @@ final class ChatViewModel: ObservableObject {
                     unreadCount: unread
                 )
             }
+            friends = friends
+                .filter { !blockedUserIds.contains($0.id) }
+                .sorted(by: Self.inboxSort)
 
             incomingRequests = inRows.map { row in
                 let preview = preview(for: row.requester_id, profileById: profileById)
@@ -314,11 +330,19 @@ final class ChatViewModel: ObservableObject {
                 return OutgoingRequestDisplay(friendship: row, addressee: preview)
             }
 
+            let previousPending = pendingBadgeCount
             pendingBadgeCount = incomingRequests.count
+            if hasLoadedOnce && pendingBadgeCount > previousPending {
+                InAppNotificationCenter.shared.post(
+                    title: "New friend request",
+                    subtitle: pendingBadgeCount == 1 ? "1 pending request" : "\(pendingBadgeCount) pending requests"
+                )
+            }
             requiresSignIn = false
             lastLoadAt = Date()
             lastInboxLoadAt = Date()
             currentUserAuthId = me
+            hasLoadedOnce = true
             applyFriendshipChipStates(
                 me: me,
                 accepted: accRows,
@@ -348,6 +372,21 @@ final class ChatViewModel: ObservableObject {
                 errorMessage = msg
                 lastLoadAt = Date()
             }
+        }
+    }
+
+    private static func inboxSort(_ a: FriendDisplay, _ b: FriendDisplay) -> Bool {
+        // Unread first, then latest activity.
+        if (a.unreadCount > 0) != (b.unreadCount > 0) { return a.unreadCount > 0 }
+        switch (a.lastMessageAt, b.lastMessageAt) {
+        case let (l?, r?):
+            return l > r
+        case (nil, .some):
+            return false
+        case (.some, nil):
+            return true
+        case (nil, nil):
+            return a.preview.displayName.localizedCaseInsensitiveCompare(b.preview.displayName) == .orderedAscending
         }
     }
 
@@ -391,6 +430,12 @@ final class ChatViewModel: ObservableObject {
     func sendFriendRequest(to addresseeId: UUID) async {
         do {
             let me = try await service.currentUserId()
+            // Client-side block check. TODO: enforce server-side (RLS / constraint) to prevent bypass.
+            let blocked = (try? await moderationService.fetchBlockedUserIds(blockerUserId: me)) ?? []
+            if blocked.contains(addresseeId) {
+                errorMessage = "You blocked this user."
+                return
+            }
             try await service.sendFriendRequest(requesterId: me, addresseeId: addresseeId)
             await refresh()
         } catch {
@@ -416,6 +461,13 @@ final class ChatViewModel: ObservableObject {
         friendshipChipByOtherUserId[addresseeId] = .pending
         do {
             let me = try await service.currentUserId()
+            // Client-side block check. TODO: enforce server-side (RLS / constraint) to prevent bypass.
+            let blocked = (try? await moderationService.fetchBlockedUserIds(blockerUserId: me)) ?? []
+            if blocked.contains(addresseeId) {
+                friendshipChipByOtherUserId[addresseeId] = previous ?? .addFriend
+                errorMessage = "You blocked this user."
+                return
+            }
             try await service.sendFriendRequest(requesterId: me, addresseeId: addresseeId)
             await refresh()
         } catch {

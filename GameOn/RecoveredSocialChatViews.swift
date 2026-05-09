@@ -116,7 +116,17 @@ struct FriendsTabView: View {
                     VStack(spacing: 12) {
                         Picker("", selection: $selectedSection) {
                             ForEach(ChatSection.allCases) { tab in
-                                Text(tab.rawValue).tag(tab)
+                                switch tab {
+                                case .friends:
+                                    Text("Friends").tag(tab)
+                                case .requests:
+                                    if viewModel.pendingBadgeCount > 0 {
+                                        Text("Requests \(viewModel.pendingBadgeCount > 99 ? "99+" : "\(viewModel.pendingBadgeCount)")")
+                                            .tag(tab)
+                                    } else {
+                                        Text("Requests").tag(tab)
+                                    }
+                                }
                             }
                         }
                         .pickerStyle(.segmented)
@@ -236,7 +246,19 @@ struct FriendsTabView: View {
 
     private func friendRow(_ item: ChatViewModel.FriendDisplay) -> some View {
         HStack(spacing: 12) {
-            ProfileAvatarView(preview: item.preview, size: 44)
+            ZStack(alignment: .topTrailing) {
+                ProfileAvatarView(preview: item.preview, size: 44)
+                if item.unreadCount > 0 {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 10, height: 10)
+                        .overlay(
+                            Circle().strokeBorder(Color.white.opacity(0.85), lineWidth: 1)
+                        )
+                        .offset(x: 2, y: -2)
+                        .accessibilityHidden(true)
+                }
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.preview.displayName)
                     .font(.subheadline.weight(.semibold))
@@ -246,17 +268,22 @@ struct FriendsTabView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                if item.unreadCount > 0 {
-                    Text(item.unreadCount > 99 ? "99+ unread" : "\(item.unreadCount) unread")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
-                }
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 4) {
                 Text(Self.inboxTimeLabel(item.lastMessageAt))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                if item.unreadCount > 0 {
+                    Text(item.unreadCount > 99 ? "99+" : "\(item.unreadCount)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.red.opacity(0.92))
+                        .clipShape(Capsule())
+                        .accessibilityLabel("\(item.unreadCount) unread messages")
+                }
             }
         }
         .padding(.vertical, 2)
