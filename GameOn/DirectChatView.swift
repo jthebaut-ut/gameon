@@ -115,8 +115,42 @@ private final class DirectChatPresenter: ObservableObject {
 
     private let maxBodyLength = 1000
 
+    /// Set from the view layer so sends can respect bidirectional blocks + refresh social state.
+    weak var chatViewModel: ChatViewModel?
+
+    /// Client-side anti-spam (UX only). TODO: Add Supabase RPC / Edge rate limits for real enforcement.
+    private let clientRateLimitWindowSeconds: TimeInterval = 10
+    private let clientRateLimitMaxSends = 5
+    private var recentOutgoingTimestamps: [Date] = []
+
     init(friend: UserPreview) {
         self.friend = friend
+    }
+
+    func bindChatViewModel(_ vm: ChatViewModel) {
+        chatViewModel = vm
+    }
+
+    private func isMessagingBlocked() -> Bool {
+        guard let chatViewModel else { return false }
+        return chatViewModel.isEitherDirectionBlocked(with: friend.id)
+    }
+
+    /// Returns false when rate-limited; sets ``sendError`` with a friendly message.
+    private func assertWithinClientRateLimit() -> Bool {
+        let now = Date()
+        recentOutgoingTimestamps.removeAll { now.timeIntervalSince($0) > clientRateLimitWindowSeconds }
+        if recentOutgoingTimestamps.count >= clientRateLimitMaxSends {
+            sendError = "Slow down — please wait a moment before sending more messages."
+            return false
+        }
+        return true
+    }
+
+    private func recordSuccessfulOutboundSendForRateLimit() {
+        let now = Date()
+        recentOutgoingTimestamps.removeAll { now.timeIntervalSince($0) > clientRateLimitWindowSeconds }
+        recentOutgoingTimestamps.append(now)
     }
 
     func onAppear() async {
@@ -172,6 +206,7 @@ private final class DirectChatPresenter: ObservableObject {
                     continue
                 }
                 if row.deleted_at != nil { continue }
+                if row.is_deleted == true { continue }
                 guard !messages.contains(where: { $0.id == row.id }) else { continue }
                 messages.append(row)
                 if row.sender_id != me {
@@ -193,11 +228,18 @@ private final class DirectChatPresenter: ObservableObject {
         guard trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
 
+        if isMessagingBlocked() {
+            sendError = "You can’t message this user."
+            return
+        }
+        guard assertWithinClientRateLimit() else { return }
+
         sendError = nil
         draft = ""
 
         do {
             let row = try await service.sendMessage(conversationId: conversationId, senderId: me, body: trimmed)
+            recordSuccessfulOutboundSendForRateLimit()
             messages.append(row)
         } catch {
             draft = trimmed
@@ -211,9 +253,16 @@ private final class DirectChatPresenter: ObservableObject {
         guard !trimmed.isEmpty, trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
 
+        if isMessagingBlocked() {
+            sendError = "You can’t message this user."
+            return
+        }
+        guard assertWithinClientRateLimit() else { return }
+
         sendError = nil
         do {
             let row = try await service.sendMessage(conversationId: conversationId, senderId: me, body: trimmed)
+            recordSuccessfulOutboundSendForRateLimit()
             messages.append(row)
         } catch {
             sendError = error.localizedDescription
@@ -291,12 +340,43 @@ struct DirectChatView: View {
     @State private var chatOverflowPhase: ChatOverflowPhase = .hidden
     /// Quick emoji strip above composer; off by default, toggled by smiley (does not use the system emoji keyboard).
     @State private var showEmojiQuickTray = false
+    @State private var reportSheet: DirectChatReportSheetKind?
+    @State private var reportCategory: ModerationReportCategory = .other
+    @State private var reportDetails: String = ""
 
     private enum ChatOverflowPhase: Equatable {
         case hidden
         case actions
         case confirmClearHistory
         case confirmRemoveFriend
+        case confirmBlockUser
+    }
+
+    private enum DirectChatReportSheetKind: Identifiable, Equatable {
+        case user
+        case conversation
+        case message(DirectMessageRow)
+
+        var id: String {
+            switch self {
+            case .user: return "report-user"
+            case .conversation: return "report-conversation"
+            case .message(let m): return "report-message-\(m.id.uuidString)"
+            }
+        }
+
+        static func == (lhs: DirectChatReportSheetKind, rhs: DirectChatReportSheetKind) -> Bool {
+            switch (lhs, rhs) {
+            case (.user, .user): return true
+            case (.conversation, .conversation): return true
+            case (.message(let a), .message(let b)): return a.id == b.id
+            default: return false
+            }
+        }
+    }
+
+    private var messagingBlocked: Bool {
+        chatViewModel.isEitherDirectionBlocked(with: presenter.friend.id)
     }
 
     init(friend: UserPreview) {
@@ -417,6 +497,7 @@ struct DirectChatView: View {
             }
         }
         .task {
+            presenter.bindChatViewModel(chatViewModel)
             await presenter.onAppear()
 
             if presenter.loadError == nil {
@@ -449,6 +530,15 @@ struct DirectChatView: View {
                 await chatViewModel.refreshInboxSummaries()
             }
         }
+        .sheet(item: $reportSheet) { kind in
+            directChatReportSheet(kind: kind)
+        }
+        .onChange(of: reportSheet) { _, newValue in
+            if newValue != nil {
+                reportCategory = .other
+                reportDetails = ""
+            }
+        }
     }
 
     private func dismissChatOverflow() {
@@ -478,9 +568,109 @@ struct DirectChatView: View {
         }
     }
 
+    private func runBlockUserConfirmed() async {
+        let moderation = ModerationService()
+        do {
+            try await moderation.block(userId: presenter.friend.id)
+            // TODO: Optional server RPC to end friendship + archive DM when product policy requires it.
+            await chatViewModel.refreshBlockedUsers()
+            await chatViewModel.refreshInboxSummaries()
+            await chatViewModel.refresh()
+            await MainActor.run {
+                dismissChatOverflow()
+                dismiss()
+            }
+        } catch {
+            await MainActor.run {
+                presenter.menuBanner = error.localizedDescription
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func directChatReportSheet(kind: DirectChatReportSheetKind) -> some View {
+        NavigationStack {
+            Form {
+                Picker("Category", selection: $reportCategory) {
+                    ForEach(ModerationReportCategory.allCases) { c in
+                        Text(c.displayTitle).tag(c)
+                    }
+                }
+                Section {
+                    TextField("Details (optional)", text: $reportDetails, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+            }
+            .navigationTitle(reportNavigationTitle(for: kind))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { reportSheet = nil }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Submit") {
+                        Task { await submitDirectChatReport(kind: kind) }
+                    }
+                }
+            }
+        }
+    }
+
+    private func reportNavigationTitle(for kind: DirectChatReportSheetKind) -> String {
+        switch kind {
+        case .user: return "Report User"
+        case .conversation: return "Report Conversation"
+        case .message: return "Report Message"
+        }
+    }
+
+    private func submitDirectChatReport(kind: DirectChatReportSheetKind) async {
+        let moderation = ModerationService()
+        let trimmedDetails = reportDetails.trimmingCharacters(in: .whitespacesAndNewlines)
+        let detailsOpt = trimmedDetails.isEmpty ? nil : trimmedDetails
+        do {
+            switch kind {
+            case .user:
+                try await moderation.reportUser(reportedUserId: presenter.friend.id, category: reportCategory, details: detailsOpt)
+            case .conversation:
+                guard let cid = presenter.conversationId else {
+                    await MainActor.run {
+                        presenter.menuBanner = "Conversation isn’t ready yet."
+                        reportSheet = nil
+                    }
+                    return
+                }
+                try await moderation.reportConversation(
+                    conversationId: cid,
+                    otherUserId: presenter.friend.id,
+                    category: reportCategory,
+                    details: detailsOpt
+                )
+            case .message(let row):
+                try await moderation.reportMessage(
+                    messageId: row.id,
+                    reportedUserId: row.sender_id,
+                    messageTextSnapshot: row.body,
+                    category: reportCategory,
+                    details: detailsOpt
+                )
+            }
+            await MainActor.run {
+                reportSheet = nil
+                presenter.menuBanner = "Thanks — we received your report."
+            }
+            // TODO: Admin moderation dashboard should triage `user_reports` / `conversation_reports` / `message_reports`.
+        } catch {
+            await MainActor.run {
+                presenter.menuBanner = error.localizedDescription
+            }
+        }
+    }
+
     // Tuned to match Screenshot 2 (pre-recovery target).
     private static let overflowMenuWidth: CGFloat = 244
-    private static let overflowMenuHeight: CGFloat = 112
+    /// Five primary rows (block / report / clear / remove) at ~56pt each.
+    private static let overflowMenuHeight: CGFloat = 292
     private static let overflowMenuCornerRadius: CGFloat = 30
     private static let overflowMenuTopPadding: CGFloat = 54
     private static let overflowMenuTrailingPadding: CGFloat = 16
@@ -596,6 +786,17 @@ struct DirectChatView: View {
                             }
                         }
                     )
+                case .confirmBlockUser:
+                    chatOverflowConfirmCard(
+                        title: "Block \(presenter.friend.displayName)?",
+                        message: "They won’t be able to message you or send friend requests. You won’t see each other in chat lists while the block is active.",
+                        confirmTitle: "Block",
+                        onConfirm: {
+                            Task {
+                                await runBlockUserConfirmed()
+                            }
+                        }
+                    )
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
@@ -606,15 +807,24 @@ struct DirectChatView: View {
 
     private func chatOverflowActionsCard() -> some View {
         VStack(alignment: .leading, spacing: 0) {
+            overflowMenuActionRow(title: "Block user") {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    chatOverflowPhase = .confirmBlockUser
+                }
+            }
+            overflowMenuActionRow(title: "Report user") {
+                dismissChatOverflow()
+                reportSheet = .user
+            }
+            overflowMenuActionRow(title: "Report conversation") {
+                dismissChatOverflow()
+                reportSheet = .conversation
+            }
             overflowMenuActionRow(title: "Clear chat history") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmClearHistory
                 }
             }
-            Rectangle()
-                .fill(Color.primary.opacity(0.0))
-                .frame(height: 0.0)
-                .padding(.horizontal, 30)
             overflowMenuActionRow(title: "Remove friend") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmRemoveFriend
@@ -767,6 +977,13 @@ struct DirectChatView: View {
             friendPreview: presenter.friend,
             timestamp: time
         )
+        .contextMenu {
+            if !isMine {
+                Button("Report message") {
+                    reportSheet = .message(row)
+                }
+            }
+        }
         .id(row.id)
     }
 
@@ -795,6 +1012,14 @@ struct DirectChatView: View {
     /// Bottom input: optional slim emoji strip above composer; moves with keyboard via `safeAreaInset`.
     private var composer: some View {
         VStack(spacing: showEmojiQuickTray ? 4 : 0) {
+            if messagingBlocked {
+                Text("You can’t send messages in this conversation.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+                    .padding(.bottom, 2)
+            }
             if showEmojiQuickTray {
                 quickReactionTray
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
@@ -825,6 +1050,7 @@ struct DirectChatView: View {
             .buttonStyle(.plain)
             .frame(width: 40, height: 40)
             .accessibilityLabel("Toggle emoji reactions")
+            .disabled(messagingBlocked)
 
             TextField("Message", text: $presenter.draft, axis: .vertical)
                 .textFieldStyle(.plain)
@@ -852,6 +1078,7 @@ struct DirectChatView: View {
                 }
                 .frame(minHeight: 38, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .disabled(messagingBlocked)
 
             Button {
                 Task { await presenter.sendDraft() }
@@ -861,7 +1088,7 @@ struct DirectChatView: View {
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(Color.white, Color.blue)
             }
-            .disabled(!presenter.canSend)
+            .disabled(!presenter.canSend || messagingBlocked)
             .frame(width: 40, height: 40)
             .contentShape(Rectangle())
             .accessibilityLabel("Send")
@@ -882,6 +1109,7 @@ struct DirectChatView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(messagingBlocked)
                     .accessibilityLabel("Send \(emoji) reaction")
                 }
             }

@@ -39,6 +39,8 @@ final class DirectChatService {
             .select()
             .eq("conversation_id", value: conversationId)
             .is("deleted_at", value: nil)
+            // Hide soft-deleted / moderated rows when `is_deleted` is present (pre-migration rows remain visible).
+            .or("is_deleted.is.null,is_deleted.eq.false")
             .order("created_at", ascending: false)
             .limit(limit)
             .execute()
@@ -164,6 +166,7 @@ final class DirectChatService {
             .eq("conversation_id", value: conversationId)
             .neq("sender_id", value: readerId)
             .is("deleted_at", value: nil)
+            .or("is_deleted.is.null,is_deleted.eq.false")
             .gt("created_at", value: iso)
             .execute()
         return response.count ?? 0

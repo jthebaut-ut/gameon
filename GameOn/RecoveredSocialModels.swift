@@ -30,6 +30,9 @@ struct DirectMessageRow: Codable, Hashable, Identifiable {
     let body: String
     let created_at: String?
     let deleted_at: String?
+    /// Moderation metadata (optional for older rows / pre-migration).
+    let report_count: Int?
+    let is_deleted: Bool?
 }
 
 struct DmInboxSummaryRow: Codable, Hashable {

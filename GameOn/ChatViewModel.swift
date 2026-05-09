@@ -51,6 +51,8 @@ final class ChatViewModel: ObservableObject {
     // MARK: - Moderation (blocked users)
 
     @Published private(set) var blockedUserIds: Set<UUID> = []
+    /// Users who have blocked the current user (reverse of ``blockedUserIds``).
+    @Published private(set) var usersWhoBlockedMeIds: Set<UUID> = []
     @Published private(set) var blockedUserPreviews: [UserPreview] = []
     private let moderation = ModerationService()
 
@@ -91,7 +93,23 @@ final class ChatViewModel: ObservableObject {
         currentUserAuthId = nil
         hidesFloatingTabBarForDirectChat = false
         blockedUserIds = []
+        usersWhoBlockedMeIds = []
         blockedUserPreviews = []
+    }
+
+    /// True if either party has blocked the other (client-side UX guard).
+    func isEitherDirectionBlocked(with peerId: UUID) -> Bool {
+        blockedUserIds.contains(peerId) || usersWhoBlockedMeIds.contains(peerId)
+    }
+
+    /// Reloads block sets from Supabase; ignores failures (keeps prior state).
+    private func reloadModerationBlockSets() async {
+        do {
+            blockedUserIds = try await moderation.fetchBlockedUserIds()
+            usersWhoBlockedMeIds = try await moderation.fetchUsersWhoBlockedMeIds()
+        } catch {
+            // TODO: Non-fatal telemetry; server-side enforcement still required.
+        }
     }
 
     /// Starts/stops a lightweight in-app inbox listener for unread badge refresh.
@@ -213,10 +231,7 @@ final class ChatViewModel: ObservableObject {
             await setUnreadDirectMessageCountAndSyncAppIcon(0)
             return
         }
-        // Keep blocked ids fresh for inbox filtering; ignore failures.
-        if let ids = try? await moderation.fetchBlockedUserIds() {
-            blockedUserIds = ids
-        }
+        await reloadModerationBlockSets()
         do {
             let rows = try await directChatService.fetchInboxSummaries()
             let displays = rows.map { row -> FriendDisplay in
@@ -251,8 +266,8 @@ final class ChatViewModel: ObservableObject {
                 )
             }
 
-            // Hide blocked users from inbox.
-            let visible = displays.filter { !blockedUserIds.contains($0.id) }
+            // Hide users blocked in either direction.
+            let visible = displays.filter { !isEitherDirectionBlocked(with: $0.id) }
             friends = visible
             let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
@@ -267,14 +282,15 @@ final class ChatViewModel: ObservableObject {
 
     func refreshBlockedUsers() async {
         do {
-            let ids = try await moderation.fetchBlockedUserIds()
-            blockedUserIds = ids
-            let previews = await moderation.fetchUserPreviews(for: Array(ids))
+            blockedUserIds = try await moderation.fetchBlockedUserIds()
+            usersWhoBlockedMeIds = try await moderation.fetchUsersWhoBlockedMeIds()
+            let previews = await moderation.fetchUserPreviews(for: Array(blockedUserIds))
             // Keep stable order.
             let byId = Dictionary(uniqueKeysWithValues: previews.map { ($0.id, $0) })
-            blockedUserPreviews = Array(ids).compactMap { byId[$0] }.sorted { $0.displayName < $1.displayName }
+            blockedUserPreviews = Array(blockedUserIds).compactMap { byId[$0] }.sorted { $0.displayName < $1.displayName }
         } catch {
             blockedUserIds = []
+            usersWhoBlockedMeIds = []
             blockedUserPreviews = []
         }
     }
@@ -296,6 +312,7 @@ final class ChatViewModel: ObservableObject {
 
         do {
             let me = try await service.currentUserId()
+            await reloadModerationBlockSets()
             async let accepted = service.fetchAcceptedFriendships(for: me)
             async let incoming = service.fetchIncomingPending(for: me)
             async let outgoing = service.fetchOutgoingPending(for: me)
@@ -312,7 +329,8 @@ final class ChatViewModel: ObservableObject {
                 }
             )
 
-            friends = inboxRows.map { row -> FriendDisplay in
+            let inboxFiltered = inboxRows.filter { !isEitherDirectionBlocked(with: $0.friend_user_id) }
+            friends = inboxFiltered.map { row -> FriendDisplay in
                 let name = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let displayName = (name?.isEmpty == false) ? name! : "Player"
                 let preview = UserPreview(
@@ -344,12 +362,16 @@ final class ChatViewModel: ObservableObject {
                 )
             }
 
-            incomingRequests = inRows.map { row in
+            incomingRequests = inRows
+                .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
+                .map { row in
                 let preview = preview(for: row.requester_id, profileById: profileById)
                 return IncomingRequestDisplay(friendship: row, requester: preview)
             }
 
-            outgoingRequests = outRows.map { row in
+            outgoingRequests = outRows
+                .filter { !isEitherDirectionBlocked(with: $0.addressee_id) }
+                .map { row in
                 let preview = preview(for: row.addressee_id, profileById: profileById)
                 return OutgoingRequestDisplay(friendship: row, addressee: preview)
             }
@@ -429,6 +451,10 @@ final class ChatViewModel: ObservableObject {
     }
 
     func sendFriendRequest(to addresseeId: UUID) async {
+        if isEitherDirectionBlocked(with: addresseeId) {
+            errorMessage = "You can’t send a friend request to this user."
+            return
+        }
         do {
             let me = try await service.currentUserId()
             try await service.sendFriendRequest(requesterId: me, addresseeId: addresseeId)
@@ -452,6 +478,10 @@ final class ChatViewModel: ObservableObject {
 
     /// Sends a friend request from a comment row; optimistic Pending, then full refresh for badge + cache.
     func sendFriendRequestFromComments(to addresseeId: UUID) async {
+        if isEitherDirectionBlocked(with: addresseeId) {
+            errorMessage = "You can’t send a friend request to this user."
+            return
+        }
         let previous = friendshipChipByOtherUserId[addresseeId]
         friendshipChipByOtherUserId[addresseeId] = .pending
         do {

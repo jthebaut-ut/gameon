@@ -1,8 +1,31 @@
 import Foundation
 import Supabase
 
+// MARK: - Report categories (stored as plain strings in `user_reports` / `conversation_reports` / `message_reports`)
+// TODO: Align copy with in-app Community Guidelines / Terms of Service links when available.
+
+enum ModerationReportCategory: String, CaseIterable, Identifiable {
+    case spam = "spam"
+    case harassment = "harassment"
+    case fakeAccount = "fake_account"
+    case inappropriate = "inappropriate"
+    case other = "other"
+
+    var id: String { rawValue }
+
+    var displayTitle: String {
+        switch self {
+        case .spam: return "Spam"
+        case .harassment: return "Harassment"
+        case .fakeAccount: return "Fake account"
+        case .inappropriate: return "Inappropriate content"
+        case .other: return "Other"
+        }
+    }
+}
+
 /// Lightweight moderation helpers used by Chat surfaces.
-/// - Important: This is client-side convenience only. Ensure RLS policies enforce these rules server-side.
+/// - Important: Client checks are UX-only. **Server-side RLS + RPC rate limits** are required for real enforcement.
 struct ModerationService {
     enum ModerationError: LocalizedError {
         case notSignedIn
@@ -27,11 +50,38 @@ struct ModerationService {
         let blocked_user_id: UUID
     }
 
+    private struct UserReportInsert: Encodable {
+        let reporter_user_id: UUID
+        let reported_user_id: UUID
+        let category: String
+        let details: String?
+    }
+
+    private struct ConversationReportInsert: Encodable {
+        let reporter_user_id: UUID
+        let reported_user_id: UUID
+        let conversation_id: UUID
+        let category: String
+        let details: String?
+        let status: String
+    }
+
+    private struct MessageReportInsert: Encodable {
+        let reporter_user_id: UUID
+        let reported_user_id: UUID
+        let message_id: UUID
+        let message_text_snapshot: String
+        let category: String
+        let details: String?
+        let status: String
+    }
+
     func currentUserId() async throws -> UUID {
         let session = try await supabase.auth.session
         return session.user.id
     }
 
+    /// Users I have blocked.
     func fetchBlockedUserIds() async throws -> Set<UUID> {
         let me = try await currentUserId()
         let rows: [BlockedUserRow] = try await supabase
@@ -41,6 +91,18 @@ struct ModerationService {
             .execute()
             .value
         return Set(rows.compactMap { $0.blocked_user_id })
+    }
+
+    /// Users who have blocked me (reverse direction).
+    func fetchUsersWhoBlockedMeIds() async throws -> Set<UUID> {
+        let me = try await currentUserId()
+        let rows: [BlockedUserRow] = try await supabase
+            .from("blocked_users")
+            .select("blocker_user_id,created_at")
+            .eq("blocked_user_id", value: me)
+            .execute()
+            .value
+        return Set(rows.compactMap { $0.blocker_user_id })
     }
 
     func unblock(userId: UUID) async throws {
@@ -62,8 +124,93 @@ struct ModerationService {
             .execute()
     }
 
+    func reportUser(reportedUserId: UUID, category: ModerationReportCategory, details: String?) async throws {
+        let me = try await currentUserId()
+        let row = UserReportInsert(
+            reporter_user_id: me,
+            reported_user_id: reportedUserId,
+            category: category.rawValue,
+            details: details.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
+        )
+        _ = try await supabase
+            .from("user_reports")
+            .insert(row)
+            .execute()
+    }
+
+    func reportConversation(
+        conversationId: UUID,
+        otherUserId: UUID,
+        category: ModerationReportCategory,
+        details: String?
+    ) async throws {
+        let me = try await currentUserId()
+        let row = ConversationReportInsert(
+            reporter_user_id: me,
+            reported_user_id: otherUserId,
+            conversation_id: conversationId,
+            category: category.rawValue,
+            details: details.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 },
+            status: "open"
+        )
+        _ = try await supabase
+            .from("conversation_reports")
+            .insert(row)
+            .execute()
+    }
+
+    func reportMessage(
+        messageId: UUID,
+        reportedUserId: UUID,
+        messageTextSnapshot: String,
+        category: ModerationReportCategory,
+        details: String?
+    ) async throws {
+        let me = try await currentUserId()
+        let row = MessageReportInsert(
+            reporter_user_id: me,
+            reported_user_id: reportedUserId,
+            message_id: messageId,
+            message_text_snapshot: messageTextSnapshot,
+            category: category.rawValue,
+            details: details.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 },
+            status: "open"
+        )
+        _ = try await supabase
+            .from("message_reports")
+            .insert(row)
+            .execute()
+        await incrementMessageReportCountBestEffort(messageId: messageId)
+    }
+
+    /// Best-effort increment of `direct_messages.report_count` for admin review queues.
+    private func incrementMessageReportCountBestEffort(messageId: UUID) async {
+        struct Row: Decodable { let report_count: Int? }
+        struct Patch: Encodable { let report_count: Int }
+
+        do {
+            let rows: [Row] = try await supabase
+                .from("direct_messages")
+                .select("report_count")
+                .eq("id", value: messageId)
+                .limit(1)
+                .execute()
+                .value
+            let current = rows.first?.report_count ?? 0
+            _ = try await supabase
+                .from("direct_messages")
+                .update(Patch(report_count: current + 1))
+                .eq("id", value: messageId)
+                .execute()
+        } catch {
+            // Column may be missing until migration is applied; report row is still stored.
+#if DEBUG
+            print("Moderation: increment report_count skipped:", error)
+#endif
+        }
+    }
+
     /// Best-effort lookup for display names/avatars/emails for blocked ids.
-    /// Falls back gracefully if the table is missing or ids aren't present.
     func fetchUserPreviews(for userIds: [UUID]) async -> [UserPreview] {
         guard !userIds.isEmpty else { return [] }
 
@@ -93,4 +240,3 @@ struct ModerationService {
         }
     }
 }
-
