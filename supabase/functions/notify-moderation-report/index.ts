@@ -10,13 +10,14 @@ import { createClient } from "npm:@supabase/supabase-js@2"
  * Deploy: `supabase functions deploy notify-moderation-report`
  *
  * Uses anon key + caller JWT only (no service role).
+ * Reporter identity in the email always comes from `auth.getUser()` (JWT), not the request body.
  */
 
 type ReportType = "user" | "conversation" | "message"
 
+/** Client may send `reporter_user_id`; it is ignored — reporter is always `auth.getUser()` from the JWT. */
 interface Payload {
   report_type: ReportType
-  reporter_user_id: string
   reported_user_id: string
   category: string
   details?: string | null
@@ -24,6 +25,8 @@ interface Payload {
   conversation_id?: string | null
   message_id?: string | null
   message_text_snapshot?: string | null
+  /** @deprecated Ignored; use JWT subject only. */
+  reporter_user_id?: string | null
 }
 
 function escapeHtml(s: string): string {
@@ -102,13 +105,6 @@ Deno.serve(async (req) => {
   if (!payload.reported_user_id?.trim() || !payload.category?.trim()) {
     return new Response(JSON.stringify({ error: "missing_fields" }), {
       status: 400,
-      headers: { "Content-Type": "application/json" },
-    })
-  }
-
-  if (payload.reporter_user_id !== user.id) {
-    return new Response(JSON.stringify({ error: "reporter_mismatch" }), {
-      status: 403,
       headers: { "Content-Type": "application/json" },
     })
   }

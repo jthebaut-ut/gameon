@@ -105,9 +105,9 @@ struct ModerationService {
         let status: String
     }
 
+    /// Edge function derives reporter from JWT (`auth.getUser()`); do not send client `reporter_user_id`.
     private struct NotifyModerationReportPayload: Encodable {
         let report_type: String
-        let reporter_user_id: UUID
         let reported_user_id: UUID
         let category: String
         let details: String?
@@ -131,7 +131,6 @@ struct ModerationService {
     /// Fire-and-forget admin email via Edge Function; must run only after the report row is stored.
     private func notifyModerationReportBestEffort(
         reportType: String,
-        reporterUserId: UUID,
         reportedUserId: UUID,
         category: ModerationReportCategory,
         details: String?,
@@ -148,7 +147,6 @@ struct ModerationService {
 #endif
             let payload = NotifyModerationReportPayload(
                 report_type: reportType,
-                reporter_user_id: reporterUserId,
                 reported_user_id: reportedUserId,
                 category: categoryRaw,
                 details: detailsCopy,
@@ -244,7 +242,6 @@ struct ModerationService {
             .execute()
         notifyModerationReportBestEffort(
             reportType: "user",
-            reporterUserId: me,
             reportedUserId: reportedUserId,
             category: category,
             details: row.details
@@ -272,7 +269,6 @@ struct ModerationService {
             .execute()
         notifyModerationReportBestEffort(
             reportType: "conversation",
-            reporterUserId: me,
             reportedUserId: otherUserId,
             category: category,
             details: row.details,
@@ -304,7 +300,6 @@ struct ModerationService {
             .execute()
         notifyModerationReportBestEffort(
             reportType: "message",
-            reporterUserId: me,
             reportedUserId: reportedUserId,
             category: category,
             details: row.details,

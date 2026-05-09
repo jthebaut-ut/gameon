@@ -290,14 +290,9 @@ struct FriendsTabView: View {
                 }
             }
             Spacer(minLength: 0)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(Self.inboxTimeLabel(item.lastMessageAt))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary.opacity(0.65))
-            }
+            Text(Self.inboxTimeLabel(item.lastMessageAt))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
     }

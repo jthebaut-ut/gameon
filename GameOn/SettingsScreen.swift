@@ -1,6 +1,130 @@
 import SwiftUI
 import PhotosUI
 
+// MARK: - Legal & Safety (draft copy until hosted policies ship)
+
+private enum SettingsLegalDocumentKind: String, Identifiable {
+    case privacyPolicy
+    case termsOfService
+    case communityGuidelines
+    case safetyReporting
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .privacyPolicy: return "Privacy Policy"
+        case .termsOfService: return "Terms of Service"
+        case .communityGuidelines: return "Community Guidelines"
+        case .safetyReporting: return "Safety & Reporting"
+        }
+    }
+
+    var rowSubtitle: String {
+        switch self {
+        case .privacyPolicy: return "How we use and protect your information."
+        case .termsOfService: return "Rules for using GameOn."
+        case .communityGuidelines: return "Be respectful and play fair."
+        case .safetyReporting: return "Get help and report concerns."
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .privacyPolicy: return "hand.raised.fill"
+        case .termsOfService: return "doc.text.fill"
+        case .communityGuidelines: return "person.3.fill"
+        case .safetyReporting: return "shield.lefthalf.filled"
+        }
+    }
+
+    /// Placeholder / draft for in-app display only (not legal advice).
+    var draftBody: String {
+        switch self {
+        case .privacyPolicy:
+            return """
+            Privacy Policy — Draft
+
+            GameOn is built to help fans discover games and connect with venues and friends. This draft explains, in plain language, what we expect a final policy to cover.
+
+            Information we may collect can include account details you provide (such as email and display name), content you create in the app (for example messages, comments, or favorites), and technical data needed to run the service (such as diagnostics and approximate location when you use map features).
+
+            We use this information to operate GameOn, personalize your experience, keep accounts secure, and improve reliability. We do not sell your personal information. Where we rely on service providers, they are expected to handle data only as instructed and with appropriate safeguards.
+
+            You can request access, correction, or deletion of certain personal data where applicable law allows. Parents and guardians should supervise minors’ use of social features.
+
+            This text is a placeholder draft. A final Privacy Policy will be published separately and may change as GameOn evolves.
+            """
+        case .termsOfService:
+            return """
+            Terms of Service — Draft
+
+            By using GameOn, you agree to follow these terms and any future updates we post in the app or on our website.
+
+            You agree to provide accurate information where required, keep your login credentials confidential, and use the service only for lawful purposes. You may not attempt to disrupt GameOn, scrape or overload our systems without permission, impersonate others, or misuse reporting and moderation tools.
+
+            Content you submit remains yours, but you grant GameOn a license to host, display, and distribute that content as needed to operate the service. We may suspend or terminate accounts that violate these terms or create risk for other users.
+
+            The service is provided “as is” to the extent permitted by law. Liability limits and dispute resolution terms will be spelled out in the final legal document.
+
+            This text is a placeholder draft. Official Terms of Service will replace this section when published.
+            """
+        case .communityGuidelines:
+            return """
+            Community Guidelines — Draft
+
+            GameOn works best when everyone treats others with respect. These guidelines describe the culture we want to encourage.
+
+            Be kind and honest. Do not harass, threaten, or bully other users. Do not share hateful, violent, or sexually explicit content directed at others. Do not spam, manipulate ratings, or mislead people about who you are.
+
+            Respect venues and staff: feedback should be fair and constructive. Keep debates civil and stay on topic in public comments.
+
+            Moderators may remove content or restrict accounts that break these rules. If you disagree with an action, use the appropriate appeals path once it is available.
+
+            This text is a placeholder draft. Final Community Guidelines may add examples and enforcement detail.
+            """
+        case .safetyReporting:
+            return """
+            Safety & Reporting — Draft
+
+            Your safety matters. If you feel unsafe, trust your instincts: stop engaging, preserve evidence where appropriate, and contact local emergency services if you are in immediate danger.
+
+            Inside GameOn you can block users to stop direct messages and reduce unwanted contact from them. You can report users, conversations, or individual messages when something violates our policies or makes you uncomfortable. Reports are reviewed by the GameOn team; we may take action such as warnings, content removal, or account suspension depending on severity.
+
+            We cannot guarantee every report will result in the outcome you prefer, but we take credible reports seriously. Do not abuse reporting tools — false or malicious reports may result in restrictions on your own account.
+
+            This text is a placeholder draft. Links to detailed help resources and contact channels will be added later.
+            """
+        }
+    }
+}
+
+private struct SettingsLegalDocumentSheet: View {
+    let document: SettingsLegalDocumentKind
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(document.draftBody)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(20)
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(document.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -25,8 +149,8 @@ struct SettingsScreen: View {
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteVenueOwnerSheet = false
     @State private var showReportedCommentsSheet = false
-    
-    
+    @State private var legalDocumentSheet: SettingsLegalDocumentKind?
+
     var body: some View {
         NavigationStack {
             List {
@@ -63,15 +187,50 @@ struct SettingsScreen: View {
                     .buttonStyle(.plain)
                 }
 
-                Section("ACCOUNT") {
-                    if viewModel.isLoggedIn {
+                Section("LEGAL & SAFETY") {
+                    Button { legalDocumentSheet = .privacyPolicy } label: {
+                        settingsRow(
+                            title: SettingsLegalDocumentKind.privacyPolicy.title,
+                            subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
+                            systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { legalDocumentSheet = .termsOfService } label: {
+                        settingsRow(
+                            title: SettingsLegalDocumentKind.termsOfService.title,
+                            subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
+                            systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { legalDocumentSheet = .communityGuidelines } label: {
+                        settingsRow(
+                            title: SettingsLegalDocumentKind.communityGuidelines.title,
+                            subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
+                            systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { legalDocumentSheet = .safetyReporting } label: {
+                        settingsRow(
+                            title: SettingsLegalDocumentKind.safetyReporting.title,
+                            subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
+                            systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if viewModel.isLoggedIn {
+                    Section("ACCOUNT") {
                         Button { showResetPasswordSheet = true } label: {
                             settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
                         }
                         .buttonStyle(.plain)
-
-                        settingsRow(title: "Privacy", subtitle: "Coming soon.", systemImage: "hand.raised")
-                            .opacity(0.6)
 
                         Button {
                             Task { await viewModel.logoutUser() }
@@ -82,11 +241,6 @@ struct SettingsScreen: View {
 
                         Button { showDeleteAccountSheet = true } label: {
                             settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Button { showUserAuthSheet = true } label: {
-                            settingsRow(title: "Sign in", subtitle: nil, systemImage: "person.crop.circle")
                         }
                         .buttonStyle(.plain)
                     }
@@ -223,6 +377,11 @@ struct SettingsScreen: View {
                     }
                 }
             }
+        }
+        .sheet(item: $legalDocumentSheet) { document in
+            SettingsLegalDocumentSheet(document: document)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .onChange(of: selectedClaimCoverPhoto) { _, newItem in
             guard let newItem else { return }
@@ -574,6 +733,12 @@ private struct SettingsUserAuthSheet: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
+            }
+        }
+        .onChange(of: viewModel.isLoggedIn) { wasLoggedIn, isLoggedIn in
+            // Dismiss only after a successful fan sign-in while the sheet is open (not if already logged in on appear).
+            if !wasLoggedIn && isLoggedIn {
+                dismiss()
             }
         }
     }
