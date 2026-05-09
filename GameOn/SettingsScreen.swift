@@ -1157,9 +1157,33 @@ private struct SettingsVenueOwnerCard: View {
     let claimPhotoMessage: String
     @Binding var showVenueDashboard: Bool
     @State private var claimValidationMessage: String = ""
+    @State private var photoReviewStatus: String = ""
+    @State private var pendingCoverUploaded: Bool = false
+    @State private var pendingMenuUploaded: Bool = false
 
     private func trimmed(_ s: String) -> String {
         s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func refreshVenuePhotoReviewState() {
+        Task {
+            guard viewModel.isVenueOwnerLoggedIn else { return }
+            guard let profile = await viewModel.loadVenueProfile() else { return }
+            await MainActor.run {
+                let status = (profile.photo_review_status ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                photoReviewStatus = status
+                pendingCoverUploaded = !(profile.pending_cover_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                pendingMenuUploaded = !(profile.pending_menu_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+                // Always show currently public/approved photos in the UI.
+                if let cover = profile.cover_photo_url {
+                    viewModel.venueCoverPhotoURL = cover
+                }
+                if let menu = profile.menu_photo_url {
+                    viewModel.venueMenuPhotoURL = menu
+                }
+            }
+        }
     }
 
     private var isClaimReadyToSubmit: Bool {
@@ -1290,6 +1314,7 @@ private struct SettingsVenueOwnerCard: View {
 
                 Button {
                     viewModel.checkVenueApprovalStatus()
+                    refreshVenuePhotoReviewState()
                 } label: {
                     Label("Refresh status", systemImage: "arrow.clockwise")
                         .font(.caption)
@@ -1368,6 +1393,11 @@ private struct SettingsVenueOwnerCard: View {
                         imageURL: viewModel.venueCoverPhotoURL,
                         isRequired: true
                     )
+                    if photoReviewStatus == "pending", pendingCoverUploaded {
+                        Text("Pending replacement uploaded")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    }
 
                     PhotosPicker(selection: $selectedClaimCoverPhoto, matching: .images) {
                         VenueClaimPhotoPickerLabel(
@@ -1381,6 +1411,11 @@ private struct SettingsVenueOwnerCard: View {
                         imageURL: viewModel.venueMenuPhotoURL,
                         isRequired: true
                     )
+                    if photoReviewStatus == "pending", pendingMenuUploaded {
+                        Text("Pending replacement uploaded")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    }
 
                     PhotosPicker(selection: $selectedClaimMenuPhoto, matching: .images) {
                         VenueClaimPhotoPickerLabel(
@@ -1448,6 +1483,19 @@ private struct SettingsVenueOwnerCard: View {
                 }
                 
                 if viewModel.venueIsApproved {
+                    if photoReviewStatus == "pending" {
+                        Text("Photos Pending Review")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.orange.opacity(0.16))
+                            .foregroundStyle(Color.orange)
+                            .clipShape(Capsule())
+
+                        Text("Your updated photos are under review and are not yet public.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Button {
                         showVenueDashboard = true
                     } label: {
@@ -1487,6 +1535,7 @@ private struct SettingsVenueOwnerCard: View {
         .onAppear {
             if viewModel.isVenueOwnerLoggedIn {
                 viewModel.checkVenueApprovalStatus()
+                refreshVenuePhotoReviewState()
             }
         }
     }

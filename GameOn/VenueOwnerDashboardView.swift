@@ -34,6 +34,9 @@ struct VenueOwnerDashboardView: View {
     @State private var venueZipCode = ""
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var selectedMenuPhoto: PhotosPickerItem?
+    @State private var photoReviewStatus: String = ""
+    @State private var pendingCoverUploaded: Bool = false
+    @State private var pendingMenuUploaded: Bool = false
     
     
     
@@ -79,6 +82,15 @@ struct VenueOwnerDashboardView: View {
                 hasGarden = saved.has_garden ?? false
                 hasProjector = saved.has_projector ?? false
                 isPetFriendly = saved.pet_friendly ?? false
+
+                // Always show currently public/approved photos.
+                viewModel.venueCoverPhotoURL = saved.cover_photo_url ?? ""
+                viewModel.venueMenuPhotoURL = saved.menu_photo_url ?? ""
+
+                let status = (saved.photo_review_status ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                photoReviewStatus = status
+                pendingCoverUploaded = !(saved.pending_cover_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                pendingMenuUploaded = !(saved.pending_menu_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
         }
         
@@ -185,8 +197,22 @@ struct VenueOwnerDashboardView: View {
             venuePhotoCard(
                 title: "Bar Photo",
                 subtitle: "Main photo of your venue",
-                imageURL: viewModel.venueCoverPhotoURL
+                imageURL: viewModel.venueCoverPhotoURL,
+                pendingReplacementUploaded: photoReviewStatus == "pending" && pendingCoverUploaded
             )
+            if photoReviewStatus == "pending" {
+                Text("Photos Pending Review")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.16))
+                    .foregroundStyle(Color.orange)
+                    .clipShape(Capsule())
+
+                Text("Your updated photos are under review and are not yet public.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             PhotosPicker(selection: $selectedCoverPhoto, matching: .images) {
                 primaryButtonText(viewModel.venueCoverPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
@@ -195,7 +221,8 @@ struct VenueOwnerDashboardView: View {
             venuePhotoCard(
                 title: "Menu Photo",
                 subtitle: "Food or drink menu photo",
-                imageURL: viewModel.venueMenuPhotoURL
+                imageURL: viewModel.venueMenuPhotoURL,
+                pendingReplacementUploaded: photoReviewStatus == "pending" && pendingMenuUploaded
             )
 
             PhotosPicker(selection: $selectedMenuPhoto, matching: .images) {
@@ -246,6 +273,17 @@ struct VenueOwnerDashboardView: View {
 
                     await MainActor.run {
                         profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
+                    }
+
+                    if success, let refreshed = await viewModel.loadVenueProfile() {
+                        await MainActor.run {
+                            viewModel.venueCoverPhotoURL = refreshed.cover_photo_url ?? viewModel.venueCoverPhotoURL
+                            viewModel.venueMenuPhotoURL = refreshed.menu_photo_url ?? viewModel.venueMenuPhotoURL
+                            let status = (refreshed.photo_review_status ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                            photoReviewStatus = status
+                            pendingCoverUploaded = !(refreshed.pending_cover_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            pendingMenuUploaded = !(refreshed.pending_menu_photo_url ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        }
                     }
                 }
             } label: {
@@ -445,15 +483,23 @@ struct VenueOwnerDashboardView: View {
     private func venuePhotoCard(
         title: String,
         subtitle: String,
-        imageURL: String
+        imageURL: String,
+        pendingReplacementUploaded: Bool = false
     ) -> some View {
         
         VStack(alignment: .leading, spacing: 12) {
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.bold)
+                HStack(spacing: 8) {
+                    Text(title)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    if pendingReplacementUploaded {
+                        Text("Pending replacement uploaded")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    }
+                }
                 
                 Text(subtitle)
                     .font(.caption)
