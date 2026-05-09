@@ -1,0 +1,11 @@
+
+.DS_Store
+
+*.xcuserstate
+
+xcuserdata/
+
+GameOn.xcodeproj/project.xcworkspace/xcuserdata/
+
+GameOn.xcodeproj/xcuserdata/
+
