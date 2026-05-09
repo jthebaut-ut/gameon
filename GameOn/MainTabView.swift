@@ -26,7 +26,10 @@ struct MainTabView: View {
         case chat
         case account
     }
-    
+
+    /// Vertical space occupied by the floating capsule tab bar (padding + control height). Keeps Chat tab content above the overlay.
+    private static let floatingTabBarStackHeight: CGFloat = 92
+
     var body: some View {
         ZStack {
             preservedRoot(tab: .discover) {
@@ -49,41 +52,21 @@ struct MainTabView: View {
                     viewModel: chatViewModel,
                     isTabSelected: selectedTab == .chat
                 )
+                .padding(
+                    .bottom,
+                    chatViewModel.hidesFloatingTabBarForDirectChat ? 0 : Self.floatingTabBarStackHeight
+                )
             }
 
             preservedRoot(tab: .account) {
                 SettingsScreen(viewModel: viewModel)
             }
-            
-            VStack {
-                Spacer()
-                
-                HStack(spacing: 6) {
-                    tabButton(.discover, title: "Discover", icon: "map.fill")
-                    
-                    tabButton(.calendar, title: "Calendar", icon: "calendar")
-                    
-                    tabButton(.following, title: "Following", icon: "heart.fill")
 
-                    chatTabButton()
-
-                    Button {
-                        withAnimation(.spring()) {
-                            selectedTabStorage = AppTab.account.rawValue
-                        }
-                    } label: {
-                        accountTabAvatar
-                    }
-                }
-                .padding(8)
-                .background(Color.white.opacity(0.94))
-                .clipShape(RoundedRectangle(cornerRadius: 24))
-                .shadow(radius: 8)
-                .padding(.horizontal)
-                .padding(.bottom, 12)
+            if !chatViewModel.hidesFloatingTabBarForDirectChat {
+                floatingTabBarChrome
             }
-            .zIndex(2)
         }
+        .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         // Restore auth, then hydrate map data once; `loadGamesFromSupabase` also refreshes venue event rows and interest summaries.
         .task {
             await viewModel.restoreSession()
@@ -104,6 +87,39 @@ struct MainTabView: View {
             }
         }
         .environmentObject(chatViewModel)
+    }
+
+    /// Independent overlay: does not participate in `DirectChatView` layout; hidden during DM threads via ``ChatViewModel/hidesFloatingTabBarForDirectChat``.
+    private var floatingTabBarChrome: some View {
+        VStack {
+            Spacer()
+
+            HStack(spacing: 6) {
+                tabButton(.discover, title: "Discover", icon: "map.fill")
+
+                tabButton(.calendar, title: "Calendar", icon: "calendar")
+
+                tabButton(.following, title: "Following", icon: "heart.fill")
+
+                chatTabButton()
+
+                Button {
+                    withAnimation(.spring()) {
+                        selectedTabStorage = AppTab.account.rawValue
+                    }
+                } label: {
+                    accountTabAvatar
+                }
+            }
+            .padding(8)
+            .background(Color.white.opacity(0.94))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .shadow(radius: 8)
+            .padding(.horizontal)
+            .padding(.bottom, 12)
+        }
+        .allowsHitTesting(true)
+        .zIndex(2)
     }
 
     // Renders a tab’s root off-screen when inactive so SwiftUI state is preserved without receiving touches.

@@ -289,8 +289,6 @@ struct DirectChatView: View {
     @State private var overflowAnchorGlobal: CGRect = .zero
     @State private var pendingDestructive: DestructiveOverflowAction?
     @State private var scrollToBottomCoalesceTask: Task<Void, Never>?
-    /// Floating tab bar in `MainTabView` is an overlay (not SwiftUI safe area); reserve space so composer clears it when keyboard is down.
-    @State private var keyboardCoversBottomChrome = false
 
     private enum DestructiveOverflowAction {
         case clearHistory
@@ -353,7 +351,7 @@ struct DirectChatView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaInset(edge: .bottom, spacing: 8) {
             composer
         }
         .background(Color(.systemGroupedBackground))
@@ -441,14 +439,6 @@ struct DirectChatView: View {
                 dismissOverflowMenu()
             }
         }
-        #if canImport(UIKit)
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
-            keyboardCoversBottomChrome = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in
-            keyboardCoversBottomChrome = false
-        }
-        #endif
         .task {
             await presenter.onAppear()
 
@@ -613,7 +603,7 @@ struct DirectChatView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.bottom, 12)
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
@@ -690,15 +680,6 @@ struct DirectChatView: View {
         }
     }
 
-    /// Reserves space for `MainTabView`’s floating capsule tab bar (overlay, not part of SwiftUI safe area).
-    private static let floatingTabBarReserve: CGFloat = 86
-
-    /// `safeAreaInset` already respects the home indicator; avoid duplicating window safe-area padding (was causing excess bottom gap).
-    private var composerOuterBottomPadding: CGFloat {
-        if composerFocused || keyboardCoversBottomChrome { return 8 }
-        return Self.floatingTabBarReserve
-    }
-
     private var composer: some View {
         VStack(spacing: 0) {
             Rectangle()
@@ -706,13 +687,13 @@ struct DirectChatView: View {
                 .frame(height: 0.5)
                 .accessibilityHidden(true)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 quickReactionTray
                 composerInputRow
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
-            .padding(.bottom, composerOuterBottomPadding)
+            .padding(.bottom, 6)
         }
         .background {
             Rectangle()
