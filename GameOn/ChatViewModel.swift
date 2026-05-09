@@ -72,9 +72,29 @@ final class ChatViewModel: ObservableObject {
 
     /// In-app realtime listener for `direct_messages` INSERTs while the user is actively viewing the Chat tab (not inside a thread).
     /// This does **not** work when the app is backgrounded/killed; that requires APNs/push later.
+    ///
+    /// **Scope:** Subscribes to `public.direct_messages` `INSERT` events. When ``inboxRealtimeUsesConversationFilter`` is false
+    /// (no filter or list too large), the client listens without a `postgres` filter; **RLS on `direct_messages`** is what
+    /// restricts which rows each JWT receives at scale. Optional ``RealtimePostgresFilter.in("conversation_id", ...)`` narrows
+    /// traffic when the user’s conversation id list is small (see ``kMaxConversationIdsForInboxRealtimeClientFilter``).
+    ///
+    /// **TODO (ideal at scale):** user-scoped Realtime channel or Edge Function broadcast delivering inbox summary deltas only,
+    /// avoiding per-row fan-out and large conversation-id filter lists.
     private var inboxChannel: RealtimeChannelV2?
     private var inboxListenTask: Task<Void, Never>?
-    private var inboxThrottleTask: Task<Void, Never>?
+    /// Debounced server unread total (`get_dm_unread_total` / equivalent) after local inbox row tweaks from Realtime.
+    private var inboxUnreadDebounceTask: Task<Void, Never>?
+    /// Coalesces rare “peer not in inbox list yet” cases into a single full ``refreshInboxSummaries()`` (not per INSERT).
+    private var inboxMissingPeerReconcileTask: Task<Void, Never>?
+    /// Periodic full inbox reconcile while the listener is active (friendship/block drift, ordering, unread correctness).
+    private var inboxReconciliationTask: Task<Void, Never>?
+    /// User id the active inbox channel was bound to (debug + duplicate-guard).
+    private var inboxRealtimeBoundUserId: UUID?
+    /// True when the inbox listener uses a client-side `conversation_id IN (...)` filter (see run loop).
+    private var inboxRealtimeUsesConversationFilter: Bool = false
+
+    /// Supabase Realtime `IN` filters should stay small; above this we omit the client filter and rely on RLS.
+    private let kMaxConversationIdsForInboxRealtimeClientFilter = 48
 
     func currentUserIdIfSignedIn() async -> UUID? {
         try? await service.currentUserId()
@@ -135,6 +155,15 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    private func removeInboxRealtimeChannelOnly() async {
+        if let ch = inboxChannel {
+            await supabase.removeChannel(ch)
+        }
+        inboxChannel = nil
+        inboxRealtimeBoundUserId = nil
+        inboxRealtimeUsesConversationFilter = false
+    }
+
     private func runInboxRealtimeListenerLoop() async {
         // Ensure we have a current user id; ignore if not signed in.
         let me: UUID
@@ -146,19 +175,62 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
-        let channel = supabase.channel("dm-inbox")
+        defer {
+            inboxReconciliationTask?.cancel()
+            inboxReconciliationTask = nil
+            inboxUnreadDebounceTask?.cancel()
+            inboxUnreadDebounceTask = nil
+            inboxMissingPeerReconcileTask?.cancel()
+            inboxMissingPeerReconcileTask = nil
+        }
+
+        let channel = supabase.channel("dm-inbox-\(me.uuidString.lowercased())")
         inboxChannel = channel
 
-        let inserts = channel.postgresChange(
-            InsertAction.self,
-            schema: "public",
-            table: "direct_messages"
-        )
+        let convIds = (try? await directChatService.fetchMyDirectConversationIds(userId: me)) ?? []
+        let inserts: AsyncStream<InsertAction>
+        if !convIds.isEmpty, convIds.count <= kMaxConversationIdsForInboxRealtimeClientFilter {
+            let filter = RealtimePostgresFilter.in("conversation_id", values: convIds)
+            inserts = channel.postgresChange(
+                InsertAction.self,
+                schema: "public",
+                table: "direct_messages",
+                filter: filter
+            )
+            inboxRealtimeUsesConversationFilter = true
+            #if DEBUG
+            print("[ChatRealtime] inbox scope: postgresChange filter conversation_id IN (\(convIds.count) ids); RLS still applies.")
+            #endif
+        } else {
+            inserts = channel.postgresChange(
+                InsertAction.self,
+                schema: "public",
+                table: "direct_messages"
+            )
+            inboxRealtimeUsesConversationFilter = false
+            #if DEBUG
+            print("[ChatRealtime] inbox scope: postgresChange unfiltered (convIds=\(convIds.count)); user-visible events rely on RLS.")
+            #endif
+        }
 
         do {
             try await channel.subscribeWithError()
+            inboxRealtimeBoundUserId = me
+            #if DEBUG
+            print("[ChatRealtime] inbox subscribed channel=dm-inbox-\(me.uuidString.lowercased()) boundUser=\(me)")
+            #endif
+
+            inboxReconciliationTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 180_000_000_000)
+                    guard !Task.isCancelled else { break }
+                    await self?.refreshInboxSummaries()
+                }
+            }
+
             for await insertion in inserts {
                 if Task.isCancelled { break }
+                try Task.checkCancellation()
                 let row: DirectMessageRow
                 do {
                     row = try insertion.decodeRecord(as: DirectMessageRow.self, decoder: JSONDecoder())
@@ -168,34 +240,111 @@ final class ChatViewModel: ObservableObject {
 
                 if row.deleted_at != nil { continue }
                 if row.sender_id == me { continue }
+                if isEitherDirectionBlocked(with: row.sender_id) {
+                    #if DEBUG
+                    print("[ChatRealtime] inbox INSERT id=\(row.id) sender=\(row.sender_id) → skip(blocked)")
+                    #endif
+                    continue
+                }
 
-                // Throttle: coalesce multiple inserts into a single unread count refresh.
-                inboxThrottleTask?.cancel()
-                inboxThrottleTask = Task { [weak self] in
-                    do {
-                        try await Task.sleep(nanoseconds: 650_000_000)
-                    } catch { return }
-                    guard let self, !Task.isCancelled else { return }
-                    await self.refreshInboxSummaries()
+                #if DEBUG
+                print("[ChatRealtime] inbox INSERT id=\(row.id) conv=\(row.conversation_id?.uuidString ?? "nil") sender=\(row.sender_id)")
+                #endif
+
+                let patched = await applyRealtimeIncomingPeerMessage(row)
+                if patched {
+                    #if DEBUG
+                    print("[ChatRealtime]   → local inbox row patch + debounced refreshUnreadDirectMessageCount(550ms)")
+                    #endif
+                    inboxUnreadDebounceTask?.cancel()
+                    inboxUnreadDebounceTask = Task { [weak self] in
+                        do {
+                            try await Task.sleep(nanoseconds: 550_000_000)
+                        } catch { return }
+                        guard let self, !Task.isCancelled else { return }
+                        await self.refreshUnreadDirectMessageCount()
+                        #if DEBUG
+                        print("[ChatRealtime]   → debounced refreshUnreadDirectMessageCount completed")
+                        #endif
+                    }
+                } else {
+                    #if DEBUG
+                    print("[ChatRealtime]   → schedule full refreshInboxSummaries debounce(800ms)")
+                    #endif
                 }
             }
+        } catch is CancellationError {
+            #if DEBUG
+            print("[ChatRealtime] inbox listener cancelled")
+            #endif
         } catch {
-            // Fail silently: this is an in-app enhancement only (no banners/alerts here).
+            #if DEBUG
+            print("[ChatRealtime] inbox subscribe/stream error: \(error)")
+            #endif
         }
 
-        await stopInboxRealtimeListener()
+        await removeInboxRealtimeChannelOnly()
+        // Allow ``startInboxRealtimeListenerIfNeeded()`` after disconnect; do not call ``stopInboxRealtimeListener()`` here
+        // (that would deadlock while awaiting this same task).
+        inboxListenTask = nil
+    }
+
+    /// Applies a lightweight inbox row update for an incoming peer DM (1:1). Returns false if a full inbox reconcile should run.
+    private func applyRealtimeIncomingPeerMessage(_ row: DirectMessageRow) async -> Bool {
+        let peerId = row.sender_id
+        guard let idx = friends.firstIndex(where: { $0.id == peerId }) else {
+            inboxMissingPeerReconcileTask?.cancel()
+            inboxMissingPeerReconcileTask = Task { [weak self] in
+                do {
+                    try await Task.sleep(nanoseconds: 800_000_000)
+                } catch { return }
+                guard let self, !Task.isCancelled else { return }
+                await self.refreshInboxSummaries()
+            }
+            return false
+        }
+
+        let old = friends[idx]
+        let body = row.body.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        let rawPreview: String
+        if body.isEmpty {
+            rawPreview = "Say hi"
+        } else {
+            rawPreview = body
+        }
+        let lastAt = Self.parseISO8601(row.created_at) ?? Date()
+        let newUnread = old.unreadCount + 1
+        let updated = FriendDisplay(
+            id: old.id,
+            preview: old.preview,
+            subtitle: rawPreview,
+            lastMessageAt: lastAt,
+            unreadCount: newUnread
+        )
+        var next = friends
+        next[idx] = updated
+        next.sort { ($0.lastMessageAt ?? .distantPast) > ($1.lastMessageAt ?? .distantPast) }
+        friends = next
+        let totalUnread = next.reduce(0) { $0 + $1.unreadCount }
+        await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+        return true
     }
 
     private func stopInboxRealtimeListener() async {
-        inboxThrottleTask?.cancel()
-        inboxThrottleTask = nil
-        inboxListenTask?.cancel()
-        inboxListenTask = nil
+        inboxUnreadDebounceTask?.cancel()
+        inboxUnreadDebounceTask = nil
+        inboxMissingPeerReconcileTask?.cancel()
+        inboxMissingPeerReconcileTask = nil
+        inboxReconciliationTask?.cancel()
+        inboxReconciliationTask = nil
 
-        if let ch = inboxChannel {
-            await supabase.removeChannel(ch)
+        if let task = inboxListenTask {
+            task.cancel()
+            _ = await task.result
+            inboxListenTask = nil
         }
-        inboxChannel = nil
+
+        await removeInboxRealtimeChannelOnly()
     }
 
     /// Refreshes the Chat tab badge for unread peer DMs (no friendship / request counts).
@@ -333,6 +482,9 @@ final class ChatViewModel: ObservableObject {
 
         do {
             let me = try await service.currentUserId()
+            if let priorMe = currentUserAuthId, priorMe != me {
+                await stopInboxRealtimeListener()
+            }
             await reloadModerationBlockSets()
             async let accepted = service.fetchAcceptedFriendships(for: me)
             async let incoming = service.fetchIncomingPending(for: me)

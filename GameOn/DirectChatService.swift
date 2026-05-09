@@ -163,6 +163,12 @@ final class DirectChatService {
         }
     }
 
+    /// Conversation ids the current user participates in (same logic as unread fan-out).
+    /// Used by Chat inbox Realtime to optionally scope `postgresChange` filters when the list is small.
+    func fetchMyDirectConversationIds(userId: UUID) async throws -> [UUID] {
+        try await fetchMyConversationIds(userId: userId)
+    }
+
     private func fetchMyConversationIds(userId: UUID) async throws -> [UUID] {
         let filter = "user_a_id.eq.\(userId.uuidString.lowercased()),user_b_id.eq.\(userId.uuidString.lowercased())"
         let rows: [DirectConversationIdRow] = try await client
