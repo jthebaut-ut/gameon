@@ -159,6 +159,90 @@ private struct SettingsModeSegmentedPicker: View {
     }
 }
 
+// MARK: - Liquid Glass building blocks (Settings-only)
+
+private struct SettingsSectionHeader: View {
+    let title: String
+    let subtitle: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.70))
+            }
+        }
+        .padding(.top, 6)
+    }
+}
+
+private struct SettingsGlassCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(16)
+            .background(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: Color.black.opacity(0.20), radius: 16, x: 0, y: 10)
+    }
+}
+
+private struct SettingsRowButton: View {
+    let icon: String
+    let title: String
+    let subtitle: String?
+    var tint: Color = .primary
+    var isEnabled: Bool = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+                    .frame(width: 26)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.55)
+    }
+}
+
 // MARK: - General tab
 
 private struct SettingsGeneralSection: View {
@@ -166,21 +250,26 @@ private struct SettingsGeneralSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            
-            SettingsTimeZoneCard(viewModel: viewModel)
-                .padding()
-                .background(Color.white.opacity(0.95))
-                .clipShape(RoundedRectangle(cornerRadius: 22))
-            
-            SettingsCalendarDisplayCard(viewModel: viewModel)
-                .padding()
-                .background(Color.white.opacity(0.95))
-                .clipShape(RoundedRectangle(cornerRadius: 22))
+            SettingsSectionHeader(
+                title: "General",
+                subtitle: "Preferences shared across your account modes."
+            )
 
-            //if viewModel.isAdminLoggedIn {
-             //   reportedCommentsAdminCard
-            //}
-            SettingsReportedCommentsAdminCard(viewModel: viewModel)
+            SettingsGlassCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    SettingsTimeZoneCard(viewModel: viewModel)
+                    Divider().opacity(0.25)
+                    SettingsGameNotificationsCard(viewModel: viewModel)
+                }
+            }
+
+            SettingsGlassCard {
+                SettingsCalendarDisplayCard(viewModel: viewModel)
+            }
+
+            SettingsGlassCard {
+                SettingsReportedCommentsAdminCard(viewModel: viewModel)
+            }
         }
     }
 }
@@ -396,23 +485,32 @@ private struct SettingsUserSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
+            SettingsSectionHeader(
+                title: "User",
+                subtitle: viewModel.isLoggedIn ? "Manage your profile and account security." : "Create an account to sync your profile and activity."
+            )
             if viewModel.isLoggedIn {
                 userProfileHubCard
-                SettingsGameNotificationsCard(viewModel: viewModel)
-                SettingsSavedGamesCard()
+                SettingsGlassCard { SettingsSavedGamesCard() }
             }
 
-            SettingsAccountCard(
-                viewModel: viewModel,
-                email: $email,
-                password: $password,
-                showRegisterMode: $showRegisterMode
-            )
+            SettingsGlassCard {
+                SettingsAccountCard(
+                    viewModel: viewModel,
+                    email: $email,
+                    password: $password,
+                    showRegisterMode: $showRegisterMode
+                )
+            }
 
-            SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+            SettingsGlassCard {
+                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+            }
 
             if viewModel.isLoggedIn {
-                SettingsFanAccountSecurityCard(viewModel: viewModel)
+                SettingsGlassCard {
+                    SettingsFanAccountSecurityCard(viewModel: viewModel)
+                }
             }
         }
         .onChange(of: selectedAvatarItem) { _, item in
@@ -469,7 +567,7 @@ private struct SettingsUserSection: View {
     }
 
     private var userProfileHubCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        SettingsGlassCard {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -529,13 +627,6 @@ private struct SettingsUserSection: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 }
 
@@ -598,9 +689,6 @@ private struct SettingsFanAccountSecurityCard: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
         .sheet(isPresented: $isShowingDeleteSheet) {
             deleteAccountSheet
         }
@@ -777,9 +865,6 @@ private struct SettingsAccountCard: View {
                 }
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -865,9 +950,6 @@ private struct SettingsFanPasswordResetCard: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -1111,21 +1193,108 @@ private struct SettingsVenueSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            SettingsVenueOwnerCard(
-                viewModel: viewModel,
-                venuePassword: $venuePassword,
-                showVenueRegisterMode: $showVenueRegisterMode,
-                selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
-                selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
-                claimPhotoMessage: claimPhotoMessage,
-                showVenueDashboard: $showVenueDashboard
+            SettingsSectionHeader(
+                title: "Venue",
+                subtitle: viewModel.isVenueOwnerLoggedIn
+                    ? "Manage your venue profile, media, and tools."
+                    : "Create or sign in to your venue owner account."
             )
 
-            SettingsVenuePasswordResetCard(viewModel: viewModel)
+            SettingsGlassCard {
+                SettingsVenueOwnerCard(
+                    viewModel: viewModel,
+                    venuePassword: $venuePassword,
+                    showVenueRegisterMode: $showVenueRegisterMode,
+                    selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
+                    selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
+                    claimPhotoMessage: claimPhotoMessage,
+                    showVenueDashboard: $showVenueDashboard
+                )
+            }
 
             if viewModel.isVenueOwnerLoggedIn {
-                SettingsVenueOwnerDangerZoneCard(viewModel: viewModel)
+                SettingsGlassCard {
+                    SettingsVenuePasswordResetCard(viewModel: viewModel)
+                }
+
+                SettingsGlassCard {
+                    venueToolsCard
+                }
+
+                SettingsGlassCard {
+                    statisticsCard
+                }
+
+                SettingsGlassCard {
+                    SettingsVenueOwnerDangerZoneCard(viewModel: viewModel)
+                }
+            } else {
+                SettingsGlassCard {
+                    SettingsVenuePasswordResetCard(viewModel: viewModel)
+                }
             }
+        }
+    }
+
+    private var venueToolsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Venue tools")
+                .font(.headline.weight(.bold))
+
+            Text("Quick access to venue management tools. More controls will appear here over time.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 12) {
+                SettingsRowButton(
+                    icon: "plus.circle.fill",
+                    title: "Add game",
+                    subtitle: "Create a new game listing for your venue.",
+                    tint: .primary,
+                    action: { showVenueDashboard = true }
+                )
+                Divider().opacity(0.25)
+                SettingsRowButton(
+                    icon: "list.bullet.rectangle",
+                    title: "Manage games",
+                    subtitle: "Edit or remove upcoming venue games.",
+                    tint: .primary,
+                    action: { showVenueDashboard = true }
+                )
+                Divider().opacity(0.25)
+                SettingsRowButton(
+                    icon: "flag.fill",
+                    title: "Flagged comments",
+                    subtitle: "Review reported content and moderation signals.",
+                    tint: .primary,
+                    isEnabled: false,
+                    action: {}
+                )
+            }
+        }
+    }
+
+    private var statisticsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "chart.bar.xaxis")
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(.secondary)
+                Text("Statistics coming soon")
+                    .font(.headline.weight(.bold))
+                Spacer()
+                Text("Soon")
+                    .font(.caption.weight(.bold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.gray.opacity(0.14))
+                    .foregroundStyle(.secondary)
+                    .clipShape(Capsule())
+            }
+            Text("We’ll add insights like profile views, game interest, and photo performance once moderation and stability are fully deployed.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 }
@@ -1187,9 +1356,6 @@ private struct SettingsVenueOwnerDangerZoneCard: View {
                     .foregroundStyle(.red)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
         .sheet(isPresented: $isShowingDeleteSheet) {
             deleteSheet
         }
