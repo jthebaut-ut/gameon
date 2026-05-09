@@ -135,14 +135,19 @@ struct VenueOwnerDashboardView: View {
                     sectionPicker
                 }
 
-                switch effectiveSection {
-                case .profile:
-                    profileSection
-                case .games:
-                    gamesSection
-                case .analytics:
-                    venueAnalyticsSection
+                Group {
+                    switch effectiveSection {
+                    case .profile:
+                        profileSection
+                    case .games:
+                        gamesSection
+                    case .analytics:
+                        venueAnalyticsSection
+                    }
                 }
+                // Force a fresh subtree when the entry point or active tab changes so a prior section’s
+                // SwiftUI state cannot remain mounted under the venue profile editor sheet.
+                .id("\(String(describing: entryPoint))-\(effectiveSection.rawValue)")
             }
             .padding()
         }
@@ -324,25 +329,21 @@ struct VenueOwnerDashboardView: View {
             .background(Color.gray.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 18))
             
-            venuePhotoCard(
+            venueProfilePhotoEditor(
                 title: "Bar Photo",
                 subtitle: "Main photo of your venue",
-                imageURL: viewModel.venueCoverPhotoURL
+                fullImageURL: viewModel.venueCoverPhotoURL,
+                thumbnailURL: viewModel.venueCoverPhotoThumbnailURL,
+                selection: $selectedCoverPhoto
             )
 
-            PhotosPicker(selection: $selectedCoverPhoto, matching: .images) {
-                primaryButtonText(viewModel.venueCoverPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
-            }
-
-            venuePhotoCard(
+            venueProfilePhotoEditor(
                 title: "Menu Photo",
                 subtitle: "Food or drink menu photo",
-                imageURL: viewModel.venueMenuPhotoURL
+                fullImageURL: viewModel.venueMenuPhotoURL,
+                thumbnailURL: viewModel.venueMenuPhotoThumbnailURL,
+                selection: $selectedMenuPhoto
             )
-
-            PhotosPicker(selection: $selectedMenuPhoto, matching: .images) {
-                primaryButtonText(viewModel.venueMenuPhotoURL.isEmpty ? "Tap to upload photo" : "Tap to replace photo")
-            }
 
             Button {
                 profileSaveMessage = "Saving..."
@@ -377,6 +378,13 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+
+            Text("PROFILE_SECTION_END_2026")
+                .font(.caption2)
+                .fontWeight(.bold)
+                .foregroundStyle(.cyan)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("PROFILE_SECTION_END_2026")
         }
     }
     
@@ -1105,20 +1113,6 @@ struct VenueOwnerDashboardView: View {
                 field("Cover charge", text: $coverCharge)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Optional Game Photos")
-                    .font(.headline)
-                    .fontWeight(.bold)
-
-                Text("These will later upload to Supabase Storage and attach only to this game.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                photoUploadPlaceholder(title: "Game Poster / Event Photo")
-                photoUploadPlaceholder(title: "Game-Day Crowd Photo")
-                photoUploadPlaceholder(title: "Drink Specials Photo")
-            }
-
             Button {
                 Task {
                     await saveNewVenueGameFromForm()
@@ -1300,88 +1294,74 @@ struct VenueOwnerDashboardView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
-    private func venuePhotoCard(
+    /// Section title and subtitle sit outside ``PhotosPicker``; the picker’s label is only the preview card.
+    private func venueProfilePhotoEditor(
         title: String,
         subtitle: String,
-        imageURL: String
+        fullImageURL: String,
+        thumbnailURL: String,
+        selection: Binding<PhotosPickerItem?>
     ) -> some View {
-        
-        VStack(alignment: .leading, spacing: 12) {
-            
+        let full = fullImageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let thumb = thumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previewURL = !full.isEmpty ? full : thumb
+        let hasPreview = !previewURL.isEmpty
+
+        return VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
                     .fontWeight(.bold)
-                
+
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.gray.opacity(0.10))
-                .frame(height: 140)
-                .overlay {
-                    if imageURL.isEmpty {
-                        VStack(spacing: 10) {
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("No photo uploaded")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+
+            if title == "Menu Photo" {
+                Text("ACTIVE_RUNTIME_MENU_BLOCK_2026")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.orange)
+                    .accessibilityIdentifier("ACTIVE_RUNTIME_MENU_BLOCK_2026")
+            }
+
+            PhotosPicker(selection: selection, matching: .images) {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.gray.opacity(0.10))
+                    .frame(height: 140)
+                    .overlay {
+                        ZStack(alignment: .bottom) {
+                            Group {
+                                if previewURL.isEmpty {
+                                    Image(systemName: "photo")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    AsyncImage(url: URL(string: previewURL)) { image in
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } placeholder: {
+                                        ProgressView()
+                                    }
+                                }
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                            Text(hasPreview ? "Tap to replace photo" : "Tap to upload photo")
+                                .font(.subheadline)
+                                .fontWeight(.bold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.black.opacity(0.88))
+                                .foregroundStyle(.white)
                         }
-                    } else {
-                        AsyncImage(url: URL(string: imageURL)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-            
-        }
-    }
-    
-    private func photoUploadPlaceholder(title: String) -> some View {
-        HStack {
-            Image(systemName: "photo")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                
-                Text("Optional")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
             }
-            
-            Spacer()
-            
-            Button {
-                // Later: connect to PhotosPicker + Supabase Storage
-            } label: {
-                Text("Upload")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.black)
-                    .foregroundStyle(.white)
-                    .clipShape(Capsule())
-            }
+            .buttonStyle(.plain)
         }
-        .padding()
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     private func primaryButtonText(_ text: String) -> some View {

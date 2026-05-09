@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 
 // MARK: - Bottom spacing (floating tab bar + sheets)
 
@@ -16,6 +15,28 @@ enum SettingsScrollBottomLayout {
     static let sheetScrollComfortInset: CGFloat = 32
 }
 
+/// One ``Identifiable`` sheet route for ``VenueOwnerDashboardView`` so only one venue-owner dashboard
+/// presentation exists at a time (avoids SwiftUI reusing or stacking multiple ``VenueOwnerDashboardView`` hierarchies
+/// across the previous three independent ``.sheet(isPresented:)`` booleans).
+private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
+    case manageVenue
+    case manageGames
+    case statistics
+
+    var id: String { rawValue }
+
+    var entryPoint: VenueOwnerDashboardEntryPoint {
+        switch self {
+        case .manageVenue:
+            return .profileEditor
+        case .manageGames:
+            return .gamesManager
+        case .statistics:
+            return .analyticsViewer
+        }
+    }
+}
+
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -24,15 +45,8 @@ struct SettingsScreen: View {
     @State private var password = ""
     @State private var venuePassword = ""
     @State private var showRegisterMode = false
-    @State private var showVenueDashboard = false
-    @State private var showVenueGamesSheet = false
-    @State private var showVenueAnalyticsSheet = false
+    @State private var venueOwnerDashboardSheet: VenueOwnerDashboardSheetRoute?
     @State private var showVenueRegisterMode = false
-    @State private var selectedClaimCoverPhoto: PhotosPickerItem?
-    @State private var selectedClaimMenuPhoto: PhotosPickerItem?
-    @State private var isUploadingClaimCoverPhoto = false
-    @State private var isUploadingClaimMenuPhoto = false
-    @State private var claimPhotoMessage = ""
     @State private var showProfileScreen = false
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
@@ -53,12 +67,10 @@ struct SettingsScreen: View {
                         SettingsProfileHero(
                             viewModel: viewModel,
                             showProfileScreen: $showProfileScreen,
-                            venueOwnerOnManageVenue: { showVenueDashboard = true },
+                            venueOwnerOnManageVenue: { venueOwnerDashboardSheet = .manageVenue },
                             venueOwnerOnResetPassword: { showVenueOwnerPasswordResetSheet = true },
                             venueOwnerOnDismissSheetsAfterLogout: {
-                                showVenueDashboard = false
-                                showVenueGamesSheet = false
-                                showVenueAnalyticsSheet = false
+                                venueOwnerDashboardSheet = nil
                                 showVenueOwnerPasswordResetSheet = false
                                 showReportedCommentsSheet = false
                                 showDeleteVenueOwnerSheet = false
@@ -186,7 +198,7 @@ struct SettingsScreen: View {
                             tint: settingsVenueStatusIconTint()
                         )
 
-                        Button { showVenueDashboard = true } label: {
+                        Button { venueOwnerDashboardSheet = .manageVenue } label: {
                             settingsRow(
                                 title: "Manage Venue",
                                 subtitle: "Address, photos, TVs, seating, details.",
@@ -195,7 +207,7 @@ struct SettingsScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        Button { showVenueGamesSheet = true } label: {
+                        Button { venueOwnerDashboardSheet = .manageGames } label: {
                             settingsRow(
                                 title: "Manage Games",
                                 subtitle: "Add, edit, or cancel games.",
@@ -204,7 +216,7 @@ struct SettingsScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        Button { showVenueAnalyticsSheet = true } label: {
+                        Button { venueOwnerDashboardSheet = .statistics } label: {
                             settingsRow(
                                 title: "Statistics",
                                 subtitle: "Live game analytics.",
@@ -245,18 +257,9 @@ struct SettingsScreen: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
         }
-        .sheet(isPresented: $showVenueDashboard) {
-            VenueOwnerDashboardView(viewModel: viewModel, entryPoint: .profileEditor)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showVenueGamesSheet) {
-            VenueOwnerDashboardView(viewModel: viewModel, entryPoint: .gamesManager)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showVenueAnalyticsSheet) {
-            VenueOwnerDashboardView(viewModel: viewModel, entryPoint: .analyticsViewer)
+        .sheet(item: $venueOwnerDashboardSheet) { route in
+            VenueOwnerDashboardView(viewModel: viewModel, entryPoint: route.entryPoint)
+                .id(route.id)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -275,9 +278,7 @@ struct SettingsScreen: View {
                 viewModel: viewModel,
                 venuePassword: $venuePassword,
                 showVenueRegisterMode: $showVenueRegisterMode,
-                selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
-                selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
-                claimPhotoMessage: claimPhotoMessage
+                onRequestVenueProfileDashboard: { venueOwnerDashboardSheet = .manageVenue }
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -370,42 +371,6 @@ struct SettingsScreen: View {
             SettingsLegalDocumentSheet(document: document)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
-        }
-        .onChange(of: selectedClaimCoverPhoto) { _, newItem in
-            guard let newItem else { return }
-
-            Task {
-                isUploadingClaimCoverPhoto = true
-                claimPhotoMessage = "Uploading bar photo..."
-
-                if let data = try? await newItem.loadTransferable(type: Data.self),
-                   let url = await viewModel.uploadVenuePhoto(data: data, fileName: "claim-cover.jpg") {
-                    viewModel.venueCoverPhotoURL = url
-                    claimPhotoMessage = "Bar photo uploaded."
-                } else {
-                    claimPhotoMessage = "Unable to upload bar photo."
-                }
-
-                isUploadingClaimCoverPhoto = false
-            }
-        }
-        .onChange(of: selectedClaimMenuPhoto) { _, newItem in
-            guard let newItem else { return }
-
-            Task {
-                isUploadingClaimMenuPhoto = true
-                claimPhotoMessage = "Uploading menu photo..."
-
-                if let data = try? await newItem.loadTransferable(type: Data.self),
-                   let url = await viewModel.uploadVenuePhoto(data: data, fileName: "claim-menu.jpg") {
-                    viewModel.venueMenuPhotoURL = url
-                    claimPhotoMessage = "Menu photo uploaded."
-                } else {
-                    claimPhotoMessage = "Unable to upload menu photo."
-                }
-
-                isUploadingClaimMenuPhoto = false
-            }
         }
     }
 
@@ -812,13 +777,76 @@ private struct SettingsUserAuthSheet: View {
     }
 }
 
+/// Signed-in body for ``SettingsVenueAuthSheet`` only: claim status card and Open Venue Dashboard when approved.
+/// Intentionally excludes verification rows, claim forms, password reset, logout, and deletion UI.
+private struct SettingsVenueAuthSheetSignedInBody: View {
+    @ObservedObject var viewModel: MapViewModel
+    var onRequestVenueProfileDashboard: () -> Void
+    var dismissAuthSheet: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if viewModel.venueClaimSubmitted {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(viewModel.venueIsApproved ? "Venue Approved" : "Claim Submitted")
+                        .font(.headline)
+                        .fontWeight(.bold)
+
+                    Text(viewModel.venueIsApproved
+                         ? "Your venue has been verified. You can now manage games, specials, seating, TV count, photos, and game-day details."
+                         : "Your venue claim is pending review. Once approved, you will be able to manage games, specials, seating, TV count, photos, and game-day details.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if !viewModel.venueClaimSubmittedDate.isEmpty {
+                        Text(viewModel.venueIsApproved ? "Member since \(formattedClaimDate)" : "Submitted on \(formattedClaimDate)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding()
+                .background(viewModel.venueIsApproved ? Color.green.opacity(0.10) : Color.orange.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+
+            if viewModel.venueIsApproved {
+                Button {
+                    dismissAuthSheet()
+                } label: {
+                    Text("Close")
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.black)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+            }
+        }
+        .onAppear {
+            viewModel.checkVenueApprovalStatus()
+        }
+    }
+
+    private var formattedClaimDate: String {
+        let rawDate = viewModel.venueClaimSubmittedDate
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: rawDate) {
+            let displayFormatter = DateFormatter()
+            displayFormatter.dateStyle = .long
+            displayFormatter.timeStyle = .none
+            return displayFormatter.string(from: date)
+        }
+        return rawDate
+    }
+}
+
 private struct SettingsVenueAuthSheet: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var venuePassword: String
     @Binding var showVenueRegisterMode: Bool
-    @Binding var selectedClaimCoverPhoto: PhotosPickerItem?
-    @Binding var selectedClaimMenuPhoto: PhotosPickerItem?
-    let claimPhotoMessage: String
+    var onRequestVenueProfileDashboard: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -831,15 +859,22 @@ private struct SettingsVenueAuthSheet: View {
                 Text("Sign in as a venue owner to manage your listing.")
                     .foregroundStyle(.secondary)
 
-                SettingsVenueSection(
-                    viewModel: viewModel,
-                    venuePassword: $venuePassword,
-                    showVenueRegisterMode: $showVenueRegisterMode,
-                    selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
-                    selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
-                    claimPhotoMessage: claimPhotoMessage,
-                    showVenueDashboard: .constant(false)
-                )
+                if viewModel.isVenueOwnerLoggedIn {
+                    SettingsVenueAuthSheetSignedInBody(
+                        viewModel: viewModel,
+                        onRequestVenueProfileDashboard: onRequestVenueProfileDashboard,
+                        dismissAuthSheet: { dismiss() }
+                    )
+                    .padding()
+                    .background(Color.white.opacity(0.95))
+                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                } else {
+                    SettingsVenueOwnerCard(
+                        viewModel: viewModel,
+                        venuePassword: $venuePassword,
+                        showVenueRegisterMode: $showVenueRegisterMode
+                    )
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -1850,416 +1885,76 @@ private struct SettingsAccountProfileImage: View {
 
 // MARK: - Venue tab
 
-private struct SettingsVenueSection: View {
-    @ObservedObject var viewModel: MapViewModel
-    @Binding var venuePassword: String
-    @Binding var showVenueRegisterMode: Bool
-    @Binding var selectedClaimCoverPhoto: PhotosPickerItem?
-    @Binding var selectedClaimMenuPhoto: PhotosPickerItem?
-    let claimPhotoMessage: String
-    @Binding var showVenueDashboard: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            SettingsVenueOwnerCard(
-                viewModel: viewModel,
-                venuePassword: $venuePassword,
-                showVenueRegisterMode: $showVenueRegisterMode,
-                selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
-                selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
-                claimPhotoMessage: claimPhotoMessage,
-                showVenueDashboard: $showVenueDashboard
-            )
-
-            SettingsVenuePasswordResetCard(viewModel: viewModel)
-        }
-    }
-}
-
+/// Venue owner email/password sign-in only (shown inside ``SettingsVenueAuthSheet`` while logged out).
 private struct SettingsVenueOwnerCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var venuePassword: String
     @Binding var showVenueRegisterMode: Bool
-    @Binding var selectedClaimCoverPhoto: PhotosPickerItem?
-    @Binding var selectedClaimMenuPhoto: PhotosPickerItem?
-    let claimPhotoMessage: String
-    @Binding var showVenueDashboard: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Venue Owner")
                 .font(.headline)
                 .fontWeight(.bold)
-            
+
             Text("Claim your venue with basic business information. After GameON verifies ownership, you can manage games, specials, photos, seating, TVs, and game-day details.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            
-            if !viewModel.isVenueOwnerLoggedIn {
-                TextField("Business email", text: $viewModel.venueOwnerEmail)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                
-                SecureField("Venue owner password", text: $venuePassword)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                
-                Button {
-                    Task {
-                        if showVenueRegisterMode {
-                            await viewModel.registerVenueOwner(
-                                email: viewModel.venueOwnerEmail,
-                                password: venuePassword
-                            )
-                        } else {
-                            await viewModel.loginVenueOwner(
-                                email: viewModel.venueOwnerEmail,
-                                password: venuePassword
-                            )
-                        }
-                    }
-                } label: {
-                    Text(showVenueRegisterMode ? "Create Venue Owner Account" : "Login as Venue Owner")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-        
 
-                Button {
-                    showVenueRegisterMode.toggle()
-                } label: {
-                    Text(showVenueRegisterMode ? "Already have a venue account? Login" : "New venue owner? Register")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.blue)
-                }
-                
-                if !viewModel.venueAuthErrorMessage.isEmpty {
-                    Text(viewModel.venueAuthErrorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
-            } else {
-                HStack {
-                    Image(systemName: "building.2.fill")
-                        .font(.title2)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Venue owner signed in")
-                            .fontWeight(.bold)
-                        
-                        Text(viewModel.venueOwnerEmail.isEmpty ? "venue@watchzone.app" : viewModel.venueOwnerEmail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer()
-                }
+            TextField("Business email", text: $viewModel.venueOwnerEmail)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
                 .padding()
-                .background(Color.green.opacity(0.10))
+                .background(Color.gray.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
-                
-                HStack {
-                    Text("Verification Status")
-                        .fontWeight(.bold)
-                    
-                    Spacer()
-                    
-                    Text(viewModel.venueClaimStatus)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(viewModel.venueIsApproved ? Color.green.opacity(0.18) : (viewModel.venueClaimSubmitted ? Color.orange.opacity(0.18) : Color.gray.opacity(0.18)))
-                        .foregroundStyle(viewModel.venueIsApproved ? Color.green : (viewModel.venueClaimSubmitted ? Color.orange : Color.secondary))
-                        .clipShape(Capsule())
-                }
 
-                Button {
-                    viewModel.checkVenueApprovalStatus()
-                } label: {
-                    Label("Refresh status", systemImage: "arrow.clockwise")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.black.opacity(0.06))
-                        .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                
-                if !viewModel.venueClaimSubmitted {
-                    Text("Complete all required fields and upload both venue and menu photos before submitting for review.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 4)
+            SecureField("Venue owner password", text: $venuePassword)
+                .padding()
+                .background(Color.gray.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                    TextField("Venue name", text: $viewModel.ownerVenueName)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("Street Address", text: $viewModel.ownerVenueAddress)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("City", text: $viewModel.ownerVenueCity)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("State", text: $viewModel.ownerVenueState)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("ZIP Code", text: $viewModel.ownerVenueZipCode)
-                        .keyboardType(.numberPad)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("Business phone", text: $viewModel.ownerVenuePhone)
-                        .keyboardType(.phonePad)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("Business website optional", text: $viewModel.ownerVenueWebsite)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("Short Description", text: $viewModel.ownerVenueDescription)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    TextField("Features: Big Screens, Patio, Sound On", text: $viewModel.ownerVenueFeatures)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    Stepper("Number of screens: \(viewModel.ownerVenueScreenCount)", value: $viewModel.ownerVenueScreenCount, in: 1...100)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    Toggle("Serves food / drinks", isOn: $viewModel.ownerVenueServesFood)
-                    Toggle("WiFi available", isOn: $viewModel.ownerVenueHasWifi)
-                    Toggle("Garden / patio", isOn: $viewModel.ownerVenueHasGarden)
-                    Toggle("Projector available", isOn: $viewModel.ownerVenueHasProjector)
-                    Toggle("Pet friendly", isOn: $viewModel.ownerVenuePetFriendly)
-                    
-                    VenueClaimPhotoCard(
-                        title: "Bar Photo",
-                        subtitle: "Main photo of your venue",
-                        imageURL: viewModel.venueCoverPhotoURL
-                    )
-
-                    PhotosPicker(selection: $selectedClaimCoverPhoto, matching: .images) {
-                        VenueClaimPhotoPickerLabel(
-                            text: viewModel.venueCoverPhotoURL.isEmpty ? "Tap to upload bar photo" : "Tap to replace bar photo"
+            Button {
+                Task {
+                    if showVenueRegisterMode {
+                        await viewModel.registerVenueOwner(
+                            email: viewModel.venueOwnerEmail,
+                            password: venuePassword
+                        )
+                    } else {
+                        await viewModel.loginVenueOwner(
+                            email: viewModel.venueOwnerEmail,
+                            password: venuePassword
                         )
                     }
-
-                    VenueClaimPhotoCard(
-                        title: "Menu Photo",
-                        subtitle: "Food or drink menu photo",
-                        imageURL: viewModel.venueMenuPhotoURL
-                    )
-
-                    PhotosPicker(selection: $selectedClaimMenuPhoto, matching: .images) {
-                        VenueClaimPhotoPickerLabel(
-                            text: viewModel.venueMenuPhotoURL.isEmpty ? "Tap to upload menu photo" : "Tap to replace menu photo"
-                        )
-                    }
-
-                    if !claimPhotoMessage.isEmpty {
-                        Text(claimPhotoMessage)
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.green)
-                    }
-                    
-                    TextField("Proof note: manager name, business email domain, license, etc.", text: $viewModel.venueProofNote)
-                        .padding()
-                        .background(Color.gray.opacity(0.10))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                    // Required-field gating (UI) — mirrors the backend guards in `submitVenueClaim()`.
-                    let readyToSubmit = !viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenuePhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.ownerVenueDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-                        !viewModel.venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-
-                    Button {
-                        viewModel.submitVenueClaim()
-                    } label: {
-                        Text("Submit Venue Claim")
-                            .fontWeight(.bold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.black)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                    .disabled(!readyToSubmit)
-                    .opacity(readyToSubmit ? 1 : 0.55)
-                } else {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(viewModel.venueIsApproved ? "Venue Approved" : "Claim Submitted")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        
-                        Text(viewModel.venueIsApproved
-                             ? "Your venue has been verified. You can now manage games, specials, seating, TV count, photos, and game-day details."
-                             : "Your venue claim is pending review. Once approved, you will be able to manage games, specials, seating, TV count, photos, and game-day details.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        if !viewModel.venueClaimSubmittedDate.isEmpty {
-                            Text(viewModel.venueIsApproved ? "Member since \(formattedMemberSince)" : "Submitted on \(formattedMemberSince)")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                }
+            } label: {
+                Text(showVenueRegisterMode ? "Create Venue Owner Account" : "Login as Venue Owner")
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity)
                     .padding()
-                    .background(viewModel.venueIsApproved ? Color.green.opacity(0.10) : Color.orange.opacity(0.10))
+                    .background(Color.black)
+                    .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
-                
-                if viewModel.venueIsApproved {
-                    Button {
-                        showVenueDashboard = true
-                    } label: {
-                        Text("Open Venue Dashboard")
-                            .fontWeight(.bold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.black)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                    }
-                }
+            }
 
-                Button {
-                    applyVenueOwnerSignOutFromSettings(viewModel: viewModel)
-                } label: {
+            Button {
+                showVenueRegisterMode.toggle()
+            } label: {
+                Text(showVenueRegisterMode ? "Already have a venue account? Login" : "New venue owner? Register")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.blue)
+            }
 
-                    Text("Log Out Venue Owner")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.12))
-                        .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                }
+            if !viewModel.venueAuthErrorMessage.isEmpty {
+                Text(viewModel.venueAuthErrorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
         }
         .padding()
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 22))
-        .onAppear {
-            if viewModel.isVenueOwnerLoggedIn {
-                viewModel.checkVenueApprovalStatus()
-            }
-        }
-    }
-
-    private var formattedMemberSince: String {
-
-        let rawDate = viewModel.venueClaimSubmittedDate
-
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [
-            .withInternetDateTime,
-            .withFractionalSeconds
-        ]
-
-        if let date = formatter.date(from: rawDate) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateStyle = .long
-            displayFormatter.timeStyle = .none
-            return displayFormatter.string(from: date)
-        }
-
-        return rawDate
-    }
-}
-
-private struct VenueClaimPhotoPickerLabel: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .fontWeight(.bold)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.black)
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-private struct VenueClaimPhotoCard: View {
-    let title: String
-    let subtitle: String
-    let imageURL: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .fontWeight(.bold)
-
-            Text(subtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            RoundedRectangle(cornerRadius: 18)
-                .fill(Color.gray.opacity(0.10))
-                .frame(height: 140)
-                .overlay {
-                    if imageURL.isEmpty {
-                        VStack(spacing: 8) {
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundStyle(.secondary)
-
-                            Text("No photo uploaded")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        AsyncImage(url: URL(string: imageURL)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-        }
     }
 }
 
