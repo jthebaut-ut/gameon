@@ -652,14 +652,14 @@ struct DirectChatView: View {
                     reportedUserId: row.sender_id,
                     messageTextSnapshot: row.body,
                     category: reportCategory,
-                    details: detailsOpt
+                    details: detailsOpt,
+                    conversationId: presenter.conversationId
                 )
             }
             await MainActor.run {
                 reportSheet = nil
                 presenter.menuBanner = "Thanks — we received your report."
             }
-            // TODO: Admin moderation dashboard should triage `user_reports` / `conversation_reports` / `message_reports`.
         } catch {
             await MainActor.run {
                 presenter.menuBanner = error.localizedDescription

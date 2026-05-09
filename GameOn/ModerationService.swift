@@ -76,6 +76,80 @@ struct ModerationService {
         let status: String
     }
 
+    private struct NotifyModerationReportPayload: Encodable {
+        let report_type: String
+        let reporter_user_id: UUID
+        let reported_user_id: UUID
+        let category: String
+        let details: String?
+        let created_at: String
+        let conversation_id: UUID?
+        let message_id: UUID?
+        let message_text_snapshot: String?
+    }
+
+    private struct NotifyModerationReportResponse: Decodable {
+        let ok: Bool?
+        let error: String?
+    }
+
+    private static let moderationReportNotifyISO: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// Fire-and-forget admin email via Edge Function; must run only after the report row is stored.
+    private func notifyModerationReportBestEffort(
+        reportType: String,
+        reporterUserId: UUID,
+        reportedUserId: UUID,
+        category: ModerationReportCategory,
+        details: String?,
+        conversationId: UUID? = nil,
+        messageId: UUID? = nil,
+        messageTextSnapshot: String? = nil
+    ) {
+        let createdAt = Self.moderationReportNotifyISO.string(from: Date()) ?? ""
+        let detailsCopy = details
+        let categoryRaw = category.rawValue
+        Task.detached { [supabase] in
+            let payload = NotifyModerationReportPayload(
+                report_type: reportType,
+                reporter_user_id: reporterUserId,
+                reported_user_id: reportedUserId,
+                category: categoryRaw,
+                details: detailsCopy,
+                created_at: createdAt,
+                conversation_id: conversationId,
+                message_id: messageId,
+                message_text_snapshot: messageTextSnapshot
+            )
+            do {
+                let response: NotifyModerationReportResponse = try await supabase.functions.invoke(
+                    "notify-moderation-report",
+                    options: FunctionInvokeOptions(method: .post, body: payload)
+                )
+#if DEBUG
+                print("Moderation: notify-moderation-report ok=\(response.ok ?? false) error=\(response.error ?? "nil")")
+#endif
+            } catch let error as FunctionsError {
+#if DEBUG
+                if case let .httpError(status, data) = error {
+                    let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
+                    print("Moderation: notify-moderation-report httpError status=\(status) body=\(body)")
+                } else {
+                    print("Moderation: notify-moderation-report FunctionsError:", error)
+                }
+#endif
+            } catch {
+#if DEBUG
+                print("Moderation: notify-moderation-report error:", error)
+#endif
+            }
+        }
+    }
+
     func currentUserId() async throws -> UUID {
         let session = try await supabase.auth.session
         return session.user.id
@@ -136,6 +210,13 @@ struct ModerationService {
             .from("user_reports")
             .insert(row)
             .execute()
+        notifyModerationReportBestEffort(
+            reportType: "user",
+            reporterUserId: me,
+            reportedUserId: reportedUserId,
+            category: category,
+            details: row.details
+        )
     }
 
     func reportConversation(
@@ -157,6 +238,14 @@ struct ModerationService {
             .from("conversation_reports")
             .insert(row)
             .execute()
+        notifyModerationReportBestEffort(
+            reportType: "conversation",
+            reporterUserId: me,
+            reportedUserId: otherUserId,
+            category: category,
+            details: row.details,
+            conversationId: conversationId
+        )
     }
 
     func reportMessage(
@@ -164,7 +253,8 @@ struct ModerationService {
         reportedUserId: UUID,
         messageTextSnapshot: String,
         category: ModerationReportCategory,
-        details: String?
+        details: String?,
+        conversationId: UUID? = nil
     ) async throws {
         let me = try await currentUserId()
         let row = MessageReportInsert(
@@ -180,6 +270,16 @@ struct ModerationService {
             .from("message_reports")
             .insert(row)
             .execute()
+        notifyModerationReportBestEffort(
+            reportType: "message",
+            reporterUserId: me,
+            reportedUserId: reportedUserId,
+            category: category,
+            details: row.details,
+            conversationId: conversationId,
+            messageId: messageId,
+            messageTextSnapshot: messageTextSnapshot
+        )
         await incrementMessageReportCountBestEffort(messageId: messageId)
     }
 

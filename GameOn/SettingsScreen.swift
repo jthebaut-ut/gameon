@@ -30,7 +30,7 @@ struct SettingsScreen: View {
     var body: some View {
         NavigationStack {
             List {
-                if viewModel.isLoggedIn {
+                if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
                     Section {
                         SettingsProfileHero(viewModel: viewModel, showProfileScreen: $showProfileScreen)
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
@@ -631,10 +631,22 @@ private struct SettingsProfileHero: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var showProfileScreen: Bool
 
+    /// Email shown in the hero: fan session vs venue-owner session (existing ``MapViewModel`` flags; no auth changes).
+    private var heroEmailLine: String {
+        if viewModel.isLoggedIn {
+            return viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return viewModel.venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var resolvedDisplayName: String {
         let current = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !current.isEmpty { return current }
-        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        if viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn {
+            let venue = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !venue.isEmpty { return venue }
+        }
+        let email = heroEmailLine
         let local = email.split(separator: "@").first.map(String.init) ?? ""
         guard !local.isEmpty else { return "" }
         return local.prefix(1).uppercased() + local.dropFirst()
@@ -649,58 +661,97 @@ private struct SettingsProfileHero: View {
             }
             return "\(name.prefix(2))".uppercased()
         }
-        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = heroEmailLine
         let local = email.split(separator: "@").first.map(String.init) ?? ""
         return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
     }
 
-    var body: some View {
-        Button {
-            showProfileScreen = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle().fill(Color.white.opacity(0.10))
-                    if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            ProgressView().tint(.white)
-                        }
-                    } else {
-                        Text(initials)
-                            .font(.headline.weight(.bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-                .frame(width: 64, height: 64)
-                .clipShape(Circle())
+    /// Prefer venue-owner label when both flags are true (defensive; login paths normally keep them exclusive).
+    private var accountTypeBadgeText: String {
+        viewModel.isVenueOwnerLoggedIn ? "Venue owner account" : "User account"
+    }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
-                        .font(.title3.weight(.semibold))
+    private var accountTypeCapsule: some View {
+        Text(accountTypeBadgeText)
+            .font(.caption2.weight(.semibold))
+            .tracking(0.2)
+            .foregroundStyle(.white.opacity(0.78))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.14))
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+                    )
+            }
+            .padding(.top, 4)
+            .accessibilityLabel(accountTypeBadgeText)
+    }
+
+    private var heroCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.white.opacity(0.10))
+                if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        ProgressView().tint(.white)
+                    }
+                } else {
+                    Text(initials)
+                        .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
-                    Text(viewModel.currentUserEmail)
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.white)
+                if !heroEmailLine.isEmpty {
+                    Text(heroEmailLine)
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.75))
                         .lineLimit(1)
                 }
+                accountTypeCapsule
+            }
 
-                Spacer(minLength: 0)
+            Spacer(minLength: 0)
 
+            if viewModel.isLoggedIn {
                 Text("Edit")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.85))
             }
-            .padding(16)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
+        .padding(16)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        )
+    }
+
+    var body: some View {
+        Group {
+            if viewModel.isLoggedIn {
+                Button {
+                    showProfileScreen = true
+                } label: {
+                    heroCard
+                }
+                .buttonStyle(.plain)
+            } else {
+                heroCard
+            }
+        }
         .sheet(isPresented: $showProfileScreen) {
             UserProfileScreen(viewModel: viewModel) {
                 showProfileScreen = false
