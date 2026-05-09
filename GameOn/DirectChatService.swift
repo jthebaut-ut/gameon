@@ -109,8 +109,20 @@ final class DirectChatService {
         await client.removeChannel(channel)
     }
 
-    /// Total unread peer messages across all of the user’s direct conversations (parallel count queries, one per conversation).
+    /// Total unread peer messages for the signed-in user. Prefers single RPC ``get_dm_unread_total`` (50k-scale);
+    /// falls back to per-conversation counts if the RPC is missing or errors.
     func fetchUnreadDirectMessageCount(currentUserId me: UUID) async throws -> Int {
+        do {
+            let response = try await client.rpc("get_dm_unread_total").execute()
+            let total = try Self.decodeIntFromRPCData(response.data)
+            return max(0, total)
+        } catch {
+            return try await fetchUnreadDirectMessageCountFanOut(currentUserId: me)
+        }
+    }
+
+    /// Legacy path: one PostgREST count per conversation (O(#conversations) round-trips). Kept only as RPC fallback.
+    private func fetchUnreadDirectMessageCountFanOut(currentUserId me: UUID) async throws -> Int {
         let conversationIds = try await fetchMyConversationIds(userId: me)
         if conversationIds.isEmpty { return 0 }
 
@@ -279,6 +291,20 @@ final class DirectChatService {
     }
 
     /// PostgREST often returns a scalar UUID as a JSON string (quoted).
+    /// Decodes a scalar integer returned by PostgREST RPC (JSON number, possibly quoted).
+    private static func decodeIntFromRPCData(_ data: Data) throws -> Int {
+        guard let raw = String(data: data, encoding: .utf8) else {
+            throw DirectChatServiceError.unexpectedRPCPayload
+        }
+        let stripped = raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        guard let n = Int(stripped) else {
+            throw DirectChatServiceError.unexpectedRPCPayload
+        }
+        return n
+    }
+
     private static func decodeUUIDFromRPCData(_ data: Data) throws -> UUID {
         guard let raw = String(data: data, encoding: .utf8) else {
             throw DirectChatServiceError.unexpectedRPCPayload

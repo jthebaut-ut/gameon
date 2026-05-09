@@ -66,41 +66,6 @@ extension MapViewModel {
         }
     }
 
-    func loadVenueEventInterests() async {
-        do {
-            let rows: [VenueEventInterestRow] = try await supabase
-                .from("venue_event_interests")
-                .select()
-                .execute()
-                .value
-
-            var counts: [UUID: Int] = [:]
-            var myInterests: Set<UUID> = []
-
-            for row in rows {
-                guard let eventID = row.venue_event_id else { continue }
-
-                counts[eventID, default: 0] += 1
-
-                let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
-
-                if row.user_email == interestEmail {
-                    myInterests.insert(eventID)
-                }
-            }
-
-            await MainActor.run {
-                venueEventInterestCounts = counts
-                venueEventInterestIDs = myInterests
-            }
-
-            print("LOADED VENUE EVENT INTERESTS:", rows.count)
-
-        } catch {
-            print("ERROR LOADING VENUE EVENT INTERESTS:", error)
-        }
-    }
-
     func goingProfiles(for venueEventID: UUID) -> [UserProfileRow] {
         goingProfilesByVenueEventID[venueEventID] ?? []
     }
