@@ -1822,6 +1822,11 @@ private struct SettingsVenueOwnerCard: View {
                 }
                 
                 if !viewModel.venueClaimSubmitted {
+                    Text("Complete all required fields and upload both venue and menu photos before submitting for review.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 4)
+
                     TextField("Venue name", text: $viewModel.ownerVenueName)
                         .padding()
                         .background(Color.gray.opacity(0.10))
@@ -1918,6 +1923,17 @@ private struct SettingsVenueOwnerCard: View {
                         .background(Color.gray.opacity(0.10))
                         .clipShape(RoundedRectangle(cornerRadius: 16))
 
+                    // Required-field gating (UI) — mirrors the backend guards in `submitVenueClaim()`.
+                    let readyToSubmit = !viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenuePhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.ownerVenueDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+                        !viewModel.venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
                     Button {
                         viewModel.submitVenueClaim()
                     } label: {
@@ -1929,6 +1945,8 @@ private struct SettingsVenueOwnerCard: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
+                    .disabled(!readyToSubmit)
+                    .opacity(readyToSubmit ? 1 : 0.55)
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(viewModel.venueIsApproved ? "Venue Approved" : "Claim Submitted")
@@ -1942,7 +1960,7 @@ private struct SettingsVenueOwnerCard: View {
                             .foregroundStyle(.secondary)
                         
                         if !viewModel.venueClaimSubmittedDate.isEmpty {
-                            Text("Member since \(formattedMemberSince)")
+                            Text(viewModel.venueIsApproved ? "Member since \(formattedMemberSince)" : "Submitted on \(formattedMemberSince)")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }

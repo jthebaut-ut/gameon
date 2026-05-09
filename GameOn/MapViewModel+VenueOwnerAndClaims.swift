@@ -123,16 +123,47 @@ extension MapViewModel {
     func submitVenueClaim() {
         Task {
             do {
+                // Backend safety: required-field validation guard (UI should already enforce this).
+                let trimmedName = ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedAddress = ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedCity = ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedState = ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedZip = ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedPhone = ownerVenuePhone.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedDesc = ownerVenueDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedCover = venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedMenu = venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !trimmedName.isEmpty,
+                      !trimmedAddress.isEmpty,
+                      !trimmedCity.isEmpty,
+                      !trimmedState.isEmpty,
+                      !trimmedZip.isEmpty,
+                      !trimmedPhone.isEmpty,
+                      !trimmedDesc.isEmpty else {
+                    await MainActor.run {
+                        venueAuthErrorMessage = "Complete all required fields before submitting."
+                    }
+                    return
+                }
+
+                guard !trimmedCover.isEmpty, !trimmedMenu.isEmpty else {
+                    await MainActor.run {
+                        venueAuthErrorMessage = "Please upload a venue photo and menu photo before submitting."
+                    }
+                    return
+                }
+
                 let claim = VenueClaimInsert(
                     owner_email: venueOwnerEmail,
-                    venue_name: ownerVenueName,
-                    venue_address: ownerVenueAddress,
-                    venue_city: ownerVenueCity,
-                    venue_state: ownerVenueState,
-                    venue_zip_code: ownerVenueZipCode,
-                    venue_phone: ownerVenuePhone,
+                    venue_name: trimmedName,
+                    venue_address: trimmedAddress,
+                    venue_city: trimmedCity,
+                    venue_state: trimmedState,
+                    venue_zip_code: trimmedZip,
+                    venue_phone: trimmedPhone,
                     venue_website: ownerVenueWebsite,
-                    venue_description: ownerVenueDescription,
+                    venue_description: trimmedDesc,
                     venue_features: ownerVenueFeatures,
                     screen_count: ownerVenueScreenCount,
                     serves_food: ownerVenueServesFood,
@@ -140,19 +171,118 @@ extension MapViewModel {
                     has_garden: ownerVenueHasGarden,
                     has_projector: ownerVenueHasProjector,
                     pet_friendly: ownerVenuePetFriendly,
-                    cover_photo_url: venueCoverPhotoURL,
-                    menu_photo_url: venueMenuPhotoURL,
+                    cover_photo_url: trimmedCover,
+                    menu_photo_url: trimmedMenu,
                     proof_note: venueProofNote
                 )
 
-                try await supabase
+                struct InsertedClaimRow: Decodable {
+                    let id: UUID
+                    let created_at: String?
+                    let approval_status: String?
+                }
+
+                let inserted: InsertedClaimRow = try await supabase
                     .from("venue_claims")
                     .insert(claim)
+                    .select("id,created_at,approval_status")
+                    .single()
                     .execute()
+                    .value
 
                 await MainActor.run {
                     venueClaimSubmitted = true
                     venueClaimStatus = "Pending Review"
+                    venueClaimSubmittedDate = inserted.created_at ?? venueClaimSubmittedDate
+                    venueAuthErrorMessage = ""
+                }
+
+#if DEBUG
+                print("VenueClaim: inserted id=\(inserted.id.uuidString) status=\(inserted.approval_status ?? "unknown") created_at=\(inserted.created_at ?? "")")
+#endif
+
+                // Fire-and-forget admin email notification. Must not block claim submission UX.
+                struct NotifyVenueClaimPayload: Encodable {
+                    let claim_id: String
+                    let owner_email: String
+                    let venue_name: String
+                    let venue_address: String
+                    let venue_city: String
+                    let venue_state: String
+                    let venue_zip_code: String
+                    let venue_phone: String
+                    let venue_website: String
+                    let venue_description: String
+                    let venue_features: String
+                    let screen_count: Int
+                    let serves_food: Bool
+                    let has_wifi: Bool
+                    let has_garden: Bool
+                    let has_projector: Bool
+                    let pet_friendly: Bool
+                    let proof_note: String
+                    let cover_photo_url: String
+                    let menu_photo_url: String
+                    let photo_urls: [String]
+                    let created_at: String
+                    let approval_status: String
+                }
+
+                struct NotifyResponse: Decodable { let ok: Bool?; let error: String?; let detail: String? }
+
+                let payload = NotifyVenueClaimPayload(
+                    claim_id: inserted.id.uuidString,
+                    owner_email: venueOwnerEmail,
+                    venue_name: trimmedName,
+                    venue_address: trimmedAddress,
+                    venue_city: trimmedCity,
+                    venue_state: trimmedState,
+                    venue_zip_code: trimmedZip,
+                    venue_phone: trimmedPhone,
+                    venue_website: ownerVenueWebsite,
+                    venue_description: trimmedDesc,
+                    venue_features: ownerVenueFeatures,
+                    screen_count: ownerVenueScreenCount,
+                    serves_food: ownerVenueServesFood,
+                    has_wifi: ownerVenueHasWifi,
+                    has_garden: ownerVenueHasGarden,
+                    has_projector: ownerVenueHasProjector,
+                    pet_friendly: ownerVenuePetFriendly,
+                    proof_note: venueProofNote,
+                    cover_photo_url: trimmedCover,
+                    menu_photo_url: trimmedMenu,
+                    photo_urls: [trimmedCover, trimmedMenu].filter { !$0.isEmpty },
+                    created_at: inserted.created_at ?? "",
+                    approval_status: inserted.approval_status ?? "pending"
+                )
+
+                Task.detached { [supabase] in
+#if DEBUG
+                    print("VenueClaim: notify-venue-claim invoking (claim_id=\(payload.claim_id))")
+#endif
+                    do {
+                        // Uses current session JWT automatically via Supabase client auth.
+                        let response: NotifyResponse = try await supabase.functions.invoke(
+                            "notify-venue-claim",
+                            options: FunctionInvokeOptions(method: .post, body: payload)
+                        )
+#if DEBUG
+                        print("VenueClaim: notify-venue-claim response ok=\(response.ok ?? false) error=\(response.error ?? "") detail=\(response.detail ?? "")")
+#endif
+                    } catch let error as FunctionsError {
+#if DEBUG
+                        if case let .httpError(status, data) = error {
+                            let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
+                            print("VenueClaim: notify-venue-claim httpError status=\(status) body=\(body)")
+                        } else {
+                            print("VenueClaim: notify-venue-claim functions error:", error)
+                        }
+#endif
+                    } catch {
+#if DEBUG
+                        print("VenueClaim: notify-venue-claim unknown error:", error)
+#endif
+                    }
                 }
 
             } catch {
