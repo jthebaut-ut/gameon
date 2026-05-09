@@ -93,6 +93,7 @@ struct FriendsTabView: View {
 
     @State private var selectedSection: ChatSection = .friends
     @State private var showingAddFriendSheet = false
+    @State private var showingBlockedUsersSheet = false
     @State private var manualFriendIdDraft: String = ""
 
     private enum ChatSection: String, CaseIterable, Identifiable {
@@ -139,14 +140,25 @@ struct FriendsTabView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingAddFriendSheet = true
-                    } label: {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 18, weight: .semibold))
-                            .symbolRenderingMode(.hierarchical)
+                    HStack(spacing: 10) {
+                        Button {
+                            showingAddFriendSheet = true
+                        } label: {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 18, weight: .semibold))
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .accessibilityLabel("Add friend")
+
+                        Button {
+                            showingBlockedUsersSheet = true
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 18, weight: .semibold))
+                                .symbolRenderingMode(.hierarchical)
+                        }
+                        .accessibilityLabel("Chat options")
                     }
-                    .accessibilityLabel("Add friend")
                 }
             }
         }
@@ -160,6 +172,9 @@ struct FriendsTabView: View {
                     manualFriendIdDraft = ""
                 }
             )
+        }
+        .sheet(isPresented: $showingBlockedUsersSheet) {
+            BlockedUsersSheet(viewModel: viewModel)
         }
         .onChange(of: isTabSelected) { _, on in
             viewModel.setInboxRealtimeEnabled(on)
@@ -319,6 +334,101 @@ struct FriendsTabView: View {
         df.locale = .autoupdatingCurrent
         df.setLocalizedDateFormatFromTemplate("MMM d")
         return df.string(from: date)
+    }
+}
+
+// MARK: - Blocked Users
+
+private struct BlockedUsersSheet: View {
+    @ObservedObject var viewModel: ChatViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if viewModel.blockedUserIds.isEmpty {
+                    ContentUnavailableView(
+                        "No blocked users",
+                        systemImage: "hand.raised.slash",
+                        description: Text("People you block will appear here.")
+                    )
+                    .padding(.top, 24)
+                } else {
+                    List {
+                        ForEach(blockedItems, id: \.id) { item in
+                            HStack(spacing: 12) {
+                                ProfileAvatarView(preview: item.preview, size: 40)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.title)
+                                        .font(.subheadline.weight(.semibold))
+                                    if let subtitle = item.subtitle, !subtitle.isEmpty {
+                                        Text(subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                                Button("Unblock") {
+                                    Task { await viewModel.unblockUser(item.id) }
+                                }
+                                .font(.caption.weight(.semibold))
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                    .listStyle(.insetGrouped)
+                }
+            }
+            .navigationTitle("Blocked Users")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task {
+                await viewModel.refreshBlockedUsers()
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var blockedItems: [BlockedUserDisplay] {
+        // If we can resolve previews, show them; otherwise show ids with fallback text.
+        let byId = Dictionary(uniqueKeysWithValues: viewModel.blockedUserPreviews.map { ($0.id, $0) })
+        return viewModel.blockedUserIds
+            .map { id -> BlockedUserDisplay in
+                if let preview = byId[id] {
+                    return BlockedUserDisplay(
+                        id: id,
+                        preview: preview,
+                        title: preview.displayName,
+                        subtitle: nil
+                    )
+                }
+                let fallback = UserPreview(id: id, displayName: "Blocked user", avatarURL: nil)
+                return BlockedUserDisplay(
+                    id: id,
+                    preview: fallback,
+                    title: "Blocked user",
+                    subtitle: shortId(id)
+                )
+            }
+            .sorted { $0.title < $1.title }
+    }
+
+    private func shortId(_ id: UUID) -> String {
+        let s = id.uuidString
+        return "\(s.prefix(8))…"
+    }
+
+    private struct BlockedUserDisplay: Identifiable {
+        let id: UUID
+        let preview: UserPreview
+        let title: String
+        let subtitle: String?
     }
 }
 

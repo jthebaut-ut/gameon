@@ -73,9 +73,6 @@ struct SettingsScreen: View {
                         settingsRow(title: "Privacy", subtitle: "Coming soon.", systemImage: "hand.raised")
                             .opacity(0.6)
 
-                        settingsRow(title: "Blocked Users", subtitle: "Coming soon.", systemImage: "hand.raised.slash")
-                            .opacity(0.6)
-
                         Button {
                             Task { await viewModel.logoutUser() }
                         } label: {

@@ -48,6 +48,12 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var friendshipChipByOtherUserId: [UUID: FriendshipChipKind] = [:]
     @Published private(set) var currentUserAuthId: UUID?
 
+    // MARK: - Moderation (blocked users)
+
+    @Published private(set) var blockedUserIds: Set<UUID> = []
+    @Published private(set) var blockedUserPreviews: [UserPreview] = []
+    private let moderation = ModerationService()
+
     /// When true, ``MainTabView`` hides the floating tab bar so ``DirectChatView`` composer stays visible.
     @Published var hidesFloatingTabBarForDirectChat: Bool = false
 
@@ -84,6 +90,8 @@ final class ChatViewModel: ObservableObject {
         friendshipChipByOtherUserId = [:]
         currentUserAuthId = nil
         hidesFloatingTabBarForDirectChat = false
+        blockedUserIds = []
+        blockedUserPreviews = []
     }
 
     /// Starts/stops a lightweight in-app inbox listener for unread badge refresh.
@@ -205,6 +213,10 @@ final class ChatViewModel: ObservableObject {
             await setUnreadDirectMessageCountAndSyncAppIcon(0)
             return
         }
+        // Keep blocked ids fresh for inbox filtering; ignore failures.
+        if let ids = try? await moderation.fetchBlockedUserIds() {
+            blockedUserIds = ids
+        }
         do {
             let rows = try await directChatService.fetchInboxSummaries()
             let displays = rows.map { row -> FriendDisplay in
@@ -239,13 +251,41 @@ final class ChatViewModel: ObservableObject {
                 )
             }
 
-            friends = displays
-            let totalUnread = displays.reduce(0) { $0 + $1.unreadCount }
+            // Hide blocked users from inbox.
+            let visible = displays.filter { !blockedUserIds.contains($0.id) }
+            friends = visible
+            let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
             lastInboxLoadAt = Date()
             currentUserAuthId = me
         } catch {
             // Keep existing list on transient failures; unread badge may be stale until next refresh.
+        }
+    }
+
+    // MARK: - Blocked Users management
+
+    func refreshBlockedUsers() async {
+        do {
+            let ids = try await moderation.fetchBlockedUserIds()
+            blockedUserIds = ids
+            let previews = await moderation.fetchUserPreviews(for: Array(ids))
+            // Keep stable order.
+            let byId = Dictionary(uniqueKeysWithValues: previews.map { ($0.id, $0) })
+            blockedUserPreviews = Array(ids).compactMap { byId[$0] }.sorted { $0.displayName < $1.displayName }
+        } catch {
+            blockedUserIds = []
+            blockedUserPreviews = []
+        }
+    }
+
+    func unblockUser(_ userId: UUID) async {
+        do {
+            try await moderation.unblock(userId: userId)
+            await refreshBlockedUsers()
+            await refreshInboxSummaries()
+        } catch {
+            // Keep UI lightweight; surface errors only if needed later.
         }
     }
 

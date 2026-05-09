@@ -60,6 +60,28 @@ struct UserProfileScreen: View {
                     .disabled(isUploadingAvatar || isSaving)
                 }
 
+                Section("Account actions") {
+                    Button {
+                        Task {
+                            await viewModel.logoutUser()
+                            await MainActor.run {
+                                onDone()
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Log Out")
+                            Spacer()
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(isSaving || isUploadingAvatar)
+                    .foregroundStyle(.red)
+                }
+
                 if !message.isEmpty {
                     Section {
                         Text(message)
