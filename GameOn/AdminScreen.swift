@@ -31,6 +31,11 @@ struct AdminScreen: View {
                 .padding(.bottom, 110)
             }
         }
+        .task(id: viewModel.isAdminLoggedIn) {
+            if viewModel.isAdminLoggedIn {
+                await viewModel.loadVenueClaimsForAdmin()
+            }
+        }
     }
     
     private var adminLoginCard: some View {

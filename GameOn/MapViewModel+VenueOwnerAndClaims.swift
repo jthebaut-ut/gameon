@@ -96,8 +96,17 @@ extension MapViewModel {
                 await MainActor.run {
                     if let claim = claims.first {
                         venueClaimSubmitted = true
-                        venueClaimStatus = claim.approval_status == "approved" ? "Approved" : "Pending Review"
-                        venueIsApproved = claim.approval_status == "approved"
+                        let status = (claim.approval_status ?? "").lowercased()
+                        if status == "approved" {
+                            venueClaimStatus = "Approved"
+                            venueIsApproved = true
+                        } else if status == "rejected" {
+                            venueClaimStatus = "Rejected"
+                            venueIsApproved = false
+                        } else {
+                            venueClaimStatus = "Pending Review"
+                            venueIsApproved = false
+                        }
                         venueClaimSubmittedDate = claim.created_at ?? ""
                         
                         ownerVenueName = claim.venue_name ?? ""
@@ -161,14 +170,95 @@ extension MapViewModel {
         }
     }
 
+    /// Admin action: persists `approval_status` to Supabase. Optimistic UI with rollback on failure.
     func approveVenueClaim(_ claim: VenueClaim) {
-        guard let index = venueClaims.firstIndex(where: { $0.id == claim.id }) else { return }
-        venueClaims[index].status = .approved
+        persistVenueClaimDecision(claimId: claim.id, decision: .approved)
     }
 
+    /// Admin action: persists `approval_status` to Supabase. Optimistic UI with rollback on failure.
     func rejectVenueClaim(_ claim: VenueClaim) {
-        guard let index = venueClaims.firstIndex(where: { $0.id == claim.id }) else { return }
-        venueClaims[index].status = .rejected
+        persistVenueClaimDecision(claimId: claim.id, decision: .rejected)
+    }
+
+    private enum VenueClaimDecision: String {
+        case approved = "approved"
+        case rejected = "rejected"
+    }
+
+    private func persistVenueClaimDecision(claimId: UUID, decision: VenueClaimDecision) {
+        guard let index = venueClaims.firstIndex(where: { $0.id == claimId }) else { return }
+        let previous = venueClaims[index].status
+
+        // Optimistic update.
+        venueClaims[index].status = (decision == .approved) ? .approved : .rejected
+
+        Task {
+            do {
+                struct Update: Encodable { let approval_status: String }
+                _ = try await supabase
+                    .from("venue_claims")
+                    .update(Update(approval_status: decision.rawValue))
+                    .eq("id", value: claimId.uuidString)
+                    .execute()
+
+                // Refresh admin list + public venues (in case newly approved venues should appear).
+                await loadVenueClaimsForAdmin()
+                await loadVenuesFromSupabase()
+            } catch {
+                // Roll back optimistic state.
+                await MainActor.run {
+                    if let i = venueClaims.firstIndex(where: { $0.id == claimId }) {
+                        venueClaims[i].status = previous
+                    }
+                    authErrorMessage = "Failed to update claim status. \(error.localizedDescription)"
+                }
+                print("ERROR UPDATING VENUE CLAIM STATUS:", error)
+            }
+        }
+    }
+
+    /// Loads recent venue claims for Admin review UI.
+    func loadVenueClaimsForAdmin(limit: Int = 100) async {
+        do {
+            let rows: [VenueClaimRow] = try await supabase
+                .from("venue_claims")
+                .select()
+                .order("created_at", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+
+            let mapped: [VenueClaim] = rows.compactMap { row in
+                guard let idStr = row.id, let id = UUID(uuidString: idStr) else { return nil }
+                let statusRaw = (row.approval_status ?? "").lowercased()
+                let status: VenueClaimStatus
+                switch statusRaw {
+                case "approved": status = .approved
+                case "rejected": status = .rejected
+                default: status = .pending
+                }
+                return VenueClaim(
+                    id: id,
+                    venueName: row.venue_name ?? "Venue",
+                    address: row.venue_address ?? "",
+                    businessEmail: row.owner_email ?? "",
+                    phone: row.venue_phone ?? "",
+                    website: row.venue_website ?? "",
+                    proofNote: row.proof_note ?? "",
+                    primarySport: "",
+                    status: status
+                )
+            }
+
+            await MainActor.run {
+                venueClaims = mapped
+            }
+        } catch {
+            await MainActor.run {
+                authErrorMessage = "Failed to load venue claims. \(error.localizedDescription)"
+            }
+            print("ERROR LOADING VENUE CLAIMS:", error)
+        }
     }
 
     func loadRecentVenueEvents() {
