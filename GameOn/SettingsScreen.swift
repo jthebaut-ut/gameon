@@ -4,15 +4,7 @@ import PhotosUI
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
-    
-    @State private var selectedSettingsMode: SettingsMode = .general
 
-    enum SettingsMode {
-        case general
-        case user
-        case venue
-    }
-    
     @State private var email = ""
     @State private var password = ""
     @State private var venuePassword = ""
@@ -25,66 +17,215 @@ struct SettingsScreen: View {
     @State private var isUploadingClaimMenuPhoto = false
     @State private var claimPhotoMessage = ""
     @State private var showProfileScreen = false
+    @State private var showUserAuthSheet = false
+    @State private var showVenueAuthSheet = false
+    @State private var showNotificationsSheet = false
+    @State private var showTimeZoneSheet = false
+    @State private var showResetPasswordSheet = false
+    @State private var showDeleteAccountSheet = false
+    @State private var showDeleteVenueOwnerSheet = false
+    @State private var showReportedCommentsSheet = false
     
     
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    SettingsHeader()
-                    SettingsModeSegmentedPicker(selection: $selectedSettingsMode)
-
-                    Group {
-                        switch selectedSettingsMode {
-                        case .general:
-                            SettingsGeneralSection(viewModel: viewModel)
-                                .transition(.opacity)
-
-                        case .user:
-                            SettingsUserSection(
-                                viewModel: viewModel,
-                                email: $email,
-                                password: $password,
-                                showRegisterMode: $showRegisterMode,
-                                showProfileScreen: $showProfileScreen
-                            )
-                                .transition(.opacity.combined(with: .move(edge: .leading)))
-
-                        case .venue:
-                            SettingsVenueSection(
-                                viewModel: viewModel,
-                                venuePassword: $venuePassword,
-                                showVenueRegisterMode: $showVenueRegisterMode,
-                                selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
-                                selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
-                                claimPhotoMessage: claimPhotoMessage,
-                                showVenueDashboard: $showVenueDashboard
-                            )
-                                .transition(.opacity.combined(with: .move(edge: .trailing)))
-                        }
+        NavigationStack {
+            List {
+                if viewModel.isLoggedIn {
+                    Section {
+                        SettingsProfileHero(viewModel: viewModel, showProfileScreen: $showProfileScreen)
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                            .listRowBackground(Color.clear)
                     }
-                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: selectedSettingsMode)
-
-                    Spacer()
+                } else {
+                    Section {
+                        Button {
+                            showUserAuthSheet = true
+                        } label: {
+                            settingsRow(
+                                title: "Sign in or create account",
+                                subtitle: "Sync your profile and activity.",
+                                systemImage: "person.crop.circle.badge.plus"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 110)
+
+                Section("GENERAL") {
+                    Button { showNotificationsSheet = true } label: {
+                        settingsRow(title: "Notifications", subtitle: viewModel.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button { showTimeZoneSheet = true } label: {
+                        settingsRow(title: "Game Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Section("ACCOUNT") {
+                    if viewModel.isLoggedIn {
+                        Button { showResetPasswordSheet = true } label: {
+                            settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRow(title: "Privacy", subtitle: "Coming soon.", systemImage: "hand.raised")
+                            .opacity(0.6)
+
+                        settingsRow(title: "Blocked Users", subtitle: "Coming soon.", systemImage: "hand.raised.slash")
+                            .opacity(0.6)
+
+                        Button {
+                            Task { await viewModel.logoutUser() }
+                        } label: {
+                            settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                        .buttonStyle(.plain)
+
+                        Button { showDeleteAccountSheet = true } label: {
+                            settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button { showUserAuthSheet = true } label: {
+                            settingsRow(title: "Sign in", subtitle: nil, systemImage: "person.crop.circle")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Section("VENUE") {
+                    if viewModel.isVenueOwnerLoggedIn {
+                        settingsRow(
+                            title: "Venue status",
+                            subtitle: viewModel.venueIsApproved ? "Approved" : viewModel.venueClaimStatus,
+                            systemImage: viewModel.venueIsApproved ? "checkmark.seal" : "hourglass"
+                        )
+
+                        Button { showVenueDashboard = true } label: {
+                            settingsRow(title: "Manage Venue", subtitle: "Profile, media, tools.", systemImage: "building.2")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRow(title: "Manage Games", subtitle: "Coming soon.", systemImage: "sportscourt")
+                            .opacity(0.6)
+
+                        Button { showReportedCommentsSheet = true } label: {
+                            settingsRow(title: "Flagged Comments", subtitle: "Admin tools", systemImage: "exclamationmark.bubble")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRow(title: "Statistics", subtitle: "Coming soon.", systemImage: "chart.bar")
+                            .opacity(0.6)
+
+                        Button { showDeleteVenueOwnerSheet = true } label: {
+                            settingsRow(title: "Delete Venue Owner Account", subtitle: "Permanently remove venue owner access.", systemImage: "trash", tint: .red)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Button { showVenueAuthSheet = true } label: {
+                            settingsRow(title: "Venue owner sign in", subtitle: "Manage your venue listing.", systemImage: "building.2.crop.circle")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
+            .scrollContentBackground(.hidden)
+            .background(
+                LinearGradient(
+                    colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            )
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.large)
         }
         .sheet(isPresented: $showVenueDashboard) {
             VenueOwnerDashboardView(viewModel: viewModel)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        .onAppear {
-            selectedSettingsMode = .general
+        .sheet(isPresented: $showUserAuthSheet) {
+            SettingsUserAuthSheet(
+                viewModel: viewModel,
+                email: $email,
+                password: $password,
+                showRegisterMode: $showRegisterMode
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showVenueAuthSheet) {
+            SettingsVenueAuthSheet(
+                viewModel: viewModel,
+                venuePassword: $venuePassword,
+                showVenueRegisterMode: $showVenueRegisterMode,
+                selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
+                selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
+                claimPhotoMessage: claimPhotoMessage
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showNotificationsSheet) {
+            NavigationStack {
+                Form { SettingsGameNotificationsCard(viewModel: viewModel) }
+                    .navigationTitle("Notifications")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showNotificationsSheet = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showTimeZoneSheet) {
+            NavigationStack {
+                Form { SettingsTimeZoneCard(viewModel: viewModel) }
+                    .navigationTitle("Game Time Zone")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showTimeZoneSheet = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showResetPasswordSheet) {
+            NavigationStack {
+                Form { SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email) }
+                    .navigationTitle("Reset Password")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showResetPasswordSheet = false }
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $showDeleteAccountSheet) {
+            SettingsAccountDeletionSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showDeleteVenueOwnerSheet) {
+            SettingsVenueOwnerDeletionSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showReportedCommentsSheet) {
+            NavigationStack {
+                ScrollView {
+                    SettingsReportedCommentsAdminCard(viewModel: viewModel)
+                        .padding()
+                }
+                .navigationTitle("Flagged Comments")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { showReportedCommentsSheet = false }
+                    }
+                }
+            }
         }
         .onChange(of: selectedClaimCoverPhoto) { _, newItem in
             guard let newItem else { return }
@@ -123,39 +264,451 @@ struct SettingsScreen: View {
             }
         }
     }
-}
 
-// MARK: - Header & mode picker
+    @ViewBuilder
+    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .frame(width: 26)
 
-private struct SettingsHeader: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Settings")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
-            
-            Text("Manage your account and game time display.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.75))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.secondary)
         }
-        .padding(.top, 22)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
 
-private struct SettingsModeSegmentedPicker: View {
-    @Binding var selection: SettingsScreen.SettingsMode
+// MARK: - Phase 4: account deletion (Apple-compliant confirmation sheets)
+
+private struct SettingsAccountDeletionSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmationText: String = ""
+    @State private var confirmPassword: String = ""
+    @State private var isDeleting: Bool = false
+    @State private var errorMessage: String = ""
+    @State private var successMessage: String = ""
+    @State private var didSucceed: Bool = false
+
+    private var canDelete: Bool {
+        confirmationText.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == "DELETE"
+    }
 
     var body: some View {
-        Picker("", selection: $selection) {
-            Text("General").tag(SettingsScreen.SettingsMode.general)
-            Text("User").tag(SettingsScreen.SettingsMode.user)
-            Text("Venue").tag(SettingsScreen.SettingsMode.venue)
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Deleting your account permanently removes your profile and associated data from GameOn.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("What will be deleted") {
+                    deletionRow("Profile (display name + email reference)")
+                    deletionRow("Avatar photo in storage")
+                    deletionRow("Comments and activity linked to your user")
+                    deletionRow("Chats and friend relationships where applicable")
+                    deletionRow("Reports and blocks where applicable")
+                }
+
+                Section("Confirm") {
+                    TextField("Type DELETE to confirm", text: $confirmationText)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+
+                    SecureField("Confirm password (optional)", text: $confirmPassword)
+
+                    Text("Password re-auth is not currently enforced in-app. TODO: add re-auth via Supabase if required by policy changes.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !errorMessage.isEmpty {
+                    Section {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                if !successMessage.isEmpty {
+                    Section {
+                        Text(successMessage)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { await runDelete() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isDeleting { ProgressView() }
+                            Text(isDeleting ? "Deleting..." : "Delete Account Permanently")
+                            Spacer()
+                        }
+                    }
+                    .disabled(!canDelete || isDeleting || didSucceed)
+                }
+            }
+            .navigationTitle("Delete Account")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(didSucceed ? "Done" : "Close") { dismiss() }
+                        .disabled(isDeleting)
+                }
+            }
         }
-        .pickerStyle(.segmented)
-        .padding(4)
-        .background(Color.white.opacity(0.20))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    @ViewBuilder
+    private func deletionRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "minus.circle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.subheadline)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func runDelete() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        errorMessage = ""
+        successMessage = ""
+
+        do {
+            try await viewModel.requestPermanentAccountDeletion()
+            await MainActor.run {
+                successMessage = "Your account was deleted and you have been signed out."
+                didSucceed = true
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct SettingsVenueOwnerDeletionSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmationText: String = ""
+    @State private var confirmPassword: String = ""
+    @State private var isDeleting: Bool = false
+    @State private var errorMessage: String = ""
+    @State private var successMessage: String = ""
+    @State private var didSucceed: Bool = false
+
+    private var canDelete: Bool {
+        confirmationText.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == "DELETE"
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text("Deleting your venue owner account permanently removes your venue owner access and associated venue-owner data.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Section("What will be deleted") {
+                    deletionRow("Venue owner profile + access")
+                    deletionRow("Venue photos/menu uploads owned by this account")
+                    deletionRow("Venue events/listings owned by this account where applicable")
+                    deletionRow("Venue claims and pending reviews linked to this owner")
+                }
+
+                Section("Confirm") {
+                    TextField("Type DELETE to confirm", text: $confirmationText)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+
+                    SecureField("Confirm password (optional)", text: $confirmPassword)
+
+                    Text("Password re-auth is not currently enforced in-app. TODO: add re-auth via Supabase if required.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !errorMessage.isEmpty {
+                    Section {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                if !successMessage.isEmpty {
+                    Section {
+                        Text(successMessage)
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        Task { await runDelete() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isDeleting { ProgressView() }
+                            Text(isDeleting ? "Deleting..." : "Delete Venue Owner Account")
+                            Spacer()
+                        }
+                    }
+                    .disabled(!canDelete || isDeleting || didSucceed)
+                }
+            }
+            .navigationTitle("Delete Venue Owner")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(didSucceed ? "Done" : "Close") { dismiss() }
+                        .disabled(isDeleting)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func deletionRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "minus.circle.fill")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.secondary)
+            Text(text)
+                .font(.subheadline)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func runDelete() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        errorMessage = ""
+        successMessage = ""
+
+        do {
+            try await viewModel.requestPermanentVenueOwnerAccountDeletion()
+            await MainActor.run {
+                successMessage = "Your venue owner account was deleted and you have been signed out."
+                didSucceed = true
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+}
+
+// MARK: - Auth sheets + profile hero
+
+private struct SettingsUserAuthSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Binding var email: String
+    @Binding var password: String
+    @Binding var showRegisterMode: Bool
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Account")
+                    .font(.largeTitle.weight(.bold))
+                    .padding(.top, 10)
+
+                Text("Sign in to sync your profile and activity.")
+                    .foregroundStyle(.secondary)
+
+                SettingsAccountCard(
+                    viewModel: viewModel,
+                    email: $email,
+                    password: $password,
+                    showRegisterMode: $showRegisterMode
+                )
+                .padding()
+                .background(.thinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+                    .padding()
+                    .background(.thinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 30)
+        }
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+            }
+        }
+    }
+}
+
+private struct SettingsVenueAuthSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Binding var venuePassword: String
+    @Binding var showVenueRegisterMode: Bool
+    @Binding var selectedClaimCoverPhoto: PhotosPickerItem?
+    @Binding var selectedClaimMenuPhoto: PhotosPickerItem?
+    let claimPhotoMessage: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Venue")
+                    .font(.largeTitle.weight(.bold))
+                    .padding(.top, 10)
+
+                Text("Sign in as a venue owner to manage your listing.")
+                    .foregroundStyle(.secondary)
+
+                SettingsVenueSection(
+                    viewModel: viewModel,
+                    venuePassword: $venuePassword,
+                    showVenueRegisterMode: $showVenueRegisterMode,
+                    selectedClaimCoverPhoto: $selectedClaimCoverPhoto,
+                    selectedClaimMenuPhoto: $selectedClaimMenuPhoto,
+                    claimPhotoMessage: claimPhotoMessage,
+                    showVenueDashboard: .constant(false)
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 30)
+        }
+        .background(
+            LinearGradient(
+                colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        )
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+            }
+        }
+    }
+}
+
+private struct SettingsProfileHero: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Binding var showProfileScreen: Bool
+
+    private var resolvedDisplayName: String {
+        let current = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !current.isEmpty { return current }
+        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let local = email.split(separator: "@").first.map(String.init) ?? ""
+        guard !local.isEmpty else { return "" }
+        return local.prefix(1).uppercased() + local.dropFirst()
+    }
+
+    private var initials: String {
+        let name = resolvedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty {
+            let parts = name.split(separator: " ").filter { !$0.isEmpty }
+            if parts.count >= 2 {
+                return "\(parts[0].prefix(1))\(parts[1].prefix(1))".uppercased()
+            }
+            return "\(name.prefix(2))".uppercased()
+        }
+        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let local = email.split(separator: "@").first.map(String.init) ?? ""
+        return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
+    }
+
+    var body: some View {
+        Button {
+            showProfileScreen = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle().fill(Color.white.opacity(0.10))
+                    if let url = URL(string: viewModel.currentUserAvatarURL), !viewModel.currentUserAvatarURL.isEmpty {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            ProgressView().tint(.white)
+                        }
+                    } else {
+                        Text(initials)
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text(viewModel.currentUserEmail)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Text("Edit")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+            .padding(16)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showProfileScreen) {
+            UserProfileScreen(viewModel: viewModel) {
+                showProfileScreen = false
+            }
+        }
     }
 }
 
