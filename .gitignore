@@ -1,11 +1,15 @@
 
 .DS_Store
 
+build/
+
+DerivedData/
+
 *.xcuserstate
 
 xcuserdata/
 
-GameOn.xcodeproj/project.xcworkspace/xcuserdata/
+.swiftpm/
 
-GameOn.xcodeproj/xcuserdata/
+Packages/
 
