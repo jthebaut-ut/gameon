@@ -46,32 +46,40 @@ struct DirectMessageBubbleView: View {
     let friendPreview: UserPreview
     let timestamp: String?
 
+    private static let avatarColumnWidth: CGFloat = 30
+
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: 10) {
             if !isFromCurrentUser, showFriendAvatar {
                 ProfileAvatarView(preview: friendPreview, size: 28)
+                    .frame(width: Self.avatarColumnWidth, alignment: .center)
             } else if !isFromCurrentUser {
-                Color.clear.frame(width: 28, height: 28)
+                Color.clear
+                    .frame(width: Self.avatarColumnWidth, height: 1)
             }
 
-            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 2) {
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 3) {
                 Text(text)
                     .font(.body)
+                    .multilineTextAlignment(isFromCurrentUser ? .trailing : .leading)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(isFromCurrentUser ? Color.accentColor.opacity(0.22) : Color(.systemGray5))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 if let timestamp, !timestamp.isEmpty {
                     Text(timestamp)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .padding(.horizontal, 2)
+                        .frame(maxWidth: .infinity, alignment: isFromCurrentUser ? .trailing : .leading)
                 }
             }
             .frame(maxWidth: .infinity, alignment: isFromCurrentUser ? .trailing : .leading)
 
             if isFromCurrentUser {
-                Color.clear.frame(width: 28, height: 28)
+                Color.clear
+                    .frame(width: Self.avatarColumnWidth, height: 1)
             }
         }
     }
