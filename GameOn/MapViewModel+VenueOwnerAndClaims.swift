@@ -475,6 +475,25 @@ extension MapViewModel {
 
             let coordinate = await geocodeAddress(fullAddress)
 
+            // Photo-change review workflow:
+            // If the venue is already approved and the owner uploads a new bar/menu photo,
+            // do NOT overwrite the public photo immediately. Store pending URLs instead and notify admin.
+            let existingProfile = await loadVenueProfile()
+            let existingCover = existingProfile?.cover_photo_url ?? ""
+            let existingMenu = existingProfile?.menu_photo_url ?? ""
+            let submittedCover = venueCoverPhotoURL
+            let submittedMenu = venueMenuPhotoURL
+
+            let coverChanged = venueIsApproved
+                && !submittedCover.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && submittedCover != existingCover
+            let menuChanged = venueIsApproved
+                && !submittedMenu.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && submittedMenu != existingMenu
+
+            let publicCoverForUpsert = (venueIsApproved && coverChanged) ? existingCover : submittedCover
+            let publicMenuForUpsert = (venueIsApproved && menuChanged) ? existingMenu : submittedMenu
+
             let profile = VenueProfileInsert(
                 owner_email: venueOwnerEmail,
                 venue_name: ownerVenueName,
@@ -494,14 +513,90 @@ extension MapViewModel {
                 pet_friendly: petFriendly,
                 latitude: coordinate?.latitude,
                 longitude: coordinate?.longitude,
-                cover_photo_url: venueCoverPhotoURL,
-                menu_photo_url: venueMenuPhotoURL
+                cover_photo_url: publicCoverForUpsert,
+                menu_photo_url: publicMenuForUpsert
             )
 
             try await supabase
                 .from("venues")
                 .upsert(profile, onConflict: "owner_email")
                 .execute()
+
+            if venueIsApproved && (coverChanged || menuChanged) {
+                struct Update: Encodable {
+                    let pending_cover_photo_url: String?
+                    let pending_menu_photo_url: String?
+                    let photo_review_status: String
+                    let photo_review_created_at: String
+                }
+                let f = ISO8601DateFormatter()
+                f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                let nowIso = f.string(from: Date())
+
+                try await supabase
+                    .from("venues")
+                    .update(
+                        Update(
+                            pending_cover_photo_url: coverChanged ? submittedCover : nil,
+                            pending_menu_photo_url: menuChanged ? submittedMenu : nil,
+                            photo_review_status: "pending",
+                            photo_review_created_at: nowIso
+                        )
+                    )
+                    .eq("owner_email", value: venueOwnerEmail)
+                    .execute()
+
+                // Fire-and-forget admin email notification for photo review.
+                struct NotifyResponse: Decodable { let ok: Bool? }
+                struct NotifyPayload: Encodable {
+                    let venue_id: String
+                    let venue_name: String
+                    let owner_email: String
+                    let created_at: String
+                    let photo_review_status: String
+                    let old_cover_photo_url: String
+                    let old_menu_photo_url: String
+                    let pending_cover_photo_url: String
+                    let pending_menu_photo_url: String
+                    let photo_urls: [String]
+                }
+
+                let venueId = existingProfile?.id?.uuidString ?? ""
+                if !venueId.isEmpty {
+                    let payload = NotifyPayload(
+                        venue_id: venueId,
+                        venue_name: ownerVenueName,
+                        owner_email: venueOwnerEmail,
+                        created_at: nowIso,
+                        photo_review_status: "pending",
+                        old_cover_photo_url: existingCover,
+                        old_menu_photo_url: existingMenu,
+                        pending_cover_photo_url: coverChanged ? submittedCover : "",
+                        pending_menu_photo_url: menuChanged ? submittedMenu : "",
+                        photo_urls: [submittedCover, submittedMenu]
+                            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                            .filter { !$0.isEmpty }
+                    )
+                    Task.detached {
+                        do {
+                            let _: NotifyResponse = try await supabase.functions.invoke(
+                                "notify-venue-photo-change",
+                                options: FunctionInvokeOptions(method: .post, body: payload)
+                            )
+                        } catch {
+#if DEBUG
+                            print("VenuePhotoChange: notify failed (non-blocking):", error)
+#endif
+                        }
+                    }
+                }
+
+                // Keep the approved (public) photos in local state; pending photos are stored server-side.
+                await MainActor.run {
+                    venueCoverPhotoURL = existingCover
+                    venueMenuPhotoURL = existingMenu
+                }
+            }
 
             print("VENUE PROFILE SAVED")
             await loadVenuesFromSupabase()
