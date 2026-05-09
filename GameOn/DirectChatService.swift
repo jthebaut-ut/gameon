@@ -2,6 +2,10 @@ import Foundation
 import Supabase
 
 /// PostgREST + RPC for 1:1 direct chat. Does not touch ``MapViewModel``.
+///
+/// **Schema note:** When migration `20260510_0001_private_messaging_safety.sql` (or equivalent) is applied,
+/// `direct_messages.is_deleted` is used to hide moderated rows. Until then, queries fall back to `deleted_at`-only filtering
+/// so chat keeps working if the column is missing.
 final class DirectChatService {
 
     private let client: SupabaseClient
@@ -32,21 +36,26 @@ final class DirectChatService {
         return try Self.decodeUUIDFromRPCData(data)
     }
 
+    /// Clears/hides conversation history for participants (same RPC as in-app “Clear chat history”). Server defines semantics.
+    func clearDirectConversation(conversationId: UUID) async throws {
+        struct Params: Encodable {
+            let p_conversation_id: UUID
+        }
+        try await client
+            .rpc("clear_direct_conversation", params: Params(p_conversation_id: conversationId))
+            .execute()
+    }
+
     /// Latest `limit` messages, oldest-first for natural scrolling.
     func fetchLatestMessages(conversationId: UUID, limit: Int = 50) async throws -> [DirectMessageRow] {
-        let rows: [DirectMessageRow] = try await client
-            .from("direct_messages")
-            .select()
-            .eq("conversation_id", value: conversationId)
-            .is("deleted_at", value: nil)
-            // Hide soft-deleted / moderated rows when `is_deleted` is present (pre-migration rows remain visible).
-            .or("is_deleted.is.null,is_deleted.eq.false")
-            .order("created_at", ascending: false)
-            .limit(limit)
-            .execute()
-            .value
-
-        return rows.reversed()
+        do {
+            return try await fetchLatestMessagesWithIsDeletedFilter(conversationId: conversationId, limit: limit)
+        } catch {
+            if Self.shouldFallbackToLegacyDirectMessagesQuery(error) {
+                return try await fetchLatestMessagesDeletedAtOnly(conversationId: conversationId, limit: limit)
+            }
+            throw error
+        }
     }
 
     func sendMessage(conversationId: UUID, senderId: UUID, body: String) async throws -> DirectMessageRow {
@@ -126,7 +135,7 @@ final class DirectChatService {
             for cid in conversationIds {
                 let threshold = readThrough[cid] ?? Date(timeIntervalSince1970: 0)
                 group.addTask {
-                    try await Self.countUnreadPeerMessages(
+                    try await Self.countUnreadPeerMessagesWithFallback(
                         client: supabase,
                         conversationId: cid,
                         readerId: me,
@@ -153,7 +162,71 @@ final class DirectChatService {
         return rows.compactMap(\.id)
     }
 
-    private static func countUnreadPeerMessages(
+    private func fetchLatestMessagesWithIsDeletedFilter(conversationId: UUID, limit: Int) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select()
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or("is_deleted.is.null,is_deleted.eq.false")
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.reversed()
+    }
+
+    private func fetchLatestMessagesDeletedAtOnly(conversationId: UUID, limit: Int) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select()
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .order("created_at", ascending: false)
+            .limit(limit)
+            .execute()
+            .value
+        return rows.reversed()
+    }
+
+    /// Postgres / PostgREST errors when `is_deleted` has not been migrated yet.
+    private static func shouldFallbackToLegacyDirectMessagesQuery(_ error: Error) -> Bool {
+        let text = error.localizedDescription.lowercased()
+        if text.contains("is_deleted") {
+            if text.contains("does not exist") { return true }
+            if text.contains("undefined column") { return true }
+            if text.contains("42703") { return true } // undefined_column
+        }
+        return false
+    }
+
+    private static func countUnreadPeerMessagesWithFallback(
+        client: SupabaseClient,
+        conversationId: UUID,
+        readerId: UUID,
+        after threshold: Date
+    ) async throws -> Int {
+        do {
+            return try await countUnreadPeerMessagesWithIsDeleted(
+                client: client,
+                conversationId: conversationId,
+                readerId: readerId,
+                after: threshold
+            )
+        } catch {
+            if shouldFallbackToLegacyDirectMessagesQuery(error) {
+                return try await countUnreadPeerMessagesDeletedAtOnly(
+                    client: client,
+                    conversationId: conversationId,
+                    readerId: readerId,
+                    after: threshold
+                )
+            }
+            throw error
+        }
+    }
+
+    private static func countUnreadPeerMessagesWithIsDeleted(
         client: SupabaseClient,
         conversationId: UUID,
         readerId: UUID,
@@ -167,6 +240,24 @@ final class DirectChatService {
             .neq("sender_id", value: readerId)
             .is("deleted_at", value: nil)
             .or("is_deleted.is.null,is_deleted.eq.false")
+            .gt("created_at", value: iso)
+            .execute()
+        return response.count ?? 0
+    }
+
+    private static func countUnreadPeerMessagesDeletedAtOnly(
+        client: SupabaseClient,
+        conversationId: UUID,
+        readerId: UUID,
+        after threshold: Date
+    ) async throws -> Int {
+        let iso = isoTimestamp(threshold)
+        let response = try await client
+            .from("direct_messages")
+            .select("id", count: .exact)
+            .eq("conversation_id", value: conversationId)
+            .neq("sender_id", value: readerId)
+            .is("deleted_at", value: nil)
             .gt("created_at", value: iso)
             .execute()
         return response.count ?? 0

@@ -190,6 +190,19 @@ struct FriendsTabView: View {
         .onDisappear {
             viewModel.setInboxRealtimeEnabled(false)
         }
+        .alert(
+            "Couldn’t delete conversation",
+            isPresented: Binding(
+                get: { viewModel.inboxDeleteError != nil },
+                set: { if !$0 { viewModel.inboxDeleteError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                viewModel.inboxDeleteError = nil
+            }
+        } message: {
+            Text(viewModel.inboxDeleteError ?? "")
+        }
     }
 
     private var friendsList: some View {
@@ -208,6 +221,15 @@ struct FriendsTabView: View {
                             DirectChatView(friend: item.preview)
                         } label: {
                             friendRow(item)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await viewModel.clearInboxConversation(withFriendUserId: item.id)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
                 }

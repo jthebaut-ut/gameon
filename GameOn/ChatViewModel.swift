@@ -41,6 +41,8 @@ final class ChatViewModel: ObservableObject {
     /// Unread peer DMs (Chat tab capsule + app icon badge when synced). Friend requests stay in the Requests segment only.
     @Published private(set) var unreadDirectMessageCount: Int = 0
     @Published var errorMessage: String?
+    /// Shown when swipe-delete (inbox clear) fails; kept separate from ``errorMessage`` so friend-request errors don’t clash.
+    @Published var inboxDeleteError: String?
     @Published private(set) var requiresSignIn: Bool = false
     @Published var isLoading: Bool = false
 
@@ -87,6 +89,7 @@ final class ChatViewModel: ObservableObject {
         pendingBadgeCount = 0
         await setUnreadDirectMessageCountAndSyncAppIcon(0)
         errorMessage = nil
+        inboxDeleteError = nil
         requiresSignIn = true
         lastLoadAt = nil
         friendshipChipByOtherUserId = [:]
@@ -302,6 +305,24 @@ final class ChatViewModel: ObservableObject {
             await refreshInboxSummaries()
         } catch {
             // Keep UI lightweight; surface errors only if needed later.
+        }
+    }
+
+    /// Swipe-delete from inbox: calls the same `clear_direct_conversation` RPC as in-thread “Clear chat history”.
+    /// Does not remove the friendship; only clears/hides the thread per server rules.
+    func clearInboxConversation(withFriendUserId friendUserId: UUID) async {
+        let snapshot = friends
+        inboxDeleteError = nil
+        do {
+            let cid = try await directChatService.startDirectConversation(friendUserId: friendUserId)
+            try await directChatService.clearDirectConversation(conversationId: cid)
+            friends.removeAll { $0.id == friendUserId }
+            let totalUnread = friends.reduce(0) { $0 + $1.unreadCount }
+            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+            await refreshInboxSummaries()
+        } catch {
+            friends = snapshot
+            inboxDeleteError = error.localizedDescription
         }
     }
 
