@@ -132,6 +132,24 @@ extension MapViewModel {
     func submitVenueClaim() {
         Task {
             do {
+                struct NotifyVenueClaimPayload: Encodable {
+                    let venue_name: String
+                    let owner_email: String
+                    let address: String
+                    let phone: String
+                    let website: String
+                    let description: String
+                    let photo_urls: [String]
+                    let created_at: String
+                    let approval_status: String
+                }
+
+                func isoNow() -> String {
+                    let f = ISO8601DateFormatter()
+                    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    return f.string(from: Date())
+                }
+
                 let claim = VenueClaimInsert(
                     owner_email: venueOwnerEmail,
                     venue_name: ownerVenueName,
@@ -162,6 +180,50 @@ extension MapViewModel {
                 await MainActor.run {
                     venueClaimSubmitted = true
                     venueClaimStatus = "Pending Review"
+                }
+
+                // Fire-and-forget admin email notification (does NOT block claim submission).
+                // TODO: If Edge Function/RLS evolves, consider moving this to a DB trigger so emails cannot be bypassed.
+                struct NotifyVenueClaimResponse: Decodable { let ok: Bool? }
+                let payload = NotifyVenueClaimPayload(
+                    venue_name: ownerVenueName,
+                    owner_email: venueOwnerEmail,
+                    address: [
+                        ownerVenueAddress,
+                        ownerVenueCity,
+                        ownerVenueState,
+                        ownerVenueZipCode,
+                    ]
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: ", "),
+                    phone: ownerVenuePhone,
+                    website: ownerVenueWebsite,
+                    description: ownerVenueDescription,
+                    photo_urls: [
+                        venueCoverPhotoURL,
+                        venueMenuPhotoURL,
+                        venueCrowdPhotoURL,
+                        venueTVWallPhotoURL,
+                        venueSpecialsPhotoURL,
+                    ]
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty },
+                    created_at: isoNow(),
+                    approval_status: "pending"
+                )
+
+                Task.detached {
+                    do {
+                        let _: NotifyVenueClaimResponse = try await supabase.functions.invoke(
+                            "notify-venue-claim",
+                            options: FunctionInvokeOptions(method: .post, body: payload)
+                        )
+                    } catch {
+#if DEBUG
+                        print("VenueClaim: notify-venue-claim failed (non-blocking):", error)
+#endif
+                    }
                 }
 
             } catch {
