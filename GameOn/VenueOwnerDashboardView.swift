@@ -64,6 +64,10 @@ struct VenueOwnerDashboardView: View {
     @State private var hasGarden = false
     @State private var hasProjector = false
     @State private var isPetFriendly = false
+    /// Local-only until Supabase venue profile exposes matching columns (not sent in ``saveVenueProfile``).
+    @State private var hasParkingAvailable = false
+    @State private var hasEasyParking = false
+    @State private var isFamilyFriendly = false
     @State private var totalScreens = 1
     @State private var profileSaveMessage = ""
     @State private var venueStreetAddress = ""
@@ -72,6 +76,9 @@ struct VenueOwnerDashboardView: View {
     @State private var venueZipCode = ""
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var selectedMenuPhoto: PhotosPickerItem?
+    /// URLs used only for Bar/Menu previews (may include `?v=` / `&v=` cache bust). Supabase / viewModel URLs stay clean.
+    @State private var displayedCoverPhotoURL = ""
+    @State private var displayedMenuPhotoURL = ""
     @State private var analyticsGames: [VenueEventRow] = []
     @State private var analyticsIsLoading = false
     @State private var analyticsDatePreset: VenueAnalyticsDatePreset = .thisMonth
@@ -201,6 +208,7 @@ struct VenueOwnerDashboardView: View {
                 viewModel.venueCoverPhotoThumbnailURL = saved.cover_photo_thumbnail_url ?? ""
                 viewModel.venueMenuPhotoThumbnailURL = saved.menu_photo_thumbnail_url ?? ""
             }
+            syncDisplayedVenuePhotoURLsFromViewModel()
         }
         
         .onChange(of: selectedCoverPhoto) { _, newItem in
@@ -209,6 +217,7 @@ struct VenueOwnerDashboardView: View {
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
                         viewModel.venueCoverPhotoURL = url
+                        displayedCoverPhotoURL = venuePhotoURLWithCacheBust(url)
                         profileSaveMessage = "Cover photo uploaded. Tap Save Profile to save changes."
                     }
                 }
@@ -220,6 +229,7 @@ struct VenueOwnerDashboardView: View {
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
                     await MainActor.run {
                         viewModel.venueMenuPhotoURL = url
+                        displayedMenuPhotoURL = venuePhotoURLWithCacheBust(url)
                         profileSaveMessage = "Menu photo uploaded. Tap Save Profile to save changes."
                     }
                 }
@@ -311,64 +321,57 @@ struct VenueOwnerDashboardView: View {
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
             field("Features: Big Screens, Patio, Sound On", text: $viewModel.ownerVenueFeatures)
-            
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Venue Features")
-                    .font(.headline)
-                    .fontWeight(.bold)
 
-                Stepper("Number of screens: \(totalScreens)", value: $totalScreens, in: 1...100)
+            VStack(alignment: .leading, spacing: 28) {
+                venueOwnerVenueFeaturesCard()
 
-                Toggle("Serves food / drinks", isOn: $hasFood)
-                Toggle("WiFi available", isOn: $hasWifi)
-                Toggle("Garden / patio", isOn: $hasGarden)
-                Toggle("Projector available", isOn: $hasProjector)
-                Toggle("Pet friendly", isOn: $isPetFriendly)
-            }
-            .padding()
-            .background(Color.gray.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            
-            venueProfilePhotoEditor(
-                title: "Bar Photo",
-                subtitle: "Main photo of your venue",
-                fullImageURL: viewModel.venueCoverPhotoURL,
-                thumbnailURL: viewModel.venueCoverPhotoThumbnailURL,
-                selection: $selectedCoverPhoto
-            )
+                venueProfilePhotoEditor(
+                    title: "Bar Photo",
+                    subtitle: "Main photo of your venue",
+                    fullImageURL: displayedCoverPhotoURL,
+                    thumbnailURL: venuePhotoPreviewURL(
+                        storageURL: viewModel.venueCoverPhotoThumbnailURL,
+                        displayTemplateURL: displayedCoverPhotoURL
+                    ),
+                    selection: $selectedCoverPhoto
+                )
 
-            venueProfilePhotoEditor(
-                title: "Menu Photo",
-                subtitle: "Food or drink menu photo",
-                fullImageURL: viewModel.venueMenuPhotoURL,
-                thumbnailURL: viewModel.venueMenuPhotoThumbnailURL,
-                selection: $selectedMenuPhoto
-            )
+                venueProfilePhotoEditor(
+                    title: "Menu Photo",
+                    subtitle: "Food or drink menu photo",
+                    fullImageURL: displayedMenuPhotoURL,
+                    thumbnailURL: venuePhotoPreviewURL(
+                        storageURL: viewModel.venueMenuPhotoThumbnailURL,
+                        displayTemplateURL: displayedMenuPhotoURL
+                    ),
+                    selection: $selectedMenuPhoto
+                )
 
-            Button {
-                profileSaveMessage = "Saving..."
+                Button {
+                    profileSaveMessage = "Saving..."
 
-                viewModel.ownerVenueAddress = "\(venueStreetAddress), \(venueCity), \(venueState) \(venueZipCode)"
-                Task {
-                    let success = await viewModel.saveVenueProfile(
-                        streetAddress: venueStreetAddress,
-                        city: venueCity,
-                        state: venueState,
-                        zipCode: venueZipCode,
-                        screenCount: totalScreens,
-                        servesFood: hasFood,
-                        hasWifi: hasWifi,
-                        hasGarden: hasGarden,
-                        hasProjector: hasProjector,
-                        petFriendly: isPetFriendly
-                    )
+                    viewModel.ownerVenueAddress = "\(venueStreetAddress), \(venueCity), \(venueState) \(venueZipCode)"
+                    Task {
+                        let success = await viewModel.saveVenueProfile(
+                            streetAddress: venueStreetAddress,
+                            city: venueCity,
+                            state: venueState,
+                            zipCode: venueZipCode,
+                            screenCount: totalScreens,
+                            servesFood: hasFood,
+                            hasWifi: hasWifi,
+                            hasGarden: hasGarden,
+                            hasProjector: hasProjector,
+                            petFriendly: isPetFriendly
+                        )
 
-                    await MainActor.run {
-                        profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
+                        await MainActor.run {
+                            profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
+                        }
                     }
+                } label: {
+                    primaryButtonText("Save Profile")
                 }
-            } label: {
-                primaryButtonText("Save Profile")
             }
 
             if !profileSaveMessage.isEmpty {
@@ -378,16 +381,38 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
-
-            Text("PROFILE_SECTION_END_2026")
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundStyle(.cyan)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("PROFILE_SECTION_END_2026")
         }
     }
-    
+
+    private func venueOwnerVenueFeaturesCard() -> some View {
+        let columns: [GridItem] = [
+            GridItem(.flexible(), spacing: 6),
+            GridItem(.flexible(), spacing: 6),
+            GridItem(.flexible(), spacing: 6)
+        ]
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Venue Features")
+                .font(.headline)
+                .fontWeight(.bold)
+
+            LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
+                VenueOwnerScreensFeatureTile(totalScreens: $totalScreens)
+                VenueOwnerFeatureToggleTile(icon: "fork.knife", label: "Food / Drinks", isOn: $hasFood)
+                VenueOwnerFeatureToggleTile(icon: "wifi", label: "WiFi", isOn: $hasWifi)
+                VenueOwnerFeatureToggleTile(icon: "chair.lounge.fill", label: "Patio", isOn: $hasGarden)
+                VenueOwnerFeatureToggleTile(icon: "video.fill", label: "Projector", isOn: $hasProjector)
+                VenueOwnerFeatureToggleTile(icon: "pawprint.fill", label: "Pet Friendly", isOn: $isPetFriendly)
+                VenueOwnerFeatureToggleTile(icon: "car.fill", label: "Parking Available", isOn: $hasParkingAvailable)
+                VenueOwnerFeatureToggleTile(icon: "parkingsign.circle.fill", label: "Easy Parking", isOn: $hasEasyParking)
+                VenueOwnerFeatureToggleTile(icon: "figure.2.and.child.holdinghands", label: "Family Friendly", isOn: $isFamilyFriendly)
+            }
+        }
+        .padding(12)
+        .background(Color.gray.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
     private let usStates = [
         "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
         "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
@@ -1293,8 +1318,45 @@ struct VenueOwnerDashboardView: View {
             .background(Color.gray.opacity(0.10))
             .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+
+    private func syncDisplayedVenuePhotoURLsFromViewModel() {
+        displayedCoverPhotoURL = viewModel.venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        displayedMenuPhotoURL = viewModel.venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Preview-only cache bust; `viewModel` / DB keep the clean URL from upload.
+    private func venuePhotoURLWithCacheBust(_ cleanBase: String) -> String {
+        let t = String(Date().timeIntervalSince1970)
+        let trimmed = cleanBase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        let sep = trimmed.contains("?") ? "&" : "?"
+        return "\(trimmed)\(sep)v=\(t)"
+    }
+
+    /// Uses the same `v` query as `displayTemplateURL` (when present) on `storageURL` so full + thumbnail previews refresh together.
+    private func venuePhotoPreviewURL(storageURL: String, displayTemplateURL: String) -> String {
+        let storage = storageURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !storage.isEmpty else { return "" }
+        let template = displayTemplateURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let templateComponents = URLComponents(string: template),
+              let templateItems = templateComponents.queryItems,
+              let vValue = templateItems.first(where: { $0.name == "v" })?.value,
+              !vValue.isEmpty
+        else {
+            return storage
+        }
+        guard var storageComponents = URLComponents(string: storage) else {
+            let sep = storage.contains("?") ? "&" : "?"
+            return "\(storage)\(sep)v=\(vValue)"
+        }
+        var q = storageComponents.queryItems ?? []
+        q.removeAll { $0.name == "v" }
+        q.append(URLQueryItem(name: "v", value: vValue))
+        storageComponents.queryItems = q
+        return storageComponents.string ?? storage
+    }
     
-    /// Section title and subtitle sit outside ``PhotosPicker``; the picker’s label is only the preview card.
+    /// Titles sit outside ``PhotosPicker``. The picker label is the preview plus a full-width black CTA under it (one tappable block, no second photo row).
     private func venueProfilePhotoEditor(
         title: String,
         subtitle: String,
@@ -1318,20 +1380,12 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if title == "Menu Photo" {
-                Text("ACTIVE_RUNTIME_MENU_BLOCK_2026")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.orange)
-                    .accessibilityIdentifier("ACTIVE_RUNTIME_MENU_BLOCK_2026")
-            }
-
             PhotosPicker(selection: selection, matching: .images) {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(Color.gray.opacity(0.10))
-                    .frame(height: 140)
-                    .overlay {
-                        ZStack(alignment: .bottom) {
+                VStack(alignment: .leading, spacing: 10) {
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(Color.gray.opacity(0.10))
+                        .frame(height: 140)
+                        .overlay {
                             Group {
                                 if previewURL.isEmpty {
                                     Image(systemName: "photo")
@@ -1345,20 +1399,15 @@ struct VenueOwnerDashboardView: View {
                                     } placeholder: {
                                         ProgressView()
                                     }
+                                    .id(previewURL)
                                 }
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                            Text(hasPreview ? "Tap to replace photo" : "Tap to upload photo")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 10)
-                                .background(Color.black.opacity(0.88))
-                                .foregroundStyle(.white)
                         }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+
+                    primaryButtonText(hasPreview ? "Tap to replace photo" : "Tap to upload photo")
+                }
             }
             .buttonStyle(.plain)
         }
@@ -1372,6 +1421,100 @@ struct VenueOwnerDashboardView: View {
             .background(Color.black)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+// MARK: - Venue owner venue features grid
+
+private struct VenueOwnerScreensFeatureTile: View {
+    @Binding var totalScreens: Int
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: "display")
+                .font(.title2)
+                .foregroundStyle(Color.green)
+
+            Text("\(totalScreens) Screens")
+                .font(.caption)
+                .fontWeight(.bold)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.primary)
+                .minimumScaleFactor(0.75)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity)
+
+            HStack(spacing: 0) {
+                Button {
+                    if totalScreens > 1 { totalScreens -= 1 }
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(totalScreens > 1 ? Color.primary : Color.secondary.opacity(0.35))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+                .disabled(totalScreens <= 1)
+                .accessibilityLabel("Decrease screen count")
+
+                Rectangle()
+                    .fill(Color.secondary.opacity(0.22))
+                    .frame(width: 1, height: 14)
+
+                Button {
+                    if totalScreens < 100 { totalScreens += 1 }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(totalScreens < 100 ? Color.primary : Color.secondary.opacity(0.35))
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(.plain)
+                .disabled(totalScreens >= 100)
+                .accessibilityLabel("Increase screen count")
+            }
+            .frame(width: 104, height: 26)
+            .frame(maxWidth: .infinity)
+            .background(Color.gray.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 4)
+    }
+}
+
+private struct VenueOwnerFeatureToggleTile: View {
+    let icon: String
+    let label: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(isOn ? Color.green : Color.gray.opacity(0.62))
+
+                Text(label)
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(isOn ? Color.primary : Color.secondary)
+                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(isOn ? "On" : "Off")
     }
 }
 
