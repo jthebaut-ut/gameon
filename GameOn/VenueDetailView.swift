@@ -6,12 +6,21 @@ struct VenueDetailView: View {
     let isFavorite: Bool
     let goingCount: Int
     let iconForSport: (String) -> String
+    /// When nil, falls back to ``BarVenue/rating``.
+    var mergedRating: Double? = nil
+    var reviewCountText: String? = nil
     let onDirections: () -> Void
     let onCall: () -> Void
     let onFavorite: () -> Void
+    var onAddressTap: (() -> Void)? = nil
+    var onRateVenue: (() -> Void)? = nil
     let experience: VenueExperience?
     var coverPhotoURL: String? = nil
     var menuPhotoURL: String? = nil
+
+    private var resolvedRating: Double {
+        mergedRating ?? bar.rating
+    }
 
     var body: some View {
         ScrollView {
@@ -47,24 +56,45 @@ struct VenueDetailView: View {
                         Text(bar.name)
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                        
-                        Text(bar.address)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+
+                        Button {
+                            (onAddressTap ?? onDirections)()
+                        } label: {
+                            Text(bar.address)
+                                .font(.subheadline)
+                                .foregroundStyle(.blue)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    
+
                     Spacer()
-                    
+
                     Button(action: onFavorite) {
                         Image(systemName: isFavorite ? "heart.fill" : "heart")
                             .font(.title2)
                             .foregroundStyle(isFavorite ? .red : .secondary)
                     }
                 }
-                
+
                 HStack {
                     infoBox(title: bar.distance, subtitle: "Away", icon: "location.fill")
-                    infoBox(title: String(format: "%.1f", bar.rating), subtitle: "Rating", icon: "star.fill")
+                    if let onRateVenue {
+                        Button(action: onRateVenue) {
+                            infoBox(
+                                title: String(format: "%.1f", resolvedRating),
+                                subtitle: reviewCountText ?? "Reviews",
+                                icon: "star.fill"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        infoBox(
+                            title: String(format: "%.1f", resolvedRating),
+                            subtitle: reviewCountText ?? "Rating",
+                            icon: "star.fill"
+                        )
+                    }
                     infoBox(title: bar.primarySport, subtitle: "Sport", icon: iconForSport(bar.primarySport))
                 }
                 if let experience {

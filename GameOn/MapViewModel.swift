@@ -105,6 +105,18 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserAvatarURL: String = ""
     @Published var goingUserProfiles: [UserProfileRow] = []
     @Published var venueSearchResults: [BarVenue] = []
+    /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).
+    @Published var discoverNavigateToAccountForUserAuth: Bool = false
+    /// Following → Saved Venues: Discover tab consumes this to focus the map (see ``MapViewModel+FollowingMapNavigation``).
+    @Published var pendingFollowingMapVenueID: UUID?
+    /// Brief user-visible hint when opening a saved venue on the map fails (geocode / missing row).
+    @Published var followingMapNavigationMessage: String?
+    /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
+    @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
+    /// User’s 1–5 star rating per venue (local only).
+    @Published var venueUserStarRatings: [UUID: Int] = [:]
+    /// How many times the user saved a rating (drives review count display).
+    @Published var venueRatingContributionCount: [UUID: Int] = [:]
 
     enum MapPinDisplayMode {
         case simple

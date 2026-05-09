@@ -186,29 +186,17 @@ struct CalendarScreen: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(viewModel.sports, id: \.self) { sport in
-                    Button {
+                    SportFilterChip(
+                        sport: sport,
+                        isSelected: viewModel.selectedSport == sport
+                    ) {
                         withAnimation(.spring()) {
                             viewModel.sportChanged(to: sport)
                         }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if sport != "All" {
-                                Image(systemName: viewModel.iconForSport(sport))
-                            }
-                            
-                            Text(sport)
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .foregroundStyle(viewModel.selectedSport == sport ? .white : .black)
-                        .background(viewModel.selectedSport == sport ? Color.black : Color.gray.opacity(0.10))
-                        .clipShape(Capsule())
                     }
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 4)
         }
     }
     

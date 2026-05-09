@@ -38,11 +38,6 @@ extension MapViewModel {
         return bar.goingCounts[selectedEvent.title] ?? 0
     }
 
-    /// Bars after Discover filters; recovery build uses full `bars` until map filter extensions return.
-    var filteredBars: [BarVenue] {
-        bars
-    }
-
     func openDirections(to bar: BarVenue) {
         let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: bar.coordinate))
         mapItem.name = bar.name
@@ -60,41 +55,11 @@ extension MapViewModel {
     }
 
     func iconForSport(_ sport: String) -> String {
+        SportFilterCatalog.resolve(sport).systemImage
+    }
 
-        switch sport {
-
-        case "Soccer":
-            return "soccerball"
-
-        case "NBA":
-            return "basketball.fill"
-
-        case "NFL":
-            return "football.fill"
-
-        case "NHL":
-            return "hockey.puck.fill"
-
-        case "Baseball":
-            return "baseball.fill"
-
-        case "Softball":
-            return "circle.fill"
-
-        case "Tennis":
-            return "tennisball.fill"
-
-        case "Cricket":
-            return "cricket.ball.fill"
-
-        case "UFC":
-            return "figure.boxing"
-            
-        case "Golf":
-            return "figure.golf"
-
-        default:
-            return "sportscourt.fill"
-        }
+    /// Brand-style tint for map pins, game rows, and sport chips (see ``SportFilterCatalog``).
+    func colorForSport(_ sport: String) -> Color {
+        SportFilterCatalog.resolve(sport).accent
     }
 }

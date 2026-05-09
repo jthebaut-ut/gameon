@@ -103,4 +103,60 @@ extension MapViewModel {
             print("ERROR REMOVING FAVORITE VENUE:", error)
         }
     }
+
+    /// Optimistically updates ``favoriteVenueIDs``, writes to Supabase, reconciles on success, or restores on failure.
+    @discardableResult
+    func setVenueFavorite(bar: BarVenue, isFavorite: Bool) async -> Bool {
+        guard isLoggedIn, !currentUserEmail.isEmpty else { return false }
+
+        let previous = favoriteVenueIDs
+        await MainActor.run {
+            if isFavorite {
+                favoriteVenueIDs.insert(bar.id)
+            } else {
+                favoriteVenueIDs.remove(bar.id)
+            }
+        }
+
+        do {
+            if isFavorite {
+                let session = try await supabase.auth.session
+                let email = session.user.email ?? ""
+                guard !email.isEmpty else { throw NSError(domain: "GameOn", code: 1) }
+
+                let favorite = FavoriteVenueInsert(
+                    user_email: email,
+                    venue_id: bar.id
+                )
+
+                try await supabase
+                    .from("favorite_venues")
+                    .insert(favorite)
+                    .execute()
+            } else {
+                try await supabase
+                    .from("favorite_venues")
+                    .delete()
+                    .eq("user_email", value: currentUserEmail)
+                    .eq("venue_id", value: bar.id)
+                    .execute()
+            }
+
+            await loadFavoriteVenuesFromSupabase()
+            return true
+        } catch {
+            let message = error.localizedDescription.lowercased()
+
+            if isFavorite, message.contains("duplicate key") || message.contains("23505") {
+                await loadFavoriteVenuesFromSupabase()
+                return true
+            }
+
+            await MainActor.run {
+                favoriteVenueIDs = previous
+            }
+            print("ERROR SETTING FAVORITE:", error)
+            return false
+        }
+    }
 }

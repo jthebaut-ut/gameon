@@ -17,7 +17,7 @@ struct CommentFriendshipChip: View {
                 .disabled(isSending)
 
             case .pending:
-                label("Pending", style: .muted)
+                label("Requested", style: .muted)
 
             case .friends:
                 label("Friends", style: .muted)

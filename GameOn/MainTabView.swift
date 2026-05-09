@@ -86,7 +86,20 @@ struct MainTabView: View {
                 Task { await chatViewModel.clearForLogout() }
             }
         }
+        .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
+            guard go else { return }
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.account.rawValue
+            }
+            viewModel.discoverNavigateToAccountForUserAuth = false
+        }
         .environmentObject(chatViewModel)
+        .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
+            guard id != nil else { return }
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.discover.rawValue
+            }
+        }
     }
 
     /// Independent overlay: does not participate in `DirectChatView` layout; hidden during DM threads via ``ChatViewModel/hidesFloatingTabBarForDirectChat``.

@@ -23,10 +23,20 @@ struct EventCalendarView: View {
     }
 
     @State private var displayedMonth: Date = SampleData.makeDate(year: 2026, month: 6, day: 1)
-    
+
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
     private let calendar = Calendar.current
-    
+
+    private var calendarToday: Date {
+        calendar.startOfDay(for: Date())
+    }
+
+    /// True when the grid is already showing the current month and today is the selected day.
+    private var isAlreadyTodaySelection: Bool {
+        calendar.isDate(selectedDate, inSameDayAs: calendarToday)
+            && calendar.isDate(displayedMonth, equalTo: calendarToday, toGranularity: .month)
+    }
+
     var body: some View {
         VStack(spacing: 18) {
             
@@ -103,22 +113,57 @@ struct EventCalendarView: View {
                 }
             }
             
-            Button {
-                onDone()
-            } label: {
-                Text("Done")
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.black)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+            HStack(spacing: 10) {
+                Button {
+                    jumpToTodayAndApply()
+                } label: {
+                    Text("Today")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 14)
+                        .frame(minWidth: 92)
+                        .background {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                        }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1)
+                        )
+                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+                .disabled(isAlreadyTodaySelection)
+                .opacity(isAlreadyTodaySelection ? 0.42 : 1)
+
+                Button {
+                    onDone()
+                } label: {
+                    Text("Done")
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding()
         .onAppear {
             displayedMonth = startOfMonth(selectedDate)
         }
+    }
+
+    private func jumpToTodayAndApply() {
+        let today = calendarToday
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+            displayedMonth = startOfMonth(today)
+            selectedDate = today
+        }
+        onDone()
     }
     
     private var calendarDays: [Date?] {

@@ -8,8 +8,13 @@ struct DiscoverScreen: View {
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
     @State private var selectedCommentsEventID: UUID?
+    @State private var showVenueRatingSheet = false
     @State private var mapVenueReloadTask: Task<Void, Never>?
     @State private var lastMapVenueReloadRegion: MKCoordinateRegion?
+    /// Multi-venue map cluster: sheet lists venues after tap (zoom runs first).
+    @State private var clusterForSheet: VenueCluster?
+    /// After opening Account from the Discover gate, restore this venue once fan login succeeds.
+    @State private var pendingResumeVenueIDAfterLogin: UUID?
     private let livePulseThreshold = 16
 
     
@@ -21,10 +26,26 @@ struct DiscoverScreen: View {
             VStack(spacing: 12) {
                 adBanner
                 topControlArea
+                if let mapHint = viewModel.followingMapNavigationMessage, !mapHint.isEmpty {
+                    Text(mapHint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
                 Spacer()
                 
                 if let selectedBar = viewModel.selectedBar {
-                    venuePreviewCard(selectedBar)
+                    if viewModel.isLoggedIn {
+                        venuePreviewCard(selectedBar)
+                    } else {
+                        loggedOutVenueTeaserCard(selectedBar)
+                    }
                 } else {
                     nearbySummaryCard
                 }
@@ -36,9 +57,41 @@ struct DiscoverScreen: View {
             
         }
     .task {
+        viewModel.reloadVenueUserRatingsFromStorage()
         await viewModel.loadVisibleVenueEventInterests()
     }
-    .sheet(isPresented: $showVenueDetails) {
+    .onChange(of: viewModel.selectedDate) { _, _ in
+        viewModel.pruneSelectionIfNeededAfterFilterChange()
+    }
+    .onChange(of: viewModel.searchText) { _, _ in
+        viewModel.pruneSelectionIfNeededAfterFilterChange()
+    }
+    .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
+        guard id != nil else { return }
+        Task {
+            await viewModel.consumeFollowingVenueNavigationIfPending()
+        }
+    }
+    .onChange(of: viewModel.isLoggedIn) { wasLoggedIn, isLoggedIn in
+        if !isLoggedIn {
+            showVenueDetails = false
+            showVenueRatingSheet = false
+            selectedCommentsEventID = nil
+            pendingResumeVenueIDAfterLogin = nil
+        } else if !wasLoggedIn, isLoggedIn, let venueID = pendingResumeVenueIDAfterLogin {
+            pendingResumeVenueIDAfterLogin = nil
+            if let bar = viewModel.bars.first(where: { $0.id == venueID })
+                ?? viewModel.filteredBars.first(where: { $0.id == venueID }) {
+                withAnimation(.spring()) {
+                    viewModel.selectedBar = bar
+                }
+            }
+        }
+    }
+    .sheet(isPresented: Binding(
+        get: { showVenueDetails && viewModel.isLoggedIn && viewModel.selectedBar != nil },
+        set: { if !$0 { showVenueDetails = false } }
+    )) {
             if let selectedBar = viewModel.selectedBar {
                 VenueDetailView(
                     bar: selectedBar,
@@ -46,9 +99,16 @@ struct DiscoverScreen: View {
                     isFavorite: viewModel.favoriteVenueIDs.contains(selectedBar.id),
                     goingCount: viewModel.displayedGoingCount(for: selectedBar),
                     iconForSport: viewModel.iconForSport,
+                    mergedRating: viewModel.mergedDisplayRating(for: selectedBar),
+                    reviewCountText: "\(viewModel.reviewCountDisplay(for: selectedBar)) reviews",
                     onDirections: { viewModel.openDirections(to: selectedBar) },
                     onCall: { viewModel.callVenue(selectedBar) },
                     onFavorite: { viewModel.toggleFavorite(selectedBar) },
+                    onAddressTap: { viewModel.openDirections(to: selectedBar) },
+                    onRateVenue: {
+                        showVenueDetails = false
+                        showVenueRatingSheet = true
+                    },
                     experience: viewModel.experience(for: selectedBar),
                     coverPhotoURL: selectedBar.coverPhotoURL,
                     menuPhotoURL: selectedBar.menuPhotoURL
@@ -58,16 +118,60 @@ struct DiscoverScreen: View {
             }
         }
     .sheet(isPresented: Binding(
-        get: { selectedCommentsEventID != nil },
+        get: { viewModel.isLoggedIn && selectedCommentsEventID != nil },
         set: { if !$0 { selectedCommentsEventID = nil } }
     )) {
-        if let eventID = selectedCommentsEventID {
+        if viewModel.isLoggedIn, let eventID = selectedCommentsEventID {
             VenueEventCommentsSheet(
                 viewModel: viewModel,
                 venueEventID: eventID
             )
         }
     }
+        .sheet(isPresented: Binding(
+            get: { showVenueRatingSheet && viewModel.isLoggedIn && viewModel.selectedBar != nil },
+            set: { if !$0 { showVenueRatingSheet = false } }
+        )) {
+            if let bar = viewModel.selectedBar {
+                VenueUserRatingSheet(viewModel: viewModel, bar: bar)
+            }
+        }
+        .sheet(item: $clusterForSheet) { cluster in
+            NavigationStack {
+                List {
+                    ForEach(cluster.bars.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) { bar in
+                        Button {
+                            clusterForSheet = nil
+                            withAnimation(.spring()) {
+                                viewModel.centerMap(on: bar)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(bar.name)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(bar.address)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .navigationTitle("\(cluster.count) venues")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            clusterForSheet = nil
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $showDatePicker) {
             EventCalendarView(
                 events: viewModel.events,
@@ -76,13 +180,9 @@ struct DiscoverScreen: View {
                 selectedDate: $viewModel.selectedDate
             ) {
                 withAnimation(.spring()) {
-                    viewModel.selectedBar = nil
-                    viewModel.selectedEvent = nil
-                    viewModel.selectedBar = nil
-                    viewModel.selectedEvent = nil
-                    viewModel.loadGamesFromSupabase()
-                    showDatePicker = false
+                    viewModel.dateChanged()
                 }
+                showDatePicker = false
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .zIndex(1000)
@@ -104,11 +204,9 @@ struct DiscoverScreen: View {
         return centerMoved || zoomChanged
     }
 
-    /// Events on `viewModel.selectedDate` only (same rules as `gamesForSelectedDate(at:)` date half — not `eventsForSelectedDate`).
-    private var eventsOnSelectedDateForMap: [SportsEvent] {
-        viewModel.events.filter {
-            Calendar.current.isDate($0.date, inSameDayAs: viewModel.selectedDate)
-        }
+    /// Map pins and venue cards use the same day + sport + search rules as the bottom summary (`filteredBars`).
+    private var discoverMapDayEvents: [SportsEvent] {
+        viewModel.eventsForSelectedDate
     }
 
     @ViewBuilder
@@ -126,10 +224,12 @@ struct DiscoverScreen: View {
                 viewModel.centerMap(on: bar)
             }
 
-            Task {
-                if let firstGame = gamesToday.first,
-                   let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: firstGame.title) {
-                    await viewModel.loadGoingUserProfiles(for: venueEventID)
+            if viewModel.isLoggedIn {
+                Task {
+                    if let firstGame = gamesToday.first,
+                       let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: firstGame.title) {
+                        await viewModel.loadGoingUserProfiles(for: venueEventID)
+                    }
                 }
             }
         } label: {
@@ -146,10 +246,34 @@ struct DiscoverScreen: View {
                 }
             }
         }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func multiVenueClusterAnnotation(cluster: VenueCluster, dayEvents: [SportsEvent]) -> some View {
+        let energy = viewModel.clusterVenueAnnotationEnergy(cluster: cluster, dayEvents: dayEvents)
+        Button {
+            #if DEBUG
+            print(
+                "[DiscoverMap] cluster tap id=\(cluster.id) count=\(cluster.count) maxEnergy=\(energy.maxScore) center=(\(cluster.coordinate.latitude),\(cluster.coordinate.longitude))"
+            )
+            #endif
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                viewModel.zoomTowardCluster(center: cluster.coordinate)
+            }
+            clusterForSheet = cluster
+        } label: {
+            clusterMapPin(
+                cluster: cluster,
+                maxEnergy: energy.maxScore,
+                dominantSport: energy.dominantSport
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var mapLayer: some View {
-        let dayEvents = eventsOnSelectedDateForMap
+        let dayEvents = discoverMapDayEvents
         return Map(position: $viewModel.cameraPosition) {
             UserAnnotation()
 
@@ -161,21 +285,7 @@ struct DiscoverScreen: View {
                     if cluster.count == 1, let bar = cluster.bars.first {
                         singleVenueMapPinButton(bar: bar, dayEvents: dayEvents)
                     } else {
-                        Button {
-                            withAnimation(.spring()) {
-                                viewModel.cameraPosition = .region(
-                                    MKCoordinateRegion(
-                                        center: cluster.coordinate,
-                                        span: MKCoordinateSpan(
-                                            latitudeDelta: max(viewModel.visibleLatitudeDelta / 2.5, 0.04),
-                                            longitudeDelta: max(viewModel.visibleLatitudeDelta / 2.5, 0.04)
-                                        )
-                                    )
-                                )
-                            }
-                        } label: {
-                            clusterMapPin(cluster)
-                        }
+                        multiVenueClusterAnnotation(cluster: cluster, dayEvents: dayEvents)
                     }
                 }
             }
@@ -309,27 +419,17 @@ struct DiscoverScreen: View {
                         .clipShape(Capsule())
                     }
                     ForEach(viewModel.sports, id: \.self) { sport in
-                        Button {
+                        SportFilterChip(
+                            sport: sport,
+                            isSelected: viewModel.selectedSport == sport
+                        ) {
                             withAnimation(.spring()) {
                                 viewModel.sportChanged(to: sport)
                             }
-                        } label: {
-                            HStack(spacing: 6) {
-                                if sport != "All" {
-                                    Image(systemName: viewModel.iconForSport(sport))
-                                }
-                                Text(sport)
-                            }
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .foregroundStyle(viewModel.selectedSport == sport ? Color.white : Color.primary)
-                            .background(viewModel.selectedSport == sport ? AnyShapeStyle(Color.black) : AnyShapeStyle(.regularMaterial))
-                            .clipShape(Capsule())
                         }
                     }
                 }
+                .padding(.horizontal, 4)
             }
         }
     }
@@ -368,7 +468,11 @@ struct DiscoverScreen: View {
                 Text(viewModel.selectedEvent?.title ?? "GameON")
                     .font(.headline)
                 
-                Text(viewModel.filteredBars.isEmpty ? "No venues match your selection" : "\(viewModel.filteredBars.count) venues match your selection")
+                Text(
+                    viewModel.filteredBars.isEmpty
+                        ? "0 venues match your selection"
+                        : "\(viewModel.filteredBars.count) venues match your selection"
+                )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -382,14 +486,105 @@ struct DiscoverScreen: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 22))
     }
+
+    /// City / region line for logged-out teaser (no street-level detail).
+    private func teaserAreaDescription(for bar: BarVenue) -> String {
+        let parts = bar.address.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return "Location on map" }
+        if parts.count == 1 { return String(parts[0]) }
+        return parts.suffix(2).joined(separator: ", ")
+    }
+
+    private func loggedOutVenueTeaserCard(_ bar: BarVenue) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Sign in to see what's happening")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+
+                    Text("Create a free account to view games, fan updates, ratings, and live venue details.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Button {
+                    withAnimation(.spring()) {
+                        viewModel.selectedBar = nil
+                        pendingResumeVenueIDAfterLogin = nil
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Divider().opacity(0.35)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(bar.name)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                Text(teaserAreaDescription(for: bar))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 10) {
+                Button {
+                    pendingResumeVenueIDAfterLogin = bar.id
+                    viewModel.discoverNavigateToAccountForUserAuth = true
+                } label: {
+                    Text("Sign in or create account")
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.black.opacity(0.9))
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    withAnimation(.spring()) {
+                        viewModel.selectedBar = nil
+                        pendingResumeVenueIDAfterLogin = nil
+                    }
+                } label: {
+                    Text("Not now")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding()
+        .frame(maxHeight: 360)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color.white.opacity(0.12))
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
+    }
     
-    private func venuePreviewCard(_ bar: BarVenue) -> some View {
-        let dayEvents = eventsOnSelectedDateForMap
-        let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
-        let previewGoingTotal = goingInterestTotal(gamesToday: gamesToday, bar: bar)
-
-        return VStack(alignment: .leading, spacing: 14) {
-
+    /// Venue image, name, address, actions, rating, and experience — stays fixed while games scroll (sports are per game card only).
+    @ViewBuilder
+    private func venuePreviewCardStaticHeader(bar: BarVenue) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 12) {
 
                 barThumbnail(bar)
@@ -398,6 +593,7 @@ struct DiscoverScreen: View {
                     Text(bar.name)
                         .font(.title3)
                         .fontWeight(.bold)
+                        .foregroundStyle(.primary)
 
                     Button {
                         viewModel.openDirections(to: bar)
@@ -405,17 +601,19 @@ struct DiscoverScreen: View {
                         HStack(spacing: 5) {
                             Text(bar.address)
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                                .foregroundStyle(.blue)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
 
                             Image(systemName: "location.fill")
                                 .font(.caption)
                                 .foregroundStyle(.blue)
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Button {
                     viewModel.toggleFavorite(bar)
@@ -424,6 +622,7 @@ struct DiscoverScreen: View {
                         .font(.title3)
                         .foregroundStyle(viewModel.favoriteVenueIDs.contains(bar.id) ? .red : .secondary)
                 }
+                .buttonStyle(.plain)
 
                 Button {
                     withAnimation(.spring()) {
@@ -434,15 +633,39 @@ struct DiscoverScreen: View {
                         .font(.title3)
                         .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
             }
 
-            HStack(spacing: 8) {
-                Label(bar.distance, systemImage: "location.fill")
-                Label(String(format: "%.1f", bar.rating), systemImage: "star.fill")
-                Label(bar.primarySport, systemImage: viewModel.iconForSport(bar.primarySport))
+            HStack(spacing: 10) {
+                if !bar.distance.isEmpty {
+                    Label(bar.distance, systemImage: "location.fill")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    showVenueRatingSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.yellow)
+                        Text(String(format: "%.1f", viewModel.mergedDisplayRating(for: bar)))
+                            .fontWeight(.bold)
+                        Text("(\(viewModel.reviewCountDisplay(for: bar)))")
+                            .foregroundStyle(.secondary)
+                            .fontWeight(.medium)
+                    }
+                    .font(.caption)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.primary.opacity(0.06))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Spacer(minLength: 0)
             }
-            .font(.caption)
-            .fontWeight(.semibold)
 
             if let experience = viewModel.experience(for: bar) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -467,40 +690,61 @@ struct DiscoverScreen: View {
                     .foregroundStyle(.green)
                 }
             }
+        }
+    }
 
-            if let selectedEvent = viewModel.selectedEvent {
-                selectedEventSection(bar: bar, selectedEvent: selectedEvent)
-            } else {
-                gamesListSection(bar: bar, gamesToday: gamesToday)
-            }
-            attendeePreviewRow(goingCount: previewGoingTotal)
+    private func venuePreviewCard(_ bar: BarVenue) -> some View {
+        let dayEvents = discoverMapDayEvents
+        let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
 
-            Button {
-                showVenueDetails = true
-            } label: {
-                Text("Details")
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.primary.opacity(0.10))
-                    .foregroundStyle(.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+        return VStack(alignment: .leading, spacing: 12) {
+            venuePreviewCardStaticHeader(bar: bar)
+
+            Rectangle()
+                .fill(Color.primary.opacity(0.08))
+                .frame(height: 1)
+
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    if let selectedEvent = viewModel.selectedEvent {
+                        selectedEventSection(bar: bar, selectedEvent: selectedEvent)
+                    } else {
+                        gamesListSection(bar: bar, gamesToday: gamesToday)
+                    }
+
+                    Button {
+                        showVenueDetails = true
+                    } label: {
+                        Text("Details")
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.black.opacity(0.88))
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    }
+                }
+                .padding(.bottom, 4)
             }
+            .frame(maxHeight: 248)
+            .clipped()
         }
         .padding()
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 26))
-        .shadow(radius: 10)
+        .frame(maxHeight: 420)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color.white.opacity(0.12))
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
     }
 
-    private func goingInterestTotal(gamesToday: [SportsEvent], bar: BarVenue) -> Int {
-        gamesToday.reduce(0) { total, game in
-            if let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) {
-                return total + viewModel.interestCountForVenueEvent(id)
-            }
-            return total
-        }
-    }
     
     private func barThumbnail(_ bar: BarVenue) -> some View {
         Group {
@@ -558,139 +802,12 @@ struct DiscoverScreen: View {
         }
     }
     
-    private func attendeeText(count: Int) -> String {
-        if count <= 0 {
-            return "Be the first"
-        }
-
-        let names = viewModel.goingUserProfiles
-            .compactMap { $0.display_name }
-            .filter { !$0.isEmpty }
-
-        if names.count >= 2 {
-            return "\(names[0]), \(names[1]) + \(max(count - 2, 0)) others"
-        }
-
-        if names.count == 1 {
-            return count > 1 ? "\(names[0]) + \(count - 1) others" : names[0]
-        }
-
-        return "\(count) people"
-    }
-    
-    private func attendeePreviewRow(goingCount: Int) -> some View {
-        HStack(spacing: 12) {
-
-            GoingAvatarStack(profiles: viewModel.goingUserProfiles)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(attendeeText(count: goingCount))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Text("are going")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding()
-        .background(Color.white.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-    }
-
-    private func latestCommentPreview(for venueEventID: UUID) -> some View {
-        let comments = viewModel.venueEventComments[venueEventID] ?? []
-
-        let latestComment = comments.last
-        let latestText = latestComment?.comment ?? "No recent updates yet"
-
-        let latestName: String = {
-            guard let email = latestComment?.user_email else {
-                return "Fan"
-            }
-
-            if let profile = viewModel.userProfilesByEmail[email],
-               let name = profile.display_name,
-               !name.isEmpty {
-                return name
-            }
-
-            return "Fan"
-        }()
-
-        return HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "bubble.left.fill")
-                .foregroundStyle(.orange)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("🔥 \(comments.count) live updates")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.secondary)
-
-                Text("\(latestName): “\(latestText)”")
-                    .font(.caption)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
+    private func selectedEventSection(bar: BarVenue, selectedEvent: SportsEvent) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Showing")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 4)
-    }
-    
-    private func selectedEventSection(bar: BarVenue, selectedEvent: SportsEvent) -> some View {
-        let venueEventID = viewModel.cachedVenueEventID(
-            for: bar,
-            gameTitle: selectedEvent.title
-        )
-
-        let isInterested = venueEventID.map {
-            viewModel.isInterestedInVenueEvent($0)
-        } ?? false
-
-        let count = venueEventID.map {
-            viewModel.interestCountForVenueEvent($0)
-        } ?? 0
-
-        return VStack(alignment: .leading, spacing: 8) {
-            Label("\(count) people interested / going", systemImage: "person.3.fill")
-                .font(.caption)
-                .fontWeight(.bold)
-                .foregroundStyle(.green)
-
-            Text("Showing: \(selectedEvent.title)")
-                .font(.subheadline)
-                .fontWeight(.bold)
-
-            Button {
-                toggleSupabaseInterest(for: bar, selectedEvent: selectedEvent)
-            } label: {
-                Label(
-                    isInterested ? "Interested in this event" : "I’m interested in going",
-                    systemImage: isInterested ? "checkmark.circle.fill" : "person.badge.plus"
-                )
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(isInterested ? Color.green : Color.black)
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-        }
-        .task {
-            _ = await viewModel.venueEventID(
-                for: bar,
-                gameTitle: selectedEvent.title
-            )
-
-            await viewModel.loadVisibleVenueEventInterests()
+            gameInterestRow(bar: bar, event: selectedEvent)
         }
     }
     
@@ -705,8 +822,8 @@ struct DiscoverScreen: View {
             } else if gamesToday.isEmpty {
                 noVenueGamesView
             } else {
-                ForEach(gamesToday.prefix(3), id: \.id) { game in
-                    gameInterestRow(bar: bar, game: game.title)
+                ForEach(gamesToday.prefix(3), id: \.id) { event in
+                    gameInterestRow(bar: bar, event: event)
                 }
             }
         }
@@ -736,8 +853,31 @@ struct DiscoverScreen: View {
         return nil
     }
     
-    private func gameInterestRow(bar: BarVenue, game: String) -> some View {
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: game)
+    private func sportIconCircle(sport: String) -> some View {
+        let color = viewModel.colorForSport(sport)
+        return Image(systemName: viewModel.iconForSport(sport))
+            .font(.title3.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 42, height: 42)
+            .background(Circle().fill(color))
+            .accessibilityLabel(sport)
+    }
+
+    private func perGameGoingLine(venueEventID: UUID?, count: Int) -> String {
+        guard let venueEventID else {
+            return count > 0 ? "\(count) people are going" : "Be the first to go"
+        }
+        if count <= 0 { return "Be the first to go" }
+        let im = viewModel.isInterestedInVenueEvent(venueEventID)
+        if im {
+            return count == 1 ? "You're going" : "You and \(count - 1) others are going"
+        }
+        return "\(count) people are going"
+    }
+
+    private func gameInterestRow(bar: BarVenue, event: SportsEvent) -> some View {
+        let gameTitle = event.title
+        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
 
         let alreadyInterested = venueEventID.map {
             viewModel.isInterestedInVenueEvent($0)
@@ -747,17 +887,27 @@ struct DiscoverScreen: View {
             viewModel.interestCountForVenueEvent($0)
         } ?? 0
 
+        let score = venueEventID.map { trendingScore(for: $0, goingCount: count) } ?? count
+
         return VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(game)
+            HStack(alignment: .top, spacing: 12) {
+                sportIconCircle(sport: event.sport)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(event.title)
                         .font(.subheadline)
                         .fontWeight(.bold)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(.primary)
 
-                    Text("\(count) people interested / going")
+                    Text("\(event.date.formatted(date: .abbreviated, time: .omitted)) · \(viewModel.displayTime(for: event))")
                         .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text("\(count) interested / going")
+                        .font(.caption)
+                        .fontWeight(.semibold)
                         .foregroundStyle(.green)
+
                     if let venueEventID,
                        let topVibe = topVibeText(for: venueEventID) {
                         Text(topVibe)
@@ -765,33 +915,31 @@ struct DiscoverScreen: View {
                             .fontWeight(.bold)
                             .foregroundStyle(.orange)
                     }
-                    if let venueEventID {
-                        let score = trendingScore(for: venueEventID, goingCount: count)
 
-                        if let label = trendingLabel(for: score) {
+                    if let label = trendingLabel(for: score) {
+                        HStack(spacing: 8) {
                             Text(label)
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundStyle(
-                                    score >= 40 ? .purple :
-                                    score >= 16 ? .orange :
-                                    score >= 6 ? .red :
-                                    .green
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(score >= 40 ? Color.purple.opacity(0.15) : Color.orange.opacity(0.12))
                                 )
+                            Text("Score \(score)")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Button {
                     guard viewModel.canMarkInterest else { return }
-
-                    if let matchingEvent = viewModel.events.first(where: { $0.title == game }) {
-                        toggleSupabaseInterest(for: bar, selectedEvent: matchingEvent)
-                    }
+                    toggleSupabaseInterest(for: bar, selectedEvent: event)
                 } label: {
-                    Text(!viewModel.canMarkInterest ? "Login required" : (alreadyInterested ? "Going" : "I’m going"))
+                    Text(!viewModel.canMarkInterest ? "Login" : (alreadyInterested ? "Going" : "I’m going"))
                         .font(.caption)
                         .fontWeight(.bold)
                         .padding(.horizontal, 14)
@@ -803,6 +951,17 @@ struct DiscoverScreen: View {
                 .disabled(!viewModel.canMarkInterest)
             }
 
+            HStack(alignment: .center, spacing: 10) {
+                if let venueEventID {
+                    GoingAvatarStack(profiles: viewModel.goingProfiles(for: venueEventID))
+                }
+                Text(perGameGoingLine(venueEventID: venueEventID, count: count))
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+            }
+
             if let venueEventID {
                 VenueEventVibeMeterView(
                     viewModel: viewModel,
@@ -812,18 +971,25 @@ struct DiscoverScreen: View {
                 Button {
                     selectedCommentsEventID = venueEventID
                 } label: {
-                    latestCommentPreview(for: venueEventID)
+                    fanUpdatesRowLabel(for: venueEventID)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .task {
-            if let id = await viewModel.venueEventID(for: bar, gameTitle: game) {
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.55))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                )
+        )
+        .task(id: venueEventID ?? event.id) {
+            if let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) {
                 await viewModel.loadComments(for: id)
                 await viewModel.loadVibes(for: id)
+                await viewModel.loadGoingUserProfiles(for: id)
 
                 let emails = (viewModel.venueEventComments[id] ?? [])
                     .compactMap { $0.user_email }
@@ -833,6 +999,26 @@ struct DiscoverScreen: View {
 
             await viewModel.loadVisibleVenueEventInterests()
         }
+    }
+
+    private func fanUpdatesRowLabel(for venueEventID: UUID) -> some View {
+        let comments = viewModel.venueEventComments[venueEventID] ?? []
+        return HStack(spacing: 10) {
+            Image(systemName: "bubble.left.and.bubble.right.fill")
+                .foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Fan updates")
+                    .font(.caption.weight(.bold))
+                Text(comments.isEmpty ? "Tap to join the conversation" : "\(comments.count) updates · tap to open")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 4)
     }
     
     private func liveScoreEmoji(for score: Int) -> String {
@@ -905,17 +1091,7 @@ struct DiscoverScreen: View {
     }
     
     private func liveActivityScore(for bar: BarVenue, gamesToday: [SportsEvent]) -> Int {
-        gamesToday.reduce(0) { total, game in
-            guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else {
-                return total
-            }
-
-            let going = viewModel.interestCountForVenueEvent(id)
-            let comments = viewModel.venueEventComments[id]?.count ?? 0
-            let vibes = viewModel.venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
-
-            return total + going + comments + vibes
-        }
+        viewModel.mapPinEnergyScore(bar: bar, gamesOnMapDay: gamesToday)
     }
 
     private func detailedMapPin(
@@ -991,8 +1167,17 @@ struct DiscoverScreen: View {
     }
         
     
-    private func clusterMapPin(_ cluster: VenueCluster) -> some View {
-        VStack(spacing: 3) {
+    private func clusterMapPin(cluster: VenueCluster, maxEnergy: Int, dominantSport: String?) -> some View {
+        let caption = viewModel.mapClusterEnergyCaption(maxScore: maxEnergy)
+        return VStack(spacing: 3) {
+            if let sport = dominantSport, maxEnergy > 0 {
+                Image(systemName: viewModel.iconForSport(sport))
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(viewModel.colorForSport(sport))
+                    .padding(5)
+                    .background(Circle().fill(Color.white.opacity(0.95)))
+            }
+
             Text("\(cluster.count)")
                 .font(.headline)
                 .fontWeight(.bold)
@@ -1000,9 +1185,25 @@ struct DiscoverScreen: View {
             Text("venues")
                 .font(.caption2)
                 .fontWeight(.bold)
+
+            if maxEnergy > 0 {
+                Text("\(maxEnergy)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.yellow.opacity(0.95))
+            }
+
+            if let caption {
+                Text(caption)
+                    .font(.system(size: 9, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
         }
         .foregroundStyle(.white)
-        .frame(width: 58, height: 58)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 7)
+        .frame(minWidth: 58, minHeight: 58)
         .background(Circle().fill(Color.black).shadow(radius: 7))
     }
 
@@ -1023,6 +1224,8 @@ struct DiscoverScreen: View {
             return "🪑 Seats open · \(top.value)"
         case "specials":
             return "🍺 Specials · \(top.value)"
+        case "tv_visible":
+            return "📺 TVs visible · \(top.value)"
         default:
             return nil
         }

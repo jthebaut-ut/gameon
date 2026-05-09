@@ -2,6 +2,7 @@ import Foundation
 
 extension MapViewModel {
 
+    /// Events shown on Discover map pins and venue cards: selected day + sport + search (event text or venue name/address).
     var eventsForSelectedDate: [SportsEvent] {
         events.filter { event in
             Calendar.current.isDate(event.date, inSameDayAs: selectedDate) &&
@@ -23,9 +24,41 @@ extension MapViewModel {
     }
 
     func gamesForSelectedDate(at bar: BarVenue) -> [SportsEvent] {
-        events.filter { event in
+        matchingEventsForDiscoverFilter(bar: bar)
+    }
+
+    /// Games at this venue that match the Discover date, sport chip, and search rules.
+    func matchingEventsForDiscoverFilter(bar: BarVenue) -> [SportsEvent] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let daySportGames = events.filter { event in
             Calendar.current.isDate(event.date, inSameDayAs: selectedDate) &&
-            bar.games.contains(event.title)
+                bar.games.contains(event.title) &&
+                (selectedSport == "All" || event.sport == selectedSport)
+        }
+        if q.isEmpty {
+            return daySportGames
+        }
+        let byEventText = daySportGames.filter { matchesSearch($0) }
+        if !byEventText.isEmpty { return byEventText }
+        if bar.name.localizedCaseInsensitiveContains(q)
+            || bar.address.localizedCaseInsensitiveContains(q) {
+            return daySportGames
+        }
+        return []
+    }
+
+    /// Venues that host at least one matching event for the current Discover filters.
+    var filteredBars: [BarVenue] {
+        bars.filter { !matchingEventsForDiscoverFilter(bar: $0).isEmpty }
+    }
+
+    /// Clears map preview selection when the venue no longer matches filters (date, sport, search).
+    func pruneSelectionIfNeededAfterFilterChange() {
+        guard let bar = selectedBar else { return }
+        let stillVisible = filteredBars.contains { $0.id == bar.id }
+        if !stillVisible {
+            selectedBar = nil
+            selectedEvent = nil
         }
     }
 

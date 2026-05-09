@@ -96,6 +96,8 @@ extension MapViewModel {
                 bars = mappedBars
             }
 
+            pruneSelectionIfNeededAfterFilterChange()
+
             print("Loaded venues from Supabase:", mappedBars.count)
 
         } catch {
@@ -196,6 +198,7 @@ extension MapViewModel {
 
                     venueEventIDsByKey = idsByKey
                     isLoadingEvents = false
+                    pruneSelectionIfNeededAfterFilterChange()
                 }
                 await loadVisibleVenueEventInterests()
                 print("Loaded official games:", officialEvents.count)

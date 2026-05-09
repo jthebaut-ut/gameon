@@ -14,12 +14,17 @@ struct SampleData {
         "Soccer",
         "NBA",
         "NFL",
-        "NHL",
-        "UFC",
         "Baseball",
-        "Softball",
+        "NHL",
         "Tennis",
-        "Cricket"
+        "Golf",
+        "Volleyball",
+        "Ping Pong",
+        "UFC",
+        "Formula 1",
+        "Cricket",
+        "Rugby",
+        "Softball"
     ]
     
     static let events: [SportsEvent] = [

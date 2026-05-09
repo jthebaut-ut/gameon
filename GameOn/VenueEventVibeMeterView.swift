@@ -8,6 +8,7 @@ struct VenueEventVibeMeterView: View {
         ("audio_on", "🔊 Audio"),
         ("packed", "🔥 Packed"),
         ("seats_open", "🪑 Seats"),
+        ("tv_visible", "📺 TVs"),
         ("specials", "🍺 Specials")
     ]
 

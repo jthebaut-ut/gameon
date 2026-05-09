@@ -101,6 +101,10 @@ extension MapViewModel {
         }
     }
 
+    func goingProfiles(for venueEventID: UUID) -> [UserProfileRow] {
+        goingProfilesByVenueEventID[venueEventID] ?? []
+    }
+
     func venueEventLookupKey(for bar: BarVenue, gameTitle: String) -> String {
         "\(bar.name)-\(gameTitle)"
     }
@@ -163,6 +167,7 @@ extension MapViewModel {
             guard !emails.isEmpty else {
                 await MainActor.run {
                     goingUserProfiles = []
+                    goingProfilesByVenueEventID[venueEventID] = []
                 }
                 return
             }
@@ -176,6 +181,7 @@ extension MapViewModel {
 
             await MainActor.run {
                 goingUserProfiles = profileRows
+                goingProfilesByVenueEventID[venueEventID] = profileRows
             }
 
         } catch {

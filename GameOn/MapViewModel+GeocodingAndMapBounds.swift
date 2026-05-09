@@ -35,6 +35,62 @@ extension MapViewModel {
         }
     }
 
+    /// Zoom in on a multi-venue cluster (Discover); uses current span so repeated taps keep tightening.
+    func zoomTowardCluster(center: CLLocationCoordinate2D) {
+        let current = max(visibleLatitudeDelta, 0.02)
+        let nextLat = max(min(current / 3.4, 1.4), 0.018)
+        let nextLon = max(min(current / 3.4 * 1.08, 1.5), 0.018)
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: center,
+                span: MKCoordinateSpan(latitudeDelta: nextLat, longitudeDelta: nextLon)
+            )
+        )
+    }
+
+    /// Per-venue map energy: sum of (going + comments + vibes) across games shown for that day slice.
+    func mapPinEnergyScore(bar: BarVenue, gamesOnMapDay: [SportsEvent]) -> Int {
+        gamesOnMapDay.reduce(0) { total, game in
+            guard let id = cachedVenueEventID(for: bar, gameTitle: game.title) else {
+                return total
+            }
+            let going = interestCountForVenueEvent(id)
+            let comments = venueEventComments[id]?.count ?? 0
+            let vibes = venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
+            return total + going + comments + vibes
+        }
+    }
+
+    /// Strongest single-game energy in the cluster and that game’s sport (for marker glyph).
+    func clusterVenueAnnotationEnergy(cluster: VenueCluster, dayEvents: [SportsEvent]) -> (maxScore: Int, dominantSport: String?) {
+        var maxScore = 0
+        var dominantSport: String?
+        for bar in cluster.bars {
+            let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
+            for game in gamesToday {
+                guard let id = cachedVenueEventID(for: bar, gameTitle: game.title) else { continue }
+                let going = interestCountForVenueEvent(id)
+                let comments = venueEventComments[id]?.count ?? 0
+                let vibes = venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
+                let score = going + comments + vibes
+                if score > maxScore {
+                    maxScore = score
+                    dominantSport = game.sport
+                }
+            }
+        }
+        return (maxScore, dominantSport)
+    }
+
+    /// Short label for cluster badge (same bands as game rows).
+    func mapClusterEnergyCaption(maxScore: Int) -> String? {
+        if maxScore >= 40 { return "👑 Trending" }
+        if maxScore >= 16 { return "🚀 Hot" }
+        if maxScore >= 6 { return "🔥 Active" }
+        if maxScore >= 1 { return "✨ Starting" }
+        return nil
+    }
+
     func centerMap(on bar: BarVenue, selectForPreview: Bool = true) {
         if selectForPreview {
             selectedBar = bar
@@ -43,6 +99,20 @@ extension MapViewModel {
         cameraPosition = .region(
             MKCoordinateRegion(
                 center: bar.coordinate,
+                span: MKCoordinateSpan(latitudeDelta: spanVal, longitudeDelta: spanVal)
+            )
+        )
+    }
+
+    /// Centers the map on a coordinate (e.g. geocoded address) while optionally keeping a venue selected for the preview card.
+    func centerMap(on coordinate: CLLocationCoordinate2D, selectedBar: BarVenue?) {
+        if let selectedBar {
+            self.selectedBar = selectedBar
+        }
+        let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
                 span: MKCoordinateSpan(latitudeDelta: spanVal, longitudeDelta: spanVal)
             )
         )

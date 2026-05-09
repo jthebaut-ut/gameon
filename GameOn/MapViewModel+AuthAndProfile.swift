@@ -17,6 +17,7 @@ extension MapViewModel {
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 goingUserProfiles = []
+                goingProfilesByVenueEventID = [:]
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
@@ -40,6 +41,7 @@ extension MapViewModel {
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 goingUserProfiles = []
+                goingProfilesByVenueEventID = [:]
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
@@ -77,6 +79,7 @@ extension MapViewModel {
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 goingUserProfiles = []
+                goingProfilesByVenueEventID = [:]
 
                 isLoggedIn = false
                 isVenueOwnerLoggedIn = false

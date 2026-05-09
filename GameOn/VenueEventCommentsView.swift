@@ -16,10 +16,10 @@ struct VenueEventCommentsView: View {
     @State private var sendingFriendRequestUserId: UUID?
 
     private let quickUpdates = [
-        "🔊 Audio confirmed",
+        "🎙️ Audio confirmed",
         "🔥 Packed",
         "🪑 Seats open",
-        "📺 Game on",
+        "📺 TVs visible",
         "🍺 Drink specials"
     ]
     
@@ -32,10 +32,6 @@ struct VenueEventCommentsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Live Updates")
-                .font(.headline)
-                .fontWeight(.bold)
-
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
