@@ -258,29 +258,36 @@ struct MainTabView: View {
     }
     private var accountTabAvatar: some View {
         Group {
-            if viewModel.isLoggedIn,
-               let urlString = ImageDisplayURL.forListDisplay(
-                thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                full: viewModel.currentUserAvatarURL,
-                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
-               ),
-               let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
-                }
+            if viewModel.isLoggedIn {
+                UserAvatarView(
+                    avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+                    avatarURL: viewModel.currentUserAvatarURL,
+                    avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+                    displayName: UserAvatarView.accountResolvedDisplayName(
+                        isLoggedIn: viewModel.isLoggedIn,
+                        currentUserDisplayName: viewModel.currentUserDisplayName,
+                        isVenueOwnerLoggedIn: viewModel.isVenueOwnerLoggedIn,
+                        ownerVenueName: viewModel.ownerVenueName,
+                        userEmail: viewModel.currentUserEmail,
+                        venueOwnerEmail: viewModel.venueOwnerEmail
+                    ),
+                    email: UserAvatarView.accountEmailLine(
+                        isLoggedIn: viewModel.isLoggedIn,
+                        userEmail: viewModel.currentUserEmail,
+                        venueOwnerEmail: viewModel.venueOwnerEmail
+                    ),
+                    size: 44,
+                    fallbackStyle: .lightOnWhiteChrome
+                )
             } else {
                 Image(systemName: accountIconName)
                     .font(.title3)
                     .foregroundStyle(accountIconColor)
+                    .frame(width: 44, height: 44)
+                    .background(Color.white)
+                    .clipShape(Circle())
             }
         }
-        .frame(width: 44, height: 44)
-        .background(Color.white)
-        .clipShape(Circle())
     }
     
 }

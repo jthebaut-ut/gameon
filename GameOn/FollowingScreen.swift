@@ -1,3 +1,5 @@
+import CoreLocation
+import MapKit
 import SwiftUI
 
 struct FollowingScreen: View {
@@ -229,6 +231,7 @@ struct FollowingScreen: View {
 
     private func goingPlanCard(_ item: FollowingGoingDisplayItem) -> some View {
         let title = item.venueEvent.event_title ?? "Event"
+        let bar = item.bar
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 10) {
@@ -251,14 +254,34 @@ struct FollowingScreen: View {
                     .foregroundStyle(.secondary)
             }
 
-            Text(item.bar.name)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundStyle(.primary)
+            Button {
+#if DEBUG
+                let matched = viewModel.bars.contains(where: { $0.id == bar.id })
+                print("[FollowingVenueOpen] venue=\(bar.name) matched=\(matched ? "mapRow" : "offMap")")
+#endif
+                viewModel.requestDiscoverFocusForSavedVenue(bar)
+            } label: {
+                Text(bar.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open \(bar.name) on map")
 
-            Text(item.bar.address)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Button {
+                openFollowingDirectionsToVenue(bar: bar)
+            } label: {
+                Text(bar.address)
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Directions to \(bar.name)")
 
             HStack(spacing: 10) {
                 GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id))
@@ -351,7 +374,7 @@ struct FollowingScreen: View {
                 .accessibilityLabel("Open \(bar.name) on map")
 
                 Button {
-                    viewModel.openDirections(to: bar)
+                    openFollowingDirectionsToVenue(bar: bar)
                 } label: {
                     Text(bar.address)
                         .font(.caption)
@@ -386,6 +409,35 @@ struct FollowingScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    // MARK: - Maps / Discover (Following tab)
+
+    /// Opens Apple Maps directions: uses venue coordinates when they look valid; otherwise falls back to encoded address (`daddr`).
+    private func openFollowingDirectionsToVenue(bar: BarVenue) {
+#if DEBUG
+        print("[FollowingDirections] venue=\(bar.name) address=\(bar.address)")
+#endif
+        let trimmedAddress = bar.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        if Self.followingDirectionsCoordinateLooksUsable(bar.coordinate) {
+            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: bar.coordinate))
+            mapItem.name = bar.name
+            mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+            return
+        }
+        guard !trimmedAddress.isEmpty else { return }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "maps.apple.com"
+        components.queryItems = [URLQueryItem(name: "daddr", value: trimmedAddress)]
+        guard let url = components.url else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private static func followingDirectionsCoordinateLooksUsable(_ c: CLLocationCoordinate2D) -> Bool {
+        guard CLLocationCoordinate2DIsValid(c) else { return false }
+        if abs(c.latitude) < 1e-5 && abs(c.longitude) < 1e-5 { return false }
+        return abs(c.latitude) <= 90 && abs(c.longitude) <= 180
     }
 
     private func toggleSavedVenueHeart(bar: BarVenue, currentlySaved: Bool) async {

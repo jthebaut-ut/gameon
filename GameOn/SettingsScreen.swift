@@ -928,20 +928,6 @@ private struct SettingsProfileHero: View {
         return local.prefix(1).uppercased() + local.dropFirst()
     }
 
-    private var initials: String {
-        let name = resolvedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty {
-            let parts = name.split(separator: " ").filter { !$0.isEmpty }
-            if parts.count >= 2 {
-                return "\(parts[0].prefix(1))\(parts[1].prefix(1))".uppercased()
-            }
-            return "\(name.prefix(2))".uppercased()
-        }
-        let email = heroEmailLine
-        let local = email.split(separator: "@").first.map(String.init) ?? ""
-        return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
-    }
-
     /// Prefer venue-owner label when both flags are true (defensive; login paths normally keep them exclusive).
     private var accountTypeBadgeText: String {
         viewModel.isVenueOwnerLoggedIn ? "Venue owner account" : "User account"
@@ -968,27 +954,16 @@ private struct SettingsProfileHero: View {
 
     private var heroCard: some View {
         HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(Color.white.opacity(0.10))
-                if let urlString = ImageDisplayURL.forListDisplay(
-                    thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                    full: viewModel.currentUserAvatarURL,
-                    refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
-                ),
-                   let url = URL(string: urlString) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        ProgressView().tint(.white)
-                    }
-                } else {
-                    Text(initials)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
-                }
-            }
-            .frame(width: 64, height: 64)
-            .clipShape(Circle())
+            UserAvatarView(
+                avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+                avatarURL: viewModel.currentUserAvatarURL,
+                avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+                displayName: resolvedDisplayName,
+                email: heroEmailLine,
+                size: 64,
+                fallbackStyle: .darkCardTranslucent,
+                imagePlaceholderTint: .white
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
@@ -1930,28 +1905,26 @@ private struct SettingsAccountProfileImage: View {
     @ObservedObject var viewModel: MapViewModel
 
     var body: some View {
-        Group {
-            if let urlString = ImageDisplayURL.forListDisplay(
-                thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                full: viewModel.currentUserAvatarURL,
-                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
+        UserAvatarView(
+            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+            avatarURL: viewModel.currentUserAvatarURL,
+            avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+            displayName: UserAvatarView.accountResolvedDisplayName(
+                isLoggedIn: viewModel.isLoggedIn,
+                currentUserDisplayName: viewModel.currentUserDisplayName,
+                isVenueOwnerLoggedIn: viewModel.isVenueOwnerLoggedIn,
+                ownerVenueName: viewModel.ownerVenueName,
+                userEmail: viewModel.currentUserEmail,
+                venueOwnerEmail: viewModel.venueOwnerEmail
             ),
-               let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
-                }
-            } else {
-                Image(systemName: "person.circle.fill")
-                    .font(.largeTitle)
-                    .foregroundStyle(.green)
-            }
-        }
-        .frame(width: 44, height: 44)
-        .clipShape(Circle())
+            email: UserAvatarView.accountEmailLine(
+                isLoggedIn: viewModel.isLoggedIn,
+                userEmail: viewModel.currentUserEmail,
+                venueOwnerEmail: viewModel.venueOwnerEmail
+            ),
+            size: 44,
+            fallbackStyle: .lightOnWhiteChrome
+        )
     }
 }
 

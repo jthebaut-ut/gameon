@@ -132,3 +132,55 @@ struct SportFilterChip: View {
         .accessibilityLabel(sport)
     }
 }
+
+// MARK: - Sport artwork icon (matches chip catalog; local emoji/SF Symbol only)
+
+/// Circular sport glyph with the same ``SportFilterCatalog`` visuals as ``SportFilterChip`` (gradient + emoji or symbol). No networking.
+struct SportArtworkIconView: View {
+    let sport: String
+    /// Outer diameter; venue preview rows typically use 56–64pt.
+    var diameter: CGFloat = 60
+
+    private var visual: SportFilterCatalog.ChipVisual {
+        SportFilterCatalog.resolve(sport)
+    }
+
+    private var isAllChip: Bool {
+        sport.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("All") == .orderedSame
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [visual.accent, visual.accent.opacity(0.72)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+                )
+
+            if isAllChip {
+                Image(systemName: visual.systemImage)
+                    .font(.system(size: diameter * 0.36, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            } else if !visual.emoji.isEmpty {
+                Text(visual.emoji)
+                    .font(.system(size: diameter * 0.5))
+                    .baselineOffset(-diameter * 0.02)
+                    .shadow(color: .black.opacity(0.12), radius: 1, x: 0, y: 1)
+            } else {
+                Image(systemName: visual.systemImage)
+                    .font(.system(size: diameter * 0.36, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        .shadow(color: visual.accent.opacity(0.32), radius: max(3, diameter * 0.07), x: 0, y: diameter * 0.035)
+        .accessibilityLabel(sport)
+    }
+}

@@ -213,13 +213,8 @@ struct CalendarScreen: View {
     
     private func eventRow(_ event: SportsEvent) -> some View {
         HStack(spacing: 14) {
-            Image(systemName: viewModel.iconForSport(event.sport))
-                .font(.title2)
-                .frame(width: 42, height: 42)
-                .background(Color.black)
-                .foregroundStyle(.white)
-                .clipShape(Circle())
-            
+            SportArtworkIconView(sport: event.sport, diameter: 56)
+
             VStack(alignment: .leading, spacing: 4) {
                 Text(event.title)
                     .font(.headline)

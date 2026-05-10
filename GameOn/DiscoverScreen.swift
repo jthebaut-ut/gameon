@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 import MapKit
 
@@ -5,6 +6,7 @@ import MapKit
 struct DiscoverScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
     @State private var selectedCommentsEventID: UUID?
@@ -17,6 +19,9 @@ struct DiscoverScreen: View {
     @State private var pendingResumeVenueIDAfterLogin: UUID?
     /// Per-venue preview: local filter for the game list (does not change global map filters).
     @State private var venuePreviewGameFilter: VenuePreviewGameFilter = .all
+    /// Bumps when returning to foreground so map user-dot visibility refreshes after Settings changes.
+    @State private var discoverMapLocationAuthVersion = 0
+    @State private var discoverLocationHint: String?
     private let livePulseThreshold = 16
 
     private enum VenuePreviewGameFilter: Int, CaseIterable, Identifiable {
@@ -76,6 +81,11 @@ struct DiscoverScreen: View {
         }
     .task {
         viewModel.reloadVenueUserRatingsFromStorage()
+    }
+    .onChange(of: scenePhase) { _, phase in
+        if phase == .active {
+            discoverMapLocationAuthVersion += 1
+        }
     }
     .onChange(of: viewModel.selectedDate) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
@@ -357,10 +367,23 @@ struct DiscoverScreen: View {
         .buttonStyle(.plain)
     }
 
+    /// Shows the system user location dot only after access is granted, so the map does not imply tracking before the user allows it.
+    private func discoverMapShowsUserAnnotation() -> Bool {
+        _ = discoverMapLocationAuthVersion
+        switch CLLocationManager().authorizationStatus {
+        case .authorizedAlways, .authorizedWhenInUse:
+            return true
+        default:
+            return false
+        }
+    }
+
     private var mapLayer: some View {
         let dayEvents = discoverMapDayEvents
         return Map(position: $viewModel.cameraPosition) {
-            UserAnnotation()
+            if discoverMapShowsUserAnnotation() {
+                UserAnnotation()
+            }
 
             ForEach(viewModel.clusteredBars()) { cluster in
                 Annotation(
@@ -412,7 +435,14 @@ struct DiscoverScreen: View {
 
     private var topControlArea: some View {
         VStack(alignment: .leading, spacing: 12) {
-            
+            if let discoverLocationHint {
+                Text(discoverLocationHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+            }
+
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
@@ -433,6 +463,12 @@ struct DiscoverScreen: View {
                     }
                 }
                 Button {
+                    let status = CLLocationManager().authorizationStatus
+                    if status == .denied || status == .restricted {
+                        discoverLocationHint = "Location is turned off. You can enable it in Settings ▸ Privacy & Security ▸ Location Services ▸ GameOn. The map still shows a default area you can pan and search."
+                    } else {
+                        discoverLocationHint = nil
+                    }
                     viewModel.cameraPosition = .userLocation(
                         followsHeading: false,
                         fallback: .region(
@@ -442,10 +478,14 @@ struct DiscoverScreen: View {
                             )
                         )
                     )
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        discoverMapLocationAuthVersion += 1
+                    }
                 } label: {
                     Image(systemName: "location.fill")
                         .foregroundStyle(.blue)
                 }
+                .accessibilityLabel("Center map on your location")
             }
             .padding()
             .background(.regularMaterial)
@@ -1073,16 +1113,6 @@ struct DiscoverScreen: View {
         return nil
     }
     
-    private func sportIconCircle(sport: String) -> some View {
-        let color = viewModel.colorForSport(sport)
-        return Image(systemName: viewModel.iconForSport(sport))
-            .font(.title3.weight(.bold))
-            .foregroundStyle(.white)
-            .frame(width: 42, height: 42)
-            .background(Circle().fill(color))
-            .accessibilityLabel(sport)
-    }
-
     private func perGameGoingLine(venueEventID: UUID?, count: Int) -> String {
         guard let venueEventID else {
             return count > 0 ? "\(count) people are going" : "Be the first to go"
@@ -1111,7 +1141,7 @@ struct DiscoverScreen: View {
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
-                sportIconCircle(sport: event.sport)
+                SportArtworkIconView(sport: event.sport, diameter: 60)
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(event.title)

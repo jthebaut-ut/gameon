@@ -1,3 +1,4 @@
+import Photos
 import SwiftUI
 import PhotosUI
 
@@ -213,24 +214,34 @@ struct VenueOwnerDashboardView: View {
         
         .onChange(of: selectedCoverPhoto) { _, newItem in
             Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                guard let newItem else { return }
+                if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
                         viewModel.venueCoverPhotoURL = url
                         displayedCoverPhotoURL = venuePhotoURLWithCacheBust(url)
                         profileSaveMessage = "Cover photo uploaded. Tap Save Profile to save changes."
                     }
+                } else {
+                    await MainActor.run {
+                        profileSaveMessage = venuePhotoPickFailureHint()
+                    }
                 }
             }
         }
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                guard let newItem else { return }
+                if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
                     await MainActor.run {
                         viewModel.venueMenuPhotoURL = url
                         displayedMenuPhotoURL = venuePhotoURLWithCacheBust(url)
                         profileSaveMessage = "Menu photo uploaded. Tap Save Profile to save changes."
+                    }
+                } else {
+                    await MainActor.run {
+                        profileSaveMessage = venuePhotoPickFailureHint()
                     }
                 }
             }
@@ -299,6 +310,17 @@ struct VenueOwnerDashboardView: View {
         }
     }
     
+    private func venuePhotoPickFailureHint() -> String {
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+        case .denied, .restricted:
+            return "Photo access is off for GameOn. Turn it on in Settings ▸ Privacy & Security ▸ Photos to choose venue images."
+        case .limited:
+            return "Couldn’t use that photo. Pick another image, or adjust Selected Photos for GameOn in Settings."
+        default:
+            return "Couldn’t read that photo. Try another image, or check photo access for GameOn in Settings."
+        }
+    }
+
     private var profileSection: some View {
         dashboardCard(title: "Venue Profile", subtitle: "Basic business information") {
             field("Bar / Pub / Restaurant Name", text: $viewModel.ownerVenueName)
@@ -1411,6 +1433,11 @@ struct VenueOwnerDashboardView: View {
                 }
             }
             .buttonStyle(.plain)
+
+            Text("Photos are chosen only when you tap here. If the picker is empty, check Photo Library access for GameOn in Settings.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
     

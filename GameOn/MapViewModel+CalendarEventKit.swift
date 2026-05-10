@@ -22,7 +22,7 @@ extension MapViewModel {
 
         let granted = await requestCalendarAccess()
         guard granted else {
-            calendarSyncMessage = "Calendar access was not granted"
+            calendarSyncMessage = "Apple Calendar access is off. Turn it on in Settings ▸ Privacy & Security ▸ Calendars for GameOn whenever you want events added there."
             return
         }
 

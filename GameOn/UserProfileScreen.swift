@@ -1,3 +1,4 @@
+import Photos
 import SwiftUI
 import PhotosUI
 
@@ -43,7 +44,7 @@ struct UserProfileScreen: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Photo") {
+                Section {
                     PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
                         HStack {
                             Text("Update avatar")
@@ -58,6 +59,12 @@ struct UserProfileScreen: View {
                         }
                     }
                     .disabled(isUploadingAvatar || isSaving)
+
+                    Text("We only access a photo when you pick one here. If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for GameOn.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Photo")
                 }
 
                 Section("Account actions") {
@@ -137,6 +144,17 @@ struct UserProfileScreen: View {
         return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
     }
 
+    private func profilePhotoPickFailureHint() -> String {
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+        case .denied, .restricted:
+            return "Photo access is off. Turn it on in Settings ▸ Privacy & Security ▸ Photos to upload a profile picture."
+        case .limited:
+            return "Couldn’t use that photo. Try another image, or allow more photos for GameOn in Settings."
+        default:
+            return "Unable to read that photo. Try a different image or check your connection."
+        }
+    }
+
     private var profileAvatar: some View {
         ZStack {
             Circle().fill(Color.gray.opacity(0.18))
@@ -195,7 +213,7 @@ struct UserProfileScreen: View {
         await MainActor.run { message = "Uploading avatar..." }
 
         guard let data = try? await item.loadTransferable(type: Data.self) else {
-            await MainActor.run { message = "Unable to read photo." }
+            await MainActor.run { message = profilePhotoPickFailureHint() }
             return
         }
         guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
