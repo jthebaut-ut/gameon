@@ -95,26 +95,21 @@ enum SettingsLegalDocumentKind: String, Identifiable {
             ]
         case .communityGuidelines:
             return [
-                .init(heading: "Overview", body: """
-                GameOn is a sports and venue community. These guidelines set expectations for everyone. They work alongside our Terms and Safety materials.
+                .init(heading: "Community Guidelines", body: """
+                • Be respectful.\n\
+                • No hate speech, racism, discrimination, or threats.\n\
+                • No harassment, bullying, stalking, or intimidation.\n\
+                • No nudity, sexual content, or sexually explicit photos.\n\
+                • No illegal activity, drugs, weapons, or unsafe event coordination.\n\
+                • No impersonation or fake accounts.\n\
+                • No spam, scams, misleading posts, or fake venue/game listings.\n\
+                • No copyrighted logos, sports league marks, or media unless you have permission.\n\
+                • Do not post private information about others.\n\
+                • Use report/block tools if something feels unsafe.\n\
+                • GameOn may remove content, restrict accounts, or report serious safety issues.
                 """),
-                .init(heading: "Photos & media", body: """
-                Do not post nudity, sexually explicit imagery, or otherwise inappropriate photos in profiles, venues, or social features. Keep content suitable for a general audience in public areas of the app.
-                """),
-                .init(heading: "Respect & harassment", body: """
-                Treat fans, venue staff, and other users with respect. No bullying, hate, threats, or targeted harassment. Disagree without attacking people.
-                """),
-                .init(heading: "Spam & manipulation", body: """
-                Do not flood comments or messages, create fake engagement, or misrepresent who you are to gain an unfair advantage. One account per person where required.
-                """),
-                .init(heading: "Venues & listings", body: """
-                Do not create fake venues or impersonate a business you do not represent. Venue information should be honest so fans can trust what they see on the map and in event listings.
-                """),
-                .init(heading: "Sports & community behavior", body: """
-                Keep rivalries friendly. No incitement to violence, dangerous meetups, or illegal activity. Follow venue rules when you attend events in real life.
-                """),
-                .init(heading: "Enforcement", body: """
-                We may warn, remove content, or restrict accounts that violate these guidelines. Serious or repeated violations may lead to permanent suspension.
+                .init(heading: "Your agreement", body: """
+                By creating an account, you agree to follow these rules. Violations may result in content removal, account suspension, or deletion.
                 """)
             ]
         case .safetyReporting:

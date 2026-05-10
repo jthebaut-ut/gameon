@@ -17,6 +17,8 @@ final class MapViewModel: ObservableObject {
     @Published var selectedEvent: SportsEvent?
     @Published var selectedBar: BarVenue?
     @Published var searchText: String = ""
+    /// Debounced copy of ``searchText`` for Discover map/event filtering and live venue suggestions (see ``MapViewModel+DiscoverSearch``).
+    @Published var debouncedDiscoverSearchText: String = ""
     @Published var favoriteVenueIDs: Set<UUID> = []
     @Published var interestedVenueEventKeys: Set<String> = []
     @Published var selectedTimeZone: TimeZoneOption = .mountain
@@ -171,4 +173,10 @@ final class MapViewModel: ObservableObject {
     /// Memo for ``clusteredBars()`` so SwiftUI map body does not rebuild clusters every frame.
     var discoverClusteredBarsCacheKey: String?
     var discoverClusteredBarsCache: [VenueCluster]?
+
+    /// Cancels stale debounced Discover search updates when ``searchText`` changes quickly.
+    var discoverSearchDebounceTask: Task<Void, Never>?
+
+    /// Set when ``renderCachedDiscoverCore()`` applied a disk snapshot this launch; suppresses empty-state loading chrome until fresh fetches finish.
+    var discoverSnapshotRestoredThisLaunch = false
 }

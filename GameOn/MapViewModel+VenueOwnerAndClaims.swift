@@ -16,7 +16,7 @@ extension MapViewModel {
     }
 
     // Creates a Supabase auth user in venue-owner mode (separate from end-user `isLoggedIn` state).
-    func registerVenueOwner(email: String, password: String) async {
+    func registerVenueOwner(email: String, password: String, recordVenueGuidelinesAcceptance: Bool = false) async {
         do {
             _ = try await supabase.auth.signUp(
                 email: email,
@@ -33,6 +33,10 @@ extension MapViewModel {
                 venueIsApproved = false
                 venueClaimStatus = "Not submitted"
                 venueAuthErrorMessage = ""
+            }
+
+            if recordVenueGuidelinesAcceptance {
+                UserDefaults.standard.set(true, forKey: "venueGuidelinesAccepted")
             }
 
         } catch {

@@ -1480,6 +1480,8 @@ private struct SettingsAccountCard: View {
     @Binding var email: String
     @Binding var password: String
     @Binding var showRegisterMode: Bool
+    @State private var fanSignupPoliciesAccepted = false
+    @State private var fanSignupLegalDocument: SettingsLegalDocumentKind?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1530,11 +1532,64 @@ private struct SettingsAccountCard: View {
                     .padding()
                     .background(Color.gray.opacity(0.10))
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-                
+
+                if showRegisterMode {
+                    HStack(alignment: .top, spacing: 10) {
+                        Button {
+                            fanSignupPoliciesAccepted.toggle()
+                        } label: {
+                            Image(systemName: fanSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
+                                .font(.title3)
+                                .foregroundStyle(fanSignupPoliciesAccepted ? Color.blue : Color.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
+                        .accessibilityAddTraits(fanSignupPoliciesAccepted ? .isSelected : [])
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 0) {
+                                Text("I agree to the ")
+                                Button {
+                                    fanSignupLegalDocument = .termsOfService
+                                } label: {
+                                    Text("Terms of Service")
+                                        .underline()
+                                }
+                                .buttonStyle(.plain)
+                                Text(", ")
+                                Button {
+                                    fanSignupLegalDocument = .privacyPolicy
+                                } label: {
+                                    Text("Privacy Policy")
+                                        .underline()
+                                }
+                                .buttonStyle(.plain)
+                                Text(", and ")
+                                Button {
+                                    fanSignupLegalDocument = .communityGuidelines
+                                } label: {
+                                    Text("Community Guidelines")
+                                        .underline()
+                                }
+                                .buttonStyle(.plain)
+                                Text(".")
+                            }
+                            .font(.footnote)
+                            .foregroundStyle(.primary)
+                            .tint(.blue)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
                 Button {
                     Task {
                         if showRegisterMode {
-                            await viewModel.registerUser(email: email, password: password)
+                            await viewModel.registerUser(
+                                email: email,
+                                password: password,
+                                recordFanGuidelinesAcceptance: fanSignupPoliciesAccepted
+                            )
                         } else {
                             await viewModel.loginUser(email: email, password: password)
                         }
@@ -1548,7 +1603,7 @@ private struct SettingsAccountCard: View {
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-
+                .disabled(showRegisterMode && !fanSignupPoliciesAccepted)
 
                 
                 if !viewModel.authErrorMessage.isEmpty {
@@ -1570,6 +1625,14 @@ private struct SettingsAccountCard: View {
         .padding()
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 22))
+        .onChange(of: showRegisterMode) { _, isRegister in
+            if !isRegister {
+                fanSignupPoliciesAccepted = false
+            }
+        }
+        .sheet(item: $fanSignupLegalDocument) { document in
+            SettingsLegalDocumentSheet(document: document)
+        }
     }
 }
 
@@ -1899,6 +1962,8 @@ private struct SettingsVenueOwnerCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var venuePassword: String
     @Binding var showVenueRegisterMode: Bool
+    @State private var venueSignupPoliciesAccepted = false
+    @State private var venueSignupLegalDocument: SettingsLegalDocumentKind?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1922,12 +1987,62 @@ private struct SettingsVenueOwnerCard: View {
                 .background(Color.gray.opacity(0.10))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
+            if showVenueRegisterMode {
+                HStack(alignment: .top, spacing: 10) {
+                    Button {
+                        venueSignupPoliciesAccepted.toggle()
+                    } label: {
+                        Image(systemName: venueSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(venueSignupPoliciesAccepted ? Color.blue : Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
+                    .accessibilityAddTraits(venueSignupPoliciesAccepted ? .isSelected : [])
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 0) {
+                            Text("I agree to the ")
+                            Button {
+                                venueSignupLegalDocument = .termsOfService
+                            } label: {
+                                Text("Terms of Service")
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
+                            Text(", ")
+                            Button {
+                                venueSignupLegalDocument = .privacyPolicy
+                            } label: {
+                                Text("Privacy Policy")
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
+                            Text(", and ")
+                            Button {
+                                venueSignupLegalDocument = .communityGuidelines
+                            } label: {
+                                Text("Community Guidelines")
+                                    .underline()
+                            }
+                            .buttonStyle(.plain)
+                            Text(".")
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(.primary)
+                        .tint(.blue)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
             Button {
                 Task {
                     if showVenueRegisterMode {
                         await viewModel.registerVenueOwner(
                             email: viewModel.venueOwnerEmail,
-                            password: venuePassword
+                            password: venuePassword,
+                            recordVenueGuidelinesAcceptance: venueSignupPoliciesAccepted
                         )
                     } else {
                         await viewModel.loginVenueOwner(
@@ -1945,6 +2060,7 @@ private struct SettingsVenueOwnerCard: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .disabled(showVenueRegisterMode && !venueSignupPoliciesAccepted)
 
             Button {
                 showVenueRegisterMode.toggle()
@@ -1964,6 +2080,14 @@ private struct SettingsVenueOwnerCard: View {
         .padding()
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 22))
+        .onChange(of: showVenueRegisterMode) { _, isRegister in
+            if !isRegister {
+                venueSignupPoliciesAccepted = false
+            }
+        }
+        .sheet(item: $venueSignupLegalDocument) { document in
+            SettingsLegalDocumentSheet(document: document)
+        }
     }
 }
 

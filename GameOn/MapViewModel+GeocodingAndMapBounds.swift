@@ -21,7 +21,7 @@ extension MapViewModel {
         let coordFingerprint = source.prefix(64).reduce(into: 0.0) { partial, bar in
             partial += bar.coordinate.latitude + bar.coordinate.longitude + Double(bar.games.count)
         }
-        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(searchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
+        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
         if cacheKey == discoverClusteredBarsCacheKey, let cached = discoverClusteredBarsCache {
             return cached
         }
@@ -145,21 +145,33 @@ extension MapViewModel {
     }
 
     func searchMapLocation() {
+        discoverSearchDebounceTask?.cancel()
+        discoverSearchDebounceTask = nil
+
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else {
             venueSearchResults = []
+            debouncedDiscoverSearchText = ""
             return
         }
-        let lower = q.lowercased()
-        let matches = bars.filter {
-            $0.name.lowercased().contains(lower)
-                || $0.address.lowercased().contains(lower)
-                || $0.primarySport.lowercased().contains(lower)
-        }
-        if !matches.isEmpty {
-            venueSearchResults = matches
+
+        debouncedDiscoverSearchText = q
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+
+        let region = cameraPosition.region
+        let visibleMatches = visibleBarsMatchingSearch(query: q, region: region)
+        if !visibleMatches.isEmpty {
+            venueSearchResults = visibleMatches
             return
         }
+
+        let memoryMatches = allBarsMatchingDiscoverLiveSearch(query: q)
+        if !memoryMatches.isEmpty {
+            venueSearchResults = memoryMatches
+            return
+        }
+
         Task {
             if let coord = await geocodeAddress(q) {
                 venueSearchResults = []

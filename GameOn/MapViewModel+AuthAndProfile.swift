@@ -119,7 +119,7 @@ extension MapViewModel {
         return fullFileName + "_thumb.jpg"
     }
 
-    func registerUser(email: String, password: String) async {
+    func registerUser(email: String, password: String, recordFanGuidelinesAcceptance: Bool = false) async {
         do {
             _ = try await supabase.auth.signUp(
                 email: email,
@@ -145,8 +145,11 @@ extension MapViewModel {
                 await MainActor.run { currentUserAuthId = session.user.id }
             }
 
-            await ensureUserProfileExists()
-            await loadUserProfile()
+            if recordFanGuidelinesAcceptance {
+                UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
+            }
+
+            Task { await refreshUserPersonalizationInBackground() }
         } catch {
             print("User registration failed:", error)
         }
@@ -181,10 +184,7 @@ extension MapViewModel {
                 await MainActor.run { currentUserAuthId = session.user.id }
             }
 
-            await ensureUserProfileExists()
-            await loadUserProfile()
-            await loadFavoriteVenuesFromSupabase()
-            await refreshFollowingTabDataGlobally()
+            Task { await refreshUserPersonalizationInBackground() }
         } catch {
             await MainActor.run {
                 isLoggedIn = false
@@ -238,8 +238,8 @@ extension MapViewModel {
         }
     }
 
-    // Called on app launch (`MainTabView`): restores cached display fields, reads Supabase session, then loads profile and favorites when logged in.
-    func restoreSession() async {
+    /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
+    func bootstrapAuthSessionOnly() async {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
@@ -257,17 +257,42 @@ extension MapViewModel {
                 currentUserAuthId = session.user.id
             }
 
-            await ensureUserProfileExists()
-            await loadUserProfile()
-            await loadFavoriteVenuesFromSupabase()
-            await refreshFollowingTabDataGlobally()
-
             print("SESSION RESTORED:", email)
 
         } catch {
             await MainActor.run { currentUserAuthId = nil }
             print("NO ACTIVE SESSION")
         }
+    }
+
+    /// Profile bootstrap, fan profile row, favorites, and Following-tab caches. Runs after Discover core so map/calendar are not blocked.
+    func refreshUserPersonalizationInBackground() async {
+        let t0 = Date()
+        do {
+            _ = try await supabase.auth.session
+        } catch {
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[Background] personalization loaded ms=\(ms) (no session)")
+            #endif
+            return
+        }
+
+        await ensureUserProfileExists()
+        await loadUserProfile()
+        await loadFavoriteVenuesFromSupabase()
+        await refreshFollowingTabDataGlobally()
+
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[Background] personalization loaded ms=\(ms)")
+        #endif
+    }
+
+    // Called on app launch when something needs the legacy “await everything” behavior: session + personalization in sequence.
+    func restoreSession() async {
+        await bootstrapAuthSessionOnly()
+        await refreshUserPersonalizationInBackground()
     }
 
     // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).

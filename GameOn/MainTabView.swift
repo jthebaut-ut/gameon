@@ -67,13 +67,19 @@ struct MainTabView: View {
             }
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
-        // Restore auth, then hydrate map data once; `loadGamesFromSupabase` also refreshes venue event rows and interest summaries.
+        // Discover-first: disk snapshot + map/calendar core refresh never waits on profile, favorites, or social enrichment.
         .task {
-            await viewModel.restoreSession()
+            viewModel.renderCachedDiscoverCore()
 
-            // Map + schedule: do not block the first frame on venues; games hydrate in parallel.
-            Task { await viewModel.loadVenuesFromSupabase() }
-            viewModel.loadGamesFromSupabase()
+            await viewModel.bootstrapAuthSessionOnly()
+
+            Task {
+                await viewModel.refreshDiscoverCoreInBackground()
+                await viewModel.refreshSocialEnrichmentInBackground()
+            }
+            Task {
+                await viewModel.refreshUserPersonalizationInBackground()
+            }
 
             await chatViewModel.loadIfNeeded()
         }

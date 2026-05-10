@@ -16,7 +16,179 @@ private let discoverVenueRowSelectColumns =
     "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
     "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
 
+// MARK: - Discover disk snapshot (venues + venue_events + merged events for instant map/calendar)
+
+private struct DiscoverPersistedBarVenue: Codable {
+    let id: UUID
+    let name: String
+    let address: String
+    let phone: String
+    let primarySport: String
+    let distance: String
+    let rating: Double
+    let tags: [String]
+    let games: [String]
+    let latitude: Double
+    let longitude: Double
+    let goingCounts: [String: Int]
+    let screenCount: Int
+    let servesFood: Bool
+    let hasWifi: Bool
+    let hasGarden: Bool
+    let hasProjector: Bool
+    let petFriendly: Bool
+    let coverPhotoURL: String?
+    let menuPhotoURL: String?
+    let coverPhotoThumbnailURL: String?
+    let menuPhotoThumbnailURL: String?
+    let ownerEmail: String?
+
+    init(bar: BarVenue) {
+        id = bar.id
+        name = bar.name
+        address = bar.address
+        phone = bar.phone
+        primarySport = bar.primarySport
+        distance = bar.distance
+        rating = bar.rating
+        tags = bar.tags
+        games = bar.games
+        latitude = bar.coordinate.latitude
+        longitude = bar.coordinate.longitude
+        goingCounts = bar.goingCounts
+        screenCount = bar.screenCount
+        servesFood = bar.servesFood
+        hasWifi = bar.hasWifi
+        hasGarden = bar.hasGarden
+        hasProjector = bar.hasProjector
+        petFriendly = bar.petFriendly
+        coverPhotoURL = bar.coverPhotoURL
+        menuPhotoURL = bar.menuPhotoURL
+        coverPhotoThumbnailURL = bar.coverPhotoThumbnailURL
+        menuPhotoThumbnailURL = bar.menuPhotoThumbnailURL
+        ownerEmail = bar.ownerEmail
+    }
+
+    func toBarVenue() -> BarVenue {
+        BarVenue(
+            id: id,
+            name: name,
+            address: address,
+            phone: phone,
+            primarySport: primarySport,
+            distance: distance,
+            rating: rating,
+            tags: tags,
+            games: games,
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            goingCounts: goingCounts,
+            screenCount: screenCount,
+            servesFood: servesFood,
+            hasWifi: hasWifi,
+            hasGarden: hasGarden,
+            hasProjector: hasProjector,
+            petFriendly: petFriendly,
+            coverPhotoURL: coverPhotoURL,
+            menuPhotoURL: menuPhotoURL,
+            coverPhotoThumbnailURL: coverPhotoThumbnailURL,
+            menuPhotoThumbnailURL: menuPhotoThumbnailURL,
+            ownerEmail: ownerEmail
+        )
+    }
+}
+
+private struct DiscoverCoreDiskSnapshot: Codable {
+    var savedAt: Date
+    var bars: [DiscoverPersistedBarVenue]
+    var venueEventRows: [VenueEventRow]
+    var events: [SportsEvent]
+}
+
 extension MapViewModel {
+
+    private static var discoverCoreSnapshotURL: URL {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("gameon_discover_core_snapshot.json", isDirectory: false)
+    }
+
+    func renderCachedDiscoverCore() {
+        let t0 = Date()
+        discoverSnapshotRestoredThisLaunch = false
+        guard let data = try? Data(contentsOf: Self.discoverCoreSnapshotURL) else {
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[CriticalPath] cached core rendered ms=\(ms) bars=0 (no snapshot file)")
+            #endif
+            return
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .deferredToDate
+        guard let snap = try? decoder.decode(DiscoverCoreDiskSnapshot.self, from: data),
+              !snap.bars.isEmpty else {
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[CriticalPath] cached core rendered ms=\(ms) bars=0 (decode failed)")
+            #endif
+            return
+        }
+        applyRestoredDiscoverCoreSnapshot(snap)
+        discoverSnapshotRestoredThisLaunch = true
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[CriticalPath] cached core rendered ms=\(ms) bars=\(bars.count) events=\(events.count)")
+        #endif
+    }
+
+    private func applyRestoredDiscoverCoreSnapshot(_ snap: DiscoverCoreDiskSnapshot) {
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+        discoverVenueEventsFetchCache = nil
+
+        let mapped = snap.bars.map { $0.toBarVenue() }
+        if SampleData.includeSampleData {
+            bars = mapped + SampleData.bars
+        } else {
+            bars = mapped
+        }
+        venueEventRows = snap.venueEventRows
+        rebuildVenueEventIDsByKey(from: snap.venueEventRows)
+
+        events = snap.events
+        recomputeCalendarDotDates()
+        pruneSelectionIfNeededAfterFilterChange()
+    }
+
+    func persistDiscoverCoreSnapshot() {
+        guard !bars.isEmpty else { return }
+        let snap = DiscoverCoreDiskSnapshot(
+            savedAt: Date(),
+            bars: bars.map { DiscoverPersistedBarVenue(bar: $0) },
+            venueEventRows: venueEventRows,
+            events: events
+        )
+        do {
+            let enc = JSONEncoder()
+            enc.dateEncodingStrategy = .deferredToDate
+            let data = try enc.encode(snap)
+            try data.write(to: Self.discoverCoreSnapshotURL, options: .atomic)
+        } catch {
+            #if DEBUG
+            print("[CriticalPath] discover snapshot save failed:", error)
+            #endif
+        }
+    }
+
+    /// Venues → schedule/venue_events (sequential so games query keys off fresh ``bars``), then logs fresh-core timing. Social interests run from ``refreshSocialEnrichmentInBackground()`` after this returns.
+    func refreshDiscoverCoreInBackground() async {
+        let t0 = Date()
+        await loadVenuesFromSupabase()
+        await performLoadGamesFromSupabase()
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[CriticalPath] fresh core loaded ms=\(ms) bars=\(bars.count) events=\(events.count)")
+        #endif
+    }
 
     private func discoverGamesDateLowerString(daysBack: Int) -> String {
         let d = Calendar.current.date(byAdding: .day, value: -daysBack, to: Date()) ?? Date()
@@ -326,13 +498,7 @@ extension MapViewModel {
             recomputeCalendarDotDates()
             pruneSelectionIfNeededAfterFilterChange()
 
-            Task(priority: .utility) {
-                let urls = Array(mappedBars.compactMap { bar -> URL? in
-                    guard let s = bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
-                    return URL(string: s)
-                }.prefix(14))
-                await DiscoverMapImageCache.shared.prefetch(urls: urls)
-            }
+            persistDiscoverCoreSnapshot()
 
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -347,105 +513,109 @@ extension MapViewModel {
     }
 
     func loadGamesFromSupabase() {
-        Task {
-            await MainActor.run {
+        Task { await performLoadGamesFromSupabase() }
+    }
+
+    /// Official `games` rows + `venue_events` → ``events`` / calendar dots / IDs. Interest counts load separately via ``refreshSocialEnrichmentInBackground()`` so Discover stays responsive.
+    func performLoadGamesFromSupabase() async {
+        await MainActor.run {
+            if !discoverSnapshotRestoredThisLaunch {
                 isLoadingEvents = true
             }
+        }
 
-            do {
-                let sport = selectedSport
-                let dateLowerOfficial = tenDaysAgoString()
-                let dateUpperOfficial = discoverGamesDateUpperString(daysForward: 365)
-                let dateLowerVenue = discoverGamesDateLowerString(daysBack: 30)
-                let dateUpperVenue = discoverGamesDateUpperString(daysForward: 180)
+        do {
+            let sport = selectedSport
+            let dateLowerOfficial = tenDaysAgoString()
+            let dateUpperOfficial = discoverGamesDateUpperString(daysForward: 365)
+            let dateLowerVenue = discoverGamesDateLowerString(daysBack: 30)
+            let dateUpperVenue = discoverGamesDateUpperString(daysForward: 180)
 
-                let officialRows: [GameRow] = try await supabase
-                    .from("games")
-                    .select("title,sport,league,game_date,game_time")
-                    .gte("game_date", value: dateLowerOfficial)
-                    .lte("game_date", value: dateUpperOfficial)
-                    .order("game_date", ascending: true)
-                    .execute()
-                    .value
+            let officialRows: [GameRow] = try await supabase
+                .from("games")
+                .select("title,sport,league,game_date,game_time")
+                .gte("game_date", value: dateLowerOfficial)
+                .lte("game_date", value: dateUpperOfficial)
+                .order("game_date", ascending: true)
+                .execute()
+                .value
 
-                let officialEvents: [SportsEvent] = await Task.detached(priority: .userInitiated) { () -> [SportsEvent] in
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "yyyy-MM-dd"
-                    formatter.timeZone = TimeZone.current
-                    return DiscoverVenueLoadAssembler.sportsEventsFromOfficialRows(officialRows, formatter: formatter)
-                }.value
+            let officialEvents: [SportsEvent] = await Task.detached(priority: .userInitiated) { () -> [SportsEvent] in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                formatter.timeZone = TimeZone.current
+                return DiscoverVenueLoadAssembler.sportsEventsFromOfficialRows(officialRows, formatter: formatter)
+            }.value
 
-                let ownerEmailsFromBars = Array(
-                    Set(bars.compactMap { $0.ownerEmail?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
+            let ownerEmailsFromBars = Array(
+                Set(bars.compactMap { $0.ownerEmail?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
+            )
+            let venueNamesFromBars = Array(Set(bars.map(\.name).filter { !$0.isEmpty }))
+
+            let venueRowsForKeys: [VenueRow]
+            if ownerEmailsFromBars.isEmpty && venueNamesFromBars.isEmpty {
+                venueRowsForKeys = try await fetchVenueRowsInCurrentBounds(limit: 200)
+            } else {
+                venueRowsForKeys = []
+            }
+
+            let ownerEmails: [String]
+            let venueNames: [String]
+            if venueRowsForKeys.isEmpty {
+                ownerEmails = ownerEmailsFromBars
+                venueNames = venueNamesFromBars
+            } else {
+                ownerEmails = Array(
+                    Set(venueRowsForKeys.compactMap { $0.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
                 )
-                let venueNamesFromBars = Array(Set(bars.map(\.name).filter { !$0.isEmpty }))
-
-                let venueRowsForKeys: [VenueRow]
-                if ownerEmailsFromBars.isEmpty && venueNamesFromBars.isEmpty {
-                    venueRowsForKeys = try await fetchVenueRowsInCurrentBounds(limit: 200)
-                } else {
-                    venueRowsForKeys = []
-                }
-
-                let ownerEmails: [String]
-                let venueNames: [String]
-                if venueRowsForKeys.isEmpty {
-                    ownerEmails = ownerEmailsFromBars
-                    venueNames = venueNamesFromBars
-                } else {
-                    ownerEmails = Array(
-                        Set(venueRowsForKeys.compactMap { $0.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
-                    )
-                    venueNames = Array(
-                        Set(venueRowsForKeys.compactMap { $0.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
-                    )
-                }
-
-                let venueEventRowsFetched = try await fetchVenueEventRowsForDiscover(
-                    ownerEmails: ownerEmails,
-                    venueNames: venueNames,
-                    dateLower: dateLowerVenue,
-                    dateUpper: dateUpperVenue,
-                    sport: sport
+                venueNames = Array(
+                    Set(venueRowsForKeys.compactMap { $0.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty })
                 )
+            }
 
-                let venueEventsAsSportsEvents: [SportsEvent] = await Task.detached(priority: .userInitiated) { () -> [SportsEvent] in
-                    let formatter = DateFormatter()
-                    formatter.dateFormat = "yyyy-MM-dd"
-                    formatter.timeZone = TimeZone.current
-                    return DiscoverVenueLoadAssembler.sportsEventsFromVenueEventRows(venueEventRowsFetched, formatter: formatter)
-                }.value
+            let venueEventRowsFetched = try await fetchVenueEventRowsForDiscover(
+                ownerEmails: ownerEmails,
+                venueNames: venueNames,
+                dateLower: dateLowerVenue,
+                dateUpper: dateUpperVenue,
+                sport: sport
+            )
 
-                var finalEvents = officialEvents + venueEventsAsSportsEvents
-                if SampleData.includeSampleData {
-                    finalEvents.append(contentsOf: SampleData.events)
-                }
+            let venueEventsAsSportsEvents: [SportsEvent] = await Task.detached(priority: .userInitiated) { () -> [SportsEvent] in
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyy-MM-dd"
+                formatter.timeZone = TimeZone.current
+                return DiscoverVenueLoadAssembler.sportsEventsFromVenueEventRows(venueEventRowsFetched, formatter: formatter)
+            }.value
 
-                await MainActor.run {
-                    discoverClusteredBarsCacheKey = nil
-                    discoverClusteredBarsCache = nil
-                    events = finalEvents
-                    venueEventRows = venueEventRowsFetched
-                    rebuildVenueEventIDsByKey(from: venueEventRowsFetched)
-                    recomputeCalendarDotDates()
-                    isLoadingEvents = false
-                    pruneSelectionIfNeededAfterFilterChange()
-                }
+            var finalEvents = officialEvents + venueEventsAsSportsEvents
+            if SampleData.includeSampleData {
+                finalEvents.append(contentsOf: SampleData.events)
+            }
 
-                await loadVisibleVenueEventInterests()
+            await MainActor.run {
+                discoverClusteredBarsCacheKey = nil
+                discoverClusteredBarsCache = nil
+                events = finalEvents
+                venueEventRows = venueEventRowsFetched
+                rebuildVenueEventIDsByKey(from: venueEventRowsFetched)
+                recomputeCalendarDotDates()
+                isLoadingEvents = false
+                pruneSelectionIfNeededAfterFilterChange()
+                persistDiscoverCoreSnapshot()
+            }
 
-                #if DEBUG
-                print("[DiscoverPerf] loadGames DONE official=\(officialEvents.count) venueEvents=\(venueEventsAsSportsEvents.count)")
-                #endif
+            #if DEBUG
+            print("[DiscoverPerf] loadGames DONE official=\(officialEvents.count) venueEvents=\(venueEventsAsSportsEvents.count)")
+            #endif
 
-            } catch {
-                #if DEBUG
-                print("ERROR LOADING GAMES FROM SUPABASE:", error)
-                #endif
+        } catch {
+            #if DEBUG
+            print("ERROR LOADING GAMES FROM SUPABASE:", error)
+            #endif
 
-                await MainActor.run {
-                    isLoadingEvents = false
-                }
+            await MainActor.run {
+                isLoadingEvents = false
             }
         }
     }

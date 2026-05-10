@@ -353,4 +353,19 @@ extension MapViewModel {
             #endif
         }
     }
+
+    /// Going counts / “I’m in” state for visible venue events, plus low-priority map image prefetch. Runs after Discover core data is current.
+    func refreshSocialEnrichmentInBackground() async {
+        let t0 = Date()
+        await loadVisibleVenueEventInterests()
+        let urls = Array(bars.compactMap { bar -> URL? in
+            guard let s = bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+            return URL(string: s)
+        }.prefix(14))
+        await DiscoverMapImageCache.shared.prefetch(urls: urls)
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[Background] enrichment loaded ms=\(ms)")
+        #endif
+    }
 }

@@ -76,13 +76,13 @@ struct DiscoverScreen: View {
         }
     .task {
         viewModel.reloadVenueUserRatingsFromStorage()
-        await viewModel.loadVisibleVenueEventInterests()
     }
     .onChange(of: viewModel.selectedDate) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
     }
     .onChange(of: viewModel.searchText) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
+        viewModel.scheduleDiscoverSearchDebounce()
     }
     .onChange(of: viewModel.calendarUsesVisibleMapRegionOnly) { _, _ in
         viewModel.recomputeCalendarDotDates()
@@ -107,6 +107,7 @@ struct DiscoverScreen: View {
             if let bar = viewModel.bars.first(where: { $0.id == venueID })
                 ?? viewModel.filteredBars.first(where: { $0.id == venueID }) {
                 withAnimation(.spring()) {
+                    venuePreviewGameFilter = .all
                     viewModel.selectedBar = bar
                 }
             }
@@ -166,6 +167,7 @@ struct DiscoverScreen: View {
                     ForEach(cluster.bars.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) { bar in
                         Button {
                             clusterForSheet = nil
+                            venuePreviewGameFilter = .all
                             withAnimation(.spring()) {
                                 viewModel.centerMap(on: bar)
                             }
@@ -311,6 +313,7 @@ struct DiscoverScreen: View {
 #endif
 
         Button {
+            venuePreviewGameFilter = .all
             withAnimation(.spring()) {
                 viewModel.centerMap(on: bar)
             }
@@ -399,6 +402,14 @@ struct DiscoverScreen: View {
         .ignoresSafeArea()
     }
     
+    /// Shown after debounce when the current query has no in-map matches (live search only). Hidden when the map has no loaded pins here (e.g. user is about to geocode a distant city on **Go**).
+    private var showDiscoverVisibleSearchEmptyHint: Bool {
+        let t = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let d = viewModel.debouncedDiscoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !t.isEmpty && t == d && viewModel.venueSearchResults.isEmpty
+            && viewModel.visibleBarCountInCurrentMapRegion() > 0
+    }
+
     private var topControlArea: some View {
         VStack(alignment: .leading, spacing: 12) {
             
@@ -439,15 +450,21 @@ struct DiscoverScreen: View {
             .padding()
             .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 18))
-            
-        
+
+            if showDiscoverVisibleSearchEmptyHint {
+                Text("No visible venues match. Zoom out or search this area.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
+            }
+
             if !viewModel.venueSearchResults.isEmpty {
                 VStack(spacing: 8) {
                     ForEach(viewModel.venueSearchResults.prefix(4)) { bar in
                         Button {
                             withAnimation(.spring()) {
-                                viewModel.centerMap(on: bar)
-                                viewModel.selectedBar = bar
+                                venuePreviewGameFilter = .all
+                                viewModel.selectVenueFromDiscoverSearchResult(bar)
                             }
                         } label: {
                             HStack {
@@ -554,7 +571,9 @@ struct DiscoverScreen: View {
                 
                 Text(
                     viewModel.filteredBars.isEmpty
-                        ? "0 venues match your selection"
+                        ? ((viewModel.isLoadingMapVenues || viewModel.isLoadingEvents) && !viewModel.discoverSnapshotRestoredThisLaunch
+                            ? "Loading venues…"
+                            : "0 venues match your selection")
                         : "\(viewModel.filteredBars.count) venues match your selection"
                 )
                     .font(.subheadline)
@@ -778,11 +797,15 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewCard(_ bar: BarVenue) -> some View {
-        let dayEvents = discoverMapDayEvents
-        let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
+        let resolved = viewModel.canonicalBarForDiscover(bar)
+        let gamesToday = viewModel.gamesForVenuePreview(
+            bar: resolved,
+            date: viewModel.selectedDate,
+            sportFilter: viewModel.selectedSport
+        )
 
         return VStack(alignment: .leading, spacing: 12) {
-            venuePreviewCardStaticHeader(bar: bar)
+            venuePreviewCardStaticHeader(bar: resolved)
 
             Rectangle()
                 .fill(Color.primary.opacity(0.08))
@@ -791,9 +814,9 @@ struct DiscoverScreen: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     if let selectedEvent = viewModel.selectedEvent {
-                        selectedEventSection(bar: bar, selectedEvent: selectedEvent)
+                        selectedEventSection(bar: resolved, selectedEvent: selectedEvent)
                     } else {
-                        gamesListSection(bar: bar, gamesToday: gamesToday)
+                        gamesListSection(bar: resolved, gamesToday: gamesToday)
                     }
 
                     Button {
@@ -827,15 +850,20 @@ struct DiscoverScreen: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 10)
-        .onChange(of: viewModel.selectedBar?.id) { _, _ in
+        .onChange(of: viewModel.selectedBar?.id) { oldId, newId in
+            guard oldId != newId else { return }
             venuePreviewGameFilter = .all
         }
-        .task(id: bar.id) {
-            await viewModel.prefetchDiscoverVenueImages(for: bar, includeMenu: false)
+        .task(id: resolved.id) {
+            await viewModel.prefetchDiscoverVenueImages(for: resolved, includeMenu: false)
             guard viewModel.isLoggedIn else { return }
-            let dayEvents = viewModel.eventsForSelectedDate.filter { bar.games.contains($0.title) }
+            let dayEvents = viewModel.gamesForVenuePreview(
+                bar: resolved,
+                date: viewModel.selectedDate,
+                sportFilter: viewModel.selectedSport
+            )
             for game in dayEvents.prefix(5) {
-                if let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: game.title) {
+                if let venueEventID = await viewModel.venueEventID(for: resolved, gameTitle: game.title) {
                     await viewModel.loadGoingUserProfiles(for: venueEventID)
                 }
             }
@@ -916,7 +944,7 @@ struct DiscoverScreen: View {
             if viewModel.isLoadingEvents {
                 loadingVenueGamesView
             } else if gamesToday.isEmpty {
-                noVenueGamesView
+                venuePreviewNoGamesForDateView
             } else if filtered.isEmpty {
                 venueGameFilterEmptyView()
             } else {
@@ -1009,6 +1037,16 @@ struct DiscoverScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.gray.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private var venuePreviewNoGamesForDateView: some View {
+        Text("No games scheduled for this date.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.gray.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
     }
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {
@@ -1214,15 +1252,6 @@ struct DiscoverScreen: View {
         return ""
     }
     
-    private var noVenueGamesView: some View {
-        Text("No games here yet")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.gray.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
     
     private func simpleMapPin(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
         let sport = gamesToday.first?.sport ?? bar.primarySport

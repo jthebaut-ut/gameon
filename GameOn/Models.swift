@@ -1,7 +1,7 @@
 import Foundation
 import CoreLocation
 
-struct SportsEvent: Identifiable, Equatable {
+struct SportsEvent: Identifiable, Equatable, Codable {
     let id: UUID
     let title: String
     let sport: String

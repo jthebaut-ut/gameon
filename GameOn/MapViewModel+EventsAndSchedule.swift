@@ -2,6 +2,11 @@ import Foundation
 
 extension MapViewModel {
 
+    /// Debounced Discover search string; avoids recomputing pins/events on every keystroke (see ``scheduleDiscoverSearchDebounce()``).
+    var effectiveDiscoverSearchQuery: String {
+        debouncedDiscoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Events shown on Discover map pins and venue cards: selected day + sport + search (event text or venue name/address).
     var eventsForSelectedDate: [SportsEvent] {
         events.filter { event in
@@ -56,7 +61,7 @@ extension MapViewModel {
 
     /// Games at this venue that match the Discover date, sport chip, and search rules.
     func matchingEventsForDiscoverFilter(bar: BarVenue) -> [SportsEvent] {
-        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let q = effectiveDiscoverSearchQuery
         let daySportGames = events.filter { event in
             Calendar.current.isDate(event.date, inSameDayAs: selectedDate) &&
                 bar.games.contains(event.title) &&
@@ -146,9 +151,58 @@ extension MapViewModel {
     }
 
     func matchesSearch(_ event: SportsEvent) -> Bool {
-        searchText.isEmpty ||
-        event.title.localizedCaseInsensitiveContains(searchText) ||
-        event.sport.localizedCaseInsensitiveContains(searchText) ||
-        event.league.localizedCaseInsensitiveContains(searchText)
+        effectiveDiscoverSearchQuery.isEmpty ||
+        event.title.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery) ||
+        event.sport.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery) ||
+        event.league.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery)
+    }
+
+    private func discoverPreviewSQLDayString(for date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone.current
+        return f.string(from: date)
+    }
+
+    /// Titles from ``venueEventRows`` for this venue on `date`, union ``BarVenue/games`` (sport chip applied to rows).
+    private func venueGameTitleAllowlistForPreview(bar: BarVenue, date: Date, sportFilter: String) -> Set<String> {
+        let dayStr = discoverPreviewSQLDayString(for: date)
+        let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        var titles = Set(bar.games)
+        for row in venueEventRows {
+            guard let vn = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  vn.caseInsensitiveCompare(barName) == .orderedSame,
+                  let ed = row.event_date,
+                  ed == dayStr else { continue }
+            if sportFilter != "All" {
+                guard let rs = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines), rs == sportFilter else { continue }
+            }
+            if let t = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+                titles.insert(t)
+            }
+        }
+        return titles
+    }
+
+    /// Shared Discover venue preview game list: merged `events` for `date` + `sportFilter`, keyed by titles from ``venueEventRows`` and ``BarVenue/games``, then the same text-search rules as ``matchingEventsForDiscoverFilter``.
+    func gamesForVenuePreview(bar: BarVenue, date: Date, sportFilter: String) -> [SportsEvent] {
+        let cal = Calendar.current
+        let q = effectiveDiscoverSearchQuery
+        let titleAllowlist = venueGameTitleAllowlistForPreview(bar: bar, date: date, sportFilter: sportFilter)
+        let daySportGames = events.filter { event in
+            cal.isDate(event.date, inSameDayAs: date) &&
+                (sportFilter == "All" || event.sport == sportFilter) &&
+                titleAllowlist.contains(event.title)
+        }
+        if q.isEmpty {
+            return daySportGames
+        }
+        let byEventText = daySportGames.filter { matchesSearch($0) }
+        if !byEventText.isEmpty { return byEventText }
+        if bar.name.localizedCaseInsensitiveContains(q)
+            || bar.address.localizedCaseInsensitiveContains(q) {
+            return daySportGames
+        }
+        return []
     }
 }
