@@ -7,34 +7,9 @@ struct ProfileAvatarView: View {
     let size: CGFloat
 
     var body: some View {
-        Group {
-            if preview.isBusinessAccount {
-                BusinessAvatarIconView(size: size)
-            } else if let raw = ImageDisplayURL.forList(thumbnail: preview.avatarThumbnailURL, full: preview.avatarURL),
-               let url = URL(string: raw) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    default:
-                        placeholder
-                    }
-                }
-            } else {
-                placeholder
-            }
-        }
-        .frame(width: size, height: size)
+        SocialAvatarRenderer.socialAvatarView(for: preview, size: size)
+            .frame(width: size, height: size)
         .clipShape(Circle())
-    }
-
-    private var placeholder: some View {
-        Image(systemName: "person.circle.fill")
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(.secondary)
     }
 }
 

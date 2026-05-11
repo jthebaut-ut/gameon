@@ -459,7 +459,7 @@ struct VenueEventCommentsView: View {
         let email = comment.user_email ?? ""
         let currentBusinessAccount = isAuthoredByCurrentUser(email: email) && viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn
         let commentProfile = userProfile(forAuthorEmail: email)
-        let isBusinessComment = currentBusinessAccount || commentProfile?.is_business_account == true
+        let isBusinessComment = currentBusinessAccount || commentProfile?.isBusinessIdentity == true
 
         let avatarURL: String = {
             if isAuthoredByCurrentUser(email: email) {
@@ -479,27 +479,15 @@ struct VenueEventCommentsView: View {
         let name = displayName(for: comment)
 
         return Group {
-            if isBusinessComment {
-                BusinessAvatarIconView(size: 38)
-            } else if let url = URL(string: avatarURL), !avatarURL.isEmpty {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    Circle()
-                        .fill(Color.gray.opacity(0.20))
-                }
-            } else {
-                Circle()
-                    .fill(Color.blue.opacity(0.15))
-                    .overlay {
-                        Text(String(name.prefix(1)).uppercased())
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.blue)
-                    }
-            }
+            SocialAvatarRenderer.socialAvatarView(
+                displayName: name,
+                email: email,
+                avatarURL: avatarURL,
+                avatarThumbnailURL: nil,
+                isBusinessIdentity: isBusinessComment,
+                size: 38,
+                fallbackStyle: .blueInitials
+            )
         }
         .frame(width: 38, height: 38)
         .clipShape(Circle())

@@ -10,8 +10,14 @@ struct SocialIdentityService {
     }
 
     /// Business owners use `businesses.display_name` and no personal avatar; regular users use `user_profiles`.
-    func fetchUserPreviews(for userIds: [UUID]) async throws -> [UUID: UserPreview] {
-        let map = try await fetchIdentityMapByUserId(userIds)
+    func fetchUserPreviews(
+        for userIds: [UUID],
+        fallbackDisplayNamesByUserId: [UUID: String] = [:]
+    ) async throws -> [UUID: UserPreview] {
+        let map = try await fetchIdentityMapByUserId(
+            userIds,
+            fallbackDisplayNamesByUserId: fallbackDisplayNamesByUserId
+        )
         return map.reduce(into: [:]) { result, pair in
             result[pair.key] = pair.value.preview
         }
@@ -23,7 +29,10 @@ struct SocialIdentityService {
         return map.values.map(\.userProfileRow)
     }
 
-    private func fetchIdentityMapByUserId(_ userIds: [UUID]) async throws -> [UUID: ResolvedIdentity] {
+    private func fetchIdentityMapByUserId(
+        _ userIds: [UUID],
+        fallbackDisplayNamesByUserId: [UUID: String]
+    ) async throws -> [UUID: ResolvedIdentity] {
         let ids = Array(Set(userIds))
         guard !ids.isEmpty else { return [:] }
 
@@ -55,14 +64,84 @@ struct SocialIdentityService {
             }
         }
 
+        let profileEmails = Array(
+            Set(
+                profiles.compactMap { row -> String? in
+                    let email = OwnerBusinessEmail.normalized(row.email ?? "")
+                    return OwnerBusinessEmail.isValidStrict(email) ? email : nil
+                }
+            )
+        )
+        if !profileEmails.isEmpty {
+            let businessesByEmailRows: [BusinessRow] = (try? await client
+                .from("businesses")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                .in("owner_email", values: profileEmails)
+                .eq("admin_status", value: "active")
+                .execute()
+                .value) ?? []
+
+            let businessByEmail = businessesByEmailRows.reduce(into: [String: BusinessRow]()) { result, row in
+                let email = OwnerBusinessEmail.normalized(row.owner_email ?? "")
+                guard OwnerBusinessEmail.isValidStrict(email) else { return }
+                if result[email] == nil || !trimmedNonEmpty(row.display_name).isEmpty {
+                    result[email] = row
+                }
+            }
+
+            for (userId, profile) in profilesById {
+                if businessesByUserId[userId] != nil { continue }
+                let email = OwnerBusinessEmail.normalized(profile.email ?? "")
+                guard OwnerBusinessEmail.isValidStrict(email), let row = businessByEmail[email] else { continue }
+                businessesByUserId[userId] = row
+            }
+        }
+
+        let unresolvedFallbackNames = Array(
+            Set(
+                fallbackDisplayNamesByUserId.values
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+            )
+        )
+        var businessByDisplayName: [String: BusinessRow] = [:]
+        if !unresolvedFallbackNames.isEmpty {
+            let rows: [BusinessRow] = (try? await client
+                .from("businesses")
+                .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                .in("display_name", values: unresolvedFallbackNames)
+                .eq("admin_status", value: "active")
+                .execute()
+                .value) ?? []
+            businessByDisplayName = rows.reduce(into: [String: BusinessRow]()) { result, row in
+                let key = row.display_name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty else { return }
+                if result[key] == nil {
+                    result[key] = row
+                }
+            }
+        }
+
         var out: [UUID: ResolvedIdentity] = [:]
         for id in ids {
-            if let identity = resolveIdentity(
+            var identity = resolveIdentity(
                 profile: profilesById[id],
                 business: businessesByUserId[id],
                 fallbackUserId: id,
                 fallbackEmail: profilesById[id]?.email
-            ) {
+            )
+            if identity == nil,
+               let fallbackName = fallbackDisplayNamesByUserId[id]?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !fallbackName.isEmpty,
+               let matchedBusiness = businessByDisplayName[fallbackName] {
+                identity = resolveIdentity(
+                    profile: profilesById[id],
+                    business: matchedBusiness,
+                    fallbackUserId: id,
+                    fallbackEmail: matchedBusiness.owner_email
+                )
+            }
+            if let identity {
                 out[id] = identity
             }
         }
@@ -183,6 +262,7 @@ struct SocialIdentityService {
             UserPreview(
                 id: userId ?? UUID(),
                 displayName: displayName,
+                email: email,
                 avatarURL: avatarURL,
                 avatarThumbnailURL: avatarThumbnailURL,
                 isBusinessAccount: isBusinessAccount

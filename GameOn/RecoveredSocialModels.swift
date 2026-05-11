@@ -9,6 +9,7 @@ import UIKit
 struct UserPreview: Identifiable, Hashable, Codable {
     let id: UUID
     let displayName: String
+    let email: String?
     let avatarURL: String?
     /// Smaller avatar for lists/chips; falls back to ``avatarURL`` in views when nil/empty.
     let avatarThumbnailURL: String?
@@ -17,12 +18,14 @@ struct UserPreview: Identifiable, Hashable, Codable {
     init(
         id: UUID,
         displayName: String,
+        email: String? = nil,
         avatarURL: String?,
         avatarThumbnailURL: String? = nil,
         isBusinessAccount: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
+        self.email = email
         self.avatarURL = avatarURL
         self.avatarThumbnailURL = avatarThumbnailURL
         self.isBusinessAccount = isBusinessAccount
@@ -31,6 +34,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
     private enum CodingKeys: String, CodingKey {
         case id
         case displayName
+        case email
         case avatarURL
         case avatarThumbnailURL
         case isBusinessAccount
@@ -40,6 +44,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         displayName = try container.decode(String.self, forKey: .displayName)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
         avatarURL = try container.decodeIfPresent(String.self, forKey: .avatarURL)
         avatarThumbnailURL = try container.decodeIfPresent(String.self, forKey: .avatarThumbnailURL)
         isBusinessAccount = try container.decodeIfPresent(Bool.self, forKey: .isBusinessAccount) ?? false
@@ -49,9 +54,14 @@ struct UserPreview: Identifiable, Hashable, Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(displayName, forKey: .displayName)
+        try container.encodeIfPresent(email, forKey: .email)
         try container.encodeIfPresent(avatarURL, forKey: .avatarURL)
         try container.encodeIfPresent(avatarThumbnailURL, forKey: .avatarThumbnailURL)
         try container.encode(isBusinessAccount, forKey: .isBusinessAccount)
+    }
+
+    var isBusinessIdentity: Bool {
+        isBusinessAccount
     }
 }
 
@@ -84,6 +94,9 @@ struct DmInboxSummaryRow: Codable, Hashable {
     let friend_avatar_url: String?
     /// Present when RPC / view exposes `user_profiles.avatar_thumbnail_url` for the friend.
     let friend_avatar_thumbnail_url: String?
+    let friend_email: String?
+    let friend_is_business: Bool?
+    let friend_business_display_name: String?
     let last_message_body: String?
     let last_message_sender_id: UUID?
     let last_message_created_at: String?

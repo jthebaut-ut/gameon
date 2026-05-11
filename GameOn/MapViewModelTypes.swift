@@ -335,6 +335,10 @@ struct UserProfileRow: Decodable {
     let avatar_thumbnail_url: String?
     let is_business_account: Bool?
     let admin_status: String?
+
+    var isBusinessIdentity: Bool {
+        is_business_account == true
+    }
 }
 
 struct UserProfileInsert: Encodable {

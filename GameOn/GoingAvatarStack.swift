@@ -21,25 +21,10 @@ struct GoingAvatarStack: View {
 
     @ViewBuilder
     private func avatar(for row: UserProfileRow) -> some View {
-        if row.is_business_account == true {
-            BusinessAvatarIconView(size: diameter)
-        } else if let raw = ImageDisplayURL.forList(thumbnail: row.avatar_thumbnail_url, full: row.avatar_url),
-           let url = URL(string: raw) {
-            DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
-                placeholder(initial: row.display_name ?? row.email)
-            }
-        } else {
-            placeholder(initial: row.display_name ?? row.email)
-        }
-    }
-
-    private func placeholder(initial: String?) -> some View {
-        let letter = initial?.first.map { String($0).uppercased() } ?? "?"
-        return ZStack {
-            Color(.systemGray4)
-            Text(letter)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.secondary)
-        }
+        SocialAvatarRenderer.socialAvatarView(
+            for: row,
+            size: diameter,
+            fallbackStyle: .grayInitials
+        )
     }
 }

@@ -390,15 +390,9 @@ final class ChatViewModel: ObservableObject {
         await reloadModerationBlockSets()
         do {
             let rows = try await directChatService.fetchInboxSummaries()
-            let previewsById = try await socialIdentityService.fetchUserPreviews(for: rows.map(\.friend_user_id))
             let displays = rows.map { row -> FriendDisplay in
-                let preview = previewsById[row.friend_user_id]
-                    ?? fallbackPreview(
-                        userId: row.friend_user_id,
-                        displayName: row.friend_display_name,
-                        avatarURL: row.friend_avatar_url,
-                        avatarThumbnailURL: row.friend_avatar_thumbnail_url
-                    )
+                let preview = inboxPreview(for: row)
+                logChatRowDebug(preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -500,19 +494,13 @@ final class ChatViewModel: ObservableObject {
             let previewIds = Set(
                 inRows.map(\.requester_id)
                     + outRows.map(\.addressee_id)
-                    + inboxRows.map(\.friend_user_id)
             )
             let previewsById = try await socialIdentityService.fetchUserPreviews(for: Array(previewIds))
 
             let inboxFiltered = inboxRows.filter { !isEitherDirectionBlocked(with: $0.friend_user_id) }
             friends = inboxFiltered.map { row -> FriendDisplay in
-                let preview = previewsById[row.friend_user_id]
-                    ?? fallbackPreview(
-                        userId: row.friend_user_id,
-                        displayName: row.friend_display_name,
-                        avatarURL: row.friend_avatar_url,
-                        avatarThumbnailURL: row.friend_avatar_thumbnail_url
-                    )
+                let preview = inboxPreview(for: row)
+                logChatRowDebug(preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -721,12 +709,63 @@ final class ChatViewModel: ObservableObject {
     private func fallbackPreview(
         userId: UUID,
         displayName: String? = nil,
+        email: String? = nil,
         avatarURL: String? = nil,
         avatarThumbnailURL: String? = nil
     ) -> UserPreview {
         let trimmed = displayName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
         let resolved = trimmed.isEmpty ? "Player" : trimmed
-        return UserPreview(id: userId, displayName: resolved, avatarURL: avatarURL, avatarThumbnailURL: avatarThumbnailURL)
+        return UserPreview(
+            id: userId,
+            displayName: resolved,
+            email: email,
+            avatarURL: avatarURL,
+            avatarThumbnailURL: avatarThumbnailURL
+        )
+    }
+
+    private func inboxPreview(for row: DmInboxSummaryRow) -> UserPreview {
+        if row.friend_is_business == true {
+            let businessName = row.friend_business_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
+            let fallbackName = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
+            let email = row.friend_email?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            let resolved = !businessName.isEmpty
+                ? businessName
+                : (!fallbackName.isEmpty ? fallbackName : (email?.isEmpty == false ? email! : "Business"))
+            return UserPreview(
+                id: row.friend_user_id,
+                displayName: resolved,
+                email: email,
+                avatarURL: nil,
+                avatarThumbnailURL: nil,
+                isBusinessAccount: true
+            )
+        }
+
+        return fallbackPreview(
+            userId: row.friend_user_id,
+            displayName: row.friend_display_name,
+            email: row.friend_email,
+            avatarURL: row.friend_avatar_url,
+            avatarThumbnailURL: row.friend_avatar_thumbnail_url
+        )
+    }
+
+    private func logChatRowDebug(preview: UserPreview) {
+#if DEBUG
+        let avatarSource: String
+        if preview.isBusinessIdentity {
+            avatarSource = "business_building_icon"
+        } else if !(preview.avatarThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                    || !(preview.avatarURL?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) {
+            avatarSource = "user_photo"
+        } else {
+            avatarSource = "generic_person_fallback"
+        }
+        print(
+            "[ChatRowDebug] displayName=\(preview.displayName) email=\(preview.email ?? "nil") isBusinessIdentity=\(preview.isBusinessIdentity) avatarSource=\(avatarSource)"
+        )
+#endif
     }
 
     private func formattedFriendshipSubtitle(row: FriendshipRow) -> String? {
