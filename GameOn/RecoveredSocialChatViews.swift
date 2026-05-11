@@ -8,7 +8,9 @@ struct ProfileAvatarView: View {
 
     var body: some View {
         Group {
-            if let raw = ImageDisplayURL.forList(thumbnail: preview.avatarThumbnailURL, full: preview.avatarURL),
+            if preview.isBusinessAccount {
+                BusinessAvatarIconView(size: size)
+            } else if let raw = ImageDisplayURL.forList(thumbnail: preview.avatarThumbnailURL, full: preview.avatarURL),
                let url = URL(string: raw) {
                 AsyncImage(url: url) { phase in
                     switch phase {
@@ -93,7 +95,7 @@ struct FriendsTabView: View {
     @State private var selectedSection: ChatSection = .friends
     @State private var showingAddFriendSheet = false
     @State private var showingBlockedUsersSheet = false
-    @State private var manualFriendIdDraft: String = ""
+    @State private var manualFriendLookupDraft: String = ""
 
     private enum ChatSection: String, CaseIterable, Identifiable {
         case friends = "Friends"
@@ -163,12 +165,13 @@ struct FriendsTabView: View {
         }
         .sheet(isPresented: $showingAddFriendSheet) {
             AddFriendGlassSheet(
-                manualId: $manualFriendIdDraft,
-                onClose: { showingAddFriendSheet = false },
-                onSend: { uuid in
-                    Task { await viewModel.sendFriendRequest(to: uuid) }
+                lookupDraft: $manualFriendLookupDraft,
+                onClose: {
                     showingAddFriendSheet = false
-                    manualFriendIdDraft = ""
+                    manualFriendLookupDraft = ""
+                },
+                onAttemptSend: { normalized in
+                    await viewModel.sendFriendRequestByLookup(normalized)
                 }
             )
         }
@@ -451,12 +454,20 @@ private struct BlockedUsersSheet: View {
 // MARK: - Add Friend (Liquid Glass sheet)
 
 private struct AddFriendGlassSheet: View {
-    @Binding var manualId: String
+    @Binding var lookupDraft: String
     let onClose: () -> Void
-    let onSend: (UUID) -> Void
+    /// Returns `nil` when the request was sent successfully; otherwise a user-visible error for the sheet.
+    let onAttemptSend: (String) async -> String?
 
-    private var parsedUUID: UUID? {
-        UUID(uuidString: manualId.trimmingCharacters(in: .whitespacesAndNewlines))
+    @State private var inlineError: String?
+    @State private var isSending = false
+
+    private var normalizedDraft: String {
+        FriendshipService.normalizedFriendLookupQuery(lookupDraft)
+    }
+
+    private var canSend: Bool {
+        !normalizedDraft.isEmpty
     }
 
     var body: some View {
@@ -466,11 +477,11 @@ private struct AddFriendGlassSheet: View {
             infoPill
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Manual add")
+                Text("Enter email or avatar name")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
 
-                TextField("Paste friend ID (advanced)", text: $manualId)
+                TextField("Email or avatar name", text: $lookupDraft)
                     .textFieldStyle(.plain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -485,16 +496,26 @@ private struct AddFriendGlassSheet: View {
                             .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
                     )
 
-                Text("Usually you will not need this. If someone sent you a code or ID, paste it here.")
+                Text("Search by the email or avatar name connected to their GameOn account.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if let inlineError {
+                    Text(inlineError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .padding(.horizontal, 18)
 
             Spacer(minLength: 0)
         }
         .padding(.top, 14)
-        .presentationDetents([.height(420)])
+        .onChange(of: lookupDraft) { _, _ in
+            inlineError = nil
+        }
+        .presentationDetents([.height(440)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(34)
         .presentationBackground(.ultraThinMaterial)
@@ -515,12 +536,22 @@ private struct AddFriendGlassSheet: View {
             Spacer()
 
             Button("Send") {
-                if let id = parsedUUID { onSend(id) }
+                Task {
+                    isSending = true
+                    inlineError = nil
+                    let normalized = FriendshipService.normalizedFriendLookupQuery(lookupDraft)
+                    if let err = await onAttemptSend(normalized) {
+                        inlineError = err
+                    } else {
+                        onClose()
+                    }
+                    isSending = false
+                }
             }
             .buttonStyle(.plain)
             .font(.headline.weight(.semibold))
-            .foregroundStyle(parsedUUID == nil ? Color.secondary : Color.accentColor)
-            .disabled(parsedUUID == nil)
+            .foregroundStyle(!canSend || isSending ? Color.secondary : Color.accentColor)
+            .disabled(!canSend || isSending)
             .frame(width: 68, alignment: .trailing)
         }
         .padding(.horizontal, 18)

@@ -66,6 +66,7 @@ final class ChatViewModel: ObservableObject {
 
     private let service = FriendshipService()
     private let directChatService = DirectChatService()
+    private let socialIdentityService = SocialIdentityService()
     private var lastLoadAt: Date?
     private let minRefreshInterval: TimeInterval = 12
     private var lastInboxLoadAt: Date?
@@ -389,15 +390,15 @@ final class ChatViewModel: ObservableObject {
         await reloadModerationBlockSets()
         do {
             let rows = try await directChatService.fetchInboxSummaries()
+            let previewsById = try await socialIdentityService.fetchUserPreviews(for: rows.map(\.friend_user_id))
             let displays = rows.map { row -> FriendDisplay in
-                let name = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-                let displayName = (name?.isEmpty == false) ? name! : "Player"
-                let preview = UserPreview(
-                    id: row.friend_user_id,
-                    displayName: displayName,
-                    avatarURL: row.friend_avatar_url,
-                    avatarThumbnailURL: row.friend_avatar_thumbnail_url
-                )
+                let preview = previewsById[row.friend_user_id]
+                    ?? fallbackPreview(
+                        userId: row.friend_user_id,
+                        displayName: row.friend_display_name,
+                        avatarURL: row.friend_avatar_url,
+                        avatarThumbnailURL: row.friend_avatar_thumbnail_url
+                    )
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -496,26 +497,22 @@ final class ChatViewModel: ObservableObject {
             async let inbox = directChatService.fetchInboxSummaries()
             let (accRows, inRows, outRows, inboxRows) = try await (accepted, incoming, outgoing, inbox)
 
-            let requestOtherIds = Set(inRows.map { $0.requester_id } + outRows.map { $0.addressee_id })
-
-            let profiles = try await service.fetchProfiles(userIds: Array(requestOtherIds))
-            let profileById: [UUID: UserProfileRow] = Dictionary(
-                uniqueKeysWithValues: profiles.compactMap { row -> (UUID, UserProfileRow)? in
-                    guard let id = row.id else { return nil }
-                    return (id, row)
-                }
+            let previewIds = Set(
+                inRows.map(\.requester_id)
+                    + outRows.map(\.addressee_id)
+                    + inboxRows.map(\.friend_user_id)
             )
+            let previewsById = try await socialIdentityService.fetchUserPreviews(for: Array(previewIds))
 
             let inboxFiltered = inboxRows.filter { !isEitherDirectionBlocked(with: $0.friend_user_id) }
             friends = inboxFiltered.map { row -> FriendDisplay in
-                let name = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-                let displayName = (name?.isEmpty == false) ? name! : "Player"
-                let preview = UserPreview(
-                    id: row.friend_user_id,
-                    displayName: displayName,
-                    avatarURL: row.friend_avatar_url,
-                    avatarThumbnailURL: row.friend_avatar_thumbnail_url
-                )
+                let preview = previewsById[row.friend_user_id]
+                    ?? fallbackPreview(
+                        userId: row.friend_user_id,
+                        displayName: row.friend_display_name,
+                        avatarURL: row.friend_avatar_url,
+                        avatarThumbnailURL: row.friend_avatar_thumbnail_url
+                    )
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -543,14 +540,14 @@ final class ChatViewModel: ObservableObject {
             incomingRequests = inRows
                 .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
                 .map { row in
-                let preview = preview(for: row.requester_id, profileById: profileById)
+                let preview = previewsById[row.requester_id] ?? fallbackPreview(userId: row.requester_id)
                 return IncomingRequestDisplay(friendship: row, requester: preview)
             }
 
             outgoingRequests = outRows
                 .filter { !isEitherDirectionBlocked(with: $0.addressee_id) }
                 .map { row in
-                let preview = preview(for: row.addressee_id, profileById: profileById)
+                let preview = previewsById[row.addressee_id] ?? fallbackPreview(userId: row.addressee_id)
                 return OutgoingRequestDisplay(friendship: row, addressee: preview)
             }
 
@@ -642,6 +639,19 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    /// Add friend by normalized email or avatar/display name (`lower(trim)`). Returns an error message for the sheet, or `nil` on success.
+    func sendFriendRequestByLookup(_ raw: String) async -> String? {
+        let normalized = FriendshipService.normalizedFriendLookupQuery(raw)
+        guard !normalized.isEmpty else { return "Enter an email or avatar name." }
+        do {
+            try await service.sendFriendRequestByLookup(normalizedQuery: normalized)
+            await refresh()
+            return nil
+        } catch {
+            return FriendshipService.userFacingAddFriendLookupError(error)
+        }
+    }
+
     func chipKind(forOtherUserId userId: UUID) -> FriendshipChipKind {
         friendshipChipByOtherUserId[userId] ?? .addFriend
     }
@@ -708,13 +718,15 @@ final class ChatViewModel: ObservableObject {
         friendshipChipByOtherUserId = next
     }
 
-    private func preview(for userId: UUID, profileById: [UUID: UserProfileRow]) -> UserPreview {
-        if let row = profileById[userId] {
-            let name = row.display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
-            let resolved = (name?.isEmpty == false) ? name! : "Player"
-            return UserPreview(id: userId, displayName: resolved, avatarURL: row.avatar_url, avatarThumbnailURL: row.avatar_thumbnail_url)
-        }
-        return UserPreview(id: userId, displayName: "Player", avatarURL: nil)
+    private func fallbackPreview(
+        userId: UUID,
+        displayName: String? = nil,
+        avatarURL: String? = nil,
+        avatarThumbnailURL: String? = nil
+    ) -> UserPreview {
+        let trimmed = displayName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
+        let resolved = trimmed.isEmpty ? "Player" : trimmed
+        return UserPreview(id: userId, displayName: resolved, avatarURL: avatarURL, avatarThumbnailURL: avatarThumbnailURL)
     }
 
     private func formattedFriendshipSubtitle(row: FriendshipRow) -> String? {

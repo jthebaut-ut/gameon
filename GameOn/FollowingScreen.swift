@@ -15,23 +15,36 @@ struct FollowingScreen: View {
             Color.black.opacity(0.94)
                 .ignoresSafeArea()
 
-            if viewModel.isLoggedIn {
+            if viewModel.isAuthenticatedForSocialFeatures {
                 loggedInContent
             } else {
                 loggedOutContent
             }
         }
         .onAppear {
-            guard viewModel.isLoggedIn else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
             Task { await viewModel.refreshFollowingTabDataGlobally() }
         }
-        .onChange(of: viewModel.isLoggedIn) { _, isLoggedIn in
-            if isLoggedIn {
+        .onChange(of: viewModel.currentUserAuthId) { _, newId in
+            if newId != nil {
                 Task { await reloadFollowingDataForCurrentUser() }
             } else {
                 clearFollowingUserSpecificState()
                 interestedOnlyEncoded = ""
             }
+        }
+        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+            Task { await syncFollowingAfterAuthChange() }
+        }
+    }
+
+    /// Reload Following when fan or business-owner auth changes while a Supabase session may already exist.
+    private func syncFollowingAfterAuthChange() async {
+        if viewModel.isAuthenticatedForSocialFeatures {
+            await reloadFollowingDataForCurrentUser()
+        } else {
+            clearFollowingUserSpecificState()
+            interestedOnlyEncoded = ""
         }
     }
 
@@ -176,7 +189,7 @@ struct FollowingScreen: View {
 
     @MainActor
     private func applyAttendance(_ item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) async {
-        guard viewModel.isLoggedIn else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
 
         let localInterested = decodeInterestedOnlyUUIDs(from: interestedOnlyEncoded)
 
@@ -296,14 +309,14 @@ struct FollowingScreen: View {
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .task(id: item.id) {
-            guard viewModel.isLoggedIn else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
             await viewModel.loadGoingUserProfiles(for: item.id)
         }
     }
 
     @ViewBuilder
     private func attendanceMenu(item: FollowingGoingDisplayItem) -> some View {
-        if viewModel.isLoggedIn {
+        if viewModel.isAuthenticatedForSocialFeatures {
             Menu {
                 Button {
                     Task { await applyAttendance(item, target: .going) }
@@ -441,7 +454,7 @@ struct FollowingScreen: View {
     }
 
     private func toggleSavedVenueHeart(bar: BarVenue, currentlySaved: Bool) async {
-        guard viewModel.isLoggedIn else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
         let wantSave = !currentlySaved
         let ok = await viewModel.setVenueFavorite(bar: bar, isFavorite: wantSave)
         if !ok {

@@ -106,7 +106,7 @@ struct UserAvatarView: View {
         if isLoggedIn {
             return userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         }
-        return venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return OwnerBusinessEmail.normalized(venueOwnerEmail)
     }
 
     /// Display name resolution aligned with ``SettingsProfileHero``.

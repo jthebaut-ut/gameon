@@ -4,6 +4,24 @@ import Supabase
 // MARK: - Report categories (stored as plain strings in `user_reports` / `conversation_reports` / `message_reports`)
 // TODO: Align copy with in-app Community Guidelines / Terms of Service links when available.
 
+/// Thrown only from ``ModerationService/reportConversation(conversationId:otherUserId:category:details:recentContextForModerationEmail:)`` for client-safe handling.
+enum ModerationConversationReportError: LocalizedError, Equatable {
+    case duplicateOpenReport
+    case detailsTooLong(max: Int)
+    case detailsProhibitedContent
+
+    var errorDescription: String? {
+        switch self {
+        case .duplicateOpenReport:
+            return "You already reported this conversation. GameOn administration will review it."
+        case .detailsTooLong(let max):
+            return "Details may be at most \(max) characters."
+        case .detailsProhibitedContent:
+            return ModerationService.profanityRejectionUserMessage()
+        }
+    }
+}
+
 enum ModerationReportCategory: String, CaseIterable, Identifiable {
     case spam = "spam"
     case harassment = "harassment"
@@ -41,7 +59,8 @@ struct ModerationService {
         if s.contains("42703") || s.contains("undefined column") || (s.contains("column") && s.contains("does not exist")) {
             return "The reporting database isn’t fully updated yet. Please try again later or contact support."
         }
-        if s.contains("user_reports") || s.contains("conversation_reports") || s.contains("message_reports") {
+        if s.contains("user_reports") || s.contains("conversation_reports") || s.contains("message_reports")
+            || s.contains("venue_reports") {
             return "We couldn’t save your report. This feature may still be rolling out—please try again later."
         }
         if s.contains("permission denied") || s.contains("new row violates row-level security") || s.contains("rls") {
@@ -105,6 +124,14 @@ struct ModerationService {
         let status: String
     }
 
+    private struct VenueReportInsert: Encodable {
+        let reporter_user_id: UUID
+        let venue_id: UUID
+        let category: String
+        let details: String?
+        let status: String
+    }
+
     /// Edge function derives reporter from JWT (`auth.getUser()`); do not send client `reporter_user_id`.
     private struct NotifyModerationReportPayload: Encodable {
         let report_type: String
@@ -115,10 +142,22 @@ struct ModerationService {
         let conversation_id: UUID?
         let message_id: UUID?
         let message_text_snapshot: String?
+        /// Admin email only: recent DM lines for conversation reports (not stored in `conversation_reports`).
+        let conversation_recent_context: String?
     }
 
     private struct NotifyModerationReportResponse: Decodable {
         let ok: Bool?
+        let error: String?
+    }
+
+    private struct NotifyCommentModerationAlertPayload: Encodable {
+        let comment_id: String
+    }
+
+    private struct NotifyCommentModerationAlertResponse: Decodable {
+        let ok: Bool?
+        let skipped: Bool?
         let error: String?
     }
 
@@ -136,11 +175,13 @@ struct ModerationService {
         details: String?,
         conversationId: UUID? = nil,
         messageId: UUID? = nil,
-        messageTextSnapshot: String? = nil
+        messageTextSnapshot: String? = nil,
+        conversationRecentContext: String? = nil
     ) {
         let createdAt = Self.moderationReportNotifyISO.string(from: Date()) ?? ""
         let detailsCopy = details
         let categoryRaw = category.rawValue
+        let contextCopy = conversationRecentContext
         Task.detached { [supabase] in
 #if DEBUG
             print("Moderation: notify-moderation-report fire-and-forget started (type=\(reportType))")
@@ -153,7 +194,8 @@ struct ModerationService {
                 created_at: createdAt,
                 conversation_id: conversationId,
                 message_id: messageId,
-                message_text_snapshot: messageTextSnapshot
+                message_text_snapshot: messageTextSnapshot,
+                conversation_recent_context: contextCopy
             )
             do {
                 let response: NotifyModerationReportResponse = try await supabase.functions.invoke(
@@ -175,6 +217,41 @@ struct ModerationService {
             } catch {
 #if DEBUG
                 print("Moderation: notify-moderation-report email notify failed:", error)
+#endif
+            }
+        }
+    }
+
+    /// Fire-and-forget admin email when a comment crosses the auto-hide report threshold (Edge Function sends at most once per comment).
+    func notifyCommentModerationAlertBestEffort(commentId: UUID) {
+        let idCopy = commentId
+        Task.detached { [supabase] in
+#if DEBUG
+            print("Moderation: notify-comment-moderation-alert fire-and-forget comment=\(idCopy.uuidString)")
+#endif
+            let payload = NotifyCommentModerationAlertPayload(comment_id: idCopy.uuidString)
+            do {
+                let response: NotifyCommentModerationAlertResponse = try await supabase.functions.invoke(
+                    "notify-comment-moderation-alert",
+                    options: FunctionInvokeOptions(method: .post, body: payload)
+                )
+#if DEBUG
+                print(
+                    "Moderation: notify-comment-moderation-alert finished ok=\(response.ok ?? false) skipped=\(response.skipped ?? false) error=\(response.error ?? "nil")"
+                )
+#endif
+            } catch let error as FunctionsError {
+#if DEBUG
+                if case let .httpError(status, data) = error {
+                    let body = String(data: data, encoding: .utf8) ?? "<non-utf8 body>"
+                    print("Moderation: notify-comment-moderation-alert failed httpError status=\(status) body=\(body)")
+                } else {
+                    print("Moderation: notify-comment-moderation-alert failed FunctionsError:", error)
+                }
+#endif
+            } catch {
+#if DEBUG
+                print("Moderation: notify-comment-moderation-alert failed:", error)
 #endif
             }
         }
@@ -244,36 +321,98 @@ struct ModerationService {
             reportType: "user",
             reportedUserId: reportedUserId,
             category: category,
-            details: row.details
+            details: row.details,
+            conversationRecentContext: nil
         )
+    }
+
+    /// Max length for optional conversation report details (client + server aligned).
+    static let conversationReportDetailsMaxCharacters = 500
+
+    private static func isPostgresUniqueViolation(_ error: Error) -> Bool {
+        if let pe = error as? PostgrestError, pe.code == "23505" {
+            return true
+        }
+        let blob = "\(error.localizedDescription) \(String(describing: error))".lowercased()
+        if blob.contains("23505") || blob.contains("duplicate key") || blob.contains("unique constraint") {
+            return true
+        }
+        if let pe = error as? PostgrestError {
+            let detail = "\(pe.message) \(pe.detail ?? "") \(pe.hint ?? "")".lowercased()
+            if detail.contains("duplicate") || detail.contains("unique") || detail.contains("23505") {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// Normalizes optional report details: empty → `nil`, enforces length and profanity (empty allowed).
+    private static func normalizedConversationReportDetails(_ raw: String?) throws -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty { return nil }
+        if trimmed.count > Self.conversationReportDetailsMaxCharacters {
+            throw ModerationConversationReportError.detailsTooLong(max: Self.conversationReportDetailsMaxCharacters)
+        }
+        if Self.containsProfanity(trimmed) {
+            throw ModerationConversationReportError.detailsProhibitedContent
+        }
+        return trimmed
     }
 
     func reportConversation(
         conversationId: UUID,
         otherUserId: UUID,
         category: ModerationReportCategory,
-        details: String?
+        details: String?,
+        recentContextForModerationEmail: String?
     ) async throws {
         let me = try await currentUserId()
+        let normalizedDetails = try Self.normalizedConversationReportDetails(details)
         let row = ConversationReportInsert(
             reporter_user_id: me,
             reported_user_id: otherUserId,
             conversation_id: conversationId,
             category: category.rawValue,
-            details: details.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 },
+            details: normalizedDetails,
             status: "open"
         )
-        _ = try await supabase
-            .from("conversation_reports")
-            .insert(row)
-            .execute()
+        do {
+            _ = try await supabase
+                .from("conversation_reports")
+                .insert(row)
+                .execute()
+        } catch {
+            if Self.isPostgresUniqueViolation(error) {
+                throw ModerationConversationReportError.duplicateOpenReport
+            }
+            throw error
+        }
+
+#if DEBUG
+        print("[DMReport] conversation report submitted conversation=\(conversationId.uuidString)")
+#endif
+
+        let boundedContext: String? = {
+            guard let raw = recentContextForModerationEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !raw.isEmpty else { return nil }
+            if raw.count > 14_000 {
+                return String(raw.prefix(14_000)) + "\n… [truncated]"
+            }
+            return raw
+        }()
+
         notifyModerationReportBestEffort(
             reportType: "conversation",
             reportedUserId: otherUserId,
             category: category,
             details: row.details,
-            conversationId: conversationId
+            conversationId: conversationId,
+            conversationRecentContext: boundedContext
         )
+
+#if DEBUG
+        print("[DMReport] moderation email queued conversation=\(conversationId.uuidString)")
+#endif
     }
 
     func reportMessage(
@@ -305,9 +444,25 @@ struct ModerationService {
             details: row.details,
             conversationId: conversationId,
             messageId: messageId,
-            messageTextSnapshot: messageTextSnapshot
+            messageTextSnapshot: messageTextSnapshot,
+            conversationRecentContext: nil
         )
         await incrementMessageReportCountBestEffort(messageId: messageId)
+    }
+
+    func reportVenue(venueId: UUID, category: ModerationReportCategory, details: String?) async throws {
+        let me = try await currentUserId()
+        let row = VenueReportInsert(
+            reporter_user_id: me,
+            venue_id: venueId,
+            category: category.rawValue,
+            details: details.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 },
+            status: "open"
+        )
+        _ = try await supabase
+            .from("venue_reports")
+            .insert(row)
+            .execute()
     }
 
     /// Best-effort increment of `direct_messages.report_count` for admin review queues.
@@ -324,11 +479,24 @@ struct ModerationService {
                 .execute()
                 .value
             let current = rows.first?.report_count ?? 0
-            _ = try await supabase
-                .from("direct_messages")
-                .update(Patch(report_count: current + 1))
-                .eq("id", value: messageId)
-                .execute()
+            let next = current + 1
+            if next >= Self.hiddenAfterReportsThreshold {
+                struct PatchHide: Encodable {
+                    let report_count: Int
+                    let is_deleted: Bool
+                }
+                _ = try await supabase
+                    .from("direct_messages")
+                    .update(PatchHide(report_count: next, is_deleted: true))
+                    .eq("id", value: messageId)
+                    .execute()
+            } else {
+                _ = try await supabase
+                    .from("direct_messages")
+                    .update(Patch(report_count: next))
+                    .eq("id", value: messageId)
+                    .execute()
+            }
         } catch {
             // Column may be missing until migration is applied; report row is still stored.
 #if DEBUG
@@ -341,28 +509,9 @@ struct ModerationService {
     func fetchUserPreviews(for userIds: [UUID]) async -> [UserPreview] {
         guard !userIds.isEmpty else { return [] }
 
-        struct ProfileRow: Decodable {
-            let id: UUID?
-            let email: String?
-            let display_name: String?
-            let avatar_url: String?
-            let avatar_thumbnail_url: String?
-        }
-
         do {
-            let rows: [ProfileRow] = try await supabase
-                .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
-                .in("id", values: userIds)
-                .execute()
-                .value
-
-            return rows.compactMap { row in
-                guard let id = row.id else { return nil }
-                let name = (row.display_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-                let display = !name.isEmpty ? name : (row.email?.split(separator: "@").first.map(String.init) ?? "Player")
-                return UserPreview(id: id, displayName: display, avatarURL: row.avatar_url, avatarThumbnailURL: row.avatar_thumbnail_url)
-            }
+            let previewsById = try await SocialIdentityService().fetchUserPreviews(for: userIds)
+            return userIds.compactMap { previewsById[$0] }
         } catch {
             return []
         }

@@ -48,6 +48,8 @@ struct BarVenue: Identifiable, Equatable {
 
     /// Supabase `venues.owner_email` when known (Discover scoped queries / venue_event lookup).
     let ownerEmail: String?
+    /// Supabase `venues.business_id` when known (multi-venue businesses).
+    let businessId: UUID?
 
     init(
         id: UUID = UUID(),
@@ -71,7 +73,8 @@ struct BarVenue: Identifiable, Equatable {
         menuPhotoURL: String? = nil,
         coverPhotoThumbnailURL: String? = nil,
         menuPhotoThumbnailURL: String? = nil,
-        ownerEmail: String? = nil
+        ownerEmail: String? = nil,
+        businessId: UUID? = nil
     ) {
         self.id = id
         self.name = name
@@ -95,6 +98,7 @@ struct BarVenue: Identifiable, Equatable {
         self.coverPhotoThumbnailURL = coverPhotoThumbnailURL
         self.menuPhotoThumbnailURL = menuPhotoThumbnailURL
         self.ownerEmail = ownerEmail
+        self.businessId = businessId
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {
@@ -217,17 +221,24 @@ struct VenueClaimRow: Codable {
     let id: String?
     let created_at: String?
     let owner_email: String?
+    /// ``public.venues.id`` when present; nil for legacy claims (Phase B1 column).
+    let venue_id: UUID?
     let venue_name: String?
     let venue_address: String?
     let venue_phone: String?
     let venue_website: String?
     let proof_note: String?
     let approval_status: String?
+    /// Set when the business owner dismisses a rejection in Settings (claim remains in DB).
+    let rejection_acknowledged_at: String?
 }
 
 struct VenueEventRow: Codable {
     let id: UUID?
-    
+
+    /// Canonical link to ``venues.id`` when set; legacy matching uses ``owner_email`` / ``venue_name`` when nil.
+    let venue_id: UUID?
+
     let owner_email: String?
     let venue_name: String?
     
@@ -249,6 +260,9 @@ struct VenueEventRow: Codable {
     let waitlist_available: Bool?
     
     let audio_type: String?
+
+    /// Present when selected from Supabase; Discover fetch includes this column for debugging.
+    let admin_status: String?
 }
 
 struct GameRow: Codable, Identifiable {

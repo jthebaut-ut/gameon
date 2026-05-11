@@ -21,7 +21,9 @@ struct GoingAvatarStack: View {
 
     @ViewBuilder
     private func avatar(for row: UserProfileRow) -> some View {
-        if let raw = ImageDisplayURL.forList(thumbnail: row.avatar_thumbnail_url, full: row.avatar_url),
+        if row.is_business_account == true {
+            BusinessAvatarIconView(size: diameter)
+        } else if let raw = ImageDisplayURL.forList(thumbnail: row.avatar_thumbnail_url, full: row.avatar_url),
            let url = URL(string: raw) {
             DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                 placeholder(initial: row.display_name ?? row.email)

@@ -39,7 +39,7 @@ struct UserProfileScreen: View {
                         .textInputAutocapitalization(.words)
                         .disableAutocorrection(true)
 
-                    Text("This name is shown across GameOn and is independent from your email.")
+                    Text("This name is shown across GameOn and is independent from your email. It must be unique; matching is case-insensitive.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -190,6 +190,10 @@ struct UserProfileScreen: View {
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
+        if ModerationService.containsProfanity(nextName) {
+            await MainActor.run { message = ModerationService.profanityRejectionUserMessage() }
+            return
+        }
         if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: viewModel.currentUserAvatarURL,
@@ -223,6 +227,10 @@ struct UserProfileScreen: View {
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
+        if ModerationService.containsProfanity(nextName) {
+            await MainActor.run { message = ModerationService.profanityRejectionUserMessage() }
+            return
+        }
         if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: urls.fullURL,

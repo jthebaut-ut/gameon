@@ -17,7 +17,11 @@ private func logVenueEventSocialLoadError(_ prefix: String, loadCancelledTag: St
 private enum VenueEventCommentsPagination {
     static let initialLimit = 100
     static let pageLimit = 50
-    static let selectColumns = "id,venue_event_id,user_email,comment,created_at"
+    static let selectColumns = "id,venue_event_id,user_email,comment,created_at,is_moderation_hidden"
+}
+
+private enum CurrentUserCommentReportFlags {
+    static let inQueryChunk = 80
 }
 
 private enum VenueEventCommentsQuery {
@@ -36,6 +40,107 @@ private enum VenueEventCommentsQuery {
 
 extension MapViewModel {
 
+    /// Whether the signed-in fan has a `comment_reports` row for this comment (local cache, hydrated from Supabase on comment load).
+    func hasCurrentUserReportedComment(commentID: UUID?) -> Bool {
+        guard let commentID else { return false }
+        return commentIDsReportedByCurrentUser.contains(commentID)
+    }
+
+    /// Marks a comment as reported in memory so the flag UI updates immediately (also used when the insert hits the unique constraint).
+    func markCommentReportedLocally(commentID: UUID) {
+        commentIDsReportedByCurrentUser.insert(commentID)
+    }
+
+    func markCommentUnreportedLocally(commentID: UUID) {
+        commentIDsReportedByCurrentUser.remove(commentID)
+    }
+
+    private func fetchModerationReportCountForComment(commentId: UUID) async -> Int? {
+        struct Row: Decodable { let moderation_report_count: Int? }
+        do {
+            let rows: [Row] = try await supabase
+                .from("venue_event_comments")
+                .select("moderation_report_count")
+                .eq("id", value: commentId.uuidString)
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.moderation_report_count
+        } catch {
+            return nil
+        }
+    }
+
+    /// Loads `comment_reports` rows for the current auth email and visible comment ids so flags render as already reported after relaunch.
+    func loadCurrentUserCommentReportFlags(for venueEventID: UUID) async {
+        let ids = await MainActor.run {
+            venueEventComments[venueEventID]?.compactMap(\.id) ?? []
+        }
+        guard !ids.isEmpty else { return }
+
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            return
+        }
+
+        let reporterEmail = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !reporterEmail.isEmpty else { return }
+
+        var merged: Set<UUID> = []
+        var start = 0
+        while start < ids.count {
+            let end = min(start + CurrentUserCommentReportFlags.inQueryChunk, ids.count)
+            let chunk = Array(ids[start..<end])
+            start = end
+
+            do {
+                let rows: [CommentReportRow] = try await supabase
+                    .from("comment_reports")
+                    .select("comment_id")
+                    .eq("venue_event_id", value: venueEventID)
+                    .eq("reporter_email", value: reporterEmail)
+                    .in("comment_id", values: chunk)
+                    .execute()
+                    .value
+
+                for row in rows {
+                    if let cid = row.comment_id {
+                        merged.insert(cid)
+                    }
+                }
+            } catch {
+                logVenueEventSocialLoadError(
+                    "ERROR LOADING COMMENT REPORT FLAGS:",
+                    loadCancelledTag: "comment_report_flags",
+                    error: error
+                )
+            }
+        }
+
+        await MainActor.run {
+            for cid in merged where commentIDsReportedByCurrentUser.insert(cid).inserted {}
+        }
+    }
+
+    private static func isCommentReportUniqueViolation(_ error: Error) -> Bool {
+        if let pe = error as? PostgrestError, pe.code == "23505" {
+            return true
+        }
+        let blob = "\(error.localizedDescription) \(String(describing: error))".lowercased()
+        if blob.contains("23505") || blob.contains("duplicate key") || blob.contains("unique constraint") {
+            return true
+        }
+        if let pe = error as? PostgrestError {
+            let detail = "\(pe.message) \(pe.detail ?? "") \(pe.hint ?? "")".lowercased()
+            if detail.contains("duplicate") || detail.contains("unique") || detail.contains("23505") {
+                return true
+            }
+        }
+        return false
+    }
+
     // Fetches aggregate vibe tallies and the current user’s selections for one event.
     func loadVibes(for venueEventID: UUID) async {
         do {
@@ -49,14 +154,15 @@ extension MapViewModel {
             var counts: [String: Int] = [:]
             var myVibes: Set<String> = []
 
-            let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
+            let email = await strictNormalizedSessionEmailForSocialTables()
+                ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
             for row in rows {
                 guard let vibe = row.vibe_type else { continue }
 
                 counts[vibe, default: 0] += 1
 
-                if row.user_email == email {
+                if OwnerBusinessEmail.normalized(row.user_email ?? "") == email {
                     myVibes.insert(vibe)
                 }
             }
@@ -75,9 +181,10 @@ extension MapViewModel {
 
     // Inserts or deletes a single vibe row for the signed-in user or venue owner.
     func toggleVibe(for venueEventID: UUID, vibeType: String) async {
-        let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
+        let email = await strictNormalizedSessionEmailForSocialTables()
+            ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
-        guard !email.isEmpty else {
+        guard OwnerBusinessEmail.isValidStrict(email) else {
             print("LOGIN REQUIRED TO VOTE VIBE")
             return
         }
@@ -124,7 +231,7 @@ extension MapViewModel {
         let t0 = CFAbsoluteTimeGetCurrent()
         #endif
         do {
-            let rows: [VenueEventCommentRow] = try await supabase
+            let rowsRaw: [VenueEventCommentRow] = try await supabase
                 .from("venue_event_comments")
                 .select(VenueEventCommentsPagination.selectColumns)
                 .eq("venue_event_id", value: venueEventID)
@@ -134,11 +241,15 @@ extension MapViewModel {
                 .execute()
                 .value
 
+            let rows = rowsRaw.filter { !$0.isHiddenFromThread }
+
             await MainActor.run {
                 venueEventComments[venueEventID] = rows
             }
 
-            let hasMore = rows.count >= VenueEventCommentsPagination.initialLimit
+            await loadCurrentUserCommentReportFlags(for: venueEventID)
+
+            let hasMore = rowsRaw.count >= VenueEventCommentsPagination.initialLimit
             #if DEBUG
             let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
             print("[VenueCommentsPagination] initial: \(String(format: "%.1f", ms))ms rows=\(rows.count) limit=\(VenueEventCommentsPagination.initialLimit) hasMore=\(hasMore)")
@@ -159,7 +270,7 @@ extension MapViewModel {
         let t0 = CFAbsoluteTimeGetCurrent()
         #endif
         do {
-            let rows: [VenueEventCommentRow] = try await supabase
+            let rowsRaw: [VenueEventCommentRow] = try await supabase
                 .from("venue_event_comments")
                 .select(VenueEventCommentsPagination.selectColumns)
                 .eq("venue_event_id", value: venueEventID)
@@ -169,6 +280,8 @@ extension MapViewModel {
                 .limit(VenueEventCommentsPagination.pageLimit)
                 .execute()
                 .value
+
+            let rows = rowsRaw.filter { !$0.isHiddenFromThread }
 
             await MainActor.run {
                 var list = venueEventComments[venueEventID] ?? []
@@ -181,10 +294,12 @@ extension MapViewModel {
                 venueEventComments[venueEventID] = list
             }
 
-            let hasMore = rows.count >= VenueEventCommentsPagination.pageLimit
+            await loadCurrentUserCommentReportFlags(for: venueEventID)
+
+            let hasMore = rowsRaw.count >= VenueEventCommentsPagination.pageLimit
             #if DEBUG
             let ms = (CFAbsoluteTimeGetCurrent() - t0) * 1000
-            print("[VenueCommentsPagination] older page: \(String(format: "%.1f", ms))ms rows=\(rows.count) hasMore=\(hasMore)")
+            print("[VenueCommentsPagination] older page: \(String(format: "%.1f", ms))ms rows=\(rowsRaw.count) hasMore=\(hasMore)")
             #endif
             return hasMore
         } catch {
@@ -193,20 +308,28 @@ extension MapViewModel {
         }
     }
 
-    // Inserts a comment as `currentUserEmail`; refreshes the thread on success or error.
-    func addComment(to venueEventID: UUID, text: String) async {
+    /// Inserts a comment as the active authenticated session email. Returns `nil` on success, or a user-facing error string.
+    func addComment(to venueEventID: UUID, text: String) async -> String? {
         let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !cleanText.isEmpty else { return }
-        guard !currentUserEmail.isEmpty else {
+        guard !cleanText.isEmpty else { return nil }
+        guard let commenterEmail = await strictNormalizedSessionEmailForSocialTables() else {
             print("LOGIN REQUIRED TO COMMENT")
-            return
+            return "Sign in to post an update."
+        }
+
+        if ModerationService.containsProfanity(cleanText) {
+            return ModerationService.profanityRejectionUserMessage()
+        }
+
+        if let limit = RateLimitService.checkVenueEventCommentSend(venueEventId: venueEventID, body: cleanText) {
+            return limit
         }
 
         do {
             let newComment = VenueEventCommentInsert(
                 venue_event_id: venueEventID,
-                user_email: currentUserEmail,
+                user_email: commenterEmail,
                 comment: cleanText
             )
 
@@ -218,7 +341,10 @@ extension MapViewModel {
                 .execute()
                 .value
 
+            RateLimitService.recordVenueEventCommentSend(venueEventId: venueEventID, body: cleanText)
+
             await MainActor.run {
+                guard !row.isHiddenFromThread else { return }
                 var list = venueEventComments[venueEventID] ?? []
                 if let nid = row.id {
                     if !list.contains(where: { $0.id == nid }) {
@@ -235,7 +361,9 @@ extension MapViewModel {
         } catch {
             print("ERROR ADDING COMMENT:", error)
             await loadComments(for: venueEventID)
+            return "Couldn’t post that update. Check your connection and try again."
         }
+        return nil
     }
 
     func deleteComment(_ comment: VenueEventCommentRow) async {
@@ -264,17 +392,35 @@ extension MapViewModel {
         }
     }
 
-    // Venue-owner dashboard: loads `comment_reports` for events owned by `venueOwnerEmail` and builds display rows.
+    // Venue-owner dashboard: loads `comment_reports` for events scoped to the selected venue (`venue_id`) when set, otherwise legacy `owner_email`.
     func loadReportedCommentsForMyVenue() async {
-        guard !venueOwnerEmail.isEmpty else { return }
-
         do {
-            let myVenueEvents: [VenueEventRow] = try await supabase
-                .from("venue_events")
-                .select()
-                .eq("owner_email", value: venueOwnerEmail)
-                .execute()
-                .value
+            let myVenueEvents: [VenueEventRow]
+            if let vid = ownerVenueDatabaseId {
+#if DEBUG
+                print("[BusinessPhaseB3] using venue_id path screen=loadReportedCommentsForMyVenue")
+#endif
+                myVenueEvents = try await supabase
+                    .from("venue_events")
+                    .select()
+                    .eq("venue_id", value: vid.uuidString.lowercased())
+                    .eq("admin_status", value: "active")
+                    .execute()
+                    .value
+            } else {
+                let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+                guard OwnerBusinessEmail.isValidStrict(ownerEmail) else { return }
+#if DEBUG
+                print("[BusinessPhaseB3] using owner_email fallback screen=loadReportedCommentsForMyVenue")
+#endif
+                myVenueEvents = try await supabase
+                    .from("venue_events")
+                    .select()
+                    .eq("owner_email", value: ownerEmail)
+                    .eq("admin_status", value: "active")
+                    .execute()
+                    .value
+            }
 
             let myVenueEventIDs = myVenueEvents.compactMap { $0.id }
 
@@ -327,6 +473,7 @@ extension MapViewModel {
                 .from("venue_events")
                 .select()
                 .in("id", values: venueEventIDs)
+                .eq("admin_status", value: "active")
                 .execute()
                 .value
 
@@ -346,6 +493,7 @@ extension MapViewModel {
                 .from("user_profiles")
                 .select()
                 .in("email", values: emails)
+                .eq("admin_status", value: "active")
                 .execute()
                 .value
 
@@ -411,11 +559,13 @@ extension MapViewModel {
         }
     }
 
-    func reportComment(_ comment: VenueEventCommentRow, reason: String = "reported") async {
+    /// Returns `true` when the comment should show as reported (insert succeeded or duplicate unique constraint).
+    @discardableResult
+    func reportComment(_ comment: VenueEventCommentRow, reason: String = "reported") async -> Bool {
         guard let commentID = comment.id,
               let venueEventID = comment.venue_event_id else {
             print("NO VALID COMMENT OR EVENT ID")
-            return
+            return false
         }
 
         do {
@@ -424,7 +574,7 @@ extension MapViewModel {
 
             guard !reporterEmail.isEmpty else {
                 print("NO AUTH SESSION EMAIL")
-                return
+                return false
             }
 
             print("REPORTER EMAIL FROM SESSION:", reporterEmail)
@@ -443,9 +593,121 @@ extension MapViewModel {
 
             print("COMMENT REPORTED")
 
+            markCommentReportedLocally(commentID: commentID)
+
+#if DEBUG
+            print("[CommentReport] report added comment=\(commentID.uuidString)")
+#endif
+            let activeAfterInsert = await fetchModerationReportCountForComment(commentId: commentID) ?? 0
+#if DEBUG
+            print("[CommentReport] active count=\(activeAfterInsert)")
+            print(
+                "[CommentReport] auto-hide threshold reached=\(activeAfterInsert >= ModerationService.hiddenAfterReportsThreshold)"
+            )
+#endif
+
+            await applyCommentModerationAutoHide(commentId: commentID, venueEventID: venueEventID)
+
+            return true
+
         } catch {
+            if Self.isCommentReportUniqueViolation(error) {
+                markCommentReportedLocally(commentID: commentID)
+#if DEBUG
+                let activeDup = await fetchModerationReportCountForComment(commentId: commentID) ?? 0
+                print("[CommentReport] active count=\(activeDup)")
+                print(
+                    "[CommentReport] auto-hide threshold reached=\(activeDup >= ModerationService.hiddenAfterReportsThreshold)"
+                )
+#endif
+                return true
+            }
             print("ERROR REPORTING COMMENT:", error)
+            return false
         }
+    }
+
+    /// Deletes the signed-in fan's `comment_reports` row only (unflag). DB trigger recomputes ``moderation_report_count``.
+    @discardableResult
+    func unreportComment(_ comment: VenueEventCommentRow) async -> Bool {
+        guard let commentID = comment.id else {
+            return false
+        }
+
+        do {
+            let session = try await supabase.auth.session
+            let reporterEmail = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            guard !reporterEmail.isEmpty else {
+                return false
+            }
+
+            try await supabase
+                .from("comment_reports")
+                .delete()
+                .eq("comment_id", value: commentID.uuidString)
+                .eq("reporter_email", value: reporterEmail)
+                .execute()
+
+            markCommentUnreportedLocally(commentID: commentID)
+
+#if DEBUG
+            print("[CommentReport] report removed comment=\(commentID.uuidString)")
+#endif
+            let activeAfterDelete = await fetchModerationReportCountForComment(commentId: commentID) ?? 0
+#if DEBUG
+            print("[CommentReport] active count=\(activeAfterDelete)")
+            print(
+                "[CommentReport] auto-hide threshold reached=\(activeAfterDelete >= ModerationService.hiddenAfterReportsThreshold)"
+            )
+#endif
+
+            return true
+        } catch {
+#if DEBUG
+            print("[CommentReport] unreport failed:", error)
+#endif
+            return false
+        }
+    }
+
+    /// After a new report row, DB trigger bumps ``moderation_report_count`` and may set ``is_moderation_hidden``. Refresh local thread and queue one-shot admin email via Edge Function.
+    private func applyCommentModerationAutoHide(commentId: UUID, venueEventID: UUID) async {
+        do {
+            struct Row: Decodable {
+                let id: UUID?
+                let is_moderation_hidden: Bool?
+                let moderation_report_count: Int?
+            }
+            let rows: [Row] = try await supabase
+                .from("venue_event_comments")
+                .select("id,is_moderation_hidden,moderation_report_count")
+                .eq("id", value: commentId.uuidString)
+                .limit(1)
+                .execute()
+                .value
+
+            guard let row = rows.first,
+                  row.is_moderation_hidden == true,
+                  let count = row.moderation_report_count,
+                  count >= ModerationService.hiddenAfterReportsThreshold
+            else { return }
+
+            await MainActor.run {
+                venueEventComments[venueEventID]?.removeAll { $0.id == commentId }
+            }
+
+            ModerationService().notifyCommentModerationAlertBestEffort(commentId: commentId)
+        } catch {
+#if DEBUG
+            print("[Moderation] applyCommentModerationAutoHide:", error)
+#endif
+        }
+    }
+
+    /// Report a venue listing (abuse, misinformation, etc.). Requires signed-in fan session.
+    func reportVenue(venueId: UUID, category: ModerationReportCategory, details: String?) async throws {
+        try await ModerationService().reportVenue(venueId: venueId, category: category, details: details)
     }
 
     func deleteReportedComment(_ report: ReportedCommentDisplay) async {

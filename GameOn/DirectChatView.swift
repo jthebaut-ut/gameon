@@ -121,11 +121,6 @@ private final class DirectChatPresenter: ObservableObject {
     /// Set from the view layer so sends can respect bidirectional blocks + refresh social state.
     weak var chatViewModel: ChatViewModel?
 
-    /// Client-side anti-spam (UX only). TODO: Add Supabase RPC / Edge rate limits for real enforcement.
-    private let clientRateLimitWindowSeconds: TimeInterval = 10
-    private let clientRateLimitMaxSends = 5
-    private var recentOutgoingTimestamps: [Date] = []
-
     init(friend: UserPreview) {
         self.friend = friend
     }
@@ -139,21 +134,11 @@ private final class DirectChatPresenter: ObservableObject {
         return chatViewModel.isEitherDirectionBlocked(with: friend.id)
     }
 
-    /// Returns false when rate-limited; sets ``sendError`` with a friendly message.
-    private func assertWithinClientRateLimit() -> Bool {
-        let now = Date()
-        recentOutgoingTimestamps.removeAll { now.timeIntervalSince($0) > clientRateLimitWindowSeconds }
-        if recentOutgoingTimestamps.count >= clientRateLimitMaxSends {
-            sendError = "Slow down — please wait a moment before sending more messages."
-            return false
+    private func validateDMText(_ trimmed: String) -> String? {
+        if ModerationService.containsProfanity(trimmed) {
+            return ModerationService.profanityRejectionUserMessage()
         }
-        return true
-    }
-
-    private func recordSuccessfulOutboundSendForRateLimit() {
-        let now = Date()
-        recentOutgoingTimestamps.removeAll { now.timeIntervalSince($0) > clientRateLimitWindowSeconds }
-        recentOutgoingTimestamps.append(now)
+        return nil
     }
 
     func onAppear() async {
@@ -276,14 +261,22 @@ private final class DirectChatPresenter: ObservableObject {
             sendError = "You can’t message this user."
             return
         }
-        guard assertWithinClientRateLimit() else { return }
+        if let blocked = validateDMText(trimmed) {
+            sendError = blocked
+            return
+        }
+
+        if let limited = RateLimitService.checkDirectChatSend(conversationId: conversationId, body: trimmed) {
+            sendError = limited
+            return
+        }
 
         sendError = nil
         draft = ""
 
         do {
             let row = try await service.sendMessage(conversationId: conversationId, senderId: me, body: trimmed)
-            recordSuccessfulOutboundSendForRateLimit()
+            RateLimitService.recordDirectChatSend(conversationId: conversationId, body: trimmed)
             messages.append(row)
         } catch {
             draft = trimmed
@@ -301,12 +294,20 @@ private final class DirectChatPresenter: ObservableObject {
             sendError = "You can’t message this user."
             return
         }
-        guard assertWithinClientRateLimit() else { return }
+        if let blocked = validateDMText(trimmed) {
+            sendError = blocked
+            return
+        }
+
+        if let limited = RateLimitService.checkDirectChatSend(conversationId: conversationId, body: trimmed) {
+            sendError = limited
+            return
+        }
 
         sendError = nil
         do {
             let row = try await service.sendMessage(conversationId: conversationId, senderId: me, body: trimmed)
-            recordSuccessfulOutboundSendForRateLimit()
+            RateLimitService.recordDirectChatSend(conversationId: conversationId, body: trimmed)
             messages.append(row)
         } catch {
             sendError = error.localizedDescription
@@ -393,6 +394,12 @@ struct DirectChatView: View {
     @State private var reportSheetError: String?
 
     private static let reportSubmittedBannerText = "Report submitted. GameOn administration will review it."
+    private static let duplicateConversationReportBannerText =
+        "You already reported this conversation. GameOn administration will review it."
+
+    private static func isPositiveReportBanner(_ text: String) -> Bool {
+        text == reportSubmittedBannerText || text == duplicateConversationReportBannerText
+    }
 
     private enum ChatOverflowPhase: Equatable {
         case hidden
@@ -477,10 +484,10 @@ struct DirectChatView: View {
 
             if let banner = presenter.menuBanner, !banner.isEmpty {
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: banner == Self.reportSubmittedBannerText ? "checkmark.circle.fill" : "info.circle.fill")
+                    Image(systemName: Self.isPositiveReportBanner(banner) ? "checkmark.circle.fill" : "info.circle.fill")
                         .font(.body)
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(banner == Self.reportSubmittedBannerText ? Color.green : Color.secondary)
+                        .foregroundStyle(Self.isPositiveReportBanner(banner) ? Color.green : Color.secondary)
                     Text(banner)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.primary)
@@ -688,6 +695,19 @@ struct DirectChatView: View {
                     TextField("Details (optional)", text: $reportDetails, axis: .vertical)
                         .lineLimit(3...6)
                         .disabled(isSubmittingReport)
+                } footer: {
+                    if case .conversation = kind {
+                        Text(
+                            "Optional. Up to \(ModerationService.conversationReportDetailsMaxCharacters) characters for conversation reports."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: reportDetails) { _, newValue in
+                    if newValue.count > ModerationService.conversationReportDetailsMaxCharacters {
+                        reportDetails = String(newValue.prefix(ModerationService.conversationReportDetailsMaxCharacters))
+                    }
                 }
 
                 if isSubmittingReport {
@@ -745,6 +765,32 @@ struct DirectChatView: View {
         }
     }
 
+    /// Last messages for admin email only (not stored on `conversation_reports`).
+    private func buildConversationRecentContextForModerationEmail() -> String? {
+        guard let me = chatViewModel.currentUserAuthId else { return nil }
+        let maxMessages = 10
+        let tail = Array(presenter.messages.suffix(maxMessages))
+        guard !tail.isEmpty else { return nil }
+        var lines: [String] = []
+        for m in tail {
+            let label: String
+            if m.sender_id == presenter.friend.id {
+                label = "\(presenter.friend.displayName) (\(presenter.friend.id.uuidString))"
+            } else if m.sender_id == me {
+                label = "Reporter (\(me.uuidString))"
+            } else {
+                label = "User \(m.sender_id.uuidString)"
+            }
+            let ts = m.created_at ?? "—"
+            let singleLine = m.body
+                .replacingOccurrences(of: "\r\n", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
+            lines.append("[\(ts)] \(label): \(singleLine)")
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private func submitDirectChatReport(kind: DirectChatReportSheetKind) async {
         guard let category = reportCategory else {
             await MainActor.run {
@@ -781,12 +827,38 @@ struct DirectChatView: View {
                     }
                     return
                 }
+                guard let reporterId = chatViewModel.currentUserAuthId else {
+                    await MainActor.run {
+                        isSubmittingReport = false
+                        reportSheetError = "Sign in to submit a report."
+                    }
+                    return
+                }
+                if let cooldownMessage = RateLimitService.checkConversationReportSubmit(
+                    reporterId: reporterId,
+                    conversationId: cid
+                ) {
+                    await MainActor.run {
+                        isSubmittingReport = false
+                        reportSheetError = cooldownMessage
+                    }
+                    return
+                }
+
+                let recentContext = buildConversationRecentContextForModerationEmail()
+#if DEBUG
+                let ctxCount = presenter.messages.suffix(10).count
+                print("[DMReport] recent context count=\(ctxCount)")
+#endif
+
                 try await moderation.reportConversation(
                     conversationId: cid,
                     otherUserId: presenter.friend.id,
                     category: category,
-                    details: detailsOpt
+                    details: detailsOpt,
+                    recentContextForModerationEmail: recentContext
                 )
+                RateLimitService.recordConversationReportSubmit(reporterId: reporterId, conversationId: cid)
             case .message(let row):
                 try await moderation.reportMessage(
                     messageId: row.id,
@@ -801,6 +873,28 @@ struct DirectChatView: View {
                 isSubmittingReport = false
                 reportSheet = nil
                 presenter.menuBanner = Self.reportSubmittedBannerText
+            }
+        } catch let convErr as ModerationConversationReportError {
+            switch convErr {
+            case .duplicateOpenReport:
+                if let reporterId = chatViewModel.currentUserAuthId, let cid = presenter.conversationId {
+                    RateLimitService.recordConversationReportSubmit(reporterId: reporterId, conversationId: cid)
+                }
+#if DEBUG
+                print(
+                    "[DMReport] duplicate conversation report ignored conversation=\(presenter.conversationId?.uuidString ?? "nil")"
+                )
+#endif
+                await MainActor.run {
+                    isSubmittingReport = false
+                    reportSheet = nil
+                    presenter.menuBanner = Self.duplicateConversationReportBannerText
+                }
+            case .detailsTooLong, .detailsProhibitedContent:
+                await MainActor.run {
+                    isSubmittingReport = false
+                    reportSheetError = convErr.errorDescription ?? "Invalid report details."
+                }
             }
         } catch {
             ModerationService.logReportSubmitFailure(error, context: contextLabel)

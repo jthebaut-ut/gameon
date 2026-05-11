@@ -52,7 +52,7 @@ struct AdminScreen: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             
             Button {
-                viewModel.isAdminLoggedIn = true
+                viewModel.adminDashboardLoginTapped()
             } label: {
                 Text("Login as Admin")
                     .fontWeight(.bold)
@@ -79,7 +79,7 @@ struct AdminScreen: View {
                 Spacer()
                 
                 Button("Log Out") {
-                    viewModel.isAdminLoggedIn = false
+                    viewModel.adminDashboardLogoutTapped()
                 }
                 .font(.caption)
                 .fontWeight(.bold)

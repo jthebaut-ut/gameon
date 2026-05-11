@@ -8,11 +8,18 @@ enum DiscoverVenueLoadAssembler {
         venueRows: [VenueRow],
         fetchedVenueEventRows: [VenueEventRow]
     ) -> ([BarVenue], [String: UUID]) {
+        var eventsByVenueId: [UUID: [VenueEventRow]] = [:]
         var eventsByOwner: [String: [VenueEventRow]] = [:]
         var eventsByVenueName: [String: [VenueEventRow]] = [:]
         for ev in fetchedVenueEventRows {
+            if let vid = ev.venue_id {
+                eventsByVenueId[vid, default: []].append(ev)
+            }
             if let e = ev.owner_email {
-                eventsByOwner[e, default: []].append(ev)
+                let k = OwnerBusinessEmail.normalized(e)
+                if OwnerBusinessEmail.isValidStrict(k) {
+                    eventsByOwner[k, default: []].append(ev)
+                }
             }
             if let v = ev.venue_name {
                 eventsByVenueName[v, default: []].append(ev)
@@ -21,8 +28,13 @@ enum DiscoverVenueLoadAssembler {
 
         var idsByKey: [String: UUID] = [:]
         for row in fetchedVenueEventRows {
-            guard let id = row.id, let title = row.event_title, let venueName = row.venue_name else { continue }
-            idsByKey["\(venueName)-\(title)"] = id
+            guard let id = row.id, let title = row.event_title else { continue }
+            if let venueId = row.venue_id {
+                idsByKey["\(venueId.uuidString)-\(title)"] = id
+            }
+            if let venueName = row.venue_name {
+                idsByKey["\(venueName)-\(title)"] = id
+            }
         }
 
         let mappedBars: [BarVenue] = venueRows.compactMap { row -> BarVenue? in
@@ -35,15 +47,27 @@ enum DiscoverVenueLoadAssembler {
             }
 
             var titleSet = Set<String>()
-            if let email = row.owner_email {
-                for ev in eventsByOwner[email] ?? [] {
+            if let venueUuid = row.id {
+                for ev in eventsByVenueId[venueUuid] ?? [] {
                     if let t = ev.event_title { titleSet.insert(t) }
                 }
             }
-            for ev in eventsByVenueName[name] ?? [] {
+            if let email = row.owner_email {
+                let k = OwnerBusinessEmail.normalized(email)
+                if OwnerBusinessEmail.isValidStrict(k) {
+                    for ev in eventsByOwner[k] ?? [] where ev.venue_id == nil {
+                        if let t = ev.event_title { titleSet.insert(t) }
+                    }
+                }
+            }
+            for ev in eventsByVenueName[name] ?? [] where ev.venue_id == nil {
                 if let t = ev.event_title { titleSet.insert(t) }
             }
             let gamesForThisVenue = Array(titleSet).sorted()
+
+            let rawOwner = row.owner_email ?? ""
+            let normOwner = OwnerBusinessEmail.normalized(rawOwner)
+            let ownerForBar: String? = OwnerBusinessEmail.isValidStrict(normOwner) ? normOwner : nil
 
             return BarVenue(
                 id: row.id ?? UUID(),
@@ -78,7 +102,8 @@ enum DiscoverVenueLoadAssembler {
                 menuPhotoURL: row.menu_photo_url,
                 coverPhotoThumbnailURL: row.cover_photo_thumbnail_url,
                 menuPhotoThumbnailURL: row.menu_photo_thumbnail_url,
-                ownerEmail: row.owner_email
+                ownerEmail: ownerForBar,
+                businessId: row.business_id
             )
         }
 

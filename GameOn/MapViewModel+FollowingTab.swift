@@ -10,10 +10,10 @@ extension MapViewModel {
     private static let interestedOnlyVenueEventDefaultsKey = "gameon.following.interestedOnlyVenueEventIDs"
 
     private static let venueSelectColumnsFollowing =
-        "id,owner_email,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
+        "id,owner_email,business_id,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
 
     private static let venueEventSelectColumnsFollowing =
-        "id,owner_email,venue_name,event_title,sport,event_date,event_time"
+        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time"
 
     private static let interestChunkSize = 90
 
@@ -28,13 +28,7 @@ extension MapViewModel {
 
     /// Reloads Following tab data from Supabase: ordered saved venues by favorite ids, global user interests, event rows, per-event counts, and venue rows (by id or owner/name match).
     func refreshFollowingTabDataGlobally() async {
-        guard isLoggedIn, !currentUserEmail.isEmpty else {
-            clearFollowingTabCaches()
-            return
-        }
-
-        let interestEmail = currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !interestEmail.isEmpty else {
+        guard let interestEmail = await strictNormalizedSessionEmailForSocialTables() else {
             clearFollowingTabCaches()
             return
         }
@@ -69,6 +63,7 @@ extension MapViewModel {
                     .from("venue_events")
                     .select(Self.venueEventSelectColumnsFollowing)
                     .in("id", values: chunk)
+                    .eq("admin_status", value: "active")
                     .execute()
                     .value
 
@@ -176,6 +171,7 @@ extension MapViewModel {
                 .from("venues")
                 .select(Self.venueSelectColumnsFollowing)
                 .in("id", values: chunk)
+                .eq("admin_status", value: "active")
                 .execute()
                 .value
 
@@ -191,6 +187,7 @@ extension MapViewModel {
             .from("venue_events")
             .select(Self.venueEventSelectColumnsFollowing)
             .eq("id", value: id)
+            .eq("admin_status", value: "active")
             .limit(1)
             .execute()
             .value
@@ -202,11 +199,22 @@ extension MapViewModel {
         barsById: [UUID: BarVenue],
         savedBars: [BarVenue]
     ) async throws -> BarVenue {
+        if let vid = row.venue_id {
+            if let b = barsById[vid] {
+                return b
+            }
+            if let b = savedBars.first(where: { $0.id == vid }) {
+                return b
+            }
+        }
+
         let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let owner = row.owner_email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let owner = OwnerBusinessEmail.normalized(row.owner_email ?? "")
 
         if !venueName.isEmpty, !owner.isEmpty,
-           let match = savedBars.first(where: { $0.name == venueName && $0.ownerEmail == owner }) {
+           let match = savedBars.first(where: {
+               $0.name == venueName && OwnerBusinessEmail.normalized($0.ownerEmail ?? "") == owner
+           }) {
             return match
         }
 
@@ -219,7 +227,7 @@ extension MapViewModel {
             for bar in barsById.values {
                 guard bar.name == venueName else { continue }
                 if owner.isEmpty { return bar }
-                if let bo = bar.ownerEmail, bo == owner { return bar }
+                if OwnerBusinessEmail.normalized(bar.ownerEmail ?? "") == owner { return bar }
             }
         }
 
@@ -238,9 +246,13 @@ extension MapViewModel {
             .from("venues")
             .select(Self.venueSelectColumnsFollowing)
             .eq("venue_name", value: venueName)
+            .eq("admin_status", value: "active")
 
         if let ownerEmail, !ownerEmail.isEmpty {
-            q = q.eq("owner_email", value: ownerEmail)
+            let o = OwnerBusinessEmail.normalized(ownerEmail)
+            if OwnerBusinessEmail.isValidStrict(o) {
+                q = q.eq("owner_email", value: o)
+            }
         }
 
         let rows: [VenueRow] = try await q
@@ -277,7 +289,8 @@ extension MapViewModel {
             menuPhotoURL: nil,
             coverPhotoThumbnailURL: nil,
             menuPhotoThumbnailURL: nil,
-            ownerEmail: event.owner_email
+            ownerEmail: event.owner_email,
+            businessId: nil
         )
     }
 

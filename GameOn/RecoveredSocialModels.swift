@@ -12,12 +12,46 @@ struct UserPreview: Identifiable, Hashable, Codable {
     let avatarURL: String?
     /// Smaller avatar for lists/chips; falls back to ``avatarURL`` in views when nil/empty.
     let avatarThumbnailURL: String?
+    let isBusinessAccount: Bool
 
-    init(id: UUID, displayName: String, avatarURL: String?, avatarThumbnailURL: String? = nil) {
+    init(
+        id: UUID,
+        displayName: String,
+        avatarURL: String?,
+        avatarThumbnailURL: String? = nil,
+        isBusinessAccount: Bool = false
+    ) {
         self.id = id
         self.displayName = displayName
         self.avatarURL = avatarURL
         self.avatarThumbnailURL = avatarThumbnailURL
+        self.isBusinessAccount = isBusinessAccount
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case displayName
+        case avatarURL
+        case avatarThumbnailURL
+        case isBusinessAccount
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        avatarURL = try container.decodeIfPresent(String.self, forKey: .avatarURL)
+        avatarThumbnailURL = try container.decodeIfPresent(String.self, forKey: .avatarThumbnailURL)
+        isBusinessAccount = try container.decodeIfPresent(Bool.self, forKey: .isBusinessAccount) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encodeIfPresent(avatarURL, forKey: .avatarURL)
+        try container.encodeIfPresent(avatarThumbnailURL, forKey: .avatarThumbnailURL)
+        try container.encode(isBusinessAccount, forKey: .isBusinessAccount)
     }
 }
 
@@ -109,6 +143,7 @@ final class FriendshipService {
             .from("user_profiles")
             .select()
             .in("id", values: userIds)
+            .eq("admin_status", value: "active")
             .execute()
             .value
     }
@@ -156,6 +191,66 @@ final class FriendshipService {
             .from("friendships")
             .insert(Insert(requester_id: requesterId, addressee_id: addresseeId, status: "pending"))
             .execute()
+    }
+
+    /// Normalized add-friend lookup query: `lower(trim(raw))` (email or avatar/display name).
+    static func normalizedFriendLookupQuery(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Server resolves normalized email (first) or ``display_name_normalized`` → `user_profiles.id`, then inserts pending friendship.
+    func sendFriendRequestByLookup(normalizedQuery: String) async throws {
+        struct Params: Encodable {
+            let p_query: String
+        }
+        try await client
+            .rpc("send_friend_request_by_lookup", params: Params(p_query: normalizedQuery))
+            .execute()
+    }
+
+    /// Maps PostgREST / Postgres errors from ``sendFriendRequestByLookup`` to stable user-visible strings.
+    static func userFacingAddFriendLookupError(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        let s = raw.lowercased()
+        if raw.contains("No GameOn account found with that email or avatar name.") {
+            return "No GameOn account found with that email or avatar name."
+        }
+        if raw.contains("You cannot add yourself.") {
+            return "You cannot add yourself."
+        }
+        if raw.contains("Friend request already exists.") {
+            return "Friend request already exists."
+        }
+        if raw.contains("You can't send a friend request to this user.")
+            || raw.contains("You can’t send a friend request to this user.") {
+            return "You can’t send a friend request to this user."
+        }
+        if raw.contains("Enter an email or avatar name.") {
+            return "Enter an email or avatar name."
+        }
+        // Legacy server messages (older RPC) — normalize copy.
+        if raw.contains("No GameOn account found with that email.") {
+            return "No GameOn account found with that email or avatar name."
+        }
+        if raw.contains("You can't send a friend request to yourself.")
+            || raw.contains("You can’t send a friend request to yourself.") {
+            return "You cannot add yourself."
+        }
+        if raw.contains("A friend request already exists with this person.") {
+            return "Friend request already exists."
+        }
+        if raw.contains("Enter an email address.") {
+            return "Enter an email or avatar name."
+        }
+        if s.contains("23505") || s.contains("duplicate key") || s.contains("unique constraint") {
+            return "Friend request already exists."
+        }
+        if s.contains("could not find the function")
+            || s.contains("schema cache")
+            || s.contains("pgrst202") {
+            return "Add friend isn’t available on the server yet. Please update the app or try again later."
+        }
+        return raw
     }
 }
 

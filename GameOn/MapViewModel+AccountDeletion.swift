@@ -75,6 +75,7 @@ extension MapViewModel {
         }
 
         await clearFanAccountLocalStateAfterDeletion()
+        clearPersistedAccountMode()
 
         do {
             try await supabase.auth.signOut()

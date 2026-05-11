@@ -12,7 +12,10 @@ struct VenueEventCommentsView: View {
     @State private var reportMessage = ""
     @State private var isPostingComment = false
     @State private var postMessage = ""
-    @State private var isReportingComment = false
+    @State private var postMessageIsError = false
+    @State private var reportingCommentID: UUID?
+    @State private var showUnreportConfirmation = false
+    @State private var unreportTargetCommentID: UUID?
     @State private var sendingFriendRequestUserId: UUID?
     @State private var commentsHasOlder = false
     @State private var commentsLoadingOlder = false
@@ -40,7 +43,7 @@ struct VenueEventCommentsView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        if !viewModel.isLoggedIn, !comments.isEmpty {
+                        if !viewModel.isAuthenticatedForSocialFeatures, !comments.isEmpty {
                             Text("Sign in to add friends and see friendship status on updates.")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -94,6 +97,47 @@ struct VenueEventCommentsView: View {
         .padding()
         .background(Color.white.opacity(0.85))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onChange(of: showUnreportConfirmation) { _, open in
+            if !open { unreportTargetCommentID = nil }
+        }
+        .confirmationDialog(
+            "Remove your report?",
+            isPresented: $showUnreportConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Remove Report", role: .destructive) {
+                guard let commentID = unreportTargetCommentID,
+                      let comment = comments.first(where: { $0.id == commentID }) else {
+                    unreportTargetCommentID = nil
+                    return
+                }
+                Task {
+                    guard reportingCommentID == nil else { return }
+                    reportingCommentID = commentID
+                    defer {
+                        reportingCommentID = nil
+                        unreportTargetCommentID = nil
+                    }
+
+                    let ok = await viewModel.unreportComment(comment)
+
+                    await MainActor.run {
+                        if ok {
+                            reportMessage = "Report removed"
+                        }
+                    }
+
+                    if ok {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            reportMessage = ""
+                        }
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                unreportTargetCommentID = nil
+            }
+        }
         .task(id: venueEventID) {
             commentsLoadingOlder = false
             commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID)
@@ -141,7 +185,7 @@ struct VenueEventCommentsView: View {
 
     /// One friendship refresh for all visible comment authors (batched in ``ChatViewModel``).
     private func refreshCommentFriendshipIfNeeded() async {
-        guard viewModel.isLoggedIn else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
         let ids = commentAuthorUserIdsForFriendship
         await chatViewModel.refreshFriendshipStateForCommentAuthors(userIds: ids)
     }
@@ -172,7 +216,7 @@ struct VenueEventCommentsView: View {
 
     private func isAuthoredByCurrentUser(email: String) -> Bool {
         let a = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let b = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let b = viewModel.authenticatedSocialEmailForUI.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return !a.isEmpty && !b.isEmpty && a == b
     }
     
@@ -198,30 +242,43 @@ struct VenueEventCommentsView: View {
                     // Trailing: report (others) → Add Friend / status (others) → delete (self, rightmost).
                     HStack(spacing: 8) {
                         if let email = comment.user_email,
+                           let commentID = comment.id,
                            !isAuthoredByCurrentUser(email: email),
-                           viewModel.isLoggedIn {
+                           viewModel.isAuthenticatedForSocialFeatures {
+                            let alreadyReported = viewModel.hasCurrentUserReportedComment(commentID: commentID)
                             Button {
+                                if alreadyReported {
+                                    unreportTargetCommentID = commentID
+                                    showUnreportConfirmation = true
+                                    return
+                                }
                                 Task {
-                                    guard !isReportingComment else { return }
-                                    isReportingComment = true
-                                    defer { isReportingComment = false }
+                                    guard reportingCommentID == nil else { return }
+                                    reportingCommentID = commentID
+                                    defer { reportingCommentID = nil }
 
-                                    await viewModel.reportComment(comment)
+                                    let ok = await viewModel.reportComment(comment)
 
                                     await MainActor.run {
-                                        reportMessage = "Update reported"
+                                        if ok {
+                                            reportMessage = "Update reported"
+                                        }
                                     }
 
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        reportMessage = ""
+                                    if ok {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                            reportMessage = ""
+                                        }
                                     }
                                 }
                             } label: {
-                                Image(systemName: "flag")
+                                Image(systemName: alreadyReported ? "flag.fill" : "flag")
                                     .font(.caption)
-                                    .foregroundStyle(.orange)
+                                    .foregroundStyle(alreadyReported ? Color.red : Color.orange)
                             }
-                            .accessibilityLabel("Report update")
+                            .buttonStyle(.plain)
+                            .disabled(reportingCommentID != nil)
+                            .accessibilityLabel(alreadyReported ? "Remove your report" : "Report update")
                         }
 
                         friendshipChip(for: comment)
@@ -258,7 +315,7 @@ struct VenueEventCommentsView: View {
 
     @ViewBuilder
     private func friendshipChip(for comment: VenueEventCommentRow) -> some View {
-        if viewModel.isLoggedIn,
+        if viewModel.isAuthenticatedForSocialFeatures,
            let email = comment.user_email,
            !isAuthoredByCurrentUser(email: email),
            let profile = userProfile(forAuthorEmail: email),
@@ -279,7 +336,7 @@ struct VenueEventCommentsView: View {
 
     private var inputBar: some View {
         Group {
-            if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
+            if viewModel.isAuthenticatedForSocialFeatures {
                 VStack(alignment: .trailing, spacing: 4) {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -291,13 +348,19 @@ struct VenueEventCommentsView: View {
                                         isPostingComment = true
                                         defer { isPostingComment = false }
 
-                                        await viewModel.addComment(to: venueEventID, text: update)
+                                        if let err = await viewModel.addComment(to: venueEventID, text: update) {
+                                            await MainActor.run {
+                                                postMessage = err
+                                                postMessageIsError = true
+                                            }
+                                        } else {
+                                            let emails = comments.compactMap { $0.user_email }
+                                            await viewModel.loadUserProfilesForEmails(emails)
 
-                                        let emails = comments.compactMap { $0.user_email }
-                                        await viewModel.loadUserProfilesForEmails(emails)
-                                        
-                                        await MainActor.run {
-                                            postMessage = "Update posted"
+                                            await MainActor.run {
+                                                postMessage = "Update posted"
+                                                postMessageIsError = false
+                                            }
                                         }
 
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -337,13 +400,20 @@ struct VenueEventCommentsView: View {
                                 isPostingComment = true
                                 defer { isPostingComment = false }
 
-                                await viewModel.addComment(to: venueEventID, text: textToSend)
+                                if let err = await viewModel.addComment(to: venueEventID, text: textToSend) {
+                                    await MainActor.run {
+                                        newComment = textToSend
+                                        postMessage = err
+                                        postMessageIsError = true
+                                    }
+                                } else {
+                                    let emails = comments.compactMap { $0.user_email }
+                                    await viewModel.loadUserProfilesForEmails(emails)
 
-                                let emails = comments.compactMap { $0.user_email }
-                                await viewModel.loadUserProfilesForEmails(emails)
-                                
-                                await MainActor.run {
-                                    postMessage = "Update posted"
+                                    await MainActor.run {
+                                        postMessage = "Update posted"
+                                        postMessageIsError = false
+                                    }
                                 }
 
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -374,7 +444,7 @@ struct VenueEventCommentsView: View {
                         Text(postMessage)
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(postMessageIsError ? .red : .green)
                     }
                 }
             } else {
@@ -387,9 +457,15 @@ struct VenueEventCommentsView: View {
     
     private func commentAvatar(for comment: VenueEventCommentRow) -> some View {
         let email = comment.user_email ?? ""
+        let currentBusinessAccount = isAuthoredByCurrentUser(email: email) && viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn
+        let commentProfile = userProfile(forAuthorEmail: email)
+        let isBusinessComment = currentBusinessAccount || commentProfile?.is_business_account == true
 
         let avatarURL: String = {
             if isAuthoredByCurrentUser(email: email) {
+                if currentBusinessAccount {
+                    return ""
+                }
                 return ImageDisplayURL.forListDisplay(
                     thumbnail: viewModel.currentUserAvatarThumbnailURL,
                     full: viewModel.currentUserAvatarURL,
@@ -397,14 +473,15 @@ struct VenueEventCommentsView: View {
                 ) ?? ""
             }
 
-            let p = userProfile(forAuthorEmail: email)
-            return ImageDisplayURL.forList(thumbnail: p?.avatar_thumbnail_url, full: p?.avatar_url) ?? ""
+            return ImageDisplayURL.forList(thumbnail: commentProfile?.avatar_thumbnail_url, full: commentProfile?.avatar_url) ?? ""
         }()
 
         let name = displayName(for: comment)
 
         return Group {
-            if let url = URL(string: avatarURL), !avatarURL.isEmpty {
+            if isBusinessComment {
+                BusinessAvatarIconView(size: 38)
+            } else if let url = URL(string: avatarURL), !avatarURL.isEmpty {
                 AsyncImage(url: url) { image in
                     image
                         .resizable()
@@ -434,6 +511,10 @@ struct VenueEventCommentsView: View {
         }
 
         if isAuthoredByCurrentUser(email: email) {
+            if viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn {
+                let businessName = viewModel.authenticatedBusinessDisplayNameForSocialFeatures
+                return businessName.isEmpty ? "Business update" : businessName
+            }
             return viewModel.currentUserDisplayName.isEmpty ? "You" : viewModel.currentUserDisplayName
         }
 

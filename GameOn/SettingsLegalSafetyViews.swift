@@ -23,8 +23,8 @@ enum SettingsLegalDocumentKind: String, Identifiable {
         switch self {
         case .privacyPolicy: return "How we use and protect your information."
         case .termsOfService: return "Rules for using GameOn."
-        case .communityGuidelines: return "Be respectful and play fair."
-        case .safetyReporting: return "Get help and report concerns."
+        case .communityGuidelines: return "Rules, reporting, and moderation in GameOn."
+        case .safetyReporting: return "How reports are reviewed and when content may hide."
         }
     }
 
@@ -95,45 +95,59 @@ enum SettingsLegalDocumentKind: String, Identifiable {
             ]
         case .communityGuidelines:
             return [
-                .init(heading: "Community Guidelines", body: """
-                • Be respectful.\n\
-                • No hate speech, racism, discrimination, or threats.\n\
-                • No harassment, bullying, stalking, or intimidation.\n\
-                • No nudity, sexual content, or sexually explicit photos.\n\
-                • No illegal activity, drugs, weapons, or unsafe event coordination.\n\
-                • No impersonation or fake accounts.\n\
-                • No spam, scams, misleading posts, or fake venue/game listings.\n\
-                • No copyrighted logos, sports league marks, or media unless you have permission.\n\
-                • Do not post private information about others.\n\
-                • Use report/block tools if something feels unsafe.\n\
-                • GameOn may remove content, restrict accounts, or report serious safety issues.
+                .init(heading: "Community rules", body: """
+                • No hate speech, racism, slurs, or discrimination.\n\
+                • No harassment, bullying, threats, or targeted abuse.\n\
+                • No nudity, sexually explicit content, or inappropriate images.\n\
+                • No illegal activity or promotion of illegal behavior.\n\
+                • No impersonation of another user, venue, team, or organization.\n\
+                • No spam, scams, phishing, fake promotions, or repeated disruptive posts.\n\
+                • Keep comments, fan updates, and private messages respectful.
+                """),
+                .init(heading: "Reporting comments", body: """
+                You can report venue/event comments or fan updates that break these rules. Each account may have only one active report per comment. If you reported something by mistake, tap the red flag again to remove your own report. Only active reports count toward moderation thresholds.
+                """),
+                .init(heading: "Auto-hide threshold", body: """
+                When a comment has three active reports from different users, GameOn may automatically hide it from public view and send it for moderator review. If a comment was already auto-hidden, removing a report afterward does not automatically show it again.
+                """),
+                .init(heading: "Moderator review", body: """
+                GameOn moderators may restore, keep hidden, or delete reported content. Severe or repeated violations may result in warnings, temporary restrictions, suspension, or account removal.
+                """),
+                .init(heading: "Private chat safety", body: """
+                Private messaging is available only after the other person accepts your friend request. You can block other users from interacting with you where the app supports it (for example direct chat). Report abusive behavior. GameOn may restrict accounts that misuse private messaging.
+                """),
+                .init(heading: "Private conversation reporting", body: """
+                You can report a private conversation for moderator review. Only one open report per conversation per account. Submitting a report does not automatically ban anyone or notify the other person. Moderators review submissions; serious or repeat abuse may lead to stronger action. The app limits rapid or duplicate reports, and false or abusive reporting may affect your account.
                 """),
                 .init(heading: "Your agreement", body: """
-                By creating an account, you agree to follow these rules. Violations may result in content removal, account suspension, or deletion.
+                By using GameOn, you agree to follow these guidelines and help maintain a respectful sports community.
                 """)
             ]
         case .safetyReporting:
             return [
                 .init(heading: "Overview", body: """
-                Your safety matters. This page explains how reporting and blocking work inside GameOn. It is a draft; detailed help links may be added later.
+                Your safety matters. Reports are reviewed by GameOn. This page summarizes how reporting works in the app today.
                 """),
-                .init(heading: "How to report", body: """
-                • Users: Use report options where available in profiles, chat, or related screens.\n\
-                • Messages & conversations: Report from the message or conversation context where the app provides a report action.\n\
-                • Venues & activity: Use reporting or flag flows on venue-related content (such as comments) when offered.\n\
-                Provide accurate information so reviewers can understand what happened.
+                .init(heading: "What you can report", body: """
+                Use in-app report or flag actions where available—for example user reports, direct messages and conversations, venue listings, and venue/event comments or fan updates. Clear, accurate details help moderators understand what happened.
+                """),
+                .init(heading: "Comments & fan updates", body: """
+                Each user can have one active report per comment. You can remove an accidental report by tapping the red flag again before thresholds apply. Up to three unique active reports from different users may trigger automatic hiding from public view while content is reviewed. If a comment was already auto-hidden, removing a report does not automatically restore it.
+                """),
+                .init(heading: "Private conversation reporting", body: """
+                From a direct chat, you can report the conversation or a specific message. One open conversation report per account per thread helps prevent spam. Optional report details are limited in length and checked for harmful language. Submitting a report does not automatically ban a user, delete messages, hide the chat, or notify the person you reported. GameOn applies short cooldowns and per-account limits on how often you can submit conversation reports. Moderators review credible reports; serious or repeated abuse may lead to warnings, restrictions, suspension, or removal. Filing false or malicious reports is not allowed and may limit your account.
                 """),
                 .init(heading: "Blocking", body: """
-                Blocking helps limit unwanted contact from another user in supported areas of the app (for example direct chat). Blocked users may not see all of the same features toward you. Blocking does not guarantee someone cannot encounter you outside the app.
+                Users can block other users from interacting with them where blocking is supported (for example direct chat). Blocking limits unwanted contact in the app; it does not prevent someone from contacting you outside GameOn.
                 """),
-                .init(heading: "Admin review", body: """
-                Reports are reviewed by the GameOn team. We may take actions such as warnings, content removal, or account suspension depending on severity and repeat behavior. Not every report will result in the outcome you expect, but we take credible reports seriously.
+                .init(heading: "Moderation & misuse", body: """
+                Moderators may warn users, hide or delete content, restrict features, suspend accounts, or remove accounts depending on severity and repeat behavior. Credible reports are taken seriously; outcomes may vary. Do not file false or malicious reports—misuse may lead to restrictions on your account.
                 """),
-                .init(heading: "Misuse of reporting", body: """
-                Do not file false or malicious reports. Abuse of reporting tools may lead to restrictions on your account.
+                .init(heading: "App Store compliance", body: """
+                Private messaging includes user reporting and moderation escalation mechanisms. Users can block other users from interacting with them where blocking is supported in the app.
                 """),
                 .init(heading: "Emergencies", body: """
-                If you or someone else is in immediate danger, contact local emergency services right away. GameOn cannot replace police, medical, or crisis responders. The app is not monitored in real time for every emergency.
+                If you or someone else is in immediate danger, contact your local emergency services right away. GameOn is not a crisis service and cannot replace police, medical, or other emergency responders.
                 """)
             ]
         }

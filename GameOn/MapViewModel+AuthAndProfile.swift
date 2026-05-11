@@ -5,6 +5,77 @@ import Supabase
 
 extension MapViewModel {
 
+    /// Last explicit account surface the user chose (fan vs business owner vs local admin UI). Drives cold-start session restoration together with ``storedAccountAuthUserIdKey``.
+    enum StoredAccountMode: String, Sendable {
+        case fanUser
+        case businessOwner
+        case admin
+    }
+
+    private static let storedAccountModeKey = "GameOn.storedAccountMode"
+    private static let storedAccountAuthUserIdKey = "GameOn.storedAccountAuthUserId"
+
+    private func readPersistedAccountMode() -> (mode: StoredAccountMode, authUserId: String?) {
+        let raw = UserDefaults.standard.string(forKey: Self.storedAccountModeKey)
+        let mode = StoredAccountMode(rawValue: raw ?? "") ?? .fanUser
+        let uid = UserDefaults.standard.string(forKey: Self.storedAccountAuthUserIdKey)
+        return (mode, uid)
+    }
+
+    func clearPersistedAccountMode() {
+        UserDefaults.standard.removeObject(forKey: Self.storedAccountModeKey)
+        UserDefaults.standard.removeObject(forKey: Self.storedAccountAuthUserIdKey)
+    }
+
+    /// Persists the account mode and, when a Supabase session exists, the auth user id (so a different account on the same device does not restore the wrong mode).
+    func persistAccountModeForActiveAuthSession(_ mode: StoredAccountMode) async {
+        let uid: String?
+        if let session = try? await supabase.auth.session {
+            uid = session.user.id.uuidString.lowercased()
+        } else {
+            uid = nil
+        }
+        await MainActor.run {
+            UserDefaults.standard.set(mode.rawValue, forKey: Self.storedAccountModeKey)
+            if let uid {
+                UserDefaults.standard.set(uid, forKey: Self.storedAccountAuthUserIdKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.storedAccountAuthUserIdKey)
+            }
+        }
+    }
+
+    /// Venue owner “Log out” from Settings clears owner UI state but keeps Supabase signed in; fan mode becomes the restored surface on next launch.
+    func venueOwnerLocalSignOutPreservingSupabaseSession() {
+        isVenueOwnerLoggedIn = false
+        venueOwnerMode = false
+        isLoggedIn = false
+        currentUserEmail = ""
+        venueOwnerEmail = ""
+        ownerVenueDatabaseId = nil
+        clearVenueOwnerOwnedBusinessCaches()
+        clearPendingVenueClaimContext()
+        Task {
+            await persistAccountModeForActiveAuthSession(.fanUser)
+        }
+    }
+
+    func adminDashboardLoginTapped() {
+        isAdminLoggedIn = true
+        Task {
+            await persistAccountModeForActiveAuthSession(.admin)
+        }
+    }
+
+    func adminDashboardLogoutTapped() {
+        isAdminLoggedIn = false
+        Task {
+            await persistAccountModeForActiveAuthSession(.fanUser)
+        }
+    }
+
+    private static let userProfileSelectColumns = "id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status"
+
     private static func logPostgrestError(_ prefix: String, _ error: Error) {
         print("\(prefix):", error)
         if let pe = error as? PostgrestError {
@@ -55,13 +126,13 @@ extension MapViewModel {
         print("[ProfileBootstrap] profile missing -> creating")
 #endif
 
-        let emailFromSession = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let emailFromSession = OwnerBusinessEmail.normalized(session.user.email ?? "")
         let emailForRow: String
         if !emailFromSession.isEmpty {
             emailForRow = emailFromSession
         } else {
             let fallback = await MainActor.run {
-                currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                OwnerBusinessEmail.normalized(currentUserEmail)
             }
             guard !fallback.isEmpty else {
 #if DEBUG
@@ -120,30 +191,40 @@ extension MapViewModel {
     }
 
     func registerUser(email: String, password: String, recordFanGuidelinesAcceptance: Bool = false) async {
+        let fanEmail = OwnerBusinessEmail.normalized(email)
+        guard OwnerBusinessEmail.isValidStrict(fanEmail) else {
+            await MainActor.run { authErrorMessage = OwnerBusinessEmail.invalidOwnerEmailUserMessage }
+            return
+        }
+
         do {
             _ = try await supabase.auth.signUp(
-                email: email,
+                email: fanEmail,
                 password: password
             )
 
             await MainActor.run {
-                currentUserEmail = email
+                currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
+                commentIDsReportedByCurrentUser = []
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 venueOwnerEmail = ""
+                clearVenueOwnerOwnedBusinessCaches()
                 bumpCurrentUserAvatarDisplayRefresh()
                 clearFollowingTabCaches()
             }
             if let session = try? await supabase.auth.session {
                 await MainActor.run { currentUserAuthId = session.user.id }
             }
+
+            await persistAccountModeForActiveAuthSession(.fanUser)
 
             if recordFanGuidelinesAcceptance {
                 UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
@@ -156,24 +237,36 @@ extension MapViewModel {
     }
 
     func loginUser(email: String, password: String) async {
+        let fanEmail = OwnerBusinessEmail.normalized(email)
+        guard OwnerBusinessEmail.isValidStrict(fanEmail) else {
+            await MainActor.run { authErrorMessage = OwnerBusinessEmail.invalidOwnerEmailUserMessage }
+            return
+        }
+
         do {
             _ = try await supabase.auth.signIn(
-                email: email,
+                email: fanEmail,
                 password: password
             )
 
+            if !(await checkCurrentUserAdminStatus()) {
+                return
+            }
+
             await MainActor.run {
-                currentUserEmail = email
+                currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
+                commentIDsReportedByCurrentUser = []
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 venueOwnerEmail = ""
+                clearVenueOwnerOwnedBusinessCaches()
 
                 authErrorMessage = ""
                 bumpCurrentUserAvatarDisplayRefresh()
@@ -183,6 +276,8 @@ extension MapViewModel {
             if let session = try? await supabase.auth.session {
                 await MainActor.run { currentUserAuthId = session.user.id }
             }
+
+            await persistAccountModeForActiveAuthSession(.fanUser)
 
             Task { await refreshUserPersonalizationInBackground() }
         } catch {
@@ -203,6 +298,71 @@ extension MapViewModel {
         }
     }
 
+    /// Verifies the signed-in fan profile has not been disabled by an admin.
+    /// Returns `false` after signing out and clearing local state when `admin_status == disabled`.
+    @discardableResult
+    func checkCurrentUserAdminStatus() async -> Bool {
+        guard let session = try? await supabase.auth.session else { return true }
+
+        do {
+            let rows: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select(Self.userProfileSelectColumns)
+                .eq("id", value: session.user.id)
+                .limit(1)
+                .execute()
+                .value
+
+            if rows.first?.admin_status == "disabled" {
+                await handleDisabledCurrentUser()
+                return false
+            }
+
+            return true
+        } catch {
+            print("ERROR CHECKING USER ADMIN STATUS:", error)
+            return true
+        }
+    }
+
+    private func handleDisabledCurrentUser() async {
+        do {
+            try await supabase.auth.signOut()
+        } catch {
+            print("DISABLED USER SIGNOUT FAILED:", error)
+        }
+
+        await MainActor.run {
+            currentUserEmail = ""
+            currentUserDisplayName = ""
+            currentUserAvatarURL = ""
+            currentUserAvatarThumbnailURL = ""
+            goingUserProfiles = []
+            goingProfilesByVenueEventID = [:]
+            userProfilesByEmail = [:]
+            favoriteVenueIDs = []
+            interestedVenueEventKeys = []
+            venueEventInterestIDs = []
+            venueEventInterestCounts = [:]
+            followingTabUserVenueEventInterestIDs = []
+            commentIDsReportedByCurrentUser = []
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            venueOwnerEmail = ""
+            clearVenueOwnerOwnedBusinessCaches()
+            currentUserAuthId = nil
+            authErrorMessage = "This account has been disabled by GameON support."
+            bumpCurrentUserAvatarDisplayRefresh()
+            clearFollowingTabCaches()
+            UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
+            UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
+            UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
+        }
+
+        clearPersistedAccountMode()
+    }
+
     func logoutUser() async {
         do {
             try await supabase.auth.signOut()
@@ -214,15 +374,19 @@ extension MapViewModel {
                 currentUserAvatarThumbnailURL = ""
                 goingUserProfiles = []
                 goingProfilesByVenueEventID = [:]
+                commentIDsReportedByCurrentUser = []
 
                 isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 venueOwnerEmail = ""
+                clearVenueOwnerOwnedBusinessCaches()
                 bumpCurrentUserAvatarDisplayRefresh()
                 clearFollowingTabCaches()
                 currentUserAuthId = nil
             }
+
+            clearPersistedAccountMode()
         } catch {
             print("Logout failed:", error)
         }
@@ -238,6 +402,37 @@ extension MapViewModel {
         }
     }
 
+    /// Strict-normalized email from the active Supabase session (same key used by ``favorite_venues`` / ``venue_event_interests``).
+    func strictNormalizedSessionEmailForSocialTables() async -> String? {
+        guard let session = try? await supabase.auth.session else { return nil }
+        let e = OwnerBusinessEmail.normalized(session.user.email ?? "")
+        guard OwnerBusinessEmail.isValidStrict(e) else { return nil }
+        return e
+    }
+
+    private func applyFanUserSessionRestoreAfterBootstrap(
+        session: Session,
+        sessionEmail: String,
+        clearVenueOwnerCaches: Bool
+    ) async {
+        await MainActor.run {
+            currentUserEmail = sessionEmail
+            isLoggedIn = !sessionEmail.isEmpty
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            venueOwnerEmail = ""
+            isAdminLoggedIn = false
+            currentUserAuthId = session.user.id
+            if clearVenueOwnerCaches {
+                clearVenueOwnerOwnedBusinessCaches()
+                ownerVenueDatabaseId = nil
+            }
+        }
+#if DEBUG
+        print("[AuthRestore] restoredFanUser email=\(sessionEmail)")
+#endif
+    }
+
     /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
     func bootstrapAuthSessionOnly() async {
         await MainActor.run {
@@ -247,17 +442,100 @@ extension MapViewModel {
         }
         do {
             let session = try await supabase.auth.session
-            let email = session.user.email ?? ""
+            let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+            let sessionUid = session.user.id.uuidString.lowercased()
 
-            await MainActor.run {
-                currentUserEmail = email
-                isLoggedIn = !email.isEmpty
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                currentUserAuthId = session.user.id
+            if !(await checkCurrentUserAdminStatus()) {
+                print("SESSION RESTORE BLOCKED: disabled account")
+                return
             }
 
-            print("SESSION RESTORED:", email)
+            let persisted = readPersistedAccountMode()
+#if DEBUG
+            print("[AuthRestore] storedAccountMode=\(persisted.mode.rawValue)")
+#endif
+            let storedId = persisted.authUserId?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            let idMismatch = !storedId.isEmpty && storedId != sessionUid
+
+            if idMismatch {
+#if DEBUG
+                print("[AuthRestore] auth uid mismatch session=\(sessionUid) stored=\(storedId) -> fan restore")
+#endif
+                await persistAccountModeForActiveAuthSession(.fanUser)
+                await applyFanUserSessionRestoreAfterBootstrap(
+                    session: session,
+                    sessionEmail: sessionEmail,
+                    clearVenueOwnerCaches: true
+                )
+                print("SESSION RESTORED:", sessionEmail)
+                return
+            }
+
+            switch persisted.mode {
+            case .admin:
+#if DEBUG
+                print("[AuthRestore] restoredAdmin (local admin UI)")
+#endif
+                await MainActor.run {
+                    isAdminLoggedIn = true
+                    isLoggedIn = false
+                    isVenueOwnerLoggedIn = false
+                    venueOwnerMode = false
+                    venueOwnerEmail = ""
+                    currentUserEmail = ""
+                    currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+                    currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
+                    currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
+                    currentUserAuthId = session.user.id
+                    clearVenueOwnerOwnedBusinessCaches()
+                    ownerVenueDatabaseId = nil
+                }
+                print("SESSION RESTORED:", sessionEmail)
+                return
+
+            case .businessOwner:
+                guard OwnerBusinessEmail.isValidStrict(sessionEmail) else {
+#if DEBUG
+                    print("[AuthRestore] businessOwner restore missing_or_invalid session email -> fan")
+#endif
+                    await persistAccountModeForActiveAuthSession(.fanUser)
+                    await applyFanUserSessionRestoreAfterBootstrap(
+                        session: session,
+                        sessionEmail: sessionEmail,
+                        clearVenueOwnerCaches: true
+                    )
+                    print("SESSION RESTORED:", sessionEmail)
+                    return
+                }
+#if DEBUG
+                print("[AuthRestore] restoredBusinessOwner email=\(sessionEmail)")
+#endif
+                await MainActor.run {
+                    venueOwnerEmail = sessionEmail
+                    isVenueOwnerLoggedIn = true
+                    venueOwnerMode = true
+                    isLoggedIn = false
+                    currentUserEmail = ""
+                    currentUserDisplayName = ""
+                    currentUserAvatarURL = ""
+                    currentUserAvatarThumbnailURL = ""
+                    isAdminLoggedIn = false
+                    currentUserAuthId = session.user.id
+                }
+                await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+                checkVenueApprovalStatus()
+                print("SESSION RESTORED:", sessionEmail)
+                return
+
+            case .fanUser:
+                await applyFanUserSessionRestoreAfterBootstrap(
+                    session: session,
+                    sessionEmail: sessionEmail,
+                    clearVenueOwnerCaches: false
+                )
+                print("SESSION RESTORED:", sessionEmail)
+                return
+            }
 
         } catch {
             await MainActor.run { currentUserAuthId = nil }
@@ -278,6 +556,25 @@ extension MapViewModel {
             return
         }
 
+        guard await checkCurrentUserAdminStatus() else {
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[Background] personalization blocked ms=\(ms) (disabled account)")
+            #endif
+            return
+        }
+
+        let skipPersonalization = await MainActor.run {
+            isAdminLoggedIn
+        }
+        if skipPersonalization {
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[Background] personalization skipped ms=\(ms) (admin)")
+            #endif
+            return
+        }
+
         await ensureUserProfileExists()
         await loadUserProfile()
         await loadFavoriteVenuesFromSupabase()
@@ -292,17 +589,20 @@ extension MapViewModel {
     // Called on app launch when something needs the legacy “await everything” behavior: session + personalization in sequence.
     func restoreSession() async {
         await bootstrapAuthSessionOnly()
+        guard await checkCurrentUserAdminStatus() else { return }
         await refreshUserPersonalizationInBackground()
     }
 
     // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).
     func loadUserProfile() async {
         if let session = try? await supabase.auth.session {
+            guard await checkCurrentUserAdminStatus() else { return }
+
             let authId = session.user.id
             do {
                 let rows: [UserProfileRow] = try await supabase
                     .from("user_profiles")
-                    .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                    .select(Self.userProfileSelectColumns)
                     .eq("id", value: authId)
                     .limit(1)
                     .execute()
@@ -347,8 +647,9 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                .select(Self.userProfileSelectColumns)
                 .eq("email", value: email)
+                .eq("admin_status", value: "active")
                 .limit(1)
                 .execute()
                 .value
@@ -391,12 +692,12 @@ extension MapViewModel {
         }
 
         let authId = session.user.id
-        let emailFromSession = session.user.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let emailFromSession = OwnerBusinessEmail.normalized(session.user.email ?? "")
         let emailForRow: String
         if !emailFromSession.isEmpty {
             emailForRow = emailFromSession
         } else {
-            let fallback = currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallback = OwnerBusinessEmail.normalized(currentUserEmail)
             guard !fallback.isEmpty else {
 #if DEBUG
                 print("[ProfileSave] auth user id = \(authId)")
@@ -420,6 +721,30 @@ extension MapViewModel {
 #endif
         }
         await MainActor.run { currentUserAuthId = authId }
+
+        if Self.normalizedDisplayNameForUniqueness(displayName) != nil {
+            struct RpcParams: Encodable {
+                let p_display_name: String
+                let p_exclude_user_id: UUID
+            }
+            do {
+                let available: Bool = try await supabase
+                    .rpc(
+                        "check_display_name_normalized_available",
+                        params: RpcParams(p_display_name: displayName, p_exclude_user_id: authId)
+                    )
+                    .execute()
+                    .value
+                if available == false {
+                    return "This avatar name is already taken. Please choose another."
+                }
+            } catch {
+#if DEBUG
+                print("[ProfileSave] display name availability RPC failed:", error)
+#endif
+                return "Could not verify whether this name is available. Please try again."
+            }
+        }
 
         do {
             let canonFull = ImageDisplayURL.canonicalStorageURLString(avatarURL)
@@ -466,8 +791,27 @@ extension MapViewModel {
 
         } catch {
             print("ERROR SAVING USER PROFILE:", error)
+            if Self.isDuplicateDisplayNameConstraintViolation(error) {
+                return "This avatar name is already taken. Please choose another."
+            }
             return "Couldn’t save your profile. Please try again."
         }
+    }
+
+    /// Same normalization as ``display_name_normalized`` in Postgres: `lower(trim)`; empty → unavailable for uniqueness checks.
+    private static func normalizedDisplayNameForUniqueness(_ raw: String) -> String? {
+        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return s.isEmpty ? nil : s
+    }
+
+    private static func isDuplicateDisplayNameConstraintViolation(_ error: Error) -> Bool {
+        let d = error.localizedDescription.lowercased()
+        let isDup = d.contains("23505") || d.contains("duplicate key")
+        guard isDup else { return false }
+        return d.contains("display_name_normalized")
+            || d.contains("uq_user_profiles_display_name_normalized")
+            || d.contains("avatar_name_normalized")
+            || d.contains("uq_user_profiles_avatar_name_normalized")
     }
 
     /// Uploads full + thumbnail JPEGs to `user-avatars` under `{auth_user_uuid}/` (RLS: first path segment must equal `auth.uid()`).
@@ -547,12 +891,7 @@ extension MapViewModel {
         guard !uniqueEmails.isEmpty else { return }
 
         do {
-            let rows: [UserProfileRow] = try await supabase
-                .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
-                .in("email", values: uniqueEmails)
-                .execute()
-                .value
+            let rows = try await SocialIdentityService().fetchUserProfileRows(forEmails: uniqueEmails)
 
             await MainActor.run {
                 for profile in rows {

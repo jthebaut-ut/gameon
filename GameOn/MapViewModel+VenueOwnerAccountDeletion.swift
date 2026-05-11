@@ -47,15 +47,15 @@ extension MapViewModel {
     /// Calls the `delete-venue-owner-account` Edge Function and clears local venue-owner state on success.
     /// - Important: This requires the current Supabase session email to match `venueOwnerEmail`.
     func requestPermanentVenueOwnerAccountDeletion() async throws {
-        guard isVenueOwnerLoggedIn, !venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        guard isVenueOwnerLoggedIn, OwnerBusinessEmail.isValidStrict(ownerEmail) else {
             throw VenueOwnerAccountDeletionError.notVenueOwnerSignedIn
         }
 
         let session = try await supabase.auth.session
-        let sessionEmail = (session.user.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let ownerEmail = venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
 
-        guard !sessionEmail.isEmpty, sessionEmail == ownerEmail else {
+        guard OwnerBusinessEmail.isValidStrict(sessionEmail), sessionEmail == ownerEmail else {
             throw VenueOwnerAccountDeletionError.emailMismatch
         }
 
@@ -93,6 +93,8 @@ extension MapViewModel {
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
             venueOwnerEmail = ""
+            isVenueOwnerBusinessDataLoading = false
+            clearVenueOwnerOwnedBusinessCaches()
 
             venueClaimSubmitted = false
             venueClaimStatus = "Not submitted"
@@ -101,6 +103,7 @@ extension MapViewModel {
             venueAuthErrorMessage = ""
 
             ownerVenueName = ""
+            ownerVenueDatabaseId = nil
             ownerVenueAddress = ""
             ownerVenueCity = ""
             ownerVenueState = "UT"
@@ -122,7 +125,11 @@ extension MapViewModel {
 
             venuePasswordResetMessage = ""
             venuePasswordResetError = ""
+
+            currentUserAuthId = nil
         }
+
+        clearPersistedAccountMode()
     }
 }
 

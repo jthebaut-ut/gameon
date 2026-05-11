@@ -10,14 +10,27 @@ import PhotosUI
 private enum VenueOwnerAnalyticsHiddenEventsLocalStore {
     private static let defaultsKeyPrefix = "VenueOwnerAnalyticsHiddenEventIDs."
 
-    static func load(ownerEmail: String) -> Set<UUID> {
-        let key = defaultsKeyPrefix + ownerEmail.lowercased()
+    /// Per-owner; when ``venueDatabaseId`` is set, hides are scoped to that location (Phase B3.1).
+    private static func storageKey(ownerEmail: String, venueDatabaseId: UUID?) -> String {
+        let email = ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let vid = venueDatabaseId {
+            let vidKey = vid.uuidString.lowercased()
+            if !email.isEmpty {
+                return defaultsKeyPrefix + email + "." + vidKey
+            }
+            return defaultsKeyPrefix + "venue_id." + vidKey
+        }
+        return defaultsKeyPrefix + email
+    }
+
+    static func load(ownerEmail: String, venueDatabaseId: UUID?) -> Set<UUID> {
+        let key = storageKey(ownerEmail: ownerEmail, venueDatabaseId: venueDatabaseId)
         guard let arr = UserDefaults.standard.array(forKey: key) as? [String] else { return [] }
         return Set(arr.compactMap(UUID.init))
     }
 
-    static func save(ownerEmail: String, ids: Set<UUID>) {
-        let key = defaultsKeyPrefix + ownerEmail.lowercased()
+    static func save(ownerEmail: String, venueDatabaseId: UUID?, ids: Set<UUID>) {
+        let key = storageKey(ownerEmail: ownerEmail, venueDatabaseId: venueDatabaseId)
         UserDefaults.standard.set(ids.map(\.uuidString).sorted(), forKey: key)
     }
 }
@@ -133,6 +146,34 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    /// Games / analytics require ``MapViewModel/venueOwnerToolsUnlockedForUI()`` (at least one linked or legacy venue row).
+    private var venueOwnerGamesAndAnalyticsLocked: Bool {
+        !viewModel.venueOwnerToolsUnlockedForUI()
+    }
+
+    private func logVenueOwnerToolsGate(screen: String) {
+#if DEBUG
+        print("[VenueOwnerToolsGate] unlocked=\(viewModel.venueOwnerToolsUnlockedForUI())")
+        print("[VenueOwnerToolsGate] managedVenuesCount=\(viewModel.managedVenuesForOwner().count)")
+        print("[VenueOwnerToolsGate] screen=\(screen)")
+#endif
+    }
+
+    private var venueOwnerPendingApprovalCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Pending approval")
+                .font(.headline)
+                .foregroundStyle(.white)
+            Text("Claim requests are reviewed before owner tools are enabled.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.75))
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -148,9 +189,17 @@ struct VenueOwnerDashboardView: View {
                     case .profile:
                         profileSection
                     case .games:
-                        gamesSection
+                        if venueOwnerGamesAndAnalyticsLocked {
+                            venueOwnerPendingApprovalCard
+                        } else {
+                            gamesSection
+                        }
                     case .analytics:
-                        venueAnalyticsSection
+                        if venueOwnerGamesAndAnalyticsLocked {
+                            venueOwnerPendingApprovalCard
+                        } else {
+                            venueAnalyticsSection
+                        }
                     }
                 }
                 // Force a fresh subtree when the entry point or active tab changes so a prior section’s
@@ -160,11 +209,32 @@ struct VenueOwnerDashboardView: View {
             .padding()
         }
         .background(Color.black.opacity(0.94))
+        .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
+            clearManageGamesTransientStateForVenueSwitch()
+        }
         .onAppear {
             if entryPoint != .analyticsViewer {
                 Task {
                     await viewModel.stopVenueOwnerAnalyticsRealtime()
                 }
+            }
+            switch effectiveSection {
+            case .games:
+                logVenueOwnerToolsGate(screen: "ManageGames")
+            case .analytics:
+                logVenueOwnerToolsGate(screen: "Analytics")
+            case .profile:
+                break
+            }
+        }
+        .onChange(of: effectiveSection) { _, newSection in
+            switch newSection {
+            case .games:
+                logVenueOwnerToolsGate(screen: "ManageGames")
+            case .analytics:
+                logVenueOwnerToolsGate(screen: "Analytics")
+            case .profile:
+                break
             }
         }
         .onChange(of: selectedSection) { _, newValue in
@@ -185,29 +255,51 @@ struct VenueOwnerDashboardView: View {
                 await loadVenueAnalytics()
             }
         }
-        .task {
+        .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
+            guard effectiveSection == .analytics else { return }
+            Task { await loadVenueAnalytics() }
+        }
+        .task(id: viewModel.ownerVenueDatabaseId) {
             if let saved = await viewModel.loadVenueProfile() {
+                await MainActor.run {
+                    viewModel.applyVenueProfileRowToOwnerState(saved)
 
-                viewModel.ownerVenueName = saved.venue_name ?? ""
-                viewModel.ownerVenuePhone = saved.phone ?? ""
-                viewModel.ownerVenueWebsite = saved.website ?? ""
+                    venueStreetAddress = saved.address ?? ""
+                    venueCity = saved.city ?? ""
+                    venueState = saved.state ?? "UT"
+                    venueZipCode = saved.zip_code ?? ""
 
-                venueStreetAddress = saved.address ?? ""
-                venueCity = saved.city ?? ""
-                venueState = saved.state ?? "UT"
-                venueZipCode = saved.zip_code ?? ""
-
-                totalScreens = saved.screen_count ?? 1
-                hasFood = saved.serves_food ?? false
-                hasWifi = saved.has_wifi ?? false
-                hasGarden = saved.has_garden ?? false
-                hasProjector = saved.has_projector ?? false
-                isPetFriendly = saved.pet_friendly ?? false
-
-                viewModel.venueCoverPhotoURL = saved.cover_photo_url ?? ""
-                viewModel.venueMenuPhotoURL = saved.menu_photo_url ?? ""
-                viewModel.venueCoverPhotoThumbnailURL = saved.cover_photo_thumbnail_url ?? ""
-                viewModel.venueMenuPhotoThumbnailURL = saved.menu_photo_thumbnail_url ?? ""
+                    totalScreens = saved.screen_count ?? 1
+                    hasFood = saved.serves_food ?? false
+                    hasWifi = saved.has_wifi ?? false
+                    hasGarden = saved.has_garden ?? false
+                    hasProjector = saved.has_projector ?? false
+                    isPetFriendly = saved.pet_friendly ?? false
+                }
+            } else {
+                await MainActor.run {
+                    if viewModel.managedVenuesForOwner().isEmpty {
+                        viewModel.ownerVenueDatabaseId = nil
+                    }
+                    if viewModel.pendingClaimVenueID != nil {
+                        let street = viewModel.ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if venueStreetAddress.isEmpty, !street.isEmpty {
+                            venueStreetAddress = street
+                        }
+                        let city = viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if venueCity.isEmpty, !city.isEmpty {
+                            venueCity = city
+                        }
+                        let zip = viewModel.ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if venueZipCode.isEmpty, !zip.isEmpty {
+                            venueZipCode = zip
+                        }
+                        let st = viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !st.isEmpty {
+                            venueState = st
+                        }
+                    }
+                }
             }
             syncDisplayedVenuePhotoURLsFromViewModel()
         }
@@ -219,12 +311,12 @@ struct VenueOwnerDashboardView: View {
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
                         viewModel.venueCoverPhotoURL = url
-                        displayedCoverPhotoURL = venuePhotoURLWithCacheBust(url)
+                        displayedCoverPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
                         profileSaveMessage = "Cover photo uploaded. Tap Save Profile to save changes."
                     }
                 } else {
                     await MainActor.run {
-                        profileSaveMessage = venuePhotoPickFailureHint()
+                        profileSaveMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
                     }
                 }
             }
@@ -236,12 +328,12 @@ struct VenueOwnerDashboardView: View {
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
                     await MainActor.run {
                         viewModel.venueMenuPhotoURL = url
-                        displayedMenuPhotoURL = venuePhotoURLWithCacheBust(url)
+                        displayedMenuPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
                         profileSaveMessage = "Menu photo uploaded. Tap Save Profile to save changes."
                     }
                 } else {
                     await MainActor.run {
-                        profileSaveMessage = venuePhotoPickFailureHint()
+                        profileSaveMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
                     }
                 }
             }
@@ -249,7 +341,9 @@ struct VenueOwnerDashboardView: View {
     }
     
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
+            managingVenueHeaderRow
+
             Text(headerTitle)
                 .font(.largeTitle)
                 .fontWeight(.bold)
@@ -259,31 +353,41 @@ struct VenueOwnerDashboardView: View {
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.7))
         }
+        .onAppear {
+            if viewModel.isVenueOwnerLoggedIn {
+                viewModel.logBusinessSwitcherDebug()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var managingVenueHeaderRow: some View {
+        BusinessLocationVenuePicker(viewModel: viewModel, chrome: .dashboard)
     }
 
     private var headerTitle: String {
         switch entryPoint {
         case .profileEditor:
-            return "Venue details"
+            return "Location details"
         case .gamesManager:
             return "Manage games"
         case .analyticsViewer:
-            return "Venue Analytics"
+            return "Analytics"
         case .allTabs:
-            return "Venue Dashboard"
+            return "Business dashboard"
         }
     }
 
     private var headerSubtitle: String {
         switch entryPoint {
         case .profileEditor:
-            return "Address, photos, TVs, seating, and venue information."
+            return "Photos, address, TVs, seating, and details for this location."
         case .gamesManager:
-            return "Add, edit, or cancel games shown at your venue."
+            return "Add, edit, or cancel games for the selected location."
         case .analyticsViewer:
-            return "Live engagement by game."
+            return "Live engagement by game for the selected location."
         case .allTabs:
-            return "Manage your bar profile, game schedule, specials, and game-day experience."
+            return "Manage your locations, schedule, and game-day experience."
         }
     }
     
@@ -305,24 +409,17 @@ struct VenueOwnerDashboardView: View {
                             .foregroundStyle(selectedSection == section ? .black : .white)
                             .clipShape(Capsule())
                     }
+                    .disabled(
+                        venueOwnerGamesAndAnalyticsLocked
+                            && (section == .games || section == .analytics)
+                    )
                 }
             }
         }
     }
     
-    private func venuePhotoPickFailureHint() -> String {
-        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
-        case .denied, .restricted:
-            return "Photo access is off for GameOn. Turn it on in Settings ▸ Privacy & Security ▸ Photos to choose venue images."
-        case .limited:
-            return "Couldn’t use that photo. Pick another image, or adjust Selected Photos for GameOn in Settings."
-        default:
-            return "Couldn’t read that photo. Try another image, or check photo access for GameOn in Settings."
-        }
-    }
-
     private var profileSection: some View {
-        dashboardCard(title: "Venue Profile", subtitle: "Basic business information") {
+        dashboardCard(title: "Location profile", subtitle: "Basic listing information") {
             field("Bar / Pub / Restaurant Name", text: $viewModel.ownerVenueName)
             field("Street Address", text: $venueStreetAddress)
             field("City", text: $venueCity)
@@ -348,10 +445,10 @@ struct VenueOwnerDashboardView: View {
                 venueOwnerVenueFeaturesCard()
 
                 venueProfilePhotoEditor(
-                    title: "Bar Photo",
-                    subtitle: "Main photo of your venue",
+                    title: "Business Photo",
+                    subtitle: "Main photo of your business",
                     fullImageURL: displayedCoverPhotoURL,
-                    thumbnailURL: venuePhotoPreviewURL(
+                    thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
                         storageURL: viewModel.venueCoverPhotoThumbnailURL,
                         displayTemplateURL: displayedCoverPhotoURL
                     ),
@@ -362,7 +459,7 @@ struct VenueOwnerDashboardView: View {
                     title: "Menu Photo",
                     subtitle: "Food or drink menu photo",
                     fullImageURL: displayedMenuPhotoURL,
-                    thumbnailURL: venuePhotoPreviewURL(
+                    thumbnailURL: VenueOwnerPhotoPickerCopy.thumbnailURLAlignedWithDisplay(
                         storageURL: viewModel.venueMenuPhotoThumbnailURL,
                         displayTemplateURL: displayedMenuPhotoURL
                     ),
@@ -370,6 +467,12 @@ struct VenueOwnerDashboardView: View {
                 )
 
                 Button {
+                    if ModerationService.containsProfanity(viewModel.ownerVenueDescription)
+                        || ModerationService.containsProfanity(viewModel.ownerVenueName) {
+                        profileSaveMessage = ModerationService.profanityRejectionUserMessage()
+                        return
+                    }
+
                     profileSaveMessage = "Saving..."
 
                     viewModel.ownerVenueAddress = "\(venueStreetAddress), \(venueCity), \(venueState) \(venueZipCode)"
@@ -815,9 +918,13 @@ struct VenueOwnerDashboardView: View {
     private func hideVenueEventFromAnalytics(_ eventID: UUID) {
         analyticsHiddenEventIDs.insert(eventID)
         analyticsDetailSelection = nil
-        let email = viewModel.venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !email.isEmpty {
-            VenueOwnerAnalyticsHiddenEventsLocalStore.save(ownerEmail: email, ids: analyticsHiddenEventIDs)
+        let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+        if !email.isEmpty || viewModel.ownerVenueDatabaseId != nil {
+            VenueOwnerAnalyticsHiddenEventsLocalStore.save(
+                ownerEmail: email,
+                venueDatabaseId: viewModel.ownerVenueDatabaseId,
+                ids: analyticsHiddenEventIDs
+            )
         }
         Task { await refreshVenueAnalyticsFilteredEngagementOnly() }
     }
@@ -857,9 +964,12 @@ struct VenueOwnerDashboardView: View {
         let capped = Array(sorted.prefix(1500))
 
         await MainActor.run {
-            let email = viewModel.venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !email.isEmpty {
-                analyticsHiddenEventIDs = VenueOwnerAnalyticsHiddenEventsLocalStore.load(ownerEmail: email)
+            let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+            if !email.isEmpty || viewModel.ownerVenueDatabaseId != nil {
+                analyticsHiddenEventIDs = VenueOwnerAnalyticsHiddenEventsLocalStore.load(
+                    ownerEmail: email,
+                    venueDatabaseId: viewModel.ownerVenueDatabaseId
+                )
             }
             analyticsGames = capped
         }
@@ -907,8 +1017,8 @@ struct VenueOwnerDashboardView: View {
         .padding()
         .background(Color.white.opacity(0.96))
         .clipShape(RoundedRectangle(cornerRadius: 24))
-        .task {
-            await refreshManageGamesList(isInitialPick: true)
+        .task(id: viewModel.ownerVenueDatabaseId) {
+            await refreshManageGamesList(isInitialPick: !didPickInitialManageGamesTab)
         }
         .confirmationDialog(
             "Remove “\(pendingCancelGameTitle)”?",
@@ -1184,6 +1294,19 @@ struct VenueOwnerDashboardView: View {
         manageGamesError = ""
     }
 
+    /// Clears add/list transient UI when the owner switches managed location (see ``MapViewModel/ownerVenueDatabaseId``).
+    private func clearManageGamesTransientStateForVenueSwitch() {
+        clearManageGamesBanners()
+        isSavingNewGame = false
+        titleEditTarget = nil
+        pendingCancelGameID = nil
+        pendingCancelGameTitle = ""
+        didPickInitialManageGamesTab = false
+#if DEBUG
+        print("[BusinessGameState] cleared transient game state for venue switch")
+#endif
+    }
+
     private func refreshManageGamesList(isInitialPick: Bool) async {
         await MainActor.run {
             manageGamesListLoading = true
@@ -1258,6 +1381,13 @@ struct VenueOwnerDashboardView: View {
             case .success:
                 manageGamesError = ""
                 manageGamesFeedback = "Game created."
+#if DEBUG
+                if let vid = viewModel.ownerVenueDatabaseId {
+                    print("[BusinessGameState] success state set for venue_id=\(vid.uuidString)")
+                } else {
+                    print("[BusinessGameState] success state set for venue_id=nil")
+                }
+#endif
                 resetAddGameFormAfterSave()
                 manageGamesListTab = .games
             }
@@ -1347,39 +1477,6 @@ struct VenueOwnerDashboardView: View {
         displayedMenuPhotoURL = viewModel.venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Preview-only cache bust; `viewModel` / DB keep the clean URL from upload.
-    private func venuePhotoURLWithCacheBust(_ cleanBase: String) -> String {
-        let t = String(Date().timeIntervalSince1970)
-        let trimmed = cleanBase.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
-        let sep = trimmed.contains("?") ? "&" : "?"
-        return "\(trimmed)\(sep)v=\(t)"
-    }
-
-    /// Uses the same `v` query as `displayTemplateURL` (when present) on `storageURL` so full + thumbnail previews refresh together.
-    private func venuePhotoPreviewURL(storageURL: String, displayTemplateURL: String) -> String {
-        let storage = storageURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !storage.isEmpty else { return "" }
-        let template = displayTemplateURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let templateComponents = URLComponents(string: template),
-              let templateItems = templateComponents.queryItems,
-              let vValue = templateItems.first(where: { $0.name == "v" })?.value,
-              !vValue.isEmpty
-        else {
-            return storage
-        }
-        guard var storageComponents = URLComponents(string: storage) else {
-            let sep = storage.contains("?") ? "&" : "?"
-            return "\(storage)\(sep)v=\(vValue)"
-        }
-        var q = storageComponents.queryItems ?? []
-        q.removeAll { $0.name == "v" }
-        q.append(URLQueryItem(name: "v", value: vValue))
-        storageComponents.queryItems = q
-        return storageComponents.string ?? storage
-    }
-    
-    /// Titles sit outside ``PhotosPicker``. The picker label is the preview plus a full-width black CTA under it (one tappable block, no second photo row).
     private func venueProfilePhotoEditor(
         title: String,
         subtitle: String,
@@ -1390,57 +1487,15 @@ struct VenueOwnerDashboardView: View {
         let full = fullImageURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let thumb = thumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let previewURL = !full.isEmpty ? full : thumb
-        let hasPreview = !previewURL.isEmpty
-
-        return VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .fontWeight(.bold)
-
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            PhotosPicker(selection: selection, matching: .images) {
-                VStack(alignment: .leading, spacing: 10) {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.gray.opacity(0.10))
-                        .frame(height: 140)
-                        .overlay {
-                            Group {
-                                if previewURL.isEmpty {
-                                    Image(systemName: "photo")
-                                        .font(.largeTitle)
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    AsyncImage(url: URL(string: previewURL)) { image in
-                                        image
-                                            .resizable()
-                                            .scaledToFill()
-                                    } placeholder: {
-                                        ProgressView()
-                                    }
-                                    .id(previewURL)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-
-                    primaryButtonText(hasPreview ? "Tap to replace photo" : "Tap to upload photo")
-                }
-            }
-            .buttonStyle(.plain)
-
-            Text("Photos are chosen only when you tap here. If the picker is empty, check Photo Library access for GameOn in Settings.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        return VenueOwnerListingPhotoPickerCard(
+            title: title,
+            subtitle: subtitle,
+            pickerSelection: selection,
+            remotePreviewURL: previewURL,
+            localPreviewData: nil
+        )
     }
-    
+
     private func primaryButtonText(_ text: String) -> some View {
         Text(text)
             .fontWeight(.bold)
@@ -1449,100 +1504,6 @@ struct VenueOwnerDashboardView: View {
             .background(Color.black)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-// MARK: - Venue owner venue features grid
-
-private struct VenueOwnerScreensFeatureTile: View {
-    @Binding var totalScreens: Int
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: "display")
-                .font(.title2)
-                .foregroundStyle(Color.green)
-
-            Text("\(totalScreens) Screens")
-                .font(.caption)
-                .fontWeight(.bold)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.primary)
-                .minimumScaleFactor(0.75)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity)
-
-            HStack(spacing: 0) {
-                Button {
-                    if totalScreens > 1 { totalScreens -= 1 }
-                } label: {
-                    Image(systemName: "minus")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(totalScreens > 1 ? Color.primary : Color.secondary.opacity(0.35))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .buttonStyle(.plain)
-                .disabled(totalScreens <= 1)
-                .accessibilityLabel("Decrease screen count")
-
-                Rectangle()
-                    .fill(Color.secondary.opacity(0.22))
-                    .frame(width: 1, height: 14)
-
-                Button {
-                    if totalScreens < 100 { totalScreens += 1 }
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(totalScreens < 100 ? Color.primary : Color.secondary.opacity(0.35))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .buttonStyle(.plain)
-                .disabled(totalScreens >= 100)
-                .accessibilityLabel("Increase screen count")
-            }
-            .frame(width: 104, height: 26)
-            .frame(maxWidth: .infinity)
-            .background(Color.gray.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
-        .padding(.horizontal, 4)
-    }
-}
-
-private struct VenueOwnerFeatureToggleTile: View {
-    let icon: String
-    let label: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        Button {
-            isOn.toggle()
-        } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(isOn ? Color.green : Color.gray.opacity(0.62))
-
-                Text(label)
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(isOn ? Color.primary : Color.secondary)
-                    .minimumScaleFactor(0.8)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 2)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .accessibilityValue(isOn ? "On" : "Off")
     }
 }
 

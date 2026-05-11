@@ -4,7 +4,7 @@ import Supabase
 extension MapViewModel {
 
     func toggleFavorite(_ bar: BarVenue) {
-        guard isLoggedIn, !currentUserEmail.isEmpty else {
+        guard hasSupabaseSessionForFollowingTab else {
             print("LOGIN REQUIRED TO SAVE VENUE")
             return
         }
@@ -86,13 +86,13 @@ extension MapViewModel {
     }
 
     func removeFavoriteVenueFromSupabase(_ bar: BarVenue) async {
-        guard !currentUserEmail.isEmpty else { return }
+        guard let email = await strictNormalizedSessionEmailForSocialTables() else { return }
 
         do {
             try await supabase
                 .from("favorite_venues")
                 .delete()
-                .eq("user_email", value: currentUserEmail)
+                .eq("user_email", value: email)
                 .eq("venue_id", value: bar.id)
                 .execute()
 
@@ -109,7 +109,7 @@ extension MapViewModel {
     /// Optimistically updates ``favoriteVenueIDs``, writes to Supabase, reconciles on success, or restores on failure.
     @discardableResult
     func setVenueFavorite(bar: BarVenue, isFavorite: Bool) async -> Bool {
-        guard isLoggedIn, !currentUserEmail.isEmpty else { return false }
+        guard hasSupabaseSessionForFollowingTab else { return false }
 
         let previous = favoriteVenueIDs
         await MainActor.run {
@@ -121,11 +121,10 @@ extension MapViewModel {
         }
 
         do {
-            if isFavorite {
-                let session = try await supabase.auth.session
-                let email = session.user.email ?? ""
-                guard !email.isEmpty else { throw NSError(domain: "GameOn", code: 1) }
+            let email = await strictNormalizedSessionEmailForSocialTables()
+            guard let email else { throw NSError(domain: "GameOn", code: 1) }
 
+            if isFavorite {
                 let favorite = FavoriteVenueInsert(
                     user_email: email,
                     venue_id: bar.id
@@ -139,7 +138,7 @@ extension MapViewModel {
                 try await supabase
                     .from("favorite_venues")
                     .delete()
-                    .eq("user_email", value: currentUserEmail)
+                    .eq("user_email", value: email)
                     .eq("venue_id", value: bar.id)
                     .execute()
             }

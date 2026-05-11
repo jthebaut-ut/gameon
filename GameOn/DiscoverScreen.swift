@@ -62,7 +62,7 @@ struct DiscoverScreen: View {
                 Spacer()
                 
                 if let selectedBar = viewModel.selectedBar {
-                    if viewModel.isLoggedIn {
+                    if viewModel.canViewDiscoverDetails() {
                         venuePreviewCard(selectedBar)
                     } else {
                         loggedOutVenueTeaserCard(selectedBar)
@@ -79,8 +79,9 @@ struct DiscoverScreen: View {
                 discoverMapDatePickerOverlay
             }
         }
-    .task {
+        .task {
         viewModel.reloadVenueUserRatingsFromStorage()
+        viewModel.logDiscoverAuthGateDebug()
     }
     .onChange(of: scenePhase) { _, phase in
         if phase == .active {
@@ -106,57 +107,28 @@ struct DiscoverScreen: View {
             await viewModel.consumeFollowingVenueNavigationIfPending()
         }
     }
-    .onChange(of: viewModel.isLoggedIn) { wasLoggedIn, isLoggedIn in
-        if !isLoggedIn {
+    .onChange(of: viewModel.discoverAuthGateActive) { wasActive, isActive in
+        viewModel.logDiscoverAuthGateDebug()
+        if !isActive {
             showVenueDetails = false
             showVenueRatingSheet = false
             selectedCommentsEventID = nil
             pendingResumeVenueIDAfterLogin = nil
-        } else if !wasLoggedIn, isLoggedIn, let venueID = pendingResumeVenueIDAfterLogin {
-            pendingResumeVenueIDAfterLogin = nil
-            if let bar = viewModel.bars.first(where: { $0.id == venueID })
-                ?? viewModel.filteredBars.first(where: { $0.id == venueID }) {
-                withAnimation(.spring()) {
-                    venuePreviewGameFilter = .all
-                    viewModel.selectedBar = bar
-                }
-            }
+        } else {
+            resumeDiscoverSelectionAfterFanLoginIfNeeded(wasActive: wasActive, isActive: isActive)
         }
     }
     .sheet(isPresented: Binding(
-        get: { showVenueDetails && viewModel.isLoggedIn && viewModel.selectedBar != nil },
+        get: { showVenueDetails && viewModel.canViewDiscoverDetails() && viewModel.selectedBar != nil },
         set: { if !$0 { showVenueDetails = false } }
     )) {
-            if let selectedBar = viewModel.selectedBar {
-                VenueDetailView(
-                    bar: selectedBar,
-                    selectedEvent: viewModel.selectedEvent,
-                    isFavorite: viewModel.favoriteVenueIDs.contains(selectedBar.id),
-                    goingCount: viewModel.displayedGoingCount(for: selectedBar),
-                    iconForSport: viewModel.iconForSport,
-                    mergedRating: viewModel.mergedDisplayRating(for: selectedBar),
-                    reviewCountText: "\(viewModel.reviewCountDisplay(for: selectedBar)) reviews",
-                    onDirections: { viewModel.openDirections(to: selectedBar) },
-                    onCall: { viewModel.callVenue(selectedBar) },
-                    onFavorite: { viewModel.toggleFavorite(selectedBar) },
-                    onAddressTap: { viewModel.openDirections(to: selectedBar) },
-                    onRateVenue: {
-                        showVenueDetails = false
-                        showVenueRatingSheet = true
-                    },
-                    experience: viewModel.experience(for: selectedBar),
-                    coverPhotoURL: selectedBar.coverPhotoURL,
-                    menuPhotoURL: selectedBar.menuPhotoURL
-                )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-            }
+            discoverVenueDetailSheet()
         }
     .sheet(isPresented: Binding(
-        get: { viewModel.isLoggedIn && selectedCommentsEventID != nil },
+        get: { viewModel.isAuthenticatedForSocialFeatures && selectedCommentsEventID != nil },
         set: { if !$0 { selectedCommentsEventID = nil } }
     )) {
-        if viewModel.isLoggedIn, let eventID = selectedCommentsEventID {
+        if viewModel.isAuthenticatedForSocialFeatures, let eventID = selectedCommentsEventID {
             VenueEventCommentsSheet(
                 viewModel: viewModel,
                 venueEventID: eventID
@@ -164,7 +136,7 @@ struct DiscoverScreen: View {
         }
     }
         .sheet(isPresented: Binding(
-            get: { showVenueRatingSheet && viewModel.isLoggedIn && viewModel.selectedBar != nil },
+            get: { showVenueRatingSheet && viewModel.isAuthenticatedForSocialFeatures && viewModel.selectedBar != nil },
             set: { if !$0 { showVenueRatingSheet = false } }
         )) {
             if let bar = viewModel.selectedBar {
@@ -229,7 +201,8 @@ struct DiscoverScreen: View {
                     bars: viewModel.bars,
                     useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
                     eventDotDates: viewModel.calendarDotDates,
-                    dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
+                    dotsLoading: (viewModel.isLoadingMapVenues || viewModel.isRefreshingMapVenues)
+                        && viewModel.calendarUsesVisibleMapRegionOnly,
                     selectedDate: $viewModel.selectedDate
                 ) {
                     withAnimation(.spring()) {
@@ -246,6 +219,54 @@ struct DiscoverScreen: View {
         .background(Color.clear)
         .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .center)))
         .zIndex(900)
+    }
+
+    private func resumeDiscoverSelectionAfterFanLoginIfNeeded(wasActive: Bool, isActive: Bool) {
+        guard !wasActive, isActive, viewModel.isAuthenticatedForSocialFeatures, let venueID = pendingResumeVenueIDAfterLogin else { return }
+        pendingResumeVenueIDAfterLogin = nil
+        let fromBars = viewModel.bars.first(where: { $0.id == venueID })
+        let fromFiltered = viewModel.filteredBars.first(where: { $0.id == venueID })
+        guard let bar = fromBars ?? fromFiltered else { return }
+        withAnimation(.spring()) {
+            venuePreviewGameFilter = .all
+            viewModel.selectedBar = bar
+        }
+    }
+
+    @ViewBuilder
+    private func discoverVenueDetailSheet() -> some View {
+        if let selectedBar = viewModel.selectedBar {
+            let alreadyManaged = viewModel.venueIsAlreadyManagedBySignedInOwner(bar: selectedBar)
+            VenueDetailView(
+                bar: selectedBar,
+                selectedEvent: viewModel.selectedEvent,
+                isFavorite: viewModel.favoriteVenueIDs.contains(selectedBar.id),
+                goingCount: viewModel.displayedGoingCount(for: selectedBar),
+                iconForSport: viewModel.iconForSport,
+                mergedRating: viewModel.mergedDisplayRating(for: selectedBar),
+                reviewCountText: "\(viewModel.reviewCountDisplay(for: selectedBar)) reviews",
+                onDirections: { viewModel.openDirections(to: selectedBar) },
+                onCall: { viewModel.callVenue(selectedBar) },
+                onFavorite: { viewModel.toggleFavorite(selectedBar) },
+                onAddressTap: { viewModel.openDirections(to: selectedBar) },
+                onRateVenue: {
+                    showVenueDetails = false
+                    showVenueRatingSheet = true
+                },
+                experience: viewModel.experience(for: selectedBar),
+                coverPhotoURL: selectedBar.coverPhotoURL,
+                menuPhotoURL: selectedBar.menuPhotoURL,
+                onClaimThisBusiness: alreadyManaged
+                    ? nil
+                    : { bar in
+                        viewModel.beginVenueClaimFromDiscover(bar: bar)
+                        showVenueDetails = false
+                    },
+                venueAlreadyManagedBySignedInBusiness: alreadyManaged
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     /// Returns true when center or zoom changed enough to warrant another venue fetch.
@@ -430,6 +451,7 @@ struct DiscoverScreen: View {
         let t = viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let d = viewModel.debouncedDiscoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
         return !t.isEmpty && t == d && viewModel.venueSearchResults.isEmpty
+            && !viewModel.isDiscoverVenueSearchLoading
             && viewModel.visibleBarCountInCurrentMapRegion() > 0
     }
 
@@ -453,6 +475,11 @@ struct DiscoverScreen: View {
                     .onSubmit {
                         viewModel.searchMapLocation()
                     }
+
+                if viewModel.isDiscoverVenueSearchLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                }
                 
                 if !viewModel.searchText.isEmpty {
                     Button {
@@ -602,28 +629,49 @@ struct DiscoverScreen: View {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
+
+    /// Uses existing ``MapViewModel`` loading flags only (no extra fetches).
+    private var discoverSummaryDataLoading: Bool {
+        viewModel.isLoadingEvents
+            || viewModel.isRefreshingDiscoverEvents
+            || viewModel.isLoadingMapVenues
+            || viewModel.isRefreshingMapVenues
+    }
+
+    private var discoverNearbySummarySubtitle: String {
+        if !viewModel.filteredBars.isEmpty {
+            if discoverSummaryDataLoading {
+                return "Updating Discover…"
+            }
+            return "\(viewModel.filteredBars.count) venues match your selection"
+        }
+        if discoverSummaryDataLoading {
+            return "Loading games and venues…"
+        }
+        return "0 venues match your selection"
+    }
     
     private var nearbySummaryCard: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
                 Text(viewModel.selectedEvent?.title ?? "GameON")
                     .font(.headline)
                 
-                Text(
-                    viewModel.filteredBars.isEmpty
-                        ? ((viewModel.isLoadingMapVenues || viewModel.isLoadingEvents) && !viewModel.discoverSnapshotRestoredThisLaunch
-                            ? "Loading venues…"
-                            : "0 venues match your selection")
-                        : "\(viewModel.filteredBars.count) venues match your selection"
-                )
+                Text(discoverNearbySummarySubtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             
-            Spacer()
+            Spacer(minLength: 8)
             
-            Image(systemName: viewModel.filteredBars.isEmpty ? "exclamationmark.circle.fill" : "map.fill")
-                .font(.title2)
+            if discoverSummaryDataLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.secondary)
+            } else {
+                Image(systemName: viewModel.filteredBars.isEmpty ? "exclamationmark.circle.fill" : "map.fill")
+                    .font(.title2)
+            }
         }
         .padding()
         .background(.regularMaterial)
@@ -649,7 +697,7 @@ struct DiscoverScreen: View {
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
 
-                    Text("Create a free account to view games, fan updates, ratings, and live venue details.")
+                    Text("Sign in with a fan account to view games, fan updates, ratings, and live venue details.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -658,6 +706,7 @@ struct DiscoverScreen: View {
                 Button {
                     withAnimation(.spring()) {
                         viewModel.selectedBar = nil
+                        viewModel.clearDiscoverRemotePreviewHold()
                         pendingResumeVenueIDAfterLogin = nil
                     }
                 } label: {
@@ -697,6 +746,7 @@ struct DiscoverScreen: View {
                 Button {
                     withAnimation(.spring()) {
                         viewModel.selectedBar = nil
+                        viewModel.clearDiscoverRemotePreviewHold()
                         pendingResumeVenueIDAfterLogin = nil
                     }
                 } label: {
@@ -770,6 +820,7 @@ struct DiscoverScreen: View {
                 Button {
                     withAnimation(.spring()) {
                         viewModel.selectedBar = nil
+                        viewModel.clearDiscoverRemotePreviewHold()
                     }
                 } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -896,7 +947,7 @@ struct DiscoverScreen: View {
         }
         .task(id: resolved.id) {
             await viewModel.prefetchDiscoverVenueImages(for: resolved, includeMenu: false)
-            guard viewModel.isLoggedIn else { return }
+            guard viewModel.canViewDiscoverDetails() else { return }
             let dayEvents = viewModel.gamesForVenuePreview(
                 bar: resolved,
                 date: viewModel.selectedDate,
@@ -974,23 +1025,36 @@ struct DiscoverScreen: View {
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
         let filtered = gamesFilteredForVenuePreview(bar: bar, gamesToday: gamesToday, filter: venuePreviewGameFilter)
 
-        return VStack(alignment: .leading, spacing: 8) {
-            Text("Showing")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        return ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Showing")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            venuePreviewGameFilterPicker
+                venuePreviewGameFilterPicker
 
-            if viewModel.isLoadingEvents {
-                loadingVenueGamesView
-            } else if gamesToday.isEmpty {
-                venuePreviewNoGamesForDateView
-            } else if filtered.isEmpty {
-                venueGameFilterEmptyView()
-            } else {
-                ForEach(Array(filtered.prefix(12)), id: \.id) { event in
-                    gameInterestRow(bar: bar, event: event)
+                if viewModel.isLoadingEvents && gamesToday.isEmpty {
+                    loadingVenueGamesView
+                } else if gamesToday.isEmpty {
+                    if bar.games.isEmpty, !viewModel.isLoadingEvents {
+                        Text("No games listed yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        venuePreviewNoGamesForDateView
+                    }
+                } else if filtered.isEmpty {
+                    venueGameFilterEmptyView()
+                } else {
+                    ForEach(Array(filtered.prefix(12)), id: \.id) { event in
+                        gameInterestRow(bar: bar, event: event)
+                    }
                 }
+            }
+            if viewModel.isRefreshingDiscoverEvents && !gamesToday.isEmpty {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(.trailing, 2)
             }
         }
         .animation(.easeInOut(duration: 0.18), value: venuePreviewGameFilter)

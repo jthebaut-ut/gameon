@@ -4,14 +4,14 @@ import Supabase
 extension MapViewModel {
 
     var canMarkInterest: Bool {
-        !currentUserEmail.isEmpty || !venueOwnerEmail.isEmpty
+        isAuthenticatedForSocialFeatures
     }
 
     func markInterestedInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
         let session = try? await supabase.auth.session
-        let interestEmail = session?.user.email ?? ""
+        let interestEmail = OwnerBusinessEmail.normalized(session?.user.email ?? "")
 
-        guard !interestEmail.isEmpty else {
+        guard OwnerBusinessEmail.isValidStrict(interestEmail) else {
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return
         }
@@ -47,8 +47,15 @@ extension MapViewModel {
     }
 
     func removeInterestInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
-        let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
-        guard !interestEmail.isEmpty else { return }
+        let session = try? await supabase.auth.session
+        let fromSession = OwnerBusinessEmail.normalized(session?.user.email ?? "")
+        let interestEmail: String
+        if OwnerBusinessEmail.isValidStrict(fromSession) {
+            interestEmail = fromSession
+        } else {
+            interestEmail = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+        }
+        guard OwnerBusinessEmail.isValidStrict(interestEmail) else { return }
 
         do {
             try await supabase
@@ -82,8 +89,17 @@ extension MapViewModel {
         "\(bar.name)-\(gameTitle)"
     }
 
+    /// Prefer ``venues.id`` + title; fall back to legacy name + title for rows with null ``venue_events.venue_id``.
+    func venueEventLookupKeyPrimary(for bar: BarVenue, gameTitle: String) -> String {
+        "\(bar.id.uuidString)-\(gameTitle)"
+    }
+
     func cachedVenueEventID(for bar: BarVenue, gameTitle: String) -> UUID? {
-        venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: gameTitle)]
+        let primary = venueEventLookupKeyPrimary(for: bar, gameTitle: gameTitle)
+        if let id = venueEventIDsByKey[primary] {
+            return id
+        }
+        return venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: gameTitle)]
     }
 
     func interestedPlans() -> [(bar: BarVenue, gameTitle: String, date: String, time: String, count: Int)] {
@@ -99,6 +115,9 @@ extension MapViewModel {
             }
 
             guard let bar = bars.first(where: { bar in
+                if let vid = row.venue_id, vid == bar.id {
+                    return true
+                }
                 if let venueName = row.venue_name,
                    bar.name == venueName {
                     return true
@@ -145,12 +164,7 @@ extension MapViewModel {
                 return
             }
 
-            let profileRows: [UserProfileRow] = try await supabase
-                .from("user_profiles")
-                .select()
-                .in("email", values: emails)
-                .execute()
-                .value
+            let profileRows = try await SocialIdentityService().fetchUserProfileRows(forEmails: emails)
 
             await MainActor.run {
                 goingUserProfiles = profileRows
@@ -246,34 +260,59 @@ extension MapViewModel {
     }
 
     func venueEventID(for bar: BarVenue, gameTitle: String) async -> UUID? {
-        let key = venueEventLookupKey(for: bar, gameTitle: gameTitle)
-        if let cached = venueEventIDsByKey[key] {
+        let keyPrimary = venueEventLookupKeyPrimary(for: bar, gameTitle: gameTitle)
+        let keyLegacy = venueEventLookupKey(for: bar, gameTitle: gameTitle)
+        if let cached = venueEventIDsByKey[keyPrimary] ?? venueEventIDsByKey[keyLegacy] {
             return cached
         }
 
         if let row = venueEventRows.first(where: { row in
             guard row.event_title == gameTitle else { return false }
+            if let vid = row.venue_id, vid == bar.id { return true }
             if row.venue_name == bar.name { return true }
-            if let o = row.owner_email, let bo = bar.ownerEmail, o == bo { return true }
+            if let o = row.owner_email, let bo = bar.ownerEmail,
+               OwnerBusinessEmail.normalized(o) == OwnerBusinessEmail.normalized(bo) { return true }
             return false
         }), let id = row.id {
-            venueEventIDsByKey[key] = id
+            venueEventIDsByKey[keyPrimary] = id
+            venueEventIDsByKey[keyLegacy] = id
             return id
         }
 
         do {
             var q = supabase
                 .from("venue_events")
-                .select("id,owner_email,venue_name,event_title")
+                .select("id,venue_id,owner_email,venue_name,event_title")
                 .eq("event_title", value: gameTitle)
+                .eq("admin_status", value: "active")
+                .eq("venue_id", value: bar.id)
 
-            if let owner = bar.ownerEmail?.trimmingCharacters(in: .whitespacesAndNewlines), !owner.isEmpty {
-                q = q.eq("owner_email", value: owner)
-            } else {
-                q = q.eq("venue_name", value: bar.name)
+            let rowsByVenueId: [VenueEventRow] = try await q
+                .limit(1)
+                .execute()
+                .value
+
+            if let id = rowsByVenueId.first?.id {
+                venueEventIDsByKey[keyPrimary] = id
+                venueEventIDsByKey[keyLegacy] = id
+                return id
             }
 
-            let rows: [VenueEventRow] = try await q
+            var qLegacy = supabase
+                .from("venue_events")
+                .select("id,venue_id,owner_email,venue_name,event_title")
+                .eq("event_title", value: gameTitle)
+                .eq("admin_status", value: "active")
+                .is("venue_id", value: nil)
+
+            let ownerNorm = OwnerBusinessEmail.normalized(bar.ownerEmail ?? "")
+            if OwnerBusinessEmail.isValidStrict(ownerNorm) {
+                qLegacy = qLegacy.eq("owner_email", value: ownerNorm)
+            } else {
+                qLegacy = qLegacy.eq("venue_name", value: bar.name)
+            }
+
+            let rows: [VenueEventRow] = try await qLegacy
                 .limit(1)
                 .execute()
                 .value
@@ -283,7 +322,8 @@ extension MapViewModel {
             #endif
 
             if let id = rows.first?.id {
-                venueEventIDsByKey[key] = id
+                venueEventIDsByKey[keyPrimary] = id
+                venueEventIDsByKey[keyLegacy] = id
                 return id
             }
 
@@ -305,7 +345,7 @@ extension MapViewModel {
         }
 
         let t0 = Date()
-        let interestEmail = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
+        let interestEmail = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
         let selectCols = "venue_event_id,user_email"
         let chunkSize = 90
 
@@ -331,7 +371,7 @@ extension MapViewModel {
                 for row in rows {
                     guard let eventID = row.venue_event_id else { continue }
                     counts[eventID, default: 0] += 1
-                    if row.user_email == interestEmail {
+                    if OwnerBusinessEmail.normalized(row.user_email ?? "") == interestEmail {
                         myInterests.insert(eventID)
                     }
                 }

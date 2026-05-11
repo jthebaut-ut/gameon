@@ -26,7 +26,35 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserEmail: String = ""
     /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
     @Published var currentUserAuthId: UUID?
+    /// Shared social/chat auth gate: regular fan auth, business-owner auth, or an already-restored Supabase session id.
+    var isAuthenticatedForSocialFeatures: Bool {
+        isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
+    }
+    /// Back-compat alias for older Following/favorites call sites.
+    var hasSupabaseSessionForFollowingTab: Bool {
+        isAuthenticatedForSocialFeatures
+    }
     @Published var venueOwnerMode: Bool = false
+    /// `public.venues.id` for the signed-in venue owner’s active profile row, when loaded (used for ``venue_events.venue_id`` on insert).
+    @Published var ownerVenueDatabaseId: UUID?
+    /// `public.businesses` rows for the signed-in venue owner (`owner_email` + active); see ``refreshOwnedBusinessesAndVenuesAfterOwnerLogin()``.
+    @Published var ownedBusinesses: [BusinessRow] = []
+    /// `public.venues` rows linked via `business_id` to ``ownedBusinesses``.
+    @Published var ownedBusinessVenues: [VenueProfileRow] = []
+    /// Unapproved ``venue_claims`` rows for the signed-in owner / their businesses (Settings “Pending locations”; Phase C1).
+    @Published var pendingVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
+    /// Rejected, not-yet-dismissed ``venue_claims`` for Settings (“Rejected locations”). Rows with ``rejection_acknowledged_at`` set are excluded at fetch time.
+    @Published var rejectedVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
+    /// From ``refreshVenueClaimStatusLineFromDatabase()`` scan of recent ``venue_claims`` by owner email: any row is rejected and ``rejection_acknowledged_at`` is unset.
+    @Published var hasUnackedRejectedVenueClaimForOwnerEmail: Bool = false
+
+    /// Red rejection chrome / modals: unacked rejections from email-scoped status refresh and/or business-scoped Settings list.
+    var hasActiveVenueClaimRejectionForBusinessUI: Bool {
+        hasUnackedRejectedVenueClaimForOwnerEmail || !rejectedVenueClaimsForSettings.isEmpty
+    }
+    /// When ``ownedBusinessVenues`` is empty, venues matched by ``venueOwnerEmail`` only (pre-backfill); used by ``primaryOwnedVenueForLegacyCompatibility()``.
+    /// Pre-backfill venues keyed only by email; written only from ``MapViewModel+VenueOwnerAndClaims``.
+    var legacyOwnerVenuesForEmailFallback: [VenueProfileRow] = []
     @Published var ownerVenueName: String = ""
     @Published var ownerVenueAddress: String = ""
     @Published var ownerVenueCity: String = ""
@@ -56,6 +84,22 @@ final class MapViewModel: ObservableObject {
     @Published var venuePasswordResetMessage = ""
     @Published var venuePasswordResetError = ""
     @Published var venueClaimSubmittedDate = ""
+    /// True while ``refreshOwnedBusinessesAndVenuesAfterOwnerLogin()`` is fetching businesses/venues (venue owner sheet loading indicator).
+    @Published var isVenueOwnerBusinessDataLoading = false
+    /// After successful business-owner signup (auth + business + first claim); drives a one-shot success card in the Business auth sheet until dismissed.
+    @Published var venueOwnerJustCompletedRegistration: Bool = false
+    /// When non-nil, the fan started a “Claim this business” flow from Discover for this public venue id (Phase A; not yet sent to `venue_claims` as `venue_id`).
+    @Published var pendingClaimVenueID: UUID?
+    @Published var pendingClaimVenueName: String = ""
+    @Published var pendingClaimVenueAddress: String = ""
+    @Published var pendingClaimVenueCity: String = ""
+    @Published var pendingClaimVenueState: String = ""
+    @Published var pendingClaimVenuePhone: String = ""
+    @Published var pendingClaimVenueWebsite: String = ""
+    @Published var pendingClaimPrimarySport: String = ""
+    /// Switched to Account tab + venue auth sheet from Discover claim intent (consumed by ``MainTabView`` / ``SettingsScreen``).
+    @Published var switchToAccountForVenueClaim: Bool = false
+    @Published var openVenueOwnerAuthSheetFromClaimFlow: Bool = false
     @Published var venueCoverPhotoURL = ""
     @Published var venueCoverPhotoThumbnailURL = ""
     @Published var venueCrowdPhotoURL = ""
@@ -72,6 +116,8 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventInterestIDs: Set<UUID> = []
     @Published var venueEventInterestCounts: [UUID: Int] = [:]
     @Published var venueEventComments: [UUID: [VenueEventCommentRow]] = [:]
+    /// Comment ids the signed-in fan has already reported (from successful submit, duplicate constraint, or REST sync).
+    @Published var commentIDsReportedByCurrentUser: Set<UUID> = []
     @Published var venueEventIDsByKey: [String: UUID] = [:]
     @Published var visibleLatitudeDelta: Double = 0.55
     @Published var userProfilesByEmail: [String: UserProfileRow] = [:]
@@ -97,9 +143,13 @@ final class MapViewModel: ObservableObject {
     
     @Published var events: [SportsEvent] = SampleData.events
     @Published var isLoadingEvents: Bool = false
+    /// True while schedule data is re-fetched but existing ``events``/UI should stay visible (Phase 1 perf).
+    @Published var isRefreshingDiscoverEvents: Bool = false
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = []
     @Published var isLoadingMapVenues: Bool = false
+    /// True while map venues are re-fetched but existing ``bars`` should stay visible (Phase 1 perf).
+    @Published var isRefreshingMapVenues: Bool = false
     @Published var calendarUsesVisibleMapRegionOnly: Bool = false
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
@@ -116,8 +166,43 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserAvatarThumbnailURL: String = ""
     /// Bumped after avatar profile save (and related clears) so UI uses a new `?v=` display URL while stored URLs stay canonical.
     @Published var currentUserAvatarDisplayRefreshToken: UUID = UUID()
+    var authenticatedBusinessDisplayNameForSocialFeatures: String {
+        if isVenueOwnerLoggedIn {
+            if let firstNamed = ownedBusinesses
+                .map(\.display_name)
+                .map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) })
+                .first(where: { !$0.isEmpty }) {
+                return firstNamed
+            }
+            let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+            if !ownerEmail.isEmpty {
+                return ownerEmail
+            }
+        }
+        return ""
+    }
+    var authenticatedSocialDisplayName: String {
+        if !authenticatedBusinessDisplayNameForSocialFeatures.isEmpty {
+            return authenticatedBusinessDisplayNameForSocialFeatures
+        }
+        let current = currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !current.isEmpty { return current }
+        let email = authenticatedSocialEmailForUI
+        let local = email.split(separator: "@").first.map(String.init) ?? ""
+        return local.isEmpty ? "" : local
+    }
+    /// Best-effort current auth email for social UI decisions (comment ownership, friend chips, etc.).
+    var authenticatedSocialEmailForUI: String {
+        let fan = OwnerBusinessEmail.normalized(currentUserEmail)
+        if OwnerBusinessEmail.isValidStrict(fan) { return fan }
+        let business = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        if OwnerBusinessEmail.isValidStrict(business) { return business }
+        return ""
+    }
     @Published var goingUserProfiles: [UserProfileRow] = []
     @Published var venueSearchResults: [BarVenue] = []
+    /// True while a debounced Discover query is fetching `venues` from Supabase (see ``MapViewModel+DiscoverSearch``).
+    @Published var isDiscoverVenueSearchLoading: Bool = false
     /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).
     @Published var discoverNavigateToAccountForUserAuth: Bool = false
     /// Following → Saved Venues: Discover tab consumes this to focus the map (see ``MapViewModel+FollowingMapNavigation``).
@@ -177,6 +262,25 @@ final class MapViewModel: ObservableObject {
     /// Cancels stale debounced Discover search updates when ``searchText`` changes quickly.
     var discoverSearchDebounceTask: Task<Void, Never>?
 
+    /// Discover-only: when set, ``pruneSelectionIfNeededAfterFilterChange()`` keeps ``selectedBar`` even if this id is absent from ``bars`` (remote text search venue with no games — not a default map pin).
+    var discoverRemotePreviewHoldVenueId: UUID?
+
     /// Set when ``renderCachedDiscoverCore()`` applied a disk snapshot this launch; suppresses empty-state loading chrome until fresh fetches finish.
     var discoverSnapshotRestoredThisLaunch = false
+
+    /// After the first successful Supabase games load, prefer ``isRefreshingDiscoverEvents`` over blocking ``isLoadingEvents``.
+    var didCompleteSuccessfulGamesFetch = false
+
+    /// Coalesces overlapping ``loadGamesFromSupabase()`` / ``refreshDiscoverCoreInBackground`` schedule work onto one serial chain.
+    var loadGamesCoalesceTask: Task<Void, Never>?
+    var loadGamesCoalesceNeedsAnotherPass = false
+
+    /// Bumped when schedule-related data changes so calendar caches and dot fingerprints invalidate cheaply.
+    var scheduleDataGeneration: UInt64 = 0
+
+    /// Last inputs used for ``calendarDotDates``; avoids rescanning ``events`` when nothing relevant changed.
+    var lastCalendarDotRecomputeKey: String?
+
+    /// Short-lived Calendar tab list cache (see ``calendarScreenDisplayedEvents``).
+    var calendarEventsListCache: [String: (storedAt: Date, events: [SportsEvent])] = [:]
 }

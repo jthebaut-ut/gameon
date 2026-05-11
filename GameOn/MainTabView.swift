@@ -6,7 +6,12 @@ import SwiftUI
 struct MainTabView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var chatViewModel = ChatViewModel()
+    @Environment(\.scenePhase) private var scenePhase
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
+
+    @AppStorage("gameon.require_device_auth_for_private_chat") private var requireDeviceAuthForPrivateChat = true
+    @State private var chatGateAlertMessage: String?
+    @State private var didRunInitialPrivateChatTabGate = false
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -67,6 +72,13 @@ struct MainTabView: View {
             }
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
+        .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
+            guard shouldSwitch else { return }
+            viewModel.switchToAccountForVenueClaim = false
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.account.rawValue
+            }
+        }
         // Discover-first: disk snapshot + map/calendar core refresh never waits on profile, favorites, or social enrichment.
         .task {
             viewModel.renderCachedDiscoverCore()
@@ -83,11 +95,17 @@ struct MainTabView: View {
 
             await chatViewModel.loadIfNeeded()
         }
-        .onChange(of: viewModel.isLoggedIn) { _, isLoggedIn in
-            if isLoggedIn {
-                Task { await chatViewModel.refresh() }
-            } else {
-                Task { await chatViewModel.clearForLogout() }
+        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+            Task { await syncChatAuthState() }
+        }
+        .onChange(of: viewModel.currentUserAuthId) { _, _ in
+            Task { await syncChatAuthState() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                guard viewModel.isAuthenticatedForSocialFeatures else { return }
+                await viewModel.checkCurrentUserAdminStatus()
             }
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
@@ -103,6 +121,93 @@ struct MainTabView: View {
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.discover.rawValue
             }
+        }
+        .alert(
+            "Private chat",
+            isPresented: Binding(
+                get: { chatGateAlertMessage != nil },
+                set: { if !$0 { chatGateAlertMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                chatGateAlertMessage = nil
+            }
+        } message: {
+            Text(chatGateAlertMessage ?? "")
+        }
+        .onAppear {
+            guard !didRunInitialPrivateChatTabGate else { return }
+            didRunInitialPrivateChatTabGate = true
+            Task { await enforcePrivateChatGateOnLaunchIfNeeded() }
+        }
+    }
+
+    /// Scene restore: if the saved tab is Chat, require local auth or bounce away from private messages.
+    private func enforcePrivateChatGateOnLaunchIfNeeded() async {
+        guard selectedTab == .chat else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        guard requireDeviceAuthForPrivateChat else { return }
+
+        let outcome = await PrivateChatAccessGate.authenticateForPrivateChat()
+        guard outcome != .granted else { return }
+
+        await MainActor.run {
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.discover.rawValue
+            }
+            switch outcome {
+            case .authenticationFailed:
+                chatGateAlertMessage = PrivateChatAccessGate.authenticationFailedMessage
+            case .deviceSecurityNotConfigured:
+                chatGateAlertMessage = PrivateChatAccessGate.noPasscodeMessage
+            case .granted:
+                break
+            }
+        }
+    }
+
+    /// Floating tab: enter Chat only after Face ID / Touch ID / passcode when the setting is enabled.
+    private func selectChatTabAfterDeviceAuth() async {
+        guard selectedTab != .chat else { return }
+
+        if !viewModel.isAuthenticatedForSocialFeatures {
+            await MainActor.run {
+                withAnimation(.spring()) {
+                    selectedTabStorage = AppTab.chat.rawValue
+                }
+            }
+            return
+        }
+
+        guard requireDeviceAuthForPrivateChat else {
+            await MainActor.run {
+                withAnimation(.spring()) {
+                    selectedTabStorage = AppTab.chat.rawValue
+                }
+            }
+            return
+        }
+
+        let outcome = await PrivateChatAccessGate.authenticateForPrivateChat()
+        await MainActor.run {
+            switch outcome {
+            case .granted:
+                withAnimation(.spring()) {
+                    selectedTabStorage = AppTab.chat.rawValue
+                }
+            case .authenticationFailed:
+                chatGateAlertMessage = PrivateChatAccessGate.authenticationFailedMessage
+            case .deviceSecurityNotConfigured:
+                chatGateAlertMessage = PrivateChatAccessGate.noPasscodeMessage
+            }
+        }
+    }
+
+    private func syncChatAuthState() async {
+        if viewModel.isAuthenticatedForSocialFeatures {
+            await chatViewModel.refresh()
+        } else {
+            await chatViewModel.clearForLogout()
         }
     }
 
@@ -153,10 +258,26 @@ struct MainTabView: View {
             .zIndex(isSelected ? 1 : 0)
     }
     
-    private var accountIconColor: Color {
-
-        if viewModel.isVenueOwnerLoggedIn {
+    /// Business tab building icon: orange while any location claim is pending; green when every managed venue is active and nothing is pending.
+    private var venueOwnerBusinessTabAccentColor: Color {
+        if !viewModel.pendingVenueClaimsForSettings.isEmpty {
             return .orange
+        }
+        if viewModel.hasActiveVenueClaimRejectionForBusinessUI {
+            return .red
+        }
+        let managed = viewModel.managedVenuesForOwner()
+        guard !managed.isEmpty else { return .orange }
+        let allActive = managed.allSatisfy { row in
+            let s = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            return s.isEmpty || s == "active"
+        }
+        return allActive ? .green : .orange
+    }
+
+    private var accountIconColor: Color {
+        if viewModel.isVenueOwnerLoggedIn {
+            return venueOwnerBusinessTabAccentColor
         }
 
         if viewModel.isLoggedIn {
@@ -177,9 +298,7 @@ struct MainTabView: View {
     
     private func chatTabButton() -> some View {
         Button {
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.chat.rawValue
-            }
+            Task { await selectChatTabAfterDeviceAuth() }
         } label: {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 5) {
@@ -247,7 +366,7 @@ struct MainTabView: View {
 
     private var accountTabTitle: String {
         if viewModel.isVenueOwnerLoggedIn {
-            return "Venue"
+            return "Business"
         }
 
         if viewModel.isLoggedIn {

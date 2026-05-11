@@ -17,6 +17,10 @@ struct VenueDetailView: View {
     let experience: VenueExperience?
     var coverPhotoURL: String? = nil
     var menuPhotoURL: String? = nil
+    /// Discover “Claim this business” → venue owner flow (optional so other call sites compile).
+    var onClaimThisBusiness: ((BarVenue) -> Void)? = nil
+    /// When true (business owner viewing their own linked venue), show informational copy instead of the claim action.
+    var venueAlreadyManagedBySignedInBusiness: Bool = false
 
     private var resolvedRating: Double {
         mergedRating ?? bar.rating
@@ -136,33 +140,92 @@ struct VenueDetailView: View {
                     actionButton(title: "Call", icon: "phone.fill", color: .blue, action: onCall)
                     actionButton(title: isFavorite ? "Saved" : "Save", icon: isFavorite ? "heart.fill" : "heart", color: .red, action: onFavorite)
                 }
-                
+
+                if venueAlreadyManagedBySignedInBusiness {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "building.2.fill")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Managed by your business")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("This location is already linked to your business account.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.primary.opacity(0.06))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    }
+                } else if let onClaimThisBusiness {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Button {
+                            onClaimThisBusiness(bar)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "building.2.crop.circle")
+                                    .font(.title3)
+                                Text("Claim this business")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .foregroundStyle(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange.opacity(0.14))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("Claim requests are reviewed before owner tools are enabled.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Games Showing")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
-                    ForEach(Array(bar.games.enumerated()), id: \.offset) { _, game in
-                        HStack {
-                            Image(systemName: "tv.fill")
-                            
-                            Text(game)
-                                .fontWeight(.medium)
-                            
-                            Spacer()
-                            
-                            Text(selectedEvent?.title == game ? "Selected" : "Confirmed")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
-                                .background(Color.green.opacity(0.15))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
+
+                    if bar.games.isEmpty {
+                        Text("No games listed yet.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(Color.gray.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                    } else {
+                        ForEach(Array(bar.games.enumerated()), id: \.offset) { _, game in
+                            HStack {
+                                Image(systemName: "tv.fill")
+
+                                Text(game)
+                                    .fontWeight(.medium)
+
+                                Spacer()
+
+                                Text(selectedEvent?.title == game ? "Selected" : "Confirmed")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 5)
+                                    .background(Color.green.opacity(0.15))
+                                    .foregroundStyle(.green)
+                                    .clipShape(Capsule())
+                            }
+                            .padding()
+                            .background(selectedEvent?.title == game ? Color.green.opacity(0.08) : Color.gray.opacity(0.08))
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
                         }
-                        .padding()
-                        .background(selectedEvent?.title == game ? Color.green.opacity(0.08) : Color.gray.opacity(0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                 }
                 

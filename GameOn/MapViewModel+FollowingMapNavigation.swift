@@ -137,7 +137,8 @@ extension MapViewModel {
             menuPhotoURL: bar.menuPhotoURL,
             coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,
             menuPhotoThumbnailURL: bar.menuPhotoThumbnailURL,
-            ownerEmail: bar.ownerEmail
+            ownerEmail: bar.ownerEmail,
+            businessId: bar.businessId
         )
     }
 }

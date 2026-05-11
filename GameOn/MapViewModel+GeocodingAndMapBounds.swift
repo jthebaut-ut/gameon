@@ -113,6 +113,9 @@ extension MapViewModel {
         let t0 = Date()
         #endif
         if selectForPreview {
+            if let hold = discoverRemotePreviewHoldVenueId, hold != bar.id {
+                discoverRemotePreviewHoldVenueId = nil
+            }
             selectedBar = bar
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
@@ -133,6 +136,9 @@ extension MapViewModel {
     /// Centers the map on a coordinate (e.g. geocoded address) while optionally keeping a venue selected for the preview card.
     func centerMap(on coordinate: CLLocationCoordinate2D, selectedBar: BarVenue?) {
         if let selectedBar {
+            if let hold = discoverRemotePreviewHoldVenueId, hold != selectedBar.id {
+                discoverRemotePreviewHoldVenueId = nil
+            }
             self.selectedBar = selectedBar
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
@@ -160,20 +166,37 @@ extension MapViewModel {
         discoverClusteredBarsCache = nil
 
         let region = cameraPosition.region
-        let visibleMatches = visibleBarsMatchingSearch(query: q, region: region)
-        if !visibleMatches.isEmpty {
-            venueSearchResults = visibleMatches
+        let localOrdered = discoverVenueSearchLocalMatchesOrdered(query: q, region: region)
+        #if DEBUG
+        print("[VenueSearch] local results count=\(localOrdered.count)")
+        #endif
+
+        if q.count < 2 {
+            venueSearchResults = localOrdered
             return
         }
 
-        let memoryMatches = allBarsMatchingDiscoverLiveSearch(query: q)
-        if !memoryMatches.isEmpty {
-            venueSearchResults = memoryMatches
-            return
-        }
+        Task { @MainActor in
+            isDiscoverVenueSearchLoading = true
+            defer { isDiscoverVenueSearchLoading = false }
 
-        Task {
-            if let coord = await geocodeAddress(q) {
+            #if DEBUG
+            let tSearch0 = Date()
+            #endif
+            let remoteMatches = await fetchDiscoverVenueSearchBars(query: q)
+            #if DEBUG
+            let remoteMs = Int(Date().timeIntervalSince(tSearch0) * 1000)
+            print("[Phase1Perf] discoverSearch keyboardGo remoteVenuesMs=\(remoteMs) rows=\(remoteMatches.count) query=\(q)")
+            #endif
+
+            var seen = Set(localOrdered.map(\.id))
+            var merged: [BarVenue] = localOrdered
+            for b in remoteMatches where seen.insert(b.id).inserted {
+                merged.append(b)
+            }
+            venueSearchResults = merged
+
+            if merged.isEmpty, let coord = await geocodeAddress(q) {
                 venueSearchResults = []
                 cameraPosition = .region(
                     MKCoordinateRegion(

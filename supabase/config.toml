@@ -420,3 +420,18 @@ entrypoint = "./functions/import-games/index.ts"
 enabled = true
 verify_jwt = true
 entrypoint = "./functions/notify-moderation-report/index.ts"
+
+[functions.notify-support-request]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/notify-support-request/index.ts"
+
+[functions.venue-claim-approve]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/venue-claim-approve/index.ts"
+
+[functions.venue-claim-reject]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/venue-claim-reject/index.ts"

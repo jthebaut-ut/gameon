@@ -9,17 +9,10 @@ struct CalendarScreen: View {
     
     
     private var displayedEvents: [SportsEvent] {
-        let query = gameSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        if query.isEmpty {
-            return viewModel.eventsForSelectedDate
-        }
-
-        return viewModel.events.filter { event in
-            event.title.localizedCaseInsensitiveContains(query) ||
-            event.league.localizedCaseInsensitiveContains(query) ||
-            event.sport.localizedCaseInsensitiveContains(query)
-        }
+        viewModel.calendarScreenDisplayedEvents(
+            selectedDate: viewModel.selectedDate,
+            searchQuery: gameSearchText
+        )
     }
     
     var body: some View {
@@ -48,7 +41,8 @@ struct CalendarScreen: View {
                 bars: viewModel.filteredBars,
                 useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
                 eventDotDates: viewModel.calendarDotDates,
-                dotsLoading: viewModel.isLoadingMapVenues && viewModel.calendarUsesVisibleMapRegionOnly,
+                dotsLoading: (viewModel.isLoadingMapVenues || viewModel.isRefreshingMapVenues)
+                    && viewModel.calendarUsesVisibleMapRegionOnly,
                 selectedDate: $viewModel.selectedDate
             ) {
                 withAnimation(.spring()) {
@@ -133,6 +127,9 @@ struct CalendarScreen: View {
             
             if viewModel.isLoadingEvents {
                 ProgressView()
+            } else if viewModel.isRefreshingDiscoverEvents && !displayedEvents.isEmpty {
+                ProgressView()
+                    .controlSize(.small)
             }
         }
         .padding(.horizontal)

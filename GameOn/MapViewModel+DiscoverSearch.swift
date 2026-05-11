@@ -4,6 +4,43 @@ import SwiftUI
 
 extension MapViewModel {
 
+    /// Discover read path (map preview, games list, venue detail sheet): any authenticated social-capable session.
+    var discoverAuthGateActive: Bool {
+        isAuthenticatedForSocialFeatures
+    }
+
+    func canViewDiscoverDetails() -> Bool {
+        discoverAuthGateActive
+    }
+
+    func logDiscoverAuthGateDebug() {
+#if DEBUG
+        print("[DiscoverAuthGate] isLoggedIn=\(isLoggedIn)")
+        print("[DiscoverAuthGate] isVenueOwnerLoggedIn=\(isVenueOwnerLoggedIn)")
+        print("[DiscoverAuthGate] canViewDiscoverDetails=\(canViewDiscoverDetails())")
+#endif
+    }
+
+    /// Clears the Discover remote-preview pin hold (e.g. when the user dismisses the preview from the UI).
+    func clearDiscoverRemotePreviewHold() {
+        discoverRemotePreviewHoldVenueId = nil
+    }
+
+    /// In-map and loaded-memory matches first (visible viewport, then all ``bars``), deduped in order.
+    func discoverVenueSearchLocalMatchesOrdered(query: String, region: MKCoordinateRegion?) -> [BarVenue] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        var seen = Set<UUID>()
+        var ordered: [BarVenue] = []
+        for b in visibleBarsMatchingSearch(query: q, region: region) where seen.insert(b.id).inserted {
+            ordered.append(b)
+        }
+        for b in allBarsMatchingDiscoverLiveSearch(query: q) where seen.insert(b.id).inserted {
+            ordered.append(b)
+        }
+        return ordered
+    }
+
     /// Debounces ``searchText`` (~260ms) before updating ``debouncedDiscoverSearchText``, recomputing visible-only ``venueSearchResults``, and invalidating map cluster memo.
     func scheduleDiscoverSearchDebounce() {
         discoverSearchDebounceTask?.cancel()
@@ -12,6 +49,7 @@ extension MapViewModel {
         if trimmed.isEmpty {
             debouncedDiscoverSearchText = ""
             venueSearchResults = []
+            isDiscoverVenueSearchLoading = false
             discoverClusteredBarsCacheKey = nil
             discoverClusteredBarsCache = nil
             discoverSearchDebounceTask = nil
@@ -26,24 +64,46 @@ extension MapViewModel {
             guard !q.isEmpty else {
                 self.debouncedDiscoverSearchText = ""
                 self.venueSearchResults = []
+                self.isDiscoverVenueSearchLoading = false
                 return
             }
+
+            self.isDiscoverVenueSearchLoading = true
+            defer { self.isDiscoverVenueSearchLoading = false }
 
             #if DEBUG
             let t0 = Date()
             #endif
             let region = self.cameraPosition.region
             let inRegion = self.bars.filter { self.isBarCoordinate($0, in: region) }
-            let matches = self.visibleBarsMatchingSearch(query: q, region: region)
+            let localOrdered = self.discoverVenueSearchLocalMatchesOrdered(query: q, region: region)
+
+            #if DEBUG
+            print("[VenueSearch] local results count=\(localOrdered.count)")
+            #endif
+
+            var merged: [BarVenue] = localOrdered
+            if q.count >= 2 {
+                let remoteMatches = await self.fetchDiscoverVenueSearchBars(query: q)
+                var seen = Set(localOrdered.map(\.id))
+                for b in remoteMatches where seen.insert(b.id).inserted {
+                    merged.append(b)
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
-            print("[SearchPerf] query=\(q) visibleBars=\(inRegion.count) matches=\(matches.count) ms=\(ms)")
+            let remoteCount = max(0, merged.count - localOrdered.count)
+            print("[Phase1Perf] discoverSearch debounced totalMs=\(ms) query=\(q) visibleBars=\(inRegion.count) local=\(localOrdered.count) remote=\(remoteCount) merged=\(merged.count)")
+            print("[SearchPerf] query=\(q) visibleBars=\(inRegion.count) local=\(localOrdered.count) remote=\(remoteCount) merged=\(merged.count) ms=\(ms)")
             #endif
 
             self.discoverClusteredBarsCacheKey = nil
             self.discoverClusteredBarsCache = nil
             self.debouncedDiscoverSearchText = q
-            self.venueSearchResults = matches
+            self.venueSearchResults = merged
         }
     }
 
@@ -107,9 +167,32 @@ extension MapViewModel {
         bars.first { $0.id == bar.id } ?? bar
     }
 
+    /// Ensures a venue opened from Supabase text search stays in ``bars`` so map reloads and ``pruneSelectionIfNeededAfterFilterChange()`` do not drop the preview.
+    /// No-game venues from search use ``discoverRemotePreviewHoldVenueId`` instead and are **not** merged (they must not join the default pin dataset).
+    func mergeDiscoverSearchVenueIntoBarsIfMissing(_ bar: BarVenue) {
+        if bars.contains(where: { $0.id == bar.id }) { return }
+        bars.append(bar)
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+    }
+
     /// Dynamic search result: clear query, select canonical venue, center map (``centerMap(on:)`` sets ``selectedBar``).
     func selectVenueFromDiscoverSearchResult(_ bar: BarVenue) {
+        let inBars = bars.contains(where: { $0.id == bar.id })
+        if !bar.games.isEmpty {
+            mergeDiscoverSearchVenueIntoBarsIfMissing(bar)
+        }
         let canonical = canonicalBarForDiscover(bar)
+
+        if bar.games.isEmpty && !inBars {
+            discoverRemotePreviewHoldVenueId = canonical.id
+#if DEBUG
+            print("[VenueSearch] selected remote venue id=\(canonical.id.uuidString) name=\(canonical.name)")
+#endif
+        } else {
+            discoverRemotePreviewHoldVenueId = nil
+        }
+
         clearDiscoverVenueSearchForSelection()
         #if DEBUG
         let n = gamesForVenuePreview(bar: canonical, date: selectedDate, sportFilter: selectedSport).count
