@@ -392,6 +392,8 @@ extension MapViewModel {
 
             await persistAccountModeForActiveAuthSession(.businessOwner)
 
+            clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+
             if recordVenueGuidelinesAcceptance {
                 UserDefaults.standard.set(true, forKey: "venueGuidelinesAccepted")
             }
@@ -456,6 +458,8 @@ extension MapViewModel {
             }
 
             await persistAccountModeForActiveAuthSession(.businessOwner)
+
+            clearExplicitLogoutMarkerAfterManualAuthSucceeded()
 
             await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
             _ = await ensureBusinessOwnerSessionFlagsIfPossible(context: "after_business_login_post_refresh")

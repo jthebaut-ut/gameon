@@ -69,6 +69,17 @@ struct SettingsScreen: View {
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
 
+    /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
+    private func performBusinessAccountLogout() {
+        Task { @MainActor in
+            await viewModel.logoutUser()
+            venueOwnerDashboardSheet = nil
+            showVenueOwnerPasswordResetSheet = false
+            showReportedCommentsSheet = false
+            showDeleteVenueOwnerSheet = false
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -165,7 +176,22 @@ struct SettingsScreen: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                        .listRowBackground(Color.clear)
+
+                        settingsSectionCard {
+                            Button {
+                                performBusinessAccountLogout()
+                            } label: {
+                                settingsRow(
+                                    title: "Log out",
+                                    subtitle: "Sign out of this business account.",
+                                    systemImage: "rectangle.portrait.and.arrow.right"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
                     }
                 } header: {
@@ -1974,14 +2000,16 @@ private struct SettingsUserAuthSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FGSpacing.xl) {
-                FanGeoBrandHeroView(
-                    title: "Account",
-                    subtitle: "Sign in to sync your profile and activity.",
-                    variant: .white,
-                    logoWidth: 132
-                )
-                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: FGSpacing.lg) {
+                VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                    Text("Account")
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Sign in to sync your profile and activity.")
+                        .font(.subheadline)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                .padding(.top, 2)
 
                 SettingsAccountCard(
                     viewModel: viewModel,
@@ -2106,14 +2134,18 @@ private struct SettingsVenueAuthSheet: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FGSpacing.xl) {
-                FanGeoBrandHeroView(
-                    title: "Business",
-                    subtitle: "Sign in as a business owner to manage your locations and listings.",
-                    variant: .white,
-                    logoWidth: 132
-                )
-                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: FGSpacing.lg) {
+                VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                    Text("Business")
+                        .font(.largeTitle.weight(.bold))
+                        .foregroundStyle(.primary)
+
+                    Text("Sign in as a business owner to manage your locations and listings.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 2)
 
                 if !viewModel.isVenueOwnerLoggedIn {
                     SettingsSheetStatusBanner(
@@ -2396,8 +2428,10 @@ private struct SettingsProfileHero: View {
                         venueOwnerOnResetPassword()
                     }
                     Button("Log Out Business Owner", role: .destructive) {
-                        viewModel.venueOwnerLocalSignOutPreservingSupabaseSession()
-                        venueOwnerOnDismissSheetsAfterLogout()
+                        Task { @MainActor in
+                            await viewModel.logoutUser()
+                            venueOwnerOnDismissSheetsAfterLogout()
+                        }
                     }
                     Button("Cancel", role: .cancel) {}
                 }
@@ -4001,4 +4035,5 @@ struct BusinessLocationVenuePicker: View {
 }
 
 // MARK: - Venue owner sign-out
-// See ``MapViewModel/venueOwnerLocalSignOutPreservingSupabaseSession()`` (persists fan mode for cold-start restore).
+// Account-tab business log out uses ``MapViewModel/logoutUser()`` (full Supabase sign-out + session cleanup).
+// ``MapViewModel/venueOwnerLocalSignOutPreservingSupabaseSession()`` remains for flows that must keep the auth session while clearing owner UI.

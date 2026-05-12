@@ -43,15 +43,18 @@ struct CalendarScreen: View {
                 eventDotDates: viewModel.calendarDotDates,
                 dotsLoading: (viewModel.isLoadingMapVenues || viewModel.isRefreshingMapVenues)
                     && viewModel.calendarUsesVisibleMapRegionOnly,
-                selectedDate: $viewModel.selectedDate
-            ) {
-                withAnimation(.spring()) {
-                    viewModel.selectedBar = nil
-                    viewModel.selectedEvent = nil
-                    viewModel.dateChanged()
-                    showDatePicker = false
-                }
-            }
+                dotStatusText: nil,
+                selectedDate: $viewModel.selectedDate,
+                onDone: {
+                    withAnimation(.spring()) {
+                        viewModel.selectedBar = nil
+                        viewModel.selectedEvent = nil
+                        viewModel.dateChanged()
+                        showDatePicker = false
+                    }
+                },
+                onDisplayedMonthChange: nil
+            )
             .liquidGlassCalendarSheetPresentation(selection: $calendarDatePickerDetent, backdrop: .frostedDim)
         }
         .onChange(of: showDatePicker) { _, isPresented in

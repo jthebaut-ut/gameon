@@ -175,8 +175,10 @@ struct LiquidGlassCalendarPicker: View {
     let useVisibleMapRegionOnly: Bool
     let eventDotDates: Set<Date>
     let dotsLoading: Bool
+    let dotStatusText: String?
     @Binding var selectedDate: Date
     let onDone: () -> Void
+    let onDisplayedMonthChange: ((Date) -> Void)?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -190,8 +192,10 @@ struct LiquidGlassCalendarPicker: View {
                     useVisibleMapRegionOnly: useVisibleMapRegionOnly,
                     eventDotDates: eventDotDates,
                     dotsLoading: dotsLoading,
+                    dotStatusText: dotStatusText,
                     selectedDate: $selectedDate,
-                    onDone: onDone
+                    onDone: onDone,
+                    onDisplayedMonthChange: onDisplayedMonthChange
                 )
                 .padding(.horizontal, 22)
                 .padding(.vertical, 20)
@@ -268,8 +272,10 @@ struct EventCalendarView: View {
     let eventDotDates: Set<Date>
     /// Subtle loading hint for region-backed dots only (does not block interaction).
     let dotsLoading: Bool
+    let dotStatusText: String?
     @Binding var selectedDate: Date
     let onDone: () -> Void
+    let onDisplayedMonthChange: ((Date) -> Void)?
 
     init(
         events: [SportsEvent],
@@ -277,16 +283,20 @@ struct EventCalendarView: View {
         useVisibleMapRegionOnly: Bool = false,
         eventDotDates: Set<Date> = [],
         dotsLoading: Bool = false,
+        dotStatusText: String? = nil,
         selectedDate: Binding<Date>,
-        onDone: @escaping () -> Void
+        onDone: @escaping () -> Void,
+        onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
         self.events = events
         self.bars = bars
         self.useVisibleMapRegionOnly = useVisibleMapRegionOnly
         self.eventDotDates = eventDotDates
         self.dotsLoading = dotsLoading
+        self.dotStatusText = dotStatusText
         self._selectedDate = selectedDate
         self.onDone = onDone
+        self.onDisplayedMonthChange = onDisplayedMonthChange
     }
 
     @State private var displayedMonth: Date = SampleData.makeDate(year: 2026, month: 6, day: 1)
@@ -306,9 +316,23 @@ struct EventCalendarView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Text("Choose a date")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.primary)
+            VStack(spacing: 6) {
+                Text("Choose a date")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.primary)
+
+                if let dotStatusText, !dotStatusText.isEmpty {
+                    HStack(spacing: 6) {
+                        if dotsLoading {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Text(dotStatusText)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
 
             HStack(spacing: 10) {
                 EventCalendarLiquidGlass.monthNavButton(
@@ -433,6 +457,10 @@ struct EventCalendarView: View {
         .background(Color.clear)
         .onAppear {
             displayedMonth = startOfMonth(selectedDate)
+            onDisplayedMonthChange?(displayedMonth)
+        }
+        .onChange(of: displayedMonth) { _, month in
+            onDisplayedMonthChange?(month)
         }
     }
 

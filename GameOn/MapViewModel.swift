@@ -187,6 +187,10 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventRows: [VenueEventRow] = []
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
+    /// Discover calendar-only: narrow month-scoped dot dates loaded from nearby venues without waiting for full schedule hydration.
+    @Published var discoverCalendarDotDates: Set<Date> = []
+    @Published var isLoadingCalendarDots: Bool = false
+    @Published var calendarDotStatusText: String?
     @Published var currentUserDisplayName: String = ""
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
@@ -312,6 +316,10 @@ final class MapViewModel: ObservableObject {
     /// Fire-and-forget phase-3 Discover enrichment after pins are visible.
     var discoverFullEnrichmentTask: Task<Void, Never>?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
+    var discoverSelectedDayRefreshRequestID: UUID?
+    var discoverCalendarDotLoadTask: Task<Void, Never>?
+    var discoverCalendarDotLoadRequestID: UUID?
+    var mapStatusDismissTask: Task<Void, Never>?
     var socialActionToastDismissTask: Task<Void, Never>?
 
     /// Bumped when schedule-related data changes so calendar caches and dot fingerprints invalidate cheaply.
@@ -322,4 +330,5 @@ final class MapViewModel: ObservableObject {
 
     /// Short-lived Calendar tab list cache (see ``calendarScreenDisplayedEvents``).
     var calendarEventsListCache: [String: (storedAt: Date, events: [SportsEvent])] = [:]
+    var calendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
 }

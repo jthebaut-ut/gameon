@@ -15,6 +15,17 @@ extension MapViewModel {
     private static let storedAccountModeKey = "GameOn.storedAccountMode"
     private static let storedAccountAuthUserIdKey = "GameOn.storedAccountAuthUserId"
 
+    /// When true, cold-start must not treat a still-cached Supabase session as a signed-in user until the next successful manual sign-in.
+    private static let didExplicitlyLogoutKey = "didExplicitlyLogout"
+
+    /// Clears ``didExplicitlyLogoutKey`` after email/password (or sign-up) auth establishes a session.
+    func clearExplicitLogoutMarkerAfterManualAuthSucceeded() {
+        UserDefaults.standard.set(false, forKey: Self.didExplicitlyLogoutKey)
+#if DEBUG
+        print("[Auth] manual login succeeded, logout marker cleared")
+#endif
+    }
+
     private func readPersistedAccountMode() -> (mode: StoredAccountMode, authUserId: String?) {
         let raw = UserDefaults.standard.string(forKey: Self.storedAccountModeKey)
         let mode = StoredAccountMode(rawValue: raw ?? "") ?? .fanUser
@@ -443,6 +454,10 @@ extension MapViewModel {
 
             await persistAccountModeForActiveAuthSession(.fanUser)
 
+            if (try? await supabase.auth.session) != nil {
+                clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+            }
+
             if recordFanGuidelinesAcceptance {
                 UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
             }
@@ -490,6 +505,8 @@ extension MapViewModel {
             }
 
             await persistAccountModeForActiveAuthSession(.fanUser)
+
+            clearExplicitLogoutMarkerAfterManualAuthSucceeded()
 
             Task { await refreshUserPersonalizationInBackground() }
         } catch {
@@ -557,22 +574,47 @@ extension MapViewModel {
     }
 
     func logoutUser() async {
+#if DEBUG
+        print("[Auth] logout requested")
+#endif
+
+        do {
+            try await supabase.auth.signOut()
+#if DEBUG
+            print("[Auth] Supabase signOut completed")
+#endif
+        } catch {
+            print("Logout failed:", error)
+#if DEBUG
+            print("[Auth] Supabase signOut failed (continuing local teardown): \(error.localizedDescription)")
+#endif
+        }
+
+        await stopVenueOwnerAnalyticsRealtime()
+        await removeAllVenueEventCommentsRealtimeListeners()
+
         await MainActor.run {
             clearAuthenticatedSessionCaches()
             clearVenueOwnerDraftState()
             isLoggedIn = false
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
+            isAdminLoggedIn = false
         }
-        do {
-            try await supabase.auth.signOut()
-            clearPersistedAccountMode()
-        } catch {
-            print("Logout failed:", error)
-        }
+
+        clearPersistedAccountMode()
+        UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
+
+#if DEBUG
+        print("[Auth] local auth state cleared")
+        print("[Auth] explicit logout marker set")
+#endif
     }
 
     func hasValidSession() async -> Bool {
+        if UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey) {
+            return false
+        }
 
         do {
             _ = try await supabase.auth.session
@@ -618,6 +660,33 @@ extension MapViewModel {
 
     /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
     func bootstrapAuthSessionOnly() async {
+        if UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey) {
+#if DEBUG
+            print("[Auth] startup session restore skipped due to explicit logout")
+#endif
+            do {
+                try await supabase.auth.signOut()
+            } catch {
+#if DEBUG
+                print("[Auth] signOut during explicit-logout bootstrap failed: \(error.localizedDescription)")
+#endif
+            }
+
+            await stopVenueOwnerAnalyticsRealtime()
+            await removeAllVenueEventCommentsRealtimeListeners()
+
+            await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                clearVenueOwnerDraftState()
+                isLoggedIn = false
+                isVenueOwnerLoggedIn = false
+                venueOwnerMode = false
+                isAdminLoggedIn = false
+            }
+            clearPersistedAccountMode()
+            return
+        }
+
         do {
             let session = try await supabase.auth.session
             let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")

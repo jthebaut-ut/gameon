@@ -12,7 +12,6 @@ struct DiscoverScreen: View {
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
     @State private var discoverDatePickerSelection: Date?
-    @State private var discoverDateRefreshInFlight = false
     @State private var selectedCommentsEventID: UUID?
     @State private var showVenueRatingSheet = false
     @State private var mapVenueReloadTask: Task<Void, Never>?
@@ -94,10 +93,12 @@ struct DiscoverScreen: View {
                             isError: viewModel.socialActionToastIsError
                         )
                     }
-                    if viewModel.isUpdatingMapGames,
-                       let mapStatusText = viewModel.mapStatusText,
+                    if let mapStatusText = viewModel.mapStatusText,
                        !mapStatusText.isEmpty {
-                        discoverMapStatusBanner(text: mapStatusText)
+                        discoverMapStatusBanner(
+                            text: mapStatusText,
+                            isLoading: viewModel.isUpdatingMapGames
+                        )
                     }
                     if let selectedBar = viewModel.selectedBar {
                         if viewModel.canViewDiscoverDetails() {
@@ -151,10 +152,6 @@ struct DiscoverScreen: View {
     }
     .onChange(of: viewModel.selectedDate) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
-    }
-    .onChange(of: discoverSummaryDataLoading) { _, isLoading in
-        guard discoverDateRefreshInFlight, !isLoading else { return }
-        discoverDateRefreshInFlight = false
     }
     .onChange(of: viewModel.searchText) { _, _ in
         viewModel.pruneSelectionIfNeededAfterFilterChange()
@@ -282,16 +279,20 @@ struct DiscoverScreen: View {
                     events: viewModel.events,
                     bars: viewModel.bars,
                     useVisibleMapRegionOnly: viewModel.calendarUsesVisibleMapRegionOnly,
-                    eventDotDates: viewModel.calendarDotDates,
-                    dotsLoading: (viewModel.isLoadingMapVenues || viewModel.isRefreshingMapVenues)
-                        && viewModel.calendarUsesVisibleMapRegionOnly,
+                    eventDotDates: viewModel.discoverCalendarDotDates,
+                    dotsLoading: viewModel.isLoadingCalendarDots,
+                    dotStatusText: viewModel.calendarDotStatusText,
                     selectedDate: Binding(
                         get: { discoverDatePickerSelection ?? viewModel.selectedDate },
                         set: { discoverDatePickerSelection = $0 }
-                    )
-                ) {
-                    applyDiscoverDatePickerSelection()
-                }
+                    ),
+                    onDone: {
+                        applyDiscoverDatePickerSelection()
+                    },
+                    onDisplayedMonthChange: { month in
+                        viewModel.loadDiscoverCalendarDots(around: month, reason: "month_change")
+                    }
+                )
                 .padding(.horizontal, 8)
                 .padding(.bottom, 100)
                 Spacer(minLength: 0)
@@ -826,7 +827,7 @@ struct DiscoverScreen: View {
             HStack(spacing: 6) {
                 Image(systemName: "calendar")
                 Text(viewModel.formattedSelectedDate)
-                if discoverDateRefreshInFlight {
+                if viewModel.isUpdatingMapGames {
                     ProgressView()
                         .controlSize(.small)
                         .tint(.white)
@@ -911,6 +912,11 @@ struct DiscoverScreen: View {
     private func openDiscoverDatePicker() {
         dismissDiscoverSearchKeyboard()
         discoverDatePickerSelection = viewModel.selectedDate
+        viewModel.loadDiscoverCalendarDots(
+            around: viewModel.selectedDate,
+            reason: "calendar_open",
+            logIfOpeningBeforeReady: true
+        )
         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
             showDatePicker = true
         }
@@ -925,22 +931,22 @@ struct DiscoverScreen: View {
 
     private func applyDiscoverDatePickerSelection() {
         let appliedDate = discoverDatePickerSelection ?? viewModel.selectedDate
-        discoverDatePickerSelection = nil
-        discoverDateRefreshInFlight = true
-        viewModel.selectedDate = appliedDate
         #if DEBUG
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone.current
-        print("[DiscoverDatePerf] calendar dismissed date=\(fmt.string(from: appliedDate))")
+        let appliedDateString = fmt.string(from: appliedDate)
+        print("[CalendarPerf] Done tapped date=\(appliedDateString)")
         #endif
+        let requestID = viewModel.beginDiscoverDateChange(to: appliedDate)
+        discoverDatePickerSelection = nil
         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
             showDatePicker = false
         }
-        Task { @MainActor in
-            await Task.yield()
-            viewModel.discoverDateChanged()
-        }
+        #if DEBUG
+        print("[CalendarPerf] Calendar dismissed date=\(appliedDateString)")
+        #endif
+        viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
     }
     
     private var adBanner: some View {
@@ -987,7 +993,7 @@ struct DiscoverScreen: View {
     }
 
     private var discoverSummaryLoadingFeedbackVisible: Bool {
-        discoverDateRefreshInFlight || discoverSummaryDataLoading
+        discoverSummaryDataLoading
     }
 
     private var discoverSummaryVenueCount: Int {
@@ -1125,10 +1131,17 @@ struct DiscoverScreen: View {
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 12, y: 6)
     }
 
-    private func discoverMapStatusBanner(text: String) -> some View {
+    private func discoverMapStatusBanner(text: String, isLoading: Bool) -> some View {
         HStack(spacing: FGSpacing.sm) {
-            ProgressView()
-                .controlSize(.small)
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
             Text(text)
                 .font(FGTypography.caption.weight(.semibold))
                 .foregroundStyle(FGColor.primaryText(colorScheme))

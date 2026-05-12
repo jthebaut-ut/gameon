@@ -312,9 +312,53 @@ extension MapViewModel {
         loadGamesFromSupabase()
     }
 
-    func discoverDateChanged() {
+    func setDiscoverMapStatus(
+        _ text: String?,
+        isLoading: Bool,
+        autoClearAfter delay: TimeInterval? = nil
+    ) {
+        mapStatusDismissTask?.cancel()
+        mapStatusDismissTask = nil
+        isUpdatingMapGames = isLoading
+        mapStatusText = text
+
+        guard let delay, delay > 0, let text, !text.isEmpty else { return }
+        mapStatusDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard let self, !Task.isCancelled else { return }
+            guard self.mapStatusText == text, !self.isUpdatingMapGames else { return }
+            self.mapStatusText = nil
+            self.mapStatusDismissTask = nil
+        }
+    }
+
+    func beginDiscoverDateChange(to date: Date) -> UUID {
+        let nextDate = Calendar.current.startOfDay(for: date)
         selectedEvent = nil
         discoverRemotePreviewHoldVenueId = nil
+        selectedDate = nextDate
+        eventLoadError = nil
+        discoverSelectedDayRefreshTask?.cancel()
+        discoverSelectedDayRefreshTask = nil
+        let requestID = UUID()
+        discoverSelectedDayRefreshRequestID = requestID
+        if discoverCurrentVisibleVenueRows.isEmpty {
+            setDiscoverMapStatus("Refreshing nearby venues...", isLoading: true)
+        } else {
+            setDiscoverMapStatus("Updating games...", isLoading: true)
+        }
+        return requestID
+    }
+
+    func scheduleDiscoverSelectedDayRefresh(requestID: UUID) {
+        discoverSelectedDayRefreshTask?.cancel()
+        discoverSelectedDayRefreshTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.refreshDiscoverSelectedDayVenueEventsForCurrentContext(requestID: requestID)
+        }
+    }
+
+    func discoverDateChanged() {
         #if DEBUG
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -322,7 +366,8 @@ extension MapViewModel {
         let selectedDay = formatter.string(from: selectedDate)
         print("[DiscoverDatePerf] date selected=\(selectedDay)")
         #endif
-        refreshDiscoverSelectedDayVenueEventsForCurrentContext()
+        let requestID = beginDiscoverDateChange(to: selectedDate)
+        scheduleDiscoverSelectedDayRefresh(requestID: requestID)
     }
 
     func sportChanged(to sport: String) {
