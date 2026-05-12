@@ -9,7 +9,7 @@ extension ModerationService {
 
     /// Shown when ``containsProfanity(_:)`` is true.
     static func profanityRejectionUserMessage() -> String {
-        "That wording isn’t allowed on GameOn. Please remove profanity or slurs and try again."
+        "That wording isn’t allowed on FanGeo. Please remove profanity or slurs and try again."
     }
 
     /// Lowercase, strip diacritics, map common leet substitutions, keep only a–z and 0–9 for substring scans.

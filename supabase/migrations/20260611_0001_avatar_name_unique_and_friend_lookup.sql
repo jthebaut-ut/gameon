@@ -99,7 +99,7 @@ BEGIN
   END IF;
 
   IF target IS NULL THEN
-    RAISE EXCEPTION 'No GameOn account found with that email or avatar name.';
+    RAISE EXCEPTION 'No FanGeo account found with that email or avatar name.';
   END IF;
 
   IF target = me THEN

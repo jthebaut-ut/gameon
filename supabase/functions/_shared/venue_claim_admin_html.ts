@@ -18,7 +18,7 @@ function wrapPage(inner: string, accent: string, title: string): string {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>${escTitle} - GameOn</title>
+<title>${escTitle} - FanGeo</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -119,7 +119,7 @@ export function pageApproved(opts: {
         : "-"
 
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#15803d">Venue approved</h1>
   <p class="meta"><strong>Approved venue</strong><br/>${venue}</p>
   <p class="meta"><strong>Business</strong><br/>${businessLine}</p>
@@ -127,7 +127,7 @@ export function pageApproved(opts: {
   <p class="meta"><strong>Approved on</strong><br/>${ts}</p>
   <p class="meta"><strong>Claim ID</strong><br/><span style="font-size:13px;word-break:break-all">${cid}</span></p>
   <p class="meta"><strong>Venue ID</strong><br/><span style="font-size:13px;word-break:break-all">${vid}</span></p>
-  <p class="msg">This venue is now linked to the business account and can be managed in GameOn.</p>
+  <p class="msg">This venue is now linked to the business account and can be managed in FanGeo.</p>
   <p class="fine">You may now close this tab.</p>
 </div>`
   return wrapPage(inner, "#22c55e", "Venue approved")
@@ -142,7 +142,7 @@ export function pageRejected(opts: {
   const cid = escapeHtml(opts.claimId)
   const ts = escapeHtml(opts.timestamp)
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#b91c1c">Location request rejected</h1>
   <p class="meta"><strong>Venue</strong><br/>${venue}</p>
   <p class="meta"><strong>Time</strong><br/>${ts}</p>
@@ -157,20 +157,20 @@ const expiredInvalidExplanation =
 
 export function pageExpiredToken(): string {
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#c2410c">Link expired</h1>
   ${expiredInvalidExplanation}
-  <p class="fine">If you still need to review this request, open the latest admin email or use your GameOn admin tools.</p>
+  <p class="fine">If you still need to review this request, open the latest admin email or use your FanGeo admin tools.</p>
 </div>`
   return wrapPage(inner, "#f97316", "Link expired")
 }
 
 export function pageInvalidToken(): string {
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#c2410c">Invalid link</h1>
   ${expiredInvalidExplanation}
-  <p class="fine">If you still need to review this request, open the latest admin email or use your GameOn admin tools.</p>
+  <p class="fine">If you still need to review this request, open the latest admin email or use your FanGeo admin tools.</p>
 </div>`
   return wrapPage(inner, "#f97316", "Invalid link")
 }
@@ -178,10 +178,10 @@ export function pageInvalidToken(): string {
 /** Legacy single-page variant (both titles folded into one). */
 export function pageExpiredOrInvalid(): string {
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#c2410c">Link not usable</h1>
   ${expiredInvalidExplanation}
-  <p class="fine">If you still need to review this request, open the latest admin email or use your GameOn admin tools.</p>
+  <p class="fine">If you still need to review this request, open the latest admin email or use your FanGeo admin tools.</p>
 </div>`
   return wrapPage(inner, "#f97316", "Link not usable")
 }
@@ -195,7 +195,7 @@ export function pageAlreadyProcessed(opts: {
   const cid = escapeHtml(opts.claimId)
   const st = escapeHtml(opts.statusLabel)
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#0f172a">Already reviewed</h1>
   <p class="msg">This claim was already processed (${st}).</p>
   <p class="meta"><strong>Venue</strong><br/>${venue}</p>
@@ -211,7 +211,7 @@ export function pageVenueApprovalFailed(opts: { claimId: string; code: string; d
   const code = escapeHtml(opts.code)
   const detail = opts.detail ? escapeHtml(opts.detail) : ""
   const inner = `<div class="card">
-  <div class="brand">GameOn</div>
+  <div class="brand">FanGeo</div>
   <h1 style="color:#b91c1c">Approval could not finish</h1>
   <p class="msg">The claim was <strong>not</strong> marked complete because a <code>public.venues</code> row could not be created or linked. Check Edge Function logs.</p>
   <p class="meta"><strong>Claim ID</strong><br/><span style="font-size:13px;word-break:break-all">${cid}</span></p>

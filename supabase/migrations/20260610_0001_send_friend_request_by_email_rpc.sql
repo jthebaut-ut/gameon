@@ -28,7 +28,7 @@ BEGIN
   LIMIT 1;
 
   IF target IS NULL THEN
-    RAISE EXCEPTION 'No GameOn account found with that email.';
+    RAISE EXCEPTION 'No FanGeo account found with that email.';
   END IF;
 
   IF target = me THEN

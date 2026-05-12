@@ -471,7 +471,7 @@ private struct AddFriendGlassSheet: View {
                             .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
                     )
 
-                Text("Search by the email or avatar name connected to their GameOn account.")
+                Text("Search by the email or avatar name connected to their FanGeo account.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

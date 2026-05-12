@@ -22,7 +22,7 @@ extension MapViewModel {
 
         let granted = await requestCalendarAccess()
         guard granted else {
-            calendarSyncMessage = "Apple Calendar access is off. Turn it on in Settings ▸ Privacy & Security ▸ Calendars for GameOn whenever you want events added there."
+            calendarSyncMessage = "Apple Calendar access is off. Turn it on in Settings ▸ Privacy & Security ▸ Calendars for FanGeo whenever you want events added there."
             return
         }
 
@@ -53,7 +53,7 @@ extension MapViewModel {
         event.startDate = date
         event.endDate = date.addingTimeInterval(2 * 60 * 60)
         event.location = location
-        event.notes = "Added by GameON"
+        event.notes = "Added by FanGeo"
         event.calendar = eventStore.defaultCalendarForNewEvents
 
         do {

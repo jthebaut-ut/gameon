@@ -155,7 +155,7 @@ struct SettingsScreen: View {
                 Section("HELP & SUPPORT") {
                     Button { showContactSupportSheet = true } label: {
                         settingsRow(
-                            title: "Contact GameOn Support",
+                            title: "Contact FanGeo Support",
                             subtitle: "Message the team",
                             systemImage: "envelope.open.fill"
                         )
@@ -859,7 +859,7 @@ struct SettingsScreen: View {
     private func addLocationSubmitBannerDisplayText() -> String? {
         guard addLocationSubmitBanner != nil else { return nil }
         if !viewModel.pendingVenueClaimsForSettings.isEmpty {
-            return "Location request submitted. GameOn will review it before this location can manage games."
+            return "Location request submitted. FanGeo will review it before this location can manage games."
         }
         if viewModel.hasActiveVenueClaimRejectionForBusinessUI {
             return Self.rejectedVenueClaimMessage
@@ -868,11 +868,11 @@ struct SettingsScreen: View {
         case .approved:
             return "Your location is approved and can now manage listings, games, and venue activity."
         case .pendingReview:
-            return "Location request submitted. GameOn will review it before this location can manage games."
+            return "Location request submitted. FanGeo will review it before this location can manage games."
         case .rejected:
             return Self.rejectedVenueClaimMessage
         case .noLocationsYet, .needsBusinessAccountFirst:
-            return "Location request submitted. GameOn will review it before this location can manage games."
+            return "Location request submitted. FanGeo will review it before this location can manage games."
         }
     }
 }
@@ -1283,7 +1283,7 @@ private struct SettingsAccountDeletionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deleting your account permanently removes your profile and associated data from GameOn.")
+                    Text("Deleting your account permanently removes your profile and associated data from FanGeo.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -2168,7 +2168,7 @@ private struct SettingsPrivateChatDeviceAuthCard: View {
             Toggle("Require Face ID / passcode for private messages", isOn: $requireDeviceAuthForPrivateChat)
                 .font(.subheadline)
 
-            Text("When on, GameOn asks for Face ID, Touch ID, or your device passcode before opening the Chat tab. This stays on your device only.")
+            Text("When on, FanGeo asks for Face ID, Touch ID, or your device passcode before opening the Chat tab. This stays on your device only.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -2902,7 +2902,7 @@ private struct SettingsVenueOwnerCard: View {
 
             Text(
                 showVenueRegisterMode
-                    ? "Create your business account and submit your first location in one step. Owner tools unlock after GameON reviews and approves the location."
+                    ? "Create your business account and submit your first location in one step. Owner tools unlock after FanGeo reviews and approves the location."
                     : "Sign in to manage listings after your business and location are set up."
             )
             .font(.caption)

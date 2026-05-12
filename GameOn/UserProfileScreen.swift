@@ -39,7 +39,7 @@ struct UserProfileScreen: View {
                         .textInputAutocapitalization(.words)
                         .disableAutocorrection(true)
 
-                    Text("This name is shown across GameOn and is independent from your email. It must be unique; matching is case-insensitive.")
+                    Text("This name is shown across FanGeo and is independent from your email. It must be unique; matching is case-insensitive.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -60,7 +60,7 @@ struct UserProfileScreen: View {
                     }
                     .disabled(isUploadingAvatar || isSaving)
 
-                    Text("We only access a photo when you pick one here. If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for GameOn.")
+                    Text("We only access a photo when you pick one here. If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for FanGeo.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } header: {
@@ -149,7 +149,7 @@ struct UserProfileScreen: View {
         case .denied, .restricted:
             return "Photo access is off. Turn it on in Settings ▸ Privacy & Security ▸ Photos to upload a profile picture."
         case .limited:
-            return "Couldn’t use that photo. Try another image, or allow more photos for GameOn in Settings."
+            return "Couldn’t use that photo. Try another image, or allow more photos for FanGeo in Settings."
         default:
             return "Unable to read that photo. Try a different image or check your connection."
         }

@@ -6,7 +6,7 @@ import UIKit
 /// Footer under venue photo pickers (Manage listing, business signup, Add location).
 enum VenueOwnerPhotoPickerCopy {
     static let libraryAccessFooter =
-        "Photos are chosen only when you tap here. If the picker is empty, check Photo Library access for GameON in Settings."
+        "Photos are chosen only when you tap here. If the picker is empty, check Photo Library access for FanGeo in Settings."
 
     static func urlWithCacheBust(_ cleanBase: String) -> String {
         let t = String(Date().timeIntervalSince1970)
@@ -42,11 +42,11 @@ enum VenueOwnerPhotoPickerCopy {
     static func pickFailureUserHint() -> String {
         switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
         case .denied, .restricted:
-            return "Photo access is off for GameOn. Turn it on in Settings ▸ Privacy & Security ▸ Photos to choose venue images."
+            return "Photo access is off for FanGeo. Turn it on in Settings ▸ Privacy & Security ▸ Photos to choose venue images."
         case .limited:
-            return "Couldn’t use that photo. Pick another image, or adjust Selected Photos for GameOn in Settings."
+            return "Couldn’t use that photo. Pick another image, or adjust Selected Photos for FanGeo in Settings."
         default:
-            return "Couldn’t read that photo. Try another image, or check photo access for GameOn in Settings."
+            return "Couldn’t read that photo. Try another image, or check photo access for FanGeo in Settings."
         }
     }
 }

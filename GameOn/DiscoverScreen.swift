@@ -7,6 +7,7 @@ struct DiscoverScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.scenePhase) private var scenePhase
+    @FocusState private var isSearchFocused: Bool
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
     @State private var selectedCommentsEventID: UUID?
@@ -179,6 +180,14 @@ struct DiscoverScreen: View {
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    dismissDiscoverSearchKeyboard()
+                }
+            }
         }
     }
 
@@ -419,10 +428,21 @@ struct DiscoverScreen: View {
                 }
             }
         }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                dismissDiscoverSearchKeyboard()
+            }
+        )
+        .onMapCameraChange(frequency: .continuous) { _ in
+            if isSearchFocused {
+                dismissDiscoverSearchKeyboard()
+            }
+        }
         .mapControls {
             MapCompass()
         }
         .onMapCameraChange(frequency: .onEnd) { context in
+            dismissDiscoverSearchKeyboard()
             viewModel.visibleLatitudeDelta = context.region.span.latitudeDelta
             viewModel.cameraPosition = .region(context.region)
 
@@ -470,9 +490,11 @@ struct DiscoverScreen: View {
                     .foregroundStyle(.secondary)
                 
                 TextField("Search venue, city, state, or country", text: $viewModel.searchText)
+                    .focused($isSearchFocused)
                     .textInputAutocapitalization(.words)
                     .submitLabel(.search)
                     .onSubmit {
+                        dismissDiscoverSearchKeyboard()
                         viewModel.searchMapLocation()
                     }
 
@@ -483,6 +505,7 @@ struct DiscoverScreen: View {
                 
                 if !viewModel.searchText.isEmpty {
                     Button {
+                        dismissDiscoverSearchKeyboard()
                         viewModel.searchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
@@ -490,9 +513,10 @@ struct DiscoverScreen: View {
                     }
                 }
                 Button {
+                    dismissDiscoverSearchKeyboard()
                     let status = CLLocationManager().authorizationStatus
                     if status == .denied || status == .restricted {
-                        discoverLocationHint = "Location is turned off. You can enable it in Settings ▸ Privacy & Security ▸ Location Services ▸ GameOn. The map still shows a default area you can pan and search."
+                        discoverLocationHint = "Location is turned off. You can enable it in Settings ▸ Privacy & Security ▸ Location Services ▸ FanGeo. The map still shows a default area you can pan and search."
                     } else {
                         discoverLocationHint = nil
                     }
@@ -529,6 +553,7 @@ struct DiscoverScreen: View {
                 VStack(spacing: 8) {
                     ForEach(viewModel.venueSearchResults.prefix(4)) { bar in
                         Button {
+                            dismissDiscoverSearchKeyboard()
                             withAnimation(.spring()) {
                                 venuePreviewGameFilter = .all
                                 viewModel.selectVenueFromDiscoverSearchResult(bar)
@@ -601,6 +626,10 @@ struct DiscoverScreen: View {
             }
         }
     }
+
+    private func dismissDiscoverSearchKeyboard() {
+        isSearchFocused = false
+    }
     
     private var adBanner: some View {
         HStack(spacing: 10) {
@@ -654,7 +683,7 @@ struct DiscoverScreen: View {
     private var nearbySummaryCard: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(viewModel.selectedEvent?.title ?? "GameON")
+                Text(viewModel.selectedEvent?.title ?? "FanGeo")
                     .font(.headline)
                 
                 Text(discoverNearbySummarySubtitle)

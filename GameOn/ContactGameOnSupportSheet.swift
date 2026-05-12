@@ -39,7 +39,7 @@ struct ContactGameOnSupportSheet: View {
             Form {
                 if !hasAuthSession {
                     Section {
-                        Text("Please sign in with your GameOn or venue account to send a support message.")
+                        Text("Please sign in with your FanGeo or venue account to send a support message.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                         Button("Sign in or create account") {
@@ -127,7 +127,7 @@ struct ContactGameOnSupportSheet: View {
             .alert("Sent", isPresented: $showSuccessAlert) {
                 Button("OK") { dismiss() }
             } message: {
-                Text("Your support request has been sent to GameOn.")
+                Text("Your support request has been sent to FanGeo.")
             }
             .alert("Couldn’t send", isPresented: $showFailureAlert) {
                 Button("OK", role: .cancel) {}

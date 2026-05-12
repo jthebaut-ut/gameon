@@ -28,7 +28,7 @@ enum VenueClaimDuplicateCheck {
         case "duplicate_claim_pending":
             return "This location request is already pending review."
         case "duplicate_venue_other_business":
-            return "This location may already be claimed. Please contact GameOn Support if this is your business."
+            return "This location may already be claimed. Please contact FanGeo Support if this is your business."
         default:
             return nil
         }

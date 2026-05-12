@@ -13,7 +13,7 @@ enum ModerationConversationReportError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .duplicateOpenReport:
-            return "You already reported this conversation. GameOn administration will review it."
+            return "You already reported this conversation. FanGeo moderation will review it."
         case .detailsTooLong(let max):
             return "Details may be at most \(max) characters."
         case .detailsProhibitedContent:

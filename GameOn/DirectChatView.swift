@@ -393,9 +393,9 @@ struct DirectChatView: View {
     @State private var isSubmittingReport = false
     @State private var reportSheetError: String?
 
-    private static let reportSubmittedBannerText = "Report submitted. GameOn administration will review it."
+    private static let reportSubmittedBannerText = "Report submitted. FanGeo moderation will review it."
     private static let duplicateConversationReportBannerText =
-        "You already reported this conversation. GameOn administration will review it."
+        "You already reported this conversation. FanGeo moderation will review it."
 
     private static func isPositiveReportBanner(_ text: String) -> Bool {
         text == reportSubmittedBannerText || text == duplicateConversationReportBannerText

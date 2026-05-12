@@ -225,8 +225,9 @@ final class FriendshipService {
     static func userFacingAddFriendLookupError(_ error: Error) -> String {
         let raw = error.localizedDescription
         let s = raw.lowercased()
-        if raw.contains("No GameOn account found with that email or avatar name.") {
-            return "No GameOn account found with that email or avatar name."
+        if raw.contains("No GameOn account found with that email or avatar name.")
+            || raw.contains("No FanGeo account found with that email or avatar name.") {
+            return "No FanGeo account found with that email or avatar name."
         }
         if raw.contains("You cannot add yourself.") {
             return "You cannot add yourself."
@@ -242,8 +243,9 @@ final class FriendshipService {
             return "Enter an email or avatar name."
         }
         // Legacy server messages (older RPC) — normalize copy.
-        if raw.contains("No GameOn account found with that email.") {
-            return "No GameOn account found with that email or avatar name."
+        if raw.contains("No GameOn account found with that email.")
+            || raw.contains("No FanGeo account found with that email.") {
+            return "No FanGeo account found with that email or avatar name."
         }
         if raw.contains("You can't send a friend request to yourself.")
             || raw.contains("You can’t send a friend request to yourself.") {

@@ -352,7 +352,7 @@ extension MapViewModel {
             venueOwnerEmail = ""
             clearVenueOwnerOwnedBusinessCaches()
             currentUserAuthId = nil
-            authErrorMessage = "This account has been disabled by GameON support."
+            authErrorMessage = "This account has been disabled by FanGeo support."
             bumpCurrentUserAvatarDisplayRefresh()
             clearFollowingTabCaches()
             UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
