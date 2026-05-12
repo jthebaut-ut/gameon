@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct WatchZoneApp: App {
     init() {
+        GoogleMobileAdsBootstrap.startIfNeeded()
         #if DEBUG
         let b = Bundle.main
         print("GAMEON_DEBUG bundlePath=\(b.bundlePath)")

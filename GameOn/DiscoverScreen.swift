@@ -26,6 +26,8 @@ struct DiscoverScreen: View {
     @State private var discoverMapLocationAuthVersion = 0
     @State private var discoverLocationHint: String?
     @State private var showMapDisplayModePopup = false
+    @State private var discoverTopAdLoadedSuccessfully = false
+    @State private var discoverTopAdLoadFailed = false
     private let livePulseThreshold = 16
     private let discoverBottomOverlayPadding: CGFloat = 104
     private let primaryMapUtilityButtonSize: CGFloat = 38
@@ -949,7 +951,38 @@ struct DiscoverScreen: View {
         viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
     }
     
+    private var discoverAdvertisementBannerContentWidth: CGFloat {
+        max(320, UIScreen.main.bounds.width - FGSpacing.lg * 2)
+    }
+
+    /// Test AdMob banner when available; keeps the prior Sponsored placeholder if load fails (async, off the map data path).
     private var adBanner: some View {
+        ZStack(alignment: .leading) {
+            discoverSponsoredBannerFallback
+                .opacity(discoverTopAdLoadedSuccessfully ? 0 : 1)
+
+            if !discoverTopAdLoadFailed {
+                AdMobBannerView(
+                    adUnitID: AdMobTestConfiguration.testBannerAdUnitID,
+                    bannerWidth: discoverAdvertisementBannerContentWidth,
+                    onAdLoaded: {
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            discoverTopAdLoadedSuccessfully = true
+                        }
+                    },
+                    onAdFailed: { _ in
+                        discoverTopAdLoadFailed = true
+                        discoverTopAdLoadedSuccessfully = false
+                    }
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .accessibilityElement(children: .contain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var discoverSponsoredBannerFallback: some View {
         HStack(spacing: 6) {
             FGStatusPill(title: "Sponsored", kind: .custom(tint: FGColor.accentYellow))
 
