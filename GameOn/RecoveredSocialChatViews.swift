@@ -3,55 +3,96 @@ import SwiftUI
 // MARK: - Avatar (toolbar / rows / bubbles)
 
 struct ProfileAvatarView: View {
+    @Environment(\.colorScheme) private var colorScheme
     let preview: UserPreview
     let size: CGFloat
 
     var body: some View {
         SocialAvatarRenderer.socialAvatarView(for: preview, size: size)
             .frame(width: size, height: size)
-        .clipShape(Circle())
+            .background(
+                Circle()
+                    .fill(FGColor.cardBackground(colorScheme))
+            )
+            .clipShape(Circle())
+            .overlay {
+                Circle()
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 8, y: 4)
     }
 }
 
 // MARK: - DM bubble row
 
 struct DirectMessageBubbleView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let text: String
     let isFromCurrentUser: Bool
     let showFriendAvatar: Bool
     let friendPreview: UserPreview
     let timestamp: String?
 
-    private static let avatarColumnWidth: CGFloat = 30
+    private static let avatarColumnWidth: CGFloat = 34
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
+        HStack(alignment: .bottom, spacing: FGSpacing.sm) {
             if !isFromCurrentUser, showFriendAvatar {
-                ProfileAvatarView(preview: friendPreview, size: 28)
+                ProfileAvatarView(preview: friendPreview, size: 30)
                     .frame(width: Self.avatarColumnWidth, alignment: .center)
             } else if !isFromCurrentUser {
                 Color.clear
                     .frame(width: Self.avatarColumnWidth, height: 1)
             }
 
-            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 3) {
+            VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: FGSpacing.xs + 1) {
                 Text(text)
-                    .font(.body)
+                    .font(FGTypography.body)
+                    .foregroundStyle(
+                        isFromCurrentUser
+                            ? Color.white.opacity(0.98)
+                            : FGColor.primaryText(colorScheme)
+                    )
                     .multilineTextAlignment(isFromCurrentUser ? .trailing : .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(isFromCurrentUser ? Color.accentColor.opacity(0.22) : Color(.systemGray5))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.vertical, FGSpacing.sm + 3)
+                    .background {
+                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                            .fill(
+                                isFromCurrentUser
+                                    ? AnyShapeStyle(
+                                        LinearGradient(
+                                            colors: [FGColor.gradientMiddle.opacity(0.96), FGColor.gradientEnd.opacity(0.90)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    : AnyShapeStyle(FGColor.cardBackground(colorScheme))
+                            )
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                            .strokeBorder(
+                                isFromCurrentUser
+                                    ? Color.white.opacity(0.12)
+                                    : FGColor.divider(colorScheme),
+                                lineWidth: 1
+                            )
+                    }
+                    .softCardShadow()
 
                 if let timestamp, !timestamp.isEmpty {
                     Text(timestamp)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 2)
+                        .font(FGTypography.metadata)
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .padding(.horizontal, FGSpacing.xs)
                         .frame(maxWidth: .infinity, alignment: isFromCurrentUser ? .trailing : .leading)
                 }
             }
             .frame(maxWidth: .infinity, alignment: isFromCurrentUser ? .trailing : .leading)
+            .padding(.leading, isFromCurrentUser ? 52 : 0)
+            .padding(.trailing, isFromCurrentUser ? 0 : 52)
 
             if isFromCurrentUser {
                 Color.clear

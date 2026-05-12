@@ -21,14 +21,27 @@ final class MapViewModel: ObservableObject {
     @Published var debouncedDiscoverSearchText: String = ""
     @Published var favoriteVenueIDs: Set<UUID> = []
     @Published var interestedVenueEventKeys: Set<String> = []
+    /// Prevents overlapping save/remove writes for the same venue while keeping the UI on the optimistic state.
+    var favoriteVenueWriteInFlightIDs: Set<UUID> = []
+    /// Prevents overlapping going/interested writes for the same event while keeping the UI on the optimistic state.
+    var venueEventInterestWriteInFlightIDs: Set<UUID> = []
     @Published var selectedTimeZone: TimeZoneOption = .mountain
     @Published var isLoggedIn: Bool = false
     @Published var currentUserEmail: String = ""
     /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
     @Published var currentUserAuthId: UUID?
+    /// Bumped whenever private authenticated state is explicitly cleared so sibling view models can synchronously wipe their own caches.
+    @Published var privateSessionClearNonce: UUID = UUID()
     /// Shared social/chat auth gate: regular fan auth, business-owner auth, or an already-restored Supabase session id.
     var isAuthenticatedForSocialFeatures: Bool {
         isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
+    }
+    /// True only when the active authenticated session is currently operating as a venue-owner/business account.
+    var hasAuthenticatedVenueOwnerSession: Bool {
+        isVenueOwnerLoggedIn
+            && venueOwnerMode
+            && currentUserAuthId != nil
+            && OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(venueOwnerEmail))
     }
     /// Back-compat alias for older Following/favorites call sites.
     var hasSupabaseSessionForFollowingTab: Bool {
@@ -39,6 +52,8 @@ final class MapViewModel: ObservableObject {
     @Published var ownerVenueDatabaseId: UUID?
     /// `public.businesses` rows for the signed-in venue owner (`owner_email` + active); see ``refreshOwnedBusinessesAndVenuesAfterOwnerLogin()``.
     @Published var ownedBusinesses: [BusinessRow] = []
+    /// UI-only archived `public.businesses` rows for the signed-in venue owner. Never used to unlock tools or resolve active business ids.
+    @Published var archivedOwnedBusinesses: [BusinessRow] = []
     /// `public.venues` rows linked via `business_id` to ``ownedBusinesses``.
     @Published var ownedBusinessVenues: [VenueProfileRow] = []
     /// Unapproved ``venue_claims`` rows for the signed-in owner / their businesses (Settings “Pending locations”; Phase C1).
@@ -47,6 +62,8 @@ final class MapViewModel: ObservableObject {
     @Published var rejectedVenueClaimsForSettings: [VenueClaimPendingSettingsRow] = []
     /// From ``refreshVenueClaimStatusLineFromDatabase()`` scan of recent ``venue_claims`` by owner email: any row is rejected and ``rejection_acknowledged_at`` is unset.
     @Published var hasUnackedRejectedVenueClaimForOwnerEmail: Bool = false
+    /// Per-venue approved ownership resolved from `venue_claims.venue_id` for Venue Detail claim visibility.
+    @Published var approvedVenueOwnershipByVenueID: [UUID: ApprovedVenueOwnershipSummary] = [:]
 
     /// Red rejection chrome / modals: unacked rejections from email-scoped status refresh and/or business-scoped Settings list.
     var hasActiveVenueClaimRejectionForBusinessUI: Bool {
@@ -118,6 +135,10 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventComments: [UUID: [VenueEventCommentRow]] = [:]
     /// Comment ids the signed-in fan has already reported (from successful submit, duplicate constraint, or REST sync).
     @Published var commentIDsReportedByCurrentUser: Set<UUID> = []
+    /// Per-thread realtime listener tasks for venue-event fan updates.
+    var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] = [:]
+    var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
+    var venueEventCommentsRealtimeListenerTokens: [UUID: UUID] = [:]
     @Published var venueEventIDsByKey: [String: UUID] = [:]
     @Published var visibleLatitudeDelta: Double = 0.55
     @Published var userProfilesByEmail: [String: UserProfileRow] = [:]
@@ -145,12 +166,17 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingEvents: Bool = false
     /// True while schedule data is re-fetched but existing ``events``/UI should stay visible (Phase 1 perf).
     @Published var isRefreshingDiscoverEvents: Bool = false
+    @Published var isUpdatingMapGames: Bool = false
+    @Published var mapStatusText: String?
+    @Published var socialActionToastText: String?
+    @Published var socialActionToastIsError: Bool = false
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = []
     @Published var isLoadingMapVenues: Bool = false
     /// True while map venues are re-fetched but existing ``bars`` should stay visible (Phase 1 perf).
     @Published var isRefreshingMapVenues: Bool = false
     @Published var calendarUsesVisibleMapRegionOnly: Bool = false
+    @Published var mapDisplayMode: DiscoverMapDisplayMode = .allSpots
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508),
@@ -254,6 +280,15 @@ final class MapViewModel: ObservableObject {
 
     /// In-memory reuse for identical region/sport/window fetches (see ``MapViewModel+VenueAndGameData``).
     var discoverVenueEventsFetchCache: (key: String, rows: [VenueEventRow], fetchedAt: Date)?
+    /// Short-lived viewport cache for lightweight Discover venue rows (Phase 1 pins).
+    var discoverViewportVenueRowsCache: [String: DiscoverViewportVenueRowsCacheEntry] = [:]
+    /// Short-lived selected-day cache for visible Discover venue events (date + sport + visible venue context).
+    var discoverSelectedDayVenueEventsCache: [String: (rows: [VenueEventRow], fetchedAt: Date)] = [:]
+    /// Latest visible Discover venue context so date changes can reuse current pins without reloading venues.
+    var discoverCurrentVisibleVenueRows: [VenueRow] = []
+    var discoverCurrentVisibleVenueIds: [UUID] = []
+    var discoverCurrentVisibleOwnerEmails: [String] = []
+    var discoverCurrentVisibleVenueNames: [String] = []
 
     /// Memo for ``clusteredBars()`` so SwiftUI map body does not rebuild clusters every frame.
     var discoverClusteredBarsCacheKey: String?
@@ -274,6 +309,10 @@ final class MapViewModel: ObservableObject {
     /// Coalesces overlapping ``loadGamesFromSupabase()`` / ``refreshDiscoverCoreInBackground`` schedule work onto one serial chain.
     var loadGamesCoalesceTask: Task<Void, Never>?
     var loadGamesCoalesceNeedsAnotherPass = false
+    /// Fire-and-forget phase-3 Discover enrichment after pins are visible.
+    var discoverFullEnrichmentTask: Task<Void, Never>?
+    var discoverSelectedDayRefreshTask: Task<Void, Never>?
+    var socialActionToastDismissTask: Task<Void, Never>?
 
     /// Bumped when schedule-related data changes so calendar caches and dot fingerprints invalidate cheaply.
     var scheduleDataGeneration: UInt64 = 0

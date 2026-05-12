@@ -4,25 +4,56 @@ import Foundation
 /// CPU-only assembly for Discover venue pins (keeps heavy grouping off the ``MapViewModel`` actor when used from a detached task).
 enum DiscoverVenueLoadAssembler {
 
-    static func buildMappedBars(
+    nonisolated private static func normalizedSport(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    nonisolated private static func resolvedPrimarySport(from sports: Set<String>) -> String {
+        let sorted = sports.sorted()
+        switch sorted.count {
+        case 0:
+            return ""
+        case 1:
+            return sorted[0]
+        default:
+            return "Multi-sport"
+        }
+    }
+
+    nonisolated static func buildMappedBars(
         venueRows: [VenueRow],
         fetchedVenueEventRows: [VenueEventRow]
     ) -> ([BarVenue], [String: UUID]) {
         var eventsByVenueId: [UUID: [VenueEventRow]] = [:]
         var eventsByOwner: [String: [VenueEventRow]] = [:]
         var eventsByVenueName: [String: [VenueEventRow]] = [:]
+        var sportsByVenueId: [UUID: Set<String>] = [:]
+        var sportsByOwner: [String: Set<String>] = [:]
+        var sportsByVenueName: [String: Set<String>] = [:]
         for ev in fetchedVenueEventRows {
             if let vid = ev.venue_id {
                 eventsByVenueId[vid, default: []].append(ev)
+                if let sport = normalizedSport(ev.sport) {
+                    sportsByVenueId[vid, default: []].insert(sport)
+                }
             }
             if let e = ev.owner_email {
                 let k = OwnerBusinessEmail.normalized(e)
                 if OwnerBusinessEmail.isValidStrict(k) {
                     eventsByOwner[k, default: []].append(ev)
+                    if let sport = normalizedSport(ev.sport) {
+                        sportsByOwner[k, default: []].insert(sport)
+                    }
                 }
             }
             if let v = ev.venue_name {
                 eventsByVenueName[v, default: []].append(ev)
+                if let sport = normalizedSport(ev.sport) {
+                    sportsByVenueName[v, default: []].insert(sport)
+                }
             }
         }
 
@@ -68,6 +99,14 @@ enum DiscoverVenueLoadAssembler {
             let rawOwner = row.owner_email ?? ""
             let normOwner = OwnerBusinessEmail.normalized(rawOwner)
             let ownerForBar: String? = OwnerBusinessEmail.isValidStrict(normOwner) ? normOwner : nil
+            var supportedSports = Set<String>()
+            if let venueUuid = row.id {
+                supportedSports.formUnion(sportsByVenueId[venueUuid] ?? [])
+            }
+            if let ownerForBar {
+                supportedSports.formUnion(sportsByOwner[ownerForBar] ?? [])
+            }
+            supportedSports.formUnion(sportsByVenueName[name] ?? [])
 
             return BarVenue(
                 id: row.id ?? UUID(),
@@ -82,9 +121,9 @@ enum DiscoverVenueLoadAssembler {
                 .filter { !$0.isEmpty }
                 .joined(separator: ", "),
                 phone: row.phone ?? "",
-                primarySport: "Soccer",
+                primarySport: resolvedPrimarySport(from: supportedSports),
                 distance: "",
-                rating: 4.5,
+                rating: 0,
                 tags: [],
                 games: gamesForThisVenue,
                 coordinate: CLLocationCoordinate2D(
@@ -103,14 +142,15 @@ enum DiscoverVenueLoadAssembler {
                 coverPhotoThumbnailURL: row.cover_photo_thumbnail_url,
                 menuPhotoThumbnailURL: row.menu_photo_thumbnail_url,
                 ownerEmail: ownerForBar,
-                businessId: row.business_id
+                businessId: row.business_id,
+                adminStatus: row.admin_status
             )
         }
 
         return (mappedBars, idsByKey)
     }
 
-    static func sportsEventsFromOfficialRows(_ officialRows: [GameRow], formatter: DateFormatter) -> [SportsEvent] {
+    nonisolated static func sportsEventsFromOfficialRows(_ officialRows: [GameRow], formatter: DateFormatter) -> [SportsEvent] {
         officialRows.compactMap { row in
             guard
                 let title = row.title,
@@ -133,7 +173,7 @@ enum DiscoverVenueLoadAssembler {
         }
     }
 
-    static func sportsEventsFromVenueEventRows(_ rows: [VenueEventRow], formatter: DateFormatter) -> [SportsEvent] {
+    nonisolated static func sportsEventsFromVenueEventRows(_ rows: [VenueEventRow], formatter: DateFormatter) -> [SportsEvent] {
         rows.compactMap { row in
             guard
                 let title = row.event_title,

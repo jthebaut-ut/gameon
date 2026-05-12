@@ -171,11 +171,10 @@ extension MapViewModel {
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
-                venueOwnerEmail = ""
-                currentUserAuthId = nil
-                clearVenueOwnerOwnedBusinessCaches()
                 venueAuthErrorMessage = "Account was created but there is no active session yet. Confirm your email if required, then sign in."
             }
             await persistAccountModeForActiveAuthSession(.fanUser)
@@ -192,6 +191,7 @@ extension MapViewModel {
 #endif
 
         await MainActor.run {
+            clearAuthenticatedSessionCaches()
             venueOwnerEmail = ownerEmail
             isVenueOwnerLoggedIn = true
             venueOwnerMode = true
@@ -213,11 +213,10 @@ extension MapViewModel {
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
-                venueOwnerEmail = ""
-                currentUserAuthId = nil
-                clearVenueOwnerOwnedBusinessCaches()
                 venueAuthErrorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
             }
             await persistAccountModeForActiveAuthSession(.fanUser)
@@ -293,11 +292,10 @@ extension MapViewModel {
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
-                venueOwnerEmail = ""
-                currentUserAuthId = nil
-                clearVenueOwnerOwnedBusinessCaches()
                 venueAuthErrorMessage =
                     "Could not create your business record. This is usually blocked by database permissions (RLS). An admin must allow authenticated business owners to insert into `businesses`, or creation must run on a secure backend."
             }
@@ -436,6 +434,7 @@ extension MapViewModel {
             )
 
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
                 isVenueOwnerLoggedIn = true
                 venueOwnerMode = true
                 venueOwnerEmail = ownerEmail
@@ -452,10 +451,14 @@ extension MapViewModel {
 #if DEBUG
             print("[VenueOwnerLoginDebug] login complete email=\(email)")
 #endif
+            await MainActor.run {
+                logBusinessOwnerSessionFlags(context: "after_business_login_initial")
+            }
 
             await persistAccountModeForActiveAuthSession(.businessOwner)
 
             await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            _ = await ensureBusinessOwnerSessionFlagsIfPossible(context: "after_business_login_post_refresh")
 
             Task {
                 await loadFavoriteVenuesFromSupabase()
@@ -519,6 +522,11 @@ extension MapViewModel {
         !ownedBusinesses.isEmpty
     }
 
+    /// UI-only archived business presence for this owner. Never used to unlock tools or resolve active business ids.
+    func hasArchivedBusinessAccountForOwner() -> Bool {
+        !archivedOwnedBusinesses.isEmpty
+    }
+
     /// Latest claim row looks rejected and there is no approved managed venue yet (Settings → Business account icon).
     private func businessAccountRejectedWithoutApprovedVenues() -> Bool {
         guard managedVenuesForOwner().isEmpty else { return false }
@@ -528,11 +536,13 @@ extension MapViewModel {
     /// Tint for Settings → Business **Business account** row (overall review state).
     ///
     /// - No business record: **orange** (setup warning; same as prior Settings styling).
+    /// - Archived business record: **red** (disabled / contact support).
     /// - Pending venue claims: **orange** even when some venues are already approved.
     /// - Rejected latest/tracked claim and no managed venues: **red**.
     /// - Business exists, no pending, at least one managed venue: **green**.
     /// - Otherwise (no approved venues yet, not rejected, no pending list): muted **orange** warning.
     func businessAccountStatusTint() -> Color {
+        if hasArchivedBusinessAccountForOwner() { return .red }
         guard hasBusinessAccountForOwner() else { return .orange }
         if !pendingVenueClaimsForSettings.isEmpty { return .orange }
         if businessAccountRejectedWithoutApprovedVenues() { return .red }
@@ -542,6 +552,7 @@ extension MapViewModel {
 
     /// SF Symbol for Settings → Business **Business account** row (pairs with ``businessAccountStatusTint()``).
     func businessAccountStatusIconName() -> String {
+        if hasArchivedBusinessAccountForOwner() { return "building.2.crop.circle.badge.xmark" }
         guard hasBusinessAccountForOwner() else { return "building.2.fill" }
         if !pendingVenueClaimsForSettings.isEmpty { return "building.2.fill" }
         if businessAccountRejectedWithoutApprovedVenues() { return "building.2.crop.circle.badge.xmark" }
@@ -550,6 +561,7 @@ extension MapViewModel {
     }
 
     func businessSettingsLocationChrome() -> BusinessSettingsLocationChrome {
+        if hasArchivedBusinessAccountForOwner() { return .archivedBusinessAccount }
         if !hasBusinessAccountForOwner() { return .needsBusinessAccountFirst }
         if !managedVenuesForOwner().isEmpty { return .approved }
         if !pendingVenueClaimsForSettings.isEmpty { return .pendingReview }
@@ -562,6 +574,8 @@ extension MapViewModel {
         switch businessSettingsLocationChrome() {
         case .needsBusinessAccountFirst:
             return "Set up your business account first"
+        case .archivedBusinessAccount:
+            return "Contact support if you believe this is an error."
         case .approved:
             return "Approved"
         case .pendingReview:
@@ -577,6 +591,8 @@ extension MapViewModel {
         switch businessSettingsLocationChrome() {
         case .needsBusinessAccountFirst:
             return "exclamationmark.circle"
+        case .archivedBusinessAccount:
+            return "exclamationmark.triangle.fill"
         case .approved:
             return "checkmark.seal.fill"
         case .pendingReview:
@@ -588,6 +604,132 @@ extension MapViewModel {
         }
     }
 
+    private static func normalizedVenueMatchKey(name: String?, address: String?) -> String {
+        let normalizedName = (name ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        let normalizedAddress = (address ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        return "\(normalizedName)|\(normalizedAddress)"
+    }
+
+    private func managedVenueRowMatching(_ bar: BarVenue) -> VenueProfileRow? {
+        let managed = managedVenuesForOwner()
+        let barKey = Self.normalizedVenueMatchKey(name: bar.name, address: bar.address)
+        return managed.first { row in
+            if let id = row.id, id == bar.id {
+                return true
+            }
+            let rowKey = Self.normalizedVenueMatchKey(name: row.venue_name, address: row.address)
+            return !rowKey.hasPrefix("|") && rowKey == barKey
+        }
+    }
+
+    private func venueClaimRowMatching(_ bar: BarVenue, rows: [VenueClaimPendingSettingsRow]) -> VenueClaimPendingSettingsRow? {
+        let barKey = Self.normalizedVenueMatchKey(name: bar.name, address: bar.address)
+        return rows.first { row in
+            if let venueId = row.venue_id, venueId == bar.id {
+                return true
+            }
+            let rowKey = Self.normalizedVenueMatchKey(name: row.venue_name, address: row.venue_address)
+            return !rowKey.hasPrefix("|") && rowKey == barKey
+        }
+    }
+
+    func venueOwnershipClaimStatus(for bar: BarVenue) -> VenueOwnershipClaimStatus {
+        if let approvedOwnership = approvedVenueOwnershipByVenueID[bar.id] {
+            let ownedBusinessIds = Set(ownedBusinesses.map(\.id))
+            let normalizedOwnerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+            let approvedOwnerEmail = OwnerBusinessEmail.normalized(approvedOwnership.ownerEmail ?? "")
+            let ownedByCurrentBusiness =
+                approvedOwnership.businessId.map { ownedBusinessIds.contains($0) } ?? false
+                || (!approvedOwnerEmail.isEmpty && approvedOwnerEmail == normalizedOwnerEmail)
+
+            if ownedByCurrentBusiness {
+                return .approved
+            }
+            return .alreadyClaimedByOtherBusiness
+        }
+        if managedVenueRowMatching(bar) != nil {
+            return .approved
+        }
+        guard hasAuthenticatedVenueOwnerSession else {
+            return .unclaimed
+        }
+        if venueClaimRowMatching(bar, rows: pendingVenueClaimsForSettings) != nil {
+            return .pendingReview
+        }
+        if venueClaimRowMatching(bar, rows: rejectedVenueClaimsForSettings) != nil {
+            return .rejected
+        }
+        return .unclaimed
+    }
+
+    func venueIsManagedByAnotherBusiness(_ bar: BarVenue) -> Bool {
+        guard let approvedOwnership = approvedVenueOwnershipByVenueID[bar.id] else { return false }
+
+        let ownedBusinessIdSet = Set(ownedBusinesses.map(\.id))
+        let normalizedOwnerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        let approvedOwnerEmail = OwnerBusinessEmail.normalized(approvedOwnership.ownerEmail ?? "")
+        let ownedByCurrentBusiness =
+            approvedOwnership.businessId.map { ownedBusinessIdSet.contains($0) } ?? false
+            || (!approvedOwnerEmail.isEmpty && approvedOwnerEmail == normalizedOwnerEmail)
+        return !ownedByCurrentBusiness
+    }
+
+    private func logVenueClaimSectionVisibility(
+        bar: BarVenue,
+        claimStatus: VenueOwnershipClaimStatus,
+        result: Bool
+    ) {
+#if DEBUG
+        print("[ClaimSectionVisibility] isSignedIn=\(currentUserAuthId != nil)")
+        print("[ClaimSectionVisibility] isBusinessOwner=\(hasAuthenticatedVenueOwnerSession)")
+        print("[ClaimSectionVisibility] venueId=\(bar.id.uuidString)")
+        print("[ClaimSectionVisibility] venueName=\(bar.name)")
+        print("[ClaimSectionVisibility] bar.businessId=\(bar.businessId?.uuidString ?? "nil")")
+        print("[ClaimSectionVisibility] existingClaimStatus=\(String(describing: claimStatus))")
+        print("[ClaimSectionVisibility] managedByAnotherBusiness=\(venueIsManagedByAnotherBusiness(bar))")
+        print("[ClaimSectionVisibility] visible=\(result)")
+#endif
+    }
+
+    func shouldShowVenueOwnershipClaimSection(for bar: BarVenue) -> Bool {
+        let claimStatus = venueOwnershipClaimStatus(for: bar)
+        let result: Bool
+
+        if !hasAuthenticatedVenueOwnerSession {
+            result = false
+        } else {
+            switch claimStatus {
+            case .approved, .pendingReview, .rejected, .alreadyClaimedByOtherBusiness:
+                result = true
+            case .unclaimed:
+                result = !venueIsManagedByAnotherBusiness(bar)
+            }
+        }
+
+        logVenueClaimSectionVisibility(bar: bar, claimStatus: claimStatus, result: result)
+        return result
+    }
+
+    func canSubmitVenueOwnershipClaim(for bar: BarVenue) -> Bool {
+        let claimStatus = venueOwnershipClaimStatus(for: bar)
+        guard hasAuthenticatedVenueOwnerSession else { return false }
+        guard !venueIsManagedByAnotherBusiness(bar) else { return false }
+
+        let result: Bool
+        switch claimStatus {
+        case .unclaimed, .rejected:
+            result = true
+        case .pendingReview, .approved, .alreadyClaimedByOtherBusiness:
+            result = false
+        }
+        logVenueClaimSectionVisibility(bar: bar, claimStatus: claimStatus, result: result)
+        return result
+    }
+
     /// Discover “Claim this business”: hide only when this venue row is one of the owner’s managed locations, or its ``business_id`` matches an owned ``businesses`` row (not merely venue-owner sign-in).
     func venueIsAlreadyManagedBySignedInOwner(bar: BarVenue) -> Bool {
         let venueName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -595,7 +737,7 @@ extension MapViewModel {
         let ownedVenueIds = managed.compactMap(\.id).map(\.uuidString).sorted().joined(separator: ",")
         let ownedBusinessIds = ownedBusinesses.map(\.id.uuidString).sorted().joined(separator: ",")
 
-        guard isVenueOwnerLoggedIn else {
+        guard hasAuthenticatedVenueOwnerSession else {
 #if DEBUG
             print("[ClaimVisibility] venueName=\(venueName)")
             print("[ClaimVisibility] venueId=\(bar.id.uuidString)")
@@ -606,10 +748,8 @@ extension MapViewModel {
             return false
         }
 
-        let managedVenueIds = Set(managed.compactMap(\.id))
+        let matchesManagedVenue = managedVenueRowMatching(bar) != nil
         let ownedBusinessIdSet = Set(ownedBusinesses.map(\.id))
-
-        let matchesManagedVenue = managedVenueIds.contains(bar.id)
         let bid = bar.businessId
         let matchesOwnedBusiness = bid.map { ownedBusinessIdSet.contains($0) } ?? false
 
@@ -622,6 +762,262 @@ extension MapViewModel {
         print("[ClaimVisibility] alreadyManaged=\(result)")
 #endif
         return result
+    }
+
+    private func preferredClaimText(_ primary: String?, fallback: String) -> String {
+        let trimmed = primary?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? fallback : trimmed
+    }
+
+    private func resolveCurrentBusinessIdForClaims() async -> UUID? {
+        if let cached = await MainActor.run(body: { currentBusinessIdForAddLocation() }) {
+            return cached
+        }
+
+        let ownerEmail = await MainActor.run {
+            OwnerBusinessEmail.normalized(venueOwnerEmail)
+        }
+        guard OwnerBusinessEmail.isValidStrict(ownerEmail) else { return nil }
+
+        struct BusinessIdRow: Decodable {
+            let id: UUID
+        }
+
+        do {
+            let rows: [BusinessIdRow] = try await supabase
+                .from("businesses")
+                .select("id")
+                .eq("owner_email", value: ownerEmail)
+                .eq("admin_status", value: "active")
+                .order("created_at", ascending: true)
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.id
+        } catch {
+#if DEBUG
+            print("[ClaimSectionVisibility] resolveCurrentBusinessIdForClaims failed:", error)
+#endif
+            return nil
+        }
+    }
+
+    private func fetchVenueRowForClaim(venueId: UUID) async throws -> VenueRow? {
+        let rows: [VenueRow] = try await supabase
+            .from("venues")
+            .select("id,owner_email,business_id,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url")
+            .eq("id", value: venueId)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first
+    }
+
+    func refreshApprovedVenueOwnershipState(for bar: BarVenue) async {
+        struct ApprovedVenueOwnershipRow: Decodable {
+            let venue_id: UUID?
+            let business_id: UUID?
+            let owner_email: String?
+            let approval_status: String?
+        }
+
+        do {
+            let rows: [ApprovedVenueOwnershipRow] = try await supabase
+                .from("venue_claims")
+                .select("venue_id,business_id,owner_email,approval_status")
+                .eq("venue_id", value: bar.id)
+                .eq("approval_status", value: "approved")
+                .limit(1)
+                .execute()
+                .value
+
+            await MainActor.run {
+                if let approved = rows.first, approved.venue_id == bar.id {
+                    approvedVenueOwnershipByVenueID[bar.id] = ApprovedVenueOwnershipSummary(
+                        businessId: approved.business_id,
+                        ownerEmail: approved.owner_email
+                    )
+                } else {
+                    approvedVenueOwnershipByVenueID.removeValue(forKey: bar.id)
+                }
+            }
+        } catch {
+#if DEBUG
+            print("[ClaimSectionVisibility] refreshApprovedVenueOwnershipState failed venueId=\(bar.id.uuidString):", error)
+#endif
+        }
+    }
+
+    private func discoverVenueClaimInsert(
+        bar: BarVenue,
+        venueRow: VenueRow?,
+        ownerEmail: String,
+        businessId: UUID
+    ) -> VenueClaimInsert {
+        let venueName = preferredClaimText(venueRow?.venue_name, fallback: bar.name)
+        let venueAddress = preferredClaimText(venueRow?.address, fallback: bar.address)
+        let venueCity = venueRow?.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let venueState = venueRow?.state?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ?? ""
+        let venueZip = venueRow?.zip_code?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let venuePhone = preferredClaimText(venueRow?.phone, fallback: bar.phone)
+        let venueWebsite = venueRow?.website?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let venueDescription = venueRow?.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Ownership request submitted from Venue Detail."
+        let venueFeatures = venueRow?.features?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let coverURL = preferredClaimText(
+            venueRow?.cover_photo_url,
+            fallback: bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        )
+        let menuURL = preferredClaimText(
+            venueRow?.menu_photo_url,
+            fallback: preferredClaimText(
+                bar.menuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+                fallback: coverURL
+            )
+        )
+
+        return VenueClaimInsert(
+            owner_email: ownerEmail,
+            business_id: businessId,
+            venue_id: bar.id,
+            venue_name: venueName,
+            venue_address: venueAddress,
+            venue_city: venueCity,
+            venue_state: venueState,
+            venue_country: "USA",
+            venue_zip_code: venueZip,
+            venue_phone: venuePhone,
+            venue_website: venueWebsite,
+            venue_description: venueDescription,
+            venue_features: venueFeatures,
+            screen_count: venueRow?.screen_count ?? max(bar.screenCount, 1),
+            serves_food: venueRow?.serves_food ?? bar.servesFood,
+            has_wifi: venueRow?.has_wifi ?? bar.hasWifi,
+            has_garden: venueRow?.has_garden ?? bar.hasGarden,
+            has_projector: venueRow?.has_projector ?? bar.hasProjector,
+            pet_friendly: venueRow?.pet_friendly ?? bar.petFriendly,
+            cover_photo_url: coverURL,
+            menu_photo_url: menuURL,
+            proof_note: "Venue-linked ownership request submitted from FanGeo Venue Detail."
+        )
+    }
+
+    @discardableResult
+    func submitVenueOwnershipClaimFromVenueDetail(bar: BarVenue) async -> String? {
+        guard hasAuthenticatedVenueOwnerSession else {
+            return "Sign in as a business owner to claim this venue."
+        }
+        guard let businessId = await resolveCurrentBusinessIdForClaims() else {
+            return "Finish setting up your business account before claiming venues."
+        }
+        guard !venueIsManagedByAnotherBusiness(bar) else {
+            return "This venue is already managed by another business."
+        }
+
+        switch venueOwnershipClaimStatus(for: bar) {
+        case .approved:
+            return "This venue is already managed by your business."
+        case .pendingReview:
+            return "This venue claim is already under review."
+        case .alreadyClaimedByOtherBusiness:
+            return "This venue is already managed by another verified business."
+        case .unclaimed, .rejected:
+            break
+        }
+
+        let ownerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        guard OwnerBusinessEmail.isValidStrict(ownerEmail) else {
+            return OwnerBusinessEmail.invalidOwnerEmailUserMessage
+        }
+
+        do {
+            let venueRow = try await fetchVenueRowForClaim(venueId: bar.id)
+            let claim = discoverVenueClaimInsert(
+                bar: bar,
+                venueRow: venueRow,
+                ownerEmail: ownerEmail,
+                businessId: businessId
+            )
+
+            if let dupMsg = await VenueClaimDuplicateCheck.rpcPreflight(
+                supabase: supabase,
+                businessId: businessId,
+                ownerEmail: ownerEmail,
+                venueName: claim.venue_name,
+                venueAddress: claim.venue_address,
+                venueCity: claim.venue_city,
+                venueState: claim.venue_state,
+                venueZip: claim.venue_zip_code
+            ) {
+                await MainActor.run { venueAuthErrorMessage = dupMsg }
+                return dupMsg
+            }
+
+            let inserted: VenueClaimInsertedRow = try await supabase
+                .from("venue_claims")
+                .insert(claim)
+                .select("id,created_at,approval_status")
+                .single()
+                .execute()
+                .value
+
+            await MainActor.run {
+                venueClaimSubmitted = true
+                venueClaimStatus = "Pending Review"
+                venueClaimSubmittedDate = inserted.created_at ?? venueClaimSubmittedDate
+                venueIsApproved = false
+                venueAuthErrorMessage = ""
+                hasUnackedRejectedVenueClaimForOwnerEmail = false
+
+                let submittedRow = VenueClaimPendingSettingsRow(
+                    id: inserted.id,
+                    business_id: businessId,
+                    venue_id: bar.id,
+                    venue_name: claim.venue_name,
+                    venue_address: claim.venue_address,
+                    venue_city: claim.venue_city,
+                    venue_state: claim.venue_state,
+                    approval_status: inserted.approval_status,
+                    rejection_acknowledged_at: nil
+                )
+
+                pendingVenueClaimsForSettings.removeAll { existing in
+                    existing.venue_id == bar.id
+                        || (
+                            existing.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(claim.venue_name) == .orderedSame
+                            && existing.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(claim.venue_address) == .orderedSame
+                        )
+                }
+                rejectedVenueClaimsForSettings.removeAll { existing in
+                    existing.venue_id == bar.id
+                        || (
+                            existing.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(claim.venue_name) == .orderedSame
+                            && existing.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(claim.venue_address) == .orderedSame
+                        )
+                }
+                pendingVenueClaimsForSettings.insert(submittedRow, at: 0)
+            }
+
+            let notifyPayload = venueClaimAdminNotifyPayloadFromInsert(
+                claim: claim,
+                insertedId: inserted.id,
+                createdAt: inserted.created_at,
+                approvalStatus: inserted.approval_status,
+                claimKind: "discover_claim",
+                familyFriendly: false,
+                parkingAvailable: false
+            )
+            notifyVenueClaimAdminEmail(payload: notifyPayload)
+
+            await refreshPendingVenueClaimsForSettings()
+            await refreshVenueClaimStatusLineFromDatabase()
+            await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            return nil
+        } catch {
+            let dup = VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
+            let message = dup ?? "Could not submit this venue claim. Please try again."
+            await MainActor.run { venueAuthErrorMessage = message }
+            return message
+        }
     }
 
     func logBusinessSwitcherDebug() {
@@ -645,6 +1041,7 @@ extension MapViewModel {
     /// Clears in-memory business / venue owner lists (e.g. sign-out or failed load).
     func clearVenueOwnerOwnedBusinessCaches() {
         ownedBusinesses = []
+        archivedOwnedBusinesses = []
         ownedBusinessVenues = []
         legacyOwnerVenuesForEmailFallback = []
         isVenueOwnerBusinessDataLoading = false
@@ -720,7 +1117,7 @@ extension MapViewModel {
         do {
             let rows: [VenueClaimPendingSettingsRow] = try await supabase
                 .from("venue_claims")
-                .select("id,business_id,venue_id,venue_name,venue_city,venue_state,approval_status,rejection_acknowledged_at")
+                .select("id,business_id,venue_id,venue_name,venue_address,venue_city,venue_state,approval_status,rejection_acknowledged_at")
                 .eq("owner_email", value: email)
                 .order("created_at", ascending: false)
                 .limit(80)
@@ -1270,6 +1667,14 @@ extension MapViewModel {
                 .execute()
                 .value
 
+            let archivedBusinesses: [BusinessRow] = try await supabase
+                .from("businesses")
+                .select("id,display_name,owner_email,admin_status,created_at")
+                .eq("owner_email", value: emailTrimmed)
+                .eq("admin_status", value: "archived")
+                .execute()
+                .value
+
             let businessIds = businesses.map(\.id)
 
             var venueRowsByBusiness: [VenueProfileRow] = []
@@ -1336,10 +1741,12 @@ extension MapViewModel {
 
             await MainActor.run {
                 ownedBusinesses = resolvedBusinesses
+                archivedOwnedBusinesses = archivedBusinesses
                 ownedBusinessVenues = mergedVenues
                 legacyOwnerVenuesForEmailFallback = emailVenueRows
 #if DEBUG
                 print("[BusinessPhaseB1] loaded businesses count=\(resolvedBusinesses.count)")
+                print("[BusinessPhaseB1] loaded archived businesses count=\(archivedBusinesses.count)")
                 let bizIds = resolvedBusinesses.map(\.id.uuidString).sorted().joined(separator: ",")
                 print("[BusinessRefresh] ownedBusinesses ids=\(bizIds.isEmpty ? "(none)" : bizIds)")
                 print("[BusinessPhaseB1] loaded venues count=\(mergedVenues.count)")
@@ -1608,6 +2015,32 @@ extension MapViewModel {
                     venueClaimSubmittedDate = inserted.created_at ?? venueClaimSubmittedDate
                     venueAuthErrorMessage = ""
                     hasUnackedRejectedVenueClaimForOwnerEmail = false
+                    let submittedRow = VenueClaimPendingSettingsRow(
+                        id: inserted.id,
+                        business_id: nil,
+                        venue_id: linkedVenueId,
+                        venue_name: trimmedName,
+                        venue_address: trimmedAddress,
+                        venue_city: trimmedCity,
+                        venue_state: trimmedState,
+                        approval_status: inserted.approval_status,
+                        rejection_acknowledged_at: nil
+                    )
+                    pendingVenueClaimsForSettings.removeAll { existing in
+                        existing.venue_id == linkedVenueId
+                            || (
+                                existing.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(trimmedName) == .orderedSame
+                                && existing.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(trimmedAddress) == .orderedSame
+                            )
+                    }
+                    rejectedVenueClaimsForSettings.removeAll { existing in
+                        existing.venue_id == linkedVenueId
+                            || (
+                                existing.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(trimmedName) == .orderedSame
+                                && existing.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare(trimmedAddress) == .orderedSame
+                            )
+                    }
+                    pendingVenueClaimsForSettings.insert(submittedRow, at: 0)
                     clearPendingVenueClaimContext()
                 }
 
@@ -1625,6 +2058,10 @@ extension MapViewModel {
                     parkingAvailable: false
                 )
                 notifyVenueClaimAdminEmail(payload: notifyPayload)
+
+                await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+                await refreshPendingVenueClaimsForSettings()
+                await refreshVenueClaimStatusLineFromDatabase()
 
             } catch {
                 print("ERROR SAVING VENUE CLAIM:", error)

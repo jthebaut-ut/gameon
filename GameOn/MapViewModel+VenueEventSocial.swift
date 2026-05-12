@@ -7,78 +7,142 @@ extension MapViewModel {
         isAuthenticatedForSocialFeatures
     }
 
-    func markInterestedInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
+    private func resolvedInterestMutationEmail() async -> String? {
         let session = try? await supabase.auth.session
-        let interestEmail = OwnerBusinessEmail.normalized(session?.user.email ?? "")
+        let fromSession = OwnerBusinessEmail.normalized(session?.user.email ?? "")
+        if OwnerBusinessEmail.isValidStrict(fromSession) {
+            return fromSession
+        }
+        let fallback = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+        return OwnerBusinessEmail.isValidStrict(fallback) ? fallback : nil
+    }
 
-        guard OwnerBusinessEmail.isValidStrict(interestEmail) else {
-            print("USER MUST BE LOGGED IN TO MARK INTEREST")
-            return
+    @MainActor
+    private func applyLocalVenueEventInterestState(venueEventID: UUID, isInterested: Bool) {
+        let wasInterested = venueEventInterestIDs.contains(venueEventID)
+        guard wasInterested != isInterested else { return }
+
+        if isInterested {
+            venueEventInterestIDs.insert(venueEventID)
+            venueEventInterestCounts[venueEventID, default: 0] += 1
+            followingTabUserVenueEventInterestIDs.insert(venueEventID)
+        } else {
+            venueEventInterestIDs.remove(venueEventID)
+            venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 1) - 1, 0)
+            followingTabUserVenueEventInterestIDs.remove(venueEventID)
         }
 
-        do {
-            let interest = VenueEventInterestInsert(
-                venue_event_id: venueEventID,
-                user_email: interestEmail
+        if followingTabGoingInterestCounts[venueEventID] != nil || followingTabGoingItems.contains(where: { $0.id == venueEventID }) {
+            followingTabGoingInterestCounts[venueEventID] = venueEventInterestCounts[venueEventID] ?? 0
+        }
+
+        if let index = followingTabGoingItems.firstIndex(where: { $0.id == venueEventID }) {
+            let item = followingTabGoingItems[index]
+            followingTabGoingItems[index] = FollowingGoingDisplayItem(
+                id: item.id,
+                venueEvent: item.venueEvent,
+                bar: item.bar,
+                attendeeCount: venueEventInterestCounts[venueEventID] ?? item.attendeeCount,
+                isServerGoing: isInterested
             )
-
-            try await supabase
-                .from("venue_event_interests")
-                .upsert(
-                    interest,
-                    onConflict: "user_email,venue_event_id"
-                )
-                .execute()
-
-            await MainActor.run {
-                venueEventInterestIDs.insert(venueEventID)
-                venueEventInterestCounts[venueEventID, default: 0] += 1
-            }
-
-            if refreshFollowing {
-                await refreshFollowingTabDataGlobally()
-            }
-
-            print("INTEREST SAVED")
-
-        } catch {
-            print("ERROR SAVING INTEREST:", error)
         }
     }
 
-    func removeInterestInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async {
-        let session = try? await supabase.auth.session
-        let fromSession = OwnerBusinessEmail.normalized(session?.user.email ?? "")
-        let interestEmail: String
-        if OwnerBusinessEmail.isValidStrict(fromSession) {
-            interestEmail = fromSession
-        } else {
-            interestEmail = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+    @discardableResult
+    func setVenueEventInterest(
+        venueEventID: UUID,
+        isInterested: Bool,
+        refreshFollowing: Bool = true
+    ) async -> Bool {
+        guard !venueEventInterestWriteInFlightIDs.contains(venueEventID) else { return true }
+        guard let interestEmail = await resolvedInterestMutationEmail() else {
+            print("USER MUST BE LOGGED IN TO MARK INTEREST")
+            return false
         }
-        guard OwnerBusinessEmail.isValidStrict(interestEmail) else { return }
+
+        let previousInterestIDs = venueEventInterestIDs
+        let previousInterestCounts = venueEventInterestCounts
+        let previousFollowingInterestIDs = followingTabUserVenueEventInterestIDs
+        let previousFollowingInterestCounts = followingTabGoingInterestCounts
+        let previousFollowingItems = followingTabGoingItems
+
+        await MainActor.run {
+            venueEventInterestWriteInFlightIDs.insert(venueEventID)
+            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+        }
 
         do {
-            try await supabase
-                .from("venue_event_interests")
-                .delete()
-                .eq("venue_event_id", value: venueEventID)
-                .eq("user_email", value: interestEmail)
-                .execute()
+            if isInterested {
+                let interest = VenueEventInterestInsert(
+                    venue_event_id: venueEventID,
+                    user_email: interestEmail
+                )
+                try await supabase
+                    .from("venue_event_interests")
+                    .upsert(
+                        interest,
+                        onConflict: "user_email,venue_event_id"
+                    )
+                    .execute()
+            } else {
+                try await supabase
+                    .from("venue_event_interests")
+                    .delete()
+                    .eq("venue_event_id", value: venueEventID)
+                    .eq("user_email", value: interestEmail)
+                    .execute()
+            }
 
             await MainActor.run {
-                venueEventInterestIDs.remove(venueEventID)
-                venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 1) - 1, 0)
+                venueEventInterestWriteInFlightIDs.remove(venueEventID)
             }
 
             if refreshFollowing {
-                await refreshFollowingTabDataGlobally()
+                Task { @MainActor [weak self] in
+                    await self?.loadGoingUserProfiles(for: venueEventID)
+                }
             }
 
-            print("INTEREST REMOVED")
-
+            return true
         } catch {
-            print("ERROR REMOVING INTEREST:", error)
+            let message = error.localizedDescription.lowercased()
+            if isInterested, message.contains("duplicate key") || message.contains("23505") {
+                await MainActor.run {
+                    venueEventInterestWriteInFlightIDs.remove(venueEventID)
+                    applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: true)
+                }
+                return true
+            }
+
+            await MainActor.run {
+                venueEventInterestIDs = previousInterestIDs
+                venueEventInterestCounts = previousInterestCounts
+                followingTabUserVenueEventInterestIDs = previousFollowingInterestIDs
+                followingTabGoingInterestCounts = previousFollowingInterestCounts
+                followingTabGoingItems = previousFollowingItems
+                venueEventInterestWriteInFlightIDs.remove(venueEventID)
+            }
+            print("ERROR SETTING INTEREST:", error)
+            return false
         }
+    }
+
+    @discardableResult
+    func markInterestedInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async -> Bool {
+        await setVenueEventInterest(
+            venueEventID: venueEventID,
+            isInterested: true,
+            refreshFollowing: refreshFollowing
+        )
+    }
+
+    @discardableResult
+    func removeInterestInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async -> Bool {
+        await setVenueEventInterest(
+            venueEventID: venueEventID,
+            isInterested: false,
+            refreshFollowing: refreshFollowing
+        )
     }
 
     func goingProfiles(for venueEventID: UUID) -> [UserProfileRow] {
@@ -405,7 +469,7 @@ extension MapViewModel {
         await DiscoverMapImageCache.shared.prefetch(urls: urls)
         #if DEBUG
         let ms = Int(Date().timeIntervalSince(t0) * 1000)
-        print("[Background] enrichment loaded ms=\(ms)")
+        print("[Phase3Perf] social enrichment load ms=\(ms)")
         #endif
     }
 }

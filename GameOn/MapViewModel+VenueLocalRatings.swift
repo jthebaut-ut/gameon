@@ -1,6 +1,6 @@
 import Foundation
 
-/// Client-side venue star ratings (UserDefaults). Merges with ``BarVenue/rating`` for display until a server model exists.
+/// Client-side venue star ratings (UserDefaults). Only shows rating UI when the app has a real saved value.
 extension MapViewModel {
 
     private static let venueStarsDefaultsKey = "gameon.venueUserStars.v1"
@@ -19,17 +19,16 @@ extension MapViewModel {
         Self.encodeUUIDIntDict(venueRatingContributionCount, key: Self.venueRatingSaveCountsKey)
     }
 
-    /// Blends server/static ``BarVenue/rating`` with the signed-in user’s saved stars when present.
-    func mergedDisplayRating(for bar: BarVenue) -> Double {
-        guard let stars = venueUserStarRatings[bar.id] else { return bar.rating }
-        return (bar.rating * 0.42) + (Double(stars) * 0.58)
+    /// Returns the locally saved star rating when a real client-side value exists.
+    func mergedDisplayRating(for bar: BarVenue) -> Double? {
+        guard let stars = venueUserStarRatings[bar.id] else { return nil }
+        return Double(stars)
     }
 
-    /// Stable-looking review total for UI (increments when the user saves a rating).
+    /// Returns a real locally tracked rating count instead of a seeded fallback.
     func reviewCountDisplay(for bar: BarVenue) -> Int {
-        let base = 10 + abs(bar.name.hashValue % 160)
-        let extra = venueRatingContributionCount[bar.id] ?? 0
-        return base + extra
+        guard venueUserStarRatings[bar.id] != nil else { return 0 }
+        return max(venueRatingContributionCount[bar.id] ?? 0, 1)
     }
 
     private static func decodeUUIDIntDict(_ key: String) -> [UUID: Int] {

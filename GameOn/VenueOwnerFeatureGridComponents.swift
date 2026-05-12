@@ -7,18 +7,18 @@ struct VenueOwnerScreensFeatureTile: View {
     @Binding var totalScreens: Int
     var minScreens: Int = 1
     var maxScreens: Int = 100
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: "display")
                 .font(.title2)
-                .foregroundStyle(Color.green)
+                .foregroundStyle(FGColor.accentGreen)
 
             Text("\(totalScreens) Screens")
-                .font(.caption)
-                .fontWeight(.bold)
+                .font(FGTypography.caption.weight(.semibold))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.primary)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
                 .minimumScaleFactor(0.75)
                 .lineLimit(2)
                 .frame(maxWidth: .infinity)
@@ -29,7 +29,7 @@ struct VenueOwnerScreensFeatureTile: View {
                 } label: {
                     Image(systemName: "minus")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(totalScreens > minScreens ? Color.primary : Color.secondary.opacity(0.35))
+                        .foregroundStyle(totalScreens > minScreens ? FGColor.primaryText(colorScheme) : FGColor.mutedText(colorScheme).opacity(0.45))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
@@ -37,7 +37,7 @@ struct VenueOwnerScreensFeatureTile: View {
                 .accessibilityLabel("Decrease screen count")
 
                 Rectangle()
-                    .fill(Color.secondary.opacity(0.22))
+                    .fill(FGColor.divider(colorScheme))
                     .frame(width: 1, height: 14)
 
                 Button {
@@ -45,7 +45,7 @@ struct VenueOwnerScreensFeatureTile: View {
                 } label: {
                     Image(systemName: "plus")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(totalScreens < maxScreens ? Color.primary : Color.secondary.opacity(0.35))
+                        .foregroundStyle(totalScreens < maxScreens ? FGColor.primaryText(colorScheme) : FGColor.mutedText(colorScheme).opacity(0.45))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .buttonStyle(.plain)
@@ -54,8 +54,8 @@ struct VenueOwnerScreensFeatureTile: View {
             }
             .frame(width: 104, height: 26)
             .frame(maxWidth: .infinity)
-            .background(Color.gray.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.82 : 0.98))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)
@@ -67,6 +67,7 @@ struct VenueOwnerFeatureToggleTile: View {
     let icon: String
     let label: String
     @Binding var isOn: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button {
@@ -75,13 +76,12 @@ struct VenueOwnerFeatureToggleTile: View {
             VStack(spacing: 4) {
                 Image(systemName: icon)
                     .font(.title2)
-                    .foregroundStyle(isOn ? Color.green : Color.gray.opacity(0.62))
+                    .foregroundStyle(isOn ? FGColor.accentGreen : FGColor.mutedText(colorScheme))
 
                 Text(label)
-                    .font(.caption)
-                    .fontWeight(.bold)
+                    .font(FGTypography.caption.weight(.semibold))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(isOn ? Color.primary : Color.secondary)
+                    .foregroundStyle(isOn ? FGColor.primaryText(colorScheme) : FGColor.secondaryText(colorScheme))
                     .minimumScaleFactor(0.8)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
@@ -109,6 +109,7 @@ struct AddLocationVenueFeaturesGrid: View {
     @Binding var familyFriendly: Bool
 
     var maxScreenCount: Int = 40
+    @Environment(\.colorScheme) private var colorScheme
 
     private var columns: [GridItem] {
         [
@@ -121,8 +122,8 @@ struct AddLocationVenueFeaturesGrid: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Venue Features")
-                .font(.headline)
-                .fontWeight(.bold)
+                .font(FGTypography.cardTitle)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
 
             LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
                 VenueOwnerScreensFeatureTile(totalScreens: $screenCount, minScreens: 1, maxScreens: maxScreenCount)
@@ -136,7 +137,11 @@ struct AddLocationVenueFeaturesGrid: View {
             }
         }
         .padding(12)
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .background(FGColor.cardBackground(colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
     }
 }

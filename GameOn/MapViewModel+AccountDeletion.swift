@@ -89,31 +89,8 @@ extension MapViewModel {
     /// Resets fan-specific UI state and profile cache; does not clear venue-owner fields.
     private func clearFanAccountLocalStateAfterDeletion() async {
         await MainActor.run {
-            UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
-            UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
-
-            currentUserEmail = ""
-            currentUserDisplayName = ""
-            currentUserAvatarURL = ""
-            currentUserAvatarThumbnailURL = ""
-            goingUserProfiles = []
-            goingProfilesByVenueEventID = [:]
+            clearAuthenticatedSessionCaches()
             isLoggedIn = false
-            currentUserAuthId = nil
-
-            bumpCurrentUserAvatarDisplayRefresh()
-
-            favoriteVenueIDs = []
-            interestedVenueEventKeys = []
-            venueEventInterestIDs = []
-            venueEventInterestCounts = [:]
-            clearFollowingTabCaches()
-            myVenueEventVibes = [:]
-            userProfilesByEmail = [:]
-
-            authErrorMessage = ""
-            userPasswordResetMessage = ""
-            userPasswordResetError = ""
         }
     }
 }

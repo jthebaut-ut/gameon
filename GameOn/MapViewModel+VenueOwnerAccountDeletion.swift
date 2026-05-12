@@ -90,43 +90,11 @@ extension MapViewModel {
 
     private func clearVenueOwnerLocalStateAfterDeletion() async {
         await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            clearVenueOwnerDraftState()
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
-            venueOwnerEmail = ""
-            isVenueOwnerBusinessDataLoading = false
-            clearVenueOwnerOwnedBusinessCaches()
-
-            venueClaimSubmitted = false
-            venueClaimStatus = "Not submitted"
-            venueIsApproved = false
-            venueClaimSubmittedDate = ""
             venueAuthErrorMessage = ""
-
-            ownerVenueName = ""
-            ownerVenueDatabaseId = nil
-            ownerVenueAddress = ""
-            ownerVenueCity = ""
-            ownerVenueState = "UT"
-            ownerVenueZipCode = ""
-            ownerVenuePhone = ""
-            ownerVenueWebsite = ""
-            ownerVenueDescription = ""
-            ownerVenueFeatures = ""
-            ownerVenuePrimarySport = "Soccer"
-
-            venueCoverPhotoURL = ""
-            venueCoverPhotoThumbnailURL = ""
-            venueMenuPhotoURL = ""
-            venueMenuPhotoThumbnailURL = ""
-            venueCrowdPhotoURL = ""
-            venueTVWallPhotoURL = ""
-            venueSpecialsPhotoURL = ""
-            venueProofNote = ""
-
-            venuePasswordResetMessage = ""
-            venuePasswordResetError = ""
-
-            currentUserAuthId = nil
         }
 
         clearPersistedAccountMode()

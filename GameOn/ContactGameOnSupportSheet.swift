@@ -37,6 +37,16 @@ struct ContactGameOnSupportSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    HStack {
+                        Spacer()
+                        FanGeoInlineLogoView(variant: .white, width: 104, innerPadding: 6)
+                        Spacer()
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowBackground(Color.clear)
+                }
+
                 if !hasAuthSession {
                     Section {
                         Text("Please sign in with your FanGeo or venue account to send a support message.")

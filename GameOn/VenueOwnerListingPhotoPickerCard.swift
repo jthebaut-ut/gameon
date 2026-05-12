@@ -62,6 +62,9 @@ struct VenueOwnerListingPhotoPickerCard: View {
     var localPreviewData: Data?
     var emptySelectionButtonTitle: String = "Tap to add photo"
     var replaceSelectionButtonTitle: String = "Tap to replace photo"
+    var usesFanGeoSheetChrome: Bool = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var trimmedRemote: String {
         remotePreviewURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -80,18 +83,22 @@ struct VenueOwnerListingPhotoPickerCard: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
 
                 Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
 
             PhotosPicker(selection: $pickerSelection, matching: .images) {
                 VStack(alignment: .leading, spacing: 10) {
                     RoundedRectangle(cornerRadius: 18)
-                        .fill(Color.gray.opacity(0.10))
+                        .fill(
+                            usesFanGeoSheetChrome
+                                ? FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.97)
+                                : Color.gray.opacity(0.10)
+                        )
                         .frame(height: 140)
                         .overlay {
                             Group {
@@ -111,28 +118,59 @@ struct VenueOwnerListingPhotoPickerCard: View {
                                 } else {
                                     Image(systemName: "photo")
                                         .font(.largeTitle)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(
+                                            usesFanGeoSheetChrome
+                                                ? FGColor.mutedText(colorScheme)
+                                                : Color.secondary
+                                        )
                                 }
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                         .clipShape(RoundedRectangle(cornerRadius: 18))
+                        .overlay {
+                            if usesFanGeoSheetChrome {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                            }
+                        }
 
-                    Text(buttonTitle)
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    HStack(spacing: FGSpacing.sm) {
+                        Image(systemName: hasPreview ? "arrow.triangle.2.circlepath" : "plus")
+                            .font(.system(size: 14, weight: .bold))
+                        Text(buttonTitle)
+                            .font(FGTypography.cardTitle)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, FGSpacing.md)
+                    .background(
+                        usesFanGeoSheetChrome
+                            ? AnyShapeStyle(FGColor.brandGradient)
+                            : AnyShapeStyle(Color.black)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
                 }
             }
             .buttonStyle(.plain)
 
             Text(VenueOwnerPhotoPickerCopy.libraryAccessFooter)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+                .font(FGTypography.metadata)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(usesFanGeoSheetChrome ? FGSpacing.md : 0)
+        .background(
+            usesFanGeoSheetChrome
+                ? AnyShapeStyle(FGColor.cardBackground(colorScheme))
+                : AnyShapeStyle(Color.clear)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
+        .overlay {
+            if usesFanGeoSheetChrome {
+                RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
         }
     }
 }

@@ -3,6 +3,19 @@ import Supabase
 
 extension MapViewModel {
 
+    @MainActor
+    private func applyLocalFavoriteState(bar: BarVenue, isFavorite: Bool) {
+        if isFavorite {
+            favoriteVenueIDs.insert(bar.id)
+            if !followingTabSavedVenues.contains(where: { $0.id == bar.id }) {
+                followingTabSavedVenues.insert(bar, at: 0)
+            }
+        } else {
+            favoriteVenueIDs.remove(bar.id)
+            followingTabSavedVenues.removeAll { $0.id == bar.id }
+        }
+    }
+
     func toggleFavorite(_ bar: BarVenue) {
         guard hasSupabaseSessionForFollowingTab else {
             print("LOGIN REQUIRED TO SAVE VENUE")
@@ -10,10 +23,12 @@ extension MapViewModel {
         }
 
         Task {
-            if favoriteVenueIDs.contains(bar.id) {
-                await removeFavoriteVenueFromSupabase(bar)
-            } else {
-                await saveFavoriteVenueToSupabase(bar)
+            let wantFavorite = !favoriteVenueIDs.contains(bar.id)
+            let ok = await setVenueFavorite(bar: bar, isFavorite: wantFavorite)
+            if !ok {
+                await MainActor.run {
+                    showSocialActionToast("Couldn't update saved venue.")
+                }
             }
         }
     }
@@ -106,18 +121,17 @@ extension MapViewModel {
         }
     }
 
-    /// Optimistically updates ``favoriteVenueIDs``, writes to Supabase, reconciles on success, or restores on failure.
+    /// Optimistically updates ``favoriteVenueIDs``, writes to Supabase, and reverts locally on failure.
     @discardableResult
     func setVenueFavorite(bar: BarVenue, isFavorite: Bool) async -> Bool {
         guard hasSupabaseSessionForFollowingTab else { return false }
+        guard !favoriteVenueWriteInFlightIDs.contains(bar.id) else { return true }
 
         let previous = favoriteVenueIDs
+        let previousSavedVenues = followingTabSavedVenues
         await MainActor.run {
-            if isFavorite {
-                favoriteVenueIDs.insert(bar.id)
-            } else {
-                favoriteVenueIDs.remove(bar.id)
-            }
+            favoriteVenueWriteInFlightIDs.insert(bar.id)
+            applyLocalFavoriteState(bar: bar, isFavorite: isFavorite)
         }
 
         do {
@@ -142,21 +156,25 @@ extension MapViewModel {
                     .eq("venue_id", value: bar.id)
                     .execute()
             }
-
-            await loadFavoriteVenuesFromSupabase()
-            await refreshFollowingTabDataGlobally()
+            await MainActor.run {
+                favoriteVenueWriteInFlightIDs.remove(bar.id)
+            }
             return true
         } catch {
             let message = error.localizedDescription.lowercased()
 
             if isFavorite, message.contains("duplicate key") || message.contains("23505") {
-                await loadFavoriteVenuesFromSupabase()
-                await refreshFollowingTabDataGlobally()
+                await MainActor.run {
+                    favoriteVenueWriteInFlightIDs.remove(bar.id)
+                    applyLocalFavoriteState(bar: bar, isFavorite: true)
+                }
                 return true
             }
 
             await MainActor.run {
                 favoriteVenueIDs = previous
+                followingTabSavedVenues = previousSavedVenues
+                favoriteVenueWriteInFlightIDs.remove(bar.id)
             }
             print("ERROR SETTING FAVORITE:", error)
             return false

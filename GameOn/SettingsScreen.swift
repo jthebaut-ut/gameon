@@ -42,6 +42,7 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var email = ""
     @State private var password = ""
@@ -71,8 +72,8 @@ struct SettingsScreen: View {
     var body: some View {
         NavigationStack {
             List {
-                if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
-                    Section {
+                Section {
+                    if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
                         SettingsProfileHero(
                             viewModel: viewModel,
                             showProfileScreen: $showProfileScreen,
@@ -86,140 +87,107 @@ struct SettingsScreen: View {
                         )
                             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Color.clear)
+                    } else {
+                        SettingsUnifiedAccountEntryCard(
+                            onSignIn: {
+                                showRegisterMode = false
+                                showUserAuthSheet = true
+                            },
+                            onCreateAccount: {
+                                showRegisterMode = true
+                                showUserAuthSheet = true
+                            },
+                            onVenueOwnerTools: nil
+                        )
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
                     }
-                } else {
-                    Section {
-                        Button {
-                            showUserAuthSheet = true
-                        } label: {
-                            settingsRow(
-                                title: "Sign in or create account",
-                                subtitle: "Sync your profile and activity.",
-                                systemImage: "person.crop.circle.badge.plus"
-                            )
+
+                    if viewModel.isLoggedIn {
+                        settingsSectionCard {
+                            Button { showProfileScreen = true } label: {
+                                settingsRow(
+                                    title: "Edit Profile",
+                                    subtitle: "Update your display name, photo, and sports.",
+                                    systemImage: "person.crop.circle"
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            settingsRowDivider()
+
+                            Button { showResetPasswordSheet = true } label: {
+                                settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
+                            }
+                            .buttonStyle(.plain)
+
+                            settingsRowDivider()
+
+                            Button {
+                                Task { await viewModel.logoutUser() }
+                            } label: {
+                                settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
+                            }
+                            .buttonStyle(.plain)
+
+                            settingsRowDivider()
+
+                            Button { showDeleteAccountSheet = true } label: {
+                                settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
+                            }
+                            .buttonStyle(.plain)
+
+                            if viewModel.isVenueOwnerLoggedIn {
+                                settingsRowDivider()
+
+                                Button { showDeleteVenueOwnerSheet = true } label: {
+                                    settingsRow(
+                                        title: "Delete venue owner access",
+                                        subtitle: "Remove venue owner profile, listings, and uploads.",
+                                        systemImage: "trash",
+                                        tint: .red
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                Section("GENERAL") {
-                    Button { showNotificationsSheet = true } label: {
-                        settingsRow(title: "Notifications", subtitle: viewModel.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { showTimeZoneSheet = true } label: {
-                        settingsRow(title: "Game Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Section("LEGAL & SAFETY") {
-                    Button { legalDocumentSheet = .privacyPolicy } label: {
-                        settingsRow(
-                            title: SettingsLegalDocumentKind.privacyPolicy.title,
-                            subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
-                            systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { legalDocumentSheet = .termsOfService } label: {
-                        settingsRow(
-                            title: SettingsLegalDocumentKind.termsOfService.title,
-                            subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
-                            systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { legalDocumentSheet = .communityGuidelines } label: {
-                        settingsRow(
-                            title: SettingsLegalDocumentKind.communityGuidelines.title,
-                            subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
-                            systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button { legalDocumentSheet = .safetyReporting } label: {
-                        settingsRow(
-                            title: SettingsLegalDocumentKind.safetyReporting.title,
-                            subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
-                            systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Section("HELP & SUPPORT") {
-                    Button { showContactSupportSheet = true } label: {
-                        settingsRow(
-                            title: "Contact FanGeo Support",
-                            subtitle: "Message the team",
-                            systemImage: "envelope.open.fill"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if viewModel.isLoggedIn {
-                    Section("ACCOUNT") {
-                        Button { showResetPasswordSheet = true } label: {
-                            settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            Task { await viewModel.logoutUser() }
-                        } label: {
-                            settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
-                        }
-                        .buttonStyle(.plain)
-
-                        Button { showDeleteAccountSheet = true } label: {
-                            settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
-                        }
-                        .buttonStyle(.plain)
-
-                        if viewModel.isVenueOwnerLoggedIn {
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                    } else if viewModel.isVenueOwnerLoggedIn {
+                        settingsSectionCard {
                             Button { showDeleteVenueOwnerSheet = true } label: {
                                 settingsRow(
-                                    title: "Delete venue owner access",
-                                    subtitle: "Remove venue owner profile, listings, and uploads.",
+                                    title: "Delete Account",
+                                    subtitle: "Permanently remove your venue owner profile and data.",
                                     systemImage: "trash",
                                     tint: .red
                                 )
                             }
                             .buttonStyle(.plain)
                         }
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
                     }
-                } else if viewModel.isVenueOwnerLoggedIn {
-                    Section("ACCOUNT") {
-                        Button { showDeleteVenueOwnerSheet = true } label: {
-                            settingsRow(
-                                title: "Delete Account",
-                                subtitle: "Permanently remove your venue owner profile and data.",
-                                systemImage: "trash",
-                                tint: .red
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+                } header: {
+                    settingsSectionHeader("Account")
                 }
 
-                Section("Business") {
-                    if viewModel.isVenueOwnerLoggedIn {
-                        Group {
+                Section {
+                    settingsSectionCard {
+                        let hasArchivedBusinessAccount = viewModel.hasArchivedBusinessAccountForOwner()
+                        let hasActiveBusinessAccount = viewModel.hasBusinessAccountForOwner()
+
+                        if viewModel.isVenueOwnerLoggedIn {
                             if viewModel.isVenueOwnerBusinessDataLoading {
                                 HStack(spacing: 10) {
                                     ProgressView()
                                     Text("Loading business data…")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .font(FGTypography.caption)
+                                        .foregroundStyle(FGColor.secondaryText(colorScheme))
                                 }
-                                .padding(.vertical, 4)
-                            } else if !viewModel.hasBusinessAccountForOwner() {
+                                .padding(.horizontal, FGSpacing.md)
+                                .padding(.vertical, FGSpacing.md)
+                            } else if hasArchivedBusinessAccount {
                                 settingsInfoRow(
                                     title: "Business account",
                                     subtitle: settingsBusinessAccountSubtitle(),
@@ -227,10 +195,30 @@ struct SettingsScreen: View {
                                     tint: viewModel.businessAccountStatusTint()
                                 )
 
-                                Text("Add a businesses record for this sign-in email before locations can be linked or approved.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 6, trailing: 16))
+                                settingsRowDivider()
+
+                                settingsInfoRow(
+                                    title: "Location status",
+                                    subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
+                                    systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
+                                    tint: settingsLocationStatusTint()
+                                )
+                            } else if !hasActiveBusinessAccount && !hasArchivedBusinessAccount {
+                                settingsInfoRow(
+                                    title: "Business account",
+                                    subtitle: settingsBusinessAccountSubtitle(),
+                                    systemImage: viewModel.businessAccountStatusIconName(),
+                                    tint: viewModel.businessAccountStatusTint()
+                                )
+
+                                settingsRowDivider()
+
+                                settingsInlineNote(
+                                    "Add a businesses record for this sign-in email before locations can be linked or approved.",
+                                    systemImage: "info.circle"
+                                )
+
+                                settingsRowDivider()
 
                                 Button {
                                     venueOwnerDashboardSheet = .manageVenue
@@ -243,6 +231,8 @@ struct SettingsScreen: View {
                                 }
                                 .buttonStyle(.plain)
 
+                                settingsRowDivider()
+
                                 settingsInfoRow(
                                     title: "Location status",
                                     subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
@@ -250,18 +240,7 @@ struct SettingsScreen: View {
                                     tint: settingsLocationStatusTint()
                                 )
 
-                                if !viewModel.pendingVenueClaimsForSettings.isEmpty {
-                                    pendingVenueClaimsList()
-                                }
-                                if !viewModel.rejectedVenueClaimsForSettings.isEmpty {
-                                    rejectedVenueClaimsList()
-                                }
                             } else if viewModel.managedVenuesForOwner().isEmpty {
-                                Text("New location requests are reviewed before you can manage games and analytics.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 6, trailing: 16))
-
                                 settingsInfoRow(
                                     title: "Business account",
                                     subtitle: settingsBusinessAccountSubtitle(),
@@ -269,6 +248,8 @@ struct SettingsScreen: View {
                                     tint: viewModel.businessAccountStatusTint()
                                 )
 
+                                settingsRowDivider()
+
                                 settingsInfoRow(
                                     title: "Location status",
                                     subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
@@ -276,25 +257,26 @@ struct SettingsScreen: View {
                                     tint: settingsLocationStatusTint()
                                 )
 
-                                if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
-                                    Text(bannerText)
-                                        .font(.caption)
-                                        .foregroundStyle(addLocationSubmitBannerForegroundStyle())
-                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 6, trailing: 16))
-                                }
-
-                                if !viewModel.pendingVenueClaimsForSettings.isEmpty {
-                                    pendingVenueClaimsList()
-                                }
-                                if !viewModel.rejectedVenueClaimsForSettings.isEmpty {
-                                    rejectedVenueClaimsList()
-                                }
+                                settingsRowDivider()
 
                                 BusinessLocationVenuePicker(
                                     viewModel: viewModel,
                                     chrome: .settings,
                                     onRequestAddNewLocation: { openAddLocationFromPicker() }
                                 )
+
+                                if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
+                                    settingsRowDivider()
+                                    settingsInlineNote(
+                                        bannerText,
+                                        tint: addLocationSubmitBannerForegroundColor(),
+                                        systemImage: "info.circle"
+                                    )
+                                }
+
+                                settingsRowDivider()
+
+                                settingsVenueReviewSections()
                             } else {
                                 settingsInfoRow(
                                     title: "Business account",
@@ -304,24 +286,27 @@ struct SettingsScreen: View {
                                 )
 
                                 if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
-                                    Text(bannerText)
-                                        .font(.caption)
-                                        .foregroundStyle(addLocationSubmitBannerForegroundStyle())
-                                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 6, trailing: 16))
+                                    settingsRowDivider()
+                                    settingsInlineNote(
+                                        bannerText,
+                                        tint: addLocationSubmitBannerForegroundColor(),
+                                        systemImage: "info.circle"
+                                    )
                                 }
 
-                                if !viewModel.pendingVenueClaimsForSettings.isEmpty {
-                                    pendingVenueClaimsList()
-                                }
-                                if !viewModel.rejectedVenueClaimsForSettings.isEmpty {
-                                    rejectedVenueClaimsList()
-                                }
+                                settingsRowDivider()
 
                                 BusinessLocationVenuePicker(
                                     viewModel: viewModel,
                                     chrome: .settings,
                                     onRequestAddNewLocation: { openAddLocationFromPicker() }
                                 )
+
+                                settingsRowDivider()
+
+                                settingsVenueReviewSections()
+
+                                settingsRowDivider()
 
                                 Button { venueOwnerDashboardSheet = .manageVenue } label: {
                                     settingsRow(
@@ -333,6 +318,8 @@ struct SettingsScreen: View {
                                 .buttonStyle(.plain)
 
                                 if settingsVenueClaimApprovedForStatusRow() {
+                                    settingsRowDivider()
+
                                     Button { venueOwnerDashboardSheet = .manageGames } label: {
                                         settingsRow(
                                             title: "Manage Games",
@@ -341,6 +328,8 @@ struct SettingsScreen: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
+
+                                    settingsRowDivider()
 
                                     Button { venueOwnerDashboardSheet = .statistics } label: {
                                         settingsRow(
@@ -353,6 +342,8 @@ struct SettingsScreen: View {
                                 }
                             }
 
+                            settingsRowDivider()
+
                             Button { showReportedCommentsSheet = true } label: {
                                 settingsRow(
                                     title: "Flagged Comments",
@@ -361,38 +352,131 @@ struct SettingsScreen: View {
                                 )
                             }
                             .buttonStyle(.plain)
-                        }
-                        .task(id: viewModel.isVenueOwnerLoggedIn) {
-                            if viewModel.isVenueOwnerLoggedIn {
-                                await viewModel.refreshPendingVenueClaimsForSettings()
+                        } else {
+                            Button {
+                                showVenueRegisterMode = false
+                                showVenueAuthSheet = true
+                            } label: {
+                                settingsRow(
+                                    title: "Venue owner tools",
+                                    subtitle: "Sign in to manage claims, listings, games, and business tools.",
+                                    systemImage: "building.2.crop.circle"
+                                )
                             }
+                            .buttonStyle(.plain)
                         }
+                    }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .task(id: viewModel.isVenueOwnerLoggedIn) {
+                        if viewModel.isVenueOwnerLoggedIn {
+                            await viewModel.refreshPendingVenueClaimsForSettings()
+                        }
+                    }
 #if DEBUG
-                        .onAppear {
-                            viewModel.logBusinessAccountStateDebug()
-                        }
+                    .onAppear {
+                        viewModel.logBusinessAccountStateDebug()
+                    }
 #endif
-                    } else {
-                        Button { showVenueAuthSheet = true } label: {
-                            settingsRow(title: "Business owner sign in", subtitle: "Manage your locations and listings.", systemImage: "building.2.crop.circle")
+                } header: {
+                    settingsSectionHeader("Business & Venue")
+                }
+
+                Section {
+                    settingsSectionCard {
+                        Button { showNotificationsSheet = true } label: {
+                            settingsRow(title: "Notifications", subtitle: viewModel.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { showTimeZoneSheet = true } label: {
+                            settingsRow(title: "Game Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
                         }
                         .buttonStyle(.plain)
                     }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowBackground(Color.clear)
+                } header: {
+                    settingsSectionHeader("Preferences")
+                }
+
+                Section {
+                    settingsSectionCard {
+                        Button { showContactSupportSheet = true } label: {
+                            settingsRow(
+                                title: "Contact FanGeo Support",
+                                subtitle: "Message the team",
+                                systemImage: "envelope.open.fill"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowBackground(Color.clear)
+                } header: {
+                    settingsSectionHeader("Help")
+                }
+
+                Section {
+                    settingsSectionCard {
+                        Button { legalDocumentSheet = .privacyPolicy } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.privacyPolicy.title,
+                                subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { legalDocumentSheet = .termsOfService } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.termsOfService.title,
+                                subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { legalDocumentSheet = .communityGuidelines } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.communityGuidelines.title,
+                                subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { legalDocumentSheet = .safetyReporting } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.safetyReporting.title,
+                                subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowBackground(Color.clear)
+                } header: {
+                    settingsSectionHeader("Legal")
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
                     .frame(height: SettingsScrollBottomLayout.accountTabScrollBottomInset)
             }
+            .listStyle(.plain)
+            .listSectionSpacing(18)
             .scrollContentBackground(.hidden)
-            .background(
-                LinearGradient(
-                    colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -558,59 +642,134 @@ struct SettingsScreen: View {
     }
 
     @ViewBuilder
-    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: 26)
+    private func settingsSectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(FGTypography.metadata.weight(.semibold))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .textCase(nil)
+            .padding(.top, FGSpacing.lg)
+            .padding(.bottom, FGSpacing.sm)
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
+    @ViewBuilder
+    private func settingsSectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .background(FGColor.cardBackground(colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+        .softCardShadow()
+    }
+
+    @ViewBuilder
+    private func settingsRowDivider() -> some View {
+        Divider()
+            .overlay(FGColor.divider(colorScheme))
+            .padding(.leading, 68)
+    }
+
+    @ViewBuilder
+    private func settingsInlineNote(
+        _ text: String,
+        tint: Color? = nil,
+        systemImage: String? = nil
+    ) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            if let systemImage, !systemImage.isEmpty {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(tint ?? FGColor.mutedText(colorScheme))
+                    .padding(.top, 2)
+            }
+
+            Text(text)
+                .font(FGTypography.caption)
+                .foregroundStyle(tint ?? FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, FGSpacing.md)
+    }
+
+    @ViewBuilder
+    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .frame(width: 14, height: 14, alignment: .center)
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 13)
+        .frame(minHeight: 66, alignment: .center)
         .contentShape(Rectangle())
     }
 
     /// Non-interactive settings row (no chevron) for read-only info such as venue claim status.
     @ViewBuilder
     private func settingsInfoRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 16, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
-                .frame(width: 26)
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 40, height: 40)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer(minLength: 0)
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 13)
+        .frame(minHeight: 66, alignment: .center)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
     }
@@ -654,29 +813,112 @@ struct SettingsScreen: View {
         showAddLocationSheet = true
     }
 
+    private func settingsApprovedVenueRows() -> [VenueProfileRow] {
+        viewModel.managedVenuesForOwner()
+            .sorted {
+                let lhs = $0.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let rhs = $1.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
+            }
+    }
+
+    @ViewBuilder
+    private func settingsVenueReviewSections() -> some View {
+        let approvedCount = settingsApprovedVenueRows().count
+        let pendingCount = viewModel.pendingVenueClaimsForSettings.count
+        let rejectedCount = viewModel.rejectedVenueClaimsForSettings.count
+
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Venue portfolio")
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, FGSpacing.sm)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: FGSpacing.sm) {
+                    settingsVenueStatusSummaryPill(
+                        title: "\(approvedCount) Approved",
+                        tint: approvedCount > 0 ? FGColor.accentGreen : FGColor.mutedText(colorScheme)
+                    )
+                    settingsVenueStatusSummaryPill(
+                        title: "\(pendingCount) Pending",
+                        tint: pendingCount > 0 ? FGColor.accentYellow : FGColor.mutedText(colorScheme)
+                    )
+                    settingsVenueStatusSummaryPill(
+                        title: "\(rejectedCount) Rejected",
+                        tint: rejectedCount > 0 ? FGColor.dangerRed : FGColor.mutedText(colorScheme)
+                    )
+                }
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.bottom, FGSpacing.md)
+            }
+
+            settingsBlockDivider()
+
+            Button { venueOwnerDashboardSheet = .manageVenue } label: {
+                settingsRow(
+                    title: "Manage All Venues",
+                    subtitle: approvedCount > 1
+                        ? "Open the full venue manager and switch across all approved locations."
+                        : "Open the full venue manager for location details and status changes.",
+                    systemImage: "rectangle.stack.badge.person.crop"
+                )
+            }
+            .buttonStyle(.plain)
+
+            if pendingCount > 0 {
+                settingsBlockDivider()
+                pendingVenueClaimsList()
+            }
+
+            if rejectedCount > 0 {
+                settingsBlockDivider()
+                rejectedVenueClaimsList()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func settingsVenueStatusSummaryPill(title: String, tint: Color) -> some View {
+        FGStatusPill(title: title, kind: .custom(tint: tint))
+    }
+
+    @ViewBuilder
+    private func settingsBlockDivider() -> some View {
+        Divider()
+            .overlay(FGColor.divider(colorScheme))
+            .padding(.horizontal, FGSpacing.md)
+    }
+
     @ViewBuilder
     private func pendingVenueClaimsList() -> some View {
-        Group {
-            Text("Pending locations")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 2, trailing: 16))
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Under review")
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, FGSpacing.xs)
 
-            ForEach(viewModel.pendingVenueClaimsForSettings) { claim in
+            ForEach(Array(viewModel.pendingVenueClaimsForSettings.enumerated()), id: \.element.id) { index, claim in
                 let rowBusy = pendingRefreshingClaimId == claim.id
                 let anyRowRefreshing = pendingRefreshingClaimId != nil
-                HStack(alignment: .top, spacing: 10) {
+                if index > 0 {
+                    settingsRowDivider()
+                }
+                HStack(alignment: .top, spacing: FGSpacing.md) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(settingsPendingClaimTitle(claim))
-                            .font(.body.weight(.semibold))
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
                         if let line = settingsPendingClaimCityStateLine(claim) {
                             Text(line)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
                         }
-                        Text("Pending review")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.orange)
+                        FGStatusPill(title: "Pending review", kind: .custom(tint: FGColor.accentYellow))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -696,12 +938,56 @@ struct SettingsScreen: View {
                         }
                         .frame(width: 30, height: 30)
                         .contentShape(Rectangle())
+                        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.96))
+                        .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .disabled(anyRowRefreshing || viewModel.isVenueOwnerBusinessDataLoading)
                     .accessibilityLabel("Refresh status for this location")
                 }
-                .padding(.vertical, 4)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.md)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func approvedVenueClaimsList(_ approvedRows: [VenueProfileRow]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Approved")
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, FGSpacing.xs)
+
+            ForEach(Array(approvedRows.enumerated()), id: \.offset) { index, venue in
+                if index > 0 {
+                    settingsRowDivider()
+                }
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(FGColor.accentGreen)
+                        .frame(width: 24, height: 24)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text((venue.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                              ? venue.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines)
+                              : "Managed venue") ?? "Managed venue")
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        if let line = settingsVenueLocationLine(venue), !line.isEmpty {
+                            Text(line)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        }
+                        FGStatusPill(title: "Approved", kind: .custom(tint: FGColor.accentGreen))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.md)
             }
         }
     }
@@ -711,30 +997,34 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func rejectedVenueClaimsList() -> some View {
-        Group {
+        VStack(alignment: .leading, spacing: 0) {
             Text("Rejected locations")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 2, trailing: 16))
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, FGSpacing.xs)
 
-            ForEach(viewModel.rejectedVenueClaimsForSettings) { claim in
+            ForEach(Array(viewModel.rejectedVenueClaimsForSettings.enumerated()), id: \.element.id) { index, claim in
                 let rowBusy = pendingRefreshingClaimId == claim.id
                 let anyRowRefreshing = pendingRefreshingClaimId != nil
-                HStack(alignment: .top, spacing: 10) {
+                if index > 0 {
+                    settingsRowDivider()
+                }
+                HStack(alignment: .top, spacing: FGSpacing.md) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(settingsPendingClaimTitle(claim))
-                            .font(.body.weight(.semibold))
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
                         if let line = settingsPendingClaimCityStateLine(claim) {
                             Text(line)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
                         }
-                        Text("Rejected")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.red)
+                        FGStatusPill(title: "Rejected", kind: .custom(tint: FGColor.dangerRed))
                         Text(Self.rejectedVenueClaimMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.dangerRed)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -756,6 +1046,8 @@ struct SettingsScreen: View {
                             .padding(.vertical, 6)
                             .padding(.horizontal, 6)
                             .contentShape(Rectangle())
+                            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.96))
+                            .clipShape(Capsule(style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Dismiss rejected location message")
@@ -776,13 +1068,16 @@ struct SettingsScreen: View {
                             }
                             .frame(width: 30, height: 30)
                             .contentShape(Rectangle())
+                            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.96))
+                            .clipShape(Circle())
                         }
                         .buttonStyle(.plain)
                         .disabled(anyRowRefreshing || viewModel.isVenueOwnerBusinessDataLoading)
                         .accessibilityLabel("Refresh status for this location")
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.md)
                 .transition(.opacity.combined(with: .scale(scale: 0.99)))
             }
         }
@@ -790,11 +1085,14 @@ struct SettingsScreen: View {
     }
 
     private func settingsBusinessAccountSubtitle() -> String {
+        if viewModel.hasArchivedBusinessAccountForOwner() {
+            return "Business account archived"
+        }
         guard viewModel.hasBusinessAccountForOwner() else {
             return "Not set up — no businesses row for this email yet."
         }
         if let member = settingsBusinessMemberSinceLine() {
-            return "Active\n\(member)"
+            return "Active • \(member)"
         }
         return "Active"
     }
@@ -832,6 +1130,8 @@ struct SettingsScreen: View {
             return .orange
         case .rejected:
             return .red
+        case .archivedBusinessAccount:
+            return .red
         case .noLocationsYet, .needsBusinessAccountFirst:
             return .secondary
         }
@@ -849,10 +1149,21 @@ struct SettingsScreen: View {
         return line.isEmpty ? nil : line
     }
 
+    private func settingsVenueLocationLine(_ venue: VenueProfileRow) -> String? {
+        let city = venue.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let st = venue.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let line = [city, st].filter { !$0.isEmpty }.joined(separator: ", ")
+        return line.isEmpty ? nil : line
+    }
+
     private func addLocationSubmitBannerForegroundStyle() -> Color {
         if viewModel.hasActiveVenueClaimRejectionForBusinessUI { return .red }
         if viewModel.businessSettingsLocationChrome() == .rejected { return .red }
         return .green
+    }
+
+    private func addLocationSubmitBannerForegroundColor() -> Color {
+        addLocationSubmitBannerForegroundStyle()
     }
 
     /// After Add Location succeeds we set ``addLocationSubmitBanner``; copy tracks ``approval_status`` via pending rows + location chrome.
@@ -871,6 +1182,8 @@ struct SettingsScreen: View {
             return "Location request submitted. FanGeo will review it before this location can manage games."
         case .rejected:
             return Self.rejectedVenueClaimMessage
+        case .archivedBusinessAccount:
+            return nil
         case .noLocationsYet, .needsBusinessAccountFirst:
             return "Location request submitted. FanGeo will review it before this location can manage games."
         }
@@ -944,6 +1257,7 @@ private struct AddBusinessLocationRequestSheet: View {
     @Binding var isPresented: Bool
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selectedCoverPicker: PhotosPickerItem?
     @State private var selectedMenuPicker: PhotosPickerItem?
@@ -1023,92 +1337,139 @@ private struct AddBusinessLocationRequestSheet: View {
     var body: some View {
         let missing = missingSubmitRequirements
         NavigationStack {
-            Form {
-                Section("Location") {
-                    TextField("Location name", text: $form.locationName)
-                        .textInputAutocapitalization(.words)
-                    TextField("Street address", text: $form.streetAddress)
-                    TextField("City", text: $form.city)
-                    BusinessLocationUSStatePicker(stateCode: $form.state)
-                    TextField("ZIP", text: $form.zip)
-                        .textInputAutocapitalization(.never)
-                    BusinessLocationCountryField(countryCode: $form.country)
-                    TextField("Phone", text: $form.phone)
-                        .keyboardType(.phonePad)
-                    TextField("Website (optional)", text: $form.website)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                }
+            ScrollView {
+                VStack(alignment: .leading, spacing: FGSpacing.xl) {
+                    FGCard {
+                        FGSectionHeader(
+                            "Location",
+                            subtitle: "Submit a new FanGeo business location for review."
+                        )
 
-                Section {
-                    AddLocationVenueFeaturesGrid(
-                        screenCount: $form.screenCount,
-                        servesFood: $form.servesFood,
-                        hasWifi: $form.hasWifi,
-                        hasGarden: $form.hasGarden,
-                        hasProjector: $form.hasProjector,
-                        petFriendly: $form.petFriendly,
-                        parkingAvailable: $form.parkingAvailable,
-                        familyFriendly: $form.familyFriendly,
-                        maxScreenCount: 40
-                    )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                    .listRowBackground(Color.clear)
-                }
+                        TextField("Location name", text: $form.locationName)
+                            .textInputAutocapitalization(.words)
+                            .fanGeoInputFieldStyle()
+                        TextField("Street address", text: $form.streetAddress)
+                            .fanGeoInputFieldStyle()
+                        TextField("City", text: $form.city)
+                            .textInputAutocapitalization(.words)
+                            .fanGeoInputFieldStyle()
 
-                Section("Details") {
-                    TextField("Description", text: $form.description, axis: .vertical)
-                        .lineLimit(3...8)
-                    TextField("Proof note (how you operate this location)", text: $form.proofNote, axis: .vertical)
-                        .lineLimit(2...6)
-                }
+                        HStack(alignment: .center, spacing: FGSpacing.md) {
+                            BusinessLocationUSStatePicker(stateCode: $form.state)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            TextField("ZIP", text: $form.zip)
+                                .textInputAutocapitalization(.never)
+                                .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
+                        }
+                        .fanGeoInputFieldStyle()
 
-                Section("Photos") {
-                    VenueOwnerListingPhotoPickerCard(
-                        title: "Business Photo",
-                        subtitle: "Main photo of your business",
-                        pickerSelection: $selectedCoverPicker,
-                        remotePreviewURL: coverPickerRemotePreview,
-                        localPreviewData: nil
-                    )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                    .listRowBackground(Color.clear)
+                        BusinessLocationCountryField(countryCode: $form.country)
+                            .fanGeoInputFieldStyle()
+                        TextField("Phone", text: $form.phone)
+                            .keyboardType(.phonePad)
+                            .fanGeoInputFieldStyle()
+                        TextField("Website (optional)", text: $form.website)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .fanGeoInputFieldStyle()
+                    }
 
-                    VenueOwnerListingPhotoPickerCard(
-                        title: "Menu Photo",
-                        subtitle: "Food or drink menu photo",
-                        pickerSelection: $selectedMenuPicker,
-                        remotePreviewURL: menuPickerRemotePreview,
-                        localPreviewData: nil
-                    )
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
-                    .listRowBackground(Color.clear)
-                }
+                    FGCard {
+                        AddLocationVenueFeaturesGrid(
+                            screenCount: $form.screenCount,
+                            servesFood: $form.servesFood,
+                            hasWifi: $form.hasWifi,
+                            hasGarden: $form.hasGarden,
+                            hasProjector: $form.hasProjector,
+                            petFriendly: $form.petFriendly,
+                            parkingAvailable: $form.parkingAvailable,
+                            familyFriendly: $form.familyFriendly,
+                            maxScreenCount: 40
+                        )
+                    }
 
-                Section {
-                    if missing.isEmpty {
-                        Text("All required fields are complete.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(missing, id: \.self) { line in
-                            Text(line)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                    FGCard {
+                        FGSectionHeader(
+                            "Details",
+                            subtitle: "Tell FanGeo what makes this location real and review-ready."
+                        )
+
+                        TextField("Description", text: $form.description, axis: .vertical)
+                            .lineLimit(3...8)
+                            .fanGeoInputFieldStyle()
+                        TextField("Proof note (how you operate this location)", text: $form.proofNote, axis: .vertical)
+                            .lineLimit(2...6)
+                            .fanGeoInputFieldStyle()
+                    }
+
+                    FGCard {
+                        FGSectionHeader(
+                            "Photos",
+                            subtitle: "Main venue photo is required. Menu photo is optional."
+                        )
+
+                        VenueOwnerListingPhotoPickerCard(
+                            title: "Business Photo",
+                            subtitle: "Main photo of your business",
+                            pickerSelection: $selectedCoverPicker,
+                            remotePreviewURL: coverPickerRemotePreview,
+                            localPreviewData: nil,
+                            usesFanGeoSheetChrome: true
+                        )
+
+                        VenueOwnerListingPhotoPickerCard(
+                            title: "Menu Photo",
+                            subtitle: "Food or drink menu photo",
+                            pickerSelection: $selectedMenuPicker,
+                            remotePreviewURL: menuPickerRemotePreview,
+                            localPreviewData: nil,
+                            usesFanGeoSheetChrome: true
+                        )
+                    }
+
+                    FGCard {
+                        FGSectionHeader(
+                            "Required to submit",
+                            subtitle: missing.isEmpty ? "All required fields are complete." : "Finish the items below before submitting."
+                        )
+
+                        if missing.isEmpty {
+                            SettingsSheetStatusBanner(
+                                title: "Ready to submit",
+                                message: "All required fields are complete.",
+                                tint: FGColor.accentGreen,
+                                systemImage: "checkmark.circle.fill"
+                            )
+                        } else {
+                            ForEach(missing, id: \.self) { line in
+                                HStack(alignment: .top, spacing: FGSpacing.sm) {
+                                    Image(systemName: "circle.fill")
+                                        .font(.system(size: 6))
+                                        .foregroundStyle(FGColor.accentYellow)
+                                        .padding(.top, 6)
+                                    Text(line)
+                                        .font(FGTypography.caption)
+                                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                }
+                            }
                         }
                     }
-                } header: {
-                    Text("Required to submit")
-                }
 
-                if !form.errorMessage.isEmpty {
-                    Section {
-                        Text(form.errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                    if !form.errorMessage.isEmpty {
+                        SettingsSheetStatusBanner(
+                            title: "Couldn’t submit location",
+                            message: form.errorMessage,
+                            tint: FGColor.dangerRed,
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
                     }
                 }
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.top, FGSpacing.lg)
+                .padding(.bottom, SettingsScrollBottomLayout.sheetScrollComfortInset)
             }
+            .scrollIndicators(.hidden)
+            .fanGeoScreenBackground()
             .navigationTitle("Add location")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -1504,22 +1865,123 @@ private struct SettingsVenueOwnerDeletionSheet: View {
 
 // MARK: - Auth sheets + profile hero
 
+private struct SettingsSheetStatusBanner: View {
+    let title: String?
+    let message: String
+    let tint: Color
+    var systemImage: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .font(FGTypography.metadata.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                }
+                Text(message)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(FGSpacing.md)
+        .background(FGColor.cardBackground(colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1)
+        }
+    }
+}
+
+private struct SettingsSheetSectionLabel: View {
+    let title: String
+    var subtitle: String? = nil
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+            }
+        }
+    }
+}
+
+private struct SettingsUnifiedAccountEntryCard: View {
+    let onSignIn: () -> Void
+    let onCreateAccount: () -> Void
+    let onVenueOwnerTools: (() -> Void)?
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        FGCard {
+            FGSectionHeader(
+                "FanGeo Account",
+                subtitle: "Access your profile, favorites, chats, venues, and business tools."
+            )
+
+            Text("Sign in once to move through FanGeo as one connected account experience, then unlock venue-owner tools as needed.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            FGPrimaryButton(title: "Sign In", systemImage: "person.fill") {
+                onSignIn()
+            }
+
+            FGSecondaryButton(title: "Create Account", systemImage: "person.badge.plus") {
+                onCreateAccount()
+            }
+
+            if let onVenueOwnerTools {
+                Button(action: onVenueOwnerTools) {
+                    HStack(spacing: FGSpacing.sm) {
+                        Image(systemName: "building.2.crop.circle")
+                        Text("Venue owner tools")
+                            .font(FGTypography.cardTitle)
+                    }
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, FGSpacing.sm)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+}
+
 private struct SettingsUserAuthSheet: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var email: String
     @Binding var password: String
     @Binding var showRegisterMode: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Account")
-                    .font(.largeTitle.weight(.bold))
-                    .padding(.top, 10)
-
-                Text("Sign in to sync your profile and activity.")
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: FGSpacing.xl) {
+                FanGeoBrandHeroView(
+                    title: "Account",
+                    subtitle: "Sign in to sync your profile and activity.",
+                    variant: .white,
+                    logoWidth: 132
+                )
+                .padding(.top, 6)
 
                 SettingsAccountCard(
                     viewModel: viewModel,
@@ -1527,29 +1989,17 @@ private struct SettingsUserAuthSheet: View {
                     password: $password,
                     showRegisterMode: $showRegisterMode
                 )
-                .padding()
-                .background(.thinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
 
                 SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
-                    .padding()
-                    .background(.thinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.horizontal, FGSpacing.lg)
+            .padding(.bottom, FGSpacing.md)
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
         }
-        .background(
-            LinearGradient(
-                colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
@@ -1587,42 +2037,35 @@ private struct SettingsVenueAuthSheetSignedInBody: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
             if viewModel.isVenueOwnerBusinessDataLoading {
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text("Loading your venues…")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 6)
+                SettingsSheetStatusBanner(
+                    title: "Loading business account",
+                    message: "Loading your venues…",
+                    tint: FGColor.accentBlue,
+                    systemImage: "building.2.crop.circle"
+                )
             } else if viewModel.venueOwnerJustCompletedRegistration {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Business account created")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                FGCard {
+                    FGSectionHeader(
+                        "Business account created",
+                        subtitle: "Your first location request has been submitted for review."
+                    ) {
+                        FGStatusPill(title: "Pending review", kind: .pending)
+                    }
 
-                    Text("Your first location request has been submitted for review.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    SettingsSheetStatusBanner(
+                        title: nil,
+                        message: "FanGeo reviews new business location submissions before owner tools are unlocked.",
+                        tint: FGColor.accentYellow,
+                        systemImage: "clock.badge.checkmark"
+                    )
 
-                    Button {
+                    FGPrimaryButton(title: "Close") {
                         viewModel.venueOwnerJustCompletedRegistration = false
                         dismissAuthSheet()
-                    } label: {
-                        Text("Close")
-                            .fontWeight(.bold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.black)
-                            .foregroundStyle(.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
-                    .buttonStyle(.plain)
                 }
-                .padding()
-                .background(Color.green.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
 #if DEBUG
                 .onAppear {
                     print("[BusinessSignup] final success modal shown (Business account created card)")
@@ -1659,21 +2102,26 @@ private struct SettingsVenueAuthSheet: View {
     @Binding var showVenueRegisterMode: Bool
     var onRequestVenueProfileDashboard: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Business")
-                    .font(.largeTitle.weight(.bold))
-                    .padding(.top, 10)
-
-                Text("Sign in as a business owner to manage your locations and listings.")
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: FGSpacing.xl) {
+                FanGeoBrandHeroView(
+                    title: "Business",
+                    subtitle: "Sign in as a business owner to manage your locations and listings.",
+                    variant: .white,
+                    logoWidth: 132
+                )
+                .padding(.top, 6)
 
                 if !viewModel.isVenueOwnerLoggedIn {
-                    Text("Claim requests are reviewed before owner tools are enabled.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    SettingsSheetStatusBanner(
+                        title: "Approval required",
+                        message: "Claim requests are reviewed before owner tools are enabled.",
+                        tint: FGColor.accentYellow,
+                        systemImage: "clock.badge.exclamationmark"
+                    )
                 }
 
                 if viewModel.isVenueOwnerLoggedIn {
@@ -1682,9 +2130,6 @@ private struct SettingsVenueAuthSheet: View {
                         onRequestVenueProfileDashboard: onRequestVenueProfileDashboard,
                         dismissAuthSheet: { dismiss() }
                     )
-                    .padding()
-                    .background(Color.white.opacity(0.95))
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
                 } else {
                     SettingsVenueOwnerCard(
                         viewModel: viewModel,
@@ -1693,20 +2138,14 @@ private struct SettingsVenueAuthSheet: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.horizontal, FGSpacing.lg)
+            .padding(.bottom, FGSpacing.md)
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
         }
-        .background(
-            LinearGradient(
-                colors: [Color.black.opacity(0.92), Color.gray.opacity(0.65)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-        )
+        .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Close") { dismiss() }
@@ -1724,6 +2163,7 @@ private struct SettingsProfileHero: View {
     var venueOwnerOnResetPassword: () -> Void
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showVenueOwnerHeroActions = false
 
     /// Email shown in the hero: fan session vs venue-owner session (existing ``MapViewModel`` flags; no auth changes).
@@ -1789,70 +2229,146 @@ private struct SettingsProfileHero: View {
         viewModel.isVenueOwnerLoggedIn ? "Business owner account" : "User account"
     }
 
+    private var activityBadgeText: String {
+        if viewModel.isVenueOwnerLoggedIn {
+            let managedCount = viewModel.managedVenuesForOwner().count
+            return managedCount == 1 ? "1 managed venue" : "\(managedCount) managed venues"
+        }
+        let favoritesCount = viewModel.favoriteVenueIDs.count
+        return favoritesCount == 1 ? "1 saved venue" : "\(favoritesCount) saved venues"
+    }
+
+    private var activityBadgeTint: Color {
+        viewModel.isVenueOwnerLoggedIn ? FGColor.accentGreen : FGColor.accentYellow
+    }
+
     private var accountTypeCapsule: some View {
-        Text(accountTypeBadgeText)
-            .font(.caption2.weight(.semibold))
-            .tracking(0.2)
-            .foregroundStyle(.white.opacity(0.78))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.14))
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
-                    )
-            }
-            .padding(.top, 4)
+        heroGlassPill(title: accountTypeBadgeText)
             .accessibilityLabel(accountTypeBadgeText)
     }
 
-    private var heroCard: some View {
-        HStack(spacing: 14) {
-            UserAvatarView(
-                avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
-                avatarURL: viewModel.currentUserAvatarURL,
-                avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
-                displayName: resolvedDisplayName,
-                email: heroEmailLine,
-                size: 64,
-                fallbackStyle: .darkCardTranslucent,
-                imagePlaceholderTint: .white
-            )
+    private var activityCapsule: some View {
+        heroGlassPill(title: activityBadgeText, accent: activityBadgeTint)
+            .accessibilityLabel(activityBadgeText)
+    }
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                if !heroEmailLine.isEmpty {
-                    Text(heroEmailLine)
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.75))
-                        .lineLimit(1)
-                }
-                accountTypeCapsule
-            }
-
-            Spacer(minLength: 0)
-
-            if viewModel.isLoggedIn {
-                Text("Edit")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-            } else if viewModel.isVenueOwnerLoggedIn {
-                Text("Account")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+    private var heroBackgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.04, green: 0.05, blue: 0.07).opacity(colorScheme == .dark ? 0.96 : 0.90),
+                Color(red: 0.09, green: 0.12, blue: 0.17).opacity(colorScheme == .dark ? 0.98 : 0.93),
+                Color(red: 0.16, green: 0.22, blue: 0.30).opacity(colorScheme == .dark ? 0.92 : 0.86)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
+    }
+
+    private var heroBlueHighlight: some View {
+        RadialGradient(
+            colors: [
+                Color(red: 0.74, green: 0.88, blue: 0.99).opacity(colorScheme == .dark ? 0.12 : 0.08),
+                Color.clear
+            ],
+            center: .topTrailing,
+            startRadius: 8,
+            endRadius: 220
+        )
+    }
+
+    private func heroGlassPill(title: String, accent: Color? = nil) -> some View {
+        HStack(spacing: 6) {
+            if let accent {
+                Circle()
+                    .fill(accent.opacity(0.95))
+                    .frame(width: 6, height: 6)
+                    .shadow(color: accent.opacity(0.28), radius: 4, y: 0)
+            }
+
+            Text(title)
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(.white.opacity(accent == nil ? 0.78 : 0.90))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 6)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color(red: 0.82, green: 0.90, blue: 1.0).opacity(colorScheme == .dark ? 0.08 : 0.10))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.15), lineWidth: 1)
+                }
+        }
+    }
+
+    private var heroCard: some View {
+        ZStack(alignment: .bottomTrailing) {
+            heroBackgroundGradient
+            heroBlueHighlight
+
+            VStack(alignment: .leading, spacing: FGSpacing.lg) {
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    UserAvatarView(
+                        avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+                        avatarURL: viewModel.currentUserAvatarURL,
+                        avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+                        displayName: resolvedDisplayName,
+                        email: heroEmailLine,
+                        size: 72,
+                        fallbackStyle: .darkCardTranslucent,
+                        imagePlaceholderTint: .white
+                    )
+
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        Text(viewModel.isVenueOwnerLoggedIn ? "Business account" : "FanGeo profile")
+                            .font(FGTypography.metadata.weight(.semibold))
+                            .foregroundStyle(.white.opacity(0.72))
+
+                        Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                            .font(FGTypography.sectionTitle)
+                            .foregroundStyle(.white)
+
+                        if !heroEmailLine.isEmpty {
+                            Text(heroEmailLine)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(.white.opacity(0.82))
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.86))
+                        .frame(width: 34, height: 34)
+                        .background(Color(red: 0.82, green: 0.90, blue: 1.0).opacity(colorScheme == .dark ? 0.08 : 0.10))
+                        .clipShape(Circle())
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.15), lineWidth: 1)
+                        }
+                }
+
+                HStack(spacing: FGSpacing.sm) {
+                    accountTypeCapsule
+                    activityCapsule
+                }
+            }
+            .padding(FGSpacing.xl)
+
+            FanGeoLogoWatermark(variant: .white, width: 62, opacity: 0.055)
+                .padding(.trailing, 12)
+                .padding(.bottom, 10)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.11 : 0.14), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.14), radius: 16, y: 9)
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, y: 2)
     }
 
     var body: some View {
@@ -2335,65 +2851,71 @@ private struct SettingsAccountCard: View {
     @Binding var showRegisterMode: Bool
     @State private var fanSignupPoliciesAccepted = false
     @State private var fanSignupLegalDocument: SettingsLegalDocumentKind?
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(showRegisterMode ? "Register" : "Login")
-                .font(.headline)
-                .fontWeight(.bold)
-            
+        FGCard {
+            FGSectionHeader(
+                showRegisterMode ? "Create your fan account" : "Fan account access",
+                subtitle: showRegisterMode
+                    ? "Join FanGeo to save venues, chat, and sync your activity."
+                    : "Sign in to sync your profile and activity."
+            )
+
             if viewModel.isLoggedIn {
-                HStack {
+                HStack(spacing: FGSpacing.md) {
                     Image(systemName: "person.circle.fill")
-                        .font(.title)
-                    
-                    VStack(alignment: .leading) {
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(FGColor.accentBlue)
+
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("Signed in")
-                            .fontWeight(.bold)
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
                         Text(viewModel.currentUserEmail)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
-                    
-                    Spacer()
+                    Spacer(minLength: 0)
                 }
-                
-                Button {
+                .padding(FGSpacing.md)
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.97))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+
+                FGSecondaryButton(title: "Log Out", systemImage: "rectangle.portrait.and.arrow.right") {
                     Task {
                         await viewModel.logoutUser()
                         email = ""
                         password = ""
                     }
-                } label: {
-                    Text("Log Out")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.red.opacity(0.12))
-                        .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             } else {
                 TextField("Email", text: $email)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                
+                    .fanGeoInputFieldStyle()
+
                 SecureField("Password", text: $password)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 if showRegisterMode {
-                    HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                        SettingsSheetSectionLabel(
+                            title: "Guidelines",
+                            subtitle: "Accept the FanGeo terms before creating your account."
+                        )
+
+                        HStack(alignment: .top, spacing: 10) {
                         Button {
                             fanSignupPoliciesAccepted.toggle()
                         } label: {
                             Image(systemName: fanSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
                                 .font(.title3)
-                                .foregroundStyle(fanSignupPoliciesAccepted ? Color.blue : Color.secondary)
+                                .foregroundStyle(fanSignupPoliciesAccepted ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
@@ -2428,14 +2950,25 @@ private struct SettingsAccountCard: View {
                                 Text(".")
                             }
                             .font(.footnote)
-                            .foregroundStyle(.primary)
-                            .tint(.blue)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .tint(FGColor.accentBlue)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    }
+                    .padding(FGSpacing.md)
+                    .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
+                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                            .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                    }
                 }
 
-                Button {
+                FGPrimaryButton(
+                    title: showRegisterMode ? "Create Account" : "Login",
+                    isDisabled: showRegisterMode && !fanSignupPoliciesAccepted
+                ) {
                     Task {
                         if showRegisterMode {
                             await viewModel.registerUser(
@@ -2450,37 +2983,27 @@ private struct SettingsAccountCard: View {
                             password = ""
                         }
                     }
-                } label: {
-                    Text(showRegisterMode ? "Create Account" : "Login")
-                        .fontWeight(.bold)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.black)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .disabled(showRegisterMode && !fanSignupPoliciesAccepted)
 
-                
                 if !viewModel.authErrorMessage.isEmpty {
-                    Text(viewModel.authErrorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    SettingsSheetStatusBanner(
+                        title: "Couldn’t sign in",
+                        message: viewModel.authErrorMessage,
+                        tint: FGColor.dangerRed,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
                 }
-                
+
                 Button {
                     showRegisterMode.toggle()
                 } label: {
                     Text(showRegisterMode ? "Already have an account? Login" : "New user? Register")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.blue)
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.accentBlue)
                 }
+                .buttonStyle(.plain)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
         .onChange(of: showRegisterMode) { _, isRegister in
             password = ""
             if !isRegister {
@@ -2500,6 +3023,7 @@ private struct SettingsFanPasswordResetCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var loginEmail: String
     @State private var isSending = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private var emailForReset: String {
         if viewModel.isLoggedIn {
@@ -2509,75 +3033,61 @@ private struct SettingsFanPasswordResetCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Reset password")
-                .font(.headline)
-                .fontWeight(.bold)
-
-            Text("We’ll email you a secure link to choose a new password. Use the same email as your fan account.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        FGCard {
+            FGSectionHeader(
+                "Reset password",
+                subtitle: "We’ll email you a secure link to choose a new password. Use the same email as your fan account."
+            )
 
             if viewModel.isLoggedIn {
                 HStack(spacing: 8) {
                     Image(systemName: "envelope.fill")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
                     Text(viewModel.currentUserEmail)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(FGTypography.body.weight(.medium))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
                 }
-                .padding()
+                .padding(FGSpacing.md)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.97))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
             } else {
                 TextField("Email for password reset", text: $loginEmail)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
             }
 
-            Button {
+            FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
                 Task {
                     isSending = true
                     await viewModel.sendPasswordResetEmail(emailForReset, accountKind: .fan)
                     isSending = false
                 }
-            } label: {
-                HStack {
-                    if isSending {
-                        ProgressView()
-                            .tint(.white)
-                    }
-                    Text("Send reset link")
-                        .fontWeight(.bold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.black.opacity(isSending ? 0.45 : 1))
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .disabled(isSending)
 
             if !viewModel.userPasswordResetMessage.isEmpty {
-                Text(viewModel.userPasswordResetMessage)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.green)
+                SettingsSheetStatusBanner(
+                    title: "Reset link sent",
+                    message: viewModel.userPasswordResetMessage,
+                    tint: FGColor.accentGreen,
+                    systemImage: "checkmark.circle.fill"
+                )
             }
 
             if !viewModel.userPasswordResetError.isEmpty {
-                Text(viewModel.userPasswordResetError)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                SettingsSheetStatusBanner(
+                    title: "Reset unavailable",
+                    message: viewModel.userPasswordResetError,
+                    tint: FGColor.dangerRed,
+                    systemImage: "xmark.circle.fill"
+                )
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
     }
 }
 
@@ -2844,6 +3354,7 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupMenuPicker: PhotosPickerItem?
     @State private var signupCoverData: Data?
     @State private var signupMenuData: Data?
+    @Environment(\.colorScheme) private var colorScheme
 
     private var registrationFormComplete: Bool {
         let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
@@ -2895,103 +3406,73 @@ private struct SettingsVenueOwnerCard: View {
 #endif
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Business owner")
-                .font(.headline)
-                .fontWeight(.bold)
-
-            Text(
-                showVenueRegisterMode
+        FGCard {
+            FGSectionHeader(
+                showVenueRegisterMode ? "Create business owner account" : "Business owner access",
+                subtitle: showVenueRegisterMode
                     ? "Create your business account and submit your first location in one step. Owner tools unlock after FanGeo reviews and approves the location."
                     : "Sign in to manage listings after your business and location are set up."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            ) {
+                FGStatusPill(
+                    title: showVenueRegisterMode ? "Review required" : "Owner tools",
+                    kind: .custom(tint: showVenueRegisterMode ? FGColor.accentYellow : FGColor.accentBlue)
+                )
+            }
 
             TextField("Business email", text: $viewModel.venueOwnerEmail)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
-                .padding()
-                .background(Color.gray.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .fanGeoInputFieldStyle()
 
             SecureField("Business owner password", text: $venuePassword)
-                .padding()
-                .background(Color.gray.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .fanGeoInputFieldStyle()
 
             if showVenueRegisterMode {
-                Text("Business")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
+                SettingsSheetSectionLabel(title: "Business")
                 TextField("Business / brand name", text: $signupBusinessName)
                     .textInputAutocapitalization(.words)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
-                Text("First location")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
+                SettingsSheetSectionLabel(title: "First location")
                 TextField("Location name", text: $signupLocationName)
                     .textInputAutocapitalization(.words)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("Street address", text: $signupStreet)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("City", text: $signupCity)
                     .textInputAutocapitalization(.words)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                HStack(alignment: .center, spacing: FGSpacing.md) {
                     BusinessLocationUSStatePicker(title: "State", stateCode: $signupState)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     TextField("ZIP", text: $signupZip)
                         .textInputAutocapitalization(.never)
                         .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
                 }
-                .padding()
-                .background(Color.gray.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .fanGeoInputFieldStyle()
 
                 BusinessLocationCountryField(countryCode: $signupCountry)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("Phone", text: $signupPhone)
                     .keyboardType(.phonePad)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("Website (optional)", text: $signupWebsite)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("Description", text: $signupDescription, axis: .vertical)
                     .lineLimit(3...8)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 TextField("Proof note (how you operate this location)", text: $signupProof, axis: .vertical)
                     .lineLimit(2...6)
-                    .padding()
-                    .background(Color.gray.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .fanGeoInputFieldStyle()
 
                 AddLocationVenueFeaturesGrid(
                     screenCount: $signupScreenCount,
@@ -3005,22 +3486,24 @@ private struct SettingsVenueOwnerCard: View {
                     maxScreenCount: 40
                 )
 
-                Text("Photos")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                SettingsSheetSectionLabel(title: "Photos", subtitle: "A main business photo is required.")
 
                 VenueOwnerListingPhotoPickerCard(
                     title: "Business Photo",
                     subtitle: "Main photo of your business",
                     pickerSelection: $signupCoverPicker,
                     remotePreviewURL: "",
-                    localPreviewData: signupCoverData
+                    localPreviewData: signupCoverData,
+                    usesFanGeoSheetChrome: true
                 )
 
                 if !(signupCoverData.map { !$0.isEmpty } ?? false) {
-                    Text("Main venue photo is required.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    SettingsSheetStatusBanner(
+                        title: "Photo required",
+                        message: "Main venue photo is required.",
+                        tint: FGColor.dangerRed,
+                        systemImage: "photo.badge.exclamationmark"
+                    )
                 }
 
                 VenueOwnerListingPhotoPickerCard(
@@ -3028,7 +3511,8 @@ private struct SettingsVenueOwnerCard: View {
                     subtitle: "Food or drink menu photo",
                     pickerSelection: $signupMenuPicker,
                     remotePreviewURL: "",
-                    localPreviewData: signupMenuData
+                    localPreviewData: signupMenuData,
+                    usesFanGeoSheetChrome: true
                 )
 
                 HStack(alignment: .top, spacing: 10) {
@@ -3037,7 +3521,7 @@ private struct SettingsVenueOwnerCard: View {
                     } label: {
                         Image(systemName: venueSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
                             .font(.title3)
-                            .foregroundStyle(venueSignupPoliciesAccepted ? Color.blue : Color.secondary)
+                            .foregroundStyle(venueSignupPoliciesAccepted ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
@@ -3072,14 +3556,24 @@ private struct SettingsVenueOwnerCard: View {
                             Text(".")
                         }
                         .font(.footnote)
-                        .foregroundStyle(.primary)
-                        .tint(.blue)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .tint(FGColor.accentBlue)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .padding(FGSpacing.md)
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
             }
 
-            Button {
+            FGPrimaryButton(
+                title: showVenueRegisterMode ? "Create account & submit location" : "Sign In as Business Owner",
+                isDisabled: signupPrimarySubmitDisabled
+            ) {
 #if DEBUG
                 print("[BusinessSignup] button tapped primaryAction registerMode=\(showVenueRegisterMode)")
                 logSignupSubmitGates(reason: "immediate_after_tap")
@@ -3150,17 +3644,7 @@ private struct SettingsVenueOwnerCard: View {
                         }
                     }
                 }
-            } label: {
-                Text(showVenueRegisterMode ? "Create account & submit location" : "Sign In as Business Owner")
-                    .fontWeight(.bold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(signupPrimarySubmitDisabled ? Color(white: 0.88) : Color.black)
-                    .foregroundStyle(signupPrimarySubmitDisabled ? Color.primary.opacity(0.42) : Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .buttonStyle(.plain)
-            .disabled(signupPrimarySubmitDisabled)
 #if DEBUG
             .onAppear {
                 logSignupSubmitGates(reason: "submit_button_onAppear")
@@ -3180,20 +3664,20 @@ private struct SettingsVenueOwnerCard: View {
                 showVenueRegisterMode.toggle()
             } label: {
                 Text(showVenueRegisterMode ? "Already have an account? Sign in" : "New business owner? Register")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.blue)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.accentBlue)
             }
+            .buttonStyle(.plain)
 
             if !viewModel.venueAuthErrorMessage.isEmpty {
-                Text(viewModel.venueAuthErrorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
+                SettingsSheetStatusBanner(
+                    title: "Couldn’t continue",
+                    message: viewModel.venueAuthErrorMessage,
+                    tint: FGColor.dangerRed,
+                    systemImage: "exclamationmark.triangle.fill"
+                )
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 22))
         .onChange(of: showVenueRegisterMode) { _, isRegister in
             venuePassword = ""
             viewModel.venueAuthErrorMessage = ""
@@ -3264,6 +3748,7 @@ struct BusinessLocationVenuePicker: View {
     }
 
     @ObservedObject var viewModel: MapViewModel
+    @Environment(\.colorScheme) private var colorScheme
     var chrome: Chrome = .settings
     /// When set (Settings → Business), menu includes **+ Add new location** and zero-venue state shows **Add first location**.
     var onRequestAddNewLocation: (() -> Void)?
@@ -3281,6 +3766,12 @@ struct BusinessLocationVenuePicker: View {
             let label = raw.isEmpty ? "Location" : raw
             return (id, label)
         }
+    }
+
+    private var selectedVenueRow: VenueProfileRow? {
+        let selectedId = viewModel.ownerVenueDatabaseId ?? venuePairs.first?.0
+        guard let selectedId else { return viewModel.managedVenuesForOwner().first }
+        return viewModel.managedVenuesForOwner().first(where: { $0.id == selectedId }) ?? viewModel.managedVenuesForOwner().first
     }
 
     private var pickerSelection: Binding<UUID?> {
@@ -3303,6 +3794,82 @@ struct BusinessLocationVenuePicker: View {
         return venuePairs.first?.1 ?? "Location"
     }
 
+    private var selectedVenueSubtitle: String {
+        if let row = selectedVenueRow {
+            let city = row.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let state = row.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let locationLine = [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+            if !locationLine.isEmpty {
+                return locationLine
+            }
+        }
+        if venuePairs.count > 1 {
+            return "\(venuePairs.count) approved locations available to manage."
+        }
+        return "Approved location for listings, games, and analytics."
+    }
+
+    private var settingsPickerLabel: String {
+        switch chrome {
+        case .settings:
+            return "Current managed venue"
+        case .dashboard:
+            return "Managing location"
+        }
+    }
+
+    @ViewBuilder
+    private func settingsPickerRowLabel(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        showsApprovedBadge: Bool,
+        chevronSystemName: String
+    ) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .frame(width: 40, height: 40)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: FGSpacing.xs + 2) {
+                    Text(title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    if showsApprovedBadge {
+                        managedVenueApprovedBadge()
+                    }
+                }
+
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: chevronSystemName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .frame(width: 16, height: 16, alignment: .center)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 13)
+        .frame(minHeight: 70, alignment: .center)
+        .contentShape(Rectangle())
+    }
+
     private func invokeAddNewLocation() {
 #if DEBUG
         print("[BusinessLocationPicker] add new location selected")
@@ -3314,12 +3881,12 @@ struct BusinessLocationVenuePicker: View {
     @ViewBuilder
     private func managedVenueApprovedBadge() -> some View {
         Text("Approved")
-            .font(.caption2.weight(.semibold))
-            .foregroundStyle(.green)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
-            .background(Color.green.opacity(0.2))
-            .clipShape(Capsule())
+            .font(FGTypography.metadata.weight(.semibold))
+            .foregroundStyle(FGColor.accentGreen)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.12))
+            .clipShape(Capsule(style: .continuous))
     }
 
     private func logPickerDebug() {
@@ -3339,42 +3906,24 @@ struct BusinessLocationVenuePicker: View {
         Group {
             if venuePairs.isEmpty {
                 if chrome == .settings, onRequestAddNewLocation != nil {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Managing location")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        Text(settingsPickerLabel)
+                            .font(FGTypography.metadata.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
                         Button {
                             invokeAddNewLocation()
                         } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(Color.accentColor)
-                                    .frame(width: 26)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Add first location")
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    Text("Request your first venue for this business.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer(minLength: 0)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                            settingsPickerRowLabel(
+                                title: "Add first location",
+                                subtitle: "Request your first venue for this business.",
+                                systemImage: "plus.circle.fill",
+                                tint: FGColor.accentBlue,
+                                showsApprovedBadge: false,
+                                chevronSystemName: "chevron.right"
+                            )
                         }
                         .buttonStyle(.plain)
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .onAppear { viewModel.logBusinessSwitcherDebug() }
                 } else {
                     EmptyView()
@@ -3382,66 +3931,37 @@ struct BusinessLocationVenuePicker: View {
             } else {
                 switch chrome {
                 case .settings:
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Managing location")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        if onRequestAddNewLocation != nil {
-                            Menu {
-                                ForEach(venuePairs, id: \.0) { pair in
-                                    Button {
-                                        Task {
-                                            await viewModel.selectManagedVenue(id: pair.0)
-                                        }
-                                    } label: {
-                                        HStack {
-                                            Text(pair.1)
-                                                .lineLimit(2)
-                                                .multilineTextAlignment(.leading)
-                                            Spacer(minLength: 8)
-                                            managedVenueApprovedBadge()
-                                        }
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        Text(settingsPickerLabel)
+                            .font(FGTypography.metadata.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        Menu {
+                            ForEach(venuePairs, id: \.0) { pair in
+                                Button {
+                                    Task {
+                                        await viewModel.selectManagedVenue(id: pair.0)
                                     }
+                                } label: {
+                                    Text(pair.1)
                                 }
+                            }
+                            if onRequestAddNewLocation != nil {
                                 Divider()
                                 Button("+ Add new location") {
                                     invokeAddNewLocation()
                                 }
-                            } label: {
-                                HStack(alignment: .center, spacing: 8) {
-                                    HStack(spacing: 6) {
-                                        Text(selectedVenueLabel)
-                                            .font(.body.weight(.semibold))
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(2)
-                                            .multilineTextAlignment(.leading)
-                                        managedVenueApprovedBadge()
-                                    }
-                                    Spacer(minLength: 8)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
                             }
-                        } else {
-                            Picker("Managing location", selection: pickerSelection) {
-                                ForEach(venuePairs, id: \.0) { pair in
-                                    HStack {
-                                        Text(pair.1)
-                                        Spacer(minLength: 6)
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.caption)
-                                            .foregroundStyle(.green)
-                                    }
-                                    .tag(Optional(pair.0))
-                                }
-                            }
-                            .pickerStyle(.menu)
+                        } label: {
+                            settingsPickerRowLabel(
+                                title: selectedVenueLabel,
+                                subtitle: selectedVenueSubtitle,
+                                systemImage: "building.2",
+                                tint: FGColor.accentBlue,
+                                showsApprovedBadge: true,
+                                chevronSystemName: "chevron.up.chevron.down"
+                            )
                         }
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .onAppear { viewModel.logBusinessSwitcherDebug() }
 
                 case .dashboard:

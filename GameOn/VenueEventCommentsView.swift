@@ -33,8 +33,8 @@ struct VenueEventCommentsView: View {
             .sorted {
                 let a = $0.created_at ?? ""
                 let b = $1.created_at ?? ""
-                if a != b { return a > b }
-                return ($0.id?.uuidString ?? "") > ($1.id?.uuidString ?? "")
+                if a != b { return a < b }
+                return ($0.id?.uuidString ?? "") < ($1.id?.uuidString ?? "")
             }
     }
 
@@ -43,6 +43,28 @@ struct VenueEventCommentsView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
+                        if commentsHasOlder || commentsLoadingOlder {
+                            HStack(spacing: 10) {
+                                if commentsLoadingOlder {
+                                    ProgressView()
+                                        .scaleEffect(0.85)
+                                }
+                                if commentsHasOlder {
+                                    Button {
+                                        Task { await loadOlderCommentsTapped() }
+                                    } label: {
+                                        Text("Load older updates")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(commentsLoadingOlder)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 4)
+                        }
+
                         if !viewModel.isAuthenticatedForSocialFeatures, !comments.isEmpty {
                             Text("Sign in to add friends and see friendship status on updates.")
                                 .font(.caption2)
@@ -67,27 +89,21 @@ struct VenueEventCommentsView: View {
                                 .foregroundStyle(.green)
                         }
 
-                        if commentsHasOlder || commentsLoadingOlder {
-                            HStack(spacing: 10) {
-                                if commentsLoadingOlder {
-                                    ProgressView()
-                                        .scaleEffect(0.85)
-                                }
-                                if commentsHasOlder {
-                                    Button {
-                                        Task { await loadOlderCommentsTapped() }
-                                    } label: {
-                                        Text("Load older updates")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(commentsLoadingOlder)
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
-                        }
+                        Color.clear
+                            .frame(height: 1)
+                            .id("comments-bottom-anchor")
+                    }
+                }
+                .onChange(of: comments.last?.id) { _, target in
+                    guard target != nil else { return }
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("comments-bottom-anchor", anchor: .bottom)
+                    }
+                }
+                .onAppear {
+                    guard !comments.isEmpty else { return }
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("comments-bottom-anchor", anchor: .bottom)
                     }
                 }
             }
@@ -141,10 +157,14 @@ struct VenueEventCommentsView: View {
         .task(id: venueEventID) {
             commentsLoadingOlder = false
             commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID)
+            await viewModel.startVenueEventCommentsRealtime(for: venueEventID)
 
             let emails = comments.compactMap { $0.user_email }
             await viewModel.loadUserProfilesForEmails(emails)
             await refreshCommentFriendshipIfNeeded()
+        }
+        .onDisappear {
+            Task { await viewModel.stopVenueEventCommentsRealtime(for: venueEventID) }
         }
         .onChange(of: comments.count) { _, _ in
             Task {
@@ -166,7 +186,7 @@ struct VenueEventCommentsView: View {
     }
 
     private func loadOlderCommentsTapped() async {
-        guard let oldest = comments.last,
+        guard let oldest = comments.first,
               let oid = oldest.id,
               let raw = oldest.created_at,
               let od = parseCommentCreatedAt(raw) else {
@@ -242,8 +262,10 @@ struct VenueEventCommentsView: View {
                     // Trailing: report (others) → Add Friend / status (others) → delete (self, rightmost).
                     HStack(spacing: 8) {
                         if let email = comment.user_email,
-                           let commentID = comment.id,
+                           let commentID = comment.serverCommentID,
                            !isAuthoredByCurrentUser(email: email),
+                           !comment.isPendingSend,
+                           !comment.isFailedSend,
                            viewModel.isAuthenticatedForSocialFeatures {
                             let alreadyReported = viewModel.hasCurrentUserReportedComment(commentID: commentID)
                             Button {
@@ -283,7 +305,28 @@ struct VenueEventCommentsView: View {
 
                         friendshipChip(for: comment)
 
-                        if let email = comment.user_email, isAuthoredByCurrentUser(email: email) {
+                        if comment.isFailedSend,
+                           let email = comment.user_email,
+                           isAuthoredByCurrentUser(email: email) {
+                            Button {
+                                Task {
+                                    if let err = await viewModel.retryCommentSend(comment) {
+                                        await MainActor.run {
+                                            postMessage = err
+                                            postMessageIsError = true
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Label("Retry", systemImage: "arrow.clockwise")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.orange)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Retry sending update")
+                        } else if let email = comment.user_email,
+                                  isAuthoredByCurrentUser(email: email),
+                                  !comment.isPendingSend {
                             Button {
                                 Task {
                                     await viewModel.deleteComment(comment)
@@ -306,6 +349,16 @@ struct VenueEventCommentsView: View {
                     .font(.subheadline)
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if comment.isPendingSend {
+                    Label("Sending...", systemImage: "clock")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                } else if comment.isFailedSend {
+                    Label("Failed to send", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
             }
         }
         .padding(12)
@@ -354,12 +407,8 @@ struct VenueEventCommentsView: View {
                                                 postMessageIsError = true
                                             }
                                         } else {
-                                            let emails = comments.compactMap { $0.user_email }
-                                            await viewModel.loadUserProfilesForEmails(emails)
-
                                             await MainActor.run {
-                                                postMessage = "Update posted"
-                                                postMessageIsError = false
+                                                postMessage = ""
                                             }
                                         }
 
@@ -407,12 +456,8 @@ struct VenueEventCommentsView: View {
                                         postMessageIsError = true
                                     }
                                 } else {
-                                    let emails = comments.compactMap { $0.user_email }
-                                    await viewModel.loadUserProfilesForEmails(emails)
-
                                     await MainActor.run {
-                                        postMessage = "Update posted"
-                                        postMessageIsError = false
+                                        postMessage = ""
                                     }
                                 }
 
@@ -434,12 +479,7 @@ struct VenueEventCommentsView: View {
                     Text("\(newComment.count)/\(maxCommentLength)")
                         .font(.caption2)
                         .foregroundStyle(newComment.count >= maxCommentLength ? .red : .secondary)
-                    
-                    if isPostingComment {
-                        Text("Posting update...")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+
                     if !postMessage.isEmpty {
                         Text(postMessage)
                             .font(.caption2)

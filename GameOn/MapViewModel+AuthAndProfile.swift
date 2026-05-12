@@ -27,6 +27,231 @@ extension MapViewModel {
         UserDefaults.standard.removeObject(forKey: Self.storedAccountAuthUserIdKey)
     }
 
+    func logBusinessOwnerSessionFlags(context: String) {
+#if DEBUG
+        let normalizedOwnerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        print("[BusinessSessionFlags] context=\(context)")
+        print("[BusinessSessionFlags] isVenueOwnerLoggedIn=\(isVenueOwnerLoggedIn)")
+        print("[BusinessSessionFlags] venueOwnerMode=\(venueOwnerMode)")
+        print("[BusinessSessionFlags] currentUserAuthId=\(currentUserAuthId?.uuidString ?? "nil")")
+        print("[BusinessSessionFlags] venueOwnerEmail=\(normalizedOwnerEmail)")
+        print("[BusinessSessionFlags] hasAuthenticatedVenueOwnerSession=\(hasAuthenticatedVenueOwnerSession)")
+#endif
+    }
+
+    private func hasActiveBusinessAccount(ownerEmail: String) async -> Bool {
+        let normalized = OwnerBusinessEmail.normalized(ownerEmail)
+        guard OwnerBusinessEmail.isValidStrict(normalized) else { return false }
+
+        if ownedBusinesses.contains(where: {
+            OwnerBusinessEmail.normalized($0.owner_email ?? "") == normalized && $0.admin_status == "active"
+        }) {
+            return true
+        }
+
+        struct BusinessExistenceRow: Decodable {
+            let id: UUID
+        }
+
+        do {
+            let rows: [BusinessExistenceRow] = try await supabase
+                .from("businesses")
+                .select("id")
+                .eq("owner_email", value: normalized)
+                .eq("admin_status", value: "active")
+                .limit(1)
+                .execute()
+                .value
+            return !rows.isEmpty
+        } catch {
+#if DEBUG
+            print("[BusinessSessionFlags] hasActiveBusinessAccount failed email=\(normalized):", error)
+#endif
+            return false
+        }
+    }
+
+    @discardableResult
+    func ensureBusinessOwnerSessionFlagsIfPossible(context: String) async -> Bool {
+        logBusinessOwnerSessionFlags(context: "\(context)_before")
+
+        if hasAuthenticatedVenueOwnerSession {
+            logBusinessOwnerSessionFlags(context: "\(context)_already_valid")
+            return true
+        }
+
+        guard let authId = currentUserAuthId else {
+            logBusinessOwnerSessionFlags(context: "\(context)_missing_auth_id")
+            return false
+        }
+
+        let normalizedOwnerEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        guard OwnerBusinessEmail.isValidStrict(normalizedOwnerEmail) else {
+            logBusinessOwnerSessionFlags(context: "\(context)_invalid_owner_email")
+            return false
+        }
+
+        guard await hasActiveBusinessAccount(ownerEmail: normalizedOwnerEmail) else {
+            logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
+            return false
+        }
+
+        isVenueOwnerLoggedIn = true
+        venueOwnerMode = true
+        isLoggedIn = false
+        isAdminLoggedIn = false
+        currentUserAuthId = authId
+        venueOwnerEmail = normalizedOwnerEmail
+        currentUserEmail = ""
+        currentUserDisplayName = ""
+        currentUserAvatarURL = ""
+        currentUserAvatarThumbnailURL = ""
+
+        await persistAccountModeForActiveAuthSession(.businessOwner)
+        logBusinessOwnerSessionFlags(context: "\(context)_restored")
+        return true
+    }
+
+    private func restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+        session: Session,
+        sessionEmail: String,
+        context: String
+    ) async -> Bool {
+        logBusinessOwnerSessionFlags(context: "\(context)_before")
+
+        guard !hasAuthenticatedVenueOwnerSession else {
+            logBusinessOwnerSessionFlags(context: "\(context)_already_valid")
+            return true
+        }
+
+        guard OwnerBusinessEmail.isValidStrict(sessionEmail) else {
+            logBusinessOwnerSessionFlags(context: "\(context)_invalid_session_email")
+            return false
+        }
+
+        guard await hasActiveBusinessAccount(ownerEmail: sessionEmail) else {
+            logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
+            return false
+        }
+
+        venueOwnerEmail = sessionEmail
+        isVenueOwnerLoggedIn = true
+        venueOwnerMode = true
+        isLoggedIn = false
+        currentUserEmail = ""
+        currentUserDisplayName = ""
+        currentUserAvatarURL = ""
+        currentUserAvatarThumbnailURL = ""
+        isAdminLoggedIn = false
+        currentUserAuthId = session.user.id
+
+        await persistAccountModeForActiveAuthSession(.businessOwner)
+        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        checkVenueApprovalStatus()
+        logBusinessOwnerSessionFlags(context: "\(context)_restored")
+        return true
+    }
+
+    func clearCurrentUserProfileLocalCache() {
+        UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
+        UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
+        UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
+    }
+
+    /// Clears authenticated/private session caches that must never survive logout, session loss, or account switching.
+    /// Intentionally does not mutate the high-level signed-in flags; callers clear caches first, then update flags.
+    func clearAuthenticatedSessionCaches() {
+        currentUserEmail = ""
+        currentUserDisplayName = ""
+        currentUserAvatarURL = ""
+        currentUserAvatarThumbnailURL = ""
+        currentUserAuthId = nil
+
+        favoriteVenueIDs = []
+        interestedVenueEventKeys = []
+        favoriteVenueWriteInFlightIDs = []
+        venueEventInterestWriteInFlightIDs = []
+        venueEventInterestIDs = []
+        venueEventInterestCounts = [:]
+        socialActionToastDismissTask?.cancel()
+        socialActionToastDismissTask = nil
+        socialActionToastText = nil
+        socialActionToastIsError = false
+        followingMapNavigationMessage = nil
+        clearFollowingTabCaches()
+        clearFollowingInterestedOnlyDefaults()
+
+        goingUserProfiles = []
+        goingProfilesByVenueEventID = [:]
+        commentIDsReportedByCurrentUser = []
+        userProfilesByEmail = [:]
+        myVenueEventVibes = [:]
+        venueUserStarRatings = [:]
+        venueRatingContributionCount = [:]
+        Task { [weak self] in
+            await self?.removeAllVenueEventCommentsRealtimeListeners()
+        }
+
+        venueOwnerEmail = ""
+        ownerVenueDatabaseId = nil
+        isVenueOwnerBusinessDataLoading = false
+        clearVenueOwnerOwnedBusinessCaches()
+        venueClaimSubmitted = false
+        venueClaimStatus = "Not submitted"
+        venueIsApproved = false
+        venueClaimSubmittedDate = ""
+        venueOwnerJustCompletedRegistration = false
+        hasUnackedRejectedVenueClaimForOwnerEmail = false
+        approvedVenueOwnershipByVenueID = [:]
+        venueBusinessEmail = ""
+        venueClaims = []
+
+        reportedComments = []
+        reportedCommentDisplays = []
+
+        authErrorMessage = ""
+        userPasswordResetMessage = ""
+        userPasswordResetError = ""
+        venueAuthErrorMessage = ""
+        venuePasswordResetMessage = ""
+        venuePasswordResetError = ""
+
+        bumpCurrentUserAvatarDisplayRefresh()
+        clearCurrentUserProfileLocalCache()
+        privateSessionClearNonce = UUID()
+    }
+
+    /// Sign-out/session-loss cleanup for venue-owner drafts and claim context in addition to the shared cache reset.
+    func clearVenueOwnerDraftState() {
+        clearPendingVenueClaimContext()
+        ownerVenueName = ""
+        ownerVenueAddress = ""
+        ownerVenueCity = ""
+        ownerVenueState = "UT"
+        ownerVenueZipCode = ""
+        ownerVenuePhone = ""
+        ownerVenueWebsite = ""
+        ownerVenueDescription = ""
+        ownerVenueFeatures = ""
+        ownerVenuePrimarySport = "Soccer"
+        ownerVenueScreenCount = 1
+        ownerVenueServesFood = false
+        ownerVenueHasWifi = false
+        ownerVenueHasGarden = false
+        ownerVenueHasProjector = false
+        ownerVenuePetFriendly = false
+        venueCoverPhotoURL = ""
+        venueCoverPhotoThumbnailURL = ""
+        venueCrowdPhotoURL = ""
+        venueTVWallPhotoURL = ""
+        venueMenuPhotoURL = ""
+        venueMenuPhotoThumbnailURL = ""
+        venueSpecialsPhotoURL = ""
+        venueProofNote = ""
+        switchToAccountForVenueClaim = false
+        openVenueOwnerAuthSheetFromClaimFlow = false
+    }
+
     /// Persists the account mode and, when a Supabase session exists, the auth user id (so a different account on the same device does not restore the wrong mode).
     func persistAccountModeForActiveAuthSession(_ mode: StoredAccountMode) async {
         let uid: String?
@@ -47,14 +272,11 @@ extension MapViewModel {
 
     /// Venue owner “Log out” from Settings clears owner UI state but keeps Supabase signed in; fan mode becomes the restored surface on next launch.
     func venueOwnerLocalSignOutPreservingSupabaseSession() {
+        clearAuthenticatedSessionCaches()
+        clearVenueOwnerDraftState()
         isVenueOwnerLoggedIn = false
         venueOwnerMode = false
         isLoggedIn = false
-        currentUserEmail = ""
-        venueOwnerEmail = ""
-        ownerVenueDatabaseId = nil
-        clearVenueOwnerOwnedBusinessCaches()
-        clearPendingVenueClaimContext()
         Task {
             await persistAccountModeForActiveAuthSession(.fanUser)
         }
@@ -204,21 +426,16 @@ extension MapViewModel {
             )
 
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
-                goingUserProfiles = []
-                goingProfilesByVenueEventID = [:]
-                commentIDsReportedByCurrentUser = []
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
-                venueOwnerEmail = ""
-                clearVenueOwnerOwnedBusinessCaches()
                 bumpCurrentUserAvatarDisplayRefresh()
-                clearFollowingTabCaches()
             }
             if let session = try? await supabase.auth.session {
                 await MainActor.run { currentUserAuthId = session.user.id }
@@ -254,23 +471,18 @@ extension MapViewModel {
             }
 
             await MainActor.run {
+                clearAuthenticatedSessionCaches()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
-                goingUserProfiles = []
-                goingProfilesByVenueEventID = [:]
-                commentIDsReportedByCurrentUser = []
 
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
-                venueOwnerEmail = ""
-                clearVenueOwnerOwnedBusinessCaches()
 
                 authErrorMessage = ""
                 bumpCurrentUserAvatarDisplayRefresh()
-                clearFollowingTabCaches()
             }
 
             if let session = try? await supabase.auth.session {
@@ -333,59 +545,27 @@ extension MapViewModel {
         }
 
         await MainActor.run {
-            currentUserEmail = ""
-            currentUserDisplayName = ""
-            currentUserAvatarURL = ""
-            currentUserAvatarThumbnailURL = ""
-            goingUserProfiles = []
-            goingProfilesByVenueEventID = [:]
-            userProfilesByEmail = [:]
-            favoriteVenueIDs = []
-            interestedVenueEventKeys = []
-            venueEventInterestIDs = []
-            venueEventInterestCounts = [:]
-            followingTabUserVenueEventInterestIDs = []
-            commentIDsReportedByCurrentUser = []
+            clearAuthenticatedSessionCaches()
+            clearVenueOwnerDraftState()
             isLoggedIn = false
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
-            venueOwnerEmail = ""
-            clearVenueOwnerOwnedBusinessCaches()
-            currentUserAuthId = nil
             authErrorMessage = "This account has been disabled by FanGeo support."
-            bumpCurrentUserAvatarDisplayRefresh()
-            clearFollowingTabCaches()
-            UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
-            UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
-            UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
         }
 
         clearPersistedAccountMode()
     }
 
     func logoutUser() async {
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            clearVenueOwnerDraftState()
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+        }
         do {
             try await supabase.auth.signOut()
-
-            await MainActor.run {
-                currentUserEmail = ""
-                currentUserDisplayName = ""
-                currentUserAvatarURL = ""
-                currentUserAvatarThumbnailURL = ""
-                goingUserProfiles = []
-                goingProfilesByVenueEventID = [:]
-                commentIDsReportedByCurrentUser = []
-
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                venueOwnerEmail = ""
-                clearVenueOwnerOwnedBusinessCaches()
-                bumpCurrentUserAvatarDisplayRefresh()
-                clearFollowingTabCaches()
-                currentUserAuthId = nil
-            }
-
             clearPersistedAccountMode()
         } catch {
             print("Logout failed:", error)
@@ -416,6 +596,9 @@ extension MapViewModel {
         clearVenueOwnerCaches: Bool
     ) async {
         await MainActor.run {
+            currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+            currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
+            currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
             currentUserEmail = sessionEmail
             isLoggedIn = !sessionEmail.isEmpty
             isVenueOwnerLoggedIn = false
@@ -435,15 +618,11 @@ extension MapViewModel {
 
     /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
     func bootstrapAuthSessionOnly() async {
-        await MainActor.run {
-            currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
-            currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
-            currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
-        }
         do {
             let session = try await supabase.auth.session
             let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
             let sessionUid = session.user.id.uuidString.lowercased()
+            logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
 
             if !(await checkCurrentUserAdminStatus()) {
                 print("SESSION RESTORE BLOCKED: disabled account")
@@ -461,6 +640,9 @@ extension MapViewModel {
 #if DEBUG
                 print("[AuthRestore] auth uid mismatch session=\(sessionUid) stored=\(storedId) -> fan restore")
 #endif
+                await MainActor.run {
+                    clearCurrentUserProfileLocalCache()
+                }
                 await persistAccountModeForActiveAuthSession(.fanUser)
                 await applyFanUserSessionRestoreAfterBootstrap(
                     session: session,
@@ -510,35 +692,43 @@ extension MapViewModel {
 #if DEBUG
                 print("[AuthRestore] restoredBusinessOwner email=\(sessionEmail)")
 #endif
-                await MainActor.run {
-                    venueOwnerEmail = sessionEmail
-                    isVenueOwnerLoggedIn = true
-                    venueOwnerMode = true
-                    isLoggedIn = false
-                    currentUserEmail = ""
-                    currentUserDisplayName = ""
-                    currentUserAvatarURL = ""
-                    currentUserAvatarThumbnailURL = ""
-                    isAdminLoggedIn = false
-                    currentUserAuthId = session.user.id
-                }
-                await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-                checkVenueApprovalStatus()
+                _ = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                    session: session,
+                    sessionEmail: sessionEmail,
+                    context: "bootstrap_restore_business_owner"
+                )
                 print("SESSION RESTORED:", sessionEmail)
                 return
 
             case .fanUser:
+                if await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                    session: session,
+                    sessionEmail: sessionEmail,
+                    context: "bootstrap_restore_business_owner_fallback"
+                ) {
+                    print("SESSION RESTORED:", sessionEmail)
+                    return
+                }
                 await applyFanUserSessionRestoreAfterBootstrap(
                     session: session,
                     sessionEmail: sessionEmail,
                     clearVenueOwnerCaches: false
                 )
+                logBusinessOwnerSessionFlags(context: "bootstrap_restore_fan_user")
                 print("SESSION RESTORED:", sessionEmail)
                 return
             }
 
         } catch {
-            await MainActor.run { currentUserAuthId = nil }
+            await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                clearVenueOwnerDraftState()
+                isLoggedIn = false
+                isVenueOwnerLoggedIn = false
+                venueOwnerMode = false
+                isAdminLoggedIn = false
+            }
+            clearPersistedAccountMode()
             print("NO ACTIVE SESSION")
         }
     }
@@ -549,6 +739,15 @@ extension MapViewModel {
         do {
             _ = try await supabase.auth.session
         } catch {
+            await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                clearVenueOwnerDraftState()
+                isLoggedIn = false
+                isVenueOwnerLoggedIn = false
+                venueOwnerMode = false
+                isAdminLoggedIn = false
+            }
+            clearPersistedAccountMode()
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
             print("[Background] personalization loaded ms=\(ms) (no session)")

@@ -10,7 +10,7 @@ extension MapViewModel {
     }
 
     func clusteredBars() -> [VenueCluster] {
-        let source = filteredBars
+        let source = mapVisibleBars
         guard !source.isEmpty else {
             discoverClusteredBarsCache = nil
             discoverClusteredBarsCacheKey = nil
@@ -21,7 +21,7 @@ extension MapViewModel {
         let coordFingerprint = source.prefix(64).reduce(into: 0.0) { partial, bar in
             partial += bar.coordinate.latitude + bar.coordinate.longitude + Double(bar.games.count)
         }
-        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
+        let cacheKey = "\(source.count)|\(dayBucket)|\(selectedSport)|\(mapDisplayMode.rawValue)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
         if cacheKey == discoverClusteredBarsCacheKey, let cached = discoverClusteredBarsCache {
             return cached
         }
@@ -79,11 +79,11 @@ extension MapViewModel {
     }
 
     /// Strongest single-game energy in the cluster and that game’s sport (for marker glyph).
-    func clusterVenueAnnotationEnergy(cluster: VenueCluster, dayEvents: [SportsEvent]) -> (maxScore: Int, dominantSport: String?) {
+    func clusterVenueAnnotationEnergy(cluster: VenueCluster) -> (maxScore: Int, dominantSport: String?) {
         var maxScore = 0
         var dominantSport: String?
         for bar in cluster.bars {
-            let gamesToday = dayEvents.filter { bar.games.contains($0.title) }
+            let gamesToday = selectedDayEventsForMap(bar)
             for game in gamesToday {
                 guard let id = cachedVenueEventID(for: bar, gameTitle: game.title) else { continue }
                 let going = interestCountForVenueEvent(id)

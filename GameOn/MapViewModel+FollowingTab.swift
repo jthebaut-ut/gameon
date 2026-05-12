@@ -26,6 +26,10 @@ extension MapViewModel {
         pendingFollowingMapVenueSnapshot = nil
     }
 
+    func clearFollowingInterestedOnlyDefaults() {
+        UserDefaults.standard.removeObject(forKey: Self.interestedOnlyVenueEventDefaultsKey)
+    }
+
     /// Reloads Following tab data from Supabase: ordered saved venues by favorite ids, global user interests, event rows, per-event counts, and venue rows (by id or owner/name match).
     func refreshFollowingTabDataGlobally() async {
         guard let interestEmail = await strictNormalizedSessionEmailForSocialTables() else {
@@ -267,12 +271,13 @@ extension MapViewModel {
         let trimmedName = event.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let name = trimmedName.isEmpty ? "Venue" : trimmedName
         let title = event.event_title ?? ""
+        let sport = event.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return BarVenue(
             id: UUID(),
             name: name,
             address: "Address unavailable",
             phone: "",
-            primarySport: event.sport ?? "Soccer",
+            primarySport: sport,
             distance: "",
             rating: 0,
             tags: [],

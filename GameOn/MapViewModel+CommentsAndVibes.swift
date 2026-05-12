@@ -40,6 +40,261 @@ private enum VenueEventCommentsQuery {
 
 extension MapViewModel {
 
+    private func parseVenueEventCommentDate(_ raw: String?) -> Date? {
+        guard let raw, !raw.isEmpty else { return nil }
+        let f1 = ISO8601DateFormatter()
+        f1.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = f1.date(from: raw) { return d }
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime]
+        return f2.date(from: raw)
+    }
+
+    private func updatedCommentRow(_ row: VenueEventCommentRow, deliveryState: VenueEventCommentDeliveryState) -> VenueEventCommentRow {
+        VenueEventCommentRow(
+            id: row.id,
+            venue_event_id: row.venue_event_id,
+            user_email: row.user_email,
+            comment: row.comment,
+            created_at: row.created_at,
+            is_moderation_hidden: row.is_moderation_hidden,
+            delivery_state: deliveryState
+        )
+    }
+
+    private func matchingPendingCommentIndex(
+        in list: [VenueEventCommentRow],
+        venueEventID: UUID,
+        email: String?,
+        text: String?
+    ) -> Int? {
+        let normalizedEmail = OwnerBusinessEmail.normalized(email ?? "")
+        let normalizedText = (text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedEmail.isEmpty, !normalizedText.isEmpty else { return nil }
+        return list.indices.reversed().first { index in
+            let candidate = list[index]
+            guard candidate.venue_event_id == venueEventID else { return false }
+            guard candidate.delivery_state != .sent else { return false }
+            return OwnerBusinessEmail.normalized(candidate.user_email ?? "") == normalizedEmail
+                && (candidate.comment ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == normalizedText
+        }
+    }
+
+    @MainActor
+    private func appendPendingVenueEventComment(_ row: VenueEventCommentRow, for venueEventID: UUID) {
+        var list = venueEventComments[venueEventID] ?? []
+        list.append(row)
+        venueEventComments[venueEventID] = list
+    }
+
+    @MainActor
+    private func mergeIncomingVenueEventComment(
+        _ row: VenueEventCommentRow,
+        for venueEventID: UUID,
+        preferredLocalID: UUID? = nil,
+        source: String
+    ) {
+        guard !row.isHiddenFromThread else { return }
+        var list = venueEventComments[venueEventID] ?? []
+        if let serverID = row.serverCommentID,
+           let existingSentIndex = list.firstIndex(where: { $0.serverCommentID == serverID }) {
+            list[existingSentIndex] = row
+            venueEventComments[venueEventID] = list
+            return
+        }
+        if let preferredLocalID,
+           let localIndex = list.firstIndex(where: { $0.id == preferredLocalID && $0.delivery_state != .sent }) {
+            list[localIndex] = row
+            venueEventComments[venueEventID] = list
+            return
+        }
+        if let pendingIndex = matchingPendingCommentIndex(
+            in: list,
+            venueEventID: venueEventID,
+            email: row.user_email,
+            text: row.comment
+        ) {
+            list[pendingIndex] = row
+            venueEventComments[venueEventID] = list
+            return
+        }
+        list.append(row)
+        venueEventComments[venueEventID] = list
+        #if DEBUG
+        print("[GameChatPerf] \(source) append event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
+        #endif
+    }
+
+    @MainActor
+    private func markVenueEventCommentDeliveryState(
+        venueEventID: UUID,
+        localCommentID: UUID,
+        state: VenueEventCommentDeliveryState
+    ) {
+        guard var list = venueEventComments[venueEventID],
+              let index = list.firstIndex(where: { $0.id == localCommentID }) else { return }
+        list[index] = updatedCommentRow(list[index], deliveryState: state)
+        venueEventComments[venueEventID] = list
+    }
+
+    private func performVenueEventCommentInsert(
+        venueEventID: UUID,
+        localCommentID: UUID,
+        commenterEmail: String,
+        cleanText: String
+    ) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let newComment = VenueEventCommentInsert(
+                    venue_event_id: venueEventID,
+                    user_email: commenterEmail,
+                    comment: cleanText
+                )
+
+                let row: VenueEventCommentRow = try await supabase
+                    .from("venue_event_comments")
+                    .insert(newComment)
+                    .select(VenueEventCommentsPagination.selectColumns)
+                    .single()
+                    .execute()
+                    .value
+
+                RateLimitService.recordVenueEventCommentSend(venueEventId: venueEventID, body: cleanText)
+                #if DEBUG
+                print("[GameChatPerf] server insert completed event=\(venueEventID) local=\(localCommentID) server=\(row.id?.uuidString ?? "nil")")
+                #endif
+                mergeIncomingVenueEventComment(row, for: venueEventID, preferredLocalID: localCommentID, source: "insert")
+                if let email = row.user_email {
+                    await loadUserProfilesForEmails([email])
+                }
+            } catch {
+                #if DEBUG
+                print("[GameChatPerf] send failed event=\(venueEventID) local=\(localCommentID) error=\(error)")
+                #endif
+                markVenueEventCommentDeliveryState(
+                    venueEventID: venueEventID,
+                    localCommentID: localCommentID,
+                    state: .failed
+                )
+            }
+        }
+    }
+
+    private func hasActiveVenueEventCommentsRealtimeListener(for venueEventID: UUID) -> Bool {
+        venueEventCommentsRealtimeTasks[venueEventID] != nil
+            || venueEventCommentsRealtimeChannels[venueEventID] != nil
+            || venueEventCommentsRealtimeListenerTokens[venueEventID] != nil
+    }
+
+    private func venueEventCommentsRealtimeActiveIDs(excluding venueEventID: UUID? = nil) -> [UUID] {
+        let all = Set(venueEventCommentsRealtimeTasks.keys)
+            .union(venueEventCommentsRealtimeChannels.keys)
+            .union(venueEventCommentsRealtimeListenerTokens.keys)
+        if let venueEventID {
+            return all.filter { $0 != venueEventID }
+        }
+        return Array(all)
+    }
+
+    func startVenueEventCommentsRealtime(for venueEventID: UUID) async {
+        for otherEventID in venueEventCommentsRealtimeActiveIDs(excluding: venueEventID) {
+            await stopVenueEventCommentsRealtime(for: otherEventID)
+        }
+
+        guard !hasActiveVenueEventCommentsRealtimeListener(for: venueEventID) else {
+            #if DEBUG
+            print("[GameChatPerf] listener already active, skipping event=\(venueEventID)")
+            #endif
+            return
+        }
+
+        let listenerToken = UUID()
+        venueEventCommentsRealtimeListenerTokens[venueEventID] = listenerToken
+        #if DEBUG
+        print("[GameChatPerf] starting listener event=\(venueEventID)")
+        #endif
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            let channel = supabase.channel("venue-event-comments-\(venueEventID.uuidString.lowercased())")
+            venueEventCommentsRealtimeChannels[venueEventID] = channel
+            let inserts = channel.postgresChange(
+                InsertAction.self,
+                schema: "public",
+                table: "venue_event_comments",
+                filter: .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
+            )
+
+            do {
+                try await channel.subscribeWithError()
+                #if DEBUG
+                print("[GameChatPerf] realtime subscribed event=\(venueEventID)")
+                #endif
+
+                for await insertion in inserts {
+                    if Task.isCancelled { break }
+                    let row: VenueEventCommentRow
+                    do {
+                        row = try insertion.decodeRecord(as: VenueEventCommentRow.self, decoder: JSONDecoder())
+                    } catch {
+                        continue
+                    }
+                    #if DEBUG
+                    print("[GameChatPerf] realtime received event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
+                    #endif
+                    mergeIncomingVenueEventComment(row, for: venueEventID, source: "realtime")
+                    if let email = row.user_email {
+                        await loadUserProfilesForEmails([email])
+                    }
+                }
+            } catch is CancellationError {
+            } catch {
+                #if DEBUG
+                print("[GameChatPerf] realtime error event=\(venueEventID) error=\(error)")
+                #endif
+            }
+
+            if venueEventCommentsRealtimeListenerTokens[venueEventID] == listenerToken {
+                await supabase.removeChannel(channel)
+                if venueEventCommentsRealtimeChannels[venueEventID] === channel {
+                    venueEventCommentsRealtimeChannels[venueEventID] = nil
+                }
+                venueEventCommentsRealtimeTasks[venueEventID] = nil
+                venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
+            }
+        }
+        venueEventCommentsRealtimeTasks[venueEventID] = task
+    }
+
+    func stopVenueEventCommentsRealtime(for venueEventID: UUID) async {
+        guard hasActiveVenueEventCommentsRealtimeListener(for: venueEventID) else { return }
+        #if DEBUG
+        print("[GameChatPerf] stopping listener event=\(venueEventID)")
+        #endif
+
+        let task = venueEventCommentsRealtimeTasks[venueEventID]
+        let channel = venueEventCommentsRealtimeChannels[venueEventID]
+        venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
+        venueEventCommentsRealtimeTasks[venueEventID] = nil
+        venueEventCommentsRealtimeChannels[venueEventID] = nil
+        task?.cancel()
+        if let channel {
+            await supabase.removeChannel(channel)
+        }
+    }
+
+    func removeAllVenueEventCommentsRealtimeListeners() async {
+        let activeIDs = venueEventCommentsRealtimeActiveIDs()
+        guard !activeIDs.isEmpty else { return }
+        #if DEBUG
+        print("[GameChatPerf] removing all listeners count=\(activeIDs.count)")
+        #endif
+        for venueEventID in activeIDs {
+            await stopVenueEventCommentsRealtime(for: venueEventID)
+        }
+    }
+
     /// Whether the signed-in fan has a `comment_reports` row for this comment (local cache, hydrated from Supabase on comment load).
     func hasCurrentUserReportedComment(commentID: UUID?) -> Bool {
         guard let commentID else { return false }
@@ -74,7 +329,7 @@ extension MapViewModel {
     /// Loads `comment_reports` rows for the current auth email and visible comment ids so flags render as already reported after relaunch.
     func loadCurrentUserCommentReportFlags(for venueEventID: UUID) async {
         let ids = await MainActor.run {
-            venueEventComments[venueEventID]?.compactMap(\.id) ?? []
+            venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? []
         }
         guard !ids.isEmpty else { return }
 
@@ -285,9 +540,9 @@ extension MapViewModel {
 
             await MainActor.run {
                 var list = venueEventComments[venueEventID] ?? []
-                var existing = Set(list.compactMap(\.id))
+                var existing = Set(list.compactMap(\.serverCommentID))
                 for row in rows {
-                    guard let rid = row.id, !existing.contains(rid) else { continue }
+                    guard let rid = row.serverCommentID, !existing.contains(rid) else { continue }
                     list.append(row)
                     existing.insert(rid)
                 }
@@ -326,48 +581,69 @@ extension MapViewModel {
             return limit
         }
 
-        do {
-            let newComment = VenueEventCommentInsert(
-                venue_event_id: venueEventID,
-                user_email: commenterEmail,
-                comment: cleanText
-            )
+        let localCommentID = UUID()
+        let createdAt = VenueEventCommentsQuery.isoTimestamp(Date())
+        let localRow = VenueEventCommentRow(
+            id: localCommentID,
+            venue_event_id: venueEventID,
+            user_email: commenterEmail,
+            comment: cleanText,
+            created_at: createdAt,
+            is_moderation_hidden: false,
+            delivery_state: .pending
+        )
 
-            let row: VenueEventCommentRow = try await supabase
-                .from("venue_event_comments")
-                .insert(newComment)
-                .select(VenueEventCommentsPagination.selectColumns)
-                .single()
-                .execute()
-                .value
+        #if DEBUG
+        print("[GameChatPerf] send tapped event=\(venueEventID) local=\(localCommentID) len=\(cleanText.count)")
+        print("[GameChatPerf] optimistic append event=\(venueEventID) local=\(localCommentID)")
+        #endif
 
-            RateLimitService.recordVenueEventCommentSend(venueEventId: venueEventID, body: cleanText)
-
-            await MainActor.run {
-                guard !row.isHiddenFromThread else { return }
-                var list = venueEventComments[venueEventID] ?? []
-                if let nid = row.id {
-                    if !list.contains(where: { $0.id == nid }) {
-                        list.append(row)
-                    }
-                } else {
-                    list.append(row)
-                }
-                venueEventComments[venueEventID] = list
-            }
-
-            print("COMMENT ADDED")
-
-        } catch {
-            print("ERROR ADDING COMMENT:", error)
-            await loadComments(for: venueEventID)
-            return "Couldn’t post that update. Check your connection and try again."
+        await MainActor.run {
+            appendPendingVenueEventComment(localRow, for: venueEventID)
         }
+        performVenueEventCommentInsert(
+            venueEventID: venueEventID,
+            localCommentID: localCommentID,
+            commenterEmail: commenterEmail,
+            cleanText: cleanText
+        )
+        return nil
+    }
+
+    func retryCommentSend(_ comment: VenueEventCommentRow) async -> String? {
+        guard let venueEventID = comment.venue_event_id,
+              let localCommentID = comment.id,
+              let cleanText = comment.comment?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !cleanText.isEmpty else {
+            return "Couldn’t retry that update."
+        }
+        guard let commenterEmail = await strictNormalizedSessionEmailForSocialTables() else {
+            return "Sign in to post an update."
+        }
+        if let limit = RateLimitService.checkVenueEventCommentSend(venueEventId: venueEventID, body: cleanText) {
+            return limit
+        }
+        await MainActor.run {
+            markVenueEventCommentDeliveryState(
+                venueEventID: venueEventID,
+                localCommentID: localCommentID,
+                state: .pending
+            )
+        }
+        #if DEBUG
+        print("[GameChatPerf] retry tapped event=\(venueEventID) local=\(localCommentID)")
+        #endif
+        performVenueEventCommentInsert(
+            venueEventID: venueEventID,
+            localCommentID: localCommentID,
+            commenterEmail: commenterEmail,
+            cleanText: cleanText
+        )
         return nil
     }
 
     func deleteComment(_ comment: VenueEventCommentRow) async {
-        guard let id = comment.id else { return }
+        guard let id = comment.serverCommentID else { return }
 
         do {
             try await supabase
@@ -462,7 +738,7 @@ extension MapViewModel {
 
             let commentsByID: [UUID: VenueEventCommentRow] = Dictionary(
                 uniqueKeysWithValues: comments.compactMap { comment in
-                    guard let id = comment.id else { return nil }
+                    guard let id = comment.serverCommentID else { return nil }
                     return (id, comment)
                 }
             )
@@ -562,7 +838,7 @@ extension MapViewModel {
     /// Returns `true` when the comment should show as reported (insert succeeded or duplicate unique constraint).
     @discardableResult
     func reportComment(_ comment: VenueEventCommentRow, reason: String = "reported") async -> Bool {
-        guard let commentID = comment.id,
+        guard let commentID = comment.serverCommentID,
               let venueEventID = comment.venue_event_id else {
             print("NO VALID COMMENT OR EVENT ID")
             return false
@@ -630,7 +906,7 @@ extension MapViewModel {
     /// Deletes the signed-in fan's `comment_reports` row only (unflag). DB trigger recomputes ``moderation_report_count``.
     @discardableResult
     func unreportComment(_ comment: VenueEventCommentRow) async -> Bool {
-        guard let commentID = comment.id else {
+        guard let commentID = comment.serverCommentID else {
             return false
         }
 

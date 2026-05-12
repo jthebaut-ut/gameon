@@ -7,6 +7,7 @@ struct UserProfileScreen: View {
     var onDone: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var editedDisplayName: String = ""
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isSaving: Bool = false
@@ -15,88 +16,23 @@ struct UserProfileScreen: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    HStack(spacing: 14) {
-                        profileAvatar
+            ScrollView {
+                VStack(alignment: .leading, spacing: FGSpacing.xl) {
+                    profileHeaderCard
+                    displayNameCard
+                    photoCard
+                    accountActionsCard
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
-                                .font(.headline.weight(.semibold))
-                            Text(viewModel.currentUserEmail)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.vertical, 6)
-                }
-
-                Section("Display name") {
-                    TextField("Name", text: $editedDisplayName)
-                        .textInputAutocapitalization(.words)
-                        .disableAutocorrection(true)
-
-                    Text("This name is shown across FanGeo and is independent from your email. It must be unique; matching is case-insensitive.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section {
-                    PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
-                        HStack {
-                            Text("Update avatar")
-                            Spacer()
-                            if isUploadingAvatar {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                    .disabled(isUploadingAvatar || isSaving)
-
-                    Text("We only access a photo when you pick one here. If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for FanGeo.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text("Photo")
-                }
-
-                Section("Account actions") {
-                    Button {
-                        Task {
-                            await viewModel.logoutUser()
-                            await MainActor.run {
-                                onDone()
-                                dismiss()
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text("Log Out")
-                            Spacer()
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .disabled(isSaving || isUploadingAvatar)
-                    .foregroundStyle(.red)
-                }
-
-                if !message.isEmpty {
-                    Section {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    if !message.isEmpty {
+                        messageBanner
                     }
                 }
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.top, FGSpacing.lg)
+                .padding(.bottom, SettingsScrollBottomLayout.sheetScrollComfortInset + 16)
             }
+            .scrollIndicators(.hidden)
+            .fanGeoScreenBackground()
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -119,6 +55,173 @@ struct UserProfileScreen: View {
                 Task { await replaceAvatar(with: item) }
             }
         }
+    }
+
+    private var profileHeaderCard: some View {
+        ZStack(alignment: .bottomTrailing) {
+            LinearGradient(
+                colors: [FGColor.gradientMiddle.opacity(0.95), FGColor.gradientEnd.opacity(0.86)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(alignment: .leading, spacing: FGSpacing.lg) {
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    profileAvatar
+
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                            .font(FGTypography.sectionTitle)
+                            .foregroundStyle(.white)
+
+                        Text(viewModel.currentUserEmail)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(.white.opacity(0.82))
+                            .lineLimit(1)
+
+                        HStack(spacing: FGSpacing.sm) {
+                            FGStatusPill(title: "Fan profile", kind: .custom(tint: .white))
+                            FGStatusPill(
+                                title: "\(viewModel.favoriteVenueIDs.count) saved venues",
+                                kind: .custom(tint: Color.white.opacity(0.92))
+                            )
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+                }
+
+                Text("Keep your FanGeo identity polished across chats, comments, and venue activity.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(.white.opacity(0.82))
+            }
+            .padding(FGSpacing.xl)
+
+            FanGeoLogoWatermark(variant: .white, width: 70, opacity: 0.12)
+                .padding(.trailing, FGSpacing.md)
+                .padding(.bottom, FGSpacing.md)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+        }
+        .floatingShadow()
+    }
+
+    private var displayNameCard: some View {
+        FGCard {
+            FGSectionHeader(
+                "Display name",
+                subtitle: "Shown across FanGeo and matched case-insensitively for uniqueness."
+            )
+
+            TextField("Name", text: $editedDisplayName)
+                .textInputAutocapitalization(.words)
+                .disableAutocorrection(true)
+                .font(FGTypography.body)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.sm + 2)
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+        }
+    }
+
+    private var photoCard: some View {
+        FGCard {
+            FGSectionHeader(
+                "Photo",
+                subtitle: "We only access a photo when you choose one here."
+            )
+
+            PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
+                HStack(spacing: FGSpacing.md) {
+                    ZStack {
+                        Circle()
+                            .fill(FGColor.accentBlue.opacity(0.12))
+                        if isUploadingAvatar {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(FGColor.accentBlue)
+                        }
+                    }
+                    .frame(width: 38, height: 38)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Update avatar")
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("Choose a new profile photo")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(FGSpacing.md)
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+            }
+            .disabled(isUploadingAvatar || isSaving)
+            .buttonStyle(.plain)
+
+            Text("If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for FanGeo.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+    }
+
+    private var accountActionsCard: some View {
+        FGCard {
+            FGSectionHeader(
+                "Account actions",
+                subtitle: "Sign out without affecting your saved FanGeo profile."
+            )
+
+            FGSecondaryButton(title: "Log Out", systemImage: "rectangle.portrait.and.arrow.right") {
+                Task {
+                    await viewModel.logoutUser()
+                    await MainActor.run {
+                        onDone()
+                        dismiss()
+                    }
+                }
+            }
+            .disabled(isSaving || isUploadingAvatar)
+        }
+    }
+
+    private var messageBanner: some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: message == "Saved." || message == "Avatar updated." ? "checkmark.circle.fill" : "info.circle.fill")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(message == "Saved." || message == "Avatar updated." ? FGColor.accentGreen : FGColor.accentBlue)
+
+            Text(message)
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, FGSpacing.sm + 2)
+        .fanGeoFloatingStyle()
     }
 
     private var resolvedDisplayName: String {
@@ -157,7 +260,9 @@ struct UserProfileScreen: View {
 
     private var profileAvatar: some View {
         ZStack {
-            Circle().fill(Color.gray.opacity(0.18))
+            Circle()
+                .fill(Color.white.opacity(0.18))
+
             if let urlString = ImageDisplayURL.forDetailDisplay(
                 thumbnail: viewModel.currentUserAvatarThumbnailURL,
                 full: viewModel.currentUserAvatarURL,
@@ -165,18 +270,26 @@ struct UserProfileScreen: View {
             ),
                let url = URL(string: urlString) {
                 AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
+                    image
+                        .resizable()
+                        .scaledToFill()
                 } placeholder: {
                     ProgressView()
+                        .tint(.white)
                 }
             } else {
                 Text(initials)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.primary)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
             }
         }
-        .frame(width: 56, height: 56)
+        .frame(width: 76, height: 76)
         .clipShape(Circle())
+        .overlay {
+            Circle()
+                .strokeBorder(Color.white.opacity(0.22), lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(0.18), radius: 16, y: 8)
     }
 
     private func saveProfile() async {

@@ -62,12 +62,21 @@ enum VenueClaimDuplicateCheck {
                 .execute()
                 .value
             let code = rows.first?.code ?? "ok"
+            print("[VenueDuplicate] RPC returned code = \(code)")
             return userMessage(forRpcCode: code)
         } catch {
 #if DEBUG
-            print("[VenueDuplicate] RPC check failed: \(error)")
+print("[VenueDuplicate] RPC check failed FULL ERROR:")
+print(error)
+print("[VenueDuplicate] NSError:")
+print(error as NSError)
+print("[VenueDuplicate] userInfo:")
+print((error as NSError).userInfo)
+print("[VenueDuplicate] params:")
+print(params)
 #endif
-            return "Could not verify whether this location is a duplicate. Check your connection and try again."
+
+return "Could not verify whether this location is a duplicate. Check your connection and try again."
         }
     }
 

@@ -167,6 +167,20 @@ private final class DirectChatPresenter: ObservableObject {
         isLoadingInitial = false
     }
 
+    func clearForSessionLoss() {
+        messages = []
+        conversationId = nil
+        isLoadingInitial = false
+        hasOlderMessages = false
+        isLoadingOlderMessages = false
+        loadError = "Sign in to view this conversation."
+        sendError = nil
+        realtimeNotice = nil
+        currentUserId = nil
+        draft = ""
+        menuBanner = nil
+    }
+
     /// Prepends older pages (keyset on `created_at` + `id`); keeps realtime/new sends unchanged.
     func loadOlderMessages() async {
         guard !isLoadingOlderMessages, hasOlderMessages else { return }
@@ -376,6 +390,7 @@ private enum DirectChatQuickReactions {
 struct DirectChatView: View {
 
     @EnvironmentObject private var chatViewModel: ChatViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @StateObject private var presenter: DirectChatPresenter
     @FocusState private var composerFocused: Bool
@@ -441,86 +456,44 @@ struct DirectChatView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Group {
-                if presenter.isLoadingInitial {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let err = presenter.loadError {
-                    ContentUnavailableView(
-                        "Couldn’t load chat",
-                        systemImage: "wifi.exclamationmark",
-                        description: Text(err)
-                    )
-                    .frame(maxHeight: .infinity)
-                } else {
-                    messagesScroll
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .contentTransition(.interpolate)
-            .animation(.easeInOut(duration: 0.22), value: presenter.isLoadingInitial)
-            .animation(.easeInOut(duration: 0.22), value: presenter.loadError)
+        ZStack {
+            FGColor.screenGradient(colorScheme)
+                .ignoresSafeArea()
 
-            if let sendErr = presenter.sendError, !sendErr.isEmpty {
-                Text(sendErr)
-                    .font(.caption2)
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            VStack(spacing: 0) {
+                chatPrimaryContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentTransition(.interpolate)
+                    .animation(.easeInOut(duration: 0.22), value: presenter.isLoadingInitial)
+                    .animation(.easeInOut(duration: 0.22), value: presenter.loadError)
 
-            if let notice = presenter.realtimeNotice, !notice.isEmpty {
-                Text(notice)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 4)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
-            if let banner = presenter.menuBanner, !banner.isEmpty {
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: Self.isPositiveReportBanner(banner) ? "checkmark.circle.fill" : "info.circle.fill")
-                        .font(.body)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(Self.isPositiveReportBanner(banner) ? Color.green : Color.secondary)
-                    Text(banner)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                if hasVisibleThreadBanner {
+                    chatThreadStatusStack
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 6) {
+        .safeAreaInset(edge: .bottom, spacing: 8) {
             composer
         }
-        .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarBackground(.thinMaterial, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                HStack(spacing: 8) {
-                    ProfileAvatarView(preview: presenter.friend, size: 32)
-                    Text(presenter.friend.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
+                HStack(spacing: FGSpacing.sm) {
+                    ProfileAvatarView(preview: presenter.friend, size: 34)
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(presenter.friend.displayName)
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+
+                        Text(chatHeaderSubtitle)
+                            .font(FGTypography.metadata)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -537,9 +510,16 @@ struct DirectChatView: View {
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .frame(width: 34, height: 34)
+                        .background(FGColor.cardBackground(colorScheme))
+                        .clipShape(Circle())
+                        .overlay {
+                            Circle()
+                                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                        }
                         .accessibilityLabel("Chat options")
                 }
                 .buttonStyle(.plain)
@@ -604,6 +584,18 @@ struct DirectChatView: View {
                 await chatViewModel.refreshInboxSummaries()
             }
         }
+        .onChange(of: chatViewModel.requiresSignIn) { _, needsSignIn in
+            guard needsSignIn else { return }
+            composerFocused = false
+            presenter.clearForSessionLoss()
+            dismiss()
+        }
+        .onChange(of: chatViewModel.currentUserAuthId) { _, authId in
+            guard authId == nil else { return }
+            composerFocused = false
+            presenter.clearForSessionLoss()
+            dismiss()
+        }
         .sheet(item: $reportSheet) { kind in
             directChatReportSheet(kind: kind)
         }
@@ -623,6 +615,96 @@ struct DirectChatView: View {
                 reportSheetError = nil
             }
         }
+    }
+
+    @ViewBuilder
+    private var chatPrimaryContent: some View {
+        if presenter.isLoadingInitial {
+            VStack(spacing: FGSpacing.lg) {
+                ProfileAvatarView(preview: presenter.friend, size: 64)
+                ProgressView()
+                    .controlSize(.regular)
+                Text("Opening conversation…")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let err = presenter.loadError {
+            FGEmptyState(
+                title: "Couldn’t load chat",
+                subtitle: err,
+                systemImage: "wifi.exclamationmark"
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.horizontal, FGSpacing.lg)
+        } else {
+            messagesScroll
+        }
+    }
+
+    private var hasVisibleThreadBanner: Bool {
+        (presenter.sendError?.isEmpty == false)
+            || (presenter.realtimeNotice?.isEmpty == false)
+            || (presenter.menuBanner?.isEmpty == false)
+    }
+
+    private var chatHeaderSubtitle: String {
+        if messagingBlocked {
+            return "Messaging unavailable"
+        }
+        if presenter.friend.isBusinessAccount {
+            return "Business chat"
+        }
+        return "Direct chat"
+    }
+
+    private var chatThreadStatusStack: some View {
+        VStack(spacing: FGSpacing.sm) {
+            if let sendErr = presenter.sendError, !sendErr.isEmpty {
+                threadStatusBanner(
+                    text: sendErr,
+                    systemImage: "exclamationmark.circle.fill",
+                    tint: FGColor.dangerRed
+                )
+            }
+
+            if let notice = presenter.realtimeNotice, !notice.isEmpty {
+                threadStatusBanner(
+                    text: notice,
+                    systemImage: "bolt.horizontal.circle.fill",
+                    tint: FGColor.accentYellow
+                )
+            }
+
+            if let banner = presenter.menuBanner, !banner.isEmpty {
+                threadStatusBanner(
+                    text: banner,
+                    systemImage: Self.isPositiveReportBanner(banner) ? "checkmark.circle.fill" : "info.circle.fill",
+                    tint: Self.isPositiveReportBanner(banner) ? FGColor.accentGreen : FGColor.accentBlue
+                )
+            }
+        }
+        .padding(.horizontal, FGSpacing.lg)
+        .padding(.bottom, FGSpacing.sm)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func threadStatusBanner(text: String, systemImage: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(tint)
+
+            Text(text)
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, FGSpacing.sm + 2)
+        .fanGeoFloatingStyle()
     }
 
     private func dismissChatOverflow() {
@@ -921,14 +1003,13 @@ struct DirectChatView: View {
     private func liquidGlassBackground(cornerRadius: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         return shape
-            .fill(.ultraThinMaterial)
+            .fill(.thinMaterial)
             .overlay(
-                // Specular highlight (top-left)
                 shape.fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.55),
-                            Color.white.opacity(0.16),
+                            Color.white.opacity(0.24),
+                            Color.white.opacity(0.08),
                             Color.clear,
                         ],
                         startPoint: .topLeading,
@@ -936,45 +1017,15 @@ struct DirectChatView: View {
                     )
                 )
                 .blendMode(.screen)
-                .opacity(0.45)
+                .opacity(0.32)
             )
             .overlay(
-                // Subtle refraction tints (like Screenshot 2's soft color bloom)
-                shape.fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.75, blue: 0.82).opacity(0.22),
-                            Color.clear,
-                        ],
-                        center: .topLeading,
-                        startRadius: 10,
-                        endRadius: 160
-                    )
-                )
-                .blendMode(.screen)
-            )
-            .overlay(
-                shape.fill(
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.62, green: 0.86, blue: 1.0).opacity(0.18),
-                            Color.clear,
-                        ],
-                        center: .topTrailing,
-                        startRadius: 12,
-                        endRadius: 180
-                    )
-                )
-                .blendMode(.screen)
-            )
-            .overlay(
-                // Glass edge + slight inner contrast
                 shape.strokeBorder(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.35),
-                            Color.white.opacity(0.12),
-                            Color.black.opacity(0.06),
+                            Color.white.opacity(0.18),
+                            FGColor.divider(colorScheme),
+                            Color.black.opacity(0.04),
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -1046,25 +1097,25 @@ struct DirectChatView: View {
 
     private func chatOverflowActionsCard() -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            overflowMenuActionRow(title: "Block user") {
+            overflowMenuActionRow(title: "Block user", systemImage: "hand.raised.fill") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmBlockUser
                 }
             }
-            overflowMenuActionRow(title: "Report user") {
+            overflowMenuActionRow(title: "Report user", systemImage: "flag.fill") {
                 dismissChatOverflow()
                 reportSheet = .user
             }
-            overflowMenuActionRow(title: "Report conversation") {
+            overflowMenuActionRow(title: "Report conversation", systemImage: "exclamationmark.bubble.fill") {
                 dismissChatOverflow()
                 reportSheet = .conversation
             }
-            overflowMenuActionRow(title: "Clear chat history") {
+            overflowMenuActionRow(title: "Clear chat history", systemImage: "trash.fill") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmClearHistory
                 }
             }
-            overflowMenuActionRow(title: "Remove friend") {
+            overflowMenuActionRow(title: "Remove friend", systemImage: "person.badge.minus") {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
                     chatOverflowPhase = .confirmRemoveFriend
                 }
@@ -1075,7 +1126,7 @@ struct DirectChatView: View {
         .background {
             liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
         }
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 18, x: 0, y: 10)
         .accessibilityElement(children: .contain)
     }
 
@@ -1117,16 +1168,24 @@ struct DirectChatView: View {
         .background {
             liquidGlassBackground(cornerRadius: Self.overflowMenuCornerRadius)
         }
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 8)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 18, x: 0, y: 10)
     }
 
-    private func overflowMenuActionRow(title: String, action: @escaping () -> Void) -> some View {
+    private func overflowMenuActionRow(title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: Self.overflowMenuFontSize, weight: .regular))
-                .foregroundStyle(Color.red.opacity(0.9))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
+            HStack(spacing: FGSpacing.sm) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 20)
+
+                Text(title)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .multilineTextAlignment(.leading)
+
+                Spacer(minLength: 0)
+            }
+                .foregroundStyle(Color.red.opacity(0.92))
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: Self.overflowMenuRowHeight)
                 .padding(.horizontal, Self.overflowMenuTextHorizontalPadding)
                 .contentShape(Rectangle())
@@ -1137,18 +1196,19 @@ struct DirectChatView: View {
     private var messagesScroll: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: FGSpacing.md) {
                     if presenter.messages.isEmpty {
-                        Text("No messages yet.\nSay hi!")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
-                            .padding(.bottom, 6)
+                        FGEmptyState(
+                            title: "No messages yet",
+                            subtitle: "Start the conversation and bring the game-day energy.",
+                            systemImage: "bubble.left.and.bubble.right"
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 48)
+                        .padding(.bottom, FGSpacing.sm)
                     } else {
                         if presenter.hasOlderMessages || presenter.isLoadingOlderMessages {
-                            HStack(spacing: 10) {
+                            HStack(spacing: FGSpacing.sm) {
                                 if presenter.isLoadingOlderMessages {
                                     ProgressView()
                                         .scaleEffect(0.85)
@@ -1157,15 +1217,23 @@ struct DirectChatView: View {
                                     Button {
                                         Task { await presenter.loadOlderMessages() }
                                     } label: {
-                                        Text("Load older messages")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.secondary)
+                                        Label("Load older messages", systemImage: "arrow.up.message")
+                                            .font(FGTypography.metadata)
+                                            .foregroundStyle(FGColor.secondaryText(colorScheme))
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(presenter.isLoadingOlderMessages)
                                 }
                             }
                             .frame(maxWidth: .infinity)
+                            .padding(.horizontal, FGSpacing.md)
+                            .padding(.vertical, FGSpacing.sm)
+                            .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.96))
+                            .clipShape(Capsule(style: .continuous))
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                            }
                             .padding(.bottom, 4)
                         }
                         let entries = DirectChatTimeGrouping.buildTimeline(from: presenter.messages)
@@ -1183,9 +1251,9 @@ struct DirectChatView: View {
                             .accessibilityHidden(true)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 20)
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, 28)
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
@@ -1215,16 +1283,21 @@ struct DirectChatView: View {
     }
 
     private func daySeparatorPill(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 5)
-            .background(
-                Capsule()
-                    .fill(Color(.systemGray5).opacity(0.55))
-            )
-            .frame(maxWidth: .infinity)
+        HStack {
+            Spacer(minLength: 0)
+            Text(title)
+                .font(FGTypography.metadata)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.xs + 2)
+                .background(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.94))
+                .clipShape(Capsule(style: .continuous))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+            Spacer(minLength: 0)
+        }
     }
 
     private func messageRow(for row: DirectMessageRow) -> some View {
@@ -1271,14 +1344,13 @@ struct DirectChatView: View {
 
     /// Bottom input: optional slim emoji strip above composer; moves with keyboard via `safeAreaInset`.
     private var composer: some View {
-        VStack(spacing: showEmojiQuickTray ? 4 : 0) {
+        VStack(spacing: showEmojiQuickTray ? FGSpacing.sm : 0) {
             if messagingBlocked {
-                Text("You can’t send messages in this conversation.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 2)
-                    .padding(.bottom, 2)
+                threadStatusBanner(
+                    text: "You can’t send messages in this conversation.",
+                    systemImage: "lock.fill",
+                    tint: FGColor.accentYellow
+                )
             }
             if showEmojiQuickTray {
                 quickReactionTray
@@ -1286,48 +1358,45 @@ struct DirectChatView: View {
             }
             composerInputRow
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 6)
-        .padding(.bottom, 8)
+        .padding(.horizontal, FGSpacing.lg)
+        .padding(.top, FGSpacing.sm)
+        .padding(.bottom, 10)
         .animation(.spring(response: 0.34, dampingFraction: 0.92), value: showEmojiQuickTray)
-        .background {
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .ignoresSafeArea(edges: .bottom)
-        }
     }
 
     private var composerInputRow: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: FGSpacing.sm) {
             Button {
                 showEmojiQuickTray.toggle()
             } label: {
                 Image(systemName: "face.smiling")
-                    .font(.system(size: 22, weight: .medium))
+                    .font(.system(size: 18, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(showEmojiQuickTray ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(showEmojiQuickTray ? FGColor.accentBlue : FGColor.secondaryText(colorScheme))
+                    .frame(width: 38, height: 38)
+                    .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.94))
+                    .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .frame(width: 40, height: 40)
             .accessibilityLabel("Toggle emoji reactions")
             .disabled(messagingBlocked)
 
             TextField("Message", text: $presenter.draft, axis: .vertical)
                 .textFieldStyle(.plain)
-                .font(.body)
+                .font(FGTypography.body)
                 .lineLimit(1...5)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, FGSpacing.sm + 1)
                 .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color(.secondarySystemGroupedBackground))
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .fill(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.64 : 0.98))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
                         .strokeBorder(
                             composerFocused
-                                ? Color.accentColor.opacity(0.38)
-                                : Color.primary.opacity(0.07),
+                                ? FGColor.accentBlue.opacity(0.42)
+                                : FGColor.divider(colorScheme),
                             lineWidth: composerFocused ? 1.5 : 1
                         )
                         .animation(.easeInOut(duration: 0.2), value: composerFocused)
@@ -1343,29 +1412,47 @@ struct DirectChatView: View {
             Button {
                 Task { await presenter.sendDraft() }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 30))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(Color.white, Color.blue)
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        Circle()
+                            .fill(
+                                presenter.canSend && !messagingBlocked
+                                    ? AnyShapeStyle(FGColor.brandGradient)
+                                    : AnyShapeStyle(Color.gray.opacity(0.35))
+                            )
+                    )
             }
             .disabled(!presenter.canSend || messagingBlocked)
-            .frame(width: 40, height: 40)
             .contentShape(Rectangle())
             .accessibilityLabel("Send")
         }
+        .padding(.horizontal, FGSpacing.sm)
+        .padding(.vertical, FGSpacing.sm)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+        .floatingShadow()
     }
 
     /// Slim horizontal strip (~40–46 pt tall); no per-emoji cards; tray hidden unless `showEmojiQuickTray`.
     private var quickReactionTray: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 9) {
+            HStack(spacing: FGSpacing.sm + 1) {
                 ForEach(DirectChatQuickReactions.emojis, id: \.self) { emoji in
                     Button {
                         Task { await presenter.sendQuickReaction(emoji) }
                     } label: {
                         Text(emoji)
-                            .font(.system(size: 23))
-                            .frame(width: 32, height: 32)
+                            .font(.system(size: 22))
+                            .frame(width: 36, height: 36)
+                            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.56 : 0.94))
+                            .clipShape(Circle())
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -1373,19 +1460,18 @@ struct DirectChatView: View {
                     .accessibilityLabel("Send \(emoji) reaction")
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, FGSpacing.sm)
         }
-        .frame(height: 42)
+        .frame(height: 54)
         .scrollBounceBehavior(.basedOnSize)
-        .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(.systemGray6).opacity(0.28))
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 0.5)
-        )
+        .floatingShadow()
     }
 }
 

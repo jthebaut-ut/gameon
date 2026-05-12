@@ -4,8 +4,10 @@ import SwiftUI
 
 struct FollowingScreen: View {
     @ObservedObject var viewModel: MapViewModel
+    var suppressInitialAutoRefresh = false
 
     @State private var favoriteActionBanner: String?
+    @State private var didHandleInitialAutoRefresh = false
 
     /// Venue events the user marked "Interested" from Following without a Supabase row (table has no status column).
     @AppStorage("gameon.following.interestedOnlyVenueEventIDs") private var interestedOnlyEncoded: String = ""
@@ -22,6 +24,10 @@ struct FollowingScreen: View {
             }
         }
         .onAppear {
+            if suppressInitialAutoRefresh && !didHandleInitialAutoRefresh {
+                didHandleInitialAutoRefresh = true
+                return
+            }
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
             Task { await viewModel.refreshFollowingTabDataGlobally() }
         }
@@ -54,22 +60,16 @@ struct FollowingScreen: View {
         VStack(spacing: 22) {
             Spacer(minLength: 24)
 
-            Image(systemName: "person.crop.circle.badge.questionmark")
-                .font(.system(size: 52))
-                .foregroundStyle(.white.opacity(0.85))
-                .symbolRenderingMode(.hierarchical)
-
-            Text("Sign in required")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
-
-            Text("Sign in to save venues and track games you plan to attend.")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.72))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 28)
+            FanGeoBrandHeroView(
+                title: "Sign in required",
+                subtitle: "Sign in to save venues and track games you plan to attend.",
+                variant: .dark,
+                logoWidth: 128,
+                alignment: .center,
+                textAlignment: .center
+            )
+            .foregroundStyle(.white)
+            .padding(.horizontal, 28)
 
             Button {
                 viewModel.discoverNavigateToAccountForUserAuth = true
@@ -192,23 +192,28 @@ struct FollowingScreen: View {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
 
         let localInterested = decodeInterestedOnlyUUIDs(from: interestedOnlyEncoded)
+        let previousInterestedOnly = interestedOnlyEncoded
+        let ok: Bool
 
         switch target {
         case .going:
             if item.isServerGoing, !localInterested.contains(item.id) { return }
             setInterestedOnlyLocally(item.id, false)
-            await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: false)
         case .interested:
             if !item.isServerGoing, localInterested.contains(item.id) { return }
-            await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
             setInterestedOnlyLocally(item.id, true)
+            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
         case .notGoing:
             if !item.isServerGoing, !localInterested.contains(item.id) { return }
-            await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
             setInterestedOnlyLocally(item.id, false)
+            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
         }
 
-        await viewModel.refreshFollowingTabDataGlobally()
+        guard ok else {
+            interestedOnlyEncoded = previousInterestedOnly
+            return
+        }
         await viewModel.loadGoingUserProfiles(for: item.id)
     }
 

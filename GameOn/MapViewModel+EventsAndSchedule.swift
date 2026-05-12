@@ -2,6 +2,19 @@ import Foundation
 
 extension MapViewModel {
 
+    func showSocialActionToast(_ text: String, isError: Bool = true) {
+        socialActionToastDismissTask?.cancel()
+        socialActionToastText = text
+        socialActionToastIsError = isError
+        socialActionToastDismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2.4))
+            guard let self, !Task.isCancelled else { return }
+            self.socialActionToastText = nil
+            self.socialActionToastIsError = false
+            self.socialActionToastDismissTask = nil
+        }
+    }
+
     private static let calendarEventsListCacheTTL: TimeInterval = 45
     private static let calendarEventsListCacheMaxKeys = 14
 
@@ -177,6 +190,35 @@ extension MapViewModel {
         return []
     }
 
+    func venueHasVisibleGameToday(_ venue: BarVenue) -> Bool {
+        !selectedDayEventsForMap(venue).isEmpty
+    }
+
+    func shouldShowVenueOnMap(_ venue: BarVenue) -> Bool {
+        guard venueIsActiveForMap(venue) else { return false }
+
+        let sportScopedEvents = selectedDayEventsForMap(venue)
+        let allSportEvents = selectedDayEventsForMap(venue, sportFilter: "All")
+        let searchScopedEvents = selectedSport == "All"
+            ? selectedDayEventsForMap(venue, sportFilter: "All")
+            : sportScopedEvents
+
+        guard venueMatchesMapSearch(venue, candidateEvents: searchScopedEvents) else { return false }
+
+        if mapDisplayMode == .gamesOnly {
+            return selectedSport == "All" ? !allSportEvents.isEmpty : !sportScopedEvents.isEmpty
+        }
+
+        if selectedSport == "All" {
+            return true
+        }
+        return !sportScopedEvents.isEmpty
+    }
+
+    var mapVisibleBars: [BarVenue] {
+        bars.filter { shouldShowVenueOnMap($0) }
+    }
+
     /// Venues that host at least one matching event for the current Discover filters.
     var filteredBars: [BarVenue] {
         bars.filter { !matchingEventsForDiscoverFilter(bar: $0).isEmpty }
@@ -200,6 +242,32 @@ extension MapViewModel {
         selectedEvent = nil
         selectedBar = nil
         discoverRemotePreviewHoldVenueId = nil
+    }
+
+    func selectedDayEventsForMap(_ venue: BarVenue, sportFilter: String? = nil) -> [SportsEvent] {
+        let effectiveSport = sportFilter ?? selectedSport
+        let cal = Calendar.current
+        return events.filter { event in
+            cal.isDate(event.date, inSameDayAs: selectedDate) &&
+                venue.games.contains(event.title) &&
+                (effectiveSport == "All" || event.sport == effectiveSport)
+        }
+    }
+
+    private func venueMatchesMapSearch(_ venue: BarVenue, candidateEvents: [SportsEvent]) -> Bool {
+        let q = effectiveDiscoverSearchQuery
+        guard !q.isEmpty else { return true }
+        if venue.name.localizedCaseInsensitiveContains(q) || venue.address.localizedCaseInsensitiveContains(q) {
+            return true
+        }
+        return candidateEvents.contains { matchesSearch($0) }
+    }
+
+    private func venueIsActiveForMap(_ venue: BarVenue) -> Bool {
+        let normalized = venue.adminStatus?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        return normalized.isEmpty || normalized == "active"
     }
 
     func loadEventsFromInternet() async {
@@ -242,6 +310,19 @@ extension MapViewModel {
         selectedBar = nil
         discoverRemotePreviewHoldVenueId = nil
         loadGamesFromSupabase()
+    }
+
+    func discoverDateChanged() {
+        selectedEvent = nil
+        discoverRemotePreviewHoldVenueId = nil
+        #if DEBUG
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        let selectedDay = formatter.string(from: selectedDate)
+        print("[DiscoverDatePerf] date selected=\(selectedDay)")
+        #endif
+        refreshDiscoverSelectedDayVenueEventsForCurrentContext()
     }
 
     func sportChanged(to sport: String) {

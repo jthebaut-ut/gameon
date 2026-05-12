@@ -84,6 +84,7 @@ enum USStatesForBusinessLocation {
 
 struct BusinessLocationCountryField: View {
     @Binding var countryCode: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         if BusinessLocationCountryPolicy.showsCountryPicker {
@@ -92,11 +93,15 @@ struct BusinessLocationCountryField: View {
                     Text(opt.label).tag(opt.code)
                 }
             }
+            .font(FGTypography.body)
+            .tint(FGColor.accentBlue)
         } else {
             LabeledContent("Country") {
                 Text(readOnlyCountryLine)
-                    .foregroundStyle(.primary)
+                    .font(FGTypography.body)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
             }
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
         }
     }
 
@@ -115,6 +120,7 @@ struct BusinessLocationCountryField: View {
 struct BusinessLocationUSStatePicker: View {
     var title: String = "State"
     @Binding var stateCode: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Picker(title, selection: $stateCode) {
@@ -122,5 +128,8 @@ struct BusinessLocationUSStatePicker: View {
                 Text("\(row.0) — \(row.1)").tag(row.0)
             }
         }
+        .font(FGTypography.body)
+        .tint(FGColor.accentBlue)
+        .foregroundStyle(FGColor.primaryText(colorScheme))
     }
 }

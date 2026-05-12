@@ -105,23 +105,39 @@ final class ChatViewModel: ObservableObject {
     }
 
     /// Clears social UI state when the session ends (no network).
-    func clearForLogout() async {
-        await stopInboxRealtimeListener()
+    func clearForSignOut() {
         friends = []
         incomingRequests = []
         outgoingRequests = []
         pendingBadgeCount = 0
-        await setUnreadDirectMessageCountAndSyncAppIcon(0)
+        unreadDirectMessageCount = 0
         errorMessage = nil
         inboxDeleteError = nil
         requiresSignIn = true
         lastLoadAt = nil
+        lastInboxLoadAt = nil
         friendshipChipByOtherUserId = [:]
         currentUserAuthId = nil
         hidesFloatingTabBarForDirectChat = false
         blockedUserIds = []
         usersWhoBlockedMeIds = []
         blockedUserPreviews = []
+        inboxUnreadDebounceTask?.cancel()
+        inboxUnreadDebounceTask = nil
+        inboxMissingPeerReconcileTask?.cancel()
+        inboxMissingPeerReconcileTask = nil
+        inboxReconciliationTask?.cancel()
+        inboxReconciliationTask = nil
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.stopInboxRealtimeListener()
+            await AppIconBadgeSync.apply(count: 0)
+        }
+    }
+
+    func clearForLogout() async {
+        clearForSignOut()
     }
 
     /// True if either party has blocked the other (client-side UX guard).
@@ -354,7 +370,7 @@ final class ChatViewModel: ObservableObject {
     /// Refreshes the Chat tab badge for unread peer DMs (no friendship / request counts).
     func refreshUnreadDirectMessageCount() async {
         guard let me = try? await directChatService.currentUserId() else {
-            await setUnreadDirectMessageCountAndSyncAppIcon(0)
+            clearForSignOut()
             return
         }
         guard let n = try? await directChatService.fetchUnreadDirectMessageCount(currentUserId: me) else {
@@ -383,8 +399,7 @@ final class ChatViewModel: ObservableObject {
 
     func refreshInboxSummaries() async {
         guard let me = try? await directChatService.currentUserId() else {
-            friends = []
-            await setUnreadDirectMessageCountAndSyncAppIcon(0)
+            clearForSignOut()
             return
         }
         await reloadModerationBlockSets()
@@ -563,11 +578,7 @@ final class ChatViewModel: ObservableObject {
             if msg.localizedCaseInsensitiveContains("session")
                 || msg.localizedCaseInsensitiveContains("jwt")
                 || msg.localizedCaseInsensitiveContains("not authenticated") {
-                requiresSignIn = true
-                errorMessage = nil
-                lastLoadAt = nil
-                lastInboxLoadAt = nil
-                await setUnreadDirectMessageCountAndSyncAppIcon(0)
+                clearForSignOut()
             } else {
                 requiresSignIn = false
                 errorMessage = msg

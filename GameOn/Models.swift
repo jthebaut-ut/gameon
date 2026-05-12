@@ -50,6 +50,8 @@ struct BarVenue: Identifiable, Equatable {
     let ownerEmail: String?
     /// Supabase `venues.business_id` when known (multi-venue businesses).
     let businessId: UUID?
+    /// Supabase `venues.admin_status` when available; nil stays legacy-safe for old rows/snapshots.
+    let adminStatus: String?
 
     init(
         id: UUID = UUID(),
@@ -74,7 +76,8 @@ struct BarVenue: Identifiable, Equatable {
         coverPhotoThumbnailURL: String? = nil,
         menuPhotoThumbnailURL: String? = nil,
         ownerEmail: String? = nil,
-        businessId: UUID? = nil
+        businessId: UUID? = nil,
+        adminStatus: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -99,6 +102,7 @@ struct BarVenue: Identifiable, Equatable {
         self.menuPhotoThumbnailURL = menuPhotoThumbnailURL
         self.ownerEmail = ownerEmail
         self.businessId = businessId
+        self.adminStatus = adminStatus
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {

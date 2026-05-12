@@ -1,11 +1,13 @@
 import SwiftUI
 
-/// Composition root: owns the shared ``MapViewModel`` and presents Discover, Calendar, Following, Chat, and Account tabs.
+/// Composition root: presents Discover, Calendar, Following, Chat, and Account tabs using shared view models from the root container.
 ///
-/// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. Launch ``.task`` restores the session, loads venues, then refreshes the schedule from Supabase.
+/// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. The root bootstrap container usually preloads startup data first; this view keeps a fallback ``.task`` only for timeout / degraded-entry cases.
 struct MainTabView: View {
-    @StateObject private var viewModel = MapViewModel()
-    @StateObject private var chatViewModel = ChatViewModel()
+    @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var chatViewModel: ChatViewModel
+    let performsInitialBootstrap: Bool
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
 
@@ -49,7 +51,10 @@ struct MainTabView: View {
             }
 
             preservedRoot(tab: .following) {
-                FollowingScreen(viewModel: viewModel)
+                FollowingScreen(
+                    viewModel: viewModel,
+                    suppressInitialAutoRefresh: true
+                )
             }
 
             preservedRoot(tab: .chat) {
@@ -81,19 +86,25 @@ struct MainTabView: View {
         }
         // Discover-first: disk snapshot + map/calendar core refresh never waits on profile, favorites, or social enrichment.
         .task {
+            guard performsInitialBootstrap else { return }
             viewModel.renderCachedDiscoverCore()
 
             await viewModel.bootstrapAuthSessionOnly()
 
             Task {
                 await viewModel.refreshDiscoverCoreInBackground()
-                await viewModel.refreshSocialEnrichmentInBackground()
             }
             Task {
                 await viewModel.refreshUserPersonalizationInBackground()
             }
 
-            await chatViewModel.loadIfNeeded()
+            if viewModel.isAuthenticatedForSocialFeatures {
+                await chatViewModel.loadIfNeeded()
+            } else {
+                await MainActor.run {
+                    chatViewModel.clearForSignOut()
+                }
+            }
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             Task { await syncChatAuthState() }
@@ -101,9 +112,26 @@ struct MainTabView: View {
         .onChange(of: viewModel.currentUserAuthId) { _, _ in
             Task { await syncChatAuthState() }
         }
+        .onChange(of: viewModel.privateSessionClearNonce) { _, _ in
+            chatViewModel.clearForSignOut()
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
+                let hasSession = await viewModel.hasValidSession()
+                if !hasSession {
+                    await MainActor.run {
+                        viewModel.clearAuthenticatedSessionCaches()
+                        viewModel.clearVenueOwnerDraftState()
+                        viewModel.isLoggedIn = false
+                        viewModel.isVenueOwnerLoggedIn = false
+                        viewModel.venueOwnerMode = false
+                        viewModel.isAdminLoggedIn = false
+                        viewModel.clearPersistedAccountMode()
+                        chatViewModel.clearForSignOut()
+                    }
+                    return
+                }
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
             }
@@ -207,7 +235,9 @@ struct MainTabView: View {
         if viewModel.isAuthenticatedForSocialFeatures {
             await chatViewModel.refresh()
         } else {
-            await chatViewModel.clearForLogout()
+            await MainActor.run {
+                chatViewModel.clearForSignOut()
+            }
         }
     }
 
@@ -234,9 +264,21 @@ struct MainTabView: View {
                 }
             }
             .padding(8)
-            .background(Color.white.opacity(0.94))
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .shadow(radius: 8)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(floatingTabBarTint)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(floatingTabBarBorder, lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.12), radius: colorScheme == .dark ? 18 : 10, y: 8)
+            .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 10, y: 2)
             .padding(.horizontal)
             .padding(.bottom, 12)
         }
@@ -295,6 +337,32 @@ struct MainTabView: View {
 
         return "person.circle.fill"
     }
+
+    private var floatingTabBarTint: Color {
+        colorScheme == .dark
+            ? Color.black.opacity(0.34)
+            : Color.white.opacity(0.58)
+    }
+
+    private var floatingTabBarBorder: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.10)
+            : Color.white.opacity(0.55)
+    }
+
+    private var selectedTabBackgroundColor: Color {
+        colorScheme == .dark ? Color.black.opacity(0.86) : Color.black.opacity(0.92)
+    }
+
+    private var unselectedTabForegroundColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.74) : FGColor.secondaryText(colorScheme)
+    }
+
+    private var accountIconBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : Color.white.opacity(0.92)
+    }
     
     private func chatTabButton() -> some View {
         Button {
@@ -311,8 +379,8 @@ struct MainTabView: View {
                 .fontWeight(.bold)
                 .padding(.horizontal, selectedTab == .chat ? 12 : 10)
                 .padding(.vertical, 10)
-                .foregroundStyle(selectedTab == .chat ? Color.white : Color.primary)
-                .background(selectedTab == .chat ? Color.black : Color.clear)
+                .foregroundStyle(selectedTab == .chat ? Color.white : unselectedTabForegroundColor)
+                .background(selectedTab == .chat ? selectedTabBackgroundColor : Color.clear)
                 .clipShape(Capsule())
 
                 if chatViewModel.pendingBadgeCount > 0 {
@@ -346,8 +414,8 @@ struct MainTabView: View {
             .fontWeight(.bold)
             .padding(.horizontal, selectedTab == tab ? 12 : 10)
             .padding(.vertical, 10)
-            .foregroundStyle(selectedTab == tab ? Color.white : Color.primary)
-            .background(selectedTab == tab ? Color.black : Color.clear)
+            .foregroundStyle(selectedTab == tab ? Color.white : unselectedTabForegroundColor)
+            .background(selectedTab == tab ? selectedTabBackgroundColor : Color.clear)
             .clipShape(Capsule())
         }
     }
@@ -396,14 +464,15 @@ struct MainTabView: View {
                         venueOwnerEmail: viewModel.venueOwnerEmail
                     ),
                     size: 44,
-                    fallbackStyle: .lightOnWhiteChrome
+                    fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome,
+                    imagePlaceholderTint: colorScheme == .dark ? .white : nil
                 )
             } else {
                 Image(systemName: accountIconName)
                     .font(.title3)
                     .foregroundStyle(accountIconColor)
                     .frame(width: 44, height: 44)
-                    .background(Color.white)
+                    .background(accountIconBackgroundColor)
                     .clipShape(Circle())
             }
         }

@@ -63,8 +63,11 @@ enum SportFilterCatalog {
 
 /// Horizontal filter chip (Discover + Calendar).
 struct SportFilterChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let sport: String
     let isSelected: Bool
+    var isCompact = false
     let action: () -> Void
 
     private var visual: SportFilterCatalog.ChipVisual {
@@ -73,37 +76,37 @@ struct SportFilterChip: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .center, spacing: 2) {
+            HStack(alignment: .center, spacing: 5) {
                 if sport == "All" {
                     Image(systemName: visual.systemImage)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.system(size: isCompact ? 14 : 15, weight: .semibold, design: .rounded))
                         .foregroundStyle(isSelected ? Color.white : visual.accent)
                 } else if !visual.emoji.isEmpty {
                     Text(visual.emoji)
-                        .font(.system(size: 17))
-                        .baselineOffset(-0.5)
+                        .font(.system(size: isCompact ? 15 : 16))
+                        .baselineOffset(-0.35)
                         .shadow(color: .black.opacity(0.03), radius: 0.5, x: 0, y: 0.5)
                 } else {
                     Image(systemName: visual.systemImage)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .font(.system(size: isCompact ? 14 : 15, weight: .semibold, design: .rounded))
                         .foregroundStyle(visual.accent)
                 }
 
                 Text(sport)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.system(size: isCompact ? 13 : 14, weight: .semibold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .padding(.horizontal, 5)
-            .frame(height: 39, alignment: .center)
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .padding(.horizontal, isCompact ? (sport == "All" ? 9 : 10) : (sport == "All" ? 10 : 11))
+            .frame(height: isCompact ? 33 : 35, alignment: .center)
+            .foregroundStyle(isSelected ? Color.white : FGColor.primaryText(colorScheme))
             .background {
                 Group {
                     if isSelected {
                         Capsule()
                             .fill(
                                 LinearGradient(
-                                    colors: [visual.accent, visual.accent.opacity(0.78)],
+                                    colors: [visual.accent.opacity(0.96), visual.accent.opacity(0.78)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -111,9 +114,9 @@ struct SportFilterChip: View {
                     } else {
                         ZStack {
                             Capsule()
-                                .fill(.ultraThinMaterial)
+                                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.92 : 0.98))
                             Capsule()
-                                .fill(visual.accent.opacity(0.08))
+                                .fill(visual.accent.opacity(colorScheme == .dark ? 0.08 : 0.055))
                         }
                     }
                 }
@@ -121,12 +124,18 @@ struct SportFilterChip: View {
             .overlay(
                 Capsule()
                     .strokeBorder(
-                        isSelected ? Color.white.opacity(0.22) : visual.accent.opacity(0.36),
-                        lineWidth: 1
+                        isSelected ? Color.white.opacity(0.18) : visual.accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
+                        lineWidth: isSelected ? 0.95 : 0.85
                     )
             )
             .contentShape(Capsule())
-            .shadow(color: isSelected ? visual.accent.opacity(0.26) : .black.opacity(0.045), radius: isSelected ? 5 : 2, x: 0, y: isSelected ? 2 : 1)
+            .shadow(
+                color: isSelected ? visual.accent.opacity(0.18) : .black.opacity(colorScheme == .dark ? 0.12 : 0.045),
+                radius: isCompact ? (isSelected ? 8 : 4) : (isSelected ? 10 : 5),
+                x: 0,
+                y: isCompact ? (isSelected ? 3 : 1.5) : (isSelected ? 4 : 2)
+            )
+            .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(sport)

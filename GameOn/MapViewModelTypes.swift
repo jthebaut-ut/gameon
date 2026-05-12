@@ -129,6 +129,8 @@ struct VenueProfileRow: Decodable {
     let owner_email: String?
     /// `public.venues.business_id` when present (multi-venue owner Phase B1); omitted in older API responses decodes as nil.
     let business_id: UUID?
+    /// Duplicate-protection identity key used for safe venue dedupe / merge logic.
+    let venue_identity_key: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
     let venue_name: String?
@@ -157,6 +159,10 @@ struct VenueRow: Decodable {
     let owner_email: String?
     /// Multi-venue businesses (nullable / omitted for legacy rows).
     let business_id: UUID?
+    /// Duplicate-protection identity key used for safe venue dedupe / merge logic.
+    let venue_identity_key: String?
+    /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
+    let admin_status: String?
     let venue_name: String?
     let address: String?
     let city: String?
@@ -180,13 +186,56 @@ struct VenueRow: Decodable {
     let menu_photo_thumbnail_url: String?
 }
 
+struct DiscoverMapBoundsWindow: Equatable {
+    let minLat: Double
+    let maxLat: Double
+    let minLon: Double
+    let maxLon: Double
+
+    var centerLat: Double { (minLat + maxLat) / 2 }
+    var centerLon: Double { (minLon + maxLon) / 2 }
+    var latSpan: Double { maxLat - minLat }
+    var lonSpan: Double { maxLon - minLon }
+
+    func contains(_ other: DiscoverMapBoundsWindow) -> Bool {
+        minLat <= other.minLat
+            && maxLat >= other.maxLat
+            && minLon <= other.minLon
+            && maxLon >= other.maxLon
+    }
+}
+
+struct DiscoverViewportVenueRowsCacheEntry {
+    let key: String
+    let source: String
+    let requestedBounds: DiscoverMapBoundsWindow
+    let coverageBounds: DiscoverMapBoundsWindow
+    let rows: [VenueRow]
+    let fetchedAt: Date
+}
+
 /// Drives Settings → Business → Location status row (icon / tint) without inferring approval from legacy claim flags alone.
 enum BusinessSettingsLocationChrome: Equatable {
     case needsBusinessAccountFirst
+    case archivedBusinessAccount
     case approved
     case pendingReview
     case rejected
     case noLocationsYet
+}
+
+enum DiscoverMapDisplayMode: String, CaseIterable, Equatable {
+    case allSpots
+    case gamesOnly
+
+    var title: String {
+        switch self {
+        case .allSpots:
+            return "All Spots"
+        case .gamesOnly:
+            return "Games Only"
+        }
+    }
 }
 
 /// Full-field payload for Settings → Add location → ``venue_claims`` (no public ``venues`` row until admin approval).
@@ -300,10 +349,24 @@ struct VenueClaimPendingSettingsRow: Decodable, Identifiable, Equatable {
     let business_id: UUID?
     let venue_id: UUID?
     let venue_name: String?
+    let venue_address: String?
     let venue_city: String?
     let venue_state: String?
     let approval_status: String?
     let rejection_acknowledged_at: String?
+}
+
+struct ApprovedVenueOwnershipSummary: Equatable {
+    let businessId: UUID?
+    let ownerEmail: String?
+}
+
+enum VenueOwnershipClaimStatus: Equatable {
+    case unclaimed
+    case pendingReview
+    case approved
+    case alreadyClaimedByOtherBusiness
+    case rejected
 }
 
 struct VenueEventInterestInsert: Encodable {
@@ -381,6 +444,12 @@ struct FollowingGoingDisplayItem: Identifiable {
     let isServerGoing: Bool
 }
 
+enum VenueEventCommentDeliveryState: String, Equatable {
+    case pending
+    case sent
+    case failed
+}
+
 struct VenueEventCommentRow: Decodable, Identifiable {
     let id: UUID?
     let venue_event_id: UUID?
@@ -389,9 +458,60 @@ struct VenueEventCommentRow: Decodable, Identifiable {
     let created_at: String?
     /// When true, row is kept for audit but hidden from fan threads (see ``ModerationService/hiddenAfterReportsThreshold``).
     let is_moderation_hidden: Bool?
+    let delivery_state: VenueEventCommentDeliveryState
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case venue_event_id
+        case user_email
+        case comment
+        case created_at
+        case is_moderation_hidden
+    }
+
+    init(
+        id: UUID?,
+        venue_event_id: UUID?,
+        user_email: String?,
+        comment: String?,
+        created_at: String?,
+        is_moderation_hidden: Bool?,
+        delivery_state: VenueEventCommentDeliveryState = .sent
+    ) {
+        self.id = id
+        self.venue_event_id = venue_event_id
+        self.user_email = user_email
+        self.comment = comment
+        self.created_at = created_at
+        self.is_moderation_hidden = is_moderation_hidden
+        self.delivery_state = delivery_state
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id)
+        venue_event_id = try container.decodeIfPresent(UUID.self, forKey: .venue_event_id)
+        user_email = try container.decodeIfPresent(String.self, forKey: .user_email)
+        comment = try container.decodeIfPresent(String.self, forKey: .comment)
+        created_at = try container.decodeIfPresent(String.self, forKey: .created_at)
+        is_moderation_hidden = try container.decodeIfPresent(Bool.self, forKey: .is_moderation_hidden)
+        delivery_state = .sent
+    }
 
     var isHiddenFromThread: Bool {
         is_moderation_hidden == true
+    }
+
+    var isPendingSend: Bool {
+        delivery_state == .pending
+    }
+
+    var isFailedSend: Bool {
+        delivery_state == .failed
+    }
+
+    var serverCommentID: UUID? {
+        delivery_state == .sent ? id : nil
     }
 }
 
