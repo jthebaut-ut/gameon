@@ -194,6 +194,9 @@ extension MapViewModel {
 
         goingUserProfiles = []
         goingProfilesByVenueEventID = [:]
+        pickupGamesForDiscoverMap = []
+        selectedPickupGameForMap = nil
+        myPickupGamesForSettings = []
         commentIDsReportedByCurrentUser = []
         userProfilesByEmail = [:]
         myVenueEventVibes = [:]

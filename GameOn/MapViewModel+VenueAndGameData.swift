@@ -859,6 +859,12 @@ extension MapViewModel {
     }
 
     func refreshDiscoverSelectedDayVenueEventsForCurrentContext(requestID: UUID) async {
+        defer {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.refreshPickupGamesForDiscoverMap()
+            }
+        }
         let cal = Calendar.current
         let minDay = cal.startOfDay(for: Date())
         let selStart = cal.startOfDay(for: selectedDate)
@@ -1623,6 +1629,8 @@ extension MapViewModel {
             mergeVenueSliceIntoEvents(venueRows: fetchedVenueEventRows)
             pruneSelectionIfNeededAfterFilterChange()
             persistDiscoverCoreSnapshot()
+
+            await refreshPickupGamesForDiscoverMap()
 
             #if DEBUG
             let phase2Ms = Int(Date().timeIntervalSince(phase1CompletedAt) * 1000)

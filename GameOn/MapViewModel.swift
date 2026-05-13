@@ -246,6 +246,13 @@ final class MapViewModel: ObservableObject {
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
 
+    // MARK: - Pickup games (fan-created; see ``MapViewModel+PickupGames``)
+
+    @Published var pickupGamesForDiscoverMap: [PickupGameRow] = []
+    @Published var selectedPickupGameForMap: PickupGameRow?
+    @Published var myPickupGamesForSettings: [PickupGameRow] = []
+    @Published var isLoadingPickupGamesForMap: Bool = false
+
     // MARK: - Following tab (global; independent of Discover map region)
 
     /// Saved venues resolved from `favorite_venues` + `venues` by id (not filtered through ``bars``).

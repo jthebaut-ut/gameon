@@ -7,6 +7,7 @@ struct DiscoverScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var isSearchFocused: Bool
     @State private var showVenueDetails = false
@@ -108,6 +109,8 @@ struct DiscoverScreen: View {
                         } else {
                             loggedOutVenueTeaserCard(selectedBar)
                         }
+                    } else if let pickup = viewModel.selectedPickupGameForMap {
+                        discoverPickupPreviewCard(pickup)
                     } else {
                         nearbySummaryCard
                     }
@@ -290,6 +293,7 @@ struct DiscoverScreen: View {
                         set: { discoverDatePickerSelection = $0 }
                     ),
                     minimumSelectableDay: Calendar.current.startOfDay(for: Date()),
+                    chrome: .discoverMap,
                     onDone: {
                         applyDiscoverDatePickerSelection()
                     },
@@ -493,6 +497,7 @@ struct DiscoverScreen: View {
         Button {
             venuePreviewGameFilter = .all
             withAnimation(.spring()) {
+                viewModel.clearPickupMapSelection()
                 viewModel.centerMap(on: bar)
             }
         } label: {
@@ -569,6 +574,15 @@ struct DiscoverScreen: View {
                     } else {
                         multiVenueClusterAnnotation(cluster: cluster)
                     }
+                }
+            }
+
+            ForEach(viewModel.pickupGamesVisibleAsMapPins(for: viewModel.currentMapRegionBounds())) { row in
+                Annotation(
+                    "Pickup game: \(row.title)",
+                    coordinate: CLLocationCoordinate2D(latitude: row.latitude!, longitude: row.longitude!)
+                ) {
+                    pickupGameMapPinButton(row: row)
                 }
             }
         }
@@ -917,9 +931,15 @@ struct DiscoverScreen: View {
         dismissDiscoverSearchKeyboard()
         viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
         let minDay = viewModel.discoverMapCalendarSelectionMinimumDayStart()
-        let raw = viewModel.selectedDate
-        let selection = max(Calendar.current.startOfDay(for: raw), minDay)
+        let today = Calendar.current.startOfDay(for: Date())
+        let selection = max(today, minDay)
         discoverDatePickerSelection = selection
+        #if DEBUG
+        let openedLogFormatter = DateFormatter()
+        openedLogFormatter.dateFormat = "yyyy-MM-dd"
+        openedLogFormatter.timeZone = TimeZone.current
+        print("[DiscoverCalendar] opened at today date=\(openedLogFormatter.string(from: selection))")
+        #endif
         viewModel.loadDiscoverCalendarDots(
             around: selection,
             reason: "calendar_open",
@@ -1074,7 +1094,124 @@ struct DiscoverScreen: View {
         }
         return "0 venues match your selection"
     }
-    
+
+    private func pickupDiscoverMetadataChip(_ title: String, tint: Color) -> some View {
+        Text(title)
+            .font(FGTypography.caption.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, FGSpacing.sm)
+            .padding(.vertical, FGSpacing.xs + 1)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule(style: .continuous))
+    }
+
+    private func pickupDiscoverMetadataChips(_ row: PickupGameRow) -> some View {
+        let tint = FGColor.accentBlue
+        let columns = [GridItem(.adaptive(minimum: 72), spacing: 6, alignment: .leading)]
+        return LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+            pickupDiscoverMetadataChip(row.playEnvironmentEnum.shortLabel, tint: tint)
+            pickupDiscoverMetadataChip(row.skillLevelEnum.displayTitle, tint: tint)
+            pickupDiscoverMetadataChip(row.entryFeeChipTitle, tint: tint)
+            pickupDiscoverMetadataChip(row.lookingForPlayersLine, tint: tint)
+            if let maxChip = row.maxPlayersChipTitle {
+                pickupDiscoverMetadataChip(maxChip, tint: tint)
+            }
+            if row.participantPreferenceEnum != .everyone {
+                pickupDiscoverMetadataChip(row.participantPreferenceEnum.shortLabel, tint: tint)
+            }
+        }
+    }
+
+    private func pickupGameMapPinButton(row: PickupGameRow) -> some View {
+        Button {
+            withAnimation(.spring()) {
+                viewModel.selectPickupGameOnMap(row)
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.gradient)
+                    .frame(width: 34, height: 34)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                Image(systemName: "figure.run")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Pickup game, \(row.title)")
+    }
+
+    private func discoverPickupPreviewCard(_ row: PickupGameRow) -> some View {
+        let locationLine = [row.address, row.city, row.state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+
+        return FGCard {
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        FGStatusPill(title: "Pickup game", kind: .custom(tint: Color.orange))
+                        Text(row.title)
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text(row.sport)
+                            .font(FGTypography.metadata)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        pickupDiscoverMetadataChips(row)
+                        if let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) {
+                            Text(start.formatted(date: .abbreviated, time: .shortened))
+                                .font(FGTypography.metadata)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        }
+                        if !locationLine.isEmpty {
+                            Text(locationLine)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .lineLimit(2)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Button {
+                        withAnimation(.spring()) {
+                            viewModel.clearPickupMapSelection()
+                        }
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if let desc = row.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
+                    Text(desc)
+                        .font(FGTypography.body)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(4)
+                }
+
+                if let lat = row.latitude, let lon = row.longitude {
+                    Button {
+                        if let url = URL(string: "http://maps.apple.com/?ll=\(lat),\(lon)&q=Pickup%20game") {
+                            openURL(url)
+                        }
+                    } label: {
+                        Label("Directions", systemImage: "map")
+                            .font(FGTypography.metadata.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(FGColor.accentBlue)
+                }
+            }
+        }
+    }
+
     private var nearbySummaryCard: some View {
         let refreshError = viewModel.eventLoadError?.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasRefreshError = !(refreshError ?? "").isEmpty && !discoverSummaryLoadingFeedbackVisible

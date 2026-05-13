@@ -252,6 +252,7 @@ extension MapViewModel {
         selectedEvent = nil
         selectedBar = nil
         discoverRemotePreviewHoldVenueId = nil
+        selectedPickupGameForMap = nil
     }
 
     func selectedDayEventsForMap(_ venue: BarVenue, sportFilter: String? = nil) -> [SportsEvent] {
@@ -411,9 +412,11 @@ extension MapViewModel {
         selectedSport = sport
         selectedEvent = nil
         selectedBar = nil
+        selectedPickupGameForMap = nil
         discoverRemotePreviewHoldVenueId = nil
 
         loadGamesFromSupabase()
+        Task { await refreshPickupGamesForDiscoverMap() }
     }
 
     func matchesSearch(_ event: SportsEvent) -> Bool {

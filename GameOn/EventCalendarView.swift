@@ -3,6 +3,12 @@ import UIKit
 
 // MARK: - Shared calendar sheet layout (Discover + Calendar tab)
 
+/// Visual chrome for ``LiquidGlassCalendarPicker`` / ``EventCalendarView``. Discover map uses FanGeo liquid glass; Calendar tab keeps semantic adaptive surfaces.
+enum LiquidGlassCalendarChrome: Equatable {
+    case discoverMap
+    case calendarTab
+}
+
 /// Layout constants for date pickers presented while ``MainTabView`` floating tab bar may sit above tab content (`zIndex` 2). Scroll tail padding keeps the month grid and Today/Done tappable after scrolling to the end on SE through Pro Max.
 enum EventCalendarSheetLayout {
     /// Matches `MainTabView.floatingTabBarStackHeight` (capsule + margins).
@@ -43,48 +49,147 @@ private struct EventCalendarCardBackground: View {
     }
 }
 
+/// Single material layer + light specular wash + FG stroke (Discover overlay only).
+private struct DiscoverLiquidGlassCalendarCardBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let r = EventCalendarSheetLayout.calendarCardCornerRadius
+        RoundedRectangle(cornerRadius: r, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.07 : 0.18),
+                                Color.clear,
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .center
+                        )
+                    )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.42 : 0.11),
+                radius: colorScheme == .dark ? 26 : 14,
+                x: 0,
+                y: colorScheme == .dark ? 14 : 9
+            )
+    }
+}
+
 private struct EventCalendarMonthNavButton: View {
     let systemName: String
     let accessibilityLabel: String
+    let chrome: LiquidGlassCalendarChrome
     let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.body.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(chrome == .discoverMap ? FGColor.accentBlue : Color.accentColor)
                 .frame(width: 42, height: 42)
                 .background {
-                    Circle()
-                        .fill(Color(.tertiarySystemBackground))
-                    Circle()
-                        .strokeBorder(Color(.separator), lineWidth: 1)
+                    ZStack {
+                        if chrome == .discoverMap {
+                            Capsule(style: .continuous)
+                                .fill(.ultraThinMaterial)
+                            Capsule(style: .continuous)
+                                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                        } else {
+                            Circle()
+                                .fill(Color(.tertiarySystemBackground))
+                            Circle()
+                                .strokeBorder(Color(.separator), lineWidth: 1)
+                        }
+                    }
                 }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CalendarChromeMonthNavButtonStyle(chrome: chrome))
         .accessibilityLabel(accessibilityLabel)
     }
 }
 
+private struct CalendarChromeMonthNavButtonStyle: ButtonStyle {
+    let chrome: LiquidGlassCalendarChrome
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(chrome == .discoverMap && configuration.isPressed ? 0.94 : 1)
+            .opacity(chrome == .discoverMap && configuration.isPressed ? 0.88 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
+}
+
 private struct EventCalendarTodayCapsuleBackground: View {
+    let chrome: LiquidGlassCalendarChrome
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Capsule(style: .continuous)
-            .fill(Color(.tertiarySystemBackground))
-            .overlay {
+        ZStack {
+            if chrome == .discoverMap {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            } else {
+                Capsule(style: .continuous)
+                    .fill(Color(.tertiarySystemBackground))
                 Capsule(style: .continuous)
                     .strokeBorder(Color(.separator), lineWidth: 1)
             }
+        }
     }
 }
 
 private struct EventCalendarDoneCapsuleBackground: View {
+    let chrome: LiquidGlassCalendarChrome
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Capsule(style: .continuous)
-            .fill(Color.primary)
-            .overlay {
+        ZStack {
+            if chrome == .discoverMap {
+                Capsule(style: .continuous)
+                    .fill(FGColor.brandGradient)
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.22 : 0.35), lineWidth: 1)
+            } else {
+                Capsule(style: .continuous)
+                    .fill(Color.primary)
                 Capsule(style: .continuous)
                     .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 1)
             }
+        }
+    }
+}
+
+private struct CalendarChromeDayCellButtonStyle: ButtonStyle {
+    let chrome: LiquidGlassCalendarChrome
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(chrome == .discoverMap && configuration.isPressed ? 0.96 : 1)
+            .opacity(chrome == .discoverMap && configuration.isPressed ? 0.9 : 1)
+            .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
+    }
+}
+
+private struct CalendarChromeFooterButtonStyle: ButtonStyle {
+    let chrome: LiquidGlassCalendarChrome
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(chrome == .discoverMap && configuration.isPressed ? 0.98 : 1)
+            .opacity(chrome == .discoverMap && configuration.isPressed ? 0.92 : 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
@@ -107,6 +212,7 @@ struct LiquidGlassCalendarPicker: View {
     @Binding var selectedDate: Date
     /// When set (Discover map picker), days before this start-of-day are non-selectable and prior months are floored.
     let minimumSelectableDay: Date?
+    let chrome: LiquidGlassCalendarChrome
     let onDone: () -> Void
     let onDisplayedMonthChange: ((Date) -> Void)?
 
@@ -119,6 +225,7 @@ struct LiquidGlassCalendarPicker: View {
         dotStatusText: String?,
         selectedDate: Binding<Date>,
         minimumSelectableDay: Date? = nil,
+        chrome: LiquidGlassCalendarChrome = .calendarTab,
         onDone: @escaping () -> Void,
         onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
@@ -130,6 +237,7 @@ struct LiquidGlassCalendarPicker: View {
         self.dotStatusText = dotStatusText
         self._selectedDate = selectedDate
         self.minimumSelectableDay = minimumSelectableDay
+        self.chrome = chrome
         self.onDone = onDone
         self.onDisplayedMonthChange = onDisplayedMonthChange
     }
@@ -149,13 +257,19 @@ struct LiquidGlassCalendarPicker: View {
                     dotStatusText: dotStatusText,
                     selectedDate: $selectedDate,
                     minimumSelectableDay: minimumSelectableDay,
+                    chrome: chrome,
                     onDone: onDone,
                     onDisplayedMonthChange: onDisplayedMonthChange
                 )
                 .padding(.horizontal, 22)
                 .padding(.vertical, 20)
                 .background {
-                    EventCalendarCardBackground()
+                    switch chrome {
+                    case .calendarTab:
+                        EventCalendarCardBackground()
+                    case .discoverMap:
+                        DiscoverLiquidGlassCalendarCardBackground()
+                    }
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, EventCalendarSheetLayout.sheetTopContentInset)
@@ -226,6 +340,7 @@ struct EventCalendarView: View {
     @Binding var selectedDate: Date
     /// When non-nil (Discover map), days before this instant (compared as start-of-day) cannot be selected and earlier months are blocked.
     let minimumSelectableDay: Date?
+    let chrome: LiquidGlassCalendarChrome
     let onDone: () -> Void
     let onDisplayedMonthChange: ((Date) -> Void)?
 
@@ -238,6 +353,7 @@ struct EventCalendarView: View {
         dotStatusText: String? = nil,
         selectedDate: Binding<Date>,
         minimumSelectableDay: Date? = nil,
+        chrome: LiquidGlassCalendarChrome = .calendarTab,
         onDone: @escaping () -> Void,
         onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
@@ -249,9 +365,12 @@ struct EventCalendarView: View {
         self.dotStatusText = dotStatusText
         self._selectedDate = selectedDate
         self.minimumSelectableDay = minimumSelectableDay
+        self.chrome = chrome
         self.onDone = onDone
         self.onDisplayedMonthChange = onDisplayedMonthChange
     }
+
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var displayedMonth: Date = SampleData.makeDate(year: 2026, month: 6, day: 1)
 
@@ -316,7 +435,8 @@ struct EventCalendarView: View {
             HStack(spacing: 10) {
                 EventCalendarMonthNavButton(
                     systemName: "chevron.left",
-                    accessibilityLabel: "Previous month"
+                    accessibilityLabel: "Previous month",
+                    chrome: chrome
                 ) {
                     changeMonth(by: -1)
                 }
@@ -336,7 +456,8 @@ struct EventCalendarView: View {
 
                 EventCalendarMonthNavButton(
                     systemName: "chevron.right",
-                    accessibilityLabel: "Next month"
+                    accessibilityLabel: "Next month",
+                    chrome: chrome
                 ) {
                     changeMonth(by: 1)
                 }
@@ -356,6 +477,7 @@ struct EventCalendarView: View {
                 ForEach(0..<calendarDays.count, id: \.self) { index in
                     if let date = calendarDays[index] {
                         let beforeMin = isBeforeSelectableMinimum(date)
+                        let isTodayCell = calendar.isDate(date, inSameDayAs: calendarToday)
                         Button {
                             if beforeMin {
                                 #if DEBUG
@@ -387,20 +509,19 @@ struct EventCalendarView: View {
                             .frame(height: 48)
                             .padding(.horizontal, 2)
                             .padding(.vertical, 2)
-                            .foregroundStyle(
-                                beforeMin
-                                    ? AnyShapeStyle(.secondary)
-                                    : (isSelected(date) ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.primary))
-                            )
+                            .foregroundStyle(dayCellForeground(beforeMin: beforeMin, date: date))
                             .background {
-                                if isSelected(date), !beforeMin {
-                                    Capsule()
-                                        .fill(Color.primary)
+                                dayCellBackground(beforeMin: beforeMin, date: date)
+                            }
+                            .overlay {
+                                if chrome == .discoverMap, isTodayCell, !isSelected(date), !beforeMin {
+                                    Capsule(style: .continuous)
+                                        .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.5 : 0.42), lineWidth: 1.5)
                                 }
                             }
                             .opacity(beforeMin ? 0.48 : 1)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(CalendarChromeDayCellButtonStyle(chrome: chrome))
                     } else {
                         Color.clear
                             .frame(maxWidth: .infinity)
@@ -418,9 +539,9 @@ struct EventCalendarView: View {
                         .padding(.horizontal, 20)
                         .frame(minHeight: 46)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(CalendarChromeFooterButtonStyle(chrome: chrome))
                 .background {
-                    EventCalendarTodayCapsuleBackground()
+                    EventCalendarTodayCapsuleBackground(chrome: chrome)
                 }
                 .foregroundStyle(.primary)
                 .disabled(isAlreadyTodaySelection)
@@ -442,12 +563,12 @@ struct EventCalendarView: View {
                 } label: {
                     Text("Done")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(.systemBackground))
+                        .foregroundStyle(chrome == .discoverMap ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color(.systemBackground)))
                         .frame(maxWidth: .infinity, minHeight: 46)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(CalendarChromeFooterButtonStyle(chrome: chrome))
                 .background {
-                    EventCalendarDoneCapsuleBackground()
+                    EventCalendarDoneCapsuleBackground(chrome: chrome)
                 }
                 .accessibilityLabel("Done")
             }
@@ -521,6 +642,35 @@ struct EventCalendarView: View {
 
     private func isSelected(_ date: Date) -> Bool {
         calendar.isDate(date, inSameDayAs: selectedDate)
+    }
+
+    private func dayCellForeground(beforeMin: Bool, date: Date) -> AnyShapeStyle {
+        if beforeMin { return AnyShapeStyle(.secondary) }
+        if isSelected(date) {
+            if chrome == .discoverMap {
+                return AnyShapeStyle(Color.white)
+            }
+            return AnyShapeStyle(Color(.systemBackground))
+        }
+        return AnyShapeStyle(.primary)
+    }
+
+    @ViewBuilder
+    private func dayCellBackground(beforeMin: Bool, date: Date) -> some View {
+        if isSelected(date), !beforeMin {
+            if chrome == .discoverMap {
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(FGColor.brandGradient)
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.2 : 0.32), lineWidth: 1)
+                }
+                .shadow(color: FGColor.accentBlue.opacity(0.28), radius: 10, y: 3)
+            } else {
+                Capsule(style: .continuous)
+                    .fill(Color.primary)
+            }
+        }
     }
 
     private func monthTitle(_ date: Date) -> String {

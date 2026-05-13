@@ -116,6 +116,7 @@ extension MapViewModel {
             if let hold = discoverRemotePreviewHoldVenueId, hold != bar.id {
                 discoverRemotePreviewHoldVenueId = nil
             }
+            selectedPickupGameForMap = nil
             selectedBar = bar
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
@@ -139,6 +140,7 @@ extension MapViewModel {
             if let hold = discoverRemotePreviewHoldVenueId, hold != selectedBar.id {
                 discoverRemotePreviewHoldVenueId = nil
             }
+            selectedPickupGameForMap = nil
             self.selectedBar = selectedBar
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
@@ -216,6 +218,40 @@ extension MapViewModel {
                     return
                 }
                 continuation.resume(returning: placemarks?.first?.location?.coordinate)
+            }
+        }
+    }
+
+    /// Reverse geocode for pickup map pin (street line, city, state); all nil if lookup fails.
+    func reverseGeocodeAddressFields(for coordinate: CLLocationCoordinate2D) async -> (
+        street: String?,
+        city: String?,
+        state: String?
+    ) {
+        await withCheckedContinuation { continuation in
+            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            CLGeocoder().reverseGeocodeLocation(location) { placemarks, error in
+                if error != nil {
+                    continuation.resume(returning: (nil, nil, nil))
+                    return
+                }
+                guard let pm = placemarks?.first else {
+                    continuation.resume(returning: (nil, nil, nil))
+                    return
+                }
+                let num = pm.subThoroughfare?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let name = pm.thoroughfare?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let streetCombined = [num, name].filter { !$0.isEmpty }.joined(separator: " ")
+                let street: String? = streetCombined.isEmpty ? nil : streetCombined
+                let city: String? = {
+                    guard let t = pm.locality?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+                    return t
+                }()
+                let state: String? = {
+                    guard let t = pm.administrativeArea?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+                    return t
+                }()
+                continuation.resume(returning: (street, city, state))
             }
         }
     }

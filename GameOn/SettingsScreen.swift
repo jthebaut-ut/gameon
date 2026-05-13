@@ -39,6 +39,10 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
     }
 }
 
+private struct PickupGamesListPresentation: Identifiable {
+    var id: String { "pickup-games-list" }
+}
+
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -68,6 +72,8 @@ struct SettingsScreen: View {
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
+    @State private var pickupGamesListPresentation: PickupGamesListPresentation?
+    @State private var pickupGameFormMode: PickupGameFormMode?
 
     /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
     private func performBusinessAccountLogout() {
@@ -78,6 +84,11 @@ struct SettingsScreen: View {
             showReportedCommentsSheet = false
             showDeleteVenueOwnerSheet = false
         }
+    }
+
+    private func logSettingsBusinessVenueSectionVisibilityForFanAccount() {
+        guard viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn else { return }
+        print("[SettingsVisibility] hiding business venue section for fan account")
     }
 
     var body: some View {
@@ -198,7 +209,8 @@ struct SettingsScreen: View {
                     settingsSectionHeader("Account")
                 }
 
-                Section {
+                if viewModel.isVenueOwnerLoggedIn || !viewModel.isLoggedIn {
+                    Section {
                     settingsSectionCard {
                         let hasArchivedBusinessAccount = viewModel.hasArchivedBusinessAccountForOwner()
                         let hasActiveBusinessAccount = viewModel.hasBusinessAccountForOwner()
@@ -407,6 +419,7 @@ struct SettingsScreen: View {
                 } header: {
                     settingsSectionHeader("Business & Venue")
                 }
+                }
 
                 Section {
                     settingsSectionCard {
@@ -426,6 +439,49 @@ struct SettingsScreen: View {
                     .listRowBackground(Color.clear)
                 } header: {
                     settingsSectionHeader("Preferences")
+                }
+
+                Section {
+                    if viewModel.hasAuthenticatedVenueOwnerSession {
+                        settingsSectionCard {
+                            settingsInlineNote(
+                                "Pickup games are for fan accounts only.",
+                                systemImage: "info.circle"
+                            )
+                        }
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                    } else if viewModel.canFanUsePickupGamesUI {
+                        settingsSectionCard {
+                            Button {
+                                pickupGamesListPresentation = PickupGamesListPresentation()
+                            } label: {
+                                settingsRow(
+                                    title: "My pickup games",
+                                    subtitle: "View, edit, or remove games you posted.",
+                                    systemImage: "list.bullet.rectangle"
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            settingsRowDivider()
+
+                            Button {
+                                pickupGameFormMode = .add
+                            } label: {
+                                settingsRow(
+                                    title: "Add pickup game",
+                                    subtitle: "Post a casual game and optional map pin.",
+                                    systemImage: "figure.run"
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                    }
+                } header: {
+                    settingsSectionHeader("Pickup Games")
                 }
 
                 Section {
@@ -505,6 +561,9 @@ struct SettingsScreen: View {
             .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .onAppear {
+                logSettingsBusinessVenueSectionVisibilityForFanAccount()
+            }
         }
         .onChange(of: viewModel.openVenueOwnerAuthSheetFromClaimFlow) { _, shouldPresent in
             guard shouldPresent else { return }
@@ -525,9 +584,24 @@ struct SettingsScreen: View {
         }
         .onChange(of: viewModel.isLoggedIn) { _, _ in
             password = ""
+            logSettingsBusinessVenueSectionVisibilityForFanAccount()
         }
         .onChange(of: viewModel.isVenueOwnerLoggedIn) { _, _ in
             venuePassword = ""
+            logSettingsBusinessVenueSectionVisibilityForFanAccount()
+        }
+        .onChange(of: viewModel.hasAuthenticatedVenueOwnerSession) { _, isBusiness in
+            if !isBusiness {
+                venueOwnerDashboardSheet = nil
+                showReportedCommentsSheet = false
+                showAddLocationSheet = false
+            }
+        }
+        .onChange(of: viewModel.canFanUsePickupGamesUI) { _, canUse in
+            if !canUse {
+                pickupGamesListPresentation = nil
+                pickupGameFormMode = nil
+            }
         }
         .sheet(item: $venueOwnerDashboardSheet) { route in
             VenueOwnerDashboardView(viewModel: viewModel, entryPoint: route.entryPoint)
@@ -567,6 +641,11 @@ struct SettingsScreen: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .onAppear {
+                if !viewModel.hasAuthenticatedVenueOwnerSession {
+                    showAddLocationSheet = false
+                }
+            }
         }
         .sheet(isPresented: $showNotificationsSheet) {
             NavigationStack {
@@ -649,6 +728,43 @@ struct SettingsScreen: View {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Close") { showReportedCommentsSheet = false }
                     }
+                }
+            }
+            .onAppear {
+                if !viewModel.hasAuthenticatedVenueOwnerSession {
+                    showReportedCommentsSheet = false
+                }
+            }
+        }
+        .sheet(item: $pickupGamesListPresentation) { _ in
+            NavigationStack {
+                SettingsPickupGamesListSheet(viewModel: viewModel)
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .onAppear {
+                if !viewModel.canFanUsePickupGamesUI {
+                    pickupGamesListPresentation = nil
+                }
+            }
+        }
+        .sheet(item: $pickupGameFormMode) { mode in
+            NavigationStack {
+                SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
+                    pickupGameFormMode = nil
+                    Task {
+                        await viewModel.loadMyPickupGamesForSettings()
+                        await viewModel.refreshPickupGamesForDiscoverMap()
+                    }
+                }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .onAppear {
+                if !viewModel.canFanUsePickupGamesUI {
+                    pickupGameFormMode = nil
                 }
             }
         }

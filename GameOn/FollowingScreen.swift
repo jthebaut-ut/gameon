@@ -260,11 +260,8 @@ struct FollowingScreen: View {
         .frame(maxWidth: .infinity)
         .padding()
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
     }
 
     private func goingPlanCard(_ item: FollowingGoingDisplayItem) -> some View {
@@ -332,11 +329,8 @@ struct FollowingScreen: View {
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
         .task(id: item.id) {
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
             await viewModel.loadGoingUserProfiles(for: item.id)
@@ -450,11 +444,8 @@ struct FollowingScreen: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
     }
 
     // MARK: - Maps / Discover (Following tab)
@@ -498,6 +489,47 @@ struct FollowingScreen: View {
                 }
             }
         }
+    }
+}
+
+/// Premium separation for Following list cards on `systemGroupedBackground` (stroke, soft lift, top-edge sheen).
+private struct FollowingCardChromeModifier: ViewModifier {
+    var colorScheme: ColorScheme
+    private let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+
+    func body(content: Content) -> some View {
+        let isLight = colorScheme == .light
+        let shadowColor = Color.black.opacity(isLight ? 0.125 : 0.32)
+        let shadowRadius: CGFloat = isLight ? 12 : 8
+        let shadowY: CGFloat = isLight ? 3 : 2
+        let outerStroke = FGColor.divider(colorScheme).opacity(isLight ? 0.92 : 0.88)
+        let innerStroke = Color.white.opacity(isLight ? 0.10 : 0.04)
+        let sheenTop = Color.white.opacity(isLight ? 0.16 : 0.04)
+
+        content
+            .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: shadowY)
+            .overlay {
+                ZStack {
+                    shape
+                        .fill(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: sheenTop, location: 0),
+                                    .init(color: Color.clear, location: 0.2)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .blendMode(.overlay)
+                    shape
+                        .strokeBorder(innerStroke, lineWidth: 0.5)
+                        .padding(1)
+                    shape
+                        .strokeBorder(outerStroke, lineWidth: 1.35)
+                }
+                .allowsHitTesting(false)
+            }
     }
 }
 
