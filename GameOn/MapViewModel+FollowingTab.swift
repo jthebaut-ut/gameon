@@ -300,6 +300,11 @@ extension MapViewModel {
     }
 
     private static func decodeInterestedOnlyUUIDsFromDefaults() -> Set<UUID> {
+        Self.followingInterestedOnlyVenueEventIDsFromUserDefaults()
+    }
+
+    /// Same backing store as ``FollowingScreen`` `@AppStorage("gameon.following.interestedOnlyVenueEventIDs")` (Interested-without-server-row).
+    static func followingInterestedOnlyVenueEventIDsFromUserDefaults() -> Set<UUID> {
         let encoded = UserDefaults.standard.string(forKey: interestedOnlyVenueEventDefaultsKey) ?? ""
         let parts = encoded.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         var out: Set<UUID> = []
@@ -309,5 +314,14 @@ extension MapViewModel {
             }
         }
         return out
+    }
+
+    /// Forces a read of ``interestedPlans()`` so any UI depending on shared interest caches stays coherent after optimistic Following updates.
+    @MainActor
+    func refreshFollowingInterestDerivedSnapshotsForUI() {
+        _ = interestedPlans()
+#if DEBUG
+        print("[FollowingState] derived interest plans recomputed count=\(interestedPlans().count) goingRows=\(followingTabGoingItems.count)")
+#endif
     }
 }

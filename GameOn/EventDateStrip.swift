@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct EventDateStrip: View {
     let events: [SportsEvent]
@@ -33,7 +34,7 @@ struct EventDateStrip: View {
                             
                             if hasEvents(on: date) {
                                 Circle()
-                                    .fill(Color.green)
+                                    .fill(Color(UIColor.systemGreen))
                                     .frame(width: 7, height: 7)
                             } else {
                                 Circle()
@@ -42,8 +43,8 @@ struct EventDateStrip: View {
                             }
                         }
                         .frame(width: 62, height: 72)
-                        .foregroundStyle(isSelected(date) ? .white : .primary)
-                        .background(isSelected(date) ? Color.black : Color.white.opacity(0.92))
+                        .foregroundStyle(isSelected(date) ? Color(.systemBackground) : .primary)
+                        .background(isSelected(date) ? Color.primary : Color(.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                 }

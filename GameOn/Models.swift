@@ -267,6 +267,62 @@ struct VenueEventRow: Codable {
 
     /// Present when selected from Supabase; Discover fetch includes this column for debugging.
     let admin_status: String?
+
+    let scheduled_start_at: String?
+    let cleanup_delay_hours: Int?
+    let created_at: String?
+}
+
+/// Row from ``public.business_game_history`` (post-purge metadata for business owners).
+struct BusinessGameHistoryRow: Decodable, Identifiable {
+    let id: UUID
+    let original_venue_event_id: UUID
+    let business_id: UUID?
+    let venue_id: UUID?
+    let venue_name: String?
+    let event_title: String?
+    let sport: String?
+    let scheduled_start_at: String?
+    let event_date: String?
+    let cleanup_delay_hours: Int?
+    let attendance_count: Int?
+    let comment_count: Int?
+    let created_at: String?
+    let purged_at: String?
+}
+
+/// Shared rules for business “Add / update game” scheduling in the device’s local calendar/time zone.
+enum VenueOwnerGameScheduleValidation {
+    static let futureDateTimeMessage = "Game time must be in the future."
+
+    /// Calendar date + clock time from two pickers, interpreted in `calendar`’s local time zone.
+    static func combinedLocalStart(gameDate: Date, gameStartTime: Date, calendar: Calendar = .current) -> Date {
+        var dc = calendar.dateComponents([.year, .month, .day], from: gameDate)
+        let timeParts = calendar.dateComponents([.hour, .minute, .second], from: gameStartTime)
+        dc.hour = timeParts.hour
+        dc.minute = timeParts.minute
+        dc.second = timeParts.second
+        return calendar.date(from: dc) ?? gameDate
+    }
+
+    /// `true` when the scheduled start is **before** `now` (invalid for publish).
+    static func isPastSchedule(gameDate: Date, gameStartTime: Date, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        combinedLocalStart(gameDate: gameDate, gameStartTime: gameStartTime, calendar: calendar) < now
+    }
+
+    /// If the combined start is in the past, snap both pickers to **now** (same calendar day + clock).
+    static func clampGameDateAndTimeToMinimumNow(
+        gameDate: Date,
+        gameStartTime: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (Date, Date) {
+        if !isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime, now: now, calendar: calendar) {
+            return (gameDate, gameStartTime)
+        }
+        let dayStart = calendar.startOfDay(for: now)
+        return (dayStart, now)
+    }
 }
 
 struct GameRow: Codable, Identifiable {

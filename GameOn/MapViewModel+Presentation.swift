@@ -45,9 +45,9 @@ extension MapViewModel {
     }
 
     func callVenue(_ bar: BarVenue) {
-        if let url = URL(string: "tel://\(bar.phone)") {
-            UIApplication.shared.open(url)
-        }
+        let digits = BusinessPhoneFields.telDigits(fromStored: bar.phone)
+        guard !digits.isEmpty, let url = URL(string: "tel://\(digits)") else { return }
+        UIApplication.shared.open(url)
     }
 
     func displayTime(for event: SportsEvent) -> String {

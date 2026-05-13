@@ -142,6 +142,7 @@ struct DiscoverScreen: View {
             viewModel.logBusinessOwnerSessionFlags(context: "discover_enter")
         }
         .onAppear {
+            viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
             Task {
                 await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
                 viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
@@ -288,6 +289,7 @@ struct DiscoverScreen: View {
                         get: { discoverDatePickerSelection ?? viewModel.selectedDate },
                         set: { discoverDatePickerSelection = $0 }
                     ),
+                    minimumSelectableDay: Calendar.current.startOfDay(for: Date()),
                     onDone: {
                         applyDiscoverDatePickerSelection()
                     },
@@ -913,9 +915,13 @@ struct DiscoverScreen: View {
 
     private func openDiscoverDatePicker() {
         dismissDiscoverSearchKeyboard()
-        discoverDatePickerSelection = viewModel.selectedDate
+        viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
+        let minDay = viewModel.discoverMapCalendarSelectionMinimumDayStart()
+        let raw = viewModel.selectedDate
+        let selection = max(Calendar.current.startOfDay(for: raw), minDay)
+        discoverDatePickerSelection = selection
         viewModel.loadDiscoverCalendarDots(
-            around: viewModel.selectedDate,
+            around: selection,
             reason: "calendar_open",
             logIfOpeningBeforeReady: true
         )
@@ -932,13 +938,18 @@ struct DiscoverScreen: View {
     }
 
     private func applyDiscoverDatePickerSelection() {
-        let appliedDate = discoverDatePickerSelection ?? viewModel.selectedDate
+        let minDay = viewModel.discoverMapCalendarSelectionMinimumDayStart()
+        let raw = discoverDatePickerSelection ?? viewModel.selectedDate
+        let appliedDate = max(Calendar.current.startOfDay(for: raw), minDay)
         #if DEBUG
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone.current
         let appliedDateString = fmt.string(from: appliedDate)
         print("[CalendarPerf] Done tapped date=\(appliedDateString)")
+        if Calendar.current.startOfDay(for: raw) < minDay {
+            print("[DiscoverCalendar] selected date clamped to today")
+        }
         #endif
         let requestID = viewModel.beginDiscoverDateChange(to: appliedDate)
         discoverDatePickerSelection = nil

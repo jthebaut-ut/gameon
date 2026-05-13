@@ -30,26 +30,31 @@ struct CommentFriendshipChip: View {
                 .opacity(isSending ? 0.55 : 1)
 
             case .pendingOutgoing:
-                mutedCapsule("Requested")
+                mutedCapsule("Requested", tint: nil)
 
             case .pendingIncoming:
-                mutedCapsule("In Chat")
+                mutedCapsule("In Chat", tint: nil)
 
             case .friends:
-                mutedCapsule("Friends")
+                mutedCapsule("Friends", tint: nil)
+
+            case .declinedOutgoing:
+                mutedCapsule("Declined", tint: Color.orange)
             }
         }
     }
 
-    private func mutedCapsule(_ text: String) -> some View {
-        Text(text)
+    private func mutedCapsule(_ text: String, tint: Color?) -> some View {
+        let fg = tint ?? Color.secondary
+        let fill = (tint ?? Color.secondary).opacity(0.12)
+        return Text(text)
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(Color.secondary)
+            .foregroundStyle(fg)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .background(
                 Capsule()
-                    .fill(Color(.systemGray5))
+                    .fill(tint == nil ? Color(.systemGray5) : fill)
             )
     }
 }

@@ -51,7 +51,16 @@ extension MapViewModel {
             list = list.filter { $0.sport == selectedSport }
         }
         if calendarUsesVisibleMapRegionOnly {
-            let venueGameTitles = Set(bars.flatMap(\.games))
+            var venueGameTitles = Set(bars.flatMap(\.games))
+            if let ownerVid = ownerVenueDatabaseId, hasAuthenticatedVenueOwnerSession {
+                let extra = venueEventRows.compactMap { row -> String? in
+                    guard row.venue_id == ownerVid, let t = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else {
+                        return nil
+                    }
+                    return t
+                }
+                venueGameTitles.formUnion(extra)
+            }
             list = list.filter { event in
                 event.league == "Venue Event" && venueGameTitles.contains(event.title)
             }
@@ -146,6 +155,7 @@ extension MapViewModel {
                 event.title.localizedCaseInsensitiveContains(q)
                     || event.league.localizedCaseInsensitiveContains(q)
                     || event.sport.localizedCaseInsensitiveContains(q)
+                    || SportFilterCatalog.storedSport(event.sport, matchesSearchQuery: q)
             }
         }
 
@@ -332,8 +342,34 @@ extension MapViewModel {
         }
     }
 
+    /// Local start-of-day floor for Discover map date selection (Calendar tab uses its own picker without this floor).
+    func discoverMapCalendarSelectionMinimumDayStart() -> Date {
+        Calendar.current.startOfDay(for: Date())
+    }
+
+    @discardableResult
+    func clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded() -> Bool {
+        let cal = Calendar.current
+        let minDay = discoverMapCalendarSelectionMinimumDayStart()
+        let cur = cal.startOfDay(for: selectedDate)
+        guard cur < minDay else { return false }
+        selectedDate = minDay
+        #if DEBUG
+        print("[DiscoverCalendar] selected date clamped to today")
+        #endif
+        return true
+    }
+
     func beginDiscoverDateChange(to date: Date) -> UUID {
-        let nextDate = Calendar.current.startOfDay(for: date)
+        let cal = Calendar.current
+        let minDay = cal.startOfDay(for: Date())
+        let requested = cal.startOfDay(for: date)
+        let nextDate = max(requested, minDay)
+        #if DEBUG
+        if requested < minDay {
+            print("[DiscoverCalendar] selected date clamped to today")
+        }
+        #endif
         selectedEvent = nil
         discoverRemotePreviewHoldVenueId = nil
         selectedDate = nextDate
@@ -381,10 +417,12 @@ extension MapViewModel {
     }
 
     func matchesSearch(_ event: SportsEvent) -> Bool {
-        effectiveDiscoverSearchQuery.isEmpty ||
-        event.title.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery) ||
-        event.sport.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery) ||
-        event.league.localizedCaseInsensitiveContains(effectiveDiscoverSearchQuery)
+        let q = effectiveDiscoverSearchQuery
+        return q.isEmpty ||
+            event.title.localizedCaseInsensitiveContains(q) ||
+            event.sport.localizedCaseInsensitiveContains(q) ||
+            SportFilterCatalog.storedSport(event.sport, matchesSearchQuery: q) ||
+            event.league.localizedCaseInsensitiveContains(q)
     }
 
     private func discoverPreviewSQLDayString(for date: Date) -> String {

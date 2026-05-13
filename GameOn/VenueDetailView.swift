@@ -745,7 +745,7 @@ struct VenueDetailView: View {
                     (onAddressTap ?? onDirections)()
                 }
 
-                infoRow(title: "Phone", value: bar.phone.isEmpty ? "Not listed" : bar.phone, icon: "phone.fill") {
+                infoRow(title: "Phone", value: bar.phone.isEmpty ? "Not listed" : BusinessPhoneFields.displayString(fromStored: bar.phone), icon: "phone.fill") {
                     onCall()
                 }
 

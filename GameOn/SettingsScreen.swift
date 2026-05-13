@@ -336,9 +336,9 @@ struct SettingsScreen: View {
 
                                 Button { venueOwnerDashboardSheet = .manageVenue } label: {
                                     settingsRow(
-                                        title: "Manage listing",
-                                        subtitle: "Photos, address, TVs, seating for this location.",
-                                        systemImage: "building.2"
+                                        title: "Venue Details",
+                                        subtitle: "Photos, menu, amenities, and venue profile.",
+                                        systemImage: "photo.on.rectangle.angled"
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -349,7 +349,7 @@ struct SettingsScreen: View {
                                     Button { venueOwnerDashboardSheet = .manageGames } label: {
                                         settingsRow(
                                             title: "Manage Games",
-                                            subtitle: "Add, edit, or cancel games.",
+                                            subtitle: "Schedule or cancel games.",
                                             systemImage: "sportscourt"
                                         )
                                     }
@@ -360,7 +360,7 @@ struct SettingsScreen: View {
                                     Button { venueOwnerDashboardSheet = .statistics } label: {
                                         settingsRow(
                                             title: "Statistics",
-                                            subtitle: "Live game analytics.",
+                                            subtitle: "Analytics and game history.",
                                             systemImage: "chart.bar"
                                         )
                                     }
@@ -534,6 +534,7 @@ struct SettingsScreen: View {
                 .id(route.id)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showUserAuthSheet) {
             SettingsUserAuthSheet(
@@ -554,6 +555,7 @@ struct SettingsScreen: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showAddLocationSheet) {
             AddBusinessLocationRequestSheet(
@@ -564,6 +566,7 @@ struct SettingsScreen: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showNotificationsSheet) {
             NavigationStack {
@@ -828,17 +831,6 @@ struct SettingsScreen: View {
 #endif
     }
 
-    /// Presents add-location sheet with a blank form (used from Managing location menu / Add first location).
-    private func openAddLocationFromPicker() {
-#if DEBUG
-        print("[AddLocationForm] initialized fresh")
-        print("[AddLocationForm] opened from picker")
-#endif
-        addLocationSubmitBanner = nil
-        addLocationSheetFormState.reset(reason: "open")
-        showAddLocationSheet = true
-    }
-
     private func settingsApprovedVenueRows() -> [VenueProfileRow] {
         viewModel.managedVenuesForOwner()
             .sorted {
@@ -881,24 +873,6 @@ struct SettingsScreen: View {
                 .padding(.bottom, FGSpacing.md)
             }
 
-            settingsBlockDivider()
-
-            Button { venueOwnerDashboardSheet = .manageVenue } label: {
-                settingsRow(
-                    title: "Manage All Venues",
-                    subtitle: approvedCount > 1
-                        ? "Open the full venue manager and switch across all approved locations."
-                        : "Open the full venue manager for location details and status changes.",
-                    systemImage: "rectangle.stack.badge.person.crop"
-                )
-            }
-            .buttonStyle(.plain)
-
-            if pendingCount > 0 {
-                settingsBlockDivider()
-                pendingVenueClaimsList()
-            }
-
             if rejectedCount > 0 {
                 settingsBlockDivider()
                 rejectedVenueClaimsList()
@@ -916,106 +890,6 @@ struct SettingsScreen: View {
         Divider()
             .overlay(FGColor.divider(colorScheme))
             .padding(.horizontal, FGSpacing.md)
-    }
-
-    @ViewBuilder
-    private func pendingVenueClaimsList() -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Under review")
-                .font(FGTypography.metadata.weight(.semibold))
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.top, FGSpacing.md)
-                .padding(.bottom, FGSpacing.xs)
-
-            ForEach(Array(viewModel.pendingVenueClaimsForSettings.enumerated()), id: \.element.id) { index, claim in
-                let rowBusy = pendingRefreshingClaimId == claim.id
-                let anyRowRefreshing = pendingRefreshingClaimId != nil
-                if index > 0 {
-                    settingsRowDivider()
-                }
-                HStack(alignment: .top, spacing: FGSpacing.md) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(settingsPendingClaimTitle(claim))
-                            .font(FGTypography.cardTitle)
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                        if let line = settingsPendingClaimCityStateLine(claim) {
-                            Text(line)
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        }
-                        FGStatusPill(title: "Pending review", kind: .custom(tint: FGColor.accentYellow))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Button {
-                        Task { await performPendingClaimRefresh(claimId: claim.id) }
-                    } label: {
-                        Group {
-                            if rowBusy {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(anyRowRefreshing ? Color.secondary.opacity(0.45) : Color.secondary)
-                            }
-                        }
-                        .frame(width: 30, height: 30)
-                        .contentShape(Rectangle())
-                        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.96))
-                        .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(anyRowRefreshing || viewModel.isVenueOwnerBusinessDataLoading)
-                    .accessibilityLabel("Refresh status for this location")
-                }
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.vertical, FGSpacing.md)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func approvedVenueClaimsList(_ approvedRows: [VenueProfileRow]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Approved")
-                .font(FGTypography.metadata.weight(.semibold))
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.top, FGSpacing.md)
-                .padding(.bottom, FGSpacing.xs)
-
-            ForEach(Array(approvedRows.enumerated()), id: \.offset) { index, venue in
-                if index > 0 {
-                    settingsRowDivider()
-                }
-                HStack(alignment: .top, spacing: FGSpacing.md) {
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(FGColor.accentGreen)
-                        .frame(width: 24, height: 24)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text((venue.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                              ? venue.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines)
-                              : "Managed venue") ?? "Managed venue")
-                            .font(FGTypography.cardTitle)
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                        if let line = settingsVenueLocationLine(venue), !line.isEmpty {
-                            Text(line)
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        }
-                        FGStatusPill(title: "Approved", kind: .custom(tint: FGColor.accentGreen))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.vertical, FGSpacing.md)
-            }
-        }
     }
 
     private static let rejectedVenueClaimMessage =
@@ -1175,11 +1049,15 @@ struct SettingsScreen: View {
         return line.isEmpty ? nil : line
     }
 
-    private func settingsVenueLocationLine(_ venue: VenueProfileRow) -> String? {
-        let city = venue.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let st = venue.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let line = [city, st].filter { !$0.isEmpty }.joined(separator: ", ")
-        return line.isEmpty ? nil : line
+    /// Presents add-location sheet with a blank form (used from Current managed venue menu).
+    private func openAddLocationFromPicker() {
+#if DEBUG
+        print("[AddLocationForm] initialized fresh")
+        print("[AddLocationForm] opened from picker")
+#endif
+        addLocationSubmitBanner = nil
+        addLocationSheetFormState.reset(reason: "open")
+        showAddLocationSheet = true
     }
 
     private func addLocationSubmitBannerForegroundStyle() -> Color {
@@ -1212,440 +1090,6 @@ struct SettingsScreen: View {
             return nil
         case .noLocationsYet, .needsBusinessAccountFirst:
             return "Location request submitted. FanGeo will review it before this location can manage games."
-        }
-    }
-}
-
-// MARK: - Add location (Phase C1)
-
-/// Parent-owned draft so ``MapViewModel`` updates after photo upload do not drop ``@State`` inside the sheet.
-final class AddLocationSheetFormState: ObservableObject {
-    @Published var locationName = ""
-    @Published var streetAddress = ""
-    @Published var city = ""
-    @Published var state = "UT"
-    @Published var country = BusinessLocationCountryPolicy.defaultCountryCode
-    @Published var zip = ""
-    @Published var phone = ""
-    @Published var website = ""
-    @Published var description = ""
-    @Published var proofNote = ""
-    @Published var screenCount = 1
-    @Published var servesFood = false
-    @Published var hasWifi = false
-    @Published var hasGarden = false
-    @Published var hasProjector = false
-    @Published var petFriendly = false
-    @Published var familyFriendly = false
-    @Published var parkingAvailable = false
-    @Published var coverPhotoURL = ""
-    @Published var menuPhotoURL = ""
-    @Published var displayedCoverPhotoURL = ""
-    @Published var displayedMenuPhotoURL = ""
-    @Published var errorMessage = ""
-    @Published var isSubmitting = false
-
-    func reset(reason: String) {
-#if DEBUG
-        print("[AddLocationForm] reset reason=\(reason)")
-#endif
-        locationName = ""
-        streetAddress = ""
-        city = ""
-        state = "UT"
-        country = BusinessLocationCountryPolicy.defaultCountryCode
-        zip = ""
-        phone = ""
-        website = ""
-        description = ""
-        proofNote = ""
-        screenCount = 1
-        servesFood = false
-        hasWifi = false
-        hasGarden = false
-        hasProjector = false
-        petFriendly = false
-        familyFriendly = false
-        parkingAvailable = false
-        coverPhotoURL = ""
-        menuPhotoURL = ""
-        displayedCoverPhotoURL = ""
-        displayedMenuPhotoURL = ""
-        errorMessage = ""
-        isSubmitting = false
-    }
-}
-
-private struct AddBusinessLocationRequestSheet: View {
-    @ObservedObject var viewModel: MapViewModel
-    @ObservedObject var form: AddLocationSheetFormState
-    @Binding var submitBanner: String?
-    @Binding var isPresented: Bool
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-
-    @State private var selectedCoverPicker: PhotosPickerItem?
-    @State private var selectedMenuPicker: PhotosPickerItem?
-
-    /// Non-nil ``submitBanner`` only flags success; Settings parent maps status to user-facing copy.
-    private static let successCopy = "submitted"
-
-    /// Only URLs/uploads from this sheet — never fall back to managed-venue / signup state on ``MapViewModel``.
-    private var coverPickerRemotePreview: String {
-        form.displayedCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var menuPickerRemotePreview: String {
-        form.displayedMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var hasMainVenuePhoto: Bool {
-        !form.coverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var hasMenuVenuePhoto: Bool {
-        !form.menuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var missingSubmitRequirements: [String] {
-        var m: [String] = []
-        if !viewModel.hasBusinessAccountForOwner() {
-            m.append("Business account required")
-        }
-        if viewModel.currentBusinessIdForAddLocation() == nil {
-            m.append("Could not resolve business for this request")
-        }
-        if form.locationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing location name")
-        }
-        if form.streetAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing address")
-        }
-        if form.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing city")
-        }
-        if form.state.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing state")
-        }
-        if form.zip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing ZIP code")
-        }
-        if form.phone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing phone")
-        }
-        if form.description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing description")
-        }
-        if form.proofNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing proof note")
-        }
-        if !hasMainVenuePhoto {
-            m.append("Missing main venue photo")
-        }
-        return m
-    }
-
-    private var canSubmitLocationRequest: Bool {
-        !form.isSubmitting && missingSubmitRequirements.isEmpty
-    }
-
-#if DEBUG
-    private func logAddLocationFormState() {
-        let bid = viewModel.currentBusinessIdForAddLocation()?.uuidString ?? "nil"
-        print("[AddLocationForm] hasMainPhoto=\(hasMainVenuePhoto)")
-        print("[AddLocationForm] hasMenuPhoto=\(hasMenuVenuePhoto)")
-        print("[AddLocationForm] canSubmit=\(canSubmitLocationRequest)")
-        print("[AddLocationForm] businessId=\(bid)")
-    }
-#endif
-
-    var body: some View {
-        let missing = missingSubmitRequirements
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: FGSpacing.xl) {
-                    FGCard {
-                        FGSectionHeader(
-                            "Location",
-                            subtitle: "Submit a new FanGeo business location for review."
-                        )
-
-                        TextField("Location name", text: $form.locationName)
-                            .textInputAutocapitalization(.words)
-                            .fanGeoInputFieldStyle()
-                        TextField("Street address", text: $form.streetAddress)
-                            .fanGeoInputFieldStyle()
-                        TextField("City", text: $form.city)
-                            .textInputAutocapitalization(.words)
-                            .fanGeoInputFieldStyle()
-
-                        HStack(alignment: .center, spacing: FGSpacing.md) {
-                            BusinessLocationUSStatePicker(stateCode: $form.state)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            TextField("ZIP", text: $form.zip)
-                                .textInputAutocapitalization(.never)
-                                .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
-                        }
-                        .fanGeoInputFieldStyle()
-
-                        BusinessLocationCountryField(countryCode: $form.country)
-                            .fanGeoInputFieldStyle()
-                        TextField("Phone", text: $form.phone)
-                            .keyboardType(.phonePad)
-                            .fanGeoInputFieldStyle()
-                        TextField("Website (optional)", text: $form.website)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-                            .fanGeoInputFieldStyle()
-                    }
-
-                    FGCard {
-                        AddLocationVenueFeaturesGrid(
-                            screenCount: $form.screenCount,
-                            servesFood: $form.servesFood,
-                            hasWifi: $form.hasWifi,
-                            hasGarden: $form.hasGarden,
-                            hasProjector: $form.hasProjector,
-                            petFriendly: $form.petFriendly,
-                            parkingAvailable: $form.parkingAvailable,
-                            familyFriendly: $form.familyFriendly,
-                            maxScreenCount: 40
-                        )
-                    }
-
-                    FGCard {
-                        FGSectionHeader(
-                            "Details",
-                            subtitle: "Tell FanGeo what makes this location real and review-ready."
-                        )
-
-                        TextField("Description", text: $form.description, axis: .vertical)
-                            .lineLimit(3...8)
-                            .fanGeoInputFieldStyle()
-                        TextField("Proof note (how you operate this location)", text: $form.proofNote, axis: .vertical)
-                            .lineLimit(2...6)
-                            .fanGeoInputFieldStyle()
-                    }
-
-                    FGCard {
-                        FGSectionHeader(
-                            "Photos",
-                            subtitle: "Main venue photo is required. Menu photo is optional."
-                        )
-
-                        VenueOwnerListingPhotoPickerCard(
-                            title: "Business Photo",
-                            subtitle: "Main photo of your business",
-                            pickerSelection: $selectedCoverPicker,
-                            remotePreviewURL: coverPickerRemotePreview,
-                            localPreviewData: nil,
-                            usesFanGeoSheetChrome: true
-                        )
-
-                        VenueOwnerListingPhotoPickerCard(
-                            title: "Menu Photo",
-                            subtitle: "Food or drink menu photo",
-                            pickerSelection: $selectedMenuPicker,
-                            remotePreviewURL: menuPickerRemotePreview,
-                            localPreviewData: nil,
-                            usesFanGeoSheetChrome: true
-                        )
-                    }
-
-                    FGCard {
-                        FGSectionHeader(
-                            "Required to submit",
-                            subtitle: missing.isEmpty ? "All required fields are complete." : "Finish the items below before submitting."
-                        )
-
-                        if missing.isEmpty {
-                            SettingsSheetStatusBanner(
-                                title: "Ready to submit",
-                                message: "All required fields are complete.",
-                                tint: FGColor.accentGreen,
-                                systemImage: "checkmark.circle.fill"
-                            )
-                        } else {
-                            ForEach(missing, id: \.self) { line in
-                                HStack(alignment: .top, spacing: FGSpacing.sm) {
-                                    Image(systemName: "circle.fill")
-                                        .font(.system(size: 6))
-                                        .foregroundStyle(FGColor.accentYellow)
-                                        .padding(.top, 6)
-                                    Text(line)
-                                        .font(FGTypography.caption)
-                                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                                }
-                            }
-                        }
-                    }
-
-                    if !form.errorMessage.isEmpty {
-                        SettingsSheetStatusBanner(
-                            title: "Couldn’t submit location",
-                            message: form.errorMessage,
-                            tint: FGColor.dangerRed,
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                    }
-                }
-                .padding(.horizontal, FGSpacing.lg)
-                .padding(.top, FGSpacing.lg)
-                .padding(.bottom, SettingsScrollBottomLayout.sheetScrollComfortInset)
-            }
-            .scrollIndicators(.hidden)
-            .fanGeoScreenBackground()
-            .navigationTitle("Add location")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                form.errorMessage = ""
-#if DEBUG
-                logAddLocationFormState()
-#endif
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        form.reset(reason: "cancel")
-                        dismiss()
-                        isPresented = false
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(form.isSubmitting ? "Submitting…" : "Submit location request") {
-                        Task { await submit() }
-                    }
-                    .disabled(!canSubmitLocationRequest)
-                }
-            }
-            .onChange(of: form.coverPhotoURL) { _, _ in
-#if DEBUG
-                logAddLocationFormState()
-#endif
-            }
-            .onChange(of: form.menuPhotoURL) { _, _ in
-#if DEBUG
-                logAddLocationFormState()
-#endif
-            }
-            .onChange(of: form.locationName) { _, _ in
-#if DEBUG
-                logAddLocationFormState()
-#endif
-            }
-            .onChange(of: form.proofNote) { _, _ in
-#if DEBUG
-                logAddLocationFormState()
-#endif
-            }
-            .onChange(of: selectedCoverPicker) { _, item in
-                Task {
-                    guard let item else { return }
-#if DEBUG
-                    print("[AddLocationForm] photo selected type=bar")
-#endif
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
-                        await MainActor.run {
-                            form.coverPhotoURL = url
-                            form.displayedCoverPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
-                            selectedCoverPicker = nil
-                            form.errorMessage = ""
-#if DEBUG
-                            print("[AddLocationForm] preserving form venueName=\(form.locationName)")
-                            logAddLocationFormState()
-#endif
-                        }
-                    } else {
-                        await MainActor.run {
-                            form.errorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
-                            selectedCoverPicker = nil
-                        }
-                    }
-                }
-            }
-            .onChange(of: selectedMenuPicker) { _, item in
-                Task {
-                    guard let item else { return }
-#if DEBUG
-                    print("[AddLocationForm] photo selected type=menu")
-#endif
-                    if let data = try? await item.loadTransferable(type: Data.self),
-                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
-                        await MainActor.run {
-                            form.menuPhotoURL = url
-                            form.displayedMenuPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
-                            selectedMenuPicker = nil
-                            form.errorMessage = ""
-#if DEBUG
-                            print("[AddLocationForm] preserving form venueName=\(form.locationName)")
-                            logAddLocationFormState()
-#endif
-                        }
-                    } else {
-                        await MainActor.run {
-                            form.errorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
-                            selectedMenuPicker = nil
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func submit() async {
-        await MainActor.run {
-            form.errorMessage = ""
-            form.isSubmitting = true
-        }
-
-        if viewModel.currentBusinessIdForAddLocation() == nil || !viewModel.hasBusinessAccountForOwner() {
-#if DEBUG
-            print("[AddLocation] blocked no business id")
-#endif
-            await MainActor.run {
-                form.isSubmitting = false
-                form.errorMessage = "Could not find a business account for this request."
-            }
-            return
-        }
-
-        let claim = AddLocationClaimForm(
-            venueName: form.locationName,
-            address: form.streetAddress,
-            city: form.city,
-            state: form.state,
-            country: form.country,
-            zip: form.zip,
-            phone: form.phone,
-            website: form.website,
-            description: form.description,
-            proofNote: form.proofNote,
-            screenCount: form.screenCount,
-            servesFood: form.servesFood,
-            hasWifi: form.hasWifi,
-            hasGarden: form.hasGarden,
-            hasProjector: form.hasProjector,
-            petFriendly: form.petFriendly,
-            familyFriendly: form.familyFriendly,
-            parkingAvailable: form.parkingAvailable,
-            coverPhotoURL: form.coverPhotoURL,
-            menuPhotoURL: form.menuPhotoURL
-        )
-
-        let err = await viewModel.submitAddLocationClaim(form: claim)
-
-        await MainActor.run {
-            form.isSubmitting = false
-            if let err {
-                form.errorMessage = err
-            } else {
-                submitBanner = Self.successCopy
-                form.reset(reason: "success")
-                dismiss()
-                isPresented = false
-            }
         }
     }
 }
@@ -1891,7 +1335,7 @@ private struct SettingsVenueOwnerDeletionSheet: View {
 
 // MARK: - Auth sheets + profile hero
 
-private struct SettingsSheetStatusBanner: View {
+struct SettingsSheetStatusBanner: View {
     let title: String?
     let message: String
     let tint: Color
@@ -3372,7 +2816,8 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupState = "UT"
     @State private var signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
     @State private var signupZip = ""
-    @State private var signupPhone = ""
+    @State private var signupPhoneDialISO = BusinessPhoneFields.defaultISO
+    @State private var signupPhoneLocal = ""
     @State private var signupWebsite = ""
     @State private var signupDescription = ""
     @State private var signupProof = ""
@@ -3390,46 +2835,40 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupMenuData: Data?
     @Environment(\.colorScheme) private var colorScheme
 
+    private var businessSignupMissingRequirementMessage: String? {
+        BusinessCreationFormValidation.businessCreationMissingRequirementMessage(
+            isRegisterMode: showVenueRegisterMode,
+            venueOwnerEmail: viewModel.venueOwnerEmail,
+            venuePassword: venuePassword,
+            policiesAccepted: venueSignupPoliciesAccepted,
+            businessName: signupBusinessName,
+            locationName: signupLocationName,
+            streetAddress: signupStreet,
+            city: signupCity,
+            state: signupState,
+            zip: signupZip,
+            phoneDialISO: signupPhoneDialISO,
+            phoneLocal: signupPhoneLocal,
+            description: signupDescription,
+            proofNote: signupProof,
+            coverPhotoData: signupCoverData
+        )
+    }
+
+    /// Same gate as ``businessSignupMissingRequirementMessage`` == nil (registration mode only).
     private var registrationFormComplete: Bool {
-        let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
-        let biz = signupBusinessName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let loc = signupLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let st = signupStreet.trimmingCharacters(in: .whitespacesAndNewlines)
-        let city = signupCity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let state = signupState.trimmingCharacters(in: .whitespacesAndNewlines)
-        let zip = signupZip.trimmingCharacters(in: .whitespacesAndNewlines)
-        let phone = signupPhone.trimmingCharacters(in: .whitespacesAndNewlines)
-        let desc = signupDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        let proof = signupProof.trimmingCharacters(in: .whitespacesAndNewlines)
-        let hasMain = signupCoverData.map { !$0.isEmpty } ?? false
-        guard email.contains("@"), !venuePassword.isEmpty else { return false }
-        return !biz.isEmpty && !loc.isEmpty && !st.isEmpty && !city.isEmpty && !state.isEmpty && !zip.isEmpty && !phone.isEmpty && !desc.isEmpty && !proof.isEmpty && hasMain
+        businessSignupMissingRequirementMessage == nil
     }
 
     private var signupPrimarySubmitDisabled: Bool {
-        isSignupSubmitting
-            || (showVenueRegisterMode && (!venueSignupPoliciesAccepted || !registrationFormComplete))
+        isSignupSubmitting || (showVenueRegisterMode && businessSignupMissingRequirementMessage != nil)
     }
 
 #if DEBUG
     /// Why `registrationFormComplete` is false (does not duplicate password-in-email checks beyond `emailOk`).
     private func signupFormIncompleteReasons() -> [String] {
-        var reasons: [String] = []
-        let email = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
-        if !email.contains("@") { reasons.append("email_invalid_or_missing_@") }
-        if venuePassword.isEmpty { reasons.append("password_empty") }
-        if signupBusinessName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("business_name_empty") }
-        if signupLocationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("location_name_empty") }
-        if signupStreet.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("street_empty") }
-        if signupCity.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("city_empty") }
-        if signupState.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("state_empty") }
-        if signupZip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("zip_empty") }
-        if signupPhone.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("phone_empty") }
-        if signupDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("description_empty") }
-        if signupProof.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { reasons.append("proof_empty") }
-        let hasMain = signupCoverData.map { !$0.isEmpty } ?? false
-        if !hasMain { reasons.append("main_venue_photo_missing") }
-        return reasons
+        if let m = businessSignupMissingRequirementMessage { return [m] }
+        return []
     }
 
     private func logSignupSubmitGates(reason: String) {
@@ -3491,9 +2930,7 @@ private struct SettingsVenueOwnerCard: View {
                 BusinessLocationCountryField(countryCode: $signupCountry)
                     .fanGeoInputFieldStyle()
 
-                TextField("Phone", text: $signupPhone)
-                    .keyboardType(.phonePad)
-                    .fanGeoInputFieldStyle()
+                BusinessPhoneNumberField(dialISO: $signupPhoneDialISO, localNumber: $signupPhoneLocal)
 
                 TextField("Website (optional)", text: $signupWebsite)
                     .textInputAutocapitalization(.never)
@@ -3530,15 +2967,6 @@ private struct SettingsVenueOwnerCard: View {
                     localPreviewData: signupCoverData,
                     usesFanGeoSheetChrome: true
                 )
-
-                if !(signupCoverData.map { !$0.isEmpty } ?? false) {
-                    SettingsSheetStatusBanner(
-                        title: "Photo required",
-                        message: "Main venue photo is required.",
-                        tint: FGColor.dangerRed,
-                        systemImage: "photo.badge.exclamationmark"
-                    )
-                }
 
                 VenueOwnerListingPhotoPickerCard(
                     title: "Menu Photo",
@@ -3604,79 +3032,91 @@ private struct SettingsVenueOwnerCard: View {
                 }
             }
 
-            FGPrimaryButton(
-                title: showVenueRegisterMode ? "Create account & submit location" : "Sign In as Business Owner",
-                isDisabled: signupPrimarySubmitDisabled
-            ) {
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                FGPrimaryButton(
+                    title: showVenueRegisterMode ? "Create account & submit location" : "Sign In as Business Owner",
+                    isDisabled: signupPrimarySubmitDisabled
+                ) {
 #if DEBUG
-                print("[BusinessSignup] button tapped primaryAction registerMode=\(showVenueRegisterMode)")
-                logSignupSubmitGates(reason: "immediate_after_tap")
+                    print("[BusinessSignup] button tapped primaryAction registerMode=\(showVenueRegisterMode)")
+                    logSignupSubmitGates(reason: "immediate_after_tap")
 #endif
-                Task {
+                    Task {
 #if DEBUG
-                    print("[BusinessSignup] async Task entered registerMode=\(showVenueRegisterMode)")
+                        print("[BusinessSignup] async Task entered registerMode=\(showVenueRegisterMode)")
 #endif
-                    if showVenueRegisterMode {
+                        if showVenueRegisterMode {
 #if DEBUG
-                        logSignupSubmitGates(reason: "register_branch_before_flags")
+                            logSignupSubmitGates(reason: "register_branch_before_flags")
 #endif
-                        isSignupSubmitting = true
+                            isSignupSubmitting = true
 #if DEBUG
-                        print("[BusinessSignup] set isSignupSubmitting=true")
+                            print("[BusinessSignup] set isSignupSubmitting=true")
 #endif
-                        let form = AddLocationClaimForm(
-                            venueName: signupLocationName,
-                            address: signupStreet,
-                            city: signupCity,
-                            state: signupState,
-                            country: signupCountry,
-                            zip: signupZip,
-                            phone: signupPhone,
-                            website: signupWebsite,
-                            description: signupDescription,
-                            proofNote: signupProof,
-                            screenCount: signupScreenCount,
-                            servesFood: signupServesFood,
-                            hasWifi: signupHasWifi,
-                            hasGarden: signupHasGarden,
-                            hasProjector: signupHasProjector,
-                            petFriendly: signupPetFriendly,
-                            familyFriendly: signupFamilyFriendly,
-                            parkingAvailable: signupParking,
-                            coverPhotoURL: "",
-                            menuPhotoURL: ""
-                        )
-                        let payload = BusinessOwnerSignupPayload(
-                            businessDisplayName: signupBusinessName,
-                            firstLocation: form
-                        )
+                            let form = AddLocationClaimForm(
+                                venueName: signupLocationName,
+                                address: signupStreet,
+                                city: signupCity,
+                                state: signupState,
+                                country: signupCountry,
+                                zip: signupZip,
+                                phone: BusinessPhoneFields.combinedStorage(iso: signupPhoneDialISO, local: signupPhoneLocal)
+                                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                                website: signupWebsite,
+                                description: signupDescription,
+                                proofNote: signupProof,
+                                screenCount: signupScreenCount,
+                                servesFood: signupServesFood,
+                                hasWifi: signupHasWifi,
+                                hasGarden: signupHasGarden,
+                                hasProjector: signupHasProjector,
+                                petFriendly: signupPetFriendly,
+                                familyFriendly: signupFamilyFriendly,
+                                parkingAvailable: signupParking,
+                                coverPhotoURL: "",
+                                menuPhotoURL: ""
+                            )
+                            let payload = BusinessOwnerSignupPayload(
+                                businessDisplayName: signupBusinessName,
+                                firstLocation: form
+                            )
 #if DEBUG
-                        print("[BusinessSignup] calling registerVenueOwner coverBytes=\(signupCoverData?.count ?? 0) menuBytes=\(signupMenuData?.count ?? 0)")
+                            print("[BusinessSignup] calling registerVenueOwner coverBytes=\(signupCoverData?.count ?? 0) menuBytes=\(signupMenuData?.count ?? 0)")
 #endif
-                        await viewModel.registerVenueOwner(
-                            email: viewModel.venueOwnerEmail,
-                            password: venuePassword,
-                            signup: payload,
-                            coverPhotoJPEGData: signupCoverData,
-                            menuPhotoJPEGData: signupMenuData,
-                            recordVenueGuidelinesAcceptance: venueSignupPoliciesAccepted
-                        )
+                            await viewModel.registerVenueOwner(
+                                email: viewModel.venueOwnerEmail,
+                                password: venuePassword,
+                                signup: payload,
+                                coverPhotoJPEGData: signupCoverData,
+                                menuPhotoJPEGData: signupMenuData,
+                                recordVenueGuidelinesAcceptance: venueSignupPoliciesAccepted
+                            )
 #if DEBUG
-                        print("[BusinessSignup] registerVenueOwner returned isSignupSubmitting clearing")
+                            print("[BusinessSignup] registerVenueOwner returned isSignupSubmitting clearing")
 #endif
-                        await MainActor.run {
-                            isSignupSubmitting = false
-                            venuePassword = ""
-                        }
-                    } else {
-                        await viewModel.loginVenueOwner(
-                            email: viewModel.venueOwnerEmail,
-                            password: venuePassword
-                        )
-                        await MainActor.run {
-                            venuePassword = ""
+                            await MainActor.run {
+                                isSignupSubmitting = false
+                                venuePassword = ""
+                            }
+                        } else {
+                            await viewModel.loginVenueOwner(
+                                email: viewModel.venueOwnerEmail,
+                                password: venuePassword
+                            )
+                            await MainActor.run {
+                                venuePassword = ""
+                            }
                         }
                     }
+                }
+
+                if showVenueRegisterMode, !isSignupSubmitting, let hint = businessSignupMissingRequirementMessage {
+                    SettingsSheetStatusBanner(
+                        title: nil,
+                        message: hint,
+                        tint: FGColor.accentYellow,
+                        systemImage: "info.circle"
+                    )
                 }
             }
 #if DEBUG
@@ -3691,6 +3131,15 @@ private struct SettingsVenueOwnerCard: View {
             }
             .onChange(of: isSignupSubmitting) { _, v in
                 print("[BusinessSignup] isSignupSubmitting -> \(v)")
+            }
+            .onChange(of: businessSignupMissingRequirementMessage) { _, new in
+                if showVenueRegisterMode, !isSignupSubmitting {
+                    if let m = new {
+                        print("[BusinessValidation] missing requirement=\(m)")
+                    } else {
+                        print("[BusinessValidation] submit enabled")
+                    }
+                }
             }
 #endif
 
@@ -3724,7 +3173,8 @@ private struct SettingsVenueOwnerCard: View {
                 signupState = "UT"
                 signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
                 signupZip = ""
-                signupPhone = ""
+                signupPhoneDialISO = BusinessPhoneFields.defaultISO
+                signupPhoneLocal = ""
                 signupWebsite = ""
                 signupDescription = ""
                 signupProof = ""
@@ -3774,7 +3224,7 @@ private struct SettingsVenueOwnerCard: View {
 
 // MARK: - Phase B2 (managed venue location picker — Settings + VenueOwnerDashboard)
 
-/// Dropdown for **approved** managed venues only (see ``MapViewModel/managedVenuesForOwner()``). Pending claims stay in their own list.
+/// Dropdown for **approved** managed venues (see ``MapViewModel/managedVenuesForOwner()``). Settings may also offer **Add venue**, which opens the same submit-new-location flow as before (distinct from Discover → Claim this venue on an existing listing).
 struct BusinessLocationVenuePicker: View {
     enum Chrome {
         case settings
@@ -3784,7 +3234,7 @@ struct BusinessLocationVenuePicker: View {
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
     var chrome: Chrome = .settings
-    /// When set (Settings → Business), menu includes **+ Add new location** and zero-venue state shows **Add first location**.
+    /// When set (Settings), shown as the last menu action to submit a new business location for review.
     var onRequestAddNewLocation: (() -> Void)?
 
     init(viewModel: MapViewModel, chrome: Chrome = .settings, onRequestAddNewLocation: (() -> Void)? = nil) {
@@ -3904,11 +3354,89 @@ struct BusinessLocationVenuePicker: View {
         .contentShape(Rectangle())
     }
 
-    private func invokeAddNewLocation() {
-#if DEBUG
-        print("[BusinessLocationPicker] add new location selected")
-#endif
-        onRequestAddNewLocation?()
+    @ViewBuilder
+    private func addVenueMenuButton() -> some View {
+        Button {
+            onRequestAddNewLocation?()
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(FGColor.accentBlue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Add venue")
+                        .foregroundStyle(.primary)
+                    Text("Submit a new location for review")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func settingsChromeMenuContent() -> some View {
+        ForEach(venuePairs, id: \.0) { pair in
+            Button {
+                Task {
+                    await viewModel.selectManagedVenue(id: pair.0)
+                }
+            } label: {
+                Text(pair.1)
+            }
+        }
+        if onRequestAddNewLocation != nil {
+            if !venuePairs.isEmpty {
+                Divider()
+            }
+            addVenueMenuButton()
+        }
+    }
+
+    @ViewBuilder
+    private func settingsChromeMenuLabel() -> some View {
+        let isEmpty = venuePairs.isEmpty
+        settingsPickerRowLabel(
+            title: isEmpty ? "No approved venues yet" : selectedVenueLabel,
+            subtitle: isEmpty
+                ? "Add a location for review, or claim an existing venue from the map (Discover → venue → Claim this venue)."
+                : selectedVenueSubtitle,
+            systemImage: isEmpty ? "mappin.and.ellipse" : "building.2",
+            tint: isEmpty ? FGColor.mutedText(colorScheme) : FGColor.accentBlue,
+            showsApprovedBadge: !isEmpty,
+            chevronSystemName: "chevron.up.chevron.down"
+        )
+    }
+
+    @ViewBuilder
+    private func settingsChromePickerStack() -> some View {
+        VStack(alignment: .leading, spacing: FGSpacing.xs) {
+            Text(settingsPickerLabel)
+                .font(FGTypography.metadata.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            if venuePairs.isEmpty, onRequestAddNewLocation == nil {
+                settingsPickerRowLabel(
+                    title: "No approved venues yet",
+                    subtitle: "Claim a venue from the map: Discover → venue → Claim this venue.",
+                    systemImage: "mappin.and.ellipse",
+                    tint: FGColor.mutedText(colorScheme),
+                    showsApprovedBadge: false,
+                    chevronSystemName: "chevron.right"
+                )
+                .opacity(0.88)
+                .allowsHitTesting(false)
+            } else {
+                Menu {
+                    settingsChromeMenuContent()
+                } label: {
+                    settingsChromeMenuLabel()
+                }
+            }
+        }
+        .onAppear { viewModel.logBusinessSwitcherDebug() }
     }
 
     /// Managed venues in this list are approved for owner tools; shown in Settings + dashboard pickers.
@@ -3939,75 +3467,27 @@ struct BusinessLocationVenuePicker: View {
     var body: some View {
         Group {
             if venuePairs.isEmpty {
-                if chrome == .settings, onRequestAddNewLocation != nil {
-                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                        Text(settingsPickerLabel)
-                            .font(FGTypography.metadata.weight(.semibold))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        Button {
-                            invokeAddNewLocation()
-                        } label: {
-                            settingsPickerRowLabel(
-                                title: "Add first location",
-                                subtitle: "Request your first venue for this business.",
-                                systemImage: "plus.circle.fill",
-                                tint: FGColor.accentBlue,
-                                showsApprovedBadge: false,
-                                chevronSystemName: "chevron.right"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .onAppear { viewModel.logBusinessSwitcherDebug() }
-                } else {
+                switch chrome {
+                case .settings:
+                    settingsChromePickerStack()
+                case .dashboard:
                     EmptyView()
                 }
             } else {
                 switch chrome {
                 case .settings:
-                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                        Text(settingsPickerLabel)
-                            .font(FGTypography.metadata.weight(.semibold))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        Menu {
-                            ForEach(venuePairs, id: \.0) { pair in
-                                Button {
-                                    Task {
-                                        await viewModel.selectManagedVenue(id: pair.0)
-                                    }
-                                } label: {
-                                    Text(pair.1)
-                                }
-                            }
-                            if onRequestAddNewLocation != nil {
-                                Divider()
-                                Button("+ Add new location") {
-                                    invokeAddNewLocation()
-                                }
-                            }
-                        } label: {
-                            settingsPickerRowLabel(
-                                title: selectedVenueLabel,
-                                subtitle: selectedVenueSubtitle,
-                                systemImage: "building.2",
-                                tint: FGColor.accentBlue,
-                                showsApprovedBadge: true,
-                                chevronSystemName: "chevron.up.chevron.down"
-                            )
-                        }
-                    }
-                    .onAppear { viewModel.logBusinessSwitcherDebug() }
+                    settingsChromePickerStack()
 
                 case .dashboard:
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Managing location")
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.78))
+                            .foregroundStyle(.secondary)
                         Picker("Managing location", selection: pickerSelection) {
                             ForEach(venuePairs, id: \.0) { pair in
                                 HStack {
                                     Text(pair.1)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(.primary)
                                     Spacer(minLength: 6)
                                     Image(systemName: "checkmark.circle.fill")
                                         .font(.caption)
@@ -4017,11 +3497,11 @@ struct BusinessLocationVenuePicker: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        .tint(.white)
+                        .tint(.accentColor)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.12))
+                        .background(FGAdaptiveSurface.controlFill)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }

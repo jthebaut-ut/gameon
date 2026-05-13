@@ -7,33 +7,61 @@ extension MapViewModel {
         isAuthenticatedForSocialFeatures
     }
 
+    /// Same normalized **Supabase Auth session** email as ``strictNormalizedSessionEmailForSocialTables`` (writes + Following reloads). Do not substitute profile/owner UI emails.
     private func resolvedInterestMutationEmail() async -> String? {
-        let session = try? await supabase.auth.session
-        let fromSession = OwnerBusinessEmail.normalized(session?.user.email ?? "")
-        if OwnerBusinessEmail.isValidStrict(fromSession) {
-            return fromSession
-        }
-        let fallback = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
-        return OwnerBusinessEmail.isValidStrict(fallback) ? fallback : nil
+        await strictNormalizedSessionEmailForSocialTables()
     }
 
     @MainActor
-    private func applyLocalVenueEventInterestState(venueEventID: UUID, isInterested: Bool) {
-        let wasInterested = venueEventInterestIDs.contains(venueEventID)
-        guard wasInterested != isInterested else { return }
+    private func barAndTitleForDiscoverInterestKey(venueEventID: UUID) -> (BarVenue, String)? {
+        if let item = followingTabGoingItems.first(where: { $0.id == venueEventID }),
+           let title = item.venueEvent.event_title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !title.isEmpty {
+            return (item.bar, title)
+        }
+        guard let row = venueEventRows.first(where: { $0.id == venueEventID }),
+              let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !title.isEmpty
+        else { return nil }
+        if let vid = row.venue_id, let b = bars.first(where: { $0.id == vid }) {
+            return (b, title)
+        }
+        let vname = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !vname.isEmpty, let b = bars.first(where: { $0.name == vname }) {
+            return (b, title)
+        }
+        return nil
+    }
 
-        if isInterested {
-            venueEventInterestIDs.insert(venueEventID)
-            venueEventInterestCounts[venueEventID, default: 0] += 1
-            followingTabUserVenueEventInterestIDs.insert(venueEventID)
-        } else {
-            venueEventInterestIDs.remove(venueEventID)
-            venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 1) - 1, 0)
-            followingTabUserVenueEventInterestIDs.remove(venueEventID)
+    /// Keeps ``followingTabGoingItems`` / Discover ``interestedVenueEventKeys`` aligned after a local interest mutation (including Interested-only rows from UserDefaults).
+    @MainActor
+    private func reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: UUID) {
+        let snapshot = barAndTitleForDiscoverInterestKey(venueEventID: venueEventID)
+        let localOnly = MapViewModel.followingInterestedOnlyVenueEventIDsFromUserDefaults()
+        let hasServer = venueEventInterestIDs.contains(venueEventID)
+            || followingTabUserVenueEventInterestIDs.contains(venueEventID)
+        let keep = hasServer || localOnly.contains(venueEventID)
+
+        if let (bar, title) = snapshot {
+            let key = venueEventInterestKey(for: bar, gameTitle: title)
+            if keep {
+                interestedVenueEventKeys.insert(key)
+            } else {
+                interestedVenueEventKeys.remove(key)
+            }
         }
 
         if followingTabGoingInterestCounts[venueEventID] != nil || followingTabGoingItems.contains(where: { $0.id == venueEventID }) {
             followingTabGoingInterestCounts[venueEventID] = venueEventInterestCounts[venueEventID] ?? 0
+        }
+
+        if !keep {
+            followingTabGoingItems.removeAll { $0.id == venueEventID }
+            goingProfilesByVenueEventID.removeValue(forKey: venueEventID)
+#if DEBUG
+            print("[FollowingState] removed not-going event from list id=\(venueEventID.uuidString)")
+#endif
+            return
         }
 
         if let index = followingTabGoingItems.firstIndex(where: { $0.id == venueEventID }) {
@@ -43,9 +71,30 @@ extension MapViewModel {
                 venueEvent: item.venueEvent,
                 bar: item.bar,
                 attendeeCount: venueEventInterestCounts[venueEventID] ?? item.attendeeCount,
-                isServerGoing: isInterested
+                isServerGoing: hasServer
             )
         }
+    }
+
+    @MainActor
+    private func applyLocalVenueEventInterestState(venueEventID: UUID, isInterested: Bool) {
+        let inDiscover = venueEventInterestIDs.contains(venueEventID)
+        let inFollowingTab = followingTabUserVenueEventInterestIDs.contains(venueEventID)
+        let wasInterested = inDiscover || inFollowingTab
+
+        if isInterested {
+            guard !wasInterested else { return }
+            venueEventInterestIDs.insert(venueEventID)
+            venueEventInterestCounts[venueEventID, default: 0] += 1
+            followingTabUserVenueEventInterestIDs.insert(venueEventID)
+        } else {
+            guard wasInterested else { return }
+            venueEventInterestIDs.remove(venueEventID)
+            venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 0) - 1, 0)
+            followingTabUserVenueEventInterestIDs.remove(venueEventID)
+        }
+
+        reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
     }
 
     @discardableResult
@@ -55,6 +104,19 @@ extension MapViewModel {
         refreshFollowing: Bool = true
     ) async -> Bool {
         guard !venueEventInterestWriteInFlightIDs.contains(venueEventID) else { return true }
+
+#if DEBUG
+        let sessionEmailForLog = await strictNormalizedSessionEmailForSocialTables()
+        let accountTypeLabel: String = {
+            if hasAuthenticatedVenueOwnerSession { return "business" }
+            if isLoggedIn { return "fan" }
+            if isVenueOwnerLoggedIn { return "venue_owner" }
+            return "other"
+        }()
+        print("[AttendanceIdentity] active user=\(sessionEmailForLog ?? "")")
+        print("[AttendanceIdentity] account type=\(accountTypeLabel)")
+#endif
+
         guard let interestEmail = await resolvedInterestMutationEmail() else {
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return false
@@ -98,9 +160,19 @@ extension MapViewModel {
             }
 
             if refreshFollowing {
-                Task { @MainActor [weak self] in
-                    await self?.loadGoingUserProfiles(for: venueEventID)
+#if DEBUG
+                if hasAuthenticatedVenueOwnerSession {
+                    print("[FollowingState] business attendance change event=\(venueEventID.uuidString)")
                 }
+#endif
+                await refreshFollowingTabDataGlobally()
+                await loadGoingUserProfiles(for: venueEventID)
+                refreshFollowingInterestDerivedSnapshotsForUI()
+#if DEBUG
+                if hasAuthenticatedVenueOwnerSession {
+                    print("[FollowingState] following recomputed after discover attendance")
+                }
+#endif
             }
 
             return true
@@ -122,6 +194,11 @@ extension MapViewModel {
                 followingTabGoingItems = previousFollowingItems
                 venueEventInterestWriteInFlightIDs.remove(venueEventID)
             }
+#if DEBUG
+            if hasAuthenticatedVenueOwnerSession {
+                print("[FollowingState] business attendance save failed")
+            }
+#endif
             print("ERROR SETTING INTEREST:", error)
             return false
         }
@@ -409,7 +486,8 @@ extension MapViewModel {
         }
 
         let t0 = Date()
-        let interestEmail = OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+        /// Must match ``strictNormalizedSessionEmailForSocialTables`` / inserts to `venue_event_interests` (not `currentUserEmail`, which may diverge after profile load).
+        let sessionInterestEmail = await strictNormalizedSessionEmailForSocialTables()
         let selectCols = "venue_event_id,user_email"
         let chunkSize = 90
 
@@ -435,7 +513,9 @@ extension MapViewModel {
                 for row in rows {
                     guard let eventID = row.venue_event_id else { continue }
                     counts[eventID, default: 0] += 1
-                    if OwnerBusinessEmail.normalized(row.user_email ?? "") == interestEmail {
+                    if let sessionInterestEmail,
+                       OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(sessionInterestEmail)),
+                       OwnerBusinessEmail.normalized(row.user_email ?? "") == OwnerBusinessEmail.normalized(sessionInterestEmail) {
                         myInterests.insert(eventID)
                     }
                 }

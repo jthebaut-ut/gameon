@@ -101,6 +101,11 @@ struct VenueOwnerDashboardView: View {
     @State private var analyticsCustomEnd = Date()
     @State private var analyticsHiddenEventIDs: Set<UUID> = []
     @State private var analyticsDetailSelection: VenueOwnerAnalyticsDetailSelection?
+    @State private var analyticsGameHistoryForYear: [BusinessGameHistoryRow] = []
+    @State private var analyticsGameHistoryYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var analyticsGameHistoryMonth: Int = 0
+    @State private var analyticsGameHistoryLoading = false
+    @State private var analyticsGameHistoryError = ""
 
     private enum VenueAnalyticsDatePreset: String, CaseIterable {
         case today = "Today"
@@ -110,12 +115,25 @@ struct VenueOwnerDashboardView: View {
         case custom = "Custom"
     }
 
+    /// Top-level tabs inside the business **Analytics** card (keeps heavy game history off the engagement screen).
+    private enum BusinessVenueAnalyticsTab: Int, CaseIterable {
+        case venueAnalytics = 0
+        case gameHistory = 1
+    }
+
+    @State private var businessVenueAnalyticsTab: BusinessVenueAnalyticsTab = .venueAnalytics
+
+    /// Caps how many event cards render at once when the date filter is **All** (newest first).
+    private enum VenueAnalyticsEngagementDisplay {
+        static let maxCardRowsWhenAllDatesPreset = 500
+    }
+
     private enum ManageGamesListTab: Int, CaseIterable {
-        case games = 0
+        case scheduled = 0
         case add = 1
     }
 
-    @State private var manageGamesListTab: ManageGamesListTab = .games
+    @State private var manageGamesListTab: ManageGamesListTab = .scheduled
     @State private var didPickInitialManageGamesTab = false
     @State private var myVenueGamesForManage: [VenueEventRow] = []
     @State private var manageGamesListLoading = false
@@ -124,13 +142,23 @@ struct VenueOwnerDashboardView: View {
     @State private var isSavingNewGame = false
     @State private var titleEditTarget: VenueOwnerGameTitleEditTarget?
     @State private var titleEditDraft = ""
-    @State private var pendingCancelGameID: UUID?
-    @State private var pendingCancelGameTitle = ""
+    @State private var showCancelGameDialog = false
+    @State private var cancelGameRowSnapshot: VenueEventRow?
+    @State private var cleanupDelayHours: Int = 48
+    @State private var showVenueOwnerContactSupport = false
 
     enum VenueDashboardSection: String, CaseIterable {
         case profile = "Profile"
         case games = "Games"
         case analytics = "Analytics"
+
+        /// Shown in the segmented control (may differ from ``rawValue`` for clarity).
+        var pickerLabel: String {
+            switch self {
+            case .profile, .games: rawValue
+            case .analytics: "Analytics"
+            }
+        }
     }
 
     private var effectiveSection: VenueDashboardSection {
@@ -144,6 +172,11 @@ struct VenueOwnerDashboardView: View {
         case .analyticsViewer:
             return .analytics
         }
+    }
+
+    /// When true, venue name, address, region, and coordinates are read-only (FanGeo-approved active managed venue).
+    private var venueCoreIdentityLocked: Bool {
+        viewModel.venueCoreIdentityLockedForSelectedVenue()
     }
 
     /// Games / analytics require ``MapViewModel/venueOwnerToolsUnlockedForUI()`` (at least one linked or legacy venue row).
@@ -163,15 +196,19 @@ struct VenueOwnerDashboardView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Pending approval")
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
             Text("Claim requests are reviewed before owner tools are enabled.")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.1))
+        .background(FGAdaptiveSurface.cardElevated)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(Color(.separator).opacity(0.5), lineWidth: 1)
+        )
     }
 
     var body: some View {
@@ -208,9 +245,10 @@ struct VenueOwnerDashboardView: View {
             }
             .padding()
         }
-        .background(Color.black.opacity(0.94))
+        .background(FGAdaptiveSurface.sheetRoot)
         .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
             clearManageGamesTransientStateForVenueSwitch()
+            clearAnalyticsGameHistoryState()
         }
         .onAppear {
             if entryPoint != .analyticsViewer {
@@ -338,6 +376,17 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
+        .sheet(isPresented: $showVenueOwnerContactSupport) {
+            ContactGameOnSupportSheet(
+                viewModel: viewModel,
+                onRequestSignIn: {
+                    showVenueOwnerContactSupport = false
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
     }
     
     private var header: some View {
@@ -347,11 +396,11 @@ struct VenueOwnerDashboardView: View {
             Text(headerTitle)
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
 
             Text(headerSubtitle)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
         .onAppear {
             if viewModel.isVenueOwnerLoggedIn {
@@ -368,7 +417,7 @@ struct VenueOwnerDashboardView: View {
     private var headerTitle: String {
         switch entryPoint {
         case .profileEditor:
-            return "Location details"
+            return "Venue Details"
         case .gamesManager:
             return "Manage games"
         case .analyticsViewer:
@@ -381,7 +430,7 @@ struct VenueOwnerDashboardView: View {
     private var headerSubtitle: String {
         switch entryPoint {
         case .profileEditor:
-            return "Photos, address, TVs, seating, and details for this location."
+            return "Photos, menu, amenities, and venue profile for the selected location."
         case .gamesManager:
             return "Add, edit, or cancel games for the selected location."
         case .analyticsViewer:
@@ -400,13 +449,17 @@ struct VenueOwnerDashboardView: View {
                             selectedSection = section
                         }
                     } label: {
-                        Text(section.rawValue)
+                        Text(section.pickerLabel)
                             .font(.caption)
                             .fontWeight(.bold)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(selectedSection == section ? Color.white : Color.white.opacity(0.15))
-                            .foregroundStyle(selectedSection == section ? .black : .white)
+                            .background(
+                                selectedSection == section
+                                    ? AnyShapeStyle(Color.accentColor)
+                                    : AnyShapeStyle(FGAdaptiveSurface.capsuleUnselected)
+                            )
+                            .foregroundStyle(selectedSection == section ? Color.white : Color.primary)
                             .clipShape(Capsule())
                     }
                     .disabled(
@@ -419,24 +472,44 @@ struct VenueOwnerDashboardView: View {
     }
     
     private var profileSection: some View {
-        dashboardCard(title: "Location profile", subtitle: "Basic listing information") {
-            field("Bar / Pub / Restaurant Name", text: $viewModel.ownerVenueName)
-            field("Street Address", text: $venueStreetAddress)
-            field("City", text: $venueCity)
+        dashboardCard(
+            title: entryPoint == .profileEditor ? "Venue listing" : "Location profile",
+            subtitle: entryPoint == .profileEditor
+                ? "Editable items save to the venue selected above."
+                : "Basic listing information"
+        ) {
+            if venueCoreIdentityLocked {
+                venueFanGeoVerifiedExplainerCard()
+            }
 
-            Picker("State", selection: $venueState) {
-                ForEach(usStates, id: \.self) { state in
-                    Text(state).tag(state)
+            field("Bar / Pub / Restaurant Name", text: $viewModel.ownerVenueName, locked: venueCoreIdentityLocked)
+            field("Street Address", text: $venueStreetAddress, locked: venueCoreIdentityLocked)
+            field("City", text: $venueCity, locked: venueCoreIdentityLocked)
+
+            HStack(alignment: .center, spacing: 10) {
+                Picker("State", selection: $venueState) {
+                    ForEach(usStates, id: \.self) { state in
+                        Text(state).tag(state)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(venueCoreIdentityLocked)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(FGAdaptiveSurface.controlFill)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                if venueCoreIdentityLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityLabel("Locked")
                 }
             }
-            .pickerStyle(.menu)
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.gray.opacity(0.10))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .opacity(venueCoreIdentityLocked ? 0.78 : 1)
 
-            field("ZIP Code", text: $venueZipCode)
-            field("Phone", text: $viewModel.ownerVenuePhone)
+            field("ZIP Code", text: $venueZipCode, locked: venueCoreIdentityLocked)
+            BusinessPhoneNumberField(dialISO: $viewModel.ownerVenuePhoneDialISO, localNumber: $viewModel.ownerVenuePhone)
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
             field("Features: Big Screens, Patio, Sound On", text: $viewModel.ownerVenueFeatures)
@@ -467,8 +540,9 @@ struct VenueOwnerDashboardView: View {
                 )
 
                 Button {
-                    if ModerationService.containsProfanity(viewModel.ownerVenueDescription)
-                        || ModerationService.containsProfanity(viewModel.ownerVenueName) {
+                    let nameBad = ModerationService.containsProfanity(viewModel.ownerVenueName)
+                    let descBad = ModerationService.containsProfanity(viewModel.ownerVenueDescription)
+                    if descBad || (!venueCoreIdentityLocked && nameBad) {
                         profileSaveMessage = ModerationService.profanityRejectionUserMessage()
                         return
                     }
@@ -490,6 +564,23 @@ struct VenueOwnerDashboardView: View {
                             petFriendly: isPetFriendly
                         )
 
+                        if success, let saved = await viewModel.loadVenueProfile() {
+                            await MainActor.run {
+                                viewModel.applyVenueProfileRowToOwnerState(saved)
+                                venueStreetAddress = saved.address ?? ""
+                                venueCity = saved.city ?? ""
+                                venueState = saved.state ?? "UT"
+                                venueZipCode = saved.zip_code ?? ""
+                                totalScreens = saved.screen_count ?? 1
+                                hasFood = saved.serves_food ?? false
+                                hasWifi = saved.has_wifi ?? false
+                                hasGarden = saved.has_garden ?? false
+                                hasProjector = saved.has_projector ?? false
+                                isPetFriendly = saved.pet_friendly ?? false
+                                syncDisplayedVenuePhotoURLsFromViewModel()
+                            }
+                        }
+
                         await MainActor.run {
                             profileSaveMessage = success ? "Profile saved successfully" : "Unable to save profile"
                         }
@@ -507,6 +598,51 @@ struct VenueOwnerDashboardView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
             }
         }
+    }
+
+    private func venueFanGeoVerifiedExplainerCard() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.title3)
+                    .foregroundStyle(Color.accentColor)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Venue information verified by FanGeo.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text("To change the venue name, address, or core business information, please contact FanGeo Support.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button {
+#if DEBUG
+                print("[VenueDetailsLock] support contact opened")
+#endif
+                showVenueOwnerContactSupport = true
+            } label: {
+                Text("Contact FanGeo Support")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.accentColor.opacity(0.18))
+                    .foregroundStyle(Color.accentColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the in-app FanGeo support form.")
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 1)
+        )
     }
 
     private func venueOwnerVenueFeaturesCard() -> some View {
@@ -534,7 +670,7 @@ struct VenueOwnerDashboardView: View {
             }
         }
         .padding(12)
-        .background(Color.gray.opacity(0.08))
+        .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
@@ -575,7 +711,11 @@ struct VenueOwnerDashboardView: View {
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(analyticsDatePreset == preset ? Color.black : Color.black.opacity(0.06))
+                                .background(
+                                    analyticsDatePreset == preset
+                                        ? AnyShapeStyle(Color.accentColor)
+                                        : AnyShapeStyle(FGAdaptiveSurface.capsuleUnselected)
+                                )
                                 .foregroundStyle(analyticsDatePreset == preset ? Color.white : Color.primary)
                                 .clipShape(Capsule())
                         }
@@ -613,7 +753,7 @@ struct VenueOwnerDashboardView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.black.opacity(0.06))
+            .background(FGAdaptiveSurface.controlFill)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .onChange(of: analyticsSportFilter) { _, _ in
                 Task { await refreshVenueAnalyticsFilteredEngagementOnly() }
@@ -645,7 +785,7 @@ struct VenueOwnerDashboardView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(Color.black.opacity(0.06))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
 
@@ -667,7 +807,7 @@ struct VenueOwnerDashboardView: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background(Color.black.opacity(0.06))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
@@ -675,8 +815,8 @@ struct VenueOwnerDashboardView: View {
 
     private var venueAnalyticsSection: some View {
         dashboardCard(
-            title: "Venue Analytics",
-            subtitle: "Lightweight live engagement per game — same data fans see for going, fan updates, and vibes."
+            title: "Analytics",
+            subtitle: "Venue Analytics focuses on games still in your database—engagement for active, recent, and cancelled listings. Use the Game History tab for permanent lightweight summaries after a game is fully purged from venue events (fan comments and reactions are never stored there)."
         ) {
             venueAnalyticsDashboardInner()
                 .sheet(item: $analyticsDetailSelection) { selection in
@@ -703,80 +843,202 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func venueAnalyticsDashboardInner() -> some View {
-        let displayed = displayedVenueAnalyticsGames()
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("", selection: $businessVenueAnalyticsTab) {
+                Text("Venue Analytics").tag(BusinessVenueAnalyticsTab.venueAnalytics)
+                Text("Game History").tag(BusinessVenueAnalyticsTab.gameHistory)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            switch businessVenueAnalyticsTab {
+            case .venueAnalytics:
+                venueAnalyticsVenueEngagementTab()
+            case .gameHistory:
+                analyticsPurgedHistorySection
+                    .task(id: analyticsGameHistoryTaskKey) {
+                        await refreshAnalyticsGameHistory()
+                    }
+                    .refreshable {
+                        await refreshAnalyticsGameHistory()
+                    }
+            }
+        }
+    }
+
+    /// Engagement tab: only ``venue_events`` rows still in the database (purged games never appear here).
+    private func venueAnalyticsVenueEngagementTab() -> some View {
+        let pack = displayedVenueAnalyticsGamesForCards()
+        let displayed = pack.rows
+        let isCapped = pack.isCapped
 
         return VStack(alignment: .leading, spacing: 12) {
             venueAnalyticsFilterBar
 
-            if analyticsIsLoading && analyticsGames.isEmpty {
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .tint(.black)
-                    Text("Loading analytics…")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else if analyticsGames.isEmpty {
-                Text("No active game analytics yet.")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+            if isCapped {
+                Text("Showing the \(VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset) most recent games for this view. Purged games are removed from venue events entirely—they never appear here. Use a narrower date filter to browse older rows without loading everything at once.")
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                if !displayed.isEmpty {
-                    venueAnalyticsSummaryStrip(displayed: displayed)
-                }
+            }
 
-                if displayed.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("No analytics for this filter.")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        Text("Try another date or sport.")
+            Group {
+                if analyticsIsLoading && analyticsGames.isEmpty {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading analytics…")
                             .font(.caption)
+                            .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
+                } else if analyticsGames.isEmpty {
+                    Text("No games loaded for analytics yet. Add a game from the Games tab, or pull to refresh after cancellations.")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    ScrollView {
-                        LazyVStack(spacing: 8) {
-                            ForEach(displayed.compactMap { row -> (UUID, VenueEventRow)? in
-                                guard let id = row.id else { return nil }
-                                return (id, row)
-                            }, id: \.0) { pair in
-                                VenueOwnerCompactAnalyticsRow(
-                                    viewModel: viewModel,
-                                    row: pair.1,
-                                    eventID: pair.0,
-                                    isLiveToday: isGameLiveToday(pair.1),
-                                    onTapDetail: {
-                                        analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
+                    if !displayed.isEmpty {
+                        venueAnalyticsSummaryStrip(displayed: displayed)
+                    }
+
+                    if displayed.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("No games match this filter.")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Text("Try another date range or sport, or choose “All” in the date presets to include past and cancelled listings.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                    } else {
+                        ScrollView {
+                            LazyVStack(spacing: 8) {
+                                ForEach(displayed.compactMap { row -> (UUID, VenueEventRow)? in
+                                    guard let id = row.id else { return nil }
+                                    return (id, row)
+                                }, id: \.0) { pair in
+                                    VenueOwnerCompactAnalyticsRow(
+                                        viewModel: viewModel,
+                                        row: pair.1,
+                                        eventID: pair.0,
+                                        isLiveToday: isGameLiveToday(pair.1),
+                                        onTapDetail: {
+                                            analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
+                                        }
+                                    )
+                                    .contextMenu {
+                                        Button("Details") {
+                                            analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
+                                        }
+                                        Button("Hide from analytics", role: .destructive) {
+                                            hideVenueEventFromAnalytics(pair.0)
+                                        }
                                     }
-                                )
-                                .contextMenu {
-                                    Button("Details") {
-                                        analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button("Hide") {
+                                            hideVenueEventFromAnalytics(pair.0)
+                                        }
+                                        .tint(.orange)
                                     }
-                                    Button("Hide from analytics", role: .destructive) {
-                                        hideVenueEventFromAnalytics(pair.0)
-                                    }
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button("Hide") {
-                                        hideVenueEventFromAnalytics(pair.0)
-                                    }
-                                    .tint(.orange)
                                 }
                             }
+                            .padding(.top, 4)
                         }
-                        .padding(.top, 4)
+                        .frame(maxHeight: 520)
                     }
-                    .frame(maxHeight: 520)
-                    .refreshable {
-                        await loadVenueAnalytics()
+                }
+            }
+        }
+        .refreshable {
+            await loadVenueAnalytics()
+        }
+    }
+
+    /// Lightweight rows after a game listing is cleared from the database (no fan chat text). Populated when server retention runs.
+    private var analyticsPurgedHistorySection: some View {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Cleared listings (permanent summaries)")
+                .font(.headline.weight(.bold))
+
+            Text("When a game is fully purged from venue events, it no longer appears under Venue Analytics. Only these lightweight rows remain (title, schedule, venue, counts)—intentional for scale. Fan comments and reactions are not stored here.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Picker("Year", selection: $analyticsGameHistoryYear) {
+                    ForEach((currentYear - 5)...(currentYear + 1), id: \.self) { y in
+                        Text(String(y)).tag(y)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Picker("Month", selection: $analyticsGameHistoryMonth) {
+                    Text("All months").tag(0)
+                    ForEach(1...12, id: \.self) { m in
+                        Text(monthShortName(m)).tag(m)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Spacer(minLength: 0)
+            }
+
+            Text("Total cleared games (this year): \(totalAnalyticsGameHistoryInYear)")
+                .font(.caption.weight(.semibold))
+            if analyticsGameHistoryMonth != 0 {
+                Text("In selected month: \(analyticsGameHistoryInSelectedMonthCount)")
+                    .font(.caption.weight(.semibold))
+            }
+
+            if !analyticsGameHistoryError.isEmpty {
+                Text(analyticsGameHistoryError)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+            }
+
+            if analyticsGameHistoryLoading && analyticsGameHistoryForYear.isEmpty {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Loading cleared-game history…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } else if viewModel.currentBusinessIdForAddLocation() == nil {
+                Text("Link a business to this account to load cleared-game summaries.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else if analyticsGameHistoryFiltered.isEmpty {
+                Text("No cleared-game records for this year yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(analyticsGameHistoryFiltered) { row in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(row.event_title ?? "Game")
+                                .font(.headline.weight(.semibold))
+                            Text(formatHistorySchedule(row.scheduled_start_at))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 6) {
+                                Text(row.sport ?? "—")
+                                    .font(.caption2.weight(.semibold))
+                                Text("·")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                Text(row.venue_name ?? "—")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(FGAdaptiveSurface.controlFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                 }
             }
@@ -894,6 +1156,16 @@ struct VenueOwnerDashboardView: View {
         return rows
     }
 
+    /// Rows shown as cards in **Venue Analytics**; when the date preset is **All**, caps count so the screen stays responsive with very large histories.
+    private func displayedVenueAnalyticsGamesForCards() -> (rows: [VenueEventRow], isCapped: Bool) {
+        let full = displayedVenueAnalyticsGames()
+        let maxRows = VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset
+        if analyticsDatePreset == .all, full.count > maxRows {
+            return (Array(full.prefix(maxRows)), true)
+        }
+        return (full, false)
+    }
+
     private func gameDayMatchesThisWeek(_ row: VenueEventRow) -> Bool {
         guard let d = venueOwnerGameDay(row) else { return false }
         return Calendar.current.isDate(d, equalTo: Date(), toGranularity: .weekOfYear)
@@ -930,7 +1202,7 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func refreshVenueAnalyticsFilteredEngagementOnly() async {
-        let displayed = await MainActor.run { displayedVenueAnalyticsGames() }
+        let displayed = await MainActor.run { displayedVenueAnalyticsGamesForCards().rows }
         let ids = displayed.compactMap(\.id)
 
         await viewModel.stopVenueOwnerAnalyticsRealtime()
@@ -958,7 +1230,7 @@ struct VenueOwnerDashboardView: View {
             analyticsIsLoading = true
         }
 
-        let rows = await viewModel.loadMyVenueGames()
+        let rows = await viewModel.loadMyVenueGamesForAnalytics()
         let pool = Self.venueAnalyticsGamesLoadingPool(rows)
         let sorted = Self.sortVenueAnalyticsEventsByDateDescending(pool)
         let capped = Array(sorted.prefix(1500))
@@ -981,6 +1253,24 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private var analyticsGameHistoryTaskKey: String {
+        let bid = viewModel.currentBusinessIdForAddLocation()?.uuidString ?? ""
+        return "\(analyticsGameHistoryYear)-\(bid)-\(viewModel.ownerVenueDatabaseId?.uuidString ?? "")"
+    }
+
+    private var analyticsGameHistoryFiltered: [BusinessGameHistoryRow] {
+        guard analyticsGameHistoryMonth >= 1, analyticsGameHistoryMonth <= 12 else { return analyticsGameHistoryForYear }
+        let p = String(format: "%04d-%02d-", analyticsGameHistoryYear, analyticsGameHistoryMonth)
+        return analyticsGameHistoryForYear.filter { ($0.scheduled_start_at ?? "").hasPrefix(p) }
+    }
+
+    private var totalAnalyticsGameHistoryInYear: Int { analyticsGameHistoryForYear.count }
+
+    private var analyticsGameHistoryInSelectedMonthCount: Int {
+        guard analyticsGameHistoryMonth >= 1, analyticsGameHistoryMonth <= 12 else { return 0 }
+        return analyticsGameHistoryFiltered.count
+    }
+
     private var gamesSection: some View {
         manageGamesTabbedExperience
     }
@@ -988,7 +1278,7 @@ struct VenueOwnerDashboardView: View {
     private var manageGamesTabbedExperience: some View {
         VStack(alignment: .leading, spacing: 14) {
             Picker("", selection: $manageGamesListTab) {
-                Text("Games").tag(ManageGamesListTab.games)
+                Text("Scheduled").tag(ManageGamesListTab.scheduled)
                 Text("Add Game").tag(ManageGamesListTab.add)
             }
             .pickerStyle(.segmented)
@@ -1008,52 +1298,39 @@ struct VenueOwnerDashboardView: View {
             }
 
             switch manageGamesListTab {
-            case .games:
+            case .scheduled:
                 manageGamesListPane
             case .add:
                 manageGamesAddPane
             }
         }
         .padding()
-        .background(Color.white.opacity(0.96))
+        .background(FGAdaptiveSurface.cardElevated)
         .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
+        )
         .task(id: viewModel.ownerVenueDatabaseId) {
             await refreshManageGamesList(isInitialPick: !didPickInitialManageGamesTab)
         }
         .confirmationDialog(
-            "Remove “\(pendingCancelGameTitle)”?",
-            isPresented: Binding(
-                get: { pendingCancelGameID != nil },
-                set: { if !$0 { pendingCancelGameID = nil } }
-            ),
+            "Cancel this game?",
+            isPresented: $showCancelGameDialog,
             titleVisibility: .visible
         ) {
-            Button("Remove listing", role: .destructive) {
+            Button("Remove Game", role: .destructive) {
+                guard let snap = cancelGameRowSnapshot else { return }
+                cancelGameRowSnapshot = nil
                 Task {
-                    guard let id = pendingCancelGameID,
-                          let row = myVenueGamesForManage.first(where: { $0.id == id }) else {
-                        await MainActor.run { pendingCancelGameID = nil }
-                        return
-                    }
-                    await MainActor.run { pendingCancelGameID = nil }
-                    let err = await viewModel.deleteVenueGame(row)
-                    await MainActor.run {
-                        if let err {
-                            manageGamesError = err
-                            manageGamesFeedback = ""
-                        } else {
-                            manageGamesError = ""
-                            manageGamesFeedback = "Game removed."
-                        }
-                    }
-                    await refreshManageGamesList(isInitialPick: false)
+                    await performManageGameCancel(rowSnapshot: snap)
                 }
             }
-            Button("Keep", role: .cancel) {
-                pendingCancelGameID = nil
+            Button("Keep Game", role: .cancel) {
+                cancelGameRowSnapshot = nil
             }
         } message: {
-            Text("Fans will no longer see this listing. This can’t be undone.")
+            Text("This will remove the game from your venue schedule and FanGeo discovery.")
         }
         .sheet(item: $titleEditTarget) { target in
             NavigationStack {
@@ -1096,18 +1373,17 @@ struct VenueOwnerDashboardView: View {
 
     private var manageGamesListPane: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Games")
+            Text("Scheduled games")
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Games you’ve published at your venue.")
+            Text("Upcoming listings at your venue. Past starts drop from this list after the game time passes.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             if manageGamesListLoading && myVenueGamesForManage.isEmpty {
                 HStack(spacing: 10) {
                     ProgressView()
-                        .tint(.black)
                     Text("Loading games…")
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -1130,7 +1406,7 @@ struct VenueOwnerDashboardView: View {
                             .fontWeight(.bold)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.black)
+                            .background(Color.accentColor)
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
@@ -1154,11 +1430,26 @@ struct VenueOwnerDashboardView: View {
                                 titleEditDraft = item.row.event_title ?? ""
                                 titleEditTarget = VenueOwnerGameTitleEditTarget(id: item.id)
                             },
+                            onCleanupDelayChange: { hours in
+                                Task {
+                                    let err = await viewModel.updateVenueEventCleanupDelay(venueEventId: item.id, hours: hours)
+                                    await MainActor.run {
+                                        if let err {
+                                            manageGamesError = err
+                                            manageGamesFeedback = ""
+                                        } else {
+                                            manageGamesError = ""
+                                            manageGamesFeedback = "Retention updated."
+                                        }
+                                    }
+                                    await refreshManageGamesList(isInitialPick: false)
+                                }
+                            },
                             onCancel: {
                                 clearManageGamesBanners()
-                                guard let gid = item.row.id else { return }
-                                pendingCancelGameTitle = item.row.event_title ?? "Game"
-                                pendingCancelGameID = gid
+                                guard item.row.id != nil else { return }
+                                cancelGameRowSnapshot = item.row
+                                showCancelGameDialog = true
                             }
                         )
                     }
@@ -1179,6 +1470,9 @@ struct VenueOwnerDashboardView: View {
 
             addGameFormFields
         }
+        .onAppear {
+            clampSchedulePickersToNow()
+        }
     }
 
     private var manageGamesIdentifiedRows: [VenueOwnerIdentifiedVenueEvent] {
@@ -1188,20 +1482,89 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private var minimumSelectableGameCalendarDate: Date {
+        Calendar.current.startOfDay(for: Date())
+    }
+
+    private var endOfSelectedGameDate: Date {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: gameDate)
+        guard let nextDay = cal.date(byAdding: .day, value: 1, to: dayStart) else {
+            return gameDate
+        }
+        return nextDay.addingTimeInterval(-1)
+    }
+
+    private var startTimeLowerBoundForPicker: Date {
+        let cal = Calendar.current
+        let now = Date()
+        let dayStart = cal.startOfDay(for: gameDate)
+        if cal.compare(dayStart, to: cal.startOfDay(for: now), toGranularity: .day) == .orderedDescending {
+            return dayStart
+        }
+        if cal.isDate(gameDate, inSameDayAs: now) {
+            return max(now, dayStart)
+        }
+        return max(now, dayStart)
+    }
+
+    private var gameStartTimePickerClosedRange: ClosedRange<Date> {
+        let lo = startTimeLowerBoundForPicker
+        let hi = endOfSelectedGameDate
+        if lo <= hi { return lo...hi }
+        return lo...lo.addingTimeInterval(60)
+    }
+
+    private func clampSchedulePickersToNow() {
+        let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
+            gameDate: gameDate,
+            gameStartTime: gameStartTime
+        )
+        if clamped.0 != gameDate { gameDate = clamped.0 }
+        if clamped.1 != gameStartTime { gameStartTime = clamped.1 }
+    }
+
     private var addGameFormFields: some View {
         Group {
             field("Game title, example: France vs Brazil", text: $gameTitle)
-            DatePicker("Game Date", selection: $gameDate, displayedComponents: .date)
+            DatePicker(
+                "Game Date",
+                selection: $gameDate,
+                in: minimumSelectableGameCalendarDate...Date.distantFuture,
+                displayedComponents: .date
+            )
                 .fontWeight(.semibold)
                 .padding()
-                .background(Color.gray.opacity(0.10))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            DatePicker("Start Time", selection: $gameStartTime, displayedComponents: .hourAndMinute)
+            DatePicker(
+                "Start Time",
+                selection: $gameStartTime,
+                in: gameStartTimePickerClosedRange,
+                displayedComponents: .hourAndMinute
+            )
                 .fontWeight(.semibold)
                 .padding()
-                .background(Color.gray.opacity(0.10))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Remove game data after")
+                    .font(.subheadline.weight(.semibold))
+                Text("Fan comments, vibes, and attendance rows are deleted; you keep a short summary in History.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Picker("Retention hours", selection: $cleanupDelayHours) {
+                    Text("24h after start").tag(24)
+                    Text("48h after start").tag(48)
+                    Text("72h after start").tag(72)
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding()
+            .background(FGAdaptiveSurface.controlFill)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Picker("Sport", selection: $viewModel.ownerVenuePrimarySport) {
                 ForEach(viewModel.sports.filter { $0 != "All" }, id: \.self) { sport in
@@ -1211,19 +1574,19 @@ struct VenueOwnerDashboardView: View {
             .pickerStyle(.menu)
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.gray.opacity(0.10))
+            .background(FGAdaptiveSurface.controlFill)
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Toggle("Audio / sound will be ON", isOn: $soundOn)
                 .fontWeight(.semibold)
                 .padding()
-                .background(Color.gray.opacity(0.10))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Stepper("TVs showing this game: \(numberOfTVs)", value: $numberOfTVs, in: 1...50)
                 .fontWeight(.semibold)
                 .padding()
-                .background(Color.gray.opacity(0.10))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
             field("Team fanbase, example: France fans, Brazil fans, Arsenal supporters", text: $teamFanbase)
@@ -1261,7 +1624,7 @@ struct VenueOwnerDashboardView: View {
                     Image(systemName: showSpecialsFields ? "chevron.up" : "chevron.down")
                 }
                 .padding()
-                .background(Color.gray.opacity(0.10))
+                .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
 
@@ -1280,13 +1643,15 @@ struct VenueOwnerDashboardView: View {
             .overlay {
                 if isSavingNewGame {
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white.opacity(0.35))
+                        .fill(FGAdaptiveSurface.sheetRoot.opacity(0.55))
                     ProgressView()
-                        .tint(.white)
+                        .tint(.primary)
                 }
             }
             .disabled(isSavingNewGame)
         }
+        .onChange(of: gameDate) { _, _ in clampSchedulePickersToNow() }
+        .onChange(of: gameStartTime) { _, _ in clampSchedulePickersToNow() }
     }
 
     private func clearManageGamesBanners() {
@@ -1299,12 +1664,56 @@ struct VenueOwnerDashboardView: View {
         clearManageGamesBanners()
         isSavingNewGame = false
         titleEditTarget = nil
-        pendingCancelGameID = nil
-        pendingCancelGameTitle = ""
+        showCancelGameDialog = false
+        cancelGameRowSnapshot = nil
         didPickInitialManageGamesTab = false
 #if DEBUG
         print("[BusinessGameState] cleared transient game state for venue switch")
 #endif
+    }
+
+    private func clearAnalyticsGameHistoryState() {
+        analyticsGameHistoryForYear = []
+        analyticsGameHistoryError = ""
+        analyticsGameHistoryLoading = false
+        businessVenueAnalyticsTab = .venueAnalytics
+    }
+
+    private static func venueEventManageListSortKey(_ r: VenueEventRow) -> String {
+        if let s = r.scheduled_start_at?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+            return s
+        }
+        let d = r.event_date?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let t = r.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let title = r.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return "\(d)|\(t)|\(title)"
+    }
+
+    private func performManageGameCancel(rowSnapshot: VenueEventRow) async {
+        await MainActor.run {
+            myVenueGamesForManage.removeAll { $0.id == rowSnapshot.id }
+            manageGamesFeedback = "Game cancelled"
+            manageGamesError = ""
+        }
+
+        let err = await viewModel.deleteVenueGame(rowSnapshot)
+
+        await MainActor.run {
+            if let err {
+                if !myVenueGamesForManage.contains(where: { $0.id == rowSnapshot.id }) {
+                    myVenueGamesForManage.append(rowSnapshot)
+                    myVenueGamesForManage.sort { Self.venueEventManageListSortKey($0) < Self.venueEventManageListSortKey($1) }
+                }
+                manageGamesError = err
+                manageGamesFeedback = ""
+            } else {
+                manageGamesError = ""
+                manageGamesFeedback = "Game cancelled."
+                Task {
+                    await refreshManageGamesList(isInitialPick: false)
+                }
+            }
+        }
     }
 
     private func refreshManageGamesList(isInitialPick: Bool) async {
@@ -1312,7 +1721,7 @@ struct VenueOwnerDashboardView: View {
             manageGamesListLoading = true
         }
 
-        let rows = await viewModel.loadMyVenueGames()
+        let rows = await viewModel.loadMyVenueScheduledGames()
         let ids = rows.compactMap(\.id)
         await viewModel.loadInterestCountsForVenueEventIDs(ids)
         await withTaskGroup(of: Void.self) { group in
@@ -1330,9 +1739,9 @@ struct VenueOwnerDashboardView: View {
 
             if isInitialPick, !didPickInitialManageGamesTab {
                 didPickInitialManageGamesTab = true
-                manageGamesListTab = rows.isEmpty ? .add : .games
+                manageGamesListTab = rows.isEmpty ? .add : .scheduled
             }
-            if rows.isEmpty {
+            if rows.isEmpty, manageGamesListTab == .scheduled {
                 manageGamesListTab = .add
             }
         }
@@ -1343,6 +1752,14 @@ struct VenueOwnerDashboardView: View {
         guard !trimmedTitle.isEmpty else {
             await MainActor.run {
                 manageGamesError = "Enter a game title before saving."
+                manageGamesFeedback = ""
+            }
+            return
+        }
+
+        if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
+            await MainActor.run {
+                manageGamesError = VenueOwnerGameScheduleValidation.futureDateTimeMessage
                 manageGamesFeedback = ""
             }
             return
@@ -1369,7 +1786,8 @@ struct VenueOwnerDashboardView: View {
             drinkSpecial: gameSpecial,
             coverCharge: coverCharge,
             reservationInfo: reservationsAvailable ? "Reservations available" : "",
-            socialCoordination: waitlistAvailable ? "Waitlist available" : ""
+            socialCoordination: waitlistAvailable ? "Waitlist available" : "",
+            cleanupDelayHours: cleanupDelayHours
         )
 
         await MainActor.run {
@@ -1389,7 +1807,7 @@ struct VenueOwnerDashboardView: View {
                 }
 #endif
                 resetAddGameFormAfterSave()
-                manageGamesListTab = .games
+                manageGamesListTab = .scheduled
             }
         }
 
@@ -1406,14 +1824,73 @@ struct VenueOwnerDashboardView: View {
         seating = ""
         teamFanbase = ""
         socialCoordination = ""
-        gameDate = Date()
-        gameStartTime = Date()
+        let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
+            gameDate: Date(),
+            gameStartTime: Date()
+        )
+        gameDate = clamped.0
+        gameStartTime = clamped.1
         numberOfTVs = 1
         crowdLevel = "Moderate"
         liveOccupancy = "Open seats"
         reservationsAvailable = false
         waitlistAvailable = false
         showSpecialsFields = false
+        cleanupDelayHours = 48
+    }
+
+    private func refreshAnalyticsGameHistory() async {
+        await MainActor.run {
+            analyticsGameHistoryLoading = true
+            analyticsGameHistoryError = ""
+        }
+        guard let bid = viewModel.currentBusinessIdForAddLocation() else {
+            await MainActor.run {
+                analyticsGameHistoryForYear = []
+                analyticsGameHistoryLoading = false
+                analyticsGameHistoryError = ""
+            }
+            return
+        }
+        do {
+            let rows = try await viewModel.loadBusinessGameHistory(businessId: bid, year: analyticsGameHistoryYear)
+            await MainActor.run {
+                analyticsGameHistoryForYear = rows
+                analyticsGameHistoryLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                analyticsGameHistoryForYear = []
+                analyticsGameHistoryLoading = false
+                analyticsGameHistoryError = error.localizedDescription
+            }
+        }
+    }
+
+    private func monthShortName(_ month: Int) -> String {
+        let f = DateFormatter()
+        f.locale = .current
+        let idx = max(0, min(11, month - 1))
+        guard idx < f.shortMonthSymbols.count else { return "\(month)" }
+        return f.shortMonthSymbols[idx]
+    }
+
+    private func formatHistorySchedule(_ iso: String?) -> String {
+        guard let iso, !iso.isEmpty else { return "—" }
+        let fIn = ISO8601DateFormatter()
+        fIn.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        var d = fIn.date(from: iso)
+        if d == nil {
+            let f2 = ISO8601DateFormatter()
+            f2.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+            d = f2.date(from: iso)
+        }
+        guard let d else { return iso }
+        let out = DateFormatter()
+        out.locale = .current
+        out.dateStyle = .medium
+        out.timeStyle = .short
+        return out.string(from: d)
     }
 
     private func formattedManageGameDateTime(row: VenueEventRow) -> String {
@@ -1461,15 +1938,33 @@ struct VenueOwnerDashboardView: View {
             content()
         }
         .padding()
-        .background(Color.white.opacity(0.96))
+        .background(FGAdaptiveSurface.cardElevated)
         .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
+        )
     }
     
-    private func field(_ placeholder: String, text: Binding<String>) -> some View {
-        TextField(placeholder, text: text)
-            .padding()
-            .background(Color.gray.opacity(0.10))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+    private func field(_ placeholder: String, text: Binding<String>, locked: Bool = false) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            TextField(placeholder, text: text)
+                .foregroundStyle(.primary)
+                .disabled(locked)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(FGAdaptiveSurface.controlFill)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            if locked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .frame(width: 22)
+                    .accessibilityLabel("Verified — locked")
+            }
+        }
+        .opacity(locked ? 0.78 : 1)
     }
 
     private func syncDisplayedVenuePhotoURLsFromViewModel() {
@@ -1501,7 +1996,7 @@ struct VenueOwnerDashboardView: View {
             .fontWeight(.bold)
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.black)
+            .background(Color.accentColor)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -1527,7 +2022,10 @@ private struct VenueOwnerManageGameRow: View {
     let commentCount: Int
     let vibeTotal: Int
     let onEditTitle: () -> Void
+    let onCleanupDelayChange: (Int) -> Void
     let onCancel: () -> Void
+
+    @State private var retentionPickerHours: Int = 48
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -1545,7 +2043,7 @@ private struct VenueOwnerManageGameRow: View {
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.12))
+                    .background(FGAdaptiveSurface.controlFill)
                     .clipShape(Capsule())
 
                 if let statusLabel {
@@ -1563,13 +2061,25 @@ private struct VenueOwnerManageGameRow: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Remove game data after")
+                    .font(.caption2.weight(.semibold))
+                Picker("Retention hours", selection: $retentionPickerHours) {
+                    Text("24h").tag(24)
+                    Text("48h").tag(48)
+                    Text("72h").tag(72)
+                }
+                .pickerStyle(.segmented)
+            }
+            .padding(.vertical, 4)
+
             HStack(spacing: 10) {
                 Button(action: onEditTitle) {
                     Text("Edit title")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(Color.black.opacity(0.08))
+                        .background(FGAdaptiveSurface.capsuleUnselected)
                         .foregroundStyle(.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
@@ -1591,8 +2101,23 @@ private struct VenueOwnerManageGameRow: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.gray.opacity(0.08))
+        .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onAppear {
+            retentionPickerHours = row.cleanup_delay_hours ?? 48
+        }
+        .onChange(of: eventID) { _, _ in
+            retentionPickerHours = row.cleanup_delay_hours ?? 48
+        }
+        .onChange(of: row.cleanup_delay_hours) { _, newHours in
+            retentionPickerHours = newHours ?? 48
+        }
+        .onChange(of: retentionPickerHours) { _, newVal in
+            let cur = row.cleanup_delay_hours ?? 48
+            if newVal != cur {
+                onCleanupDelayChange(newVal)
+            }
+        }
     }
 }
 
@@ -1687,6 +2212,8 @@ private struct VenueOwnerCompactAnalyticsRow: View {
     }
 
     private static func sportEmoji(for sport: String) -> String {
+        let catalogEmoji = SportFilterCatalog.resolve(sport).emoji
+        if !catalogEmoji.isEmpty { return catalogEmoji }
         let s = sport.lowercased()
         if s.contains("soccer") { return "⚽️" }
         if s.contains("nba") || s.contains("basket") { return "🏀" }
@@ -1711,7 +2238,16 @@ private struct VenueOwnerCompactAnalyticsRow: View {
                     Text(scoreCrownLine)
                         .font(.caption.weight(.black))
                         .foregroundStyle(.primary)
-                    if isLiveToday {
+                    let listingStatus = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+                    if listingStatus == "archived" {
+                        Text("Cancelled")
+                            .font(.caption2.weight(.heavy))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.orange.opacity(0.18))
+                            .foregroundStyle(Color.orange)
+                            .clipShape(Capsule())
+                    } else if isLiveToday {
                         Text("LIVE")
                             .font(.caption2.weight(.heavy))
                             .padding(.horizontal, 6)
@@ -1734,10 +2270,10 @@ private struct VenueOwnerCompactAnalyticsRow: View {
 
                 Text(viewModel.venueOwnerEngagementTrendLabel(score: score))
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.black)
+                    .background(FGAdaptiveSurface.capsuleUnselected)
                     .clipShape(Capsule())
 
                 HStack(spacing: 10) {
@@ -1769,11 +2305,11 @@ private struct VenueOwnerCompactAnalyticsRow: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.gray.opacity(0.07))
+            .background(FGAdaptiveSurface.controlFill)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.black.opacity(0.06), lineWidth: 1)
+                    .strokeBorder(Color(.separator).opacity(0.55), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -1865,8 +2401,8 @@ private struct VenueOwnerGameAnalyticsCard: View {
                 .fontWeight(.bold)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(Color.black)
-                .foregroundStyle(.white)
+                .background(FGAdaptiveSurface.capsuleUnselected)
+                .foregroundStyle(.primary)
                 .clipShape(Capsule())
 
             LazyVGrid(
@@ -1895,12 +2431,12 @@ private struct VenueOwnerGameAnalyticsCard: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .fill(FGAdaptiveSurface.cardElevated)
+                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.08), lineWidth: 1)
+                .strokeBorder(Color(.separator).opacity(0.55), lineWidth: 1)
         )
     }
 
@@ -1921,7 +2457,7 @@ private struct VenueOwnerGameAnalyticsCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Color.black.opacity(0.04))
+        .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 

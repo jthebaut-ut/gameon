@@ -145,14 +145,13 @@ final class DirectChatService {
 
     // MARK: - Realtime (direct thread only)
 
-    /// Postgres INSERTs for this conversation. Unsubscribe with ``removeRealtimeChannel`` when the thread closes.
+    /// Postgres INSERTs for this conversation (`dm:<conversation_id>`). No client-side filter — RLS scopes events; Swift filters by `conversation_id`.
     func directMessagesInsertChannel(conversationId: UUID) -> (RealtimeChannelV2, AsyncStream<InsertAction>) {
         let channel = client.channel("dm:\(conversationId.uuidString.lowercased())")
         let stream = channel.postgresChange(
             InsertAction.self,
             schema: "public",
-            table: "direct_messages",
-            filter: .eq("conversation_id", value: conversationId.uuidString.lowercased())
+            table: "direct_messages"
         )
         return (channel, stream)
     }

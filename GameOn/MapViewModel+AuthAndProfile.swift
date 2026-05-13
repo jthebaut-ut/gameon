@@ -240,6 +240,7 @@ extension MapViewModel {
         ownerVenueCity = ""
         ownerVenueState = "UT"
         ownerVenueZipCode = ""
+        ownerVenuePhoneDialISO = BusinessPhoneFields.defaultISO
         ownerVenuePhone = ""
         ownerVenueWebsite = ""
         ownerVenueDescription = ""

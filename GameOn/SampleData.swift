@@ -24,7 +24,8 @@ struct SampleData {
         "Formula 1",
         "Cricket",
         "Rugby",
-        "Softball"
+        "Softball",
+        "Cycling"
     ]
     
     static let events: [SportsEvent] = [

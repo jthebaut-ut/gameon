@@ -30,7 +30,24 @@ enum SportFilterCatalog {
         Definition(aliases: ["formula 1", "formula1", "f1", "racing", "formula one"], emoji: "🏎\u{FE0F}", systemImage: "flag.pattern.checkered", accent: Color(red: 0.92, green: 0.2, blue: 0.22)),
         Definition(aliases: ["cricket"], emoji: "🏏", systemImage: "cricket.ball.fill", accent: Color(red: 0.2, green: 0.35, blue: 0.75)),
         Definition(aliases: ["rugby"], emoji: "🏉", systemImage: "sportscourt.fill", accent: Color(red: 0.15, green: 0.42, blue: 0.28)),
-        Definition(aliases: ["softball"], emoji: "🥎", systemImage: "circle.fill", accent: Color(red: 0.95, green: 0.55, blue: 0.2))
+        Definition(aliases: ["softball"], emoji: "🥎", systemImage: "circle.fill", accent: Color(red: 0.95, green: 0.55, blue: 0.2)),
+        Definition(
+            aliases: [
+                "cycling",
+                "bicycle",
+                "biking",
+                "bike race",
+                "tour de france",
+                "giro",
+                "vuelta",
+                "bmx",
+                "mountain biking",
+                "mountainbiking"
+            ],
+            emoji: "🚴",
+            systemImage: "bicycle",
+            accent: Color(red: 0.1, green: 0.52, blue: 0.78)
+        )
     ]
 
     private static let allVisual = ChipVisual(
@@ -58,6 +75,31 @@ enum SportFilterCatalog {
             }
         }
         return fallbackVisual
+    }
+
+    /// True when a free-text search should match this stored ``SportsEvent/sport`` (or venue primary sport) via catalog aliases — e.g. "tour de france" ↔ "Cycling".
+    static func storedSport(_ stored: String, matchesSearchQuery rawQuery: String) -> Bool {
+        let sport = stored.trimmingCharacters(in: .whitespacesAndNewlines)
+        let q = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !sport.isEmpty, !q.isEmpty else { return false }
+        if sport.localizedCaseInsensitiveContains(q) { return true }
+        if q.localizedCaseInsensitiveContains(sport) { return true }
+        guard let def = definition(matchingStoredSport: sport) else { return false }
+        let ql = q.lowercased()
+        for a in def.aliases {
+            if a.lowercased().localizedCaseInsensitiveContains(ql) { return true }
+            if ql.localizedCaseInsensitiveContains(a) { return true }
+        }
+        return false
+    }
+
+    private static func definition(matchingStoredSport sport: String) -> Definition? {
+        let key = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return definitions.first { def in
+            def.aliases.contains { alias in
+                alias == key || sport.localizedCaseInsensitiveCompare(alias) == .orderedSame
+            }
+        }
     }
 }
 

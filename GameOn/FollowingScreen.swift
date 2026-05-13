@@ -6,6 +6,7 @@ struct FollowingScreen: View {
     @ObservedObject var viewModel: MapViewModel
     var suppressInitialAutoRefresh = false
 
+    @Environment(\.colorScheme) private var followingColorScheme
     @State private var favoriteActionBanner: String?
     @State private var didHandleInitialAutoRefresh = false
 
@@ -14,7 +15,7 @@ struct FollowingScreen: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.94)
+            Color(.systemGroupedBackground)
                 .ignoresSafeArea()
 
             if viewModel.isAuthenticatedForSocialFeatures {
@@ -63,12 +64,11 @@ struct FollowingScreen: View {
             FanGeoBrandHeroView(
                 title: "Sign in required",
                 subtitle: "Sign in to save venues and track games you plan to attend.",
-                variant: .dark,
+                variant: followingColorScheme == .dark ? .white : .dark,
                 logoWidth: 128,
                 alignment: .center,
                 textAlignment: .center
             )
-            .foregroundStyle(.white)
             .padding(.horizontal, 28)
 
             Button {
@@ -79,11 +79,10 @@ struct FollowingScreen: View {
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.white)
-                    .foregroundStyle(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .tint(.accentColor)
             .padding(.horizontal, 28)
             .padding(.top, 8)
 
@@ -102,12 +101,12 @@ struct FollowingScreen: View {
                 Text("Following")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                     .padding(.top, 22)
 
                 Text("Your saved venues and games you plan to attend.")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
 
                 if let favoriteActionBanner {
                     Text(favoriteActionBanner)
@@ -195,26 +194,43 @@ struct FollowingScreen: View {
         let previousInterestedOnly = interestedOnlyEncoded
         let ok: Bool
 
+#if DEBUG
+        print("[FollowingState] attendance action event=\(item.id.uuidString) action=\(target)")
+#endif
+
         switch target {
         case .going:
             if item.isServerGoing, !localInterested.contains(item.id) { return }
             setInterestedOnlyLocally(item.id, false)
-            ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         case .interested:
             if !item.isServerGoing, localInterested.contains(item.id) { return }
             setInterestedOnlyLocally(item.id, true)
-            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         case .notGoing:
-            if !item.isServerGoing, !localInterested.contains(item.id) { return }
+            guard item.isServerGoing || localInterested.contains(item.id) else { return }
             setInterestedOnlyLocally(item.id, false)
-            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: false)
+            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         }
 
         guard ok else {
+#if DEBUG
+            print("[FollowingState] attendance update failed event=\(item.id.uuidString) action=\(target)")
+#endif
             interestedOnlyEncoded = previousInterestedOnly
+            viewModel.showSocialActionToast("Couldn't update your game plan.")
             return
         }
-        await viewModel.loadGoingUserProfiles(for: item.id)
+#if DEBUG
+        switch target {
+        case .going:
+            print("[FollowingState] marked going")
+        case .interested:
+            print("[FollowingState] marked interested")
+        case .notGoing:
+            print("[FollowingState] marked not going, removed from following")
+        }
+#endif
     }
 
     // MARK: - Shared UI pieces
@@ -223,28 +239,32 @@ struct FollowingScreen: View {
         Text(title)
             .font(.headline)
             .fontWeight(.bold)
-            .foregroundStyle(.white)
+            .foregroundStyle(.primary)
     }
 
     private func emptyCard(icon: String, title: String, subtitle: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.largeTitle)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
 
             Text(title)
                 .font(.headline)
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
 
             Text(subtitle)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color.white.opacity(0.10))
+        .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
 
     private func goingPlanCard(_ item: FollowingGoingDisplayItem) -> some View {
@@ -311,8 +331,12 @@ struct FollowingScreen: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.95))
+        .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
         .task(id: item.id) {
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
             await viewModel.loadGoingUserProfiles(for: item.id)
@@ -425,8 +449,12 @@ struct FollowingScreen: View {
             .accessibilityLabel(isFavorite ? "Remove from saved venues" : "Save venue")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.95))
+        .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
     }
 
     // MARK: - Maps / Discover (Following tab)

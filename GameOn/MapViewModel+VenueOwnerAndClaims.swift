@@ -3,6 +3,10 @@ import CoreLocation
 import SwiftUI
 import Supabase
 
+private struct VenueEventAdminArchivePatch: Encodable {
+    let admin_status: String
+}
+
 // Venue-owner auth, `venue_claims` workflow, venue profile CRUD in `venues`, photo uploads, and related listings.
 
 extension MapViewModel {
@@ -25,7 +29,7 @@ extension MapViewModel {
         ownerVenueCity = ""
         ownerVenueState = "UT"
         ownerVenueZipCode = ""
-        ownerVenuePhone = bar.phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        applyVenueOwnerPhoneFromCombined(bar.phone)
         ownerVenueWebsite = ""
         let sport = bar.primarySport.trimmingCharacters(in: .whitespacesAndNewlines)
         ownerVenuePrimarySport = sport.isEmpty ? "Soccer" : sport
@@ -606,6 +610,18 @@ extension MapViewModel {
         case .noLocationsYet:
             return "mappin.slash"
         }
+    }
+
+    /// When true, venue name, address, coordinates, and identity metadata must stay read-only in UI and must not be sent on `venues` updates (FanGeo-verified active managed venue).
+    ///
+    /// Signal: at least one approved managed location (``businessSettingsLocationChrome()`` == ``BusinessSettingsLocationChrome/approved``), selected venue is in ``managedVenuesForOwner()``, and ``VenueProfileRow/admin_status`` is **active** (or omitted / legacy-empty, matching active listings).
+    func venueCoreIdentityLockedForSelectedVenue() -> Bool {
+        guard businessSettingsLocationChrome() == .approved else { return false }
+        guard let vid = ownerVenueDatabaseId else { return false }
+        guard let row = managedVenuesForOwner().first(where: { $0.id == vid }) else { return false }
+        let admin = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if admin.isEmpty { return true }
+        return admin == "active"
     }
 
     private static func normalizedVenueMatchKey(name: String?, address: String?) -> String {
@@ -1364,6 +1380,10 @@ extension MapViewModel {
             return "Please fill in all required fields."
         }
 
+        if let phoneErr = BusinessPhoneFields.storageValidationError(combined: trimmedPhone) {
+            return phoneErr
+        }
+
         if !BusinessLocationCountryPolicy.supportedCountryCodes.contains(trimmedCountry) {
             return "Country is not supported for new locations yet."
         }
@@ -1581,6 +1601,23 @@ extension MapViewModel {
         }
     }
 
+    /// Splits a stored `venues.phone` / claim phone string into ``ownerVenuePhoneDialISO`` + national ``ownerVenuePhone`` for editing.
+    func applyVenueOwnerPhoneFromCombined(_ stored: String?) {
+        let raw = stored?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let parsed = BusinessPhoneFields.parse(stored: raw)
+        ownerVenuePhoneDialISO = parsed.iso
+        ownerVenuePhone = parsed.localDigits
+    }
+
+    /// Re-applies server truth for fields that must not change client-side when the venue is FanGeo-approved (see ``venueCoreIdentityLockedForSelectedVenue()``).
+    func applyLockedVenueIdentityFromServerRow(_ saved: VenueProfileRow) {
+        ownerVenueName = saved.venue_name ?? ""
+        ownerVenueAddress = saved.address ?? ""
+        ownerVenueCity = saved.city ?? ""
+        ownerVenueState = saved.state ?? ""
+        ownerVenueZipCode = saved.zip_code ?? ""
+    }
+
     /// Applies ``VenueProfileRow`` fields into owner-facing ``MapViewModel`` state (photos, name, etc.).
     func applyVenueProfileRowToOwnerState(_ saved: VenueProfileRow) {
         if let id = saved.id {
@@ -1591,7 +1628,7 @@ extension MapViewModel {
         ownerVenueCity = saved.city ?? ""
         ownerVenueState = saved.state ?? ""
         ownerVenueZipCode = saved.zip_code ?? ""
-        ownerVenuePhone = saved.phone ?? ""
+        applyVenueOwnerPhoneFromCombined(saved.phone)
         ownerVenueWebsite = saved.website ?? ""
         ownerVenueDescription = saved.description ?? ""
         ownerVenueFeatures = saved.features ?? ""
@@ -1866,6 +1903,7 @@ extension MapViewModel {
                     hasUnackedRejectedVenueClaimForOwnerEmail = false
                     ownerVenueName = ""
                     ownerVenueAddress = ""
+                    ownerVenuePhoneDialISO = BusinessPhoneFields.defaultISO
                     ownerVenuePhone = ""
                     ownerVenueWebsite = ""
                     venueProofNote = ""
@@ -1895,7 +1933,7 @@ extension MapViewModel {
                 venueClaimSubmittedDate = primary.created_at ?? ""
                 ownerVenueName = primary.venue_name ?? ""
                 ownerVenueAddress = primary.venue_address ?? ""
-                ownerVenuePhone = primary.venue_phone ?? ""
+                applyVenueOwnerPhoneFromCombined(primary.venue_phone)
                 ownerVenueWebsite = primary.venue_website ?? ""
                 venueProofNote = primary.proof_note ?? ""
 #if DEBUG
@@ -1924,7 +1962,10 @@ extension MapViewModel {
                 let trimmedCity = ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedState = ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedZip = ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines)
-                let trimmedPhone = ownerVenuePhone.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedPhone = BusinessPhoneFields.combinedStorage(
+                    iso: ownerVenuePhoneDialISO,
+                    local: ownerVenuePhone
+                ).trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedDesc = ownerVenueDescription.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedCover = venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedMenu = venueMenuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2169,57 +2210,74 @@ extension MapViewModel {
             let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
             guard OwnerBusinessEmail.isValidStrict(ownerEmailRow) else { return false }
 
-            let fullAddress = [
-                streetAddress,
-                city,
-                state,
-                zipCode
-            ]
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: ", ")
-
-            print("GEOCODING ADDRESS:", fullAddress)
-
-            let coordinate = await geocodeAddress(fullAddress)
-
             let coverThumb = venueCoverPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
             let menuThumb = venueMenuPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            let profile = VenueProfileInsert(
-                owner_email: ownerEmailRow,
-                venue_name: ownerVenueName,
-                address: streetAddress,
-                city: city,
-                state: state,
-                zip_code: zipCode,
-                phone: ownerVenuePhone,
-                website: ownerVenueWebsite,
-                description: ownerVenueDescription,
-                features: ownerVenueFeatures,
-                screen_count: screenCount,
-                serves_food: servesFood,
-                has_wifi: hasWifi,
-                has_garden: hasGarden,
-                has_projector: hasProjector,
-                pet_friendly: petFriendly,
-                latitude: coordinate?.latitude,
-                longitude: coordinate?.longitude,
-                cover_photo_url: venueCoverPhotoURL,
-                menu_photo_url: venueMenuPhotoURL,
-                cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
-                menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
-            )
+            let phoneForSave = BusinessPhoneFields.combinedStorage(
+                iso: ownerVenuePhoneDialISO,
+                local: ownerVenuePhone
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if let venueId = ownerVenueDatabaseId {
-                let patch = VenueProfileUpdate(
+            let identityLocked = venueCoreIdentityLockedForSelectedVenue()
+
+            if identityLocked, let venueId = ownerVenueDatabaseId {
+#if DEBUG
+                print("[VenueDetailsLock] approved venue identity fields locked")
+                print("[VenueDetailsLock] saving editable fields only")
+#endif
+                if let baseline = await loadVenueProfile() {
+                    await MainActor.run {
+                        applyLockedVenueIdentityFromServerRow(baseline)
+                    }
+                }
+
+                let operationalPatch = VenueProfileOperationalUpdate(
+                    phone: phoneForSave,
+                    website: ownerVenueWebsite,
+                    description: ownerVenueDescription,
+                    features: ownerVenueFeatures,
+                    screen_count: screenCount,
+                    serves_food: servesFood,
+                    has_wifi: hasWifi,
+                    has_garden: hasGarden,
+                    has_projector: hasProjector,
+                    pet_friendly: petFriendly,
+                    cover_photo_url: venueCoverPhotoURL,
+                    menu_photo_url: venueMenuPhotoURL,
+                    cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
+                    menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
+                )
+#if DEBUG
+                print("[BusinessPhaseB3] using venue_id path screen=saveVenueProfile operational-only locked=true")
+#endif
+                try await supabase
+                    .from("venues")
+                    .update(operationalPatch)
+                    .eq("id", value: venueId.uuidString.lowercased())
+                    .execute()
+            } else {
+                let fullAddress = [
+                    streetAddress,
+                    city,
+                    state,
+                    zipCode
+                ]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: ", ")
+
+                print("GEOCODING ADDRESS:", fullAddress)
+
+                let coordinate = await geocodeAddress(fullAddress)
+
+                let profile = VenueProfileInsert(
                     owner_email: ownerEmailRow,
                     venue_name: ownerVenueName,
                     address: streetAddress,
                     city: city,
                     state: state,
                     zip_code: zipCode,
-                    phone: ownerVenuePhone,
+                    phone: phoneForSave,
                     website: ownerVenueWebsite,
                     description: ownerVenueDescription,
                     features: ownerVenueFeatures,
@@ -2236,26 +2294,53 @@ extension MapViewModel {
                     cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
                     menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
                 )
+
+                if let venueId = ownerVenueDatabaseId {
+                    let patch = VenueProfileUpdate(
+                        owner_email: ownerEmailRow,
+                        venue_name: ownerVenueName,
+                        address: streetAddress,
+                        city: city,
+                        state: state,
+                        zip_code: zipCode,
+                        phone: phoneForSave,
+                        website: ownerVenueWebsite,
+                        description: ownerVenueDescription,
+                        features: ownerVenueFeatures,
+                        screen_count: screenCount,
+                        serves_food: servesFood,
+                        has_wifi: hasWifi,
+                        has_garden: hasGarden,
+                        has_projector: hasProjector,
+                        pet_friendly: petFriendly,
+                        latitude: coordinate?.latitude,
+                        longitude: coordinate?.longitude,
+                        cover_photo_url: venueCoverPhotoURL,
+                        menu_photo_url: venueMenuPhotoURL,
+                        cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
+                        menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
+                    )
 #if DEBUG
-                print("[BusinessPhaseB3] using venue_id path screen=saveVenueProfile")
+                    print("[BusinessPhaseB3] using venue_id path screen=saveVenueProfile")
 #endif
-                try await supabase
-                    .from("venues")
-                    .update(patch)
-                    .eq("id", value: venueId.uuidString.lowercased())
-                    .execute()
-            } else {
+                    try await supabase
+                        .from("venues")
+                        .update(patch)
+                        .eq("id", value: venueId.uuidString.lowercased())
+                        .execute()
+                } else {
 #if DEBUG
-                print("[BusinessPhaseB3] using owner_email fallback screen=saveVenueProfile")
+                    print("[BusinessPhaseB3] using owner_email fallback screen=saveVenueProfile")
 #endif
-                try await supabase
-                    .from("venues")
-                    .upsert(profile, onConflict: "owner_email")
-                    .execute()
+                    try await supabase
+                        .from("venues")
+                        .upsert(profile, onConflict: "owner_email")
+                        .execute()
+                }
             }
 
             print("VENUE PROFILE SAVED")
-            await loadVenuesFromSupabase()
+            await loadVenuesFromSupabase(forceRefresh: true)
             return true
 
         } catch {
@@ -2359,7 +2444,8 @@ extension MapViewModel {
         drinkSpecial: String,
         coverCharge: String,
         reservationInfo: String,
-        socialCoordination: String
+        socialCoordination: String,
+        cleanupDelayHours: Int = 48
     ) {
         Task {
             _ = await saveVenueGameListingAsync(
@@ -2378,9 +2464,19 @@ extension MapViewModel {
                 drinkSpecial: drinkSpecial,
                 coverCharge: coverCharge,
                 reservationInfo: reservationInfo,
-                socialCoordination: socialCoordination
+                socialCoordination: socialCoordination,
+                cleanupDelayHours: cleanupDelayHours
             )
         }
+    }
+
+    /// ISO 8601 string with `TimeZone.current` offset for `public.venue_events.scheduled_start_at`.
+    func venueEventScheduledStartTimestamptzString(gameDate: Date, gameStartTime: Date) -> String {
+        let combined = VenueOwnerGameScheduleValidation.combinedLocalStart(gameDate: gameDate, gameStartTime: gameStartTime)
+        let f = ISO8601DateFormatter()
+        f.timeZone = TimeZone.current
+        f.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        return f.string(from: combined)
     }
 
     /// Same insert as ``saveVenueGameListing``. On success returns ``.success`` with the inserted row (and updates local Discover/calendar state). On failure returns ``.failure`` with a user-facing ``LocalizedError``.
@@ -2400,7 +2496,8 @@ extension MapViewModel {
         drinkSpecial: String,
         coverCharge: String,
         reservationInfo: String,
-        socialCoordination: String
+        socialCoordination: String,
+        cleanupDelayHours: Int = 48
     ) async -> Result<VenueEventRow, Error> {
         let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerRowEmail) else {
@@ -2413,6 +2510,16 @@ extension MapViewModel {
             )
         }
 
+        if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
+            return .failure(
+                NSError(
+                    domain: "VenueGameListing",
+                    code: 2,
+                    userInfo: [NSLocalizedDescriptionKey: VenueOwnerGameScheduleValidation.futureDateTimeMessage]
+                )
+            )
+        }
+
         do {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
@@ -2421,6 +2528,11 @@ extension MapViewModel {
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "h:mm a"
             timeFormatter.timeZone = TimeZone.current
+
+#if DEBUG
+            let vidForLog = ownerVenueDatabaseId?.uuidString ?? "nil"
+            print("[BusinessGamePublish] venue_id=\(vidForLog) venue_name=\(ownerVenueName)")
+#endif
 
             let newGame = VenueEventInsert(
                 venue_id: ownerVenueDatabaseId,
@@ -2438,7 +2550,9 @@ extension MapViewModel {
                 available_seating: seating,
                 reservations_available: !reservationInfo.isEmpty,
                 waitlist_available: !reservationInfo.isEmpty,
-                admin_status: "active"
+                admin_status: "active",
+                scheduled_start_at: venueEventScheduledStartTimestamptzString(gameDate: gameDate, gameStartTime: gameStartTime),
+                cleanup_delay_hours: cleanupDelayHours
             )
 
             let inserted: [VenueEventRow] = try await supabase
@@ -2461,20 +2575,44 @@ extension MapViewModel {
             applyCreatedVenueEventLocally(row)
 
             Task { [weak self] in
-                await self?.refreshDiscoverCoreInBackground()
+                await self?.refreshDiscoverCoreInBackground(forceVenueRefresh: true)
             }
 
 #if DEBUG
             let vidStr = row.venue_id?.uuidString ?? "nil"
             let adm = row.admin_status ?? "nil"
+            let eid = row.id?.uuidString ?? "nil"
+            print("[BusinessGamePublish] inserted event id=\(eid) title=\(row.event_title ?? "") date=\(row.event_date ?? "") sport=\(row.sport ?? "")")
             print("[VenueGameSave] insert ok venue_id=\(vidStr) venue_name=\(row.venue_name ?? "") event_date=\(row.event_date ?? "") sport=\(row.sport ?? "") admin_status=\(adm)")
 #endif
             print("GAME LISTING SAVED")
             return .success(row)
         } catch {
             print("ERROR SAVING GAME LISTING:", error)
-            return .failure(error)
+            let message = Self.userFacingVenueGameScheduleOrSaveError(error)
+            return .failure(
+                NSError(
+                    domain: "VenueGameListing",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: message]
+                )
+            )
         }
+    }
+
+    private static func userFacingVenueGameScheduleOrSaveError(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        let s = raw.lowercased()
+        if s.contains("check")
+            || s.contains("constraint")
+            || s.contains("violates")
+            || s.contains("date")
+            || s.contains("time")
+            || s.contains("future")
+            || s.contains("past") {
+            return VenueOwnerGameScheduleValidation.futureDateTimeMessage
+        }
+        return raw.isEmpty ? "Unable to save the game right now. Please try again." : raw
     }
 
     /// Updates only `event_title` for a venue-owned game (Manage Games title edit).
@@ -2522,12 +2660,19 @@ extension MapViewModel {
         reservationInfo: String,
         socialCoordination: String
     ) async {
+        if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
+            print("VENUE GAME UPDATE BLOCKED: past schedule — \(VenueOwnerGameScheduleValidation.futureDateTimeMessage)")
+            return
+        }
+
         do {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd"
+            dateFormatter.timeZone = TimeZone.current
 
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "h:mm a"
+            timeFormatter.timeZone = TimeZone.current
 
             struct VenueEventUpdate: Encodable {
                 let event_title: String
@@ -2575,6 +2720,8 @@ extension MapViewModel {
 
         } catch {
             print("ERROR UPDATING VENUE GAME:", error)
+            let message = Self.userFacingVenueGameScheduleOrSaveError(error)
+            print("VENUE GAME UPDATE FAILED:", message)
         }
     }
     
@@ -2612,21 +2759,144 @@ extension MapViewModel {
         }
     }
 
-    /// Deletes the venue event row. Returns `nil` on success or an error message.
+    /// Active + archived rows for **Venue Analytics** (past, cancelled, and engagement history). Does not affect Discover fetches.
+    func loadMyVenueGamesForAnalytics() async -> [VenueEventRow] {
+        do {
+            var query = supabase
+                .from("venue_events")
+                .select()
+                .in("admin_status", values: ["active", "archived"])
+
+            if let vid = ownerVenueDatabaseId {
+                query = query.eq("venue_id", value: vid.uuidString.lowercased())
+            } else {
+                let email = OwnerBusinessEmail.normalized(venueOwnerEmail)
+                guard OwnerBusinessEmail.isValidStrict(email) else { return [] }
+                query = query.eq("owner_email", value: email)
+            }
+
+            let rows: [VenueEventRow] = try await query
+                .order("event_date", ascending: false)
+                .execute()
+                .value
+
+            return rows
+        } catch {
+            print("ERROR LOADING VENUE GAMES FOR ANALYTICS:", error)
+            return []
+        }
+    }
+
+    /// Upcoming/active games for Manage Games **Scheduled** tab (`scheduled_start_at` in the future).
+    func loadMyVenueScheduledGames() async -> [VenueEventRow] {
+        do {
+            let iso = ISO8601DateFormatter()
+            iso.timeZone = TimeZone.current
+            iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+            let nowStr = iso.string(from: Date())
+
+            var query = supabase
+                .from("venue_events")
+                .select()
+                .eq("admin_status", value: "active")
+                .gte("scheduled_start_at", value: nowStr)
+
+            if let vid = ownerVenueDatabaseId {
+                query = query.eq("venue_id", value: vid.uuidString.lowercased())
+            } else {
+                let email = OwnerBusinessEmail.normalized(venueOwnerEmail)
+                guard OwnerBusinessEmail.isValidStrict(email) else { return [] }
+                query = query.eq("owner_email", value: email)
+            }
+
+            let rows: [VenueEventRow] = try await query
+                .order("scheduled_start_at", ascending: true)
+                .execute()
+                .value
+
+            return rows
+        } catch {
+            print("ERROR LOADING SCHEDULED VENUE GAMES:", error)
+            return []
+        }
+    }
+
+    /// Updates retention for an owned `venue_events` row (`purge_after_at` is generated from `scheduled_start_at` + hours).
+    func updateVenueEventCleanupDelay(venueEventId: UUID, hours: Int) async -> String? {
+        guard [24, 48, 72].contains(hours) else { return "Cleanup delay must be 24, 48, or 72 hours." }
+        do {
+            try await supabase
+                .from("venue_events")
+                .update(VenueEventCleanupDelayPatch(cleanup_delay_hours: hours))
+                .eq("id", value: venueEventId.uuidString.lowercased())
+                .execute()
+            return nil
+        } catch {
+            print("ERROR UPDATING VENUE EVENT CLEANUP DELAY:", error)
+            return error.localizedDescription
+        }
+    }
+
+    /// Purged-game metadata for the business **History** tab (requires RLS on `business_game_history`).
+    func loadBusinessGameHistory(businessId: UUID, year: Int) async throws -> [BusinessGameHistoryRow] {
+        let cal = Calendar.current
+        guard let yearStart = cal.date(from: DateComponents(year: year, month: 1, day: 1, hour: 0, minute: 0, second: 0)),
+              let nextYearStart = cal.date(from: DateComponents(year: year + 1, month: 1, day: 1, hour: 0, minute: 0, second: 0))
+        else {
+            return []
+        }
+
+        let iso = ISO8601DateFormatter()
+        iso.timeZone = TimeZone.current
+        iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        let lower = iso.string(from: yearStart)
+        let upper = iso.string(from: nextYearStart)
+
+        return try await supabase
+            .from("business_game_history")
+            .select()
+            .eq("business_id", value: businessId.uuidString.lowercased())
+            .gte("scheduled_start_at", value: lower)
+            .lt("scheduled_start_at", value: upper)
+            .order("scheduled_start_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    /// Soft-cancels a venue game for the signed-in owner: sets `admin_status` to **archived** (Discover queries use `active` only).
+    /// Returns `nil` on success or an error message.
     func deleteVenueGame(_ game: VenueEventRow) async -> String? {
         guard let id = game.id else { return "This game can’t be removed (missing id)." }
+
+#if DEBUG
+        print("[BusinessGameCancel] requested event_id=\(id.uuidString.lowercased())")
+#endif
 
         do {
             try await supabase
                 .from("venue_events")
-                .delete()
+                .update(VenueEventAdminArchivePatch(admin_status: "archived"))
                 .eq("id", value: id.uuidString.lowercased())
                 .execute()
 
-            print("VENUE GAME DELETED")
+#if DEBUG
+            print("[BusinessGameCancel] database update/delete completed event_id=\(id.uuidString.lowercased())")
+#endif
+
+            applyCancelledVenueEventLocally(
+                removedEventId: id,
+                venueId: game.venue_id,
+                venueName: game.venue_name,
+                eventTitle: game.event_title,
+                eventDate: game.event_date
+            )
+
             return nil
         } catch {
-            print("ERROR DELETING VENUE GAME:", error)
+#if DEBUG
+            print("[BusinessGameCancel] failed event_id=\(id.uuidString.lowercased()) error=\(error)")
+#endif
+            print("ERROR ARCHIVING VENUE GAME:", error)
             return error.localizedDescription
         }
     }

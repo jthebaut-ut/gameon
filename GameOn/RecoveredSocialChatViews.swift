@@ -108,6 +108,8 @@ struct FriendsTabView: View {
     @ObservedObject var viewModel: ChatViewModel
     var isTabSelected: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+
     @State private var selectedSection: ChatSection = .friends
     @State private var showingAddFriendSheet = false
     @State private var showingBlockedUsersSheet = false
@@ -195,18 +197,31 @@ struct FriendsTabView: View {
             BlockedUsersSheet(viewModel: viewModel)
         }
         .onChange(of: isTabSelected) { _, on in
-            viewModel.setInboxRealtimeEnabled(on)
+            if on {
+                Task { await viewModel.ensureSignedInSocialRealtimeIfNeeded() }
+            }
         }
         .onAppear {
-            if isTabSelected {
-                viewModel.setInboxRealtimeEnabled(true)
-            }
             Task {
                 await viewModel.refreshInboxSummariesIfNeeded()
+                await viewModel.refreshFriendRequestListsOnly()
+                if isTabSelected {
+                    await viewModel.ensureSignedInSocialRealtimeIfNeeded()
+                }
             }
         }
-        .onDisappear {
-            viewModel.setInboxRealtimeEnabled(false)
+        .alert(
+            "Couldn’t update friend request",
+            isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
         }
         .alert(
             "Couldn’t delete conversation",
@@ -316,43 +331,87 @@ struct FriendsTabView: View {
     }
 
     private func requestRowIncoming(_ item: ChatViewModel.IncomingRequestDisplay) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let declined = item.friendship.isDeclinedStatus
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 ProfileAvatarView(preview: item.requester, size: 40)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.requester.displayName)
                         .font(.subheadline.weight(.semibold))
-                    Text("Wants to connect")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if declined {
+                        Text("Declined")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    } else {
+                        Text("Wants to connect")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer(minLength: 0)
             }
-            HStack(spacing: 10) {
-                Button("Accept") { Task { await viewModel.accept(item) } }
-                    .buttonStyle(.borderedProminent)
-                Button("Decline") { Task { await viewModel.reject(item) } }
-                    .buttonStyle(.bordered)
+            if declined {
+                Button("Clear") {
+                    Task { await viewModel.clearIncomingDeclinedRequest(item) }
+                }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+                .tint(.orange)
+            } else {
+                HStack(spacing: 10) {
+                    Button("Accept") { Task { await viewModel.accept(item) } }
+                        .buttonStyle(.borderedProminent)
+                    Button("Decline") { Task { await viewModel.reject(item) } }
+                        .buttonStyle(.bordered)
+                }
             }
         }
         .padding(.vertical, 4)
+        .background {
+            if declined {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.orange.opacity(colorScheme == .dark ? 0.14 : 0.10))
+            }
+        }
     }
 
     private func requestRowOutgoing(_ item: ChatViewModel.OutgoingRequestDisplay) -> some View {
-        HStack(spacing: 10) {
+        let declined = item.friendship.isDeclinedStatus
+        return HStack(spacing: 10) {
             ProfileAvatarView(preview: item.addressee, size: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.addressee.displayName)
                     .font(.subheadline.weight(.semibold))
-                Text("Pending")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if declined {
+                    Text("Declined")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.orange)
+                } else {
+                    Text("Pending")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer(minLength: 0)
-            Button("Cancel") { Task { await viewModel.cancel(item) } }
+            if declined {
+                Button("Clear") {
+                    Task { await viewModel.clearOutgoingDeclinedRequest(item) }
+                }
                 .font(.caption.weight(.semibold))
+                .buttonStyle(.bordered)
+                .tint(.orange)
+            } else {
+                Button("Cancel") { Task { await viewModel.cancel(item) } }
+                    .font(.caption.weight(.semibold))
+            }
         }
         .padding(.vertical, 4)
+        .background {
+            if declined {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.orange.opacity(colorScheme == .dark ? 0.14 : 0.10))
+            }
+        }
     }
 
     private static func inboxTimeLabel(_ date: Date?) -> String {

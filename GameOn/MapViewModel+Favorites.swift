@@ -35,12 +35,11 @@ extension MapViewModel {
 
     func loadFavoriteVenuesFromSupabase() async {
         do {
-            let session = try await supabase.auth.session
-            let email = session.user.email ?? ""
-
-            guard !email.isEmpty else {
-                favoriteVenueIDs = []
-                clearFollowingTabCaches()
+            guard let email = await strictNormalizedSessionEmailForSocialTables() else {
+                await MainActor.run {
+                    favoriteVenueIDs = []
+                    clearFollowingTabCaches()
+                }
                 return
             }
 
@@ -52,11 +51,8 @@ extension MapViewModel {
                 .eq("user_email", value: email)
                 .execute()
                 .value
-           
-          
-            favoriteVenueIDs = Set(rows.compactMap { $0.venue_id })
 
-      
+            favoriteVenueIDs = Set(rows.compactMap { $0.venue_id })
 
         } catch {
             print("ERROR LOADING FAVORITE VENUES:", error)
@@ -65,15 +61,10 @@ extension MapViewModel {
 
     func saveFavoriteVenueToSupabase(_ bar: BarVenue) async {
         do {
-            let session = try await supabase.auth.session
-            let email = session.user.email ?? ""
-
-            guard !email.isEmpty else {
+            guard let email = await strictNormalizedSessionEmailForSocialTables() else {
                 print("NO AUTH EMAIL FOR FAVORITE SAVE")
                 return
             }
-
-          
 
             let favorite = FavoriteVenueInsert(
                 user_email: email,
@@ -127,6 +118,10 @@ extension MapViewModel {
         guard hasSupabaseSessionForFollowingTab else { return false }
         guard !favoriteVenueWriteInFlightIDs.contains(bar.id) else { return true }
 
+#if DEBUG
+        print("[FollowingState] favorite venue requested venue=\(bar.id.uuidString) isFavorite=\(isFavorite)")
+#endif
+
         let previous = favoriteVenueIDs
         let previousSavedVenues = followingTabSavedVenues
         await MainActor.run {
@@ -159,6 +154,9 @@ extension MapViewModel {
             await MainActor.run {
                 favoriteVenueWriteInFlightIDs.remove(bar.id)
             }
+#if DEBUG
+            print("[FollowingState] favorite venue saved venue=\(bar.id.uuidString)")
+#endif
             return true
         } catch {
             let message = error.localizedDescription.lowercased()
@@ -168,6 +166,9 @@ extension MapViewModel {
                     favoriteVenueWriteInFlightIDs.remove(bar.id)
                     applyLocalFavoriteState(bar: bar, isFavorite: true)
                 }
+#if DEBUG
+                print("[FollowingState] favorite venue saved venue=\(bar.id.uuidString) duplicateHandled=true")
+#endif
                 return true
             }
 
@@ -176,6 +177,9 @@ extension MapViewModel {
                 followingTabSavedVenues = previousSavedVenues
                 favoriteVenueWriteInFlightIDs.remove(bar.id)
             }
+#if DEBUG
+            print("[FollowingState] favorite venue failed venue=\(bar.id.uuidString) error=\(error.localizedDescription)")
+#endif
             print("ERROR SETTING FAVORITE:", error)
             return false
         }

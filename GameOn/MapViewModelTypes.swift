@@ -49,6 +49,14 @@ struct VenueEventInsert: Encodable {
     let waitlist_available: Bool
     /// Discover / owner loaders filter on `active`; set explicitly so inserts never rely on DB default drift.
     let admin_status: String
+    /// ISO 8601 timestamptz string (UTC offset) for retention and Scheduled tab queries.
+    let scheduled_start_at: String
+    /// Must be 24, 48, or 72 — hours after start when server purge may remove the row and fan data.
+    let cleanup_delay_hours: Int
+}
+
+struct VenueEventCleanupDelayPatch: Encodable {
+    let cleanup_delay_hours: Int
 }
 
 /// Row from `public.businesses` (multi-venue owner Phase B1).
@@ -118,6 +126,24 @@ struct VenueProfileUpdate: Encodable {
     let pet_friendly: Bool
     let latitude: Double?
     let longitude: Double?
+    let cover_photo_url: String
+    let menu_photo_url: String
+    let cover_photo_thumbnail_url: String?
+    let menu_photo_thumbnail_url: String?
+}
+
+/// Partial `venues` update for FanGeo-approved listings: omits identity, address, and coordinates so they cannot be changed from the client.
+struct VenueProfileOperationalUpdate: Encodable {
+    let phone: String
+    let website: String
+    let description: String
+    let features: String
+    let screen_count: Int
+    let serves_food: Bool
+    let has_wifi: Bool
+    let has_garden: Bool
+    let has_projector: Bool
+    let pet_friendly: Bool
     let cover_photo_url: String
     let menu_photo_url: String
     let cover_photo_thumbnail_url: String?

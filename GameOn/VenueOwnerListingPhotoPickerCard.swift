@@ -147,7 +147,7 @@ struct VenueOwnerListingPhotoPickerCard: View {
                     .background(
                         usesFanGeoSheetChrome
                             ? AnyShapeStyle(FGColor.brandGradient)
-                            : AnyShapeStyle(Color.black)
+                            : AnyShapeStyle(Color.accentColor)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
                 }

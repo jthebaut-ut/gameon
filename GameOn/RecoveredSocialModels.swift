@@ -74,6 +74,102 @@ struct FriendshipRow: Codable, Hashable, Identifiable {
     let status: String?
     let responded_at: String?
     let created_at: String?
+    /// When set, addressee dismissed this **declined** row from their incoming list (soft hide).
+    let addressee_cleared_at: String?
+    /// When set, requester dismissed this **declined** row from their sent list (soft hide).
+    let requester_cleared_at: String?
+
+    init(
+        id: UUID,
+        requester_id: UUID,
+        addressee_id: UUID,
+        status: String?,
+        responded_at: String?,
+        created_at: String?,
+        addressee_cleared_at: String? = nil,
+        requester_cleared_at: String? = nil
+    ) {
+        self.id = id
+        self.requester_id = requester_id
+        self.addressee_id = addressee_id
+        self.status = status
+        self.responded_at = responded_at
+        self.created_at = created_at
+        self.addressee_cleared_at = addressee_cleared_at
+        self.requester_cleared_at = requester_cleared_at
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, requester_id, addressee_id, status, responded_at, created_at
+        case addressee_cleared_at, requester_cleared_at
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        requester_id = try c.decode(UUID.self, forKey: .requester_id)
+        addressee_id = try c.decode(UUID.self, forKey: .addressee_id)
+        status = try c.decodeIfPresent(String.self, forKey: .status)
+        responded_at = try c.decodeIfPresent(String.self, forKey: .responded_at)
+        created_at = try c.decodeIfPresent(String.self, forKey: .created_at)
+        addressee_cleared_at = try c.decodeIfPresent(String.self, forKey: .addressee_cleared_at)
+        requester_cleared_at = try c.decodeIfPresent(String.self, forKey: .requester_cleared_at)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(requester_id, forKey: .requester_id)
+        try c.encode(addressee_id, forKey: .addressee_id)
+        try c.encodeIfPresent(status, forKey: .status)
+        try c.encodeIfPresent(responded_at, forKey: .responded_at)
+        try c.encodeIfPresent(created_at, forKey: .created_at)
+        try c.encodeIfPresent(addressee_cleared_at, forKey: .addressee_cleared_at)
+        try c.encodeIfPresent(requester_cleared_at, forKey: .requester_cleared_at)
+    }
+
+    var isPendingStatus: Bool { (status ?? "").lowercased() == "pending" }
+    var isDeclinedStatus: Bool { (status ?? "").lowercased() == "declined" }
+    var isCancelledStatus: Bool { (status ?? "").lowercased() == "cancelled" }
+
+    func withDeclinedNow(respondedAt: String) -> FriendshipRow {
+        FriendshipRow(
+            id: id,
+            requester_id: requester_id,
+            addressee_id: addressee_id,
+            status: "declined",
+            responded_at: respondedAt,
+            created_at: created_at,
+            addressee_cleared_at: addressee_cleared_at,
+            requester_cleared_at: requester_cleared_at
+        )
+    }
+
+    func withAddresseeClearedNow(clearedAt: String) -> FriendshipRow {
+        FriendshipRow(
+            id: id,
+            requester_id: requester_id,
+            addressee_id: addressee_id,
+            status: status,
+            responded_at: responded_at,
+            created_at: created_at,
+            addressee_cleared_at: clearedAt,
+            requester_cleared_at: requester_cleared_at
+        )
+    }
+
+    func withRequesterClearedNow(clearedAt: String) -> FriendshipRow {
+        FriendshipRow(
+            id: id,
+            requester_id: requester_id,
+            addressee_id: addressee_id,
+            status: status,
+            responded_at: responded_at,
+            created_at: created_at,
+            addressee_cleared_at: addressee_cleared_at,
+            requester_cleared_at: clearedAt
+        )
+    }
 }
 
 struct DirectMessageRow: Codable, Hashable, Identifiable {
@@ -140,6 +236,29 @@ final class FriendshipService {
             .value
     }
 
+    /// Pending plus **declined** rows the addressee has not cleared yet (soft-dismiss).
+    func fetchIncomingFriendRequestsVisible(for userId: UUID) async throws -> [FriendshipRow] {
+        async let pending: [FriendshipRow] = client
+            .from("friendships")
+            .select()
+            .eq("addressee_id", value: userId)
+            .eq("status", value: "pending")
+            .execute()
+            .value
+        async let declined: [FriendshipRow] = client
+            .from("friendships")
+            .select()
+            .eq("addressee_id", value: userId)
+            .eq("status", value: "declined")
+            .is("addressee_cleared_at", value: nil)
+            .execute()
+            .value
+        let rows = try await pending + declined
+        return rows.sorted {
+            ($0.created_at ?? "") > ($1.created_at ?? "")
+        }
+    }
+
     func fetchOutgoingPending(for userId: UUID) async throws -> [FriendshipRow] {
         try await client
             .from("friendships")
@@ -148,6 +267,29 @@ final class FriendshipService {
             .eq("status", value: "pending")
             .execute()
             .value
+    }
+
+    /// Pending plus **declined** rows the requester has not cleared yet.
+    func fetchOutgoingFriendRequestsVisible(for userId: UUID) async throws -> [FriendshipRow] {
+        async let pending: [FriendshipRow] = client
+            .from("friendships")
+            .select()
+            .eq("requester_id", value: userId)
+            .eq("status", value: "pending")
+            .execute()
+            .value
+        async let declined: [FriendshipRow] = client
+            .from("friendships")
+            .select()
+            .eq("requester_id", value: userId)
+            .eq("status", value: "declined")
+            .is("requester_cleared_at", value: nil)
+            .execute()
+            .value
+        let rows = try await pending + declined
+        return rows.sorted {
+            ($0.created_at ?? "") > ($1.created_at ?? "")
+        }
     }
 
     func fetchProfiles(userIds: [UUID]) async throws -> [UserProfileRow] {
@@ -179,30 +321,43 @@ final class FriendshipService {
     }
 
     func rejectFriendRequest(requestId: UUID) async throws {
+        struct Params: Encodable {
+            let p_id: UUID
+        }
         try await client
-            .from("friendships")
-            .delete()
-            .eq("id", value: requestId)
+            .rpc("decline_friend_request", params: Params(p_id: requestId))
+            .execute()
+    }
+
+    func clearFriendRequestView(requestId: UUID) async throws {
+        struct Params: Encodable {
+            let p_id: UUID
+        }
+        try await client
+            .rpc("clear_friend_request_view", params: Params(p_id: requestId))
             .execute()
     }
 
     func cancelFriendRequest(requestId: UUID) async throws {
+        struct Params: Encodable {
+            let p_id: UUID
+        }
         try await client
-            .from("friendships")
-            .delete()
-            .eq("id", value: requestId)
+            .rpc("cancel_outgoing_friend_request", params: Params(p_id: requestId))
             .execute()
     }
 
     func sendFriendRequest(requesterId: UUID, addresseeId: UUID) async throws {
-        struct Insert: Encodable {
-            let requester_id: UUID
-            let addressee_id: UUID
-            let status: String
+        let me = try await currentUserId()
+        guard me == requesterId else {
+            struct Mismatch: Error {}
+            throw Mismatch()
+        }
+        struct Params: Encodable {
+            let p_addressee: UUID
         }
         try await client
-            .from("friendships")
-            .insert(Insert(requester_id: requesterId, addressee_id: addresseeId, status: "pending"))
+            .rpc("friendship_ensure_pending", params: Params(p_addressee: addresseeId))
             .execute()
     }
 

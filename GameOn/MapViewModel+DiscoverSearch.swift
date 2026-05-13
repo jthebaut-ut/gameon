@@ -131,7 +131,9 @@ extension MapViewModel {
     func matchesDiscoverLiveSearch(_ bar: BarVenue, lowercasedQuery lower: String) -> Bool {
         if bar.name.lowercased().contains(lower) { return true }
         if bar.address.lowercased().contains(lower) { return true }
-        if bar.primarySport.lowercased().contains(lower) { return true }
+        let primary = bar.primarySport.trimmingCharacters(in: .whitespacesAndNewlines)
+        if primary.lowercased().contains(lower) { return true }
+        if SportFilterCatalog.storedSport(primary, matchesSearchQuery: lower) { return true }
         if bar.tags.contains(where: { $0.lowercased().contains(lower) }) { return true }
         if bar.games.contains(where: { $0.lowercased().contains(lower) }) { return true }
         return false

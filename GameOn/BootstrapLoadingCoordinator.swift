@@ -75,6 +75,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
             }
             if shouldLoadChat {
                 await chatViewModel.loadIfNeeded()
+                await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()

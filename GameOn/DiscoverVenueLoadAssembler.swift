@@ -11,6 +11,13 @@ enum DiscoverVenueLoadAssembler {
         return trimmed
     }
 
+    /// Client-side guard: Discover only shows active venue listings (matches Supabase `admin_status = active` queries).
+    nonisolated private static func isDiscoverVisibleVenueEvent(_ ev: VenueEventRow) -> Bool {
+        let st = ev.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let st, !st.isEmpty, st != "active" { return false }
+        return true
+    }
+
     nonisolated private static func resolvedPrimarySport(from sports: Set<String>) -> String {
         let sorted = sports.sorted()
         switch sorted.count {
@@ -33,7 +40,7 @@ enum DiscoverVenueLoadAssembler {
         var sportsByVenueId: [UUID: Set<String>] = [:]
         var sportsByOwner: [String: Set<String>] = [:]
         var sportsByVenueName: [String: Set<String>] = [:]
-        for ev in fetchedVenueEventRows {
+        for ev in fetchedVenueEventRows where isDiscoverVisibleVenueEvent(ev) {
             if let vid = ev.venue_id {
                 eventsByVenueId[vid, default: []].append(ev)
                 if let sport = normalizedSport(ev.sport) {
@@ -58,7 +65,7 @@ enum DiscoverVenueLoadAssembler {
         }
 
         var idsByKey: [String: UUID] = [:]
-        for row in fetchedVenueEventRows {
+        for row in fetchedVenueEventRows where isDiscoverVisibleVenueEvent(row) {
             guard let id = row.id, let title = row.event_title else { continue }
             if let venueId = row.venue_id {
                 idsByKey["\(venueId.uuidString)-\(title)"] = id
@@ -69,12 +76,21 @@ enum DiscoverVenueLoadAssembler {
         }
 
         let mappedBars: [BarVenue] = venueRows.compactMap { row -> BarVenue? in
-            guard
-                let name = row.venue_name,
-                let latitude = row.latitude,
-                let longitude = row.longitude
-            else {
-                return nil
+            guard let name = row.venue_name else { return nil }
+
+            // Discover map queries require lat/lon in SQL, but business venues can exist before geocode completes.
+            // Use a provisional Utah-area center so games/calendar/search assembly still work; replace once DB coords exist.
+            let latitude: Double
+            let longitude: Double
+            if let la = row.latitude, let lo = row.longitude {
+                latitude = la
+                longitude = lo
+            } else {
+                latitude = 40.3916
+                longitude = -111.8508
+#if DEBUG
+                print("[DiscoverVisibilityDebug] venue=\(name) using provisional coordinate (missing latitude/longitude in DB)")
+#endif
             }
 
             var titleSet = Set<String>()
@@ -174,7 +190,7 @@ enum DiscoverVenueLoadAssembler {
     }
 
     nonisolated static func sportsEventsFromVenueEventRows(_ rows: [VenueEventRow], formatter: DateFormatter) -> [SportsEvent] {
-        rows.compactMap { row in
+        rows.filter { isDiscoverVisibleVenueEvent($0) }.compactMap { row in
             guard
                 let title = row.event_title,
                 let sport = row.sport,

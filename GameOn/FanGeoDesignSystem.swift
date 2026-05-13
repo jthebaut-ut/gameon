@@ -61,6 +61,14 @@ enum FGColor {
     }
 }
 
+/// Opaque / semantic UIKit-backed colors for sheet content so layered glass on device does not stack with near-white translucency.
+enum FGAdaptiveSurface {
+    static var sheetRoot: Color { Color(.systemGroupedBackground) }
+    static var cardElevated: Color { Color(.secondarySystemGroupedBackground) }
+    static var controlFill: Color { Color(.tertiarySystemGroupedBackground) }
+    static var capsuleUnselected: Color { Color(.tertiarySystemFill) }
+}
+
 enum FGTypography {
     static let heroTitle = Font.system(size: 34, weight: .bold, design: .rounded)
     static let screenTitle = Font.system(size: 28, weight: .bold, design: .rounded)

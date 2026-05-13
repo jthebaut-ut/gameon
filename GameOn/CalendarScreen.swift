@@ -17,7 +17,7 @@ struct CalendarScreen: View {
     
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color(.systemGroupedBackground).ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 16) {
                 
@@ -78,7 +78,7 @@ struct CalendarScreen: View {
             Text("Calendar")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundStyle(.black)
+                .foregroundStyle(.primary)
             
             Text("Choose a date, then find where to watch.")
                 .font(.subheadline)
@@ -100,20 +100,20 @@ struct CalendarScreen: View {
                     Text(viewModel.formattedSelectedDate)
                         .font(.headline)
                         .fontWeight(.bold)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.primary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "calendar")
                     .font(.title3)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.white)
                     .frame(width: 42, height: 42)
-                    .background(Color.black)
+                    .background(Color.accentColor)
                     .clipShape(Circle())
             }
             .padding()
-            .background(Color.gray.opacity(0.08))
+            .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .padding(.horizontal)
@@ -124,7 +124,7 @@ struct CalendarScreen: View {
             Text("Events")
                 .font(.headline)
                 .fontWeight(.bold)
-                .foregroundStyle(.black)
+                .foregroundStyle(.primary)
             
             Spacer()
             
@@ -156,7 +156,7 @@ struct CalendarScreen: View {
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.08))
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal)
     }
@@ -169,7 +169,7 @@ struct CalendarScreen: View {
                     .foregroundStyle(.secondary)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.gray.opacity(0.08))
+                    .background(Color(.secondarySystemGroupedBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 18))
                     .padding(.horizontal)
             } else {
@@ -219,7 +219,7 @@ struct CalendarScreen: View {
                 Text(event.title)
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.primary)
                 
                 Text("\(event.league) • \(event.sport) • \(viewModel.displayTime(for: event))")
                     .font(.caption)
@@ -233,7 +233,7 @@ struct CalendarScreen: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
-        .background(Color.gray.opacity(0.08))
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }

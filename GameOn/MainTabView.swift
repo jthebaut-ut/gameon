@@ -100,6 +100,7 @@ struct MainTabView: View {
 
             if viewModel.isAuthenticatedForSocialFeatures {
                 await chatViewModel.loadIfNeeded()
+                await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()
@@ -134,6 +135,7 @@ struct MainTabView: View {
                 }
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
+                await chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
             }
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in

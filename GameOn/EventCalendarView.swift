@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Shared calendar sheet layout (Discover + Calendar tab)
 
@@ -10,6 +11,8 @@ enum EventCalendarSheetLayout {
     static let sheetDragAndHomeComfortInset: CGFloat = 20
     /// Small top inset so the title clears the sheet grabber on all phones.
     static let sheetTopContentInset: CGFloat = 8
+    /// Corner radius for the floating calendar card (Discover overlay + Calendar tab sheet).
+    static let calendarCardCornerRadius: CGFloat = 32
 
     /// Total bottom padding **inside** the scroll view so the last row (Today/Done) clears floating chrome + home safe area when scrolled to the end.
     static var scrollContentBottomInset: CGFloat {
@@ -17,154 +20,79 @@ enum EventCalendarSheetLayout {
     }
 }
 
-// MARK: - Liquid Glass chrome (shared Discover overlay + Calendar tab sheet)
+// MARK: - Semantic calendar chrome (Discover overlay + Calendar tab sheet)
 
-private enum EventCalendarLiquidGlass {
-    static let cardCornerRadius: CGFloat = 32
+/// Solid adaptive surfaces only — avoids stacked `Material` + white veils that read as a washed-out sheet in Dark Mode.
+private struct EventCalendarCardBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
 
-    /// One shared frosted card: map/tab colors read through; white veils capped at **0.10** (never solid `Color.white` fills).
-    @ViewBuilder
-    static func calendarGlassCard() -> some View {
-        let r = cardCornerRadius
-        ZStack {
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(.ultraThinMaterial)
-
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.10),
-                            Color.white.opacity(0.03)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.45, green: 0.78, blue: 0.95).opacity(0.05),
-                            Color(red: 0.25, green: 0.62, blue: 0.48).opacity(0.035)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .blendMode(.plusLighter)
-
-            RoundedRectangle(cornerRadius: r, style: .continuous)
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        }
-        .shadow(color: Color.black.opacity(0.18), radius: 16, x: 0, y: 10)
-        .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
-    }
-
-    static func monthNavButton(systemName: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(.ultraThinMaterial)
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.10),
-                                Color.white.opacity(0.03)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.45, green: 0.78, blue: 0.95).opacity(0.05),
-                                Color(red: 0.28, green: 0.68, blue: 0.52).opacity(0.03)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .blendMode(.plusLighter)
-                Circle()
-                    .stroke(Color.white.opacity(0.22), lineWidth: 1)
-
-                Image(systemName: systemName)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.blue)
+    var body: some View {
+        let r = EventCalendarSheetLayout.calendarCardCornerRadius
+        RoundedRectangle(cornerRadius: r, style: .continuous)
+            .fill(Color(.secondarySystemBackground))
+            .overlay {
+                RoundedRectangle(cornerRadius: r, style: .continuous)
+                    .strokeBorder(Color(.separator), lineWidth: 1)
             }
-            .frame(width: 42, height: 42)
-            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.10),
+                radius: colorScheme == .dark ? 24 : 12,
+                x: 0,
+                y: colorScheme == .dark ? 14 : 8
+            )
+    }
+}
+
+private struct EventCalendarMonthNavButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 42, height: 42)
+                .background {
+                    Circle()
+                        .fill(Color(.tertiarySystemBackground))
+                    Circle()
+                        .strokeBorder(Color(.separator), lineWidth: 1)
+                }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
     }
+}
 
-    @ViewBuilder
-    static func todayGlassCapsule() -> some View {
-        ZStack {
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.10),
-                            Color.white.opacity(0.03)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.42, green: 0.76, blue: 0.92).opacity(0.045),
-                            Color(red: 0.28, green: 0.65, blue: 0.50).opacity(0.03)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .blendMode(.plusLighter)
-            Capsule(style: .continuous)
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        }
+private struct EventCalendarTodayCapsuleBackground: View {
+    var body: some View {
+        Capsule(style: .continuous)
+            .fill(Color(.tertiarySystemBackground))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color(.separator), lineWidth: 1)
+            }
     }
+}
 
-    @ViewBuilder
-    static func doneGlassCapsule() -> some View {
-        ZStack {
-            Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.32))
+private struct EventCalendarDoneCapsuleBackground: View {
+    var body: some View {
+        Capsule(style: .continuous)
+            .fill(Color.primary)
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 1)
+            }
+    }
+}
 
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-                .opacity(0.38)
-                .blendMode(.overlay)
+private struct CalendarTabSheetDimmingBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme
 
-            Capsule(style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.10),
-                            Color.white.opacity(0.04),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .center
-                    )
-                )
-                .blendMode(.plusLighter)
-
-            Capsule(style: .continuous)
-                .stroke(Color.white.opacity(0.22), lineWidth: 1)
-        }
+    var body: some View {
+        Color.black.opacity(colorScheme == .dark ? 0.58 : 0.22)
     }
 }
 
@@ -177,8 +105,34 @@ struct LiquidGlassCalendarPicker: View {
     let dotsLoading: Bool
     let dotStatusText: String?
     @Binding var selectedDate: Date
+    /// When set (Discover map picker), days before this start-of-day are non-selectable and prior months are floored.
+    let minimumSelectableDay: Date?
     let onDone: () -> Void
     let onDisplayedMonthChange: ((Date) -> Void)?
+
+    init(
+        events: [SportsEvent],
+        bars: [BarVenue],
+        useVisibleMapRegionOnly: Bool,
+        eventDotDates: Set<Date>,
+        dotsLoading: Bool,
+        dotStatusText: String?,
+        selectedDate: Binding<Date>,
+        minimumSelectableDay: Date? = nil,
+        onDone: @escaping () -> Void,
+        onDisplayedMonthChange: ((Date) -> Void)? = nil
+    ) {
+        self.events = events
+        self.bars = bars
+        self.useVisibleMapRegionOnly = useVisibleMapRegionOnly
+        self.eventDotDates = eventDotDates
+        self.dotsLoading = dotsLoading
+        self.dotStatusText = dotStatusText
+        self._selectedDate = selectedDate
+        self.minimumSelectableDay = minimumSelectableDay
+        self.onDone = onDone
+        self.onDisplayedMonthChange = onDisplayedMonthChange
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -194,13 +148,14 @@ struct LiquidGlassCalendarPicker: View {
                     dotsLoading: dotsLoading,
                     dotStatusText: dotStatusText,
                     selectedDate: $selectedDate,
+                    minimumSelectableDay: minimumSelectableDay,
                     onDone: onDone,
                     onDisplayedMonthChange: onDisplayedMonthChange
                 )
                 .padding(.horizontal, 22)
                 .padding(.vertical, 20)
                 .background {
-                    EventCalendarLiquidGlass.calendarGlassCard()
+                    EventCalendarCardBackground()
                 }
                 .padding(.horizontal, 14)
                 .padding(.top, EventCalendarSheetLayout.sheetTopContentInset)
@@ -219,7 +174,7 @@ struct LiquidGlassCalendarPicker: View {
 enum LiquidGlassCalendarSheetBackdrop {
     /// Full transparency — use with Discover overlay (no system sheet).
     case transparent
-    /// Light frosted scrim behind the floating card (not solid white).
+    /// Dimmed scrim behind the floating card (adaptive opacity; no stacked materials).
     case frostedDim
 }
 
@@ -243,12 +198,7 @@ extension View {
                 .presentationContentInteraction(.scrolls)
                 .presentationCornerRadius(40)
                 .presentationBackground {
-                    ZStack {
-                        Rectangle()
-                            .fill(.ultraThinMaterial)
-                        Rectangle()
-                            .fill(Color.black.opacity(0.08))
-                    }
+                    CalendarTabSheetDimmingBackdrop()
                 }
         }
     }
@@ -274,6 +224,8 @@ struct EventCalendarView: View {
     let dotsLoading: Bool
     let dotStatusText: String?
     @Binding var selectedDate: Date
+    /// When non-nil (Discover map), days before this instant (compared as start-of-day) cannot be selected and earlier months are blocked.
+    let minimumSelectableDay: Date?
     let onDone: () -> Void
     let onDisplayedMonthChange: ((Date) -> Void)?
 
@@ -285,6 +237,7 @@ struct EventCalendarView: View {
         dotsLoading: Bool = false,
         dotStatusText: String? = nil,
         selectedDate: Binding<Date>,
+        minimumSelectableDay: Date? = nil,
         onDone: @escaping () -> Void,
         onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
@@ -295,6 +248,7 @@ struct EventCalendarView: View {
         self.dotsLoading = dotsLoading
         self.dotStatusText = dotStatusText
         self._selectedDate = selectedDate
+        self.minimumSelectableDay = minimumSelectableDay
         self.onDone = onDone
         self.onDisplayedMonthChange = onDisplayedMonthChange
     }
@@ -308,11 +262,36 @@ struct EventCalendarView: View {
         calendar.startOfDay(for: Date())
     }
 
+    private var selectionFloorStart: Date {
+        if let minimumSelectableDay {
+            return calendar.startOfDay(for: minimumSelectableDay)
+        }
+        return Date.distantPast
+    }
+
+    private func isBeforeSelectableMinimum(_ date: Date) -> Bool {
+        guard minimumSelectableDay != nil else { return false }
+        return calendar.startOfDay(for: date) < selectionFloorStart
+    }
+
+    private var canGoToPreviousMonth: Bool {
+        guard minimumSelectableDay != nil else { return true }
+        guard let prevMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) else { return false }
+        return startOfMonth(prevMonth) >= startOfMonth(selectionFloorStart)
+    }
+
     /// True when the grid is already showing the current month and today is the selected day.
     private var isAlreadyTodaySelection: Bool {
         calendar.isDate(selectedDate, inSameDayAs: calendarToday)
             && calendar.isDate(displayedMonth, equalTo: calendarToday, toGranularity: .month)
     }
+
+    private static let debugBlockedDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone.current
+        return f
+    }()
 
     var body: some View {
         VStack(spacing: 14) {
@@ -335,12 +314,14 @@ struct EventCalendarView: View {
             }
 
             HStack(spacing: 10) {
-                EventCalendarLiquidGlass.monthNavButton(
+                EventCalendarMonthNavButton(
                     systemName: "chevron.left",
                     accessibilityLabel: "Previous month"
                 ) {
                     changeMonth(by: -1)
                 }
+                .opacity(canGoToPreviousMonth ? 1 : 0.38)
+                .disabled(!canGoToPreviousMonth)
 
                 Spacer(minLength: 8)
 
@@ -353,7 +334,7 @@ struct EventCalendarView: View {
 
                 Spacer(minLength: 8)
 
-                EventCalendarLiquidGlass.monthNavButton(
+                EventCalendarMonthNavButton(
                     systemName: "chevron.right",
                     accessibilityLabel: "Next month"
                 ) {
@@ -374,7 +355,14 @@ struct EventCalendarView: View {
                 // Index-based IDs: `id: \.self` on `[Date?]` is invalid because every `nil` is the same identity.
                 ForEach(0..<calendarDays.count, id: \.self) { index in
                     if let date = calendarDays[index] {
+                        let beforeMin = isBeforeSelectableMinimum(date)
                         Button {
+                            if beforeMin {
+                                #if DEBUG
+                                print("[DiscoverCalendar] past date blocked date=\(Self.debugBlockedDateFormatter.string(from: date))")
+                                #endif
+                                return
+                            }
                             selectedDate = date
                         } label: {
                             VStack(spacing: 4) {
@@ -383,11 +371,11 @@ struct EventCalendarView: View {
 
                                 if hasEventDot(on: date) {
                                     Circle()
-                                        .fill(Color.green)
+                                        .fill(Color(UIColor.systemGreen))
                                         .frame(width: 7, height: 7)
                                 } else if dotsLoading && useVisibleMapRegionOnly {
                                     Circle()
-                                        .strokeBorder(Color.green.opacity(0.45), lineWidth: 1.2)
+                                        .strokeBorder(Color(UIColor.systemGreen).opacity(0.55), lineWidth: 1.2)
                                         .frame(width: 7, height: 7)
                                 } else {
                                     Circle()
@@ -399,13 +387,18 @@ struct EventCalendarView: View {
                             .frame(height: 48)
                             .padding(.horizontal, 2)
                             .padding(.vertical, 2)
-                            .foregroundStyle(isSelected(date) ? Color.white : Color.primary)
+                            .foregroundStyle(
+                                beforeMin
+                                    ? AnyShapeStyle(.secondary)
+                                    : (isSelected(date) ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.primary))
+                            )
                             .background {
-                                if isSelected(date) {
+                                if isSelected(date), !beforeMin {
                                     Capsule()
-                                        .fill(Color.black)
+                                        .fill(Color.primary)
                                 }
                             }
+                            .opacity(beforeMin ? 0.48 : 1)
                         }
                         .buttonStyle(.plain)
                     } else {
@@ -427,27 +420,35 @@ struct EventCalendarView: View {
                 }
                 .buttonStyle(.plain)
                 .background {
-                    EventCalendarLiquidGlass.todayGlassCapsule()
+                    EventCalendarTodayCapsuleBackground()
                 }
                 .foregroundStyle(.primary)
-                .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 5)
                 .disabled(isAlreadyTodaySelection)
                 .opacity(isAlreadyTodaySelection ? 0.42 : 1)
                 .accessibilityLabel("Jump to today")
 
                 Button {
+                    if let minDay = minimumSelectableDay {
+                        let sod = calendar.startOfDay(for: selectedDate)
+                        let minSod = calendar.startOfDay(for: minDay)
+                        if sod < minSod {
+                            selectedDate = minSod
+                            #if DEBUG
+                            print("[DiscoverCalendar] selected date clamped to today")
+                            #endif
+                        }
+                    }
                     onDone()
                 } label: {
                     Text("Done")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color(.systemBackground))
                         .frame(maxWidth: .infinity, minHeight: 46)
                 }
                 .buttonStyle(.plain)
                 .background {
-                    EventCalendarLiquidGlass.doneGlassCapsule()
+                    EventCalendarDoneCapsuleBackground()
                 }
-                .shadow(color: Color.black.opacity(0.28), radius: 14, x: 0, y: 8)
                 .accessibilityLabel("Done")
             }
             .padding(.top, 6)
@@ -456,11 +457,23 @@ struct EventCalendarView: View {
         .padding(.vertical, 4)
         .background(Color.clear)
         .onAppear {
-            displayedMonth = startOfMonth(selectedDate)
+            let monthFromSelection = startOfMonth(selectedDate)
+            if minimumSelectableDay != nil {
+                displayedMonth = max(monthFromSelection, startOfMonth(selectionFloorStart))
+            } else {
+                displayedMonth = monthFromSelection
+            }
             onDisplayedMonthChange?(displayedMonth)
         }
         .onChange(of: displayedMonth) { _, month in
             onDisplayedMonthChange?(month)
+        }
+        .onChange(of: selectedDate) { _, newDate in
+            guard minimumSelectableDay != nil else { return }
+            let minMonth = startOfMonth(selectionFloorStart)
+            if startOfMonth(newDate) < minMonth {
+                displayedMonth = minMonth
+            }
         }
     }
 
@@ -519,6 +532,15 @@ struct EventCalendarView: View {
     }
 
     private func changeMonth(by value: Int) {
-        displayedMonth = calendar.date(byAdding: .month, value: value, to: displayedMonth) ?? displayedMonth
+        guard value != 0 else { return }
+        if value < 0, !canGoToPreviousMonth { return }
+        let next = calendar.date(byAdding: .month, value: value, to: displayedMonth) ?? displayedMonth
+        if minimumSelectableDay != nil {
+            let minMonthStart = startOfMonth(selectionFloorStart)
+            let nextMonthStart = startOfMonth(next)
+            displayedMonth = max(nextMonthStart, minMonthStart)
+        } else {
+            displayedMonth = next
+        }
     }
 }
