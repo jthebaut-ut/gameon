@@ -193,7 +193,10 @@ final class MapViewModel: ObservableObject {
     @Published var venueGameCalendarDotDates: Set<Date> = []
     /// Discover calendar overlay: pickup ``game_start_at`` days in the month window (blue dots; Pickup games map mode only).
     @Published var pickupGameCalendarDotDates: Set<Date> = []
-    @Published var isLoadingCalendarDots: Bool = false
+    /// Discover map calendar: venue-game dot RPC in flight (see ``loadVenueGameCalendarDotsForDiscover``).
+    @Published var isLoadingVenueCalendarDots: Bool = false
+    /// Discover map calendar: pickup-game dot fetch in flight (see ``loadPickupGameCalendarDotsForDiscover``).
+    @Published var isLoadingPickupCalendarDots: Bool = false
     @Published var calendarDotStatusText: String?
     @Published var currentUserDisplayName: String = ""
     @Published var currentUserAvatarURL: String = ""
@@ -256,10 +259,17 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingPickupGamesForMap: Bool = false
     /// Phase 2: pending / approved join request counts per game (organizer only; keyed by `pickup_games.id`).
     @Published var pickupOrganizerJoinStatsByGameId: [UUID: PickupOrganizerJoinStats] = [:]
+    /// Fan pickup creators: total `pending` join requests across their active games (Account tab avatar badge).
+    @Published var pendingPickupGameJoinRequestCount: Int = 0
     /// Phase 2: latest join request from the current user per game (Discover detail / button state).
     @Published var pickupMyLatestJoinRequestByGameId: [UUID: PickupGameRequestRow] = [:]
     /// Phase 2: resolved creator display names for pickup detail (never stores email in UI).
     @Published var pickupCreatorDisplayNameByUserId: [UUID: String] = [:]
+    /// Creator profile fields from `user_profiles` for pickup detail avatar (no schema change).
+    @Published var pickupCreatorAvatarThumbnailURLByUserId: [UUID: String] = [:]
+    @Published var pickupCreatorAvatarURLByUserId: [UUID: String] = [:]
+    @Published var pickupCreatorEmailByUserId: [UUID: String] = [:]
+    @Published var pickupCreatorAvatarTokenByUserId: [UUID: UUID] = [:]
     /// Discover map segmented control: venue clusters vs pickup pins only.
     @Published var discoverMapContentMode: DiscoverMapContentMode = .venues
     /// When `true`, entering pickup map mode should run ``refreshPickupGamesForDiscoverMap()`` (cleared after a successful refresh).
@@ -275,6 +285,10 @@ final class MapViewModel: ObservableObject {
     @Published var followingTabGoingInterestCounts: [UUID: Int] = [:]
     /// All `venue_event_interests` rows for the current user (global), for Following attendance UI.
     @Published var followingTabUserVenueEventInterestIDs: Set<UUID> = []
+    /// Following → Games to Play: pickup join requests for the current user (see ``loadMyPickupGameJoinRequestsForFollowing()``).
+    @Published var myPickupGameJoinRequestCards: [PickupGameJoinRequestCardDisplay] = []
+    /// Ensures ``resolvedPickupGameRow(for:)`` can open detail from Following when the game is not on the Discover map cache.
+    var pickupGamesFollowingTabCache: [UUID: PickupGameRow] = [:]
 
     // MARK: - Venue owner analytics (realtime)
 
@@ -282,6 +296,10 @@ final class MapViewModel: ObservableObject {
     var venueOwnerAnalyticsRealtimeTask: Task<Void, Never>?
     var venueOwnerAnalyticsRealtimeChannel: RealtimeChannelV2?
     var venueOwnerAnalyticsDebounceTask: Task<Void, Never>?
+    /// Realtime: ``pickup_game_requests`` for the signed-in fan creator’s game ids (tab-bar pending badge).
+    var pickupJoinRequestBadgeRealtimeTask: Task<Void, Never>?
+    var pickupJoinRequestBadgeRealtimeChannel: RealtimeChannelV2?
+    var pickupJoinRequestBadgeDebounceTask: Task<Void, Never>?
     /// User’s 1–5 star rating per venue (local only).
     @Published var venueUserStarRatings: [UUID: Int] = [:]
     /// How many times the user saved a rating (drives review count display).

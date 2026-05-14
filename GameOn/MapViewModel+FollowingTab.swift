@@ -22,6 +22,8 @@ extension MapViewModel {
         followingTabGoingItems = []
         followingTabGoingInterestCounts = [:]
         followingTabUserVenueEventInterestIDs = []
+        myPickupGameJoinRequestCards = []
+        pickupGamesFollowingTabCache.removeAll()
         pendingFollowingMapVenueID = nil
         pendingFollowingMapVenueSnapshot = nil
     }

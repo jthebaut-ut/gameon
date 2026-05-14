@@ -199,8 +199,15 @@ extension MapViewModel {
         selectedPickupGameForMap = nil
         myPickupGamesForSettings = []
         pickupOrganizerJoinStatsByGameId = [:]
+        pendingPickupGameJoinRequestCount = 0
+        myPickupGameJoinRequestCards = []
+        pickupGamesFollowingTabCache.removeAll()
         pickupMyLatestJoinRequestByGameId = [:]
         pickupCreatorDisplayNameByUserId = [:]
+        pickupCreatorAvatarThumbnailURLByUserId = [:]
+        pickupCreatorAvatarURLByUserId = [:]
+        pickupCreatorEmailByUserId = [:]
+        pickupCreatorAvatarTokenByUserId = [:]
         commentIDsReportedByCurrentUser = []
         userProfilesByEmail = [:]
         myVenueEventVibes = [:]
@@ -208,6 +215,7 @@ extension MapViewModel {
         venueRatingContributionCount = [:]
         Task { [weak self] in
             await self?.removeAllVenueEventCommentsRealtimeListeners()
+            await self?.stopPickupJoinRequestBadgeRealtime()
         }
 
         venueOwnerEmail = ""
@@ -855,6 +863,7 @@ extension MapViewModel {
         await loadUserProfile()
         await loadFavoriteVenuesFromSupabase()
         await refreshFollowingTabDataGlobally()
+        await loadPendingPickupGameJoinRequestCountForCreator()
 
         #if DEBUG
         let ms = Int(Date().timeIntervalSince(t0) * 1000)

@@ -500,6 +500,38 @@ struct FollowingGoingDisplayItem: Identifiable {
     let isServerGoing: Bool
 }
 
+/// Status pill for Following → “Games to Play” pickup join cards (`rejected` maps to ``declined``).
+enum PickupFollowingJoinRequestPillKind: String, Equatable {
+    case pending
+    case approved
+    case declined
+    case cancelled
+
+    var title: String {
+        switch self {
+        case .pending: return "Pending"
+        case .approved: return "Approved"
+        case .declined: return "Declined"
+        case .cancelled: return "Cancelled"
+        }
+    }
+}
+
+/// Compact pickup join summary for the Following tab (requester perspective).
+struct PickupGameJoinRequestCardDisplay: Identifiable, Equatable {
+    /// Join request row id.
+    let id: UUID
+    let pickupGameId: UUID
+    let title: String
+    let sport: String
+    let dateTimeLine: String
+    let locationLine: String
+    let organizerUserId: UUID
+    let organizerName: String
+    let pill: PickupFollowingJoinRequestPillKind
+    let spotsRemainingSummary: String?
+}
+
 enum VenueEventCommentDeliveryState: String, Equatable {
     case pending
     case sent

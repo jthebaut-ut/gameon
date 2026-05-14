@@ -136,6 +136,7 @@ struct MainTabView: View {
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
                 await chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
+                await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
             }
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
@@ -262,7 +263,7 @@ struct MainTabView: View {
                         selectedTabStorage = AppTab.account.rawValue
                     }
                 } label: {
-                    accountTabAvatar
+                    accountTabAvatarWithPickupBadge
                 }
             }
             .padding(8)
@@ -445,7 +446,42 @@ struct MainTabView: View {
 
         return "Login"
     }
-    private var accountTabAvatar: some View {
+
+    /// Avatar + optional pickup-request badge; outer frame reserves space so the tab bar capsule does not clip the badge.
+    private var accountTabAvatarWithPickupBadge: some View {
+        accountTabAvatarCircleOnly
+            .frame(width: 44, height: 44)
+            .clipShape(Circle())
+            .overlay(alignment: .topTrailing) {
+                if viewModel.isLoggedIn,
+                   viewModel.canFanUsePickupGamesUI,
+                   viewModel.pendingPickupGameJoinRequestCount > 0 {
+                    pickupJoinRequestAccountTabBadge
+                }
+            }
+            .frame(width: 52, height: 52)
+    }
+
+    private var pickupJoinRequestAccountTabBadge: some View {
+        let n = viewModel.pendingPickupGameJoinRequestCount
+        let label = n > 9 ? "9+" : "\(n)"
+        return Text(label)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .minimumScaleFactor(0.65)
+            .lineLimit(1)
+            .background(Color.orange)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
+            )
+            .offset(x: 2, y: -2)
+    }
+
+    /// Account tab avatar only (no badge); clipped separately from the badge overlay.
+    private var accountTabAvatarCircleOnly: some View {
         Group {
             if viewModel.isLoggedIn {
                 UserAvatarView(
@@ -475,9 +511,7 @@ struct MainTabView: View {
                     .foregroundStyle(accountIconColor)
                     .frame(width: 44, height: 44)
                     .background(accountIconBackgroundColor)
-                    .clipShape(Circle())
             }
         }
     }
-    
 }

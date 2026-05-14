@@ -12,10 +12,29 @@ struct FollowingScreen: View {
 
     /// Venue events the user marked "Interested" from Following without a Supabase row (table has no status column).
     @AppStorage("gameon.following.interestedOnlyVenueEventIDs") private var interestedOnlyEncoded: String = ""
+    @State private var followingSegment: FollowingScreenMainTab = .venueGames
+    @State private var pickupDetailNav: PickupDetailNavigationToken?
+
+    private enum FollowingScreenMainTab: Int, CaseIterable, Identifiable, Hashable {
+        case venueGames
+        case savedVenues
+        case gamesToPlay
+
+        var id: Int { rawValue }
+
+        var title: String {
+            switch self {
+            case .venueGames: return "Venue Games"
+            case .savedVenues: return "Saved Venues"
+            case .gamesToPlay: return "Games to Play"
+            }
+        }
+    }
 
     var body: some View {
         ZStack {
-            Color(.systemGroupedBackground)
+            Color.clear
+                .fanGeoScreenBackground()
                 .ignoresSafeArea()
 
             if viewModel.isAuthenticatedForSocialFeatures {
@@ -30,7 +49,7 @@ struct FollowingScreen: View {
                 return
             }
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
-            Task { await viewModel.refreshFollowingTabDataGlobally() }
+            Task { await reloadFollowingDataForCurrentUser() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newId in
             if newId != nil {
@@ -39,6 +58,16 @@ struct FollowingScreen: View {
                 clearFollowingUserSpecificState()
                 interestedOnlyEncoded = ""
             }
+        }
+        .task(id: viewModel.currentUserAuthId) {
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            await viewModel.refreshFollowingTabDataGlobally()
+            await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+        }
+        .sheet(item: $pickupDetailNav, onDismiss: {
+            Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing() }
+        }) { token in
+            DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             Task { await syncFollowingAfterAuthChange() }
@@ -95,70 +124,124 @@ struct FollowingScreen: View {
     // MARK: - Logged in
 
     private var loggedInContent: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Following")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.primary)
-                    .padding(.top, 22)
+                    .font(FGTypography.screenTitle)
+                    .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                    .padding(.top, 8)
 
-                Text("Your saved venues and games you plan to attend.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Text("Venue games you follow, saved spots, and pickup games you’ve asked to join.")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 if let favoriteActionBanner {
                     Text(favoriteActionBanner)
-                        .font(.caption)
+                        .font(FGTypography.metadata)
                         .fontWeight(.semibold)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(FGColor.accentYellow)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
-                        .background(Color.orange.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(FGColor.accentYellow.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+            }
+            .padding(.horizontal, FGSpacing.md)
 
-                sectionTitle("I’m Going")
-
-                if viewModel.followingTabGoingItems.isEmpty {
-                    emptyCard(
-                        icon: "person.badge.plus",
-                        title: "No plans yet",
-                        subtitle: "Tap “I’m going” on a venue event to add it here."
-                    )
-                } else {
-                    VStack(spacing: 12) {
-                        ForEach(viewModel.followingTabGoingItems) { item in
-                            goingPlanCard(item)
-                        }
-                    }
-                }
-
-                sectionTitle("Saved Venues")
-
-                if viewModel.followingTabSavedVenues.isEmpty {
-                    emptyCard(
-                        icon: "heart",
-                        title: "No saved venues yet",
-                        subtitle: "Tap the heart on a venue to save it."
-                    )
-                } else {
-                    VStack(spacing: 12) {
-                        ForEach(viewModel.followingTabSavedVenues) { bar in
-                            venueCard(bar)
-                        }
-                    }
-                    .animation(.spring(response: 0.36, dampingFraction: 0.86), value: viewModel.favoriteVenueIDs)
+            Picker("Following section", selection: $followingSegment) {
+                ForEach(FollowingScreenMainTab.allCases) { tab in
+                    Text(tab.title).tag(tab)
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 110)
+            .pickerStyle(.segmented)
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            ScrollView {
+                followingSegmentContent
+                    .padding(.horizontal, FGSpacing.md)
+                    .padding(.bottom, 110)
+            }
+            .refreshable {
+                async let venues: Void = viewModel.refreshFollowingTabDataGlobally()
+                async let pickup: Void = viewModel.loadMyPickupGameJoinRequestsForFollowing()
+                await venues
+                await pickup
+            }
         }
-        .refreshable {
-            await viewModel.refreshFollowingTabDataGlobally()
+    }
+
+    @ViewBuilder
+    private var followingSegmentContent: some View {
+        switch followingSegment {
+        case .venueGames:
+            venueGamesTabContent
+        case .savedVenues:
+            savedVenuesTabContent
+        case .gamesToPlay:
+            gamesToPlayTabContent
         }
+    }
+
+    private var venueGamesTabContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if viewModel.followingTabGoingItems.isEmpty {
+                emptyCard(
+                    icon: "sportscourt.fill",
+                    title: "No venue game plans",
+                    subtitle: "Save a venue and tap “I’m going” on a game to see it here."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.followingTabGoingItems) { item in
+                        goingPlanCard(item)
+                    }
+                }
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private var savedVenuesTabContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if viewModel.followingTabSavedVenues.isEmpty {
+                emptyCard(
+                    icon: "heart",
+                    title: "No saved venues",
+                    subtitle: "Tap the heart on a venue in Discover to save it."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.followingTabSavedVenues) { bar in
+                        venueCard(bar)
+                    }
+                }
+                .animation(.spring(response: 0.36, dampingFraction: 0.86), value: viewModel.favoriteVenueIDs)
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private var gamesToPlayTabContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if viewModel.myPickupGameJoinRequestCards.isEmpty {
+                emptyCard(
+                    icon: "figure.run",
+                    title: "No pickup games yet",
+                    subtitle: "Request to join a pickup game from Discover — it will show up here with status updates."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.myPickupGameJoinRequestCards) { card in
+                        pickupGameJoinCard(card)
+                    }
+                }
+            }
+        }
+        .padding(.top, 6)
     }
 
     // MARK: - Session / cache (Following tab only)
@@ -172,6 +255,7 @@ struct FollowingScreen: View {
 
     private func reloadFollowingDataForCurrentUser() async {
         await viewModel.refreshFollowingTabDataGlobally()
+        await viewModel.loadMyPickupGameJoinRequestsForFollowing()
     }
 
     // MARK: - Attendance actions
@@ -235,32 +319,165 @@ struct FollowingScreen: View {
 
     // MARK: - Shared UI pieces
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.headline)
-            .fontWeight(.bold)
-            .foregroundStyle(.primary)
+    private func pickupGameJoinCard(_ card: PickupGameJoinRequestCardDisplay) -> some View {
+        let sportVisual = SportFilterCatalog.resolve(card.sport)
+
+        return VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            HStack(alignment: .top, spacing: FGSpacing.sm) {
+                Image(systemName: sportVisual.systemImage)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(sportVisual.accent)
+                    .frame(width: 40, height: 40)
+                    .background(sportVisual.accent.opacity(0.14), in: Circle())
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(card.title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    pickupJoinStatusPill(card.pill)
+                }
+                Spacer(minLength: 0)
+            }
+
+            if !card.dateTimeLine.isEmpty {
+                Label(card.dateTimeLine, systemImage: "calendar")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+            }
+            if !card.locationLine.isEmpty {
+                Label(card.locationLine, systemImage: "mappin.and.ellipse")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .lineLimit(2)
+            }
+
+            HStack(spacing: FGSpacing.sm) {
+                UserAvatarView(
+                    avatarThumbnailURL: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: card.organizerUserId),
+                    avatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
+                    avatarDisplayRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId),
+                    displayName: card.organizerName,
+                    email: viewModel.pickupOrganizerEmailForDetail(userId: card.organizerUserId),
+                    size: 36,
+                    fallbackStyle: followingColorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+                )
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Organizer")
+                        .font(FGTypography.metadata)
+                        .foregroundStyle(FGColor.mutedText(followingColorScheme))
+                    Text(card.organizerName)
+                        .font(FGTypography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let spots = card.spotsRemainingSummary, !spots.isEmpty {
+                Text(spots)
+                    .font(FGTypography.metadata)
+                    .foregroundStyle(FGColor.mutedText(followingColorScheme))
+            }
+
+            Button {
+                pickupDetailNav = PickupDetailNavigationToken(id: card.pickupGameId)
+            } label: {
+                Text("View Details")
+                    .font(FGTypography.caption)
+                    .fontWeight(.bold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(FGColor.accentBlue)
+        }
+        .padding(FGSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGColor.cardBackground(followingColorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
+        .overlay {
+            if let border = pickupCardAccentBorder(card) {
+                RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
+                    .strokeBorder(border, lineWidth: card.pill == .approved ? 1.5 : 1.25)
+            }
+        }
+        .task(id: card.organizerUserId) {
+            await viewModel.loadPickupCreatorDisplayNameIfNeeded(creatorUserId: card.organizerUserId)
+        }
+    }
+
+    private func pickupCardAccentBorder(_ card: PickupGameJoinRequestCardDisplay) -> Color? {
+        switch card.pill {
+        case .approved: return FGColor.accentGreen.opacity(0.38)
+        case .declined: return FGColor.divider(followingColorScheme)
+        default: return nil
+        }
+    }
+
+    private func pickupJoinStatusPill(_ pill: PickupFollowingJoinRequestPillKind) -> some View {
+        let colors = pickupJoinPillColors(pill)
+        return Text(pill.title)
+            .font(FGTypography.metadata)
+            .fontWeight(.semibold)
+            .foregroundStyle(colors.foreground)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(colors.background)
+            .clipShape(Capsule())
+            .overlay(Capsule().strokeBorder(colors.stroke, lineWidth: 1))
+    }
+
+    private func pickupJoinPillColors(_ pill: PickupFollowingJoinRequestPillKind) -> (background: Color, foreground: Color, stroke: Color) {
+        switch pill {
+        case .pending:
+            return (
+                FGColor.accentYellow.opacity(followingColorScheme == .dark ? 0.22 : 0.18),
+                followingColorScheme == .dark ? Color.white.opacity(0.92) : Color.orange.opacity(0.95),
+                FGColor.accentYellow.opacity(0.55)
+            )
+        case .approved:
+            return (
+                FGColor.accentGreen.opacity(0.16),
+                FGColor.accentGreen,
+                FGColor.accentGreen.opacity(0.42)
+            )
+        case .declined:
+            return (
+                Color.gray.opacity(followingColorScheme == .dark ? 0.22 : 0.14),
+                FGColor.secondaryText(followingColorScheme),
+                FGColor.divider(followingColorScheme)
+            )
+        case .cancelled:
+            return (
+                Color.gray.opacity(0.12),
+                FGColor.mutedText(followingColorScheme),
+                FGColor.divider(followingColorScheme).opacity(0.75)
+            )
+        }
     }
 
     private func emptyCard(icon: String, title: String, subtitle: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.largeTitle)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
 
             Text(title)
-                .font(.headline)
-                .foregroundStyle(.primary)
+                .font(FGTypography.cardTitle)
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
 
             Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(FGColor.cardBackground(followingColorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
         .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
     }
 
@@ -328,8 +545,8 @@ struct FollowingScreen: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(FGColor.cardBackground(followingColorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
         .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
         .task(id: item.id) {
             guard viewModel.isAuthenticatedForSocialFeatures else { return }
@@ -443,8 +660,8 @@ struct FollowingScreen: View {
             .accessibilityLabel(isFavorite ? "Remove from saved venues" : "Save venue")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(FGColor.cardBackground(followingColorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
         .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme))
     }
 

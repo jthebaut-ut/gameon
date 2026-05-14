@@ -145,7 +145,9 @@ struct SettingsPickupGamesListSheet: View {
                 }
             }
         }
-        .sheet(item: $organizerRequestsGame) { game in
+        .sheet(item: $organizerRequestsGame, onDismiss: {
+            Task { await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true) }
+        }) { game in
             PickupOrganizerRequestsSheet(viewModel: viewModel, game: game)
         }
         .alert("Delete pickup game?", isPresented: Binding(

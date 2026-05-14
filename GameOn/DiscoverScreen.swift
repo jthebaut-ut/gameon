@@ -208,7 +208,9 @@ struct DiscoverScreen: View {
             Task { await viewModel.loadVenuesFromSupabase() }
         }
         let anchorMonth = showDatePicker ? discoverCalendarDisplayedMonth : viewModel.selectedDate
-        viewModel.loadDiscoverCalendarDots(around: anchorMonth, reason: "mode_change")
+        Task { @MainActor in
+            viewModel.loadDiscoverCalendarDots(around: anchorMonth, reason: "mode_change")
+        }
     }
     .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
         guard id != nil else { return }
@@ -325,7 +327,9 @@ struct DiscoverScreen: View {
                     eventDotDates: viewModel.discoverMapContentMode == .venues
                         ? viewModel.venueGameCalendarDotDates
                         : viewModel.pickupGameCalendarDotDates,
-                    dotsLoading: viewModel.isLoadingCalendarDots,
+                    dotsLoading: viewModel.discoverMapContentMode == .venues
+                        ? viewModel.isLoadingVenueCalendarDots
+                        : viewModel.isLoadingPickupCalendarDots,
                     dotStatusText: viewModel.calendarDotStatusText,
                     selectedDate: Binding(
                         get: { discoverDatePickerSelection ?? viewModel.selectedDate },
@@ -339,7 +343,9 @@ struct DiscoverScreen: View {
                     },
                     onDisplayedMonthChange: { month in
                         discoverCalendarDisplayedMonth = month
-                        viewModel.loadDiscoverCalendarDots(around: month, reason: "month_change")
+                        Task { @MainActor in
+                            viewModel.loadDiscoverCalendarDots(around: month, reason: "month_change")
+                        }
                     }
                 )
                 .padding(.horizontal, 8)
@@ -1004,11 +1010,13 @@ struct DiscoverScreen: View {
         openedLogFormatter.timeZone = TimeZone.current
         print("[DiscoverCalendar] opened at today date=\(openedLogFormatter.string(from: selection))")
         #endif
-        viewModel.loadDiscoverCalendarDots(
-            around: discoverCalendarDisplayedMonth,
-            reason: "calendar_open",
-            logIfOpeningBeforeReady: true
-        )
+        Task { @MainActor in
+            viewModel.loadDiscoverCalendarDots(
+                around: discoverCalendarDisplayedMonth,
+                reason: "calendar_open",
+                logIfOpeningBeforeReady: true
+            )
+        }
         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
             showDatePicker = true
         }
@@ -1025,25 +1033,48 @@ struct DiscoverScreen: View {
         let minDay = viewModel.discoverMapCalendarSelectionMinimumDayStart()
         let raw = discoverDatePickerSelection ?? viewModel.selectedDate
         let appliedDate = max(Calendar.current.startOfDay(for: raw), minDay)
+        let isPickup = viewModel.discoverMapContentMode == .pickupGames
         #if DEBUG
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone.current
         let appliedDateString = fmt.string(from: appliedDate)
         print("[CalendarPerf] Done tapped date=\(appliedDateString)")
+        if isPickup {
+            print("[PickupCalendarPerf] done tapped date=\(appliedDateString)")
+        }
         if Calendar.current.startOfDay(for: raw) < minDay {
             print("[DiscoverCalendar] selected date clamped to today")
         }
         #endif
-        let requestID = viewModel.beginDiscoverDateChange(to: appliedDate)
+
+        // Dismiss overlay first so Done stays responsive; defer map/date refresh.
         discoverDatePickerSelection = nil
         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
             showDatePicker = false
         }
         #if DEBUG
         print("[CalendarPerf] Calendar dismissed date=\(appliedDateString)")
+        if isPickup {
+            print("[PickupCalendarPerf] dismissed")
+        }
         #endif
-        viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
+
+        let capturedDate = appliedDate
+        Task { @MainActor in
+            #if DEBUG
+            if isPickup {
+                print("[PickupCalendarPerf] background refresh started")
+            }
+            #endif
+            let requestID = viewModel.beginDiscoverDateChange(to: capturedDate)
+            viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
+            #if DEBUG
+            if isPickup {
+                print("[PickupCalendarPerf] background refresh completed")
+            }
+            #endif
+        }
     }
     
     private var discoverAdvertisementBannerContentWidth: CGFloat {

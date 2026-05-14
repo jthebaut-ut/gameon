@@ -197,6 +197,7 @@ extension MapViewModel {
                 clearPickupMapSelection()
             }
             await refreshPickupMyJoinRequestsForDiscoverGames(gameIds: filtered.map(\.id))
+            await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
         } catch {
 #if DEBUG
             print("[PickupGames] refreshDiscover failed:", error)
@@ -208,6 +209,8 @@ extension MapViewModel {
     func loadMyPickupGamesForSettings() async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             myPickupGamesForSettings = []
+            pendingPickupGameJoinRequestCount = 0
+            await stopPickupJoinRequestBadgeRealtime()
             return
         }
 
@@ -228,6 +231,7 @@ extension MapViewModel {
             print("[PickupGames] loadMine failed:", error)
 #endif
         }
+        await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
     }
 
     func insertPickupGame(

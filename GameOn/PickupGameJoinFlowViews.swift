@@ -123,11 +123,7 @@ struct DiscoverPickupGameDetailSheet: View {
                         value: g.entryFeeDisplayLine,
                         systemImage: "dollarsign.circle.fill"
                     )
-                    pickupDetailTile(
-                        title: "Organizer",
-                        value: creatorLabel ?? "—",
-                        systemImage: "person.crop.circle.fill"
-                    )
+                    pickupOrganizerDetailTile(g: g, creatorLabel: creatorLabel)
                     pickupDetailTile(
                         title: "Play",
                         value: g.playEnvironmentEnum.displayTitle,
@@ -240,6 +236,53 @@ struct DiscoverPickupGameDetailSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FGSpacing.sm + 2)
+        .background { pickupGlassBackground(cornerRadius: FGRadius.medium) }
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay { pickupGlassStroke(cornerRadius: FGRadius.medium) }
+    }
+
+    private func pickupOrganizerDetailTile(g: PickupGameRow, creatorLabel: String?) -> some View {
+        let uid = g.creator_user_id
+        let value = creatorLabel ?? "—"
+        let displayForAvatar = creatorLabel ?? ""
+        let cachedEmail = viewModel.pickupOrganizerEmailForDetail(userId: uid)
+        let emailLine = !cachedEmail.isEmpty ? cachedEmail : (g.creator_email ?? "")
+        let thumb = viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: uid)
+        let full = viewModel.pickupOrganizerAvatarFullForDetail(userId: uid)
+        let token = viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: uid)
+        let avatarFallback: UserAvatarView.FallbackStyle = colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+
+        return HStack(alignment: .center, spacing: 10) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 5) {
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.95 : 0.88))
+                    Text("Organizer")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(pickupDetailSubInk)
+                }
+                Text(value)
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .foregroundStyle(pickupDetailMainInk)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            UserAvatarView(
+                avatarThumbnailURL: thumb,
+                avatarURL: full,
+                avatarDisplayRefreshToken: token,
+                displayName: displayForAvatar,
+                email: emailLine,
+                size: 48,
+                fallbackStyle: avatarFallback,
+                imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
+            )
+        }
         .padding(FGSpacing.sm + 2)
         .background { pickupGlassBackground(cornerRadius: FGRadius.medium) }
         .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
@@ -574,6 +617,7 @@ struct PickupOrganizerRequestsSheet: View {
             loadError = error.localizedDescription
             rows = []
         }
+        await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
     }
 
     private func decide(_ req: PickupGameRequestRow, approve: Bool) async {
