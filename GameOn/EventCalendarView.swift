@@ -213,6 +213,8 @@ struct LiquidGlassCalendarPicker: View {
     /// When set (Discover map picker), days before this start-of-day are non-selectable and prior months are floored.
     let minimumSelectableDay: Date?
     let chrome: LiquidGlassCalendarChrome
+    /// When non-nil (Discover map), day dots use venue green vs pickup blue and never fall back to scanning ``events``.
+    let calendarDotPalette: DiscoverCalendarDotPalette?
     let onDone: () -> Void
     let onDisplayedMonthChange: ((Date) -> Void)?
 
@@ -226,6 +228,7 @@ struct LiquidGlassCalendarPicker: View {
         selectedDate: Binding<Date>,
         minimumSelectableDay: Date? = nil,
         chrome: LiquidGlassCalendarChrome = .calendarTab,
+        calendarDotPalette: DiscoverCalendarDotPalette? = nil,
         onDone: @escaping () -> Void,
         onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
@@ -238,6 +241,7 @@ struct LiquidGlassCalendarPicker: View {
         self._selectedDate = selectedDate
         self.minimumSelectableDay = minimumSelectableDay
         self.chrome = chrome
+        self.calendarDotPalette = calendarDotPalette
         self.onDone = onDone
         self.onDisplayedMonthChange = onDisplayedMonthChange
     }
@@ -258,6 +262,7 @@ struct LiquidGlassCalendarPicker: View {
                     selectedDate: $selectedDate,
                     minimumSelectableDay: minimumSelectableDay,
                     chrome: chrome,
+                    calendarDotPalette: calendarDotPalette,
                     onDone: onDone,
                     onDisplayedMonthChange: onDisplayedMonthChange
                 )
@@ -338,6 +343,8 @@ struct EventCalendarView: View {
     let dotsLoading: Bool
     let dotStatusText: String?
     @Binding var selectedDate: Date
+    /// When non-nil (Discover map), day dots use venue green vs pickup blue and never fall back to scanning ``events``.
+    let calendarDotPalette: DiscoverCalendarDotPalette?
     /// When non-nil (Discover map), days before this instant (compared as start-of-day) cannot be selected and earlier months are blocked.
     let minimumSelectableDay: Date?
     let chrome: LiquidGlassCalendarChrome
@@ -354,6 +361,7 @@ struct EventCalendarView: View {
         selectedDate: Binding<Date>,
         minimumSelectableDay: Date? = nil,
         chrome: LiquidGlassCalendarChrome = .calendarTab,
+        calendarDotPalette: DiscoverCalendarDotPalette? = nil,
         onDone: @escaping () -> Void,
         onDisplayedMonthChange: ((Date) -> Void)? = nil
     ) {
@@ -366,6 +374,7 @@ struct EventCalendarView: View {
         self._selectedDate = selectedDate
         self.minimumSelectableDay = minimumSelectableDay
         self.chrome = chrome
+        self.calendarDotPalette = calendarDotPalette
         self.onDone = onDone
         self.onDisplayedMonthChange = onDisplayedMonthChange
     }
@@ -376,6 +385,15 @@ struct EventCalendarView: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private let calendar = Calendar.current
+
+    private var eventDotFillColor: Color {
+        switch calendarDotPalette {
+        case .some(.pickupGames):
+            return FGColor.accentBlue
+        case .some(.venueGames), .none:
+            return Color(UIColor.systemGreen)
+        }
+    }
 
     private var calendarToday: Date {
         calendar.startOfDay(for: Date())
@@ -493,11 +511,11 @@ struct EventCalendarView: View {
 
                                 if hasEventDot(on: date) {
                                     Circle()
-                                        .fill(Color(UIColor.systemGreen))
+                                        .fill(eventDotFillColor)
                                         .frame(width: 7, height: 7)
-                                } else if dotsLoading && useVisibleMapRegionOnly {
+                                } else if dotsLoading && (useVisibleMapRegionOnly || calendarDotPalette != nil) {
                                     Circle()
-                                        .strokeBorder(Color(UIColor.systemGreen).opacity(0.55), lineWidth: 1.2)
+                                        .strokeBorder(eventDotFillColor.opacity(0.55), lineWidth: 1.2)
                                         .frame(width: 7, height: 7)
                                 } else {
                                     Circle()
@@ -629,6 +647,9 @@ struct EventCalendarView: View {
 
     private func hasEventDot(on date: Date) -> Bool {
         let sod = calendar.startOfDay(for: date)
+        if calendarDotPalette != nil {
+            return eventDotDates.contains(sod)
+        }
         if useVisibleMapRegionOnly {
             return eventDotDates.contains(sod)
         }

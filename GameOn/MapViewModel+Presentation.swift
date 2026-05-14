@@ -58,6 +58,11 @@ extension MapViewModel {
         SportFilterCatalog.resolve(sport).systemImage
     }
 
+    /// Emoji from ``SportFilterCatalog`` for pickup pins and compact labels (empty when the catalog uses SF Symbol only).
+    func emojiForSport(_ sport: String) -> String {
+        SportFilterCatalog.resolve(sport).emoji.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Brand-style tint for map pins, game rows, and sport chips (see ``SportFilterCatalog``).
     func colorForSport(_ sport: String) -> Color {
         SportFilterCatalog.resolve(sport).accent

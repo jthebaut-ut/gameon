@@ -195,8 +195,12 @@ extension MapViewModel {
         goingUserProfiles = []
         goingProfilesByVenueEventID = [:]
         pickupGamesForDiscoverMap = []
+        markPickupDiscoverMapDataDirtyForNextRefresh()
         selectedPickupGameForMap = nil
         myPickupGamesForSettings = []
+        pickupOrganizerJoinStatsByGameId = [:]
+        pickupMyLatestJoinRequestByGameId = [:]
+        pickupCreatorDisplayNameByUserId = [:]
         commentIDsReportedByCurrentUser = []
         userProfilesByEmail = [:]
         myVenueEventVibes = [:]

@@ -211,214 +211,214 @@ struct SettingsScreen: View {
 
                 if viewModel.isVenueOwnerLoggedIn || !viewModel.isLoggedIn {
                     Section {
-                    settingsSectionCard {
-                        let hasArchivedBusinessAccount = viewModel.hasArchivedBusinessAccountForOwner()
-                        let hasActiveBusinessAccount = viewModel.hasBusinessAccountForOwner()
+                        settingsSectionCard {
+                            let hasArchivedBusinessAccount = viewModel.hasArchivedBusinessAccountForOwner()
+                            let hasActiveBusinessAccount = viewModel.hasBusinessAccountForOwner()
 
-                        if viewModel.isVenueOwnerLoggedIn {
-                            if viewModel.isVenueOwnerBusinessDataLoading {
-                                HStack(spacing: 10) {
-                                    ProgressView()
-                                    Text("Loading business data…")
-                                        .font(FGTypography.caption)
-                                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            if viewModel.isVenueOwnerLoggedIn {
+                                if viewModel.isVenueOwnerBusinessDataLoading {
+                                    HStack(spacing: 10) {
+                                        ProgressView()
+                                        Text("Loading business data…")
+                                            .font(FGTypography.caption)
+                                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                    }
+                                    .padding(.horizontal, FGSpacing.md)
+                                    .padding(.vertical, FGSpacing.md)
+                                } else if hasArchivedBusinessAccount {
+                                    settingsInfoRow(
+                                        title: "Business account",
+                                        subtitle: settingsBusinessAccountSubtitle(),
+                                        systemImage: viewModel.businessAccountStatusIconName(),
+                                        tint: viewModel.businessAccountStatusTint()
+                                    )
+
+                                    settingsRowDivider()
+
+                                    settingsInfoRow(
+                                        title: "Location status",
+                                        subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
+                                        systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
+                                        tint: settingsLocationStatusTint()
+                                    )
+                                } else if !hasActiveBusinessAccount && !hasArchivedBusinessAccount {
+                                    settingsInfoRow(
+                                        title: "Business account",
+                                        subtitle: settingsBusinessAccountSubtitle(),
+                                        systemImage: viewModel.businessAccountStatusIconName(),
+                                        tint: viewModel.businessAccountStatusTint()
+                                    )
+
+                                    settingsRowDivider()
+
+                                    settingsInlineNote(
+                                        "Add a businesses record for this sign-in email before locations can be linked or approved.",
+                                        systemImage: "info.circle"
+                                    )
+
+                                    settingsRowDivider()
+
+                                    Button {
+                                        venueOwnerDashboardSheet = .manageVenue
+                                    } label: {
+                                        settingsRow(
+                                            title: "Set up business account",
+                                            subtitle: "Open the business dashboard to finish account and listing details.",
+                                            systemImage: "rectangle.and.pencil.and.ellipsis"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    settingsRowDivider()
+
+                                    settingsInfoRow(
+                                        title: "Location status",
+                                        subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
+                                        systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
+                                        tint: settingsLocationStatusTint()
+                                    )
+
+                                } else if viewModel.managedVenuesForOwner().isEmpty {
+                                    settingsInfoRow(
+                                        title: "Business account",
+                                        subtitle: settingsBusinessAccountSubtitle(),
+                                        systemImage: viewModel.businessAccountStatusIconName(),
+                                        tint: viewModel.businessAccountStatusTint()
+                                    )
+
+                                    settingsRowDivider()
+
+                                    settingsInfoRow(
+                                        title: "Location status",
+                                        subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
+                                        systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
+                                        tint: settingsLocationStatusTint()
+                                    )
+
+                                    settingsRowDivider()
+
+                                    BusinessLocationVenuePicker(
+                                        viewModel: viewModel,
+                                        chrome: .settings,
+                                        onRequestAddNewLocation: { openAddLocationFromPicker() }
+                                    )
+
+                                    if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
+                                        settingsRowDivider()
+                                        settingsInlineNote(
+                                            bannerText,
+                                            tint: addLocationSubmitBannerForegroundColor(),
+                                            systemImage: "info.circle"
+                                        )
+                                    }
+
+                                    settingsRowDivider()
+
+                                    settingsVenueReviewSections()
+                                } else {
+                                    settingsInfoRow(
+                                        title: "Business account",
+                                        subtitle: settingsBusinessAccountSubtitle(),
+                                        systemImage: viewModel.businessAccountStatusIconName(),
+                                        tint: viewModel.businessAccountStatusTint()
+                                    )
+
+                                    if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
+                                        settingsRowDivider()
+                                        settingsInlineNote(
+                                            bannerText,
+                                            tint: addLocationSubmitBannerForegroundColor(),
+                                            systemImage: "info.circle"
+                                        )
+                                    }
+
+                                    settingsRowDivider()
+
+                                    BusinessLocationVenuePicker(
+                                        viewModel: viewModel,
+                                        chrome: .settings,
+                                        onRequestAddNewLocation: { openAddLocationFromPicker() }
+                                    )
+
+                                    settingsRowDivider()
+
+                                    settingsVenueReviewSections()
+
+                                    settingsRowDivider()
+
+                                    Button { venueOwnerDashboardSheet = .manageVenue } label: {
+                                        settingsRow(
+                                            title: "Venue Details",
+                                            subtitle: "Photos, menu, amenities, and venue profile.",
+                                            systemImage: "photo.on.rectangle.angled"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    if settingsVenueClaimApprovedForStatusRow() {
+                                        settingsRowDivider()
+
+                                        Button { venueOwnerDashboardSheet = .manageGames } label: {
+                                            settingsRow(
+                                                title: "Manage Games",
+                                                subtitle: "Schedule or cancel games.",
+                                                systemImage: "sportscourt"
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        settingsRowDivider()
+
+                                        Button { venueOwnerDashboardSheet = .statistics } label: {
+                                            settingsRow(
+                                                title: "Statistics",
+                                                subtitle: "Analytics and game history.",
+                                                systemImage: "chart.bar"
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
-                                .padding(.horizontal, FGSpacing.md)
-                                .padding(.vertical, FGSpacing.md)
-                            } else if hasArchivedBusinessAccount {
-                                settingsInfoRow(
-                                    title: "Business account",
-                                    subtitle: settingsBusinessAccountSubtitle(),
-                                    systemImage: viewModel.businessAccountStatusIconName(),
-                                    tint: viewModel.businessAccountStatusTint()
-                                )
 
                                 settingsRowDivider()
 
-                                settingsInfoRow(
-                                    title: "Location status",
-                                    subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
-                                    systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
-                                    tint: settingsLocationStatusTint()
-                                )
-                            } else if !hasActiveBusinessAccount && !hasArchivedBusinessAccount {
-                                settingsInfoRow(
-                                    title: "Business account",
-                                    subtitle: settingsBusinessAccountSubtitle(),
-                                    systemImage: viewModel.businessAccountStatusIconName(),
-                                    tint: viewModel.businessAccountStatusTint()
-                                )
-
-                                settingsRowDivider()
-
-                                settingsInlineNote(
-                                    "Add a businesses record for this sign-in email before locations can be linked or approved.",
-                                    systemImage: "info.circle"
-                                )
-
-                                settingsRowDivider()
-
+                                Button { showReportedCommentsSheet = true } label: {
+                                    settingsRow(
+                                        title: "Flagged Comments",
+                                        subtitle: "Review reported venue activity.",
+                                        systemImage: "exclamationmark.bubble"
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
                                 Button {
-                                    venueOwnerDashboardSheet = .manageVenue
+                                    showVenueRegisterMode = false
+                                    showVenueAuthSheet = true
                                 } label: {
                                     settingsRow(
-                                        title: "Set up business account",
-                                        subtitle: "Open the business dashboard to finish account and listing details.",
-                                        systemImage: "rectangle.and.pencil.and.ellipsis"
+                                        title: "Venue owner tools",
+                                        subtitle: "Sign in to manage claims, listings, games, and business tools.",
+                                        systemImage: "building.2.crop.circle"
                                     )
                                 }
                                 .buttonStyle(.plain)
-
-                                settingsRowDivider()
-
-                                settingsInfoRow(
-                                    title: "Location status",
-                                    subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
-                                    systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
-                                    tint: settingsLocationStatusTint()
-                                )
-
-                            } else if viewModel.managedVenuesForOwner().isEmpty {
-                                settingsInfoRow(
-                                    title: "Business account",
-                                    subtitle: settingsBusinessAccountSubtitle(),
-                                    systemImage: viewModel.businessAccountStatusIconName(),
-                                    tint: viewModel.businessAccountStatusTint()
-                                )
-
-                                settingsRowDivider()
-
-                                settingsInfoRow(
-                                    title: "Location status",
-                                    subtitle: viewModel.businessSettingsLocationStatusSubtitle(),
-                                    systemImage: viewModel.businessSettingsLocationStatusSystemImage(),
-                                    tint: settingsLocationStatusTint()
-                                )
-
-                                settingsRowDivider()
-
-                                BusinessLocationVenuePicker(
-                                    viewModel: viewModel,
-                                    chrome: .settings,
-                                    onRequestAddNewLocation: { openAddLocationFromPicker() }
-                                )
-
-                                if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
-                                    settingsRowDivider()
-                                    settingsInlineNote(
-                                        bannerText,
-                                        tint: addLocationSubmitBannerForegroundColor(),
-                                        systemImage: "info.circle"
-                                    )
-                                }
-
-                                settingsRowDivider()
-
-                                settingsVenueReviewSections()
-                            } else {
-                                settingsInfoRow(
-                                    title: "Business account",
-                                    subtitle: settingsBusinessAccountSubtitle(),
-                                    systemImage: viewModel.businessAccountStatusIconName(),
-                                    tint: viewModel.businessAccountStatusTint()
-                                )
-
-                                if let bannerText = addLocationSubmitBannerDisplayText(), !bannerText.isEmpty {
-                                    settingsRowDivider()
-                                    settingsInlineNote(
-                                        bannerText,
-                                        tint: addLocationSubmitBannerForegroundColor(),
-                                        systemImage: "info.circle"
-                                    )
-                                }
-
-                                settingsRowDivider()
-
-                                BusinessLocationVenuePicker(
-                                    viewModel: viewModel,
-                                    chrome: .settings,
-                                    onRequestAddNewLocation: { openAddLocationFromPicker() }
-                                )
-
-                                settingsRowDivider()
-
-                                settingsVenueReviewSections()
-
-                                settingsRowDivider()
-
-                                Button { venueOwnerDashboardSheet = .manageVenue } label: {
-                                    settingsRow(
-                                        title: "Venue Details",
-                                        subtitle: "Photos, menu, amenities, and venue profile.",
-                                        systemImage: "photo.on.rectangle.angled"
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                if settingsVenueClaimApprovedForStatusRow() {
-                                    settingsRowDivider()
-
-                                    Button { venueOwnerDashboardSheet = .manageGames } label: {
-                                        settingsRow(
-                                            title: "Manage Games",
-                                            subtitle: "Schedule or cancel games.",
-                                            systemImage: "sportscourt"
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    settingsRowDivider()
-
-                                    Button { venueOwnerDashboardSheet = .statistics } label: {
-                                        settingsRow(
-                                            title: "Statistics",
-                                            subtitle: "Analytics and game history.",
-                                            systemImage: "chart.bar"
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
                             }
-
-                            settingsRowDivider()
-
-                            Button { showReportedCommentsSheet = true } label: {
-                                settingsRow(
-                                    title: "Flagged Comments",
-                                    subtitle: "Review reported venue activity.",
-                                    systemImage: "exclamationmark.bubble"
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Button {
-                                showVenueRegisterMode = false
-                                showVenueAuthSheet = true
-                            } label: {
-                                settingsRow(
-                                    title: "Venue owner tools",
-                                    subtitle: "Sign in to manage claims, listings, games, and business tools.",
-                                    systemImage: "building.2.crop.circle"
-                                )
-                            }
-                            .buttonStyle(.plain)
                         }
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .task(id: viewModel.isVenueOwnerLoggedIn) {
-                        if viewModel.isVenueOwnerLoggedIn {
-                            await viewModel.refreshPendingVenueClaimsForSettings()
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .task(id: viewModel.isVenueOwnerLoggedIn) {
+                            if viewModel.isVenueOwnerLoggedIn {
+                                await viewModel.refreshPendingVenueClaimsForSettings()
+                            }
                         }
-                    }
 #if DEBUG
-                    .onAppear {
-                        viewModel.logBusinessAccountStateDebug()
-                    }
+                        .onAppear {
+                            viewModel.logBusinessAccountStateDebug()
+                        }
 #endif
-                } header: {
-                    settingsSectionHeader("Business & Venue")
-                }
+                    } header: {
+                        settingsSectionHeader("Business & Venue")
+                    }
                 }
 
                 Section {
@@ -755,7 +755,7 @@ struct SettingsScreen: View {
                     pickupGameFormMode = nil
                     Task {
                         await viewModel.loadMyPickupGamesForSettings()
-                        await viewModel.refreshPickupGamesForDiscoverMap()
+                        await viewModel.refreshPickupGamesForDiscoverMap(force: true)
                     }
                 }
             }
@@ -796,18 +796,21 @@ struct SettingsScreen: View {
             .padding(.bottom, FGSpacing.sm)
     }
 
-    @ViewBuilder
-    private func settingsSectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content()
+
+
+    private func settingsSectionCard<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
+        SettingsSectionCardContainer(content: content)
+    }
+
+    private struct SettingsSectionCardContainer<Content: View>: View {
+        let content: () -> Content
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                content()
+            }
+            .padding(1)
         }
-        .background(FGColor.cardBackground(colorScheme))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
-                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-        }
-        .softCardShadow()
     }
 
     @ViewBuilder
@@ -2167,21 +2170,24 @@ private struct SettingsReportedCommentsAdminCard: View {
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
                                 
-                                Button {
-                                    Task {
-                                        await viewModel.deleteReportedComment(report)
-                                        await viewModel.loadReportedComments()
+                                HStack(spacing: 10) {
+
+                                    Button {
+                                        Task {
+                                            await viewModel.deleteReportedComment(report)
+                                            await viewModel.loadReportedComments()
+                                        }
+                                    } label: {
+                                        Label("Delete Comment", systemImage: "xmark.circle.fill")
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.vertical, 10)
+                                            .background(Color.red.opacity(0.14))
+                                            .foregroundStyle(.red)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
-                                } label: {
-                                    Label("Delete Comment", systemImage: "xmark.circle.fill")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.red.opacity(0.14))
-                                        .foregroundStyle(.red)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    
+
                                     Button {
                                         Task {
                                             await viewModel.dismissCommentReport(report)

@@ -25,6 +25,8 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     let entry_fee_amount: Double?
     let max_players: Int?
     let status: String
+    /// Joiners with `approved` status (Phase 2); maintained server-side.
+    let approved_join_count: Int?
     let cleanup_delay_hours: Int
     let remove_after_at: String?
     let created_at: String?
@@ -77,6 +79,57 @@ struct PickupGameFullUpdate: Encodable {
 
 struct PickupGameStatusPatch: Encodable {
     let status: String
+}
+
+// MARK: - `public.pickup_game_requests` (Phase 2 join workflow)
+
+struct PickupGameRequestRow: Codable, Identifiable, Equatable, Hashable {
+    let id: UUID
+    let pickup_game_id: UUID
+    let requester_user_id: UUID
+    let requester_email: String?
+    let requester_display_name: String?
+    let requester_skill_level: String
+    let message: String?
+    let status: String
+    let created_at: String?
+    let updated_at: String?
+    let responded_at: String?
+}
+
+struct PickupGameRequestInsert: Encodable {
+    let pickup_game_id: UUID
+    let requester_user_id: UUID
+    let requester_email: String?
+    let requester_display_name: String?
+    let requester_skill_level: String
+    let message: String?
+}
+
+struct PickupJoinRequestStatusUpdate: Encodable {
+    let status: String
+}
+
+extension PickupGameRequestRow {
+    var requesterSkillLevelEnum: PickupGameSkillLevel {
+        PickupGameSkillLevel.fromStored(requester_skill_level)
+    }
+
+    var statusDisplayTitle: String {
+        switch status.lowercased() {
+        case "pending": return "Pending"
+        case "approved": return "Approved"
+        case "rejected": return "Rejected"
+        case "cancelled": return "Cancelled"
+        default: return status.capitalized
+        }
+    }
+
+    var requesterNameForUI: String {
+        let n = requester_display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !n.isEmpty { return n }
+        return "Player"
+    }
 }
 
 // MARK: - Pickup option enums (raw values match DB CHECK constraints)
@@ -168,6 +221,19 @@ enum PickupParticipantPreference: String, CaseIterable, Identifiable {
 }
 
 extension PickupGameRow {
+    var approvedJoinCount: Int {
+        approved_join_count ?? 0
+    }
+
+    /// Open join slots (joiners only; creator is separate from this count).
+    var pickupOpenSlotsRemaining: Int {
+        max(0, playersNeededClamped - approvedJoinCount)
+    }
+
+    var isPickupFullForDiscover: Bool {
+        approvedJoinCount >= playersNeededClamped
+    }
+
     var playersNeededClamped: Int {
         min(20, max(1, players_needed))
     }

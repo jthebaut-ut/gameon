@@ -237,6 +237,13 @@ extension MapViewModel {
     /// Clears map preview selection when the venue is no longer present in loaded map data (e.g. region reload).
     /// Keeps ``selectedBar`` when the venue still exists in ``bars`` but has no games for the current date/sport filter (e.g. Following → saved venue).
     func pruneSelectionIfNeededAfterFilterChange() {
+        if discoverMapContentMode == .pickupGames, let row = selectedPickupGameForMap {
+            let pins = pickupGamesVisibleAsMapPinsWithDiscoverSearch(for: currentMapRegionBounds())
+            if !pins.contains(where: { $0.id == row.id }) {
+                clearPickupMapSelection()
+            }
+            return
+        }
         guard let bar = selectedBar else { return }
         if !bars.contains(where: { $0.id == bar.id }) {
             if discoverRemotePreviewHoldVenueId == bar.id {
@@ -379,7 +386,10 @@ extension MapViewModel {
         discoverSelectedDayRefreshTask = nil
         let requestID = UUID()
         discoverSelectedDayRefreshRequestID = requestID
-        if discoverCurrentVisibleVenueRows.isEmpty {
+        markPickupDiscoverMapDataDirtyForNextRefresh()
+        if discoverMapContentMode == .pickupGames {
+            setDiscoverMapStatus("Updating map…", isLoading: true)
+        } else if discoverCurrentVisibleVenueRows.isEmpty {
             setDiscoverMapStatus("Refreshing nearby venues...", isLoading: true)
         } else {
             setDiscoverMapStatus("Updating games...", isLoading: true)
@@ -415,8 +425,15 @@ extension MapViewModel {
         selectedPickupGameForMap = nil
         discoverRemotePreviewHoldVenueId = nil
 
-        loadGamesFromSupabase()
-        Task { await refreshPickupGamesForDiscoverMap() }
+        markPickupDiscoverMapDataDirtyForNextRefresh()
+        if discoverMapContentMode == .venues {
+            loadGamesFromSupabase()
+        }
+        Task {
+            if discoverMapContentMode == .pickupGames {
+                await refreshPickupGamesForDiscoverMap()
+            }
+        }
     }
 
     func matchesSearch(_ event: SportsEvent) -> Bool {

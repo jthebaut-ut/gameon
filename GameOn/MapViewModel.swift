@@ -189,8 +189,10 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventRows: [VenueEventRow] = []
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
-    /// Discover calendar-only: narrow month-scoped dot dates loaded from nearby venues without waiting for full schedule hydration.
-    @Published var discoverCalendarDotDates: Set<Date> = []
+    /// Discover calendar overlay: venue ``venue_events`` days from RPC (green dots; Venues map mode only).
+    @Published var venueGameCalendarDotDates: Set<Date> = []
+    /// Discover calendar overlay: pickup ``game_start_at`` days in the month window (blue dots; Pickup games map mode only).
+    @Published var pickupGameCalendarDotDates: Set<Date> = []
     @Published var isLoadingCalendarDots: Bool = false
     @Published var calendarDotStatusText: String?
     @Published var currentUserDisplayName: String = ""
@@ -252,6 +254,16 @@ final class MapViewModel: ObservableObject {
     @Published var selectedPickupGameForMap: PickupGameRow?
     @Published var myPickupGamesForSettings: [PickupGameRow] = []
     @Published var isLoadingPickupGamesForMap: Bool = false
+    /// Phase 2: pending / approved join request counts per game (organizer only; keyed by `pickup_games.id`).
+    @Published var pickupOrganizerJoinStatsByGameId: [UUID: PickupOrganizerJoinStats] = [:]
+    /// Phase 2: latest join request from the current user per game (Discover detail / button state).
+    @Published var pickupMyLatestJoinRequestByGameId: [UUID: PickupGameRequestRow] = [:]
+    /// Phase 2: resolved creator display names for pickup detail (never stores email in UI).
+    @Published var pickupCreatorDisplayNameByUserId: [UUID: String] = [:]
+    /// Discover map segmented control: venue clusters vs pickup pins only.
+    @Published var discoverMapContentMode: DiscoverMapContentMode = .venues
+    /// When `true`, entering pickup map mode should run ``refreshPickupGamesForDiscoverMap()`` (cleared after a successful refresh).
+    var pickupDiscoverCoordinatorDirty: Bool = true
 
     // MARK: - Following tab (global; independent of Discover map region)
 
@@ -306,6 +318,9 @@ final class MapViewModel: ObservableObject {
     /// Memo for ``clusteredBars()`` so SwiftUI map body does not rebuild clusters every frame.
     var discoverClusteredBarsCacheKey: String?
     var discoverClusteredBarsCache: [VenueCluster]?
+    /// Memo for ``clusteredPickupGamesForDiscoverMap(rows:)`` (pickup map mode only).
+    var discoverPickupClustersCacheKey: String?
+    var discoverPickupClustersCache: [PickupGameCluster]?
 
     /// Cancels stale debounced Discover search updates when ``searchText`` changes quickly.
     var discoverSearchDebounceTask: Task<Void, Never>?
@@ -339,5 +354,6 @@ final class MapViewModel: ObservableObject {
 
     /// Short-lived Calendar tab list cache (see ``calendarScreenDisplayedEvents``).
     var calendarEventsListCache: [String: (storedAt: Date, events: [SportsEvent])] = [:]
-    var calendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
+    var venueGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
+    var pickupGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
 }

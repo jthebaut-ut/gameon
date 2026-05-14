@@ -31,6 +31,20 @@ enum TimeZoneOption: String, CaseIterable, Identifiable {
     }
 }
 
+/// Discover tab map layer: venue pins vs pickup game pins (session-only; not persisted).
+enum DiscoverMapContentMode: String, CaseIterable, Identifiable, Equatable {
+    case venues
+    case pickupGames
+
+    var id: String { rawValue }
+}
+
+/// Discover overlay calendar day markers: green (venue games) vs blue (pickup games).
+enum DiscoverCalendarDotPalette: Equatable {
+    case venueGames
+    case pickupGames
+}
+
 struct VenueEventInsert: Encodable {
     let venue_id: UUID?
     let owner_email: String
@@ -416,6 +430,22 @@ struct VenueCluster: Identifiable {
         bars.count
     }
 }
+
+/// Aggregated join-request counts for a pickup game (organizer Settings UI).
+struct PickupOrganizerJoinStats: Equatable {
+    var pending: Int
+    var approved: Int
+}
+
+/// Discover map: grid-bucketed pickup games at one coordinate (see ``MapViewModel/clusteredPickupGamesForDiscoverMap(rows:)``).
+struct PickupGameCluster: Identifiable {
+    let id: String
+    let rows: [PickupGameRow]
+    let coordinate: CLLocationCoordinate2D
+
+    var count: Int { rows.count }
+}
+
 struct UserProfileRow: Decodable {
     let id: UUID?
     let email: String?

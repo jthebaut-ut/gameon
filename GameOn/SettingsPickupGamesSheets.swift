@@ -1,6 +1,6 @@
+import SwiftUI
 import CoreLocation
 import MapKit
-import SwiftUI
 
 enum PickupGameFormMode: Identifiable, Equatable {
     case add
@@ -23,6 +23,7 @@ struct SettingsPickupGamesListSheet: View {
     @State private var formMode: PickupGameFormMode?
     @State private var deleteTarget: PickupGameRow?
     @State private var banner: String?
+    @State private var organizerRequestsGame: PickupGameRow?
 
     var body: some View {
         List {
@@ -33,9 +34,7 @@ struct SettingsPickupGamesListSheet: View {
                     .listRowBackground(FGColor.cardBackground(colorScheme))
             } else {
                 ForEach(viewModel.myPickupGamesForSettings) { row in
-                    Button {
-                        formMode = .edit(row)
-                    } label: {
+                    HStack(alignment: .top, spacing: FGSpacing.sm) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(row.title)
                                 .font(FGTypography.cardTitle)
@@ -57,26 +56,56 @@ struct SettingsPickupGamesListSheet: View {
                             Text("\(row.lookingForPlayersLine)\(row.maxPlayersChipTitle.map { " · \($0)" } ?? "")")
                                 .font(FGTypography.caption)
                                 .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            if row.status != "active" {
-                                Text("Removed")
-                                    .font(FGTypography.caption.weight(.semibold))
-                                    .foregroundStyle(FGColor.accentYellow)
-                            } else if !row.is_visible {
+                            if !row.is_visible {
                                 Text("Hidden from map")
                                     .font(FGTypography.caption.weight(.semibold))
                                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                             }
+                            Text("\(viewModel.pickupOrganizerJoinStatsByGameId[row.id]?.pending ?? 0) pending · \(row.approvedJoinCount) approved · \(row.pickupOpenSlotsRemaining) spots open")
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            if row.isPickupFullForDiscover {
+                                Text("Full — no more players needed")
+                                    .font(FGTypography.caption.weight(.semibold))
+                                    .foregroundStyle(FGColor.accentYellow)
+                            }
+                            Button {
+                                organizerRequestsGame = row
+                            } label: {
+                                Text("Manage requests")
+                                    .font(FGTypography.caption.weight(.semibold))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(FGColor.accentBlue)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if row.status == "active" {
-                            Button(role: .destructive) {
+
+                        VStack(spacing: 6) {
+                            Button {
+                                viewModel.logPickupGamesEditRequested(id: row.id)
+                                formMode = .edit(row)
+                            } label: {
+                                Text("Edit")
+                                    .font(FGTypography.caption.weight(.semibold))
+                                    .foregroundStyle(FGColor.accentBlue)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
+
+                            Button {
                                 deleteTarget = row
                             } label: {
-                                Label("Remove", systemImage: "trash")
+                                Text("Delete")
+                                    .font(FGTypography.caption.weight(.semibold))
+                                    .foregroundStyle(FGColor.dangerRed)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     .listRowBackground(FGColor.cardBackground(colorScheme))
@@ -116,18 +145,21 @@ struct SettingsPickupGamesListSheet: View {
                 }
             }
         }
-        .alert("Remove this pickup game?", isPresented: Binding(
+        .sheet(item: $organizerRequestsGame) { game in
+            PickupOrganizerRequestsSheet(viewModel: viewModel, game: game)
+        }
+        .alert("Delete pickup game?", isPresented: Binding(
             get: { deleteTarget != nil },
             set: { if !$0 { deleteTarget = nil } }
         )) {
             Button("Cancel", role: .cancel) { deleteTarget = nil }
-            Button("Remove", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 guard let row = deleteTarget else { return }
                 deleteTarget = nil
                 Task { await performDelete(row) }
             }
         } message: {
-            Text("Others will no longer see it on the map.")
+            Text("This will remove it from your list, the Discover map, and the calendar.")
         }
         .overlay(alignment: .bottom) {
             if let banner, !banner.isEmpty {
@@ -148,7 +180,7 @@ struct SettingsPickupGamesListSheet: View {
             try await viewModel.softRemovePickupGame(id: row.id)
             banner = nil
             await viewModel.loadMyPickupGamesForSettings()
-            await viewModel.refreshPickupGamesForDiscoverMap()
+            await viewModel.refreshPickupGamesForDiscoverMap(force: true)
         } catch {
             banner = error.localizedDescription
         }
@@ -198,9 +230,9 @@ struct SettingsPickupGameFormView: View {
     @State private var cleanupHours: Int = 24
     @State private var isSaving = false
     @State private var errorText: String?
-    @State private var pickedLatitude: Double?
-    @State private var pickedLongitude: Double?
-    @State private var mapLocationPickerPresented = false
+    @State private var showPickupMapLocationPicker = false
+    @State private var coordinatesLockedFromMap = false
+    @State private var mapPinnedCoordinate: CLLocationCoordinate2D?
 
     private var sportChoices: [String] {
         viewModel.sports.filter { $0 != "All" }
@@ -218,42 +250,66 @@ struct SettingsPickupGameFormView: View {
         state.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var hasMapPinCoordinates: Bool {
-        pickedLatitude != nil && pickedLongitude != nil
-    }
-
     private var hasCompleteTypedAddress: Bool {
         !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty
     }
 
-    /// Post/Save enabled when title is set and location can be resolved (map pin or full typed address).
+    /// Post/Save enabled when address fields are complete (typed or filled from map picker).
     private var hasPlacedLocationForPostButton: Bool {
-        hasMapPinCoordinates || hasCompleteTypedAddress
+        hasCompleteTypedAddress
+    }
+
+    private var pickMapSeedCoordinate: CLLocationCoordinate2D {
+        if case .edit(let row) = mode,
+           let la = row.latitude,
+           let lo = row.longitude {
+            return CLLocationCoordinate2D(latitude: la, longitude: lo)
+        }
+        if let r = viewModel.cameraPosition.region {
+            return r.center
+        }
+        return CLLocationCoordinate2D(latitude: 37.3349, longitude: -122.00902)
+    }
+
+    private var addressBinding: Binding<String> {
+        Binding(
+            get: { address },
+            set: { newValue in
+                address = newValue
+                coordinatesLockedFromMap = false
+                mapPinnedCoordinate = nil
+            }
+        )
+    }
+
+    private var cityBinding: Binding<String> {
+        Binding(
+            get: { city },
+            set: { newValue in
+                city = newValue
+                coordinatesLockedFromMap = false
+                mapPinnedCoordinate = nil
+            }
+        )
+    }
+
+    private var stateBinding: Binding<String> {
+        Binding(
+            get: { state },
+            set: { newValue in
+                state = newValue
+                coordinatesLockedFromMap = false
+                mapPinnedCoordinate = nil
+            }
+        )
     }
 
     private var locationGuidanceFootnote: String? {
-        if hasMapPinCoordinates { return nil }
         if hasCompleteTypedAddress { return nil }
         if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty {
             return "Location missing"
         }
-        return "Pick a location or enter an address"
-    }
-
-    /// Map pin alone satisfies location; show this when the street field is still empty (e.g. park / pending reverse geocode).
-    private var mapPinStreetEmptyHint: String? {
-        guard hasMapPinCoordinates, trimmedAddress.isEmpty else { return nil }
-        return "Pinned location selected"
-    }
-
-    private var mapPickerInitialCenter: CLLocationCoordinate2D {
-        if let la = pickedLatitude, let lo = pickedLongitude {
-            return CLLocationCoordinate2D(latitude: la, longitude: lo)
-        }
-        if case .edit(let row) = mode, let la = row.latitude, let lo = row.longitude {
-            return CLLocationCoordinate2D(latitude: la, longitude: lo)
-        }
-        return CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508)
+        return "Enter a complete street address, city, and state"
     }
 
     var body: some View {
@@ -331,34 +387,22 @@ struct SettingsPickupGameFormView: View {
             }
 
             Section("Location") {
-                TextField("Street address", text: $address, axis: .vertical)
+                Button {
+                    showPickupMapLocationPicker = true
+                } label: {
+                    Label("Pick location from map", systemImage: "mappin.and.ellipse")
+                        .font(FGTypography.metadata.weight(.semibold))
+                }
+
+                TextField("Street address", text: addressBinding, axis: .vertical)
                     .lineLimit(1...3)
-                if let hint = mapPinStreetEmptyHint {
-                    Text(hint)
+                TextField("City", text: cityBinding)
+                TextField("State", text: stateBinding)
+
+                if coordinatesLockedFromMap {
+                    Text("Using exact coordinates from your map pin.")
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.accentBlue)
-                }
-                TextField("City", text: $city)
-                TextField("State", text: $state)
-
-                Button {
-                    mapLocationPickerPresented = true
-                } label: {
-                    Label("Pick location on map", systemImage: "mappin.and.ellipse")
-                }
-
-                if hasMapPinCoordinates {
-                    HStack {
-                        Text("Map pin set")
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        Spacer()
-                        Button("Clear map pin") {
-                            pickedLatitude = nil
-                            pickedLongitude = nil
-                        }
-                        .font(FGTypography.caption.weight(.semibold))
-                    }
                 }
 
                 if let foot = locationGuidanceFootnote {
@@ -381,14 +425,14 @@ struct SettingsPickupGameFormView: View {
         }
         .scrollContentBackground(.hidden)
         .fanGeoScreenBackground()
-        .navigationTitle(mode.isAdd ? "Add pickup game" : "Edit pickup game")
+        .navigationTitle(mode == .add ? "Add pickup game" : "Edit pickup game")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { onFinished(); dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(mode.isAdd ? "Post" : "Save") {
+                Button(mode == .add ? "Post" : "Save") {
                     Task { await save() }
                 }
                 .disabled(
@@ -407,29 +451,24 @@ struct SettingsPickupGameFormView: View {
                 dismiss()
             }
         }
-        .sheet(isPresented: $mapLocationPickerPresented) {
+        .fullScreenCover(isPresented: $showPickupMapLocationPicker) {
             PickupGameMapLocationPickerSheet(
-                initialCenter: mapPickerInitialCenter,
-                onConfirm: { coord in
-                    pickedLatitude = coord.latitude
-                    pickedLongitude = coord.longitude
-                    address = ""
-                    city = ""
-                    state = ""
-                    Task {
-                        let fields = await viewModel.reverseGeocodeAddressFields(for: coord)
-                        await MainActor.run {
-                            if let street = fields.street, !street.isEmpty {
-                                address = street
-                            }
-                            if let c = fields.city, !c.isEmpty {
-                                city = c
-                            }
-                            if let s = fields.state, !s.isEmpty {
-                                state = s
-                            }
-                        }
+                viewModel: viewModel,
+                initialCoordinate: pickMapSeedCoordinate,
+                onCancel: { showPickupMapLocationPicker = false },
+                onConfirm: { coord, street, cityName, stateAbbr in
+                    if let s = street, !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        address = s
                     }
+                    if let c = cityName, !c.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        city = c
+                    }
+                    if let st = stateAbbr, !st.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        state = st
+                    }
+                    mapPinnedCoordinate = coord
+                    coordinatesLockedFromMap = true
+                    showPickupMapLocationPicker = false
                 }
             )
         }
@@ -457,8 +496,8 @@ struct SettingsPickupGameFormView: View {
             maxPlayers = 10
             isVisible = true
             cleanupHours = 24
-            pickedLatitude = nil
-            pickedLongitude = nil
+            coordinatesLockedFromMap = false
+            mapPinnedCoordinate = nil
         case .edit(let row):
             title = row.title
             sport = row.sport
@@ -494,8 +533,8 @@ struct SettingsPickupGameFormView: View {
             }
             isVisible = row.is_visible
             cleanupHours = row.cleanup_delay_hours
-            pickedLatitude = row.latitude
-            pickedLongitude = row.longitude
+            coordinatesLockedFromMap = false
+            mapPinnedCoordinate = nil
         }
     }
 
@@ -557,41 +596,34 @@ struct SettingsPickupGameFormView: View {
 
         let start = combinedStartDate()
 
-        var lat: Double?
-        var lon: Double?
-
-        if let pl = pickedLatitude, let plo = pickedLongitude {
-            lat = pl
-            lon = plo
-        } else {
+        guard hasCompleteTypedAddress else {
             if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty {
                 errorText = "Location missing"
-                return
+            } else {
+                errorText = "Enter a complete street address, city, and state"
             }
-            guard hasCompleteTypedAddress else {
-                errorText = "Pick a location or enter an address"
-                return
-            }
-            let addressLine = [trimmedAddress, trimmedCity, trimmedState].joined(separator: ", ")
-            guard let coord = await viewModel.geocodeAddress(addressLine) else {
-                errorText = "Pick a location or enter an address"
-                return
-            }
-            lat = coord.latitude
-            lon = coord.longitude
-        }
-
-        guard let latFinal = lat, let lonFinal = lon else {
-            errorText = "Location missing"
             return
         }
 
-        var addr = trimmedAddress
-        var c = trimmedCity
-        var st = trimmedState
-        if hasMapPinCoordinates, addr.isEmpty {
-            addr = "Pinned location"
+        let addressLine = [trimmedAddress, trimmedCity, trimmedState].joined(separator: ", ")
+
+        let latFinal: Double
+        let lonFinal: Double
+        if coordinatesLockedFromMap, let pin = mapPinnedCoordinate {
+            latFinal = pin.latitude
+            lonFinal = pin.longitude
+        } else {
+            guard let coord = await viewModel.geocodeAddress(addressLine) else {
+                errorText = "Could not find that address. Please check the street address, city, and state."
+                return
+            }
+            latFinal = coord.latitude
+            lonFinal = coord.longitude
         }
+
+        let addr = trimmedAddress
+        let c = trimmedCity
+        let st = trimmedState
 
         let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -641,92 +673,11 @@ struct SettingsPickupGameFormView: View {
                 )
                 try await viewModel.updatePickupGame(id: row.id, full: patch)
             }
-            await viewModel.refreshPickupGamesForDiscoverMap()
+            await viewModel.refreshPickupGamesForDiscoverMap(force: true)
             onFinished()
             dismiss()
         } catch {
             errorText = error.localizedDescription
         }
-    }
-}
-
-// MARK: - Map location picker (pickup game form)
-
-private struct PickupGameMapLocationPickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let initialCenter: CLLocationCoordinate2D
-    let onConfirm: (CLLocationCoordinate2D) -> Void
-
-    @State private var position: MapCameraPosition
-    @State private var pinCenter: CLLocationCoordinate2D
-
-    init(initialCenter: CLLocationCoordinate2D, onConfirm: @escaping (CLLocationCoordinate2D) -> Void) {
-        self.initialCenter = initialCenter
-        self.onConfirm = onConfirm
-        let span = MKCoordinateSpan(latitudeDelta: 0.04, longitudeDelta: 0.04)
-        let region = MKCoordinateRegion(center: initialCenter, span: span)
-        _position = State(initialValue: .region(region))
-        _pinCenter = State(initialValue: initialCenter)
-    }
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Map(position: $position)
-                    .mapStyle(.standard(elevation: .realistic))
-                    .onMapCameraChange(frequency: .onEnd) { context in
-                        pinCenter = context.region.center
-                    }
-
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(.orange)
-                    .shadow(color: .black.opacity(0.25), radius: 3, y: 2)
-                    .allowsHitTesting(false)
-
-                VStack {
-                    Text("Pan the map to place the pin.")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                        .padding(.top, 12)
-                    Spacer()
-                }
-                .allowsHitTesting(false)
-            }
-            .ignoresSafeArea(edges: .bottom)
-            .navigationTitle("Pick location")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        onConfirm(pinCenter)
-                        dismiss()
-                    }
-                }
-            }
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .onAppear {
-            if let c = position.region?.center {
-                pinCenter = c
-            }
-        }
-    }
-}
-
-private extension PickupGameFormMode {
-    var isAdd: Bool {
-        if case .add = self { return true }
-        return false
     }
 }

@@ -52,6 +52,58 @@ extension MapViewModel {
         return clusters
     }
 
+    /// Grid-bucketed pickup pins for Discover (same spacing idea as ``clusteredBars()``). Lightweight memo for map body churn.
+    func clusteredPickupGamesForDiscoverMap(rows: [PickupGameRow]) -> [PickupGameCluster] {
+        let withCoords = rows.filter { $0.latitude != nil && $0.longitude != nil }
+        guard !withCoords.isEmpty else {
+            discoverPickupClustersCache = nil
+            discoverPickupClustersCacheKey = nil
+            return []
+        }
+
+        let dayBucket = Int(selectedDate.timeIntervalSince1970 / 86400)
+        let coordFingerprint = withCoords.prefix(48).reduce(into: 0.0) { partial, row in
+            partial += (row.latitude ?? 0) + (row.longitude ?? 0)
+        }
+        let cacheKey = "\(withCoords.count)|\(dayBucket)|\(selectedSport)|\(debouncedDiscoverSearchText.hashValue)|\(String(format: "%.5f", visibleLatitudeDelta))|\(String(format: "%.4f", coordFingerprint))"
+        if cacheKey == discoverPickupClustersCacheKey, let cached = discoverPickupClustersCache {
+            return cached
+        }
+
+        var gridSize = 0.035
+        if visibleLatitudeDelta > 0.35 {
+            gridSize = 0.08
+        }
+
+        let grouped = Dictionary(grouping: withCoords) { row in
+            let lat = row.latitude!
+            let lon = row.longitude!
+            let latKey = Int(lat / gridSize)
+            let lonKey = Int(lon / gridSize)
+            return "\(latKey)-\(lonKey)"
+        }
+
+        let clusters: [PickupGameCluster] = grouped.map { key, list in
+            let avgLat = list.map { $0.latitude! }.reduce(0, +) / Double(list.count)
+            let avgLon = list.map { $0.longitude! }.reduce(0, +) / Double(list.count)
+            return PickupGameCluster(
+                id: "p-\(key)",
+                rows: list,
+                coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon)
+            )
+        }
+        .sorted { $0.id < $1.id }
+
+        discoverPickupClustersCacheKey = cacheKey
+        discoverPickupClustersCache = clusters
+        return clusters
+    }
+
+    func invalidatePickupGameClusterAnnotationCache() {
+        discoverPickupClustersCache = nil
+        discoverPickupClustersCacheKey = nil
+    }
+
     /// Zoom in on a multi-venue cluster (Discover); uses current span so repeated taps keep tightening.
     func zoomTowardCluster(center: CLLocationCoordinate2D) {
         let current = max(visibleLatitudeDelta, 0.02)

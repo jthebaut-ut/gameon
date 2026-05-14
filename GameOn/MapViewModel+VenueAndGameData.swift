@@ -464,15 +464,37 @@ extension MapViewModel {
         return "m:\(fmt.string(from: monthStart))|r:\(fmt.string(from: dateMin))...\(fmt.string(from: dateMax))|s:\(sport)|vid:\(venueIds.count):\(idTag)|o:\(ownerEmails.count):\(ownerTag)|v:\(venueNames.count):\(nameTag)"
     }
 
-    private func pruneCalendarDotDatesCacheIfNeeded() {
-        guard calendarDotDatesCache.count > DiscoverCalendarDotCacheConfig.maxEntries else { return }
-        let sorted = calendarDotDatesCache
+    private func pickupGameCalendarDotCacheKey(
+        monthStart: Date,
+        dateMin: Date,
+        dateMax: Date,
+        sport: String
+    ) -> String {
+        let fmt = DiscoverVenueGameDateFormatting.sqlDate
+        return "p:\(fmt.string(from: monthStart))|r:\(fmt.string(from: dateMin))...\(fmt.string(from: dateMax))|s:\(sport)"
+    }
+
+    private func pruneVenueGameCalendarDotDatesCacheIfNeeded() {
+        guard venueGameCalendarDotDatesCache.count > DiscoverCalendarDotCacheConfig.maxEntries else { return }
+        let sorted = venueGameCalendarDotDatesCache
             .map { ($0.key, $0.value.fetchedAt) }
             .sorted { $0.1 < $1.1 }
-        let drop = calendarDotDatesCache.count - DiscoverCalendarDotCacheConfig.maxEntries
+        let drop = venueGameCalendarDotDatesCache.count - DiscoverCalendarDotCacheConfig.maxEntries
         guard drop > 0 else { return }
         for index in 0..<drop {
-            calendarDotDatesCache.removeValue(forKey: sorted[index].0)
+            venueGameCalendarDotDatesCache.removeValue(forKey: sorted[index].0)
+        }
+    }
+
+    private func prunePickupGameCalendarDotDatesCacheIfNeeded() {
+        guard pickupGameCalendarDotDatesCache.count > DiscoverCalendarDotCacheConfig.maxEntries else { return }
+        let sorted = pickupGameCalendarDotDatesCache
+            .map { ($0.key, $0.value.fetchedAt) }
+            .sorted { $0.1 < $1.1 }
+        let drop = pickupGameCalendarDotDatesCache.count - DiscoverCalendarDotCacheConfig.maxEntries
+        guard drop > 0 else { return }
+        for index in 0..<drop {
+            pickupGameCalendarDotDatesCache.removeValue(forKey: sorted[index].0)
         }
     }
 
@@ -516,7 +538,7 @@ extension MapViewModel {
         discoverCalendarDotLoadRequestID == requestID
     }
 
-    func hasFreshDiscoverCalendarDotCache(for month: Date) -> Bool {
+    func hasFreshVenueGameCalendarDotCache(for month: Date) -> Bool {
         let venueIds = discoverCurrentVisibleVenueIds
         let ownerEmails = discoverCurrentVisibleOwnerEmails
         let venueNames = discoverCurrentVisibleVenueNames
@@ -531,14 +553,48 @@ extension MapViewModel {
             ownerEmails: ownerEmails,
             venueNames: venueNames
         )
-        guard let cached = calendarDotDatesCache[cacheKey] else { return false }
+        guard let cached = venueGameCalendarDotDatesCache[cacheKey] else { return false }
         return Date().timeIntervalSince(cached.fetchedAt) < DiscoverCalendarDotCacheConfig.ttl
+    }
+
+    func hasFreshPickupGameCalendarDotCache(for month: Date) -> Bool {
+        let range = discoverCalendarDotRange(around: month)
+        let cacheKey = pickupGameCalendarDotCacheKey(
+            monthStart: range.monthStart,
+            dateMin: range.dateMin,
+            dateMax: range.dateMax,
+            sport: selectedSport
+        )
+        guard let cached = pickupGameCalendarDotDatesCache[cacheKey] else { return false }
+        return Date().timeIntervalSince(cached.fetchedAt) < DiscoverCalendarDotCacheConfig.ttl
+    }
+
+    func hasFreshDiscoverCalendarDotCache(for month: Date) -> Bool {
+        switch discoverMapContentMode {
+        case .venues:
+            return hasFreshVenueGameCalendarDotCache(for: month)
+        case .pickupGames:
+            return hasFreshPickupGameCalendarDotCache(for: month)
+        }
     }
 
     func loadDiscoverCalendarDots(
         around month: Date,
         reason: String,
         logIfOpeningBeforeReady: Bool = false
+    ) {
+        switch discoverMapContentMode {
+        case .venues:
+            loadVenueGameCalendarDotsForDiscover(around: month, reason: reason, logIfOpeningBeforeReady: logIfOpeningBeforeReady)
+        case .pickupGames:
+            loadPickupGameCalendarDotsForDiscover(around: month, reason: reason, logIfOpeningBeforeReady: logIfOpeningBeforeReady)
+        }
+    }
+
+    private func loadVenueGameCalendarDotsForDiscover(
+        around month: Date,
+        reason: String,
+        logIfOpeningBeforeReady: Bool
     ) {
         let venueIds = discoverCurrentVisibleVenueIds
         let ownerEmails = discoverCurrentVisibleOwnerEmails
@@ -556,20 +612,20 @@ extension MapViewModel {
             venueNames: venueNames
         )
 
-        if logIfOpeningBeforeReady && (isLoadingCalendarDots || hasFreshDiscoverCalendarDotCache(for: monthStart) == false) {
+        if logIfOpeningBeforeReady && (isLoadingCalendarDots || hasFreshVenueGameCalendarDotCache(for: monthStart) == false) {
             #if DEBUG
             print("[CalendarDotsPerf] calendar opened before dots ready month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
             #endif
         }
 
-        if let cached = calendarDotDatesCache[cacheKey],
+        if let cached = venueGameCalendarDotDatesCache[cacheKey],
            Date().timeIntervalSince(cached.fetchedAt) < DiscoverCalendarDotCacheConfig.ttl {
-            discoverCalendarDotDates = cached.dates
+            venueGameCalendarDotDates = cached.dates
             calendarDotStatusText = "Refreshing game dates..."
             #if DEBUG
-            print("[CalendarDotsPerf] cached dots applied month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(cached.dates.count)")
+            print("[CalendarDotsPerf] cached venue dots applied month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(cached.dates.count)")
             #endif
-        } else if reason != "phase1_preload" || !discoverCalendarDotDates.isEmpty {
+        } else if reason != "phase1_preload" || !venueGameCalendarDotDates.isEmpty {
             calendarDotStatusText = "Loading game dates..."
         } else {
             calendarDotStatusText = "Loading game dates..."
@@ -581,7 +637,7 @@ extension MapViewModel {
         discoverCalendarDotLoadRequestID = requestID
 
         #if DEBUG
-        print("[CalendarDotsPerf] preload started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason) venueIds=\(venueIds.count)")
+        print("[CalendarDotsPerf] venue preload started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason) venueIds=\(venueIds.count)")
         #endif
 
         discoverCalendarDotLoadTask = Task { @MainActor [weak self] in
@@ -596,7 +652,7 @@ extension MapViewModel {
 
             guard !venueIds.isEmpty || !ownerEmails.isEmpty || !venueNames.isEmpty else {
                 if self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) {
-                    self.discoverCalendarDotDates = []
+                    self.venueGameCalendarDotDates = []
                 }
                 return
             }
@@ -613,25 +669,122 @@ extension MapViewModel {
                 guard !Task.isCancelled else { return }
                 guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
-                    print("[CalendarDotsPerf] stale dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                    print("[CalendarDotsPerf] stale venue dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
                     return
                 }
 
-                self.calendarDotDatesCache[cacheKey] = (dates: fetchedDates, fetchedAt: Date())
-                self.pruneCalendarDotDatesCacheIfNeeded()
-                self.discoverCalendarDotDates = fetchedDates
+                self.venueGameCalendarDotDatesCache[cacheKey] = (dates: fetchedDates, fetchedAt: Date())
+                self.pruneVenueGameCalendarDotDatesCacheIfNeeded()
+                self.venueGameCalendarDotDates = fetchedDates
 
                 #if DEBUG
-                print("[CalendarDotsDebug] RPC dot dates count=\(fetchedDates.count) month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
-                print("[CalendarDotsPerf] fetch completed month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(fetchedDates.count)")
+                print("[CalendarDotsDebug] venue RPC dot dates count=\(fetchedDates.count) month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                print("[CalendarDotsPerf] venue fetch completed month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(fetchedDates.count)")
                 #endif
             } catch is CancellationError {
                 return
             } catch {
                 guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
-                    print("[CalendarDotsPerf] stale dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                    print("[CalendarDotsPerf] stale venue dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                    #endif
+                    return
+                }
+                self.calendarDotStatusText = nil
+                self.isLoadingCalendarDots = false
+                self.discoverCalendarDotLoadTask = nil
+            }
+        }
+    }
+
+    private func loadPickupGameCalendarDotsForDiscover(
+        around month: Date,
+        reason: String,
+        logIfOpeningBeforeReady: Bool
+    ) {
+        let range = discoverCalendarDotRange(around: month)
+        let monthStart = range.monthStart
+        let sport = selectedSport
+        let cacheKey = pickupGameCalendarDotCacheKey(
+            monthStart: monthStart,
+            dateMin: range.dateMin,
+            dateMax: range.dateMax,
+            sport: sport
+        )
+
+        if logIfOpeningBeforeReady && (isLoadingCalendarDots || hasFreshPickupGameCalendarDotCache(for: monthStart) == false) {
+            #if DEBUG
+            print("[CalendarDotsPerf] calendar opened before pickup dots ready month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+            #endif
+        }
+
+        if let cached = pickupGameCalendarDotDatesCache[cacheKey],
+           Date().timeIntervalSince(cached.fetchedAt) < DiscoverCalendarDotCacheConfig.ttl {
+            pickupGameCalendarDotDates = cached.dates
+            calendarDotStatusText = "Refreshing game dates..."
+            #if DEBUG
+            print("[CalendarDotsPerf] cached pickup dots applied month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(cached.dates.count)")
+            #endif
+        } else if reason != "phase1_preload" || !pickupGameCalendarDotDates.isEmpty {
+            calendarDotStatusText = "Loading game dates..."
+        } else {
+            calendarDotStatusText = "Loading game dates..."
+        }
+
+        isLoadingCalendarDots = true
+        discoverCalendarDotLoadTask?.cancel()
+        let requestID = UUID()
+        discoverCalendarDotLoadRequestID = requestID
+
+        #if DEBUG
+        print("[CalendarDotsPerf] pickup preload started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason)")
+        #endif
+
+        discoverCalendarDotLoadTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                if self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) {
+                    self.isLoadingCalendarDots = false
+                    self.discoverCalendarDotLoadTask = nil
+                    self.calendarDotStatusText = nil
+                }
+            }
+
+            guard self.isAuthenticatedForSocialFeatures else {
+                if self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) {
+                    self.pickupGameCalendarDotDates = []
+                }
+                return
+            }
+
+            do {
+                let fetchedDates = try await self.fetchPickupGameCalendarDotDatesForDiscoverRange(
+                    dateMin: range.dateMin,
+                    dateMax: range.dateMax
+                )
+                guard !Task.isCancelled else { return }
+                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                    #if DEBUG
+                    print("[CalendarDotsPerf] stale pickup dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                    #endif
+                    return
+                }
+
+                self.pickupGameCalendarDotDatesCache[cacheKey] = (dates: fetchedDates, fetchedAt: Date())
+                self.prunePickupGameCalendarDotDatesCacheIfNeeded()
+                self.pickupGameCalendarDotDates = fetchedDates
+
+                #if DEBUG
+                print("[CalendarDotsDebug] pickup dot dates count=\(fetchedDates.count) month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
+                print("[CalendarDotsPerf] pickup fetch completed month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) count=\(fetchedDates.count)")
+                #endif
+            } catch is CancellationError {
+                return
+            } catch {
+                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                    #if DEBUG
+                    print("[CalendarDotsPerf] stale pickup dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
                     return
                 }
@@ -859,12 +1012,6 @@ extension MapViewModel {
     }
 
     func refreshDiscoverSelectedDayVenueEventsForCurrentContext(requestID: UUID) async {
-        defer {
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                await self.refreshPickupGamesForDiscoverMap()
-            }
-        }
         let cal = Calendar.current
         let minDay = cal.startOfDay(for: Date())
         let selStart = cal.startOfDay(for: selectedDate)
@@ -873,6 +1020,21 @@ extension MapViewModel {
             print("[DiscoverPerf] skipped past selected-day load date=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: selectedDate))")
             #endif
             selectedDate = minDay
+        }
+
+        if discoverMapContentMode == .pickupGames {
+            isRefreshingDiscoverEvents = true
+            defer {
+                if discoverSelectedDayRefreshRequestID == requestID {
+                    isRefreshingDiscoverEvents = false
+                    discoverSelectedDayRefreshTask = nil
+                }
+            }
+            guard discoverSelectedDayRefreshRequestID == requestID else { return }
+            await refreshPickupGamesForDiscoverMap()
+            guard discoverSelectedDayRefreshRequestID == requestID else { return }
+            setDiscoverMapStatus("Updated just now", isLoading: false, autoClearAfter: 2.2)
+            return
         }
 
         let venueRows = discoverCurrentVisibleVenueRows
@@ -1206,7 +1368,7 @@ extension MapViewModel {
         discoverSelectedDayVenueEventsCache = [:]
         discoverClusteredBarsCacheKey = nil
         discoverClusteredBarsCache = nil
-        calendarDotDatesCache.removeAll()
+        venueGameCalendarDotDatesCache.removeAll()
 
         venueEventInterestCounts[removedEventId] = nil
         venueEventComments[removedEventId] = nil
@@ -1523,7 +1685,7 @@ extension MapViewModel {
             discoverViewportVenueRowsCache.removeAll()
             discoverVenueEventsFetchCache = nil
             discoverSelectedDayVenueEventsCache.removeAll()
-            calendarDotDatesCache.removeAll()
+            venueGameCalendarDotDatesCache.removeAll()
 #if DEBUG
             print("[DiscoverVisibilityDebug] cleared viewport + venue_event + calendar dot caches (forceRefresh)")
 #endif
@@ -1629,8 +1791,6 @@ extension MapViewModel {
             mergeVenueSliceIntoEvents(venueRows: fetchedVenueEventRows)
             pruneSelectionIfNeededAfterFilterChange()
             persistDiscoverCoreSnapshot()
-
-            await refreshPickupGamesForDiscoverMap()
 
             #if DEBUG
             let phase2Ms = Int(Date().timeIntervalSince(phase1CompletedAt) * 1000)
