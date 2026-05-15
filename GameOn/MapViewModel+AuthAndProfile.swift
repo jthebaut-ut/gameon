@@ -194,7 +194,7 @@ extension MapViewModel {
 
         goingUserProfiles = []
         goingProfilesByVenueEventID = [:]
-        pickupGamesForDiscoverMap = []
+        // Keep public pickup pins on Discover after sign-out; refresh will reconcile from Supabase.
         markPickupDiscoverMapDataDirtyForNextRefresh()
         selectedPickupGameForMap = nil
         myPickupGamesForSettings = []
@@ -244,6 +244,7 @@ extension MapViewModel {
 
         bumpCurrentUserAvatarDisplayRefresh()
         clearCurrentUserProfileLocalCache()
+        discoverCalendarGuestUserPinnedDateThisSession = false
         privateSessionClearNonce = UUID()
     }
 
@@ -446,11 +447,29 @@ extension MapViewModel {
             return
         }
 
+        if await businessAccountExistsForOwnerEmailOnly(fanEmail) {
+#if DEBUG
+            print("[AuthAccountTypeGate] fan registration blocked businessEmail=\(fanEmail)")
+#endif
+            await MainActor.run { authErrorMessage = Self.fanLoginBlockedBecauseBusinessMessage }
+            return
+        }
+
         do {
             _ = try await supabase.auth.signUp(
                 email: fanEmail,
                 password: password
             )
+
+            if let session = try? await supabase.auth.session,
+               await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+#if DEBUG
+                print("[AuthAccountTypeGate] fan registration blocked businessEmail=\(fanEmail)")
+#endif
+                await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+                await MainActor.run { authErrorMessage = Self.fanLoginBlockedBecauseBusinessMessage }
+                return
+            }
 
             await MainActor.run {
                 clearAuthenticatedSessionCaches()
@@ -496,6 +515,25 @@ extension MapViewModel {
                 email: fanEmail,
                 password: password
             )
+
+            guard let session = try? await supabase.auth.session else {
+                try? await supabase.auth.signOut()
+                await MainActor.run {
+                    isLoggedIn = false
+                    currentUserAuthId = nil
+                    authErrorMessage = "Unable to login."
+                }
+                return
+            }
+
+            if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+#if DEBUG
+                print("[AuthAccountTypeGate] fan login blocked businessEmail=\(fanEmail)")
+#endif
+                await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+                await MainActor.run { authErrorMessage = Self.fanLoginBlockedBecauseBusinessMessage }
+                return
+            }
 
             if !(await checkCurrentUserAdminStatus()) {
                 return
@@ -641,11 +679,17 @@ extension MapViewModel {
     }
 
     /// Strict-normalized email from the active Supabase session (same key used by ``favorite_venues`` / ``venue_event_interests``).
+    /// Falls back to ``currentUserEmail`` when the JWT omits `user.email` (mirrors profile bootstrap / save), but **not** for an active business-owner session.
     func strictNormalizedSessionEmailForSocialTables() async -> String? {
         guard let session = try? await supabase.auth.session else { return nil }
-        let e = OwnerBusinessEmail.normalized(session.user.email ?? "")
-        guard OwnerBusinessEmail.isValidStrict(e) else { return nil }
-        return e
+        let fromSession = OwnerBusinessEmail.normalized(session.user.email ?? "")
+        if OwnerBusinessEmail.isValidStrict(fromSession) {
+            return fromSession
+        }
+        guard !hasAuthenticatedVenueOwnerSession else { return nil }
+        let fallback = OwnerBusinessEmail.normalized(currentUserEmail)
+        guard OwnerBusinessEmail.isValidStrict(fallback) else { return nil }
+        return fallback
     }
 
     private func applyFanUserSessionRestoreAfterBootstrap(
@@ -1180,8 +1224,15 @@ extension MapViewModel {
 
             await MainActor.run {
                 for profile in rows {
-                    if let email = profile.email {
-                        userProfilesByEmail[email] = profile
+                    guard let raw = profile.email else { continue }
+                    let key = OwnerBusinessEmail.normalized(raw)
+                    guard OwnerBusinessEmail.isValidStrict(key) else { continue }
+                    if let existing = userProfilesByEmail[key] {
+                        if existing.isBusinessIdentity, !profile.isBusinessIdentity {
+                            userProfilesByEmail[key] = profile
+                        }
+                    } else {
+                        userProfilesByEmail[key] = profile
                     }
                 }
             }

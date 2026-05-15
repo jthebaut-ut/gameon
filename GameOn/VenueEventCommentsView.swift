@@ -3,6 +3,7 @@ import SwiftUI
 struct VenueEventCommentsView: View {
     @ObservedObject var viewModel: MapViewModel
     @EnvironmentObject private var chatViewModel: ChatViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     let venueEventID: UUID
     
@@ -27,6 +28,57 @@ struct VenueEventCommentsView: View {
         "📺 TVs visible",
         "🍺 Drink specials"
     ]
+
+    private var fanUpdatesIsDark: Bool { colorScheme == .dark }
+
+    /// Primary sheet body (matches ``VenueEventCommentsSheet`` root in dark).
+    private var sheetRootBackground: Color {
+        fanUpdatesIsDark ? .black : Color(uiColor: .systemGroupedBackground)
+    }
+
+    private var scrollSurfaceBackground: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.04) : Color(uiColor: .secondarySystemGroupedBackground)
+    }
+
+    private var inputBarChromeBackground: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.08) : Color.white.opacity(0.94)
+    }
+
+    private var cardSurfaceBackground: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)
+    }
+
+    private var cardBorderColor: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+    }
+
+    private var quickChipFill: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.08) : Color.gray.opacity(0.14)
+    }
+
+    private var quickChipStroke: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.10) : Color.black.opacity(0.10)
+    }
+
+    private var primaryLabelColor: Color {
+        fanUpdatesIsDark ? .white : .primary
+    }
+
+    private var secondaryLabelColor: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.7) : Color.primary.opacity(0.55)
+    }
+
+    private var mutedLabelColor: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.45) : Color.primary.opacity(0.45)
+    }
+
+    private var textFieldChromeBackground: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.12) : Color(uiColor: .tertiarySystemFill)
+    }
+
+    private var sendAccentColor: Color {
+        fanUpdatesIsDark ? Color(red: 0.45, green: 0.75, blue: 1.0) : Color.accentColor
+    }
     
     var comments: [VenueEventCommentRow] {
         (viewModel.venueEventComments[venueEventID] ?? [])
@@ -39,15 +91,23 @@ struct VenueEventCommentsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         if commentsHasOlder || commentsLoadingOlder {
                             HStack(spacing: 10) {
                                 if commentsLoadingOlder {
-                                    ProgressView()
-                                        .scaleEffect(0.85)
+                                    Group {
+                                        if fanUpdatesIsDark {
+                                            ProgressView()
+                                                .scaleEffect(0.85)
+                                                .tint(primaryLabelColor)
+                                        } else {
+                                            ProgressView()
+                                                .scaleEffect(0.85)
+                                        }
+                                    }
                                 }
                                 if commentsHasOlder {
                                     Button {
@@ -55,7 +115,7 @@ struct VenueEventCommentsView: View {
                                     } label: {
                                         Text("Load older updates")
                                             .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(secondaryLabelColor)
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(commentsLoadingOlder)
@@ -68,14 +128,14 @@ struct VenueEventCommentsView: View {
                         if !viewModel.isAuthenticatedForSocialFeatures, !comments.isEmpty {
                             Text("Sign in to add friends and see friendship status on updates.")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(secondaryLabelColor)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
                         if comments.isEmpty {
                             Text("No updates yet. Be the first to share audio, crowd, or seating info.")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(secondaryLabelColor)
                         } else {
                             ForEach(comments) { comment in
                                 commentRow(comment)
@@ -93,7 +153,14 @@ struct VenueEventCommentsView: View {
                             .frame(height: 1)
                             .id("comments-bottom-anchor")
                     }
+                    .padding(12)
                 }
+                .background(scrollSurfaceBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(cardBorderColor, lineWidth: fanUpdatesIsDark ? 1 : 0.5)
+                )
                 .onChange(of: comments.last?.id) { _, target in
                     guard target != nil else { return }
                     withAnimation(.easeOut(duration: 0.2)) {
@@ -109,10 +176,18 @@ struct VenueEventCommentsView: View {
             }
 
             inputBar
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(inputBarChromeBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(cardBorderColor, lineWidth: fanUpdatesIsDark ? 1 : 0.5)
+                )
         }
-        .padding()
-        .background(Color.white.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(sheetRootBackground)
         .onChange(of: showUnreportConfirmation) { _, open in
             if !open { unreportTargetCommentID = nil }
         }
@@ -226,8 +301,8 @@ struct VenueEventCommentsView: View {
     private func userProfile(forAuthorEmail raw: String) -> UserProfileRow? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
-        if let exact = viewModel.userProfilesByEmail[trimmed] { return exact }
         let lower = trimmed.lowercased()
+        if let exact = viewModel.userProfilesByEmail[trimmed] { return exact }
         if let byLowerKey = viewModel.userProfilesByEmail[lower] { return byLowerKey }
         return viewModel.userProfilesByEmail.first(where: { pair in
             pair.key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lower
@@ -249,12 +324,13 @@ struct VenueEventCommentsView: View {
                     Text(displayName(for: comment))
                         .font(.subheadline)
                         .fontWeight(.bold)
+                        .foregroundStyle(primaryLabelColor)
                         .lineLimit(1)
                         .truncationMode(.tail)
 
                     Text("• \(timeAgo(from: comment.created_at))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryLabelColor)
                         .lineLimit(1)
 
                     Spacer(minLength: 8)
@@ -347,13 +423,13 @@ struct VenueEventCommentsView: View {
 
                 Text(comment.comment ?? "")
                     .font(.subheadline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(primaryLabelColor)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if comment.isPendingSend {
                     Label("Sending...", systemImage: "clock")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(secondaryLabelColor)
                 } else if comment.isFailedSend {
                     Label("Failed to send", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption2.weight(.semibold))
@@ -362,13 +438,18 @@ struct VenueEventCommentsView: View {
             }
         }
         .padding(12)
-        .background(Color.gray.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(cardSurfaceBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(cardBorderColor, lineWidth: 1)
+        )
     }
 
     @ViewBuilder
     private func friendshipChip(for comment: VenueEventCommentRow) -> some View {
         if viewModel.isAuthenticatedForSocialFeatures,
+           viewModel.canUseFanSocialFeatures,
            let email = comment.user_email,
            !isAuthoredByCurrentUser(email: email),
            let profile = userProfile(forAuthorEmail: email),
@@ -389,9 +470,9 @@ struct VenueEventCommentsView: View {
 
     private var inputBar: some View {
         Group {
-            if viewModel.isAuthenticatedForSocialFeatures {
-                VStack(alignment: .trailing, spacing: 4) {
-                    
+            if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFanSocialFeatures {
+                VStack(alignment: .trailing, spacing: 8) {
+
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(quickUpdates, id: \.self) { update in
@@ -420,20 +501,30 @@ struct VenueEventCommentsView: View {
                                     Text(update)
                                         .font(.caption)
                                         .fontWeight(.semibold)
+                                        .foregroundStyle(primaryLabelColor)
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 7)
-                                        .background(Color.gray.opacity(0.12))
+                                        .background(quickChipFill)
                                         .clipShape(Capsule())
+                                        .overlay(
+                                            Capsule()
+                                                .strokeBorder(quickChipStroke, lineWidth: 1)
+                                        )
                                 }
                                 .disabled(isPostingComment)
                                 .opacity(isPostingComment ? 0.5 : 1.0)
                             }
                         }
                     }
-                    
-                    HStack {
+
+                    HStack(alignment: .center, spacing: 10) {
                         TextField("Add update: Audio confirmed, packed, seats open...", text: $newComment)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .foregroundStyle(primaryLabelColor)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(textFieldChromeBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .onChange(of: newComment) { _, value in
                                 if value.count > maxCommentLength {
                                     newComment = String(value.prefix(maxCommentLength))
@@ -467,7 +558,7 @@ struct VenueEventCommentsView: View {
                             }
                         } label: {
                             Image(systemName: "paperplane.fill")
-                                .foregroundStyle(.blue)
+                                .foregroundStyle(sendAccentColor)
                         }
                         .disabled(
                             newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
@@ -478,19 +569,29 @@ struct VenueEventCommentsView: View {
 
                     Text("\(newComment.count)/\(maxCommentLength)")
                         .font(.caption2)
-                        .foregroundStyle(newComment.count >= maxCommentLength ? .red : .secondary)
+                        .foregroundStyle(
+                            newComment.count >= maxCommentLength
+                                ? Color.red
+                                : mutedLabelColor
+                        )
 
                     if !postMessage.isEmpty {
                         Text(postMessage)
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(postMessageIsError ? .red : .green)
+                            .foregroundStyle(postMessageIsError ? Color.red : Color.green)
                     }
                 }
+            } else if viewModel.isAuthenticatedForSocialFeatures, !viewModel.canUseFanSocialFeatures {
+                Text(BusinessFanGateCopy.commentsViewOnlyForBusiness)
+                    .font(.caption)
+                    .foregroundStyle(mutedLabelColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 Text("Login as a user or venue owner to add an update.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(mutedLabelColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -8,7 +8,7 @@ struct EventDateStrip: View {
     
     private var upcomingDates: [Date] {
         let calendar = Calendar.current
-        let today = SampleData.makeDate(year: 2026, month: 6, day: 25)
+        let today = calendar.startOfDay(for: Date())
         
         return (0..<14).compactMap {
             calendar.date(byAdding: .day, value: $0, to: today)

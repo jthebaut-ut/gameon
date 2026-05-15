@@ -9,24 +9,8 @@ struct SampleData {
         Calendar.current.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
     }
     
-    static let sports = [
-        "All",
-        "Soccer",
-        "NBA",
-        "NFL",
-        "Baseball",
-        "NHL",
-        "Tennis",
-        "Golf",
-        "Volleyball",
-        "Ping Pong",
-        "UFC",
-        "Formula 1",
-        "Cricket",
-        "Rugby",
-        "Softball",
-        "Cycling"
-    ]
+    /// Calendar + pickup/venue pickers: see ``AppSportCatalog``.
+    static let sports: [String] = AppSportCatalog.calendarAndPickerSportsOrdered
     
     static let events: [SportsEvent] = [
         SportsEvent(title: "France vs Argentina", sport: "Soccer", league: "International Friendly", date: makeDate(year: 2026, month: 6, day: 25), time: "7:30 PM", country: "USA"),

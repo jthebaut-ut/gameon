@@ -1,5 +1,10 @@
 import Foundation
 
+/// Automatic removal: `remove_after_at` is always `game_start_at` + this many hours (DB trigger + app payloads).
+enum PickupGameAutoRemoval {
+    static let hoursAfterGameStart: Int = 24
+}
+
 // MARK: - `public.pickup_games` (Supabase snake_case matches Codable)
 
 struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
@@ -77,10 +82,6 @@ struct PickupGameFullUpdate: Encodable {
     let cleanup_delay_hours: Int
 }
 
-struct PickupGameStatusPatch: Encodable {
-    let status: String
-}
-
 // MARK: - `public.pickup_game_requests` (Phase 2 join workflow)
 
 struct PickupGameRequestRow: Codable, Identifiable, Equatable, Hashable {
@@ -129,6 +130,68 @@ extension PickupGameRequestRow {
         let n = requester_display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !n.isEmpty { return n }
         return "Player"
+    }
+
+    /// Best-effort instant the organizer (or requester cancel) last changed terminal status (`responded_at`, else `updated_at`).
+    var organizerDecisionDate: Date? {
+        let st = status.lowercased()
+        guard st != "pending" else { return nil }
+        if let r = responded_at, let d = PickupGameModels.parseSupabaseTimestamptz(r) { return d }
+        if let u = updated_at, let d = PickupGameModels.parseSupabaseTimestamptz(u) { return d }
+        return nil
+    }
+
+    private static let organizerStampLong: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = .autoupdatingCurrent
+        f.dateFormat = "MMM d, yyyy 'at' h:mm a"
+        return f
+    }()
+
+    private static let organizerStampShort: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = .autoupdatingCurrent
+        f.dateFormat = "MMM d · h:mm a"
+        return f
+    }()
+
+    /// Apple-style copy for the organizer requests list (e.g. `Requested May 14, 2026 at 3:42 PM`).
+    func organizerRequestedCaption(compactWidth: Bool) -> String {
+        guard let created_at, let date = PickupGameModels.parseSupabaseTimestamptz(created_at) else {
+            return "Requested"
+        }
+        let stamp = compactWidth
+            ? Self.organizerStampShort.string(from: date)
+            : Self.organizerStampLong.string(from: date)
+        return "Requested \(stamp)"
+    }
+
+    /// Second line under the request: pending vs terminal status + decision time when known.
+    func organizerDecisionStatusCaption(compactWidth: Bool) -> String {
+        switch status.lowercased() {
+        case "pending":
+            return "Waiting for your decision"
+        case "approved":
+            guard let date = organizerDecisionDate else { return "Approved" }
+            let stamp = compactWidth
+                ? Self.organizerStampShort.string(from: date)
+                : Self.organizerStampLong.string(from: date)
+            return "Approved \(stamp)"
+        case "rejected":
+            guard let date = organizerDecisionDate else { return "Rejected" }
+            let stamp = compactWidth
+                ? Self.organizerStampShort.string(from: date)
+                : Self.organizerStampLong.string(from: date)
+            return "Rejected \(stamp)"
+        case "cancelled":
+            guard let date = organizerDecisionDate else { return "Cancelled" }
+            let stamp = compactWidth
+                ? Self.organizerStampShort.string(from: date)
+                : Self.organizerStampLong.string(from: date)
+            return "Cancelled \(stamp)"
+        default:
+            return statusDisplayTitle
+        }
     }
 }
 
@@ -326,6 +389,7 @@ enum PickupGameModels {
 enum PickupGameClientError: LocalizedError {
     case notSignedIn
     case missingRowAfterWrite
+    case businessAccountsCannotUsePickupGames
 
     var errorDescription: String? {
         switch self {
@@ -333,6 +397,8 @@ enum PickupGameClientError: LocalizedError {
             return "Sign in to manage pickup games."
         case .missingRowAfterWrite:
             return "Couldn’t read the saved pickup game. Try again in a moment."
+        case .businessAccountsCannotUsePickupGames:
+            return BusinessFanGateCopy.pickupFanOnly
         }
     }
 }

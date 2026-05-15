@@ -4,6 +4,8 @@ import SwiftUI
 ///
 /// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. The root bootstrap container usually preloads startup data first; this view keeps a fallback ``.task`` only for timeout / degraded-entry cases.
 struct MainTabView: View {
+    private static var hasForcedDiscoverTabThisProcess = false
+
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var chatViewModel: ChatViewModel
     let performsInitialBootstrap: Bool
@@ -59,6 +61,7 @@ struct MainTabView: View {
 
             preservedRoot(tab: .chat) {
                 FriendsTabView(
+                    mapViewModel: viewModel,
                     viewModel: chatViewModel,
                     isTabSelected: selectedTab == .chat
                 )
@@ -76,6 +79,15 @@ struct MainTabView: View {
                 floatingTabBarChrome
             }
         }
+        .onAppear {
+            if !Self.hasForcedDiscoverTabThisProcess {
+                Self.hasForcedDiscoverTabThisProcess = true
+                selectedTabStorage = AppTab.discover.rawValue
+#if DEBUG
+                print("[StartupDiscover] selected Discover tab")
+#endif
+            }
+        }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
             guard shouldSwitch else { return }
@@ -87,7 +99,9 @@ struct MainTabView: View {
         // Discover-first: disk snapshot + map/calendar core refresh never waits on profile, favorites, or social enrichment.
         .task {
             guard performsInitialBootstrap else { return }
-            viewModel.renderCachedDiscoverCore()
+            await viewModel.renderCachedDiscoverCore()
+
+            await viewModel.prepareInitialDiscoverRegionAndPreload()
 
             await viewModel.bootstrapAuthSessionOnly()
 
@@ -115,6 +129,21 @@ struct MainTabView: View {
         }
         .onChange(of: viewModel.privateSessionClearNonce) { _, _ in
             chatViewModel.clearForSignOut()
+        }
+        .onChange(of: chatViewModel.unreadDirectMessageCount) { _, newValue in
+#if DEBUG
+            let visible = chatTabUnreadBadgeVisible(unreadCount: newValue)
+            print("[ChatTabBadge] unreadCount=\(newValue)")
+            print("[ChatTabBadge] visible=\(visible)")
+#endif
+        }
+        .onChange(of: chatViewModel.requiresSignIn) { _, _ in
+#if DEBUG
+            let n = chatViewModel.unreadDirectMessageCount
+            let visible = chatTabUnreadBadgeVisible(unreadCount: n)
+            print("[ChatTabBadge] unreadCount=\(n)")
+            print("[ChatTabBadge] visible=\(visible)")
+#endif
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -145,6 +174,10 @@ struct MainTabView: View {
                 selectedTabStorage = AppTab.account.rawValue
             }
             viewModel.discoverNavigateToAccountForUserAuth = false
+        }
+        .onChange(of: selectedTabStorage) { _, newRaw in
+            guard AppTab(rawValue: newRaw) == .calendar else { return }
+            viewModel.noteCalendarTabBecameActive()
         }
         .environmentObject(chatViewModel)
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
@@ -373,7 +406,7 @@ struct MainTabView: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 5) {
-                    Image(systemName: "message.badge")
+                    chatTabMessageIconWithUnreadBadge
                     if selectedTab == .chat {
                         Text("Chat")
                     }
@@ -387,17 +420,69 @@ struct MainTabView: View {
                 .clipShape(Capsule())
 
                 if chatViewModel.pendingBadgeCount > 0 {
-                    Text(chatViewModel.pendingBadgeCount > 99 ? "99+" : "\(chatViewModel.pendingBadgeCount)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(Color.red)
-                        .clipShape(Capsule())
+                    chatTabPillBadge(count: chatViewModel.pendingBadgeCount)
                         .offset(x: 6, y: -6)
                 }
             }
         }
+    }
+
+    /// Same gate as ``FriendsTabView`` inbox (not ``MapViewModel/canUsePrivateChat``, which can lag session used by ``ChatViewModel``).
+    private func chatTabUnreadBadgeVisible(unreadCount: Int) -> Bool {
+        !chatViewModel.requiresSignIn && unreadCount > 0
+    }
+
+    /// Manual unread pill: SwiftUI `.badge` on custom floating-tab labels is unreliable; match inbox ``unreadDirectMessageCount``.
+    /// Fixed layout size + padded overlay keeps the pill inside the tab row ``Capsule`` / floating bar clips (offsets do not expand layout).
+    private var chatTabMessageIconWithUnreadBadge: some View {
+        let n = chatViewModel.unreadDirectMessageCount
+        let show = chatTabUnreadBadgeVisible(unreadCount: n)
+        let label = n > 99 ? "99+" : "\(n)"
+
+        return ZStack {
+            Color.clear.frame(width: 44, height: 28)
+
+            Image(systemName: "message.fill")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .overlay(alignment: .topTrailing) {
+            if show {
+                Text(label)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, n > 9 ? 5 : 4)
+                    .frame(minWidth: 17, minHeight: 17)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 1, green: 0.42, blue: 0.12),
+                                        Color(red: 0.92, green: 0.18, blue: 0.08)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+                    // Inset from the reserved rect so the capsule tab bar and outer rounded bar do not clip the pill.
+                    .padding(.top, 4)
+                    .padding(.trailing, 4)
+                    .accessibilityLabel("\(n) unread messages")
+            }
+        }
+    }
+
+    private func chatTabPillBadge(count: Int) -> some View {
+        let label = count > 99 ? "99+" : "\(count)"
+        return Text(label)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Color.red)
+            .clipShape(Capsule())
     }
 
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {

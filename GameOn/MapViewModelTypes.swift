@@ -45,6 +45,29 @@ enum DiscoverCalendarDotPalette: Equatable {
     case pickupGames
 }
 
+/// Bottom-tab Calendar: filter list + day dots (session-only; not persisted).
+enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
+    case all
+    case venue
+    case pickup
+
+    var id: String { rawValue }
+
+    var segmentTitle: String {
+        switch self {
+        case .all: return "All"
+        case .venue: return "Venue games"
+        case .pickup: return "Pickup games"
+        }
+    }
+}
+
+/// UI / intent only. Split `interest_status` values require DB migration `20260630_0002_venue_event_interests_interest_status.sql`.
+enum VenueEventInterestStatusKind: String, Codable, Equatable, CaseIterable {
+    case interested
+    case going
+}
+
 struct VenueEventInsert: Encodable {
     let venue_id: UUID?
     let owner_email: String
@@ -164,6 +187,12 @@ struct VenueProfileOperationalUpdate: Encodable {
     let menu_photo_thumbnail_url: String?
 }
 
+/// PATCH only `latitude` / `longitude` on `public.venues` (e.g. approved listings missing geocode in DB).
+struct VenueCoordinatesPatch: Encodable {
+    let latitude: Double
+    let longitude: Double
+}
+
 struct VenueProfileRow: Decodable {
     let id: UUID?
     let owner_email: String?
@@ -188,6 +217,9 @@ struct VenueProfileRow: Decodable {
     let has_garden: Bool?
     let has_projector: Bool?
     let pet_friendly: Bool?
+    /// Present when `venues` row includes coordinates (guest Discover relies on these).
+    let latitude: Double?
+    let longitude: Double?
     let cover_photo_url: String?
     let menu_photo_url: String?
     let cover_photo_thumbnail_url: String?
@@ -412,6 +444,17 @@ enum VenueOwnershipClaimStatus: Equatable {
 struct VenueEventInterestInsert: Encodable {
     let venue_event_id: UUID
     let user_email: String
+
+    enum CodingKeys: String, CodingKey {
+        case venue_event_id
+        case user_email
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(venue_event_id.uuidString.lowercased(), forKey: .venue_event_id)
+        try c.encode(user_email, forKey: .user_email)
+    }
 }
 
 struct VenueEventInterestRow: Decodable {
@@ -455,6 +498,24 @@ struct UserProfileRow: Decodable {
     let is_business_account: Bool?
     let admin_status: String?
 
+    init(
+        id: UUID?,
+        email: String?,
+        display_name: String?,
+        avatar_url: String?,
+        avatar_thumbnail_url: String?,
+        is_business_account: Bool? = nil,
+        admin_status: String? = nil
+    ) {
+        self.id = id
+        self.email = email
+        self.display_name = display_name
+        self.avatar_url = avatar_url
+        self.avatar_thumbnail_url = avatar_thumbnail_url
+        self.is_business_account = is_business_account
+        self.admin_status = admin_status
+    }
+
     var isBusinessIdentity: Bool {
         is_business_account == true
     }
@@ -495,9 +556,12 @@ struct FollowingGoingDisplayItem: Identifiable {
     let id: UUID
     let venueEvent: VenueEventRow
     let bar: BarVenue
+    /// Total `venue_event_interests` rows for this event (legacy schema: one bucket).
     let attendeeCount: Int
-    /// `true` when the user has a `venue_event_interests` row; `false` when only tracked locally as Interested.
+    /// `true` when the current user has a server `venue_event_interests` row (UI pill: “Going”).
     let isServerGoing: Bool
+    /// Interested via UserDefaults only (no server row); UI pill: “Interested”.
+    let isInterestedOnlyLocal: Bool
 }
 
 /// Status pill for Following → “Games to Play” pickup join cards (`rejected` maps to ``declined``).

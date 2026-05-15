@@ -55,9 +55,9 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         viewModel: MapViewModel,
         chatViewModel: ChatViewModel
     ) async {
-        await MainActor.run {
-            viewModel.renderCachedDiscoverCore()
-        }
+        await viewModel.renderCachedDiscoverCore()
+
+        await viewModel.prepareInitialDiscoverRegionAndPreload()
 
         await viewModel.bootstrapAuthSessionOnly()
 

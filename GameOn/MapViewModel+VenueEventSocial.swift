@@ -3,10 +3,6 @@ import Supabase
 
 extension MapViewModel {
 
-    var canMarkInterest: Bool {
-        isAuthenticatedForSocialFeatures
-    }
-
     /// Same normalized **Supabase Auth session** email as ``strictNormalizedSessionEmailForSocialTables`` (writes + Following reloads). Do not substitute profile/owner UI emails.
     private func resolvedInterestMutationEmail() async -> String? {
         await strictNormalizedSessionEmailForSocialTables()
@@ -63,17 +59,6 @@ extension MapViewModel {
 #endif
             return
         }
-
-        if let index = followingTabGoingItems.firstIndex(where: { $0.id == venueEventID }) {
-            let item = followingTabGoingItems[index]
-            followingTabGoingItems[index] = FollowingGoingDisplayItem(
-                id: item.id,
-                venueEvent: item.venueEvent,
-                bar: item.bar,
-                attendeeCount: venueEventInterestCounts[venueEventID] ?? item.attendeeCount,
-                isServerGoing: hasServer
-            )
-        }
     }
 
     @MainActor
@@ -83,10 +68,11 @@ extension MapViewModel {
         let wasInterested = inDiscover || inFollowingTab
 
         if isInterested {
-            guard !wasInterested else { return }
-            venueEventInterestIDs.insert(venueEventID)
-            venueEventInterestCounts[venueEventID, default: 0] += 1
-            followingTabUserVenueEventInterestIDs.insert(venueEventID)
+            if !wasInterested {
+                venueEventInterestIDs.insert(venueEventID)
+                venueEventInterestCounts[venueEventID, default: 0] += 1
+                followingTabUserVenueEventInterestIDs.insert(venueEventID)
+            }
         } else {
             guard wasInterested else { return }
             venueEventInterestIDs.remove(venueEventID)
@@ -104,18 +90,11 @@ extension MapViewModel {
         refreshFollowing: Bool = true
     ) async -> Bool {
         guard !venueEventInterestWriteInFlightIDs.contains(venueEventID) else { return true }
-
-#if DEBUG
-        let sessionEmailForLog = await strictNormalizedSessionEmailForSocialTables()
-        let accountTypeLabel: String = {
-            if hasAuthenticatedVenueOwnerSession { return "business" }
-            if isLoggedIn { return "fan" }
-            if isVenueOwnerLoggedIn { return "venue_owner" }
-            return "other"
-        }()
-        print("[AttendanceIdentity] active user=\(sessionEmailForLog ?? "")")
-        print("[AttendanceIdentity] account type=\(accountTypeLabel)")
-#endif
+        guard canMarkGoing else {
+            logBusinessUserGateBlocked(action: "markGoing")
+            print("USER MUST BE LOGGED IN TO MARK INTEREST")
+            return false
+        }
 
         guard let interestEmail = await resolvedInterestMutationEmail() else {
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
@@ -150,7 +129,7 @@ extension MapViewModel {
                 try await supabase
                     .from("venue_event_interests")
                     .delete()
-                    .eq("venue_event_id", value: venueEventID)
+                    .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
                     .eq("user_email", value: interestEmail)
                     .execute()
             }
@@ -175,6 +154,10 @@ extension MapViewModel {
 #endif
             }
 
+            if isInterested {
+                await loadVisibleVenueEventInterests()
+            }
+
             return true
         } catch {
             let message = error.localizedDescription.lowercased()
@@ -183,6 +166,7 @@ extension MapViewModel {
                     venueEventInterestWriteInFlightIDs.remove(venueEventID)
                     applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: true)
                 }
+                await loadVisibleVenueEventInterests()
                 return true
             }
 
@@ -205,7 +189,10 @@ extension MapViewModel {
     }
 
     @discardableResult
-    func markInterestedInVenueEvent(venueEventID: UUID, refreshFollowing: Bool = true) async -> Bool {
+    func markInterestedInVenueEvent(
+        venueEventID: UUID,
+        refreshFollowing: Bool = true
+    ) async -> Bool {
         await setVenueEventInterest(
             venueEventID: venueEventID,
             isInterested: true,
@@ -290,12 +277,12 @@ extension MapViewModel {
         do {
             let interestRows: [VenueEventInterestRow] = try await supabase
                 .from("venue_event_interests")
-                .select()
-                .eq("venue_event_id", value: venueEventID)
+                .select("user_email")
+                .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
                 .execute()
                 .value
 
-            let emails = interestRows.compactMap { $0.user_email }
+            let emails = interestRows.compactMap(\.user_email)
 
             guard !emails.isEmpty else {
                 await MainActor.run {
@@ -324,6 +311,10 @@ extension MapViewModel {
     }
 
     func removeInterested(in bar: BarVenue, gameTitle: String) {
+        guard canMarkGoing else {
+            logBusinessUserGateBlocked(action: "markGoing")
+            return
+        }
         let key = venueEventInterestKey(for: bar, gameTitle: gameTitle)
         interestedVenueEventKeys.remove(key)
     }
@@ -339,6 +330,10 @@ extension MapViewModel {
     }
 
     func toggleInterest(in bar: BarVenue) {
+        guard canMarkGoing else {
+            logBusinessUserGateBlocked(action: "markGoing")
+            return
+        }
         guard let key = interestKey(for: bar) else { return }
 
         if interestedVenueEventKeys.contains(key) {
@@ -358,6 +353,10 @@ extension MapViewModel {
     }
 
     func markInterested(in bar: BarVenue, gameTitle: String) {
+        guard canMarkGoing else {
+            logBusinessUserGateBlocked(action: "markGoing")
+            return
+        }
         let key = venueEventInterestKey(for: bar, gameTitle: gameTitle)
         interestedVenueEventKeys.insert(key)
     }
@@ -378,6 +377,10 @@ extension MapViewModel {
     }
 
     func toggleInterestForSelectedEvent(at bar: BarVenue) {
+        guard canMarkGoing else {
+            logBusinessUserGateBlocked(action: "markGoing")
+            return
+        }
         guard let key = venueEventInterestKey(for: bar) else { return }
 
         if interestedVenueEventKeys.contains(key) {
@@ -501,11 +504,12 @@ extension MapViewModel {
                 let end = min(index + chunkSize, visibleEventIDs.count)
                 let chunk = Array(visibleEventIDs[index..<end])
                 index = end
+                let chunkIds = chunk.map { $0.uuidString.lowercased() }
 
                 let rows: [VenueEventInterestRow] = try await supabase
                     .from("venue_event_interests")
                     .select(selectCols)
-                    .in("venue_event_id", values: chunk)
+                    .in("venue_event_id", values: chunkIds)
                     .execute()
                     .value
 

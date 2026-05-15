@@ -33,6 +33,48 @@ extension MapViewModel {
         selectedDate.formatted(date: .abbreviated, time: .omitted)
     }
 
+    var formattedCalendarTabSelectedDate: String {
+        calendarTabSelectedDate.formatted(date: .abbreviated, time: .omitted)
+    }
+
+    /// Calendar tab day dots (today onward only), respecting ``calendarTabGameFilter``.
+    func calendarTabEventDotDatesForPicker() -> Set<Date> {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let merged: Set<Date>
+        switch calendarTabGameFilter {
+        case .all:
+            merged = venueGameCalendarDotDates.union(pickupGameCalendarDotDates)
+        case .venue:
+            merged = venueGameCalendarDotDates
+        case .pickup:
+            merged = pickupGameCalendarDotDates
+        }
+        return Set(merged.filter { cal.startOfDay(for: $0) >= today })
+    }
+
+    func calendarTabCalendarDotPaletteForFilter() -> DiscoverCalendarDotPalette? {
+        switch calendarTabGameFilter {
+        case .all:
+            return nil
+        case .venue:
+            return .venueGames
+        case .pickup:
+            return .pickupGames
+        }
+    }
+
+    var calendarTabCalendarDotsLoading: Bool {
+        switch calendarTabGameFilter {
+        case .all:
+            return isLoadingVenueCalendarDots || isLoadingPickupCalendarDots
+        case .venue:
+            return isLoadingVenueCalendarDots
+        case .pickup:
+            return isLoadingPickupCalendarDots
+        }
+    }
+
     func goingCount(for bar: BarVenue) -> Int {
         guard let selectedEvent else { return 0 }
         return bar.goingCounts[selectedEvent.title] ?? 0

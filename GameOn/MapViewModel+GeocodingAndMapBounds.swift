@@ -3,6 +3,141 @@ import Foundation
 import MapKit
 import SwiftUI
 
+fileprivate enum DiscoverLocationFetchResult {
+    case coordinate(CLLocationCoordinate2D)
+    case unavailable(reason: String)
+}
+
+/// One-shot Core Location fetch for the Discover map “current location” control (no Utah/Lehi fallback).
+private final class DiscoverCurrentLocationFetchSession: NSObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    private var continuation: CheckedContinuation<DiscoverLocationFetchResult, Never>?
+    private let lock = NSLock()
+    private var hasFinished = false
+    private var timeoutTask: Task<Void, Never>?
+
+    func fetchBestCoordinateOnce(timeoutSeconds: TimeInterval = 12) async -> DiscoverLocationFetchResult {
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            manager.delegate = self
+            manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+            manager.distanceFilter = kCLDistanceFilterNone
+
+            let status = manager.authorizationStatus
+#if DEBUG
+            print("[CurrentLocationButton] permission=\(Self.authDebugLabel(status))")
+#endif
+            switch status {
+            case .notDetermined:
+                manager.requestWhenInUseAuthorization()
+            case .authorizedAlways, .authorizedWhenInUse:
+                manager.requestLocation()
+            case .denied, .restricted:
+                finishUnavailable(reason: "authorizationDeniedOrRestricted")
+            @unknown default:
+                finishUnavailable(reason: "unknownAuthorization")
+            }
+
+            timeoutTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(timeoutSeconds))
+                self?.finishUnavailable(reason: "timeout")
+            }
+        }
+    }
+
+    private static func authDebugLabel(_ status: CLAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "notDetermined"
+        case .restricted: return "restricted"
+        case .denied: return "denied"
+        case .authorizedAlways: return "authorizedAlways"
+        case .authorizedWhenInUse: return "authorizedWhenInUse"
+        @unknown default: return "unknown(\(status.rawValue))"
+        }
+    }
+
+    private func tearDownLocationUpdates() {
+        manager.stopUpdatingLocation()
+        manager.delegate = nil
+    }
+
+    private func finishSuccess(_ coordinate: CLLocationCoordinate2D) {
+        lock.lock()
+        guard !hasFinished else {
+            lock.unlock()
+            return
+        }
+        hasFinished = true
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        let cont = continuation
+        continuation = nil
+        lock.unlock()
+
+        tearDownLocationUpdates()
+
+        cont?.resume(returning: .coordinate(coordinate))
+    }
+
+    private func finishUnavailable(reason: String) {
+        lock.lock()
+        guard !hasFinished else {
+            lock.unlock()
+            return
+        }
+        hasFinished = true
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        let cont = continuation
+        continuation = nil
+        lock.unlock()
+
+        tearDownLocationUpdates()
+
+        cont?.resume(returning: .unavailable(reason: reason))
+    }
+
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+#if DEBUG
+        print("[CurrentLocationButton] permission=\(Self.authDebugLabel(status))")
+#endif
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            manager.requestLocation()
+        case .denied, .restricted:
+            finishUnavailable(reason: "authorizationDeniedOrRestricted")
+        case .notDetermined:
+            break
+        @unknown default:
+            finishUnavailable(reason: "unknownAuthorization")
+        }
+    }
+
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.last else {
+            finishUnavailable(reason: "noLocationFix")
+            return
+        }
+        let c = loc.coordinate
+        guard CLLocationCoordinate2DIsValid(c) else {
+            finishUnavailable(reason: "invalidCoordinate")
+            return
+        }
+#if DEBUG
+        print("[CurrentLocationButton] realLocation=\(c.latitude),\(c.longitude)")
+#endif
+        finishSuccess(c)
+    }
+
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+#if DEBUG
+        print("[CurrentLocationButton] locationManagerFailed error=\(error.localizedDescription)")
+#endif
+        finishUnavailable(reason: "locationError")
+    }
+}
+
 extension MapViewModel {
 
     func experience(for bar: BarVenue) -> VenueExperience? {
@@ -219,40 +354,81 @@ extension MapViewModel {
         discoverClusteredBarsCacheKey = nil
         discoverClusteredBarsCache = nil
 
-        let region = cameraPosition.region
-        let localOrdered = discoverVenueSearchLocalMatchesOrdered(query: q, region: region)
-        #if DEBUG
-        print("[VenueSearch] local results count=\(localOrdered.count)")
-        #endif
+        let kind = discoverMapSearchKind(for: q)
 
         if q.count < 2 {
-            venueSearchResults = localOrdered
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+#if DEBUG
+                let t0 = Date()
+#endif
+                if kind == .globalPlace {
+                    self.venueSearchResults = []
+                    if let coord = await self.geocodeAddress(q) {
+                        self.cameraPosition = .region(
+                            MKCoordinateRegion(
+                                center: coord,
+                                span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+                            )
+                        )
+                    }
+#if DEBUG
+                    let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                    print("[DiscoverMapSearchPerf] query=\"\(q)\" kind=\(kind.rawValue) candidates=\(self.venueSearchResults.count) elapsedMs=\(ms) cancelled=no")
+#endif
+                } else {
+                    let localOnly = await self.discoverRegionBoundAppContentSearchOrderedDetached(query: q)
+                    self.venueSearchResults = localOnly
+#if DEBUG
+                    let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                    print("[DiscoverMapSearchPerf] query=\"\(q)\" kind=\(kind.rawValue) candidates=\(localOnly.count) elapsedMs=\(ms) cancelled=no")
+#endif
+                }
+            }
             return
         }
 
-        Task { @MainActor in
-            isDiscoverVenueSearchLoading = true
-            defer { isDiscoverVenueSearchLoading = false }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isDiscoverVenueSearchLoading = true
+            defer { self.isDiscoverVenueSearchLoading = false }
+#if DEBUG
+            let t0 = Date()
+#endif
+            if kind == .globalPlace {
+                let remote = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: false)
+                self.venueSearchResults = remote
+#if DEBUG
+                let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                print("[DiscoverMapSearchPerf] query=\"\(q)\" kind=\(kind.rawValue) candidates=\(remote.count) elapsedMs=\(ms) cancelled=no")
+#endif
+                if remote.isEmpty, let coord = await self.geocodeAddress(q) {
+                    self.venueSearchResults = []
+                    self.cameraPosition = .region(
+                        MKCoordinateRegion(
+                            center: coord,
+                            span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+                        )
+                    )
+                }
+                return
+            }
 
-            #if DEBUG
-            let tSearch0 = Date()
-            #endif
-            let remoteMatches = await fetchDiscoverVenueSearchBars(query: q)
-            #if DEBUG
-            let remoteMs = Int(Date().timeIntervalSince(tSearch0) * 1000)
-            print("[Phase1Perf] discoverSearch keyboardGo remoteVenuesMs=\(remoteMs) rows=\(remoteMatches.count) query=\(q)")
-            #endif
-
+            let localOrdered = await self.discoverRegionBoundAppContentSearchOrderedDetached(query: q)
+            let remoteMatches = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: true)
             var seen = Set(localOrdered.map(\.id))
             var merged: [BarVenue] = localOrdered
             for b in remoteMatches where seen.insert(b.id).inserted {
                 merged.append(b)
             }
-            venueSearchResults = merged
-
-            if merged.isEmpty, let coord = await geocodeAddress(q) {
-                venueSearchResults = []
-                cameraPosition = .region(
+            self.venueSearchResults = merged
+#if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[DiscoverMapSearchPerf] query=\"\(q)\" kind=\(kind.rawValue) candidates=\(merged.count) elapsedMs=\(ms) cancelled=no")
+#endif
+            if merged.isEmpty, let coord = await self.geocodeAddress(q) {
+                self.venueSearchResults = []
+                self.cameraPosition = .region(
                     MKCoordinateRegion(
                         center: coord,
                         span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
@@ -306,6 +482,77 @@ extension MapViewModel {
                 continuation.resume(returning: (street, city, state))
             }
         }
+    }
+
+    /// Discover “my location” control: centers on a real GPS fix using the same span rule as ``centerMap(on:selectedBar:)`` (not Utah/Lehi fallback).
+    @discardableResult
+    func centerDiscoverMapOnUserPhysicalLocationIfPossible() async -> Bool {
+        let session = DiscoverCurrentLocationFetchSession()
+        let result = await session.fetchBestCoordinateOnce(timeoutSeconds: 12)
+        guard case .coordinate(let coordinate) = result else {
+#if DEBUG
+            print("[CurrentLocationButton] noRealLocationAvailable requestingPermissionOrUpdate")
+#endif
+            return false
+        }
+        let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: spanVal, longitudeDelta: spanVal)
+            )
+        )
+#if DEBUG
+        print("[CurrentLocationButton] centeredMapOnUserLocation")
+#endif
+        return true
+    }
+
+    private static let startupDiscoverInitialRadiusMiles: Double = 15
+
+    /// Startup: optional GPS center + 15 mi region, then arms the next ``refreshDiscoverCoreInBackground()`` for DEBUG completion logging. Runs once per launch (see ``didFinishStartupDiscoverPrepare``).
+    func prepareInitialDiscoverRegionAndPreload() async {
+        guard !didFinishStartupDiscoverPrepare else { return }
+        defer {
+            didFinishStartupDiscoverPrepare = true
+            startupDiscoverPreloadCompletionLogPending = true
+        }
+
+        let session = DiscoverCurrentLocationFetchSession()
+        let result = await session.fetchBestCoordinateOnce(timeoutSeconds: 3)
+        switch result {
+        case .coordinate(let c):
+#if DEBUG
+            print("[StartupDiscover] userLocationFound lat=\(c.latitude) lon=\(c.longitude)")
+            print("[StartupDiscover] usingInitialRadiusMiles=\(Self.startupDiscoverInitialRadiusMiles)")
+#endif
+            cameraPosition = .region(
+                Self.discoverStartupMKRegion(center: c, radiusMiles: Self.startupDiscoverInitialRadiusMiles)
+            )
+        case .unavailable(let reason):
+#if DEBUG
+            print("[StartupDiscover] fallbackToDefaultRegion reason=\(reason)")
+#endif
+            break
+        }
+
+#if DEBUG
+        print("[StartupDiscover] preloadStarted")
+#endif
+    }
+
+    private static func discoverStartupMKRegion(center: CLLocationCoordinate2D, radiusMiles: Double) -> MKCoordinateRegion {
+        let latHalf = radiusMiles / 69.0
+        let cosLat = max(cos(center.latitude * .pi / 180.0), 0.01)
+        let lonMilesPerDegree = cosLat * 69.172
+        let lonHalf = radiusMiles / lonMilesPerDegree
+        return MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(
+                latitudeDelta: max(latHalf * 2, 0.02),
+                longitudeDelta: max(lonHalf * 2, 0.02)
+            )
+        )
     }
 
     /// Axis-aligned bounds of the current map camera region (Supabase venue windowing).

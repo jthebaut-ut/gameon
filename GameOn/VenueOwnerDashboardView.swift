@@ -137,6 +137,8 @@ struct VenueOwnerDashboardView: View {
     @State private var didPickInitialManageGamesTab = false
     @State private var myVenueGamesForManage: [VenueEventRow] = []
     @State private var manageGamesListLoading = false
+    /// Prevents stacked ``refreshManageGamesList`` runs (e.g. profile `.task` + games `.task` churn) from freezing UI.
+    @State private var manageGamesRefreshInFlight = false
     @State private var manageGamesFeedback = ""
     @State private var manageGamesError = ""
     @State private var isSavingNewGame = false
@@ -246,7 +248,10 @@ struct VenueOwnerDashboardView: View {
             .padding()
         }
         .background(FGAdaptiveSurface.sheetRoot)
-        .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in
+        .onChange(of: viewModel.ownerVenueDatabaseId) { _, newId in
+#if DEBUG
+            print("[ManageGamesDebug] ownerVenueDatabaseId changed → \(newId?.uuidString ?? "nil")")
+#endif
             clearManageGamesTransientStateForVenueSwitch()
             clearAnalyticsGameHistoryState()
         }
@@ -683,7 +688,7 @@ struct VenueOwnerDashboardView: View {
     ]
 
     private var analyticsSportFilterOptions: [String] {
-        ["All"] + viewModel.sports.filter { $0 != "All" }
+        ["All"] + AppSportCatalog.sportsExcludingAll
     }
 
     private var venueAnalyticsFilterBar: some View {
@@ -1283,6 +1288,11 @@ struct VenueOwnerDashboardView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .onChange(of: manageGamesListTab) { oldTab, newTab in
+#if DEBUG
+                print("[ManageGamesDebug] manageGamesListTab changed \(oldTab.rawValue) → \(newTab.rawValue)")
+#endif
+            }
 
             if !manageGamesFeedback.isEmpty {
                 Text(manageGamesFeedback)
@@ -1301,7 +1311,7 @@ struct VenueOwnerDashboardView: View {
             case .scheduled:
                 manageGamesListPane
             case .add:
-                manageGamesAddPane
+                addGamePane
             }
         }
         .padding()
@@ -1312,6 +1322,9 @@ struct VenueOwnerDashboardView: View {
                 .strokeBorder(Color(.separator).opacity(0.45), lineWidth: 1)
         )
         .task(id: viewModel.ownerVenueDatabaseId) {
+#if DEBUG
+            print("[ManageGamesDebug] manageGames .task fired ownerVenueId=\(viewModel.ownerVenueDatabaseId?.uuidString ?? "nil")")
+#endif
             await refreshManageGamesList(isInitialPick: !didPickInitialManageGamesTab)
         }
         .confirmationDialog(
@@ -1456,9 +1469,19 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
+        .onAppear {
+#if DEBUG
+            print("[ManageGamesDebug] scheduled games list pane appear rows=\(myVenueGamesForManage.count) loading=\(manageGamesListLoading)")
+#endif
+        }
+        .onDisappear {
+#if DEBUG
+            print("[ManageGamesDebug] scheduled games list pane disappear")
+#endif
+        }
     }
 
-    private var manageGamesAddPane: some View {
+    private var addGamePane: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add Game")
                 .font(.title2)
@@ -1471,7 +1494,14 @@ struct VenueOwnerDashboardView: View {
             addGameFormFields
         }
         .onAppear {
-            clampSchedulePickersToNow()
+#if DEBUG
+            print("[ManageGamesAddPane] render")
+#endif
+        }
+        .onDisappear {
+#if DEBUG
+            print("[ManageGamesAddPane] disappear")
+#endif
         }
     }
 
@@ -1515,39 +1545,43 @@ struct VenueOwnerDashboardView: View {
         return lo...lo.addingTimeInterval(60)
     }
 
-    private func clampSchedulePickersToNow() {
-        let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
-            gameDate: gameDate,
-            gameStartTime: gameStartTime
-        )
-        if clamped.0 != gameDate { gameDate = clamped.0 }
-        if clamped.1 != gameStartTime { gameStartTime = clamped.1 }
-    }
-
     private var addGameFormFields: some View {
         Group {
             field("Game title, example: France vs Brazil", text: $gameTitle)
-            DatePicker(
-                "Game Date",
-                selection: $gameDate,
-                in: minimumSelectableGameCalendarDate...Date.distantFuture,
-                displayedComponents: .date
-            )
+                .onAppear {
+#if DEBUG
+                    print("[ManageGamesAddPane] title appear")
+#endif
+                }
+
+            Group {
+                DatePicker(
+                    "Game Date",
+                    selection: $gameDate,
+                    in: minimumSelectableGameCalendarDate...Date.distantFuture,
+                    displayedComponents: .date
+                )
                 .fontWeight(.semibold)
                 .padding()
                 .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
 
-            DatePicker(
-                "Start Time",
-                selection: $gameStartTime,
-                in: gameStartTimePickerClosedRange,
-                displayedComponents: .hourAndMinute
-            )
+                DatePicker(
+                    "Start Time",
+                    selection: $gameStartTime,
+                    in: gameStartTimePickerClosedRange,
+                    displayedComponents: .hourAndMinute
+                )
                 .fontWeight(.semibold)
                 .padding()
                 .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .onAppear {
+#if DEBUG
+                print("[ManageGamesAddPane] date picker appear")
+#endif
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Remove game data after")
@@ -1565,17 +1599,18 @@ struct VenueOwnerDashboardView: View {
             .padding()
             .background(FGAdaptiveSurface.controlFill)
             .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            Picker("Sport", selection: $viewModel.ownerVenuePrimarySport) {
-                ForEach(viewModel.sports.filter { $0 != "All" }, id: \.self) { sport in
-                    Text(sport).tag(sport)
-                }
+            .onAppear {
+#if DEBUG
+                print("[ManageGamesAddPane] cleanup appear")
+#endif
             }
-            .pickerStyle(.menu)
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FGAdaptiveSurface.controlFill)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+
+            GameSportSearchablePickerDashboardCard(selection: $viewModel.ownerVenuePrimarySport)
+                .onAppear {
+#if DEBUG
+                    print("[ManageGamesAddPane] sport appear")
+#endif
+                }
 
             Toggle("Audio / sound will be ON", isOn: $soundOn)
                 .fontWeight(.semibold)
@@ -1634,6 +1669,9 @@ struct VenueOwnerDashboardView: View {
             }
 
             Button {
+#if DEBUG
+                print("[ManageGamesAddPane] save tapped")
+#endif
                 Task {
                     await saveNewVenueGameFromForm()
                 }
@@ -1650,8 +1688,6 @@ struct VenueOwnerDashboardView: View {
             }
             .disabled(isSavingNewGame)
         }
-        .onChange(of: gameDate) { _, _ in clampSchedulePickersToNow() }
-        .onChange(of: gameStartTime) { _, _ in clampSchedulePickersToNow() }
     }
 
     private func clearManageGamesBanners() {
@@ -1667,6 +1703,8 @@ struct VenueOwnerDashboardView: View {
         showCancelGameDialog = false
         cancelGameRowSnapshot = nil
         didPickInitialManageGamesTab = false
+        manageGamesRefreshInFlight = false
+        manageGamesListLoading = false
 #if DEBUG
         print("[BusinessGameState] cleared transient game state for venue switch")
 #endif
@@ -1717,11 +1755,27 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func refreshManageGamesList(isInitialPick: Bool) async {
-        await MainActor.run {
+        let entered = await MainActor.run { () -> Bool in
+            guard !manageGamesRefreshInFlight else { return false }
+            manageGamesRefreshInFlight = true
             manageGamesListLoading = true
+            return true
+        }
+        guard entered else {
+#if DEBUG
+            print("[ManageGamesDebug] refreshManageGamesList skipped (already in flight) isInitialPick=\(isInitialPick)")
+#endif
+            return
         }
 
+#if DEBUG
+        print("[ManageGamesDebug] refreshManageGamesList begin isInitialPick=\(isInitialPick)")
+#endif
+
         let rows = await viewModel.loadMyVenueScheduledGames()
+#if DEBUG
+        print("[ManageGamesDebug] loadMyVenueScheduledGames returned count=\(rows.count)")
+#endif
         let ids = rows.compactMap(\.id)
         await viewModel.loadInterestCountsForVenueEventIDs(ids)
         await withTaskGroup(of: Void.self) { group in
@@ -1736,19 +1790,36 @@ struct VenueOwnerDashboardView: View {
         await MainActor.run {
             myVenueGamesForManage = rows
             manageGamesListLoading = false
+            manageGamesRefreshInFlight = false
 
             if isInitialPick, !didPickInitialManageGamesTab {
                 didPickInitialManageGamesTab = true
-                manageGamesListTab = rows.isEmpty ? .add : .scheduled
+                let nextTab: ManageGamesListTab = rows.isEmpty ? .add : .scheduled
+                if manageGamesListTab != nextTab {
+                    manageGamesListTab = nextTab
+                }
             }
-            if rows.isEmpty, manageGamesListTab == .scheduled {
-                manageGamesListTab = .add
-            }
+#if DEBUG
+            print("[ManageGamesDebug] refreshManageGamesList end rows=\(rows.count) tab=\(manageGamesListTab.rawValue)")
+#endif
         }
     }
 
     private func saveNewVenueGameFromForm() async {
-        let trimmedTitle = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTitle: String
+        let scheduleStillPast: Bool
+        (trimmedTitle, scheduleStillPast) = await MainActor.run {
+            let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
+                gameDate: gameDate,
+                gameStartTime: gameStartTime
+            )
+            gameDate = clamped.0
+            gameStartTime = clamped.1
+            let t = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            let past = VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime)
+            return (t, past)
+        }
+
         guard !trimmedTitle.isEmpty else {
             await MainActor.run {
                 manageGamesError = "Enter a game title before saving."
@@ -1757,7 +1828,7 @@ struct VenueOwnerDashboardView: View {
             return
         }
 
-        if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
+        if scheduleStillPast {
             await MainActor.run {
                 manageGamesError = VenueOwnerGameScheduleValidation.futureDateTimeMessage
                 manageGamesFeedback = ""
@@ -1770,24 +1841,43 @@ struct VenueOwnerDashboardView: View {
             clearManageGamesBanners()
         }
 
+        let snapshot = await MainActor.run {
+            (
+                sport: viewModel.ownerVenuePrimarySport,
+                gameDate: gameDate,
+                gameStartTime: gameStartTime,
+                soundOn: soundOn,
+                teamFanbase: teamFanbase,
+                crowdLevel: crowdLevel,
+                liveOccupancy: liveOccupancy,
+                seating: seating,
+                numberOfTVs: numberOfTVs,
+                gameSpecial: gameSpecial,
+                coverCharge: coverCharge,
+                reservationsAvailable: reservationsAvailable,
+                waitlistAvailable: waitlistAvailable,
+                cleanupDelayHours: cleanupDelayHours
+            )
+        }
+
         let result = await viewModel.saveVenueGameListingAsync(
             gameTitle: trimmedTitle,
-            sport: viewModel.ownerVenuePrimarySport,
-            gameDate: gameDate,
-            gameStartTime: gameStartTime,
-            soundOn: soundOn,
-            audioType: soundOn ? .full : .none,
-            teamFanbase: teamFanbase,
+            sport: snapshot.sport,
+            gameDate: snapshot.gameDate,
+            gameStartTime: snapshot.gameStartTime,
+            soundOn: snapshot.soundOn,
+            audioType: snapshot.soundOn ? .full : .none,
+            teamFanbase: snapshot.teamFanbase,
             atmosphere: "",
-            crowdLevel: crowdLevel,
-            liveOccupancy: liveOccupancy,
-            seating: seating,
-            numberOfTVs: "\(numberOfTVs)",
-            drinkSpecial: gameSpecial,
-            coverCharge: coverCharge,
-            reservationInfo: reservationsAvailable ? "Reservations available" : "",
-            socialCoordination: waitlistAvailable ? "Waitlist available" : "",
-            cleanupDelayHours: cleanupDelayHours
+            crowdLevel: snapshot.crowdLevel,
+            liveOccupancy: snapshot.liveOccupancy,
+            seating: snapshot.seating,
+            numberOfTVs: "\(snapshot.numberOfTVs)",
+            drinkSpecial: snapshot.gameSpecial,
+            coverCharge: snapshot.coverCharge,
+            reservationInfo: snapshot.reservationsAvailable ? "Reservations available" : "",
+            socialCoordination: snapshot.waitlistAvailable ? "Waitlist available" : "",
+            cleanupDelayHours: snapshot.cleanupDelayHours
         )
 
         await MainActor.run {

@@ -460,7 +460,11 @@ struct SettingsScreen: View {
                                     title: "My pickup games",
                                     subtitle: "View, edit, or remove games you posted.",
                                     systemImage: "list.bullet.rectangle"
-                                )
+                                ) {
+                                    if viewModel.pendingPickupGameJoinRequestCount > 0 {
+                                        settingsPickupOrganizerPendingBadge(count: viewModel.pendingPickupGameJoinRequestCount)
+                                    }
+                                }
                             }
                             .buttonStyle(.plain)
 
@@ -563,12 +567,25 @@ struct SettingsScreen: View {
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
+                Task {
+                    await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+                    if viewModel.canFanUsePickupGamesUI {
+                        await viewModel.loadMyPickupGamesForSettings()
+                    }
+                }
             }
         }
         .onChange(of: viewModel.openVenueOwnerAuthSheetFromClaimFlow) { _, shouldPresent in
             guard shouldPresent else { return }
             showVenueAuthSheet = true
             viewModel.openVenueOwnerAuthSheetFromClaimFlow = false
+        }
+        .onChange(of: viewModel.presentFanUserAuthSheetFromDiscover) { _, shouldPresent in
+            guard shouldPresent else { return }
+            showRegisterMode = viewModel.fanUserAuthSheetOpenInRegisterMode
+            showUserAuthSheet = true
+            viewModel.presentFanUserAuthSheetFromDiscover = false
+            viewModel.fanUserAuthSheetOpenInRegisterMode = false
         }
         .onChange(of: showUserAuthSheet) { _, isPresented in
             password = ""
@@ -845,6 +862,19 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
+        settingsRow(title: title, subtitle: subtitle, systemImage: systemImage, tint: tint) {
+            EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func settingsRow<Trailing: View>(
+        title: String,
+        subtitle: String?,
+        systemImage: String,
+        tint: Color = .primary,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
         HStack(alignment: .center, spacing: FGSpacing.md) {
             ZStack {
                 RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
@@ -873,6 +903,8 @@ struct SettingsScreen: View {
 
             Spacer(minLength: 0)
 
+            trailing()
+
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(FGColor.mutedText(colorScheme))
@@ -882,6 +914,23 @@ struct SettingsScreen: View {
         .padding(.vertical, 13)
         .frame(minHeight: 66, alignment: .center)
         .contentShape(Rectangle())
+    }
+
+    /// Trailing pill for Settings → My pickup games when the fan organizer has pending join requests (same count as Account tab badge).
+    @ViewBuilder
+    private func settingsPickupOrganizerPendingBadge(count: Int) -> some View {
+        let label = count > 9 ? "9+" : "\(count)"
+        Text(label)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(.white)
+            .frame(minWidth: 22, minHeight: 22)
+            .padding(.horizontal, count > 9 ? 6 : 0)
+            .background(Color.orange, in: Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.35 : 0.9), lineWidth: 1)
+            )
+            .accessibilityLabel("\(count) pending join requests on your pickup games")
     }
 
     /// Non-interactive settings row (no chevron) for read-only info such as venue claim status.

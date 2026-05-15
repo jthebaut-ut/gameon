@@ -139,6 +139,14 @@ extension MapViewModel {
         print("[BusinessSignup] validation passed proceeding to auth.signUp")
 #endif
 
+        if await activeFanUserProfileExistsForEmail(ownerEmail) {
+#if DEBUG
+            print("[AuthAccountTypeGate] business registration blocked fanEmail=\(ownerEmail)")
+#endif
+            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            return
+        }
+
         do {
 #if DEBUG
             print("[BusinessSignup] auth signup started email=\(ownerEmail)")
@@ -438,6 +446,26 @@ extension MapViewModel {
                 email: ownerEmail,
                 password: password
             )
+
+            guard let session = try? await supabase.auth.session else {
+                try? await supabase.auth.signOut()
+                await MainActor.run {
+                    isVenueOwnerLoggedIn = false
+                    clearVenueOwnerOwnedBusinessCaches()
+                    ownerVenueDatabaseId = nil
+                    venueAuthErrorMessage = "Unable to login venue owner."
+                }
+                return
+            }
+
+            if await shouldBlockBusinessOwnerLogin(sessionEmail: ownerEmail, userId: session.user.id) {
+#if DEBUG
+                print("[AuthAccountTypeGate] business login blocked fanEmail=\(ownerEmail)")
+#endif
+                await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+                await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+                return
+            }
 
             await MainActor.run {
                 clearAuthenticatedSessionCaches()
@@ -2225,7 +2253,8 @@ extension MapViewModel {
                 print("[VenueDetailsLock] approved venue identity fields locked")
                 print("[VenueDetailsLock] saving editable fields only")
 #endif
-                if let baseline = await loadVenueProfile() {
+                let baseline = await loadVenueProfile()
+                if let baseline {
                     await MainActor.run {
                         applyLockedVenueIdentityFromServerRow(baseline)
                     }
@@ -2255,6 +2284,30 @@ extension MapViewModel {
                     .update(operationalPatch)
                     .eq("id", value: venueId.uuidString.lowercased())
                     .execute()
+
+                if let baseline,
+                   baseline.latitude == nil || baseline.longitude == nil {
+                    let lockedAddress = [
+                        baseline.address,
+                        baseline.city,
+                        baseline.state,
+                        baseline.zip_code
+                    ]
+                    .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                    .joined(separator: ", ")
+
+                    if !lockedAddress.isEmpty, let coord = await geocodeAddress(lockedAddress) {
+#if DEBUG
+                        print("[VenueCoordBackfill] locked venue id=\(venueId.uuidString.lowercased()) geocoded lat=\(coord.latitude) lon=\(coord.longitude)")
+#endif
+                        try await supabase
+                            .from("venues")
+                            .update(VenueCoordinatesPatch(latitude: coord.latitude, longitude: coord.longitude))
+                            .eq("id", value: venueId.uuidString.lowercased())
+                            .execute()
+                    }
+                }
             } else {
                 let fullAddress = [
                     streetAddress,
@@ -2572,7 +2625,7 @@ extension MapViewModel {
                 )
             }
 
-            applyCreatedVenueEventLocally(row)
+            await applyCreatedVenueEventLocally(row)
 
             Task { [weak self] in
                 await self?.refreshDiscoverCoreInBackground(forceVenueRefresh: true)
@@ -2584,6 +2637,12 @@ extension MapViewModel {
             let eid = row.id?.uuidString ?? "nil"
             print("[BusinessGamePublish] inserted event id=\(eid) title=\(row.event_title ?? "") date=\(row.event_date ?? "") sport=\(row.sport ?? "")")
             print("[VenueGameSave] insert ok venue_id=\(vidStr) venue_name=\(row.venue_name ?? "") event_date=\(row.event_date ?? "") sport=\(row.sport ?? "") admin_status=\(adm)")
+            print(
+                "[VenueEventsWriteAudit] table=venue_events venue_id=\(vidStr) event_date=\(row.event_date ?? "nil") event_time=\(row.event_time ?? "nil") scheduled_start_at=\(row.scheduled_start_at ?? "nil") sport=\(row.sport ?? "nil") admin_status=\(adm) status=(not sent by client) is_visible=(not in VenueEventInsert/VenueEventRow client model)"
+            )
+            print(
+                "[DiscoverDotsSave] table=venue_events op=insert venue_id=\(vidStr) event_id=\(eid) event_date=\(row.event_date ?? "nil") scheduled_start_at=\(row.scheduled_start_at ?? "nil") sport=\(row.sport ?? "nil") admin_status=\(adm) (no status/is_visible columns on client venue_events model)"
+            )
 #endif
             print("GAME LISTING SAVED")
             return .success(row)
@@ -2717,6 +2776,17 @@ extension MapViewModel {
 
             print("UPDATED ROW COUNT:", updatedRows.count)
             print("UPDATED ROWS:", updatedRows)
+
+#if DEBUG
+            if let u = updatedRows.first {
+                let vidStr = u.venue_id?.uuidString ?? "nil"
+                let eid = u.id?.uuidString ?? "nil"
+                let adm = u.admin_status ?? "nil"
+                print(
+                    "[DiscoverDotsSave] table=venue_events op=update venue_id=\(vidStr) event_id=\(eid) event_date=\(u.event_date ?? "nil") scheduled_start_at=\(u.scheduled_start_at ?? "nil") sport=\(u.sport ?? "nil") admin_status=\(adm) (no status/is_visible columns on client venue_events model)"
+                )
+            }
+#endif
 
         } catch {
             print("ERROR UPDATING VENUE GAME:", error)
@@ -2883,7 +2953,7 @@ extension MapViewModel {
             print("[BusinessGameCancel] database update/delete completed event_id=\(id.uuidString.lowercased())")
 #endif
 
-            applyCancelledVenueEventLocally(
+            await applyCancelledVenueEventLocally(
                 removedEventId: id,
                 venueId: game.venue_id,
                 venueName: game.venue_name,
@@ -2920,10 +2990,11 @@ extension MapViewModel {
                 let chunk = Array(unique[index..<end])
                 index = end
 
+                let idStrings = chunk.map { $0.uuidString.lowercased() }
                 let rows: [VenueEventInterestRow] = try await supabase
                     .from("venue_event_interests")
                     .select("venue_event_id")
-                    .in("venue_event_id", values: chunk)
+                    .in("venue_event_id", values: idStrings)
                     .execute()
                     .value
 

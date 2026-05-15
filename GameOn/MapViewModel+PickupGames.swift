@@ -6,16 +6,40 @@ let pickupGamesSelectColumns =
     "id,creator_user_id,creator_email,title,sport,description,skill_level,game_start_at,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
 private struct PickupGameCalendarRow: Decodable {
+    let id: UUID?
+    let title: String?
+    let sport: String?
     let game_start_at: String
+    let remove_after_at: String?
+    let status: String?
+    let is_visible: Bool?
+}
+
+/// DEBUG-only: minimal columns for ``logPickupGamesAnonDiagnosticProbeUnfiltered`` (not used for UI).
+private struct PickupGameAnonDiagnosticProbeRow: Decodable {
+    let id: UUID?
+    let title: String?
+    let sport: String?
+    let game_start_at: String?
+    let status: String?
+    let is_visible: Bool?
     let remove_after_at: String?
 }
 
-extension MapViewModel {
+private func pickupDebugYMD(_ d: Date) -> String {
+    let c = Calendar.current
+    let y = c.component(.year, from: d)
+    let m = c.component(.month, from: d)
+    let day = c.component(.day, from: d)
+    return String(format: "%04d-%02d-%02d", y, m, day)
+}
 
-    /// Pickup CRUD and Settings entry are for authenticated users who are not in a venue-owner/business session.
-    var canFanUsePickupGamesUI: Bool {
-        isAuthenticatedForSocialFeatures && !hasAuthenticatedVenueOwnerSession
-    }
+/// PostgREST `or` filter: public pickup reads include rows with no `remove_after_at` or a future cleanup timestamp.
+private func pickupGamesDiscoverRemoveAfterOrFilter(nowISO: String) -> String {
+    "remove_after_at.is.null,remove_after_at.gt.\(nowISO)"
+}
+
+extension MapViewModel {
 
     func clearPickupMapSelection() {
         selectedPickupGameForMap = nil
@@ -72,10 +96,6 @@ extension MapViewModel {
     func onDiscoverMapBecamePickupGamesFromUserToggle() {
         Task { @MainActor in
             guard discoverMapContentMode == .pickupGames else { return }
-            guard isAuthenticatedForSocialFeatures else {
-                pickupGamesForDiscoverMap = []
-                return
-            }
             guard pickupDiscoverCoordinatorDirty else { return }
             if pickupGamesForDiscoverMap.isEmpty {
                 setDiscoverMapStatus("Updating map…", isLoading: true)
@@ -89,22 +109,23 @@ extension MapViewModel {
 
     /// Distinct local calendar days with at least one visible pickup game in ``dateMin``…``dateMax`` (inclusive by day), respecting ``selectedSport``.
     func fetchPickupGameCalendarDotDatesForDiscoverRange(dateMin: Date, dateMax: Date) async throws -> Set<Date> {
-        guard isAuthenticatedForSocialFeatures else { return [] }
         let cal = Calendar.current
         let rangeStart = cal.startOfDay(for: dateMin)
         let lastDayStart = cal.startOfDay(for: dateMax)
         guard let endExclusive = cal.date(byAdding: .day, value: 1, to: lastDayStart) else { return [] }
         let now = Date()
         let nowISO = PickupGameModels.encodeSupabaseTimestamptz(now)
-        let startISO = PickupGameModels.encodeSupabaseTimestamptz(rangeStart)
+        let guestRecentFloor = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: now) ?? now)
+        let rangeQueryStart = isGuestDiscoverMode ? max(rangeStart, guestRecentFloor) : rangeStart
+        let startISO = PickupGameModels.encodeSupabaseTimestamptz(rangeQueryStart)
         let endISO = PickupGameModels.encodeSupabaseTimestamptz(endExclusive)
 
         var query = supabase
             .from("pickup_games")
-            .select("game_start_at,remove_after_at")
+            .select("id,title,sport,game_start_at,remove_after_at,status,is_visible")
             .gte("game_start_at", value: startISO)
             .lt("game_start_at", value: endISO)
-            .gt("remove_after_at", value: nowISO)
+            .or(pickupGamesDiscoverRemoveAfterOrFilter(nowISO: nowISO))
             .eq("status", value: "active")
             .eq("is_visible", value: true)
 
@@ -119,26 +140,64 @@ extension MapViewModel {
 
         var dates: Set<Date> = []
         dates.reserveCapacity(min(rows.count, 500))
+        var droppedClientRemNotFuture = 0
         for row in rows {
             guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { continue }
             if let remStr = row.remove_after_at,
                let rem = PickupGameModels.parseSupabaseTimestamptz(remStr),
                rem <= now {
+                droppedClientRemNotFuture += 1
                 continue
             }
             dates.insert(cal.startOfDay(for: start))
         }
+#if DEBUG
+        let sportFilter = selectedSport == "All" ? "(none)" : selectedSport
+        print(
+            "[DiscoverPickupDiag] op=calendarDotMonth table=pickup_games dateMin=\(pickupDebugYMD(rangeStart)) dateMax=\(pickupDebugYMD(lastDayStart)) rangeStartISO=\(startISO) rangeEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(selectedSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) dotDatesAfterClientFilter=\(dates.count) droppedByClientRemoveAfterPast=\(droppedClientRemNotFuture)"
+        )
+        print("[DiscoverPickupDiag] NOTE remove_after_at uses PostgREST or(remove_after_at.is.null,remove_after_at.gt.now).")
+        for (i, row) in rows.prefix(5).enumerated() {
+            let tid = row.id?.uuidString ?? "nil"
+            let tit = (row.title ?? "?").replacingOccurrences(of: "\n", with: " ")
+            let sp = row.sport ?? "?"
+            print("[DiscoverPickupDiag] rawRow[\(i)] id=\(tid) title=\(tit) sport=\(sp) game_start_at=\(row.game_start_at) status=\(row.status ?? "nil") is_visible=\(row.is_visible.map(String.init(describing:)) ?? "nil") remove_after_at=\(row.remove_after_at ?? "nil")")
+        }
+        if rows.isEmpty {
+            await logPickupDiagnosticProbeUnfiltered(context: "calendarDotMonth_emptyWindow")
+        }
+        print("[DiscoverPickupPublic] monthWindowPickupDotDateCount=\(dates.count) sport=\(selectedSport) rangeStartISO=\(startISO)")
+#endif
         return dates
     }
 
-    func refreshPickupGamesForDiscoverMap(force: Bool = false) async {
-        guard isAuthenticatedForSocialFeatures else {
-            pickupGamesForDiscoverMap = []
-            clearPickupMapSelection()
+    /// Coalesces concurrent refresh calls onto one in-flight task (later callers await the same work).
+    func refreshPickupGamesForDiscoverMap(force: Bool = false, preservePickupCalendarDotDatesCache: Bool = false) async {
+        if let existing = refreshPickupGamesForDiscoverMapCoalescingTask {
+            await existing.value
             return
         }
+        let capturedForce = force
+        let capturedPreserve = preservePickupCalendarDotDatesCache
+        let work = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.performRefreshPickupGamesForDiscoverMap(
+                force: capturedForce,
+                preservePickupCalendarDotDatesCache: capturedPreserve
+            )
+        }
+        refreshPickupGamesForDiscoverMapCoalescingTask = work
+        await work.value
+        refreshPickupGamesForDiscoverMapCoalescingTask = nil
+    }
 
+    private func performRefreshPickupGamesForDiscoverMap(force: Bool, preservePickupCalendarDotDatesCache: Bool) async {
         if !force && discoverMapContentMode != .pickupGames {
+#if DEBUG
+            print(
+                "[DiscoverPickupDiag] op=mapRefresh SKIP earlyExit force=\(force) discoverMapContentMode=\(discoverMapContentMode.rawValue) reason=refreshOnlyRunsForPickupModeUnlessForced"
+            )
+#endif
             return
         }
 
@@ -153,7 +212,10 @@ extension MapViewModel {
             return
         }
         let now = Date()
-        let startISO = PickupGameModels.encodeSupabaseTimestamptz(dayStart)
+        let rawRecentFloor = cal.date(byAdding: .day, value: -1, to: now) ?? now
+        let recentFloor = cal.startOfDay(for: rawRecentFloor)
+        let effectiveLower = isGuestDiscoverMode ? max(dayStart, recentFloor) : dayStart
+        let startISO = PickupGameModels.encodeSupabaseTimestamptz(effectiveLower)
         let endISO = PickupGameModels.encodeSupabaseTimestamptz(dayEnd)
         let nowISO = PickupGameModels.encodeSupabaseTimestamptz(now)
 
@@ -163,7 +225,7 @@ extension MapViewModel {
                 .select(pickupGamesSelectColumns)
                 .gte("game_start_at", value: startISO)
                 .lt("game_start_at", value: endISO)
-                .gt("remove_after_at", value: nowISO)
+                .or(pickupGamesDiscoverRemoveAfterOrFilter(nowISO: nowISO))
                 .eq("status", value: "active")
                 .eq("is_visible", value: true)
 
@@ -176,28 +238,84 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            let filtered = rows.filter { row in
-                guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return false }
-                guard cal.isDate(start, inSameDayAs: selectedDate) else { return false }
+            var dropParseStart = 0
+            var dropWrongDay = 0
+            var dropRemoveAfterPast = 0
+            var dropNotVisible = 0
+            var dropFull = 0
+            var filtered: [PickupGameRow] = []
+            filtered.reserveCapacity(rows.count)
+            for row in rows {
+                guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else {
+                    dropParseStart += 1
+                    continue
+                }
+                if !cal.isDate(start, inSameDayAs: selectedDate) {
+                    dropWrongDay += 1
+                    continue
+                }
                 if let rem = row.remove_after_at,
                    let remd = PickupGameModels.parseSupabaseTimestamptz(rem),
                    remd <= now {
-                    return false
+                    dropRemoveAfterPast += 1
+                    continue
                 }
-                guard row.is_visible else { return false }
-                guard !row.isPickupFullForDiscover else { return false }
-                return true
+                if !row.is_visible {
+                    dropNotVisible += 1
+                    continue
+                }
+                if row.isPickupFullForDiscover {
+                    dropFull += 1
+                    continue
+                }
+                filtered.append(row)
             }
+
+#if DEBUG
+            let sportFilter = selectedSport == "All" ? "(none)" : selectedSport
+            print(
+                "[DiscoverPickupDiag] op=mapRefreshDay table=pickup_games selectedCalendarDay=\(pickupDebugYMD(selectedDate)) dayStartISO=\(startISO) dayEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(selectedSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) afterClientFilterCount=\(filtered.count) clientDrop_parseStart=\(dropParseStart) wrongDay=\(dropWrongDay) removeAfterPast=\(dropRemoveAfterPast) notVisible=\(dropNotVisible) full=\(dropFull)"
+            )
+            print("[DiscoverPickupDiag] NOTE map query uses same remove_after_at OR-null filter as calendar dots.")
+            for (i, row) in rows.prefix(5).enumerated() {
+                let tit = row.title.replacingOccurrences(of: "\n", with: " ")
+                print("[DiscoverPickupDiag] mapRawRow[\(i)] id=\(row.id.uuidString) title=\(tit) sport=\(row.sport) game_start_at=\(row.game_start_at) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")")
+            }
+            print("[DiscoverPickupPublic] selectedDayRawPickupRows=\(rows.count) sport=\(selectedSport) dayStartISO=\(startISO)")
+            if rows.isEmpty {
+                do {
+                    let probe = try await supabase
+                        .from("pickup_games")
+                        .select("id", head: true, count: .exact)
+                        .eq("status", value: "active")
+                        .eq("is_visible", value: true)
+                        .execute()
+                    let total = probe.count ?? -1
+                    print("[DiscoverPickupPublic] dayQueryEmpty activeVisiblePickupGamesVisibleToClientTotal=\(total) (if 0 likely no data or RLS blocks anon reads)")
+                } catch {
+                    print("[DiscoverPickupPublic] dayQueryEmpty anonCountProbeFailed error=\(error)")
+                }
+                await logPickupDiagnosticProbeUnfiltered(context: "mapRefresh_selectedDay_emptyWindow")
+            }
+            print("[DiscoverPickupPublic] pickupMapRowsFiltered=\(filtered.count) forSelectedCalendarDay")
+#endif
 
             pickupGamesForDiscoverMap = filtered
             pickupDiscoverCoordinatorDirty = false
-            pickupGameCalendarDotDatesCache.removeAll()
+            if !preservePickupCalendarDotDatesCache {
+                pickupGameCalendarDotDatesCache.removeAll()
+            }
             invalidatePickupGameClusterAnnotationCache()
             if let sel = selectedPickupGameForMap, !filtered.contains(where: { $0.id == sel.id }) {
                 clearPickupMapSelection()
             }
-            await refreshPickupMyJoinRequestsForDiscoverGames(gameIds: filtered.map(\.id))
-            await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
+            if isAuthenticatedForSocialFeatures {
+                await refreshPickupMyJoinRequestsForDiscoverGames(gameIds: filtered.map(\.id))
+                await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
+            }
+            if isGuestDiscoverMode, filtered.isEmpty {
+                loadDiscoverCalendarDots(around: selectedDate, reason: "pickup_map_refresh_guest_empty_day")
+            }
         } catch {
 #if DEBUG
             print("[PickupGames] refreshDiscover failed:", error)
@@ -251,11 +369,14 @@ extension MapViewModel {
         participantPreference: String,
         isFree: Bool,
         entryFeeAmount: Double?,
-        maxPlayers: Int?,
-        cleanupDelayHours: Int
+        maxPlayers: Int?
     ) async throws -> PickupGameRow {
         guard let uid = currentUserAuthId else {
             throw PickupGameClientError.notSignedIn
+        }
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "createPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
         }
         let playersNeededClamped = min(20, max(1, playersNeeded))
         let maxPlayersClamped: Int? = {
@@ -285,7 +406,7 @@ extension MapViewModel {
             is_free: isFree,
             entry_fee_amount: feePayload,
             max_players: maxPlayersClamped,
-            cleanup_delay_hours: cleanupDelayHours
+            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart
         )
 
         let inserted: [PickupGameRow] = try await supabase
@@ -298,6 +419,11 @@ extension MapViewModel {
         guard let row = inserted.first else {
             throw PickupGameClientError.missingRowAfterWrite
         }
+#if DEBUG
+        print(
+            "[DiscoverDotsSave] table=pickup_games op=insert id=\(row.id.uuidString.lowercased()) game_start_at=\(row.game_start_at) sport=\(row.sport) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")"
+        )
+#endif
         mergePickupInsertedLocally(row)
         return row
     }
@@ -314,6 +440,11 @@ extension MapViewModel {
         guard let row = updated.first else {
             throw PickupGameClientError.missingRowAfterWrite
         }
+#if DEBUG
+        print(
+            "[DiscoverDotsSave] table=pickup_games op=update id=\(row.id.uuidString.lowercased()) game_start_at=\(row.game_start_at) sport=\(row.sport) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")"
+        )
+#endif
         mergePickupInsertedLocally(row)
     }
 
@@ -323,20 +454,25 @@ extension MapViewModel {
 #endif
     }
 
-    func softRemovePickupGame(id: UUID) async throws {
+    /// Permanently deletes the pickup game row (join requests cascade). Organizer-only via RLS.
+    func deletePickupGame(id: UUID) async throws {
 #if DEBUG
         print("[PickupGames] delete requested id=\(id.uuidString.lowercased())")
 #endif
         do {
             try await supabase
                 .from("pickup_games")
-                .update(PickupGameStatusPatch(status: "removed"))
+                .delete()
                 .eq("id", value: id.uuidString.lowercased())
                 .execute()
 #if DEBUG
             print("[PickupGames] delete completed id=\(id.uuidString.lowercased())")
 #endif
             applySoftRemovedPickupGameLocally(id: id)
+            recomputeCalendarDotDates()
+            refreshPickupJoinCachesAfterMutation()
+            await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+            await loadMyPickupGameJoinRequestsForFollowing()
         } catch {
 #if DEBUG
             print("[PickupGames] delete failed id=\(id.uuidString.lowercased())")
@@ -413,5 +549,36 @@ extension MapViewModel {
 #endif
         invalidatePickupGameClusterAnnotationCache()
         pickupGameCalendarDotDatesCache.removeAll()
+        pickupMyLatestJoinRequestByGameId.removeValue(forKey: id)
+        pickupOrganizerJoinStatsByGameId.removeValue(forKey: id)
+        pickupGamesFollowingTabCache.removeValue(forKey: id)
+    }
+
+    private func logPickupDiagnosticProbeUnfiltered(context: String) async {
+#if DEBUG
+        do {
+            let probe: [PickupGameAnonDiagnosticProbeRow] = try await supabase
+                .from("pickup_games")
+                .select("id,title,sport,game_start_at,status,is_visible,remove_after_at")
+                .limit(10)
+                .execute()
+                .value
+            print(
+                "[DiscoverPickupDiag] op=anonTableProbe context=\(context) table=pickup_games NO_date_NO_sport_filters diagnosticUnfilteredLimit10_count=\(probe.count) hint=0=>empty_table_or_RLS_blocks_all_reads;>0_but_window_queries_0=>date_or_remove_after_or_status_or_sport_or_visibility_filters"
+            )
+            for (i, r) in probe.prefix(5).enumerated() {
+                let tid = r.id?.uuidString ?? "nil"
+                let tit = (r.title ?? "?").replacingOccurrences(of: "\n", with: " ")
+                let sp = r.sport ?? "?"
+                let gst = r.game_start_at ?? "nil"
+                let st = r.status ?? "nil"
+                let vis = r.is_visible.map(String.init(describing:)) ?? "nil"
+                let rem = r.remove_after_at ?? "nil"
+                print("[DiscoverPickupDiag] probeRow[\(i)] id=\(tid) title=\(tit) sport=\(sp) game_start_at=\(gst) status=\(st) is_visible=\(vis) remove_after_at=\(rem)")
+            }
+        } catch {
+            print("[DiscoverPickupDiag] op=anonTableProbe context=\(context) FAILED error=\(error)")
+        }
+#endif
     }
 }

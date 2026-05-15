@@ -18,6 +18,7 @@ struct MapVenuePreviewCard: View {
     let onDetails: () -> Void
     
     @State private var selectedCommentsEventID: UUID?
+    @State private var fanFeatureBlockedMessage: String?
     
 
     var body: some View {
@@ -42,11 +43,21 @@ struct MapVenuePreviewCard: View {
                         
                         Spacer()
                         
-                        Button(action: onFavorite) {
+                        Button {
+                            if viewModel.canFavoriteVenues {
+                                onFavorite()
+                            } else if viewModel.isAuthenticatedForSocialFeatures {
+                                viewModel.logBusinessUserGateBlocked(action: "favoriteVenue")
+                                fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
+                            } else {
+                                onFavorite()
+                            }
+                        } label: {
                             Image(systemName: isFavorite ? "heart.fill" : "heart")
                                 .font(.title2)
                                 .foregroundStyle(isFavorite ? .red : .black)
                         }
+                        .opacity(viewModel.canFavoriteVenues || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
                     }
                     
                     HStack(spacing: 8) {
@@ -97,7 +108,16 @@ struct MapVenuePreviewCard: View {
                 
                 Spacer()
                 
-                Button(action: onGoing) {
+                Button {
+                    if viewModel.canMarkGoing {
+                        onGoing()
+                    } else if viewModel.isAuthenticatedForSocialFeatures {
+                        viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                        fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
+                    } else {
+                        onGoing()
+                    }
+                } label: {
                     
                     Text("I'm going")
                         .font(.headline)
@@ -107,6 +127,7 @@ struct MapVenuePreviewCard: View {
                         .background(Color.black)
                         .clipShape(Capsule())
                 }
+                .opacity(viewModel.canMarkGoing || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
             }
             .padding()
             .background(
@@ -179,6 +200,17 @@ struct MapVenuePreviewCard: View {
                     .foregroundStyle(.primary)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+        }
+        .alert(
+            "FanGeo",
+            isPresented: Binding(
+                get: { fanFeatureBlockedMessage != nil },
+                set: { if !$0 { fanFeatureBlockedMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { fanFeatureBlockedMessage = nil }
+        } message: {
+            Text(fanFeatureBlockedMessage ?? "")
         }
         
     }

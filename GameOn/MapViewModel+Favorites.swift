@@ -21,6 +21,10 @@ extension MapViewModel {
             print("LOGIN REQUIRED TO SAVE VENUE")
             return
         }
+        if !canFavoriteVenues {
+            logBusinessUserGateBlocked(action: "favoriteVenue")
+            return
+        }
 
         Task {
             let wantFavorite = !favoriteVenueIDs.contains(bar.id)
@@ -37,8 +41,7 @@ extension MapViewModel {
         do {
             guard let email = await strictNormalizedSessionEmailForSocialTables() else {
                 await MainActor.run {
-                    favoriteVenueIDs = []
-                    clearFollowingTabCaches()
+                    clearFollowingTabCachesPreservingPickupJoinState()
                 }
                 return
             }
@@ -116,6 +119,10 @@ extension MapViewModel {
     @discardableResult
     func setVenueFavorite(bar: BarVenue, isFavorite: Bool) async -> Bool {
         guard hasSupabaseSessionForFollowingTab else { return false }
+        guard canFavoriteVenues else {
+            logBusinessUserGateBlocked(action: "favoriteVenue")
+            return false
+        }
         guard !favoriteVenueWriteInFlightIDs.contains(bar.id) else { return true }
 
 #if DEBUG

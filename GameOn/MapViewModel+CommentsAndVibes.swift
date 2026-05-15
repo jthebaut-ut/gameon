@@ -436,6 +436,10 @@ extension MapViewModel {
 
     // Inserts or deletes a single vibe row for the signed-in user or venue owner.
     func toggleVibe(for venueEventID: UUID, vibeType: String) async {
+        guard canUseFanSocialFeatures else {
+            logBusinessUserGateBlocked(action: "toggleVibe")
+            return
+        }
         let email = await strictNormalizedSessionEmailForSocialTables()
             ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
@@ -568,6 +572,10 @@ extension MapViewModel {
         let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !cleanText.isEmpty else { return nil }
+        guard canUseFanSocialFeatures else {
+            logBusinessUserGateBlocked(action: "postVenueEventComment")
+            return BusinessFanGateCopy.commentsViewOnlyForBusiness
+        }
         guard let commenterEmail = await strictNormalizedSessionEmailForSocialTables() else {
             print("LOGIN REQUIRED TO COMMENT")
             return "Sign in to post an update."

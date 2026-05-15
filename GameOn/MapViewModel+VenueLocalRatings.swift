@@ -12,6 +12,10 @@ extension MapViewModel {
     }
 
     func saveUserVenueRating(venueID: UUID, stars: Int) {
+        guard canRateVenues else {
+            logBusinessUserGateBlocked(action: "rateVenue")
+            return
+        }
         let clamped = min(5, max(1, stars))
         venueUserStarRatings[venueID] = clamped
         venueRatingContributionCount[venueID, default: 0] += 1

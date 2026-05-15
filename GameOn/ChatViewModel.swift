@@ -43,7 +43,7 @@ final class ChatViewModel: ObservableObject {
     @Published private(set) var incomingRequests: [IncomingRequestDisplay] = []
     @Published private(set) var outgoingRequests: [OutgoingRequestDisplay] = []
     @Published private(set) var pendingBadgeCount: Int = 0
-    /// Unread peer DMs (Chat tab capsule + app icon badge when synced). Friend requests stay in the Requests segment only.
+    /// Unread peer DMs for the signed-in user (MainTabView private chat tab badge + ``AppIconBadgeSync``). Server source: inbox RPC unread totals / `get_dm_unread_total`; not friend-request counts.
     @Published private(set) var unreadDirectMessageCount: Int = 0
     @Published var errorMessage: String?
     /// Shown when swipe-delete (inbox clear) fails; kept separate from ``errorMessage`` so friend-request errors don’t clash.
@@ -65,6 +65,9 @@ final class ChatViewModel: ObservableObject {
 
     /// When true, ``MainTabView`` hides the floating tab bar so ``DirectChatView`` composer stays visible.
     @Published var hidesFloatingTabBarForDirectChat: Bool = false
+
+    @Published private(set) var addFriendSearchResults: [AddFriendSearchTarget] = []
+    @Published private(set) var addFriendSearchIsLoading: Bool = false
 
     private let service = FriendshipService()
     private let directChatService = DirectChatService()
@@ -132,6 +135,8 @@ final class ChatViewModel: ObservableObject {
         blockedUserIds = []
         usersWhoBlockedMeIds = []
         blockedUserPreviews = []
+        addFriendSearchResults = []
+        addFriendSearchIsLoading = false
         inboxUnreadDebounceTask?.cancel()
         inboxUnreadDebounceTask = nil
         inboxMissingPeerReconcileTask?.cancel()
@@ -253,6 +258,12 @@ final class ChatViewModel: ObservableObject {
         let channel = supabase.channel("dm-inbox-\(me.uuidString.lowercased())")
         inboxChannel = channel
 
+        let readStateChanges = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "conversation_read_state"
+        )
+
         let convIds = (try? await directChatService.fetchMyDirectConversationIds(userId: me)) ?? []
         let inserts: AsyncStream<InsertAction>
         if !convIds.isEmpty, convIds.count <= kMaxConversationIdsForInboxRealtimeClientFilter {
@@ -292,49 +303,12 @@ final class ChatViewModel: ObservableObject {
                 }
             }
 
-            for await insertion in inserts {
-                if Task.isCancelled { break }
-                try Task.checkCancellation()
-                let row: DirectMessageRow
-                do {
-                    row = try insertion.decodeRecord(as: DirectMessageRow.self, decoder: JSONDecoder())
-                } catch {
-                    continue
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { [weak self] in
+                    await self?.consumeConversationReadStateRealtime(readStateChanges)
                 }
-
-                if row.deleted_at != nil { continue }
-                if row.sender_id == me { continue }
-                if isEitherDirectionBlocked(with: row.sender_id) {
-                    #if DEBUG
-                    print("[ChatRealtime] inbox INSERT id=\(row.id) sender=\(row.sender_id) → skip(blocked)")
-                    #endif
-                    continue
-                }
-
-                #if DEBUG
-                print("[ChatRealtime] inbox INSERT id=\(row.id) conv=\(row.conversation_id?.uuidString ?? "nil") sender=\(row.sender_id)")
-                #endif
-
-                let patched = await applyRealtimeIncomingPeerMessage(row)
-                if patched {
-                    #if DEBUG
-                    print("[ChatRealtime]   → local inbox row patch + debounced refreshUnreadDirectMessageCount(550ms)")
-                    #endif
-                    inboxUnreadDebounceTask?.cancel()
-                    inboxUnreadDebounceTask = Task { [weak self] in
-                        do {
-                            try await Task.sleep(nanoseconds: 550_000_000)
-                        } catch { return }
-                        guard let self, !Task.isCancelled else { return }
-                        await self.refreshUnreadDirectMessageCount()
-                        #if DEBUG
-                        print("[ChatRealtime]   → debounced refreshUnreadDirectMessageCount completed")
-                        #endif
-                    }
-                } else {
-                    #if DEBUG
-                    print("[ChatRealtime]   → schedule full refreshInboxSummaries debounce(800ms)")
-                    #endif
+                group.addTask { [weak self] in
+                    await self?.consumeInboxDirectMessageInserts(inserts, me: me)
                 }
             }
         } catch is CancellationError {
@@ -346,6 +320,96 @@ final class ChatViewModel: ObservableObject {
         await removeInboxRealtimeChannelOnly()
         // Allow ``startInboxRealtimeListenerIfNeeded()`` after disconnect; do not call ``stopInboxRealtimeListener()`` here
         // (that would deadlock while awaiting this same task).
+    }
+
+    /// Read cursor changes (mark-read) do not emit `direct_messages` rows; listen for lightweight RPC recount instead of reloading the inbox.
+    private func consumeConversationReadStateRealtime(_ stream: AsyncStream<AnyAction>) async {
+        for await action in stream {
+            if Task.isCancelled { break }
+            switch action {
+            case .insert, .update, .delete:
+                scheduleDebouncedUnreadDirectMessageRPCRefresh()
+            }
+        }
+    }
+
+    private func consumeInboxDirectMessageInserts(_ inserts: AsyncStream<InsertAction>, me: UUID) async {
+        for await insertion in inserts {
+            if Task.isCancelled { break }
+            do {
+                try Task.checkCancellation()
+            } catch {
+                break
+            }
+            let row: DirectMessageRow
+            do {
+                row = try insertion.decodeRecord(as: DirectMessageRow.self, decoder: JSONDecoder())
+            } catch {
+                continue
+            }
+
+            if row.deleted_at != nil { continue }
+            if row.sender_id == me { continue }
+            if isEitherDirectionBlocked(with: row.sender_id) {
+                #if DEBUG
+                print("[ChatRealtime] inbox INSERT id=\(row.id) sender=\(row.sender_id) → skip(blocked)")
+                #endif
+                continue
+            }
+
+            #if DEBUG
+            print("[ChatRealtime] inbox INSERT id=\(row.id) conv=\(row.conversation_id?.uuidString ?? "nil") sender=\(row.sender_id)")
+            #endif
+
+            let patched = await applyRealtimeIncomingPeerMessage(row)
+            if patched {
+                #if DEBUG
+                print("[ChatRealtime]   → local inbox row patch + debounced refreshUnreadDirectMessageCount(550ms)")
+                #endif
+                scheduleDebouncedUnreadDirectMessageRPCRefresh()
+            } else {
+                #if DEBUG
+                print("[ChatRealtime]   → schedule full refreshInboxSummaries debounce(800ms)")
+                #endif
+            }
+        }
+    }
+
+    /// Coalesces multiple realtime events into one ``refreshUnreadDirectMessageCount()`` (single RPC), not a full inbox fetch.
+    private func scheduleDebouncedUnreadDirectMessageRPCRefresh() {
+        inboxUnreadDebounceTask?.cancel()
+        inboxUnreadDebounceTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 550_000_000)
+            } catch { return }
+            guard let self, !Task.isCancelled else { return }
+            await self.refreshUnreadDirectMessageCount()
+            #if DEBUG
+            print("[ChatRealtime]   → debounced refreshUnreadDirectMessageCount completed")
+            #endif
+        }
+    }
+
+    /// Zeros this peer’s row in the local inbox immediately after opening a thread / mark-read so the tab badge drops before summaries refetch.
+    func markDirectInboxReadLocally(peerUserId: UUID) {
+        guard let idx = friends.firstIndex(where: { $0.id == peerUserId }) else {
+            scheduleDebouncedUnreadDirectMessageRPCRefresh()
+            return
+        }
+        let old = friends[idx]
+        guard old.unreadCount > 0 else { return }
+        let updated = FriendDisplay(
+            id: old.id,
+            preview: old.preview,
+            subtitle: old.subtitle,
+            lastMessageAt: old.lastMessageAt,
+            unreadCount: 0
+        )
+        var next = friends
+        next[idx] = updated
+        friends = next
+        let totalUnread = next.reduce(0) { $0 + $1.unreadCount }
+        Task { await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread) }
     }
 
     /// Applies a lightweight inbox row update for an incoming peer DM (1:1). Returns false if a full inbox reconcile should run.
@@ -634,7 +698,8 @@ final class ChatViewModel: ObservableObject {
             }
 
             // Hide users blocked in either direction.
-            let visible = displays.filter { !isEitherDirectionBlocked(with: $0.id) }
+            var visible = displays.filter { !isEitherDirectionBlocked(with: $0.id) }
+            visible = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: visible)
             friends = visible
             let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
@@ -715,7 +780,7 @@ final class ChatViewModel: ObservableObject {
             let previewsById = try await socialIdentityService.fetchUserPreviews(for: Array(previewIds))
 
             let inboxFiltered = inboxRows.filter { !isEitherDirectionBlocked(with: $0.friend_user_id) }
-            friends = inboxFiltered.map { row -> FriendDisplay in
+            var friendDisplays = inboxFiltered.map { row -> FriendDisplay in
                 let preview = inboxPreview(for: row)
                 logChatRowDebug(preview: preview)
 
@@ -741,6 +806,8 @@ final class ChatViewModel: ObservableObject {
                     unreadCount: unread
                 )
             }
+            friendDisplays = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: friendDisplays)
+            friends = friendDisplays
 
             incomingRequests = inRows
                 .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
@@ -913,17 +980,235 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    /// Add friend by normalized email or avatar name (`lower(trim)`). Returns an error message for the sheet, or `nil` on success.
-    func sendFriendRequestByLookup(_ raw: String) async -> String? {
+    func refreshAddFriendSearch(query raw: String) async {
         let normalized = FriendshipService.normalizedFriendLookupQuery(raw)
-        guard !normalized.isEmpty else { return "Enter an email or avatar name." }
-        do {
-            try await service.sendFriendRequestByLookup(normalizedQuery: normalized)
-            await refreshFriendRequestListsOnly()
-            return nil
-        } catch {
-            return FriendshipService.userFacingAddFriendLookupError(error)
+        guard !normalized.isEmpty else {
+            addFriendSearchResults = []
+            return
         }
+        addFriendSearchIsLoading = true
+        defer { addFriendSearchIsLoading = false }
+        do {
+            let me = try await service.currentUserId()
+            addFriendSearchResults = try await service.searchAddFriendTargets(
+                normalizedQuery: normalized,
+                excludingUserId: me
+            )
+        } catch {
+            addFriendSearchResults = []
+        }
+    }
+
+    func clearAddFriendSearch() {
+        addFriendSearchResults = []
+        addFriendSearchIsLoading = false
+    }
+
+    /// Add friend to a selected search hit (fan user or ``businesses`` row by id).
+    func sendFriendRequest(to target: AddFriendSearchTarget) async -> AddFriendLookupOutcome {
+#if DEBUG
+        print("[FriendSearchDebug] send entity_type=\(target.entityType.rawValue) entity_id=\(target.entityId.uuidString)")
+#endif
+        do {
+            let me = try await service.currentUserId()
+            if target.entityType == .user, me == target.entityId {
+                return .informational("Cannot add yourself. Use another fan or business.")
+            }
+
+            let rows = try await service.fetchFriendships(for: target, me: me)
+            let relation = FriendshipService.classifyExistingRelation(me: me, rows: rows)
+            if let message = FriendshipService.userFacingMessageForExistingRelation(relation) {
+                return .informational(message)
+            }
+
+            let requesterEntity = (try? await service.fetchSocialEntity(userId: me))
+                ?? FriendSocialEntity(id: me, kind: .fanUser)
+            let targetEntity = FriendSocialEntity(id: target.entityId, kind: target.socialEntityKind)
+#if DEBUG
+            FriendshipService.logPendingRelationshipDebug(
+                requester: requesterEntity,
+                target: targetEntity,
+                matchedPending: false,
+                friendshipId: nil
+            )
+#endif
+
+            switch target.entityType {
+            case .user:
+                try await service.sendFriendRequest(requesterId: me, addresseeId: target.entityId)
+            case .business:
+                try await service.sendFriendRequestToBusiness(requesterId: me, businessId: target.entityId)
+            }
+            await refreshAfterFriendLookupAttempt()
+            logFriendRequestVisibilityDebug(
+                lookupResult: "created",
+                targetUserId: target.entityId,
+                me: me
+            )
+            return .success
+        } catch {
+            await refreshAfterFriendLookupAttempt()
+            return await resolveAddFriendLookupOutcomeAfterError(error, target: target)
+        }
+    }
+
+    /// Legacy path: normalized query only (fan RPC). Prefer ``sendFriendRequest(to:)`` after search.
+    func sendFriendRequestByLookup(_ raw: String) async -> AddFriendLookupOutcome {
+        let normalized = FriendshipService.normalizedFriendLookupQuery(raw)
+        guard !normalized.isEmpty else {
+            return .informational("Enter an email or display name.")
+        }
+        await refreshAddFriendSearch(query: raw)
+        if let first = addFriendSearchResults.first {
+            return await sendFriendRequest(to: first)
+        }
+        return .informational("No FanGeo account found with that email or display name.")
+    }
+
+    /// Refreshes Chat lists so pending/accepted rows appear immediately after Add Friend (including duplicate path).
+    private func refreshAfterFriendLookupAttempt() async {
+        await refreshFriendRequestListsOnly()
+        await refreshInboxSummaries()
+    }
+
+    /// Accepted friends without a DM thread yet still appear under Chat → Friends (presentation only; inbox RPC unchanged).
+    private func mergeAcceptedFriendsMissingFromInbox(
+        me: UUID,
+        inboxDisplays: [FriendDisplay]
+    ) async throws -> [FriendDisplay] {
+        let accepted = try await service.fetchAcceptedFriendships(for: me)
+        let inboxIds = Set(inboxDisplays.map(\.id))
+        let missingIds: [UUID] = accepted.compactMap { row in
+            let other = row.requester_id == me ? row.addressee_id : row.requester_id
+            guard !inboxIds.contains(other) else { return nil }
+            guard !isEitherDirectionBlocked(with: other) else { return nil }
+            return other
+        }
+        guard !missingIds.isEmpty else { return inboxDisplays }
+
+        let previews = try await socialIdentityService.fetchUserPreviews(for: missingIds)
+        var merged = inboxDisplays
+        for pid in missingIds {
+            let preview = previews[pid] ?? fallbackPreview(userId: pid)
+            merged.append(
+                FriendDisplay(
+                    id: pid,
+                    preview: preview,
+                    subtitle: "Say hi",
+                    lastMessageAt: nil,
+                    unreadCount: 0
+                )
+            )
+        }
+        return merged
+    }
+
+    private func resolveAddFriendLookupOutcomeAfterError(
+        _ error: Error,
+        target: AddFriendSearchTarget
+    ) async -> AddFriendLookupOutcome {
+#if DEBUG
+        print("[ChatIdentityDebug] query entity_type=\(target.entityType.rawValue) entity_id=\(target.entityId.uuidString)")
+        if let email = target.matchedEmail {
+            print("[ChatIdentityDebug] matchedEmail=\(email)")
+        }
+        print("[ChatIdentityDebug] matchedEntityId=\(target.entityId.uuidString)")
+#endif
+
+        var verifiedRelation: FriendLookupExistingRelation = .none
+
+        if let me = try? await service.currentUserId() {
+            let requesterEntity = (try? await service.fetchSocialEntity(userId: me))
+                ?? FriendSocialEntity(id: me, kind: .fanUser)
+            let targetEntity = FriendSocialEntity(id: target.entityId, kind: target.socialEntityKind)
+
+            let exactPending = try? await service.findPendingFriendship(requesterId: me, target: target)
+            let rows = (try? await service.fetchFriendships(for: target, me: me)) ?? []
+            verifiedRelation = FriendshipService.classifyExistingRelation(me: me, rows: rows)
+
+#if DEBUG
+            FriendshipService.logPendingRelationshipDebug(
+                requester: requesterEntity,
+                target: targetEntity,
+                matchedPending: exactPending != nil,
+                friendshipId: exactPending?.id
+            )
+#endif
+
+            if FriendshipService.isDuplicateFriendLookupError(error) {
+                logFriendRequestVisibilityDebug(
+                    lookupResult: "duplicate",
+                    targetUserId: target.entityId,
+                    me: me,
+                    existingRelation: verifiedRelation
+                )
+
+                if let message = FriendshipService.userFacingMessageForExistingRelation(verifiedRelation),
+                   FriendshipService.isPendingLikeRelation(verifiedRelation) || verifiedRelation == .accepted {
+                    return .informational(message)
+                }
+
+                if target.entityType == .user,
+                   let email = target.matchedEmail, !email.isEmpty,
+                   let sibling = try? await service.findPendingFriendshipWithOtherProfileSharingEmail(
+                    requesterId: me,
+                    excludePeerUserId: target.entityId,
+                    normalizedEmail: email
+                   ) {
+#if DEBUG
+                    print("[PendingRelationshipDebug] duplicateEmailButDifferentEntity=true otherEntityId=\(sibling.other.id.uuidString)")
+                    print("[ChatIdentityDebug] duplicateEmailButDifferentEntity=true matchedEntityId=\(target.entityId.uuidString)")
+#endif
+                    return .error("Couldn't send friend request. Please try again.")
+                }
+
+#if DEBUG
+                print("[PendingRelationshipDebug] duplicateEmailButDifferentEntity=true")
+#endif
+                return .error("Couldn't send friend request. Please try again.")
+            }
+
+            logFriendRequestVisibilityDebug(
+                lookupResult: "error",
+                targetUserId: target.entityId,
+                me: me,
+                existingRelation: verifiedRelation
+            )
+        }
+
+        return FriendshipService.addFriendLookupOutcome(
+            for: error,
+            verifiedRelationForTarget: verifiedRelation
+        )
+    }
+
+    private func logFriendRequestVisibilityDebug(
+        lookupResult: String,
+        targetUserId: UUID,
+        me: UUID,
+        existingRelation: FriendLookupExistingRelation = .none
+    ) {
+#if DEBUG
+        let status: String
+        switch existingRelation {
+        case .none: status = "none"
+        case .accepted: status = "accepted"
+        case .pendingOutgoing: status = "pending_outgoing"
+        case .pendingIncoming: status = "pending_incoming"
+        case .declinedVisible: status = "declined_visible"
+        }
+        let inFriends = friends.contains { $0.id == targetUserId }
+        let inIncoming = incomingRequests.contains {
+            $0.requester.id == targetUserId || $0.friendship.requester_id == targetUserId
+        }
+        let inOutgoing = outgoingRequests.contains {
+            $0.addressee.id == targetUserId || $0.friendship.addressee_id == targetUserId
+        }
+        print("[FriendRequestVisibilityDebug] lookupResult=\(lookupResult)")
+        print("[FriendRequestVisibilityDebug] existingStatus=\(status) target=\(targetUserId.uuidString) me=\(me.uuidString)")
+        print("[FriendRequestVisibilityDebug] appearsInFriends=\(inFriends)")
+        print("[FriendRequestVisibilityDebug] appearsInRequests=\(inIncoming || inOutgoing) incoming=\(inIncoming) outgoing=\(inOutgoing)")
+#endif
     }
 
     func chipKind(forOtherUserId userId: UUID) -> FriendshipChipKind {

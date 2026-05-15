@@ -38,7 +38,11 @@ struct FollowingScreen: View {
                 .ignoresSafeArea()
 
             if viewModel.isAuthenticatedForSocialFeatures {
-                loggedInContent
+                if viewModel.hasAuthenticatedVenueOwnerSession {
+                    businessFollowingLockedContent
+                } else {
+                    loggedInContent
+                }
             } else {
                 loggedOutContent
             }
@@ -48,7 +52,7 @@ struct FollowingScreen: View {
                 didHandleInitialAutoRefresh = true
                 return
             }
-            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
             Task { await reloadFollowingDataForCurrentUser() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newId in
@@ -60,7 +64,7 @@ struct FollowingScreen: View {
             }
         }
         .task(id: viewModel.currentUserAuthId) {
-            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
             await viewModel.refreshFollowingTabDataGlobally()
             await viewModel.loadMyPickupGameJoinRequestsForFollowing()
         }
@@ -76,7 +80,7 @@ struct FollowingScreen: View {
 
     /// Reload Following when fan or business-owner auth changes while a Supabase session may already exist.
     private func syncFollowingAfterAuthChange() async {
-        if viewModel.isAuthenticatedForSocialFeatures {
+        if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab {
             await reloadFollowingDataForCurrentUser()
         } else {
             clearFollowingUserSpecificState()
@@ -119,6 +123,36 @@ struct FollowingScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.bottom, 110)
+    }
+
+    // MARK: - Business account (fan features locked)
+
+    private var businessFollowingLockedContent: some View {
+        VStack(spacing: 22) {
+            Spacer(minLength: 24)
+
+            Image(systemName: "lock.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(FGColor.accentYellow)
+
+            Text("Following")
+                .font(FGTypography.screenTitle)
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+
+            Text(BusinessFanGateCopy.followingLockedBody)
+                .font(FGTypography.body)
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 24)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.bottom, 110)
+        .onAppear {
+            viewModel.logBusinessUserGateBlocked(action: "followingTab")
+        }
     }
 
     // MARK: - Logged in
@@ -166,10 +200,8 @@ struct FollowingScreen: View {
                     .padding(.bottom, 110)
             }
             .refreshable {
-                async let venues: Void = viewModel.refreshFollowingTabDataGlobally()
-                async let pickup: Void = viewModel.loadMyPickupGameJoinRequestsForFollowing()
-                await venues
-                await pickup
+                await viewModel.refreshFollowingTabDataGlobally()
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing()
             }
         }
     }
@@ -274,9 +306,8 @@ struct FollowingScreen: View {
     private func applyAttendance(_ item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) async {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
 
-        let localInterested = decodeInterestedOnlyUUIDs(from: interestedOnlyEncoded)
         let previousInterestedOnly = interestedOnlyEncoded
-        let ok: Bool
+        var ok = true
 
 #if DEBUG
         print("[FollowingState] attendance action event=\(item.id.uuidString) action=\(target)")
@@ -284,17 +315,32 @@ struct FollowingScreen: View {
 
         switch target {
         case .going:
-            if item.isServerGoing, !localInterested.contains(item.id) { return }
+            if item.isServerGoing && !item.isInterestedOnlyLocal { return }
             setInterestedOnlyLocally(item.id, false)
             ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         case .interested:
-            if !item.isServerGoing, localInterested.contains(item.id) { return }
-            setInterestedOnlyLocally(item.id, true)
-            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+            if !item.isServerGoing && item.isInterestedOnlyLocal { return }
+            if item.isServerGoing {
+                ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+                if ok {
+                    setInterestedOnlyLocally(item.id, true)
+                    await viewModel.refreshFollowingTabDataGlobally()
+                    viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+                }
+            } else {
+                setInterestedOnlyLocally(item.id, true)
+                await viewModel.refreshFollowingTabDataGlobally()
+                viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+            }
         case .notGoing:
-            guard item.isServerGoing || localInterested.contains(item.id) else { return }
+            guard item.isServerGoing || item.isInterestedOnlyLocal else { return }
             setInterestedOnlyLocally(item.id, false)
-            ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+            if item.isServerGoing {
+                ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+            } else {
+                await viewModel.refreshFollowingTabDataGlobally()
+                viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+            }
         }
 
         guard ok else {
@@ -535,12 +581,12 @@ struct FollowingScreen: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Directions to \(bar.name)")
 
-            HStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
                 GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id))
-                Label("\(item.attendeeCount) people interested / going", systemImage: "person.3.fill")
-                    .font(.caption)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.green)
+                Label("\(item.attendeeCount) people interested / going", systemImage: "person.2.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .labelStyle(.titleAndIcon)
             }
         }
         .padding()
@@ -586,9 +632,9 @@ struct FollowingScreen: View {
     }
 
     private func attendancePill(item: FollowingGoingDisplayItem) -> some View {
-        let isGoing = item.isServerGoing
+        let pillIsGoing = item.isServerGoing
         return HStack(spacing: 6) {
-            Text(isGoing ? "Going" : "Interested")
+            Text(pillIsGoing ? "Going" : "Interested")
                 .font(.caption)
                 .fontWeight(.bold)
             Image(systemName: "chevron.down")
@@ -598,13 +644,13 @@ struct FollowingScreen: View {
         .padding(.vertical, 7)
         .background(
             Capsule()
-                .fill(isGoing ? Color.green.opacity(0.22) : Color.orange.opacity(0.22))
+                .fill(pillIsGoing ? Color.green.opacity(0.22) : Color.orange.opacity(0.22))
         )
         .overlay(
             Capsule()
-                .strokeBorder(isGoing ? Color.green.opacity(0.45) : Color.orange.opacity(0.45), lineWidth: 1)
+                .strokeBorder(pillIsGoing ? Color.green.opacity(0.45) : Color.orange.opacity(0.45), lineWidth: 1)
         )
-        .foregroundStyle(isGoing ? Color.green : Color.orange)
+        .foregroundStyle(pillIsGoing ? Color.green : Color.orange)
     }
 
     private func venueCard(_ bar: BarVenue) -> some View {

@@ -44,42 +44,60 @@ extension MapViewModel {
         computeEventsForSelectedDateUncached()
     }
 
-    /// Calendar green dots: sport-filtered; when ``calendarUsesVisibleMapRegionOnly`` is on, only venue-backed games on currently loaded map bars.
-    var eventsForCalendarDots: [SportsEvent] {
+    /// Titles allowed for venue calendar dots when ``calendarUsesVisibleMapRegionOnly`` (map bar game titles plus owner-venue extras). Single shared construction for dot filtering and cache keys.
+    private func venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() -> Set<String> {
+        var venueGameTitles = Set(bars.flatMap(\.games))
+        if let ownerVid = ownerVenueDatabaseId, hasAuthenticatedVenueOwnerSession {
+            let extra = venueEventRows.compactMap { row -> String? in
+                guard row.venue_id == ownerVid, let t = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else {
+                    return nil
+                }
+                return t
+            }
+            venueGameTitles.formUnion(extra)
+        }
+        return venueGameTitles
+    }
+
+    /// Sport-filtered events used for Discover calendar dots; when region-only, ``regionVenueGameTitles`` should be the precomputed allowlist (pass `nil` when not region-only, or omit and pass `nil` to build allowlist once in ``recomputeCalendarDotDates``).
+    private func filteredEventsForCalendarDots(regionVenueGameTitles: Set<String>?) -> [SportsEvent] {
         var list = events
         if selectedSport != "All" {
             list = list.filter { $0.sport == selectedSport }
         }
-        if calendarUsesVisibleMapRegionOnly {
-            var venueGameTitles = Set(bars.flatMap(\.games))
-            if let ownerVid = ownerVenueDatabaseId, hasAuthenticatedVenueOwnerSession {
-                let extra = venueEventRows.compactMap { row -> String? in
-                    guard row.venue_id == ownerVid, let t = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else {
-                        return nil
-                    }
-                    return t
-                }
-                venueGameTitles.formUnion(extra)
-            }
-            list = list.filter { event in
-                event.league == "Venue Event" && venueGameTitles.contains(event.title)
-            }
+        guard calendarUsesVisibleMapRegionOnly else { return list }
+        let titles = regionVenueGameTitles ?? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly()
+        return list.filter { event in
+            event.league == "Venue Event" && titles.contains(event.title)
         }
-        return list
+    }
+
+    /// Calendar green dots: sport-filtered; when ``calendarUsesVisibleMapRegionOnly`` is on, only venue-backed games on currently loaded map bars.
+    var eventsForCalendarDots: [SportsEvent] {
+        let regionTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
+        return filteredEventsForCalendarDots(regionVenueGameTitles: regionTitles)
     }
 
     /// Fingerprint for ``eventsForCalendarDots`` inputs so we can skip full-array rescans when unchanged.
-    func calendarDotRecomputeCacheKey() -> String {
+    /// - Parameter regionVenueGameTitles: When region-only, pass the same allowlist used for filtering so ``recomputeCalendarDotDates`` avoids building it twice.
+    private func calendarDotRecomputeCacheKeyString(regionVenueGameTitles: Set<String>?) -> String {
         let regionOnly = calendarUsesVisibleMapRegionOnly
         let titlesTag: Int = {
             guard regionOnly else { return 0 }
-            return Set(bars.flatMap(\.games)).hashValue
+            let titles = regionVenueGameTitles ?? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly()
+            return titles.hashValue
         }()
         return "\(selectedSport)|\(regionOnly)|\(events.count)|\(bars.count)|\(titlesTag)|\(scheduleDataGeneration)"
     }
 
+    func calendarDotRecomputeCacheKey() -> String {
+        let regionTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
+        return calendarDotRecomputeCacheKeyString(regionVenueGameTitles: regionTitles)
+    }
+
     func recomputeCalendarDotDates() {
-        let key = calendarDotRecomputeCacheKey()
+        let regionVenueGameTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
+        let key = calendarDotRecomputeCacheKeyString(regionVenueGameTitles: regionVenueGameTitles)
         if key == lastCalendarDotRecomputeKey {
             #if DEBUG
             print("[Phase1Perf] recomputeCalendarDotDates SKIP key=\(key)")
@@ -90,7 +108,8 @@ extension MapViewModel {
         let t0 = Date()
         #endif
         let cal = Calendar.current
-        calendarDotDates = Set(eventsForCalendarDots.map { cal.startOfDay(for: $0.date) })
+        let dotSourceEvents = filteredEventsForCalendarDots(regionVenueGameTitles: regionVenueGameTitles)
+        calendarDotDates = Set(dotSourceEvents.map { cal.startOfDay(for: $0.date) })
         lastCalendarDotRecomputeKey = key
         #if DEBUG
         let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -119,14 +138,13 @@ extension MapViewModel {
         #endif
     }
 
-    private func calendarEventsListCacheKey(selectedDay: Date, searchQuery: String) -> String {
+    private func calendarEventsListCacheKey(selectedDay: Date, searchQuery: String, filter: CalendarTabGameFilter) -> String {
         let cal = Calendar.current
         let day = cal.startOfDay(for: selectedDay)
         let y = cal.component(.year, from: selectedDay)
         let m = cal.component(.month, from: selectedDay)
         let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        let discoverQ = effectiveDiscoverSearchQuery
-        return "\(y)-\(m)|\(Int(day.timeIntervalSince1970))|\(selectedSport)|\(calendarUsesVisibleMapRegionOnly)|\(scheduleDataGeneration)|\(discoverQ)|\(q)"
+        return "\(y)-\(m)|\(Int(day.timeIntervalSince1970))|\(selectedSport)|\(calendarUsesVisibleMapRegionOnly)|\(scheduleDataGeneration)|ctf:\(filter.rawValue)|q:\(q)"
     }
 
     private func pruneCalendarEventsListCacheIfNeeded() {
@@ -138,30 +156,133 @@ extension MapViewModel {
         }
     }
 
-    /// Calendar tab list: cached by selected month/day, sport, map-region mode, discover search, and local search query.
-    func calendarScreenDisplayedEvents(selectedDate: Date, searchQuery: String) -> [SportsEvent] {
-        let key = calendarEventsListCacheKey(selectedDay: selectedDate, searchQuery: searchQuery)
+    /// Synthetic league label for pickup rows in the Calendar tab list.
+    static let calendarTabPickupLeagueMarker = "Pickup Game"
+
+    /// Bottom-tab Calendar: reset to today, refresh dots + schedule loads (does not mutate Discover ``selectedDate``).
+    func noteCalendarTabBecameActive() {
+        let cal = Calendar.current
+        calendarTabSelectedDate = cal.startOfDay(for: Date())
+        calendarEventsListCache.removeAll()
+        loadCalendarTabCalendarDotsAroundMonth(calendarTabSelectedDate, reason: "calendar_tab_active")
+        loadGamesFromSupabase()
+        Task {
+            await refreshPickupGamesForDiscoverMap()
+        }
+    }
+
+    /// Calendar tab list: venue (`Venue Event`) + optional pickup synthesis; never shows days before today.
+    func calendarScreenDisplayedEvents(selectedDate: Date, searchQuery: String, filter: CalendarTabGameFilter) -> [SportsEvent] {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: selectedDate)
+        let todayStart = cal.startOfDay(for: Date())
+        guard dayStart >= todayStart else { return [] }
+
+        let key = calendarEventsListCacheKey(selectedDay: selectedDate, searchQuery: searchQuery, filter: filter)
         if let entry = calendarEventsListCache[key],
            Date().timeIntervalSince(entry.storedAt) < Self.calendarEventsListCacheTTL {
             return entry.events
         }
 
-        let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        let built: [SportsEvent]
-        if q.isEmpty {
-            built = computeEventsForSelectedDateUncached()
-        } else {
-            built = events.filter { event in
-                event.title.localizedCaseInsensitiveContains(q)
-                    || event.league.localizedCaseInsensitiveContains(q)
-                    || event.sport.localizedCaseInsensitiveContains(q)
-                    || SportFilterCatalog.storedSport(event.sport, matchesSearchQuery: q)
-            }
-        }
-
+        let built = buildCalendarTabDisplayedEvents(selectedDate: selectedDate, searchQuery: searchQuery, filter: filter)
         calendarEventsListCache[key] = (storedAt: Date(), events: built)
         pruneCalendarEventsListCacheIfNeeded()
         return built
+    }
+
+    private func buildCalendarTabDisplayedEvents(selectedDate: Date, searchQuery: String, filter: CalendarTabGameFilter) -> [SportsEvent] {
+        let venuePart = calendarTabVenueSportsEvents(for: selectedDate, searchQuery: searchQuery)
+        let pickupPart = calendarTabPickupSportsEvents(for: selectedDate, searchQuery: searchQuery)
+        let combined: [SportsEvent]
+        switch filter {
+        case .all:
+            combined = venuePart + pickupPart
+        case .venue:
+            combined = venuePart
+        case .pickup:
+            combined = pickupPart
+        }
+        return combined.sorted {
+            if $0.date != $1.date { return $0.date < $1.date }
+            if $0.time != $1.time { return $0.time < $1.time }
+            return $0.title < $1.title
+        }
+    }
+
+    private func calendarTabLocalQueryMatchesEvent(_ event: SportsEvent, query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return true }
+        return event.title.localizedCaseInsensitiveContains(q)
+            || event.league.localizedCaseInsensitiveContains(q)
+            || event.sport.localizedCaseInsensitiveContains(q)
+            || SportFilterCatalog.storedSport(event.sport, matchesSearchQuery: q)
+    }
+
+    private func calendarTabLocalQueryMatchesPickupRow(_ row: PickupGameRow, query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return true }
+        if row.title.localizedCaseInsensitiveContains(q) { return true }
+        if row.sport.localizedCaseInsensitiveContains(q) { return true }
+        if SportFilterCatalog.storedSport(row.sport, matchesSearchQuery: q) { return true }
+        if (row.address ?? "").localizedCaseInsensitiveContains(q) { return true }
+        if (row.city ?? "").localizedCaseInsensitiveContains(q) { return true }
+        if (row.state ?? "").localizedCaseInsensitiveContains(q) { return true }
+        return false
+    }
+
+    private func calendarTabPickupRowPassesListingFilters(_ row: PickupGameRow, now: Date = Date()) -> Bool {
+        guard row.is_visible, row.status.lowercased() == "active" else { return false }
+        if let remStr = row.remove_after_at,
+           let rem = PickupGameModels.parseSupabaseTimestamptz(remStr),
+           rem <= now {
+            return false
+        }
+        return true
+    }
+
+    private func calendarTabVenueSportsEvents(for selectedDate: Date, searchQuery: String) -> [SportsEvent] {
+        let cal = Calendar.current
+        let regionTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
+        let base = events.filter { event in
+            guard cal.isDate(event.date, inSameDayAs: selectedDate) else { return false }
+            guard event.league == "Venue Event" else { return false }
+            guard selectedSport == "All" || event.sport == selectedSport else { return false }
+            if calendarUsesVisibleMapRegionOnly, let titles = regionTitles {
+                return titles.contains(event.title)
+            }
+            return true
+        }
+        return base.filter { calendarTabLocalQueryMatchesEvent($0, query: searchQuery) }
+    }
+
+    private static let calendarTabPickupListTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .short
+        f.dateStyle = .none
+        return f
+    }()
+
+    private func calendarTabPickupSportsEvents(for selectedDate: Date, searchQuery: String) -> [SportsEvent] {
+        let cal = Calendar.current
+        let now = Date()
+        return pickupGamesForDiscoverMap.compactMap { row -> SportsEvent? in
+            guard calendarTabPickupRowPassesListingFilters(row, now: now) else { return nil }
+            guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
+            guard cal.isDate(start, inSameDayAs: selectedDate) else { return nil }
+            guard selectedSport == "All" || row.sport == selectedSport else { return nil }
+            guard calendarTabLocalQueryMatchesPickupRow(row, query: searchQuery) else { return nil }
+            let day = cal.startOfDay(for: start)
+            let timeLabel = Self.calendarTabPickupListTimeFormatter.string(from: start)
+            return SportsEvent(
+                id: row.id,
+                title: row.title,
+                sport: row.sport,
+                league: MapViewModel.calendarTabPickupLeagueMarker,
+                date: day,
+                time: timeLabel,
+                country: ""
+            )
+        }
     }
 
     var datesWithEvents: Set<DateComponents> {
@@ -415,6 +536,41 @@ extension MapViewModel {
         #endif
         let requestID = beginDiscoverDateChange(to: selectedDate)
         scheduleDiscoverSelectedDayRefresh(requestID: requestID)
+    }
+
+    func noteDiscoverCalendarGuestDatePinnedByUser() {
+        guard isGuestDiscoverMode else { return }
+        discoverCalendarGuestUserPinnedDateThisSession = true
+    }
+
+    /// Guest Discover: when the map calendar has loaded dot dates, move off an empty selected day to the nearest upcoming day that has games (venues or pickup per current map mode).
+    func applyDiscoverGuestNearestEventDateIfNeeded(reason: String) {
+        guard isGuestDiscoverMode else { return }
+        guard !discoverCalendarGuestUserPinnedDateThisSession else { return }
+        let cal = Calendar.current
+        let minDay = cal.startOfDay(for: Date())
+        let sel = cal.startOfDay(for: selectedDate)
+        let venueDots = venueGameCalendarDotDates
+        let pickupDots = pickupGameCalendarDotDates
+        let unionDots = venueDots.union(pickupDots)
+        guard !unionDots.isEmpty else { return }
+        let emptyForCurrentMode: Bool = {
+            switch discoverMapContentMode {
+            case .venues: return !venueDots.contains(sel)
+            case .pickupGames: return !pickupDots.contains(sel)
+            }
+        }()
+        guard emptyForCurrentMode else { return }
+        let upcoming = unionDots.filter { $0 >= minDay }.sorted()
+        guard let target = upcoming.first, target != sel else { return }
+        let requestID = beginDiscoverDateChange(to: target)
+        scheduleDiscoverSelectedDayRefresh(requestID: requestID)
+        #if DEBUG
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone.current
+        print("[DiscoverGuestCalendar] auto-selected=\(f.string(from: target)) was=\(f.string(from: sel)) reason=\(reason)")
+        #endif
     }
 
     func sportChanged(to sport: String) {

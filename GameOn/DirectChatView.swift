@@ -876,6 +876,7 @@ struct DirectChatView: View {
             await presenter.onAppear()
 
             if presenter.loadError == nil {
+                chatViewModel.markDirectInboxReadLocally(peerUserId: presenter.friend.id)
                 await withTaskGroup(of: Void.self) { group in
                     group.addTask {
                         await presenter.runRealtimeSubscription()

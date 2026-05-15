@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+#if DEBUG
+/// Temporary: throttle ``EventCalendarView`` day-cell dot checks (first N only).
+fileprivate enum DiscoverCalendarDotsHasEventDotDebugGate {
+    static var remainingChecks = 10
+}
+#endif
+
 // MARK: - Shared calendar sheet layout (Discover + Calendar tab)
 
 /// Visual chrome for ``LiquidGlassCalendarPicker`` / ``EventCalendarView``. Discover map uses FanGeo liquid glass; Calendar tab keeps semantic adaptive surfaces.
@@ -389,7 +396,7 @@ struct EventCalendarView: View {
     private var eventDotFillColor: Color {
         switch calendarDotPalette {
         case .some(.pickupGames):
-            return FGColor.accentBlue
+            return Color.orange
         case .some(.venueGames), .none:
             return Color(UIColor.systemGreen)
         }
@@ -647,6 +654,21 @@ struct EventCalendarView: View {
 
     private func hasEventDot(on date: Date) -> Bool {
         let sod = calendar.startOfDay(for: date)
+        #if DEBUG
+        if DiscoverCalendarDotsHasEventDotDebugGate.remainingChecks > 0 {
+            DiscoverCalendarDotsHasEventDotDebugGate.remainingChecks -= 1
+            let paletteDesc: String = {
+                guard let p = calendarDotPalette else { return "nil" }
+                switch p {
+                case .venueGames: return "venueGames"
+                case .pickupGames: return "pickupGames"
+                }
+            }()
+            let venueDotCount = calendarDotPalette == .some(.venueGames) ? eventDotDates.count : 0
+            let pickupDotCount = calendarDotPalette == .some(.pickupGames) ? eventDotDates.count : 0
+            print("[DiscoverCalendarDotsDebug] hasEventDot palette=\(paletteDesc) dateSod=\(sod) venueDotCount=\(venueDotCount) pickupDotCount=\(pickupDotCount) eventDotDatesSetCount=\(eventDotDates.count)")
+        }
+        #endif
         if calendarDotPalette != nil {
             return eventDotDates.contains(sod)
         }

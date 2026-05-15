@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Central definition for Discover/Calendar sport filter chips and ``MapViewModel`` icon/color helpers.
+/// Canonical sport **names** for filters, pickers, and DB payloads live in ``AppSportCatalog``.
 enum SportFilterCatalog {
 
     struct ChipVisual {
@@ -47,7 +48,17 @@ enum SportFilterCatalog {
             emoji: "🚴",
             systemImage: "bicycle",
             accent: Color(red: 0.1, green: 0.52, blue: 0.78)
-        )
+        ),
+        Definition(aliases: ["motogp"], emoji: "🏍️", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.92, green: 0.22, blue: 0.28)),
+        Definition(aliases: ["motocross"], emoji: "🏁", systemImage: "figure.outdoor.cycle", accent: Color(red: 0.55, green: 0.38, blue: 0.22)),
+        Definition(aliases: ["climbing", "rock climbing", "bouldering"], emoji: "🧗", systemImage: "figure.climbing", accent: Color(red: 0.35, green: 0.55, blue: 0.82)),
+        Definition(aliases: ["skateboarding", "skateboard"], emoji: "🛹", systemImage: "figure.skateboarding", accent: Color(red: 0.45, green: 0.45, blue: 0.5)),
+        Definition(aliases: ["bowling"], emoji: "🎳", systemImage: "figure.bowling", accent: Color(red: 0.72, green: 0.35, blue: 0.82)),
+        Definition(aliases: ["swimming", "swim"], emoji: "🏊", systemImage: "figure.pool.swim", accent: Color(red: 0.12, green: 0.55, blue: 0.88)),
+        Definition(aliases: ["skiing", "alpine skiing"], emoji: "⛷️", systemImage: "figure.skiing.downhill", accent: Color(red: 0.2, green: 0.55, blue: 0.92)),
+        Definition(aliases: ["esports", "e-sports", "gaming"], emoji: "🎮", systemImage: "gamecontroller.fill", accent: Color(red: 0.55, green: 0.28, blue: 0.92)),
+        Definition(aliases: ["handball"], emoji: "🤾", systemImage: "figure.handball", accent: Color(red: 0.88, green: 0.42, blue: 0.18)),
+        Definition(aliases: ["more"], emoji: "", systemImage: "ellipsis.circle.fill", accent: Color(red: 0.38, green: 0.4, blue: 0.48))
     ]
 
     private static let allVisual = ChipVisual(
@@ -108,6 +119,8 @@ struct SportFilterChip: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let sport: String
+    /// When set, shown instead of ``sport`` while chip visuals still resolve from ``sport`` (e.g. label "Basketball" with selection token `NBA`).
+    var displayTitle: String? = nil
     let isSelected: Bool
     var isCompact = false
     let action: () -> Void
@@ -134,7 +147,7 @@ struct SportFilterChip: View {
                         .foregroundStyle(visual.accent)
                 }
 
-                Text(sport)
+                Text(displayTitle ?? sport)
                     .font(.system(size: isCompact ? 13 : 14, weight: .semibold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -180,7 +193,7 @@ struct SportFilterChip: View {
             .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isSelected)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(sport)
+        .accessibilityLabel(displayTitle ?? sport)
     }
 }
 

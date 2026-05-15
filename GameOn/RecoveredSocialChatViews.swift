@@ -105,6 +105,7 @@ struct DirectMessageBubbleView: View {
 // MARK: - Chat tab root (friends inbox + requests + DM threads)
 
 struct FriendsTabView: View {
+    @ObservedObject var mapViewModel: MapViewModel
     @ObservedObject var viewModel: ChatViewModel
     var isTabSelected: Bool
 
@@ -160,14 +161,16 @@ struct FriendsTabView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 10) {
-                        Button {
-                            showingAddFriendSheet = true
-                        } label: {
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 18, weight: .semibold))
-                                .symbolRenderingMode(.hierarchical)
+                        if mapViewModel.canUsePrivateChat {
+                            Button {
+                                showingAddFriendSheet = true
+                            } label: {
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .symbolRenderingMode(.hierarchical)
+                            }
+                            .accessibilityLabel("Add friend")
                         }
-                        .accessibilityLabel("Add friend")
 
                         Button {
                             showingBlockedUsersSheet = true
@@ -184,12 +187,11 @@ struct FriendsTabView: View {
         .sheet(isPresented: $showingAddFriendSheet) {
             AddFriendGlassSheet(
                 lookupDraft: $manualFriendLookupDraft,
+                viewModel: viewModel,
                 onClose: {
                     showingAddFriendSheet = false
                     manualFriendLookupDraft = ""
-                },
-                onAttemptSend: { normalized in
-                    await viewModel.sendFriendRequestByLookup(normalized)
+                    viewModel.clearAddFriendSearch()
                 }
             )
         }
@@ -530,33 +532,33 @@ private struct BlockedUsersSheet: View {
 
 private struct AddFriendGlassSheet: View {
     @Binding var lookupDraft: String
+    @ObservedObject var viewModel: ChatViewModel
     let onClose: () -> Void
-    /// Returns `nil` when the request was sent successfully; otherwise a user-visible error for the sheet.
-    let onAttemptSend: (String) async -> String?
 
     @State private var inlineError: String?
+    @State private var inlineWarning: String?
+    @State private var successMessage: String?
     @State private var isSending = false
+    @State private var selectedTarget: AddFriendSearchTarget?
+    @State private var searchTask: Task<Void, Never>?
 
     private var normalizedDraft: String {
         FriendshipService.normalizedFriendLookupQuery(lookupDraft)
     }
 
     private var canSend: Bool {
-        !normalizedDraft.isEmpty
+        selectedTarget != nil && !isSending
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             header
 
-            infoPill
-
             VStack(alignment: .leading, spacing: 8) {
-                Text("Enter email or avatar name")
+                Text("Search fans or businesses")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
 
-                TextField("Email or avatar name", text: $lookupDraft)
+                TextField("Email or display name", text: $lookupDraft)
                     .textFieldStyle(.plain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -566,34 +568,113 @@ private struct AddFriendGlassSheet: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(Color(.secondarySystemGroupedBackground).opacity(0.7))
                     )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
-                    )
 
-                Text("Search by the email or avatar name connected to their FanGeo account.")
+                Text("Results show User vs Business. Pick one, then Send.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                if viewModel.addFriendSearchIsLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+
+                searchResultsList
+
+                if let successMessage {
+                    Text(successMessage)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+                if let inlineWarning {
+                    Text(inlineWarning)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+                }
                 if let inlineError {
                     Text(inlineError)
-                        .font(.caption)
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.horizontal, 18)
 
             Spacer(minLength: 0)
         }
-        .padding(.top, 14)
-        .onChange(of: lookupDraft) { _, _ in
+        .padding(.top, 12)
+        .onChange(of: lookupDraft) { _, newValue in
             inlineError = nil
+            inlineWarning = nil
+            successMessage = nil
+            selectedTarget = nil
+            searchTask?.cancel()
+            searchTask = Task {
+                try? await Task.sleep(nanoseconds: 320_000_000)
+                guard !Task.isCancelled else { return }
+                await viewModel.refreshAddFriendSearch(query: newValue)
+            }
         }
-        .presentationDetents([.height(440)])
+        .onChange(of: viewModel.addFriendSearchResults) { _, results in
+            if selectedTarget == nil {
+                selectedTarget = results.first
+            }
+        }
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(34)
         .presentationBackground(.ultraThinMaterial)
+    }
+
+    @ViewBuilder
+    private var searchResultsList: some View {
+        if viewModel.addFriendSearchResults.isEmpty {
+            if !normalizedDraft.isEmpty, !viewModel.addFriendSearchIsLoading {
+                Text("No matches yet. Try another email or name.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            ScrollView {
+                VStack(spacing: 6) {
+                    ForEach(viewModel.addFriendSearchResults) { target in
+                        Button {
+                            selectedTarget = target
+                        } label: {
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(target.listTitle)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    if let email = target.matchedEmail, !email.isEmpty {
+                                        Text(email)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: 0)
+                                if selectedTarget?.id == target.id {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(Color.accentColor)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(
+                                        selectedTarget?.id == target.id
+                                            ? Color.accentColor.opacity(0.12)
+                                            : Color(.secondarySystemGroupedBackground).opacity(0.6)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .frame(maxHeight: 220)
+        }
     }
 
     private var header: some View {
@@ -611,48 +692,30 @@ private struct AddFriendGlassSheet: View {
             Spacer()
 
             Button("Send") {
+                guard let target = selectedTarget else { return }
                 Task {
                     isSending = true
                     inlineError = nil
-                    let normalized = FriendshipService.normalizedFriendLookupQuery(lookupDraft)
-                    if let err = await onAttemptSend(normalized) {
-                        inlineError = err
-                    } else {
-                        onClose()
+                    inlineWarning = nil
+                    successMessage = nil
+                    let outcome = await viewModel.sendFriendRequest(to: target)
+                    switch outcome {
+                    case .success:
+                        successMessage = "Friend request sent."
+                    case .informational(let msg):
+                        inlineWarning = msg
+                    case .error(let msg):
+                        inlineError = msg
                     }
                     isSending = false
                 }
             }
             .buttonStyle(.plain)
             .font(.headline.weight(.semibold))
-            .foregroundStyle(!canSend || isSending ? Color.secondary : Color.accentColor)
-            .disabled(!canSend || isSending)
+            .foregroundStyle(canSend ? Color.accentColor : Color.secondary)
+            .disabled(!canSend)
             .frame(width: 68, alignment: .trailing)
         }
-        .padding(.horizontal, 18)
-        .padding(.bottom, 2)
-    }
-
-    private var infoPill: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "sparkles")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text("Add friends from comments, activity, and live event interactions.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground).opacity(0.55))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-        )
         .padding(.horizontal, 18)
     }
 }

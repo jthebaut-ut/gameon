@@ -142,10 +142,12 @@ extension MapViewModel {
     }
 
     func loadOrganizerPickupRequestSummaries(gameIds: [UUID]) async {
-        guard canFanUsePickupGamesUI, !gameIds.isEmpty else {
+        guard canFanUsePickupGamesUI else {
             pickupOrganizerJoinStatsByGameId = [:]
             return
         }
+        guard !gameIds.isEmpty else { return }
+
         var next: [UUID: PickupOrganizerJoinStats] = [:]
         for gid in gameIds {
             next[gid] = PickupOrganizerJoinStats(pending: 0, approved: 0)
@@ -169,7 +171,16 @@ extension MapViewModel {
             print("[PickupRequest] organizer summary load failed:", error)
 #endif
         }
-        pickupOrganizerJoinStatsByGameId = next
+        var merged = pickupOrganizerJoinStatsByGameId
+        for (k, v) in next {
+            merged[k] = v
+        }
+        pickupOrganizerJoinStatsByGameId = merged
+    }
+
+    /// Pending join requests for one owned pickup game (same cache as organizer Settings / per-row badges).
+    func organizerPendingPickupJoinRequests(for gameId: UUID) -> Int {
+        pickupOrganizerJoinStatsByGameId[gameId]?.pending ?? 0
     }
 
     func fetchOrganizerPickupRequests(pickupGameId: UUID) async throws -> [PickupGameRequestRow] {
@@ -183,9 +194,40 @@ extension MapViewModel {
             .value
     }
 
+    /// Loads `user_profiles` rows for join requesters (Manage Requests sheet avatars).
+    func loadPickupJoinRequesterProfilesForOrganizerSheet(requesterIds: Set<UUID>) async {
+        guard !requesterIds.isEmpty else { return }
+        for id in requesterIds where pickupJoinRequesterAvatarTokenByUserId[id] == nil {
+            pickupJoinRequesterAvatarTokenByUserId[id] = UUID()
+        }
+        do {
+            let ids = Array(requesterIds)
+            let rows: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+                .in("id", values: ids.map { $0.uuidString.lowercased() })
+                .limit(200)
+                .execute()
+                .value
+            for r in rows {
+                guard let id = r.id else { continue }
+                pickupJoinRequesterProfileByUserId[id] = r
+                pickupJoinRequesterAvatarTokenByUserId[id] = UUID()
+            }
+        } catch {
+#if DEBUG
+            print("[PickupRequest] organizer requester profile batch failed:", error)
+#endif
+        }
+    }
+
     func createPickupJoinRequest(pickupGameId: UUID, requesterSkillLevel: String, message: String?) async throws {
         guard let uid = currentUserAuthId else {
             throw PickupGameClientError.notSignedIn
+        }
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "joinPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
         }
         let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let msgPayload: String? = trimmed.isEmpty ? nil : String(trimmed.prefix(280))
@@ -227,6 +269,10 @@ extension MapViewModel {
     }
 
     func cancelMyPickupJoinRequest(requestId: UUID, pickupGameId: UUID) async throws {
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "joinPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
+        }
         try await supabase
             .from("pickup_game_requests")
             .update(PickupJoinRequestStatusUpdate(status: "cancelled"))
@@ -241,6 +287,10 @@ extension MapViewModel {
     }
 
     func approvePickupJoinRequest(requestId: UUID, pickupGameId: UUID) async throws {
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "joinPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
+        }
 #if DEBUG
         print("[PickupRequest] approve requested id=\(requestId.uuidString.lowercased())")
 #endif
@@ -270,6 +320,10 @@ extension MapViewModel {
     }
 
     func rejectPickupJoinRequest(requestId: UUID, pickupGameId: UUID) async throws {
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "joinPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
+        }
 #if DEBUG
         print("[PickupRequest] reject requested id=\(requestId.uuidString.lowercased())")
 #endif
@@ -438,10 +492,25 @@ extension MapViewModel {
 
     // MARK: - Following tab (requester pickup cards)
 
+    /// Pickup “Games to Play”: same visibility / lifecycle signals as Discover list rows, without the map’s “full game” or calendar-day filters (approved joiners should still see the game).
+    private func isPickupGameEligibleForFollowingGamesToPlay(_ game: PickupGameRow) -> Bool {
+        guard game.status == "active", game.is_visible else { return false }
+        let now = Date()
+        if let rem = game.remove_after_at,
+           let remd = PickupGameModels.parseSupabaseTimestamptz(rem),
+           remd <= now {
+            return false
+        }
+        return true
+    }
+
     func loadMyPickupGameJoinRequestsForFollowing() async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             myPickupGameJoinRequestCards = []
             pickupGamesFollowingTabCache.removeAll()
+#if DEBUG
+            print("[GamesToPlayDebug] approvedRequestsCount=0 activeApprovedGamesCount=0 filteredExpiredGamesCount=0 finalGamesToPlayCount=0 reason=no_uid_or_pickup_gate")
+#endif
             return
         }
 
@@ -458,6 +527,9 @@ extension MapViewModel {
             guard !requests.isEmpty else {
                 myPickupGameJoinRequestCards = []
                 pickupGamesFollowingTabCache.removeAll()
+#if DEBUG
+                print("[GamesToPlayDebug] approvedRequestsCount=0 activeApprovedGamesCount=0 filteredExpiredGamesCount=0 finalGamesToPlayCount=0 reason=no_requests")
+#endif
                 return
             }
 
@@ -481,10 +553,36 @@ extension MapViewModel {
                 await loadPickupCreatorDisplayNameIfNeeded(creatorUserId: cid)
             }
 
+            var approvedRequestsCount = 0
+            var activeApprovedGamesCount = 0
+            var filteredExpiredGamesCount = 0
+
+            for req in requests {
+                let st = req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if st == "approved" { approvedRequestsCount += 1 }
+            }
+
             var cards: [PickupGameJoinRequestCardDisplay] = []
             cards.reserveCapacity(requests.count)
             for req in requests {
-                guard let game = gameById[req.pickup_game_id] else { continue }
+                let st = req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if st == "rejected" || st == "cancelled" { continue }
+
+                guard let game = gameById[req.pickup_game_id] else {
+                    if st == "approved" { filteredExpiredGamesCount += 1 }
+                    continue
+                }
+
+                let playable = isPickupGameEligibleForFollowingGamesToPlay(game)
+                if st == "approved" {
+                    if playable {
+                        activeApprovedGamesCount += 1
+                    } else {
+                        filteredExpiredGamesCount += 1
+                        continue
+                    }
+                }
+
                 let pill = pillKindForFollowingPickupRequest(status: req.status)
                 let rawName = pickupCreatorDisplayLabel(for: game.creator_user_id)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 let resolvedOrg = rawName.isEmpty ? "Organizer" : rawName
@@ -503,6 +601,13 @@ extension MapViewModel {
                     )
                 )
             }
+
+#if DEBUG
+            print("[GamesToPlayDebug] approvedRequestsCount=\(approvedRequestsCount)")
+            print("[GamesToPlayDebug] activeApprovedGamesCount=\(activeApprovedGamesCount)")
+            print("[GamesToPlayDebug] filteredExpiredGamesCount=\(filteredExpiredGamesCount)")
+            print("[GamesToPlayDebug] finalGamesToPlayCount=\(cards.count)")
+#endif
             myPickupGameJoinRequestCards = cards
         } catch {
 #if DEBUG

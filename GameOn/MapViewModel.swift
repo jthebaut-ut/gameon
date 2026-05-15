@@ -12,7 +12,12 @@ import Supabase
 @MainActor
 final class MapViewModel: ObservableObject {
     
-    @Published var selectedDate: Date = SampleData.makeDate(year: 2026, month: 6, day: 25)
+    @Published var selectedDate: Date = Calendar.current.startOfDay(for: Date())
+    /// Bottom-tab Calendar only (never drives Discover map date).
+    @Published var calendarTabSelectedDate: Date = Calendar.current.startOfDay(for: Date())
+    @Published var calendarTabGameFilter: CalendarTabGameFilter = .all
+    /// Guest Discover: set when the user confirms a date from the map calendar (`Done`); blocks automatic “jump to next day with games” for that cold start / session.
+    var discoverCalendarGuestUserPinnedDateThisSession: Bool = false
     @Published var selectedSport: String = "All"
     @Published var selectedEvent: SportsEvent?
     @Published var selectedBar: BarVenue?
@@ -35,6 +40,10 @@ final class MapViewModel: ObservableObject {
     /// Shared social/chat auth gate: regular fan auth, business-owner auth, or an already-restored Supabase session id.
     var isAuthenticatedForSocialFeatures: Bool {
         isLoggedIn || isVenueOwnerLoggedIn || currentUserAuthId != nil
+    }
+    /// Discover map and public pickup rows: no fan session and no venue-owner session (same as ``!isAuthenticatedForSocialFeatures``).
+    var isGuestDiscoverMode: Bool {
+        !isAuthenticatedForSocialFeatures
     }
     /// True only when the active authenticated session is currently operating as a venue-owner/business account.
     var hasAuthenticatedVenueOwnerSession: Bool {
@@ -242,6 +251,10 @@ final class MapViewModel: ObservableObject {
     @Published var isDiscoverVenueSearchLoading: Bool = false
     /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).
     @Published var discoverNavigateToAccountForUserAuth: Bool = false
+    /// When set, ``SettingsScreen`` presents ``SettingsUserAuthSheet`` (same fan sheet as Account tab). Cleared when handled.
+    @Published var presentFanUserAuthSheetFromDiscover: Bool = false
+    /// Initial mode for ``SettingsUserAuthSheet`` when opened from Discover guest prompts.
+    @Published var fanUserAuthSheetOpenInRegisterMode: Bool = false
     /// Following → Saved Venues: Discover tab consumes this to focus the map (see ``MapViewModel+FollowingMapNavigation``).
     @Published var pendingFollowingMapVenueID: UUID?
     /// Venue snapshot from Following so navigation works when ``bars`` does not yet include this id (map region elsewhere).
@@ -270,6 +283,10 @@ final class MapViewModel: ObservableObject {
     @Published var pickupCreatorAvatarURLByUserId: [UUID: String] = [:]
     @Published var pickupCreatorEmailByUserId: [UUID: String] = [:]
     @Published var pickupCreatorAvatarTokenByUserId: [UUID: UUID] = [:]
+    /// Join-request requester rows from `user_profiles` (Settings → My pickup games → Manage Requests).
+    @Published var pickupJoinRequesterProfileByUserId: [UUID: UserProfileRow] = [:]
+    /// Bumped when a join-requester profile loads so ``UserAvatarView`` refreshes thumbnails.
+    @Published var pickupJoinRequesterAvatarTokenByUserId: [UUID: UUID] = [:]
     /// Discover map segmented control: venue clusters vs pickup pins only.
     @Published var discoverMapContentMode: DiscoverMapContentMode = .venues
     /// When `true`, entering pickup map mode should run ``refreshPickupGamesForDiscoverMap()`` (cleared after a successful refresh).
@@ -346,8 +363,13 @@ final class MapViewModel: ObservableObject {
     /// Discover-only: when set, ``pruneSelectionIfNeededAfterFilterChange()`` keeps ``selectedBar`` even if this id is absent from ``bars`` (remote text search venue with no games — not a default map pin).
     var discoverRemotePreviewHoldVenueId: UUID?
 
-    /// Set when ``renderCachedDiscoverCore()`` applied a disk snapshot this launch; suppresses empty-state loading chrome until fresh fetches finish.
+    /// Set when ``renderCachedDiscoverCore()`` (async) applied a disk snapshot this launch; suppresses empty-state loading chrome until fresh fetches finish.
     var discoverSnapshotRestoredThisLaunch = false
+
+    /// Startup Discover: one-shot location + 15 mi region; ``defer`` arms preload completion logging even if the task is cancelled mid-await.
+    var didFinishStartupDiscoverPrepare = false
+    /// When true, the next ``refreshDiscoverCoreInBackground()`` logs ``[StartupDiscover] preloadCompleted`` (DEBUG).
+    var startupDiscoverPreloadCompletionLogPending = false
 
     /// After the first successful Supabase games load, prefer ``isRefreshingDiscoverEvents`` over blocking ``isLoadingEvents``.
     var didCompleteSuccessfulGamesFetch = false
@@ -357,10 +379,15 @@ final class MapViewModel: ObservableObject {
     var loadGamesCoalesceNeedsAnotherPass = false
     /// Fire-and-forget phase-3 Discover enrichment after pins are visible.
     var discoverFullEnrichmentTask: Task<Void, Never>?
+    /// One-shot pickup calendar + map-row warmup after enrichment (not triggered by map pan).
+    var discoverPickupMetadataPreloadTask: Task<Void, Never>?
+    var discoverPickupMetadataPreloadCompleted = false
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
     var discoverSelectedDayRefreshRequestID: UUID?
     var discoverCalendarDotLoadTask: Task<Void, Never>?
     var discoverCalendarDotLoadRequestID: UUID?
+    /// Serializes overlapping ``refreshPickupGamesForDiscoverMap`` calls so calendar open + dot preload do not stack duplicate Supabase fetches.
+    var refreshPickupGamesForDiscoverMapCoalescingTask: Task<Void, Never>?
     var mapStatusDismissTask: Task<Void, Never>?
     var socialActionToastDismissTask: Task<Void, Never>?
 
@@ -370,7 +397,7 @@ final class MapViewModel: ObservableObject {
     /// Last inputs used for ``calendarDotDates``; avoids rescanning ``events`` when nothing relevant changed.
     var lastCalendarDotRecomputeKey: String?
 
-    /// Short-lived Calendar tab list cache (see ``calendarScreenDisplayedEvents``).
+    /// Short-lived Calendar tab list cache (see ``calendarScreenDisplayedEvents``; key includes ``CalendarTabGameFilter``).
     var calendarEventsListCache: [String: (storedAt: Date, events: [SportsEvent])] = [:]
     var venueGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]
     var pickupGameCalendarDotDatesCache: [String: (dates: Set<Date>, fetchedAt: Date)] = [:]

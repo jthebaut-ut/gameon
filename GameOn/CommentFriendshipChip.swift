@@ -6,6 +6,18 @@ struct CommentFriendshipChip: View {
     var isSending: Bool = false
     var onAddFriend: () -> Void = {}
 
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var fanUpdatesIsDark: Bool { colorScheme == .dark }
+
+    private var chipStroke: Color {
+        fanUpdatesIsDark ? Color.white.opacity(0.10) : Color.black.opacity(0.08)
+    }
+
+    private var addFriendForeground: Color {
+        fanUpdatesIsDark ? Color(red: 0.45, green: 0.75, blue: 1.0) : Color.blue
+    }
+
     var body: some View {
         Group {
             switch kind {
@@ -13,15 +25,18 @@ struct CommentFriendshipChip: View {
                 Button(action: onAddFriend) {
                     Text("Add Friend")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.blue)
+                        .foregroundStyle(addFriendForeground)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color.blue.opacity(0.10))
+                                .fill(fanUpdatesIsDark ? Color.white.opacity(0.08) : Color.blue.opacity(0.10))
                                 .overlay(
                                     Capsule()
-                                        .strokeBorder(Color.blue.opacity(0.45), lineWidth: 1)
+                                        .strokeBorder(
+                                            fanUpdatesIsDark ? Color.white.opacity(0.10) : Color.blue.opacity(0.45),
+                                            lineWidth: 1
+                                        )
                                 )
                         )
                 }
@@ -45,8 +60,23 @@ struct CommentFriendshipChip: View {
     }
 
     private func mutedCapsule(_ text: String, tint: Color?) -> some View {
-        let fg = tint ?? Color.secondary
-        let fill = (tint ?? Color.secondary).opacity(0.12)
+        let fg: Color = {
+            if let tint {
+                return tint
+            }
+            return fanUpdatesIsDark ? Color.white.opacity(0.85) : Color.secondary
+        }()
+
+        let fill: Color = {
+            if fanUpdatesIsDark {
+                return Color.white.opacity(0.08)
+            }
+            if tint == nil {
+                return Color(uiColor: .systemGray5)
+            }
+            return tint!.opacity(0.12)
+        }()
+
         return Text(text)
             .font(.caption2.weight(.semibold))
             .foregroundStyle(fg)
@@ -54,7 +84,11 @@ struct CommentFriendshipChip: View {
             .padding(.vertical, 4)
             .background(
                 Capsule()
-                    .fill(tint == nil ? Color(.systemGray5) : fill)
+                    .fill(fill)
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(fanUpdatesIsDark ? chipStroke : Color.clear, lineWidth: 1)
+                    )
             )
     }
 }

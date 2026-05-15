@@ -23,10 +23,24 @@ struct SocialIdentityService {
         }
     }
 
-    /// Returns synthetic profile rows keyed by email so existing social/comment UI can keep using `UserProfileRow`.
+    /// All active `user_profiles` rows for the given emails (fan + business rows may share a legacy email).
     func fetchUserProfileRows(forEmails emails: [String]) async throws -> [UserProfileRow] {
-        let map = try await fetchIdentityMapByEmail(emails)
-        return map.values.map(\.userProfileRow)
+        let normalizedEmails = Array(
+            Set(
+                emails
+                    .map(OwnerBusinessEmail.normalized)
+                    .filter(OwnerBusinessEmail.isValidStrict)
+            )
+        )
+        guard !normalizedEmails.isEmpty else { return [] }
+
+        return (try? await client
+            .from("user_profiles")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+            .in("email", values: normalizedEmails)
+            .eq("admin_status", value: "active")
+            .execute()
+            .value) ?? []
     }
 
     private func fetchIdentityMapByUserId(
@@ -38,7 +52,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
             .in("id", values: ids)
             .eq("admin_status", value: "active")
             .execute()
@@ -91,6 +105,8 @@ struct SocialIdentityService {
 
             for (userId, profile) in profilesById {
                 if businessesByUserId[userId] != nil { continue }
+                // Do not attach a business row to a fan profile by shared email alone.
+                guard profile.isBusinessIdentity else { continue }
                 let email = OwnerBusinessEmail.normalized(profile.email ?? "")
                 guard OwnerBusinessEmail.isValidStrict(email), let row = businessByEmail[email] else { continue }
                 businessesByUserId[userId] = row
@@ -160,7 +176,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -178,7 +194,13 @@ struct SocialIdentityService {
         for row in profiles {
             let email = OwnerBusinessEmail.normalized(row.email ?? "")
             guard OwnerBusinessEmail.isValidStrict(email) else { continue }
-            profilesByEmail[email] = row
+            if let existing = profilesByEmail[email] {
+                if existing.isBusinessIdentity, !row.isBusinessIdentity {
+                    profilesByEmail[email] = row
+                }
+            } else {
+                profilesByEmail[email] = row
+            }
         }
 
         var businessesByEmail: [String: BusinessRow] = [:]
@@ -192,16 +214,25 @@ struct SocialIdentityService {
 
         var out: [String: ResolvedIdentity] = [:]
         for email in normalizedEmails {
+            let profile = profilesByEmail[email]
+            let business = businessRowForEmailResolution(profile: profile, business: businessesByEmail[email])
             if let identity = resolveIdentity(
-                profile: profilesByEmail[email],
-                business: businessesByEmail[email],
-                fallbackUserId: profilesByEmail[email]?.id ?? businessesByEmail[email]?.owner_user_id,
+                profile: profile,
+                business: business,
+                fallbackUserId: profile?.id ?? businessesByEmail[email]?.owner_user_id,
                 fallbackEmail: email
             ) {
                 out[email] = identity
             }
         }
         return out
+    }
+
+    /// When a fan profile exists for an email, do not collapse identity to the business row with the same email.
+    private func businessRowForEmailResolution(profile: UserProfileRow?, business: BusinessRow?) -> BusinessRow? {
+        guard let business else { return nil }
+        guard let profile else { return business }
+        return profile.isBusinessIdentity ? business : nil
     }
 
     private func resolveIdentity(
@@ -242,7 +273,7 @@ struct SocialIdentityService {
             displayName: displayName,
             avatarURL: profile?.avatar_url,
             avatarThumbnailURL: profile?.avatar_thumbnail_url,
-            isBusinessAccount: false
+            isBusinessAccount: profile?.isBusinessIdentity == true
         )
     }
 

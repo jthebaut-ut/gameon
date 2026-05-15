@@ -78,19 +78,13 @@ enum DiscoverVenueLoadAssembler {
         let mappedBars: [BarVenue] = venueRows.compactMap { row -> BarVenue? in
             guard let name = row.venue_name else { return nil }
 
-            // Discover map queries require lat/lon in SQL, but business venues can exist before geocode completes.
-            // Use a provisional Utah-area center so games/calendar/search assembly still work; replace once DB coords exist.
-            let latitude: Double
-            let longitude: Double
-            if let la = row.latitude, let lo = row.longitude {
-                latitude = la
-                longitude = lo
-            } else {
-                latitude = 40.3916
-                longitude = -111.8508
+            // Public Discover pins must use real `venues.latitude` / `venues.longitude` (bounds queries + guest map).
+            // Calendar / event lists still hydrate from `venue_events` using supplemented venue ids when coords are missing.
+            guard let latitude = row.latitude, let longitude = row.longitude else {
 #if DEBUG
-                print("[DiscoverVisibilityDebug] venue=\(name) using provisional coordinate (missing latitude/longitude in DB)")
+                print("[DiscoverVisibilityDebug] venue=\(name) skipped map pin (missing latitude/longitude in DB)")
 #endif
+                return nil
             }
 
             var titleSet = Set<String>()

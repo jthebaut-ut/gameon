@@ -30,6 +30,21 @@ struct VenueDetailView: View {
     var showsBusinessOwnershipSection: Bool = false
     /// Current claim-review lifecycle for the signed-in venue owner on this venue.
     var businessClaimStatus: VenueOwnershipClaimStatus = .unclaimed
+    /// When false, fan-only controls (save, rate) are shown disabled and route taps through ``onFanFeatureBlocked``.
+    var showsFanOnlyActionButtons: Bool = true
+    var onFanFeatureBlocked: ((String) -> Void)? = nil
+    /// Guest Discover: hide per-game fan surfaces and show ``DiscoverGuestGameLockCard`` instead of games + buzz.
+    var locksScheduledGameDetailsForGuest: Bool = false
+    /// Guest Discover: same fan auth presentation as other Discover CTAs.
+    var onGuestGameLoginCTA: (() -> Void)? = nil
+
+    private func runFanOnlyAction(_ debugAction: String, _ handler: () -> Void) {
+        if showsFanOnlyActionButtons {
+            handler()
+        } else {
+            onFanFeatureBlocked?(debugAction)
+        }
+    }
 
     private var resolvedRating: Double? {
         guard ratingCount > 0 else { return nil }
@@ -61,7 +76,7 @@ struct VenueDetailView: View {
 
     private var venueShareText: String {
         var lines = [bar.name, bar.address]
-        if let selectedEvent {
+        if !locksScheduledGameDetailsForGuest, let selectedEvent {
             lines.append("Catch \(selectedEvent.title) on \(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)")
         }
         lines.append("Shared from FanGeo")
@@ -160,9 +175,17 @@ struct VenueDetailView: View {
                 venueHeroSection
                 venueStatsSection
                 venueActionSection
-                venueFanActivitySection
+                if locksScheduledGameDetailsForGuest {
+                    DiscoverGuestGameLockCard {
+                        onGuestGameLoginCTA?()
+                    }
+                } else {
+                    venueFanActivitySection
+                }
                 venueBusinessClaimSection
-                venueGamesSection
+                if !locksScheduledGameDetailsForGuest {
+                    venueGamesSection
+                }
                 venueExperienceSection
                 venueInfoSection
                 venueFeaturesSection
@@ -230,7 +253,9 @@ struct VenueDetailView: View {
 
                     Spacer(minLength: FGSpacing.md)
 
-                    Button(action: onFavorite) {
+                    Button {
+                        runFanOnlyAction("favoriteVenue", onFavorite)
+                    } label: {
                         Image(systemName: isFavorite ? "heart.fill" : "heart")
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(isFavorite ? Color.red : Color.white)
@@ -239,6 +264,7 @@ struct VenueDetailView: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
                 }
 
                 Spacer(minLength: 0)
@@ -327,7 +353,9 @@ struct VenueDetailView: View {
                 tint: FGColor.accentBlue
             )
             if let rating = resolvedRating, let onRateVenue {
-                Button(action: onRateVenue) {
+                Button {
+                    runFanOnlyAction("rateVenue", onRateVenue)
+                } label: {
                     statCard(
                         title: String(format: "%.1f", rating),
                         subtitle: ratingSubtitle,
@@ -336,6 +364,7 @@ struct VenueDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .opacity(showsFanOnlyActionButtons ? 1 : 0.55)
             } else if let rating = resolvedRating {
                 statCard(
                     title: String(format: "%.1f", rating),
@@ -411,7 +440,9 @@ struct VenueDetailView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: onFavorite) {
+                Button {
+                    runFanOnlyAction("favoriteVenue", onFavorite)
+                } label: {
                     actionCardContent(
                         title: isFavorite ? "Saved" : "Save",
                         subtitle: isFavorite ? "In favorites" : "Pin this venue",
@@ -420,6 +451,7 @@ struct VenueDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .opacity(showsFanOnlyActionButtons ? 1 : 0.55)
 
                 ShareLink(item: venueShareText) {
                     actionCardContent(

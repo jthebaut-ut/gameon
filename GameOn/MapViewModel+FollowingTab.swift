@@ -17,15 +17,27 @@ extension MapViewModel {
 
     private static let interestChunkSize = 90
 
-    func clearFollowingTabCaches() {
-        followingTabSavedVenues = []
+    /// Clears only venue-game plan rows and interest-derived Following state. Does **not** remove saved venues or pickup join cards.
+    func clearFollowingTabVenueGamePlanCachesOnly() {
         followingTabGoingItems = []
         followingTabGoingInterestCounts = [:]
         followingTabUserVenueEventInterestIDs = []
-        myPickupGameJoinRequestCards = []
-        pickupGamesFollowingTabCache.removeAll()
         pendingFollowingMapVenueID = nil
         pendingFollowingMapVenueSnapshot = nil
+    }
+
+    /// Email-scoped Following lists (`favorite_venues`, `venue_event_interests`) without a usable session email. Does **not** clear pickup join cards (``loadMyPickupGameJoinRequestsForFollowing()`` is keyed by auth user id).
+    func clearFollowingTabCachesPreservingPickupJoinState() {
+        clearFollowingTabVenueGamePlanCachesOnly()
+        followingTabSavedVenues = []
+        favoriteVenueIDs = []
+    }
+
+    func clearFollowingTabCaches() {
+        clearFollowingTabVenueGamePlanCachesOnly()
+        followingTabSavedVenues = []
+        myPickupGameJoinRequestCards = []
+        pickupGamesFollowingTabCache.removeAll()
     }
 
     func clearFollowingInterestedOnlyDefaults() {
@@ -33,9 +45,11 @@ extension MapViewModel {
     }
 
     /// Reloads Following tab data from Supabase: ordered saved venues by favorite ids, global user interests, event rows, per-event counts, and venue rows (by id or owner/name match).
+    ///
+    /// Saved venues and venue-game membership are handled separately: failures loading interests or aggregate counts must not clear favorite venues (see ``clearFollowingTabVenueGamePlanCachesOnly()``).
     func refreshFollowingTabDataGlobally() async {
         guard let interestEmail = await strictNormalizedSessionEmailForSocialTables() else {
-            clearFollowingTabCaches()
+            clearFollowingTabCachesPreservingPickupJoinState()
             return
         }
 
@@ -43,11 +57,25 @@ extension MapViewModel {
 
         let localInterestedOnly = Self.decodeInterestedOnlyUUIDsFromDefaults()
 
+        // MARK: Saved venues (favorite list) — independent of venue_event_interests
+        var orderedFavoriteIds: [UUID] = []
+        var savedBars: [BarVenue] = []
+        var barsById: [UUID: BarVenue] = [:]
         do {
-            let orderedFavoriteIds = try await fetchOrderedFavoriteVenueIDs(userEmail: interestEmail)
-            let savedBars = try await fetchBarsForFavoriteVenueIDs(orderedFavoriteIds)
-            let barsById = Dictionary(uniqueKeysWithValues: savedBars.map { ($0.id, $0) })
+            orderedFavoriteIds = try await fetchOrderedFavoriteVenueIDs(userEmail: interestEmail)
+            savedBars = try await fetchBarsForFavoriteVenueIDs(orderedFavoriteIds)
+            barsById = Dictionary(uniqueKeysWithValues: savedBars.map { ($0.id, $0) })
+            let orderedSaved = orderedFavoriteIds.compactMap { barsById[$0] }
+            followingTabSavedVenues = orderedSaved
+        } catch {
+#if DEBUG
+            print("ERROR refreshFollowingTabDataGlobally favorites:", error)
+#endif
+            // Keep prior saved venues; do not wipe hearts on downstream errors.
+        }
 
+        // MARK: Venue games the user follows (membership ≠ aggregate counts)
+        do {
             let interestRows: [VenueEventInterestRow] = try await supabase
                 .from("venue_event_interests")
                 .select("venue_event_id")
@@ -57,18 +85,21 @@ extension MapViewModel {
 
             let serverEventIDs = Set(interestRows.compactMap(\.venue_event_id))
 
+            let userMemberVenueEventIDs = serverEventIDs.union(localInterestedOnly)
+
             var eventRowsByID: [UUID: VenueEventRow] = [:]
-            let serverIDsArray = Array(serverEventIDs)
+            let membershipArray = Array(userMemberVenueEventIDs)
             var index = 0
-            while index < serverIDsArray.count {
-                let end = min(index + Self.interestChunkSize, serverIDsArray.count)
-                let chunk = Array(serverIDsArray[index..<end])
+            while index < membershipArray.count {
+                let end = min(index + Self.interestChunkSize, membershipArray.count)
+                let chunk = Array(membershipArray[index..<end])
                 index = end
+                let idStrings = chunk.map { $0.uuidString.lowercased() }
 
                 let rows: [VenueEventRow] = try await supabase
                     .from("venue_events")
                     .select(Self.venueEventSelectColumnsFollowing)
-                    .in("id", values: chunk)
+                    .in("id", values: idStrings)
                     .eq("admin_status", value: "active")
                     .execute()
                     .value
@@ -88,64 +119,74 @@ extension MapViewModel {
             }
 
             let allDisplayEventIDs = Array(eventRowsByID.keys)
-            var counts: [UUID: Int] = [:]
+            var totals: [UUID: Int] = [:]
             var countIndex = 0
             while countIndex < allDisplayEventIDs.count {
                 let end = min(countIndex + Self.interestChunkSize, allDisplayEventIDs.count)
                 let chunk = Array(allDisplayEventIDs[countIndex..<end])
                 countIndex = end
+                let venueEventIdStrings = chunk.map { $0.uuidString.lowercased() }
 
                 let countRows: [VenueEventInterestRow] = try await supabase
                     .from("venue_event_interests")
                     .select("venue_event_id")
-                    .in("venue_event_id", values: chunk)
+                    .in("venue_event_id", values: venueEventIdStrings)
                     .execute()
                     .value
 
                 for row in countRows {
                     guard let eid = row.venue_event_id else { continue }
-                    counts[eid, default: 0] += 1
+                    totals[eid, default: 0] += 1
                 }
             }
+
+            let localInterestedOnlyIDs = localInterestedOnly.subtracting(serverEventIDs)
 
             var goingItems: [FollowingGoingDisplayItem] = []
             goingItems.reserveCapacity(eventRowsByID.count)
 
             for id in allDisplayEventIDs.sorted(by: { $0.uuidString < $1.uuidString }) {
                 guard let row = eventRowsByID[id] else { continue }
+
                 let bar = try await resolveBarForFollowingVenueEvent(
                     row: row,
                     barsById: barsById,
                     savedBars: savedBars
                 )
-                let isServer = serverEventIDs.contains(id)
+                let userHasServerInterestRow = serverEventIDs.contains(id)
+                let attendeeCount = totals[id] ?? 0
                 goingItems.append(
                     FollowingGoingDisplayItem(
                         id: id,
                         venueEvent: row,
                         bar: bar,
-                        attendeeCount: counts[id] ?? 0,
-                        isServerGoing: isServer
+                        attendeeCount: attendeeCount,
+                        isServerGoing: userHasServerInterestRow,
+                        isInterestedOnlyLocal: localInterestedOnlyIDs.contains(id)
                     )
                 )
             }
 
-            let orderedSaved = orderedFavoriteIds.compactMap { barsById[$0] }
+            let favoriteVenuesCount = followingTabSavedVenues.count
+            let userGoingVenueEventsCount = serverEventIDs.count
+            let userInterestedVenueEventsCount = localInterestedOnly.subtracting(serverEventIDs).count
+            let finalFollowingItemsCount = goingItems.count
 
-            await MainActor.run {
-                followingTabSavedVenues = orderedSaved
-                followingTabGoingItems = goingItems
-                followingTabGoingInterestCounts = counts
-                followingTabUserVenueEventInterestIDs = serverEventIDs
-            }
+            followingTabGoingItems = goingItems
+            followingTabGoingInterestCounts = totals
+            followingTabUserVenueEventInterestIDs = serverEventIDs
 
+#if DEBUG
+            print("[FollowingRegression] favoriteVenuesCount=\(favoriteVenuesCount)")
+            print("[FollowingRegression] userGoingVenueEventsCount=\(userGoingVenueEventsCount)")
+            print("[FollowingRegression] userInterestedVenueEventsCount=\(userInterestedVenueEventsCount)")
+            print("[FollowingRegression] finalFollowingItemsCount=\(finalFollowingItemsCount)")
+#endif
         } catch {
 #if DEBUG
-            print("ERROR refreshFollowingTabDataGlobally:", error)
+            print("ERROR refreshFollowingTabDataGlobally venue game plans:", error)
 #endif
-            await MainActor.run {
-                clearFollowingTabCaches()
-            }
+            clearFollowingTabVenueGamePlanCachesOnly()
         }
     }
 
@@ -173,10 +214,11 @@ extension MapViewModel {
             let chunk = Array(orderedIds[idx..<end])
             idx = end
 
+            let idStrings = chunk.map { $0.uuidString.lowercased() }
             let rows: [VenueRow] = try await supabase
                 .from("venues")
                 .select(Self.venueSelectColumnsFollowing)
-                .in("id", values: chunk)
+                .in("id", values: idStrings)
                 .eq("admin_status", value: "active")
                 .execute()
                 .value
@@ -192,7 +234,7 @@ extension MapViewModel {
         let rows: [VenueEventRow] = try await supabase
             .from("venue_events")
             .select(Self.venueEventSelectColumnsFollowing)
-            .eq("id", value: id)
+            .eq("id", value: id.uuidString.lowercased())
             .eq("admin_status", value: "active")
             .limit(1)
             .execute()
