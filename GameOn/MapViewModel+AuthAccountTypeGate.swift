@@ -104,16 +104,20 @@ extension MapViewModel {
         let e = OwnerBusinessEmail.normalized(email)
         guard OwnerBusinessEmail.isValidStrict(e) else { return false }
 
+        if await businessAccountExistsForOwnerEmailOnly(e) {
+            return false
+        }
+
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,is_business_account,admin_status")
+                .select("id,email,admin_status")
                 .eq("email", value: e)
                 .eq("admin_status", value: "active")
                 .limit(5)
                 .execute()
                 .value
-            return rows.contains { !$0.isBusinessIdentity }
+            return !rows.isEmpty
         } catch {
 #if DEBUG
             print("[AuthAccountTypeGate] activeFanUserProfileExistsForEmail query failed email=\(e):", error)
@@ -122,7 +126,7 @@ extension MapViewModel {
         }
     }
 
-    /// True when the signed-in user has an active fan `user_profiles` row (not `is_business_account`) and no qualifying `businesses` row.
+    /// True when the signed-in user has an active `user_profiles` row and no qualifying `businesses` row (fan-only session).
     func shouldBlockBusinessOwnerLogin(sessionEmail: String, userId: UUID) async -> Bool {
         let e = OwnerBusinessEmail.normalized(sessionEmail)
         guard OwnerBusinessEmail.isValidStrict(e) else { return false }
@@ -134,14 +138,14 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,is_business_account,admin_status")
+                .select("id,email,admin_status")
                 .eq("id", value: userId)
                 .eq("admin_status", value: "active")
                 .limit(1)
                 .execute()
                 .value
-            guard let row = rows.first else { return false }
-            return !row.isBusinessIdentity
+            guard rows.first != nil else { return false }
+            return true
         } catch {
 #if DEBUG
             print("[AuthAccountTypeGate] shouldBlockBusinessOwnerLogin profile query failed uid=\(userId):", error)

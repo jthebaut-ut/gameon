@@ -110,19 +110,70 @@ final class DirectChatService {
         return rows
     }
 
-    func sendMessage(conversationId: UUID, senderId: UUID, body: String) async throws -> DirectMessageRow {
+    /// Messages strictly after `(afterCreatedAt, afterMessageId)` in chronological order (oldest-first).
+    /// Uses the same PostgREST keyset pattern as ``fetchOlderMessages`` / ``keysetOlderThanOrFilter``.
+    func fetchMessagesNewerThanAnchor(
+        conversationId: UUID,
+        afterCreatedAt: Date,
+        afterMessageId: UUID,
+        limit: Int = 50
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow]
+        do {
+            rows = try await fetchNewerMessagesWithIsDeletedFilter(
+                conversationId: conversationId,
+                afterCreatedAt: afterCreatedAt,
+                afterMessageId: afterMessageId,
+                limit: limit
+            )
+        } catch {
+            if Self.shouldFallbackToLegacyDirectMessagesQuery(error) {
+                rows = try await fetchNewerMessagesDeletedAtOnly(
+                    conversationId: conversationId,
+                    afterCreatedAt: afterCreatedAt,
+                    afterMessageId: afterMessageId,
+                    limit: limit
+                )
+            } else {
+                throw error
+            }
+        }
+        return rows
+    }
+
+    func sendMessage(
+        conversationId: UUID,
+        senderId: UUID,
+        body: String,
+        diagnosticCorrelationId: UUID? = nil
+    ) async throws -> DirectMessageRow {
+#if DEBUG
+        if let c = diagnosticCorrelationId {
+            DMRealtimeDiagnostics.log(
+                "phase=db_insert_start correlation=\(c.uuidString.lowercased()) conversation=\(conversationId.uuidString.lowercased())"
+            )
+        }
+#endif
         let insert = DirectMessageInsert(
             conversation_id: conversationId,
             sender_id: senderId,
             body: body
         )
-        return try await client
+        let row: DirectMessageRow = try await client
             .from("direct_messages")
             .insert(insert)
             .select()
             .single()
             .execute()
             .value
+#if DEBUG
+        if let c = diagnosticCorrelationId {
+            DMRealtimeDiagnostics.log(
+                "phase=db_insert_completed correlation=\(c.uuidString.lowercased()) messageId=\(row.id.uuidString.lowercased()) serverCreatedAt=\(row.created_at ?? "nil")"
+            )
+        }
+#endif
+        return row
     }
 
     func currentUserId() async throws -> UUID {
@@ -145,13 +196,22 @@ final class DirectChatService {
 
     // MARK: - Realtime (direct thread only)
 
-    /// Postgres INSERTs for this conversation (`dm:<conversation_id>`). No client-side filter — RLS scopes events; Swift filters by `conversation_id`.
+    /// Same INSERT filter shape as inbox realtime when scoped: `conversation_id=eq.<uuid>` (matches ``RealtimePostgresFilter`` encoding).
+    /// RLS still gates which rows reach the client; this narrows the postgres_changes binding like `RealtimePostgresFilter.in(...)` does for the inbox.
+    static func directMessagesThreadRealtimeFilterDescription(conversationId: UUID) -> String {
+        "conversation_id=eq.\(conversationId.uuidString.lowercased())"
+    }
+
+    /// Stable topic (hyphenated, inbox-style) + filtered postgres INSERT on ``public.direct_messages`` for one conversation.
     func directMessagesInsertChannel(conversationId: UUID) -> (RealtimeChannelV2, AsyncStream<InsertAction>) {
-        let channel = client.channel("dm:\(conversationId.uuidString.lowercased())")
+        let cidLower = conversationId.uuidString.lowercased()
+        let channel = client.channel("dm-thread-\(cidLower)")
+        let filter = RealtimePostgresFilter.eq("conversation_id", value: cidLower)
         let stream = channel.postgresChange(
             InsertAction.self,
             schema: "public",
-            table: "direct_messages"
+            table: "direct_messages",
+            filter: filter
         )
         return (channel, stream)
     }
@@ -238,6 +298,13 @@ final class DirectChatService {
         return "created_at.lt.\(iso),and(created_at.eq.\(iso),id.lt.\(uid))"
     }
 
+    /// PostgREST `or` for keyset “newer than” `(created_at, id)` when listing in `created_at ASC, id ASC` order.
+    private static func keysetNewerThanOrFilter(createdAt: Date, messageId: UUID) -> String {
+        let iso = isoTimestamp(createdAt)
+        let uid = messageId.uuidString.lowercased()
+        return "created_at.gt.\(iso),and(created_at.eq.\(iso),id.gt.\(uid))"
+    }
+
     private func fetchLatestMessagesWithIsDeletedFilter(conversationId: UUID, limit: Int) async throws -> [DirectMessageRow] {
         let rows: [DirectMessageRow] = try await client
             .from("direct_messages")
@@ -306,6 +373,47 @@ final class DirectChatService {
             .execute()
             .value
         return rows.reversed()
+    }
+
+    private func fetchNewerMessagesWithIsDeletedFilter(
+        conversationId: UUID,
+        afterCreatedAt: Date,
+        afterMessageId: UUID,
+        limit: Int
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or("is_deleted.is.null,is_deleted.eq.false")
+            .or(Self.keysetNewerThanOrFilter(createdAt: afterCreatedAt, messageId: afterMessageId))
+            .order("created_at", ascending: true)
+            .order("id", ascending: true)
+            .limit(limit)
+            .execute()
+            .value
+        return rows
+    }
+
+    private func fetchNewerMessagesDeletedAtOnly(
+        conversationId: UUID,
+        afterCreatedAt: Date,
+        afterMessageId: UUID,
+        limit: Int
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or(Self.keysetNewerThanOrFilter(createdAt: afterCreatedAt, messageId: afterMessageId))
+            .order("created_at", ascending: true)
+            .order("id", ascending: true)
+            .limit(limit)
+            .execute()
+            .value
+        return rows
     }
 
     /// Postgres / PostgREST errors when `is_deleted` has not been migrated yet.

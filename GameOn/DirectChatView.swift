@@ -98,6 +98,32 @@ private struct ChatOverflowAnchorKey: PreferenceKey {
 @MainActor
 private final class DirectChatPresenter: ObservableObject {
 
+#if DEBUG
+    private enum DMRealtimePerfLog {
+        static let formatter: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return f
+        }()
+
+        static func stamp(_ d: Date = Date()) -> String {
+            formatter.string(from: d)
+        }
+    }
+#endif
+
+    private enum DMActivePollTickLog {
+        static let isoFormatter: ISO8601DateFormatter = {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return f
+        }()
+
+        static func iso(_ date: Date) -> String {
+            isoFormatter.string(from: date)
+        }
+    }
+
     let friend: UserPreview
     private let service = DirectChatService()
 
@@ -120,14 +146,22 @@ private final class DirectChatPresenter: ObservableObject {
 
     /// One Realtime channel per open thread: Postgres INSERT on `direct_messages` only (typing disabled).
     private var messagesRealtimeChannel: RealtimeChannelV2?
+    /// Channel allocated while subscribe is in-flight; must not be treated as an active listener until ``messagesRealtimeChannel`` is set.
+    private var establishingRealtimeChannel: RealtimeChannelV2?
+
+    private struct DMThreadRealtimeSubscribeTimeoutError: Error {}
 
     private struct PendingOptimisticSend {
         let body: String
         let senderId: UUID
+        let correlationId: UUID
     }
 
     /// Client-generated message ids until the server row arrives (dedupe with realtime).
     private var pendingOptimisticMessages: [UUID: PendingOptimisticSend] = [:]
+
+    /// Serializes ``sendDraft()`` while the optimistic pipeline starts (Return / Send double-fire).
+    private var sendDraftInFlight = false
 
     private static let optimisticCreatedAtFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -250,6 +284,12 @@ private final class DirectChatPresenter: ObservableObject {
     /// Removes this thread’s Postgres INSERT listener only (does not touch inbox / friendship listeners).
     private func tearDownRealtimeChannelIfNeeded() async {
         activeRealtimeThreadConversationId = nil
+        if let pending = establishingRealtimeChannel {
+            establishingRealtimeChannel = nil
+            let tid = conversationId?.uuidString.lowercased() ?? "?"
+            print("[DirectChatRealtime] remove establishing channel thread=\(tid)")
+            await service.removeRealtimeChannel(pending)
+        }
         guard let ch = messagesRealtimeChannel else { return }
         let tid = conversationId?.uuidString.lowercased() ?? "?"
         print("[DirectChatRealtime] unsubscribe thread=\(tid)")
@@ -313,37 +353,87 @@ private final class DirectChatPresenter: ObservableObject {
         )
     }
 
+    private func subscribeThreadChannelWithTimeout(_ channel: RealtimeChannelV2, timeoutNs: UInt64 = 15_000_000_000) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                // Avoid coupling Phoenix join ↔ MainActor; inbox listener runs from an unstructured Task as well.
+                try await Task.detached(priority: .userInitiated) {
+                    try await channel.subscribeWithError()
+                }.value
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutNs)
+                throw DMThreadRealtimeSubscribeTimeoutError()
+            }
+            defer { group.cancelAll() }
+            try await group.next()!
+        }
+    }
+
     /// Single Postgres INSERT listener for this thread; unsubscribes when the view task is cancelled or ``stopDirectMessageRealtime`` runs.
     /// Typing indicator / broadcast is intentionally disabled until DM realtime is proven stable.
     func runRealtimeSubscription() async {
         guard loadError == nil, let cid = conversationId, let me = currentUserId else { return }
-        if messagesRealtimeChannel != nil { return }
+        guard messagesRealtimeChannel == nil, establishingRealtimeChannel == nil else { return }
 
         let tid = cid.uuidString.lowercased()
         print("[DirectChatRealtime] subscribe start thread=\(tid)")
         print("[DirectChatRealtime] subscribing conversationId=\(tid)")
-        print("[DirectChatRealtime] active conversationId=\(tid)")
-
-        activeRealtimeThreadConversationId = cid
+        print("[DirectChatRealtime] pending subscribe conversationId=\(tid)")
+#if DEBUG
+        DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_attempt conversation=\(tid)")
+#endif
 
         let (channel, stream) = service.directMessagesInsertChannel(conversationId: cid)
+        establishingRealtimeChannel = channel
+
+#if DEBUG
+        let filterDesc = DirectChatService.directMessagesThreadRealtimeFilterDescription(conversationId: cid)
+        DMRealtimeDiagnostics.log(
+            "phase=thread_realtime_channel_created topic=\(channel.topic) conversation=\(tid) table=direct_messages event=INSERT"
+        )
+        DMRealtimeDiagnostics.log(
+            "phase=thread_realtime_filter_used filter=\(filterDesc)"
+        )
+#endif
 
         do {
-            try await channel.subscribeWithError()
+#if DEBUG
+            DMRealtimeDiagnostics.log(
+                "phase=thread_realtime_subscribe_call_started topic=\(channel.topic) conversation=\(tid)"
+            )
+#endif
+            try await subscribeThreadChannelWithTimeout(channel)
+#if DEBUG
+            DMRealtimeDiagnostics.log(
+                "phase=thread_realtime_subscribe_call_returned topic=\(channel.topic) conversation=\(tid)"
+            )
+            DMRealtimeDiagnostics.log(
+                "phase=thread_realtime_subscription_status topic=\(channel.topic) status=\(String(describing: channel.status))"
+            )
+#endif
         } catch {
-            activeRealtimeThreadConversationId = nil
+            establishingRealtimeChannel = nil
+            await service.removeRealtimeChannel(channel)
             if error is CancellationError {
                 print("[DirectChatRealtime] subscribe cancelled thread=\(tid)")
-                await service.removeRealtimeChannel(channel)
                 return
             }
-            print("[DirectChatRealtime] subscribe failed thread=\(tid) error=\(error.localizedDescription)")
-            await service.removeRealtimeChannel(channel)
+            let errLabel = (error is DMThreadRealtimeSubscribeTimeoutError) ? "subscribe_timeout_15s" : error.localizedDescription
+            print("[DirectChatRealtime] subscribe failed thread=\(tid) error=\(errLabel)")
+#if DEBUG
+            DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_failed conversation=\(tid) error=\(errLabel)")
+#endif
             return
         }
 
+        establishingRealtimeChannel = nil
         print("[DirectChatRealtime] subscribe success thread=\(tid)")
+#if DEBUG
+        DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_ready conversation=\(tid)")
+#endif
         messagesRealtimeChannel = channel
+        activeRealtimeThreadConversationId = cid
         lastRealtimeStreamInsertAt = Date()
 
         let decoder = JSONDecoder()
@@ -384,6 +474,12 @@ private final class DirectChatPresenter: ObservableObject {
             let tailNew = rows.filter { !existing.contains($0.id) }.sorted(by: Self.messageTimelineSort)
             guard !tailNew.isEmpty else { return }
             print("[DirectChatRealtime] refresh merged newCount=\(tailNew.count) thread=\(tid) reason=\(reason)")
+#if DEBUG
+            let ids = tailNew.map { $0.id.uuidString.lowercased() }.joined(separator: ",")
+            DMRealtimeDiagnostics.log(
+                "phase=receiver_rest_refresh_found_message reason=\(reason) thread=\(tid) newMessageIds=\(ids)"
+            )
+#endif
             messages.append(contentsOf: tailNew)
             if messages.count >= 2 {
                 let prev = messages[messages.count - 2]
@@ -398,18 +494,118 @@ private final class DirectChatPresenter: ObservableObject {
         }
     }
 
-    /// Polls only when **no** Realtime INSERT has updated ``lastRealtimeStreamInsertAt`` for a long interval (recovery path).
-    func runDirectMessagePollFallbackLoop() async {
-        let pollIntervalNs: UInt64 = 12_000_000_000
-        let quietThreshold: TimeInterval = 12
+    /// While ``DirectChatView`` is visible: fetch latest window via REST on a fixed cadence (parallel to Realtime); cancels with the chat `.task`.
+    func runActiveThreadIncrementalPollLoop() async {
+        let intervalNs: UInt64 = 500_000_000
         while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: pollIntervalNs)
-            guard !Task.isCancelled else { break }
-            guard loadError == nil, conversationId != nil else { continue }
-            let quietFor = Date().timeIntervalSince(lastRealtimeStreamInsertAt)
-            guard quietFor >= quietThreshold else { continue }
-            await refreshMessagesForCurrentThread(reason: "poll-quiet-\(Int(quietFor))s")
+            guard loadError == nil, let cid = conversationId, let me = currentUserId else {
+                try? await Task.sleep(nanoseconds: intervalNs)
+                continue
+            }
+
+            let anchorRow = newestStableAnchorForIncrementalPoll()
+            let anchorMessageId = anchorRow?.id.uuidString.lowercased() ?? "nil"
+            let anchorCreatedAt = anchorRow?.created_at ?? "nil"
+            let conversationLow = cid.uuidString.lowercased()
+
+            let queryStartedAt = Date()
+            let queryStartedIso = DMActivePollTickLog.iso(queryStartedAt)
+
+            let svc = service
+            let rows: [DirectMessageRow]
+            do {
+                rows = try await Task.detached(priority: .utility) {
+                    try await svc.fetchLatestMessages(conversationId: cid, limit: 20)
+                }.value
+            } catch is CancellationError {
+                break
+            } catch {
+                let queryCompletedIso = DMActivePollTickLog.iso(Date())
+                print(
+                    "[DMActivePollTick] conversationId=\(conversationLow) anchorMessageId=\(anchorMessageId) anchorCreatedAt=\(anchorCreatedAt) queryStartedAt=\(queryStartedIso) queryCompletedAt=\(queryCompletedIso) fetchedCount=0 appendedCount=0"
+                )
+                try? await Task.sleep(nanoseconds: intervalNs)
+                continue
+            }
+
+            let queryCompletedIso = DMActivePollTickLog.iso(Date())
+
+            let existing = Set(messages.map(\.id))
+            let fresh = rows.filter { !existing.contains($0.id) }
+            let appended = fresh.isEmpty ? 0 : mergeActivePollMessages(fresh, threadConversationId: cid, me: me)
+
+            print(
+                "[DMActivePollTick] conversationId=\(conversationLow) anchorMessageId=\(anchorMessageId) anchorCreatedAt=\(anchorCreatedAt) queryStartedAt=\(queryStartedIso) queryCompletedAt=\(queryCompletedIso) fetchedCount=\(rows.count) appendedCount=\(appended)"
+            )
+
+            try? await Task.sleep(nanoseconds: intervalNs)
         }
+    }
+
+    /// Observability only: newest loaded row excluding pending optimistic sends (tail cursor for ``[DMActivePollTick]``).
+    private func newestStableAnchorForIncrementalPoll() -> DirectMessageRow? {
+        let stable = messages.filter { pendingOptimisticMessages[$0.id] == nil }
+        if let anchor = stable.max(by: Self.messageTimelineSort) { return anchor }
+        return messages.max(by: Self.messageTimelineSort)
+    }
+
+    @discardableResult
+    private func mergeActivePollMessages(_ incoming: [DirectMessageRow], threadConversationId: UUID, me: UUID) -> Int {
+        let sorted = incoming.sorted(by: Self.messageTimelineSort)
+        guard !sorted.isEmpty else { return 0 }
+
+#if DEBUG
+        let ids = sorted.map { $0.id.uuidString.lowercased() }.joined(separator: ",")
+        DMRealtimeDiagnostics.log(
+            "phase=receiver_active_poll_found_message thread=\(threadConversationId.uuidString.lowercased()) newMessageIds=\(ids)"
+        )
+#endif
+
+        var appendedCount = 0
+        var hadPeer = false
+        var appendedPeerRows: [DirectMessageRow] = []
+        var txn = Transaction()
+        txn.disablesAnimations = true
+        withTransaction(txn) {
+            for row in sorted {
+                guard let msgCid = row.conversation_id, msgCid == threadConversationId else { continue }
+                if row.deleted_at != nil { continue }
+                if row.is_deleted == true { continue }
+
+                if let removedLocalId = absorbPendingOptimistic(forConfirmedRow: row, me: me) {
+                    removeDisplayTimelineMessage(id: removedLocalId)
+                }
+                guard !messages.contains(where: { $0.id == row.id }) else { continue }
+                messages.append(row)
+                appendedCount += 1
+                if row.sender_id != me {
+                    hadPeer = true
+                    appendedPeerRows.append(row)
+                }
+            }
+            messages.sort(by: Self.messageTimelineSort)
+            rebuildDisplayTimelineFromMessages()
+            lastRealtimeStreamInsertAt = Date()
+        }
+
+#if DEBUG
+        for row in appendedPeerRows {
+            let rowIdLow = row.id.uuidString.lowercased()
+            DMRealtimeDiagnostics.log(
+                "phase=receiver_ui_append_completed source=active_poll messageId=\(rowIdLow) conversation=\(threadConversationId.uuidString.lowercased())"
+            )
+        }
+#endif
+
+        if hadPeer {
+            Task { [weak self] in
+                guard let self else { return }
+                await self.flushMarkReadNow()
+                self.chatViewModel?.notifyIncomingDmHandledInActiveThread()
+            }
+        }
+
+        return appendedCount
     }
 
     private static func messageTimelineSort(_ a: DirectMessageRow, _ b: DirectMessageRow) -> Bool {
@@ -442,8 +638,32 @@ private final class DirectChatPresenter: ObservableObject {
         threadConversationId: UUID,
         me: UUID
     ) {
-        let tInsert = CFAbsoluteTimeGetCurrent()
+        let realtimeReceivedWall = Date()
         let rowIdLow = row.id.uuidString.lowercased()
+#if DEBUG
+        let convLow = row.conversation_id?.uuidString.lowercased() ?? "nil"
+        let sndLow = row.sender_id.uuidString.lowercased()
+        if row.sender_id == me {
+            let echoCorrelation = self.messages.lazy.compactMap { m -> UUID? in
+                guard let pending = self.pendingOptimisticMessages[m.id],
+                      pending.body == row.body,
+                      pending.senderId == me else { return nil }
+                return pending.correlationId
+            }.first
+            DMRealtimeDiagnostics.log(
+                "phase=sender_realtime_echo_received messageId=\(rowIdLow) correlation=\(echoCorrelation?.uuidString.lowercased() ?? "nil") conversation=\(convLow)"
+            )
+        } else {
+            DMRealtimeDiagnostics.log(
+                "phase=receiver_thread_realtime_callback_fired messageId=\(rowIdLow) senderId=\(sndLow) conversation=\(convLow)"
+            )
+        }
+#endif
+#if DEBUG
+        print("[DMRealtimePerf] sentAt=\(row.created_at ?? "nil")")
+        print("[DMRealtimePerf] realtimeReceivedAt=\(DMRealtimePerfLog.stamp(realtimeReceivedWall))")
+#endif
+        let tInsert = CFAbsoluteTimeGetCurrent()
 #if DEBUG
         print("[DirectChatLatency] insert_callback_received id=\(rowIdLow) t=\(tInsert)")
 #endif
@@ -483,7 +703,20 @@ private final class DirectChatPresenter: ObservableObject {
         }
         let tAfter = CFAbsoluteTimeGetCurrent()
 #if DEBUG
-        print("[DirectChatLatency] message_appended id=\(rowIdLow) Δms=\((tAfter - tInsert) * 1000)")
+        if row.sender_id != me {
+            DMRealtimeDiagnostics.log(
+                "phase=receiver_ui_append_completed messageId=\(rowIdLow) conversation=\(threadConversationId.uuidString.lowercased())"
+            )
+        }
+#endif
+#if DEBUG
+        let uiWall = Date()
+        print("[DMRealtimePerf] uiAppliedAt=\(DMRealtimePerfLog.stamp(uiWall))")
+        print("[DMRealtimePerf] totalReceiveLatencyMs=\(String(format: "%.1f", uiWall.timeIntervalSince(realtimeReceivedWall) * 1000))")
+        if let raw = row.created_at, let serverDate = DirectChatTimeGrouping.parseDate(raw) {
+            let serverMs = uiWall.timeIntervalSince(serverDate) * 1000
+            print("[DMRealtimePerf] serverToUiLatencyMs=\(String(format: "%.1f", serverMs))")
+        }
 #endif
         print("[DirectChatRealtime] appended live message id=\(rowIdLow)")
         DispatchQueue.main.async {
@@ -494,9 +727,9 @@ private final class DirectChatPresenter: ObservableObject {
         }
         if row.sender_id != me {
             Task { [weak self] in
-                guard let self, let vm = self.chatViewModel else { return }
+                guard let self else { return }
                 await self.flushMarkReadNow()
-                await vm.refreshInboxSummaries()
+                self.chatViewModel?.notifyIncomingDmHandledInActiveThread()
             }
         }
     }
@@ -505,10 +738,16 @@ private final class DirectChatPresenter: ObservableObject {
         localId: UUID,
         conversationId: UUID,
         me: UUID,
-        trimmed: String
+        trimmed: String,
+        correlationId: UUID
     ) async {
         do {
-            let row = try await service.sendMessage(conversationId: conversationId, senderId: me, body: trimmed)
+            let row = try await service.sendMessage(
+                conversationId: conversationId,
+                senderId: me,
+                body: trimmed,
+                diagnosticCorrelationId: correlationId
+            )
             RateLimitService.recordDirectChatSend(conversationId: conversationId, body: trimmed)
             var txn = Transaction()
             txn.disablesAnimations = true
@@ -530,6 +769,10 @@ private final class DirectChatPresenter: ObservableObject {
             let insCid = row.conversation_id?.uuidString.lowercased() ?? conversationId.uuidString.lowercased()
             print("[DirectChatSend] inserted conversationId=\(insCid)")
             print("[DirectChatSend] insert success serverId=\(row.id.uuidString.lowercased())")
+#if DEBUG
+            print("[DMRealtimePerf] sentAt=\(row.created_at ?? "nil")")
+            print("[DMRealtimePerf] insertAckAt=\(DMRealtimePerfLog.stamp())")
+#endif
         } catch {
             print("[DirectChatSend] insert failed localId=\(localId.uuidString.lowercased()) err=\(error.localizedDescription)")
             pendingOptimisticMessages.removeValue(forKey: localId)
@@ -560,7 +803,18 @@ private final class DirectChatPresenter: ObservableObject {
             return
         }
 
+        guard !sendDraftInFlight else { return }
+        sendDraftInFlight = true
+        defer { sendDraftInFlight = false }
+
         sendError = nil
+
+        let correlationId = UUID()
+#if DEBUG
+        DMRealtimeDiagnostics.log(
+            "phase=sender_tap_send correlation=\(correlationId.uuidString.lowercased()) conversation=\(conversationId.uuidString.lowercased()) peer=\(friend.id.uuidString.lowercased())"
+        )
+#endif
 
         let localId = UUID()
         let created = Self.optimisticCreatedAtFormatter.string(from: Date())
@@ -574,7 +828,7 @@ private final class DirectChatPresenter: ObservableObject {
             report_count: nil,
             is_deleted: false
         )
-        pendingOptimisticMessages[localId] = PendingOptimisticSend(body: trimmed, senderId: me)
+        pendingOptimisticMessages[localId] = PendingOptimisticSend(body: trimmed, senderId: me, correlationId: correlationId)
         var appendTxn = Transaction()
         appendTxn.disablesAnimations = true
         withTransaction(appendTxn) {
@@ -590,7 +844,8 @@ private final class DirectChatPresenter: ObservableObject {
                 localId: localId,
                 conversationId: conversationId,
                 me: me,
-                trimmed: trimmed
+                trimmed: trimmed,
+                correlationId: correlationId
             )
         }
     }
@@ -617,6 +872,13 @@ private final class DirectChatPresenter: ObservableObject {
 
         sendError = nil
 
+        let correlationId = UUID()
+#if DEBUG
+        DMRealtimeDiagnostics.log(
+            "phase=sender_tap_send correlation=\(correlationId.uuidString.lowercased()) conversation=\(conversationId.uuidString.lowercased()) peer=\(friend.id.uuidString.lowercased()) source=quickReaction"
+        )
+#endif
+
         let localId = UUID()
         let created = Self.optimisticCreatedAtFormatter.string(from: Date())
         let optimistic = DirectMessageRow(
@@ -629,7 +891,7 @@ private final class DirectChatPresenter: ObservableObject {
             report_count: nil,
             is_deleted: false
         )
-        pendingOptimisticMessages[localId] = PendingOptimisticSend(body: trimmed, senderId: me)
+        pendingOptimisticMessages[localId] = PendingOptimisticSend(body: trimmed, senderId: me, correlationId: correlationId)
         var appendTxn = Transaction()
         appendTxn.disablesAnimations = true
         withTransaction(appendTxn) {
@@ -644,7 +906,8 @@ private final class DirectChatPresenter: ObservableObject {
                 localId: localId,
                 conversationId: conversationId,
                 me: me,
-                trimmed: trimmed
+                trimmed: trimmed,
+                correlationId: correlationId
             )
         }
     }
@@ -877,35 +1140,49 @@ struct DirectChatView: View {
 
             if presenter.loadError == nil {
                 chatViewModel.markDirectInboxReadLocally(peerUserId: presenter.friend.id)
+                // Active poll and Realtime subscribe start together as sibling tasks; the poll loop does not await subscribe.
                 await withTaskGroup(of: Void.self) { group in
+                    group.addTask {
+                        await presenter.runActiveThreadIncrementalPollLoop()
+                    }
                     group.addTask {
                         await presenter.runRealtimeSubscription()
                     }
                     group.addTask {
-                        await presenter.runDirectMessagePollFallbackLoop()
+                        do {
+                            try await Task.sleep(nanoseconds: 90_000_000)
+                            await presenter.flushMarkReadNow()
+                            await chatViewModel.refreshUnreadDirectMessageCount()
+                            while !Task.isCancelled {
+                                try await Task.sleep(nanoseconds: 60_000_000_000)
+                            }
+                        } catch is CancellationError {
+                        } catch {}
                     }
                 }
-                do {
-                    try await Task.sleep(nanoseconds: 350_000_000)
-                    await presenter.flushMarkReadNow()
-                } catch is CancellationError {
-                    // Leaving the thread cancels this task; `onDisappear` still flushes read state.
-                } catch {}
-                await chatViewModel.refreshInboxSummaries()
             } else {
                 await chatViewModel.refreshInboxSummariesIfNeeded()
             }
         }
         .onAppear {
             chatViewModel.hidesFloatingTabBarForDirectChat = true
+            chatViewModel.setActiveDirectChatContext(
+                conversationId: presenter.conversationId,
+                peerUserId: presenter.friend.id
+            )
+        }
+        .onChange(of: presenter.conversationId) { _, cid in
+            chatViewModel.setActiveDirectChatContext(conversationId: cid, peerUserId: presenter.friend.id)
         }
         .onDisappear {
             chatViewModel.hidesFloatingTabBarForDirectChat = false
             chatOverflowPhase = .hidden
+            chatViewModel.setActiveDirectChatContext(conversationId: nil, peerUserId: nil)
             Task {
                 await presenter.stopDirectMessageRealtime()
                 await presenter.flushMarkReadNow()
-                await chatViewModel.refreshInboxSummaries()
+                chatViewModel.markDirectInboxReadLocally(peerUserId: presenter.friend.id)
+                await chatViewModel.refreshUnreadDirectMessageCount()
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -1707,10 +1984,15 @@ struct DirectChatView: View {
             .accessibilityLabel("Toggle emoji reactions")
             .disabled(messagingBlocked)
 
-            TextField("Message", text: $presenter.draft, axis: .vertical)
+            TextField("Message", text: $presenter.draft)
                 .textFieldStyle(.plain)
                 .font(FGTypography.body)
-                .lineLimit(1...5)
+                .lineLimit(1)
+                .submitLabel(.send)
+                .onSubmit {
+                    guard presenter.canSend, !messagingBlocked else { return }
+                    Task { await presenter.sendDraft() }
+                }
                 .padding(.horizontal, FGSpacing.md)
                 .padding(.vertical, FGSpacing.sm + 1)
                 .background(

@@ -439,14 +439,12 @@ extension MapViewModel {
     }
 
     func geocodeAddress(_ address: String) async -> CLLocationCoordinate2D? {
-        await withCheckedContinuation { continuation in
-            CLGeocoder().geocodeAddressString(address) { placemarks, error in
-                if error != nil {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                continuation.resume(returning: placemarks?.first?.location?.coordinate)
-            }
+        guard let request = MKGeocodingRequest(addressString: address) else { return nil }
+        do {
+            let items = try await request.mapItems
+            return items.first?.location.coordinate
+        } catch {
+            return nil
         }
     }
 
@@ -456,32 +454,54 @@ extension MapViewModel {
         city: String?,
         state: String?
     ) {
-        await withCheckedContinuation { continuation in
-            let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-            CLGeocoder().reverseGeocodeLocation(location) { placemarks, error in
-                if error != nil {
-                    continuation.resume(returning: (nil, nil, nil))
-                    return
-                }
-                guard let pm = placemarks?.first else {
-                    continuation.resume(returning: (nil, nil, nil))
-                    return
-                }
-                let num = pm.subThoroughfare?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let name = pm.thoroughfare?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                let streetCombined = [num, name].filter { !$0.isEmpty }.joined(separator: " ")
-                let street: String? = streetCombined.isEmpty ? nil : streetCombined
-                let city: String? = {
-                    guard let t = pm.locality?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
-                    return t
-                }()
-                let state: String? = {
-                    guard let t = pm.administrativeArea?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
-                    return t
-                }()
-                continuation.resume(returning: (street, city, state))
-            }
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        guard let request = MKReverseGeocodingRequest(location: location) else { return (nil, nil, nil) }
+        do {
+            let items = try await request.mapItems
+            guard let item = items.first else { return (nil, nil, nil) }
+            return Self.reverseGeocodedStreetCityState(from: item)
+        } catch {
+            return (nil, nil, nil)
         }
+    }
+
+    /// Best-effort street / city / state from MapKit’s iOS 26+ ``MKMapItem`` address representations.
+    nonisolated private static func reverseGeocodedStreetCityState(from mapItem: MKMapItem) -> (
+        street: String?,
+        city: String?,
+        state: String?
+    ) {
+        if let reps = mapItem.addressRepresentations {
+            let street: String? = {
+                if let short = mapItem.address?.shortAddress?.trimmingCharacters(in: .whitespacesAndNewlines), !short.isEmpty {
+                    return short
+                }
+                let multi =
+                    reps.fullAddress(includingRegion: false, singleLine: false)
+                    ?? reps.fullAddress(includingRegion: true, singleLine: false)
+                    ?? ""
+                let firstLine = multi
+                    .components(separatedBy: .newlines)
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .first(where: { !$0.isEmpty })
+                return firstLine
+            }()
+
+            let city = reps.cityName
+
+            var state: String?
+            if let cwc = reps.cityWithContext {
+                let parts = cwc.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                if parts.count >= 2 {
+                    state = parts.last
+                }
+            }
+
+            return (street, city, state)
+        }
+
+        let fallback = mapItem.address?.shortAddress ?? mapItem.address?.fullAddress
+        return (fallback, nil, nil)
     }
 
     /// Discover “my location” control: centers on a real GPS fix using the same span rule as ``centerMap(on:selectedBar:)`` (not Utah/Lehi fallback).

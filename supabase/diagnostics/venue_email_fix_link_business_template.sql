@@ -1,0 +1,38 @@
+-- Admin / one-off: fix venue ↔ business linkage or denormalized owner email after confirming rows from
+-- `venue_email_inspect_by_name.sql`. Do NOT run blindly; replace UUIDs and verify business is `active`.
+--
+-- Typical fixes when a venue should show public Email on Discover:
+--   A) Link venue to the correct business (client embed + assembler will pick up businesses.owner_email)
+--   B) Or set venues.owner_email to the approved public contact (if you do not use business_id)
+
+-- ---------------------------------------------------------------------------
+-- A) Set business_id (replace venue + business UUIDs)
+-- ---------------------------------------------------------------------------
+-- BEGIN;
+-- UPDATE public.venues
+-- SET business_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid
+-- WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid;
+-- COMMIT;
+
+-- ---------------------------------------------------------------------------
+-- B) Set owner_email on venue only (replace values; keep in sync with your approval policy)
+-- ---------------------------------------------------------------------------
+-- BEGIN;
+-- UPDATE public.venues
+-- SET owner_email = 'owner@example.com'
+-- WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid;
+-- COMMIT;
+
+-- ---------------------------------------------------------------------------
+-- C) Both: link business and mirror active business owner_email onto venue (optional denormalization)
+-- ---------------------------------------------------------------------------
+-- BEGIN;
+-- UPDATE public.venues v
+-- SET
+--   business_id = b.id,
+--   owner_email = b.owner_email
+-- FROM public.businesses b
+-- WHERE v.id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid
+--   AND b.id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid
+--   AND lower(trim(coalesce(b.admin_status, ''))) = 'active';
+-- COMMIT;

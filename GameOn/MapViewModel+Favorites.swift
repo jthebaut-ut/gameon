@@ -158,7 +158,7 @@ extension MapViewModel {
                     .eq("venue_id", value: bar.id)
                     .execute()
             }
-            await MainActor.run {
+            _ = await MainActor.run {
                 favoriteVenueWriteInFlightIDs.remove(bar.id)
             }
 #if DEBUG
@@ -169,7 +169,7 @@ extension MapViewModel {
             let message = error.localizedDescription.lowercased()
 
             if isFavorite, message.contains("duplicate key") || message.contains("23505") {
-                await MainActor.run {
+                _ = await MainActor.run {
                     favoriteVenueWriteInFlightIDs.remove(bar.id)
                     applyLocalFavoriteState(bar: bar, isFavorite: true)
                 }
@@ -179,7 +179,7 @@ extension MapViewModel {
                 return true
             }
 
-            await MainActor.run {
+            _ = await MainActor.run {
                 favoriteVenueIDs = previous
                 followingTabSavedVenues = previousSavedVenues
                 favoriteVenueWriteInFlightIDs.remove(bar.id)

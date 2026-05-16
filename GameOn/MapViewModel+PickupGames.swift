@@ -5,6 +5,8 @@ import Supabase
 let pickupGamesSelectColumns =
     "id,creator_user_id,creator_email,title,sport,description,skill_level,game_start_at,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
+private let pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix = "gameon.settings.pickupOrganizerHistoryClearedIds."
+
 private struct PickupGameCalendarRow: Decodable {
     let id: UUID?
     let title: String?
@@ -40,6 +42,72 @@ private func pickupGamesDiscoverRemoveAfterOrFilter(nowISO: String) -> String {
 }
 
 extension MapViewModel {
+
+    private static let pickupHistoryClearLogISO8601: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    private static func readPickupOrganizerSettingsHistoryUserClearedIds(userId: UUID) -> Set<UUID> {
+        let raw = UserDefaults.standard.string(forKey: pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix + userId.uuidString.lowercased()) ?? ""
+        return Set(
+            raw.split(separator: ",")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .compactMap { UUID(uuidString: $0) }
+        )
+    }
+
+    private static func writePickupOrganizerSettingsHistoryUserClearedIds(userId: UUID, ids: Set<UUID>) {
+        let capped = ids.sorted { $0.uuidString < $1.uuidString }.prefix(240)
+        let raw = capped.map { $0.uuidString.lowercased() }.joined(separator: ",")
+        UserDefaults.standard.set(raw, forKey: pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix + userId.uuidString.lowercased())
+    }
+
+    /// Fan Following card / organizer History: human-readable auto-clear line (matches ``PickupGameRow/pickupHistoryClientCleanupDeadline()``).
+    func pickupHistoryAutoClearCaption(forPickupGameId id: UUID) -> String {
+        guard let row = resolvedPickupGameRow(for: id),
+              let deadline = row.pickupHistoryClientCleanupDeadline() else {
+            return "Auto-clears 12h after start"
+        }
+        return "Auto-clears \(deadline.formatted(date: .abbreviated, time: .shortened))"
+    }
+
+    /// Organizer Settings → History: hide this removed game locally (does not delete ratings or server rows).
+    func markPickupOrganizerSettingsHistoryUserCleared(pickupGameId: UUID) {
+        guard let uid = currentUserAuthId else { return }
+        let cleanupAt = myRemovedPickupGamesForSettings.first(where: { $0.id == pickupGameId })?.pickupHistoryClientCleanupDeadline()
+        var s = Self.readPickupOrganizerSettingsHistoryUserClearedIds(userId: uid)
+        s.insert(pickupGameId)
+        Self.writePickupOrganizerSettingsHistoryUserClearedIds(userId: uid, ids: s)
+        myRemovedPickupGamesForSettings.removeAll { $0.id == pickupGameId }
+#if DEBUG
+        let cleanupStr = cleanupAt.map { Self.pickupHistoryClearLogISO8601.string(from: $0) } ?? "nil"
+        print("[PickupHistoryClear] gameId=\(pickupGameId.uuidString.lowercased())")
+        print("[PickupHistoryClear] cleanupAt=\(cleanupStr)")
+        print("[PickupHistoryClear] userTappedClear=true")
+        print("[PickupHistoryClear] autoExpired=false")
+        print("[PickupHistoryClear] visible=false")
+#endif
+        showSocialActionToast("Removed from history", isError: false)
+    }
+
+    private func shouldShowRemovedPickupInOrganizerHistory(row: PickupGameRow, now: Date, clearedIds: Set<UUID>) -> Bool {
+        let gid = row.id
+        let cleanupAt = row.pickupHistoryClientCleanupDeadline()
+        let userCleared = clearedIds.contains(gid)
+        let autoExpired = cleanupAt.map { now >= $0 } ?? false
+        let visible = !userCleared && !autoExpired
+#if DEBUG
+        let cleanupStr = cleanupAt.map { Self.pickupHistoryClearLogISO8601.string(from: $0) } ?? "nil"
+        print("[PickupHistoryClear] gameId=\(gid.uuidString.lowercased())")
+        print("[PickupHistoryClear] cleanupAt=\(cleanupStr)")
+        print("[PickupHistoryClear] userTappedClear=false")
+        print("[PickupHistoryClear] autoExpired=\(autoExpired)")
+        print("[PickupHistoryClear] visible=\(visible)")
+#endif
+        return visible
+    }
 
     func clearPickupMapSelection() {
         selectedPickupGameForMap = nil
@@ -316,6 +384,7 @@ extension MapViewModel {
             if isGuestDiscoverMode, filtered.isEmpty {
                 loadDiscoverCalendarDots(around: selectedDate, reason: "pickup_map_refresh_guest_empty_day")
             }
+            invalidateCalendarTabEventsListCache()
         } catch {
 #if DEBUG
             print("[PickupGames] refreshDiscover failed:", error)
@@ -327,6 +396,7 @@ extension MapViewModel {
     func loadMyPickupGamesForSettings() async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             myPickupGamesForSettings = []
+            myRemovedPickupGamesForSettings = []
             pendingPickupGameJoinRequestCount = 0
             await stopPickupJoinRequestBadgeRealtime()
             return
@@ -337,13 +407,31 @@ extension MapViewModel {
                 .from("pickup_games")
                 .select(pickupGamesSelectColumns)
                 .eq("creator_user_id", value: uid.uuidString.lowercased())
-                .eq("status", value: "active")
+                .in("status", values: ["active", "removed"])
                 .order("game_start_at", ascending: false)
-                .limit(200)
+                .limit(400)
                 .execute()
                 .value
-            myPickupGamesForSettings = rows
+            let activeRows = rows.filter { $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "active" }
+            let removedRows = rows.filter { $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "removed" }
+                .sorted { a, b in
+                    let ua = PickupGameModels.parseSupabaseTimestamptz(a.updated_at ?? "") ?? .distantPast
+                    let ub = PickupGameModels.parseSupabaseTimestamptz(b.updated_at ?? "") ?? .distantPast
+                    if ua != ub { return ua > ub }
+                    return a.id.uuidString > b.id.uuidString
+                }
+            myPickupGamesForSettings = activeRows
+            let clearedHistoryIds = Self.readPickupOrganizerSettingsHistoryUserClearedIds(userId: uid)
+            let now = Date()
+            myRemovedPickupGamesForSettings = removedRows.filter { row in
+                shouldShowRemovedPickupInOrganizerHistory(row: row, now: now, clearedIds: clearedHistoryIds)
+            }
+            let ownedIds = Set(rows.map(\.id))
+            pickupOrganizerWithdrawnRequestsByGameId = pickupOrganizerWithdrawnRequestsByGameId.filter { ownedIds.contains($0.key) }
+            pickupOrganizerApprovedJoinerUserIdsByGameId = pickupOrganizerApprovedJoinerUserIdsByGameId.filter { ownedIds.contains($0.key) }
             await loadOrganizerPickupRequestSummaries(gameIds: rows.map(\.id))
+            await loadOrganizerWithdrawnPickupRequestsForSettings(gameIds: rows.map(\.id))
+            await loadOrganizerApprovedPickupJoinersForSettings(gameIds: rows.map(\.id))
         } catch {
 #if DEBUG
             print("[PickupGames] loadMine failed:", error)
@@ -386,6 +474,14 @@ extension MapViewModel {
             return c
         }()
         let feePayload: Double? = isFree ? nil : entryFeeAmount.map { Self.roundMoney($0) }
+        let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(gameStartAt)
+        let removeISO = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: gameStartISO)
+        PickupExpirationEditDebug.log(
+            oldGameStartAt: nil,
+            newGameStartAt: gameStartISO,
+            cleanupDelayHours: PickupGameAutoRemoval.hoursAfterGameStart,
+            computedRemoveAfterAt: removeISO
+        )
         let payload = PickupGameInsert(
             creator_user_id: uid,
             creator_email: normalizedFanEmailForPickup(),
@@ -393,7 +489,7 @@ extension MapViewModel {
             sport: sport.trimmingCharacters(in: .whitespacesAndNewlines),
             description: emptyStringToNil(description),
             skill_level: skillLevel,
-            game_start_at: PickupGameModels.encodeSupabaseTimestamptz(gameStartAt),
+            game_start_at: gameStartISO,
             address: emptyStringToNil(address),
             city: emptyStringToNil(city),
             state: emptyStringToNil(state),
@@ -406,8 +502,9 @@ extension MapViewModel {
             is_free: isFree,
             entry_fee_amount: feePayload,
             max_players: maxPlayersClamped,
-            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart
-        )
+            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart,
+            remove_after_at: removeISO
+        ).withCanonicalPickupCleanupDelay()
 
         let inserted: [PickupGameRow] = try await supabase
             .from("pickup_games")
@@ -420,6 +517,9 @@ extension MapViewModel {
             throw PickupGameClientError.missingRowAfterWrite
         }
 #if DEBUG
+        print("[PickupGameExpirationDebug] game_start_at=\(row.game_start_at)")
+        print("[PickupGameExpirationDebug] remove_after_at=\(row.remove_after_at ?? "nil")")
+        print("[PickupGameExpirationDebug] hoursAfterStart=\(PickupGameAutoRemoval.hoursAfterGameStart)")
         print(
             "[DiscoverDotsSave] table=pickup_games op=insert id=\(row.id.uuidString.lowercased()) game_start_at=\(row.game_start_at) sport=\(row.sport) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")"
         )
@@ -429,9 +529,17 @@ extension MapViewModel {
     }
 
     func updatePickupGame(id: UUID, full: PickupGameFullUpdate) async throws {
+        let normalized = full.withCanonicalPickupCleanupDelay()
+        let oldStart = resolvedPickupGameRow(for: id)?.game_start_at
+        PickupExpirationEditDebug.log(
+            oldGameStartAt: oldStart,
+            newGameStartAt: normalized.game_start_at,
+            cleanupDelayHours: PickupGameAutoRemoval.hoursAfterGameStart,
+            computedRemoveAfterAt: normalized.remove_after_at
+        )
         let updated: [PickupGameRow] = try await supabase
             .from("pickup_games")
-            .update(full)
+            .update(normalized)
             .eq("id", value: id.uuidString.lowercased())
             .select(pickupGamesSelectColumns)
             .execute()
@@ -441,8 +549,53 @@ extension MapViewModel {
             throw PickupGameClientError.missingRowAfterWrite
         }
 #if DEBUG
+        print("[PickupGameExpirationDebug] game_start_at=\(row.game_start_at)")
+        print("[PickupGameExpirationDebug] remove_after_at=\(row.remove_after_at ?? "nil")")
+        print("[PickupGameExpirationDebug] hoursAfterStart=\(PickupGameAutoRemoval.hoursAfterGameStart)")
         print(
             "[DiscoverDotsSave] table=pickup_games op=update id=\(row.id.uuidString.lowercased()) game_start_at=\(row.game_start_at) sport=\(row.sport) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")"
+        )
+#endif
+        mergePickupInsertedLocally(row)
+    }
+
+    /// Updates `players_needed` / `max_players` after start; also re-sends `game_start_at` + expiration so `remove_after_at` stays `start + 12h`.
+    func updatePickupGameRosterCapacity(id: UUID, playersNeeded: Int, maxPlayers: Int?) async throws {
+        guard let existing = resolvedPickupGameRow(for: id) else {
+            throw PickupGameClientError.pickupGameNotFound
+        }
+        let gameStartISO = existing.game_start_at
+        let removeISO = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: gameStartISO)
+        PickupExpirationEditDebug.log(
+            oldGameStartAt: gameStartISO,
+            newGameStartAt: gameStartISO,
+            cleanupDelayHours: PickupGameAutoRemoval.hoursAfterGameStart,
+            computedRemoveAfterAt: removeISO
+        )
+        let payload = PickupGameRosterCapacityUpdate(
+            players_needed: min(20, max(1, playersNeeded)),
+            max_players: maxPlayers,
+            game_start_at: gameStartISO,
+            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart,
+            remove_after_at: removeISO
+        )
+        let updated: [PickupGameRow] = try await supabase
+            .from("pickup_games")
+            .update(payload)
+            .eq("id", value: id.uuidString.lowercased())
+            .select(pickupGamesSelectColumns)
+            .execute()
+            .value
+
+        guard let row = updated.first else {
+            throw PickupGameClientError.missingRowAfterWrite
+        }
+#if DEBUG
+        print("[PickupGameExpirationDebug] game_start_at=\(row.game_start_at)")
+        print("[PickupGameExpirationDebug] remove_after_at=\(row.remove_after_at ?? "nil")")
+        print("[PickupGameExpirationDebug] hoursAfterStart=\(PickupGameAutoRemoval.hoursAfterGameStart)")
+        print(
+            "[DiscoverDotsSave] table=pickup_games op=roster_capacity id=\(row.id.uuidString.lowercased()) game_start_at=\(row.game_start_at) sport=\(row.sport) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")"
         )
 #endif
         mergePickupInsertedLocally(row)
@@ -454,31 +607,119 @@ extension MapViewModel {
 #endif
     }
 
-    /// Permanently deletes the pickup game row (join requests cascade). Organizer-only via RLS.
+    /// Organizer cancels the pickup (soft delete). Join requests are cancelled server-side; ratings/history rows are not deleted.
     func deletePickupGame(id: UUID) async throws {
-#if DEBUG
-        print("[PickupGames] delete requested id=\(id.uuidString.lowercased())")
-#endif
+        guard canJoinPickupGames else {
+            logBusinessUserGateBlocked(action: "joinPickupGame")
+            throw PickupGameClientError.businessAccountsCannotUsePickupGames
+        }
+        guard let uid = currentUserAuthId else {
+            throw PickupGameClientError.notSignedIn
+        }
+        guard let existing = resolvedPickupGameRow(for: id) else {
+            throw PickupGameClientError.pickupGameNotFound
+        }
+        guard existing.creator_user_id == uid else {
+            throw PickupGameClientError.pickupGameNotOrganizer
+        }
+
+        let oldStatus = existing.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let nowISO = PickupGameModels.encodeSupabaseTimestamptz(Date())
+
+        let affectedResponse = try await supabase
+            .from("pickup_game_requests")
+            .select("id", count: .exact)
+            .eq("pickup_game_id", value: id.uuidString.lowercased())
+            .in("status", values: ["pending", "approved"])
+            .limit(1)
+            .execute()
+        let affectedRequests = affectedResponse.count ?? 0
+
+        let softPayload = PickupGameSoftRemoveUpdate(status: "removed", is_visible: false, remove_after_at: nowISO)
+        let updatedRows: [PickupGameRow] = try await supabase
+            .from("pickup_games")
+            .update(softPayload)
+            .eq("id", value: id.uuidString.lowercased())
+            .eq("creator_user_id", value: uid.uuidString.lowercased())
+            .select(pickupGamesSelectColumns)
+            .execute()
+            .value
+        guard let updated = updatedRows.first else {
+            throw PickupGameClientError.missingRowAfterWrite
+        }
+
         do {
             try await supabase
-                .from("pickup_games")
-                .delete()
-                .eq("id", value: id.uuidString.lowercased())
+                .from("pickup_game_requests")
+                .update(PickupJoinRequestStatusUpdate(status: "cancelled"))
+                .eq("pickup_game_id", value: id.uuidString.lowercased())
+                .in("status", values: ["pending", "approved"])
                 .execute()
-#if DEBUG
-            print("[PickupGames] delete completed id=\(id.uuidString.lowercased())")
-#endif
-            applySoftRemovedPickupGameLocally(id: id)
-            recomputeCalendarDotDates()
-            refreshPickupJoinCachesAfterMutation()
-            await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
-            await loadMyPickupGameJoinRequestsForFollowing()
         } catch {
 #if DEBUG
-            print("[PickupGames] delete failed id=\(id.uuidString.lowercased())")
+            print("[PickupGames] soft delete join request bulk cancel failed id=\(id.uuidString.lowercased()) error=\(error)")
 #endif
             throw error
         }
+
+        mergePickupGameAfterOrganizerSoftDelete(updated)
+        recomputeCalendarDotDates()
+        refreshPickupJoinCachesAfterMutation()
+        await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+        await loadMyPickupGameJoinRequestsForFollowing()
+        pickupOrganizerRequestsSyncGeneration &+= 1
+        pickupJoinRequestUiRevision &+= 1
+        await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+
+#if DEBUG
+        let vis = updated.is_visible ? "true" : "false"
+        let newSt = updated.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        print("[PickupGameDelete] gameId=\(id.uuidString.lowercased())")
+        print("[PickupGameDelete] oldStatus=\(oldStatus)")
+        print("[PickupGameDelete] newStatus=\(newSt)")
+        print("[PickupGameDelete] affectedRequests=\(affectedRequests)")
+        print("[PickupGameDelete] visibleAfter=\(vis)")
+#endif
+    }
+
+    private func mergePickupGameAfterOrganizerSoftDelete(_ row: PickupGameRow) {
+        myPickupGamesForSettings.removeAll { $0.id == row.id }
+        guard let uid = currentUserAuthId else {
+            myRemovedPickupGamesForSettings.removeAll { $0.id == row.id }
+            pickupGamesForDiscoverMap.removeAll { $0.id == row.id }
+            if selectedPickupGameForMap?.id == row.id {
+                clearPickupMapSelection()
+            }
+            clearPickupGameLocalCachesAfterRemoval(id: row.id)
+            return
+        }
+        let clearedHistoryIds = Self.readPickupOrganizerSettingsHistoryUserClearedIds(userId: uid)
+        let now = Date()
+        guard shouldShowRemovedPickupInOrganizerHistory(row: row, now: now, clearedIds: clearedHistoryIds) else {
+            myRemovedPickupGamesForSettings.removeAll { $0.id == row.id }
+            pickupGamesForDiscoverMap.removeAll { $0.id == row.id }
+            if selectedPickupGameForMap?.id == row.id {
+                clearPickupMapSelection()
+            }
+            clearPickupGameLocalCachesAfterRemoval(id: row.id)
+            return
+        }
+        if let i = myRemovedPickupGamesForSettings.firstIndex(where: { $0.id == row.id }) {
+            myRemovedPickupGamesForSettings[i] = row
+        } else {
+            myRemovedPickupGamesForSettings.insert(row, at: 0)
+        }
+        myRemovedPickupGamesForSettings.sort { a, b in
+            let ua = PickupGameModels.parseSupabaseTimestamptz(a.updated_at ?? "") ?? .distantPast
+            let ub = PickupGameModels.parseSupabaseTimestamptz(b.updated_at ?? "") ?? .distantPast
+            if ua != ub { return ua > ub }
+            return a.id.uuidString > b.id.uuidString
+        }
+        pickupGamesForDiscoverMap.removeAll { $0.id == row.id }
+        if selectedPickupGameForMap?.id == row.id {
+            clearPickupMapSelection()
+        }
+        clearPickupGameLocalCachesAfterRemoval(id: row.id)
     }
 
     private static func roundMoney(_ x: Double) -> Double {
@@ -496,6 +737,11 @@ extension MapViewModel {
     }
 
     func mergePickupInsertedLocally(_ row: PickupGameRow) {
+        let st = row.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if st == "removed" || st == "expired" {
+            mergePickupGameAfterOrganizerSoftDelete(row)
+            return
+        }
         if let i = myPickupGamesForSettings.firstIndex(where: { $0.id == row.id }) {
             myPickupGamesForSettings[i] = row
         } else {
@@ -536,6 +782,7 @@ extension MapViewModel {
 
     private func applySoftRemovedPickupGameLocally(id: UUID) {
         myPickupGamesForSettings.removeAll { $0.id == id }
+        myRemovedPickupGamesForSettings.removeAll { $0.id == id }
         pickupGamesForDiscoverMap.removeAll { $0.id == id }
         if selectedPickupGameForMap?.id == id {
             clearPickupMapSelection()
@@ -551,6 +798,8 @@ extension MapViewModel {
         pickupGameCalendarDotDatesCache.removeAll()
         pickupMyLatestJoinRequestByGameId.removeValue(forKey: id)
         pickupOrganizerJoinStatsByGameId.removeValue(forKey: id)
+        pickupOrganizerWithdrawnRequestsByGameId.removeValue(forKey: id)
+        pickupOrganizerApprovedJoinerUserIdsByGameId.removeValue(forKey: id)
         pickupGamesFollowingTabCache.removeValue(forKey: id)
     }
 

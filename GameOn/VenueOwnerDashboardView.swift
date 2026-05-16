@@ -146,7 +146,7 @@ struct VenueOwnerDashboardView: View {
     @State private var titleEditDraft = ""
     @State private var showCancelGameDialog = false
     @State private var cancelGameRowSnapshot: VenueEventRow?
-    @State private var cleanupDelayHours: Int = 48
+    @State private var cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
     @State private var showVenueOwnerContactSupport = false
 
     enum VenueDashboardSection: String, CaseIterable {
@@ -1292,6 +1292,8 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
                 print("[ManageGamesDebug] manageGamesListTab changed \(oldTab.rawValue) → \(newTab.rawValue)")
 #endif
+                guard newTab == .add, oldTab != .add else { return }
+                initializeAddGameScheduleFromDefaults()
             }
 
             if !manageGamesFeedback.isEmpty {
@@ -1394,6 +1396,22 @@ struct VenueOwnerDashboardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            if let bizEmail = resolvedManageGamesBusinessContactEmail() {
+                VenueGameBusinessContactEmailRow(email: bizEmail)
+                    .padding(.top, 2)
+                    .onAppear {
+                        let src = myVenueGamesForManage.contains(where: { VenueGameBusinessEmail.resolvedDisplayEmail(forEvent: $0) != nil })
+                            ? "venue_events.owner_email"
+                            : "session_venue_owner_email"
+                        VenueGameBusinessEmail.logDebug(
+                            venueId: viewModel.ownerVenueDatabaseId,
+                            venueName: viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines),
+                            resolvedBusinessEmail: bizEmail,
+                            source: src
+                        )
+                    }
+            }
+
             if manageGamesListLoading && myVenueGamesForManage.isEmpty {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -1431,6 +1449,7 @@ struct VenueOwnerDashboardView: View {
                 VStack(spacing: 10) {
                     ForEach(manageGamesIdentifiedRows) { item in
                         VenueOwnerManageGameRow(
+                            viewModel: viewModel,
                             row: item.row,
                             eventID: item.id,
                             formattedDateTime: formattedManageGameDateTime(row: item.row),
@@ -1494,6 +1513,7 @@ struct VenueOwnerDashboardView: View {
             addGameFormFields
         }
         .onAppear {
+            clearManageGamesErrorIfAddGameScheduleIsFutureValid()
 #if DEBUG
             print("[ManageGamesAddPane] render")
 #endif
@@ -1510,6 +1530,15 @@ struct VenueOwnerDashboardView: View {
             guard let id = row.id else { return nil }
             return VenueOwnerIdentifiedVenueEvent(id: id, row: row)
         }
+    }
+
+    /// Business contact for Manage Games list: prefer `venue_events.owner_email`, else signed-in owner email.
+    private func resolvedManageGamesBusinessContactEmail() -> String? {
+        if let fromRow = myVenueGamesForManage.compactMap({ VenueGameBusinessEmail.resolvedDisplayEmail(forEvent: $0) }).first {
+            return fromRow
+        }
+        let fb = OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+        return OwnerBusinessEmail.isValidStrict(fb) ? fb : nil
     }
 
     private var minimumSelectableGameCalendarDate: Date {
@@ -1577,6 +1606,34 @@ struct VenueOwnerDashboardView: View {
                 .background(FGAdaptiveSurface.controlFill)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
+            .onChange(of: gameDate) { oldDate, newDate in
+                let cal = Calendar.current
+                let sodOld = cal.startOfDay(for: oldDate)
+                let sodNew = cal.startOfDay(for: newDate)
+                guard sodOld != sodNew else { return }
+                let before = gameStartTime
+                let now = Date()
+                let after = VenueOwnerGameScheduleValidation.recommendedStartTimeAfterGameDateChange(
+                    newGameDate: newDate,
+                    now: now,
+                    calendar: cal
+                )
+                gameStartTime = after
+                manageGamesError = ""
+#if DEBUG
+                VenueOwnerGameScheduleValidation.logBusinessAddGameTimeDateChange(
+                    oldGameDate: oldDate,
+                    newGameDate: newDate,
+                    startTimeBefore: before,
+                    startTimeAfter: after,
+                    now: now,
+                    calendar: cal
+                )
+#endif
+            }
+            .onChange(of: gameStartTime) { _, _ in
+                clearManageGamesErrorIfAddGameScheduleIsFutureValid()
+            }
             .onAppear {
 #if DEBUG
                 print("[ManageGamesAddPane] date picker appear")
@@ -1590,9 +1647,9 @@ struct VenueOwnerDashboardView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Picker("Retention hours", selection: $cleanupDelayHours) {
-                    Text("24h after start").tag(24)
-                    Text("48h after start").tag(48)
-                    Text("72h after start").tag(72)
+                    ForEach(VenueOwnerGameDataRetentionHours.standardOptions, id: \.self) { h in
+                        Text(VenueOwnerGameDataRetentionHours.longLabel(for: h)).tag(h)
+                    }
                 }
                 .pickerStyle(.segmented)
             }
@@ -1693,6 +1750,33 @@ struct VenueOwnerDashboardView: View {
     private func clearManageGamesBanners() {
         manageGamesFeedback = ""
         manageGamesError = ""
+    }
+
+    /// Add Game tab: today at start-of-day + default start time; clears schedule error.
+    private func initializeAddGameScheduleFromDefaults() {
+        let cal = Calendar.current
+        let now = Date()
+        gameDate = cal.startOfDay(for: now)
+        gameStartTime = VenueOwnerGameScheduleValidation.recommendedStartTimeAfterGameDateChange(
+            newGameDate: gameDate,
+            now: now,
+            calendar: cal
+        )
+        manageGamesError = ""
+    }
+
+    /// Clears the red schedule banner when the combined date+time is valid (not strictly before `now`).
+    private func clearManageGamesErrorIfAddGameScheduleIsFutureValid() {
+        let cal = Calendar.current
+        let now = Date()
+        if !VenueOwnerGameScheduleValidation.isPastSchedule(
+            gameDate: gameDate,
+            gameStartTime: gameStartTime,
+            now: now,
+            calendar: cal
+        ) {
+            manageGamesError = ""
+        }
     }
 
     /// Clears add/list transient UI when the owner switches managed location (see ``MapViewModel/ownerVenueDatabaseId``).
@@ -1809,14 +1893,29 @@ struct VenueOwnerDashboardView: View {
         let trimmedTitle: String
         let scheduleStillPast: Bool
         (trimmedTitle, scheduleStillPast) = await MainActor.run {
+            let cal = Calendar.current
+            let now = Date()
             let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
                 gameDate: gameDate,
-                gameStartTime: gameStartTime
+                gameStartTime: gameStartTime,
+                now: now,
+                calendar: cal
             )
             gameDate = clamped.0
             gameStartTime = clamped.1
+            VenueOwnerGameScheduleValidation.logBusinessAddGameSaveDebug(
+                gameDate: gameDate,
+                gameStartTime: gameStartTime,
+                now: now,
+                calendar: cal
+            )
             let t = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-            let past = VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime)
+            let past = VenueOwnerGameScheduleValidation.isPastSchedule(
+                gameDate: gameDate,
+                gameStartTime: gameStartTime,
+                now: now,
+                calendar: cal
+            )
             return (t, past)
         }
 
@@ -1914,19 +2013,14 @@ struct VenueOwnerDashboardView: View {
         seating = ""
         teamFanbase = ""
         socialCoordination = ""
-        let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
-            gameDate: Date(),
-            gameStartTime: Date()
-        )
-        gameDate = clamped.0
-        gameStartTime = clamped.1
+        initializeAddGameScheduleFromDefaults()
         numberOfTVs = 1
         crowdLevel = "Moderate"
         liveOccupancy = "Open seats"
         reservationsAvailable = false
         waitlistAvailable = false
         showSpecialsFields = false
-        cleanupDelayHours = 48
+        cleanupDelayHours = VenueOwnerGameDataRetentionHours.defaultPickerHours
     }
 
     private func refreshAnalyticsGameHistory() async {
@@ -2104,6 +2198,7 @@ private struct VenueOwnerIdentifiedVenueEvent: Identifiable {
 }
 
 private struct VenueOwnerManageGameRow: View {
+    @ObservedObject var viewModel: MapViewModel
     let row: VenueEventRow
     let eventID: UUID
     let formattedDateTime: String
@@ -2115,7 +2210,7 @@ private struct VenueOwnerManageGameRow: View {
     let onCleanupDelayChange: (Int) -> Void
     let onCancel: () -> Void
 
-    @State private var retentionPickerHours: Int = 48
+    @State private var retentionPickerHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -2128,13 +2223,31 @@ private struct VenueOwnerManageGameRow: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 8) {
-                Text(row.sport ?? "—")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(FGAdaptiveSurface.controlFill)
-                    .clipShape(Capsule())
+            HStack(alignment: .center, spacing: 8) {
+                let sportRaw = (row.sport ?? "—").trimmingCharacters(in: .whitespacesAndNewlines)
+                let sportDisplay = sportRaw.isEmpty ? "—" : sportRaw
+                let sportEmoji = viewModel.emojiForSport(sportDisplay)
+                let sportIcon = viewModel.iconForSport(sportDisplay)
+                let sportTint = viewModel.colorForSport(sportDisplay)
+
+                HStack(spacing: 6) {
+                    if !sportEmoji.isEmpty {
+                        Text(sportEmoji)
+                            .font(.system(size: 15))
+                            .accessibilityHidden(true)
+                    } else {
+                        Image(systemName: sportIcon)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(sportTint)
+                            .accessibilityHidden(true)
+                    }
+                    Text(sportDisplay)
+                        .font(.caption.weight(.semibold))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(FGAdaptiveSurface.controlFill)
+                .clipShape(Capsule())
 
                 if let statusLabel {
                     Text(statusLabel)
@@ -2155,9 +2268,9 @@ private struct VenueOwnerManageGameRow: View {
                 Text("Remove game data after")
                     .font(.caption2.weight(.semibold))
                 Picker("Retention hours", selection: $retentionPickerHours) {
-                    Text("24h").tag(24)
-                    Text("48h").tag(48)
-                    Text("72h").tag(72)
+                    ForEach(VenueOwnerGameDataRetentionHours.segmentedPickerHours(currentSaved: row.cleanup_delay_hours), id: \.self) { h in
+                        Text(VenueOwnerGameDataRetentionHours.segmentedLabel(for: h)).tag(h)
+                    }
                 }
                 .pickerStyle(.segmented)
             }
@@ -2194,16 +2307,16 @@ private struct VenueOwnerManageGameRow: View {
         .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onAppear {
-            retentionPickerHours = row.cleanup_delay_hours ?? 48
+            retentionPickerHours = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
         }
         .onChange(of: eventID) { _, _ in
-            retentionPickerHours = row.cleanup_delay_hours ?? 48
+            retentionPickerHours = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
         }
         .onChange(of: row.cleanup_delay_hours) { _, newHours in
-            retentionPickerHours = newHours ?? 48
+            retentionPickerHours = newHours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
         }
         .onChange(of: retentionPickerHours) { _, newVal in
-            let cur = row.cleanup_delay_hours ?? 48
+            let cur = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
             if newVal != cur {
                 onCleanupDelayChange(newVal)
             }

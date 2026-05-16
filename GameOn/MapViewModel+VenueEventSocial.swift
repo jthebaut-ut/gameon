@@ -134,7 +134,7 @@ extension MapViewModel {
                     .execute()
             }
 
-            await MainActor.run {
+            _ = await MainActor.run {
                 venueEventInterestWriteInFlightIDs.remove(venueEventID)
             }
 
@@ -424,7 +424,7 @@ extension MapViewModel {
         }
 
         do {
-            var q = supabase
+            let q = supabase
                 .from("venue_events")
                 .select("id,venue_id,owner_email,venue_name,event_title")
                 .eq("event_title", value: gameTitle)

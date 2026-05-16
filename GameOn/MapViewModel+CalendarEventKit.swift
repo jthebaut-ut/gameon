@@ -5,8 +5,7 @@ extension MapViewModel {
 
     func requestCalendarAccess() async -> Bool {
         do {
-            let granted = try await eventStore.requestAccess(to: .event)
-            return granted
+            return try await eventStore.requestFullAccessToEvents()
         } catch {
             print("Calendar permission error:", error)
             return false

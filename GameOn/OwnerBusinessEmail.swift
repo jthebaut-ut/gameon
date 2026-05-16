@@ -1,7 +1,7 @@
 import Foundation
 
 /// Canonical formatting and strict validation for business-owner / `owner_email` paths (Supabase auth, `businesses`, `venue_claims`, `venues`).
-enum OwnerBusinessEmail {
+nonisolated enum OwnerBusinessEmail {
     /// Trim whitespace and lowercase (use for all saves and `.eq("owner_email", …)` queries).
     static func normalized(_ raw: String) -> String {
         raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

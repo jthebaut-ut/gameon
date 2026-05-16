@@ -139,7 +139,10 @@ extension MapViewModel {
             menuPhotoThumbnailURL: bar.menuPhotoThumbnailURL,
             ownerEmail: bar.ownerEmail,
             businessId: bar.businessId,
-            adminStatus: bar.adminStatus
+            adminStatus: bar.adminStatus,
+            venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
+            businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
+            contactEmailRaw: bar.contactEmailRaw
         )
     }
 }

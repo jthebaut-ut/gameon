@@ -5,15 +5,15 @@ import Foundation
 extension ModerationService {
 
     /// Number of distinct reports after which a venue-event comment is hidden from public threads (client + DB column `is_moderation_hidden`).
-    static let hiddenAfterReportsThreshold = 3
+    nonisolated static let hiddenAfterReportsThreshold = 3
 
     /// Shown when ``containsProfanity(_:)`` is true.
-    static func profanityRejectionUserMessage() -> String {
+    nonisolated static func profanityRejectionUserMessage() -> String {
         "That wording isn’t allowed on FanGeo. Please remove profanity or slurs and try again."
     }
 
     /// Lowercase, strip diacritics, map common leet substitutions, keep only a–z and 0–9 for substring scans.
-    static func normalizeModerationText(_ text: String) -> String {
+    nonisolated static func normalizeModerationText(_ text: String) -> String {
         var s = text.folding(options: .diacriticInsensitive, locale: Locale(identifier: "en_US_POSIX"))
             .lowercased()
 
@@ -31,13 +31,13 @@ extension ModerationService {
     }
 
     /// Tokenizes on non-alphanumeric then normalizes each token (leet + letters only per token).
-    static func moderationTokens(from text: String) -> [String] {
+    nonisolated static func moderationTokens(from text: String) -> [String] {
         let parts = text.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
         return parts.map { normalizeModerationText($0) }.filter { !$0.isEmpty }
     }
 
     /// Lightweight profanity / slur scan (no ML). Tuned to reduce obvious bypasses; not exhaustive.
-    static func containsProfanity(_ text: String) -> Bool {
+    nonisolated static func containsProfanity(_ text: String) -> Bool {
         let collapsed = normalizeModerationText(text)
         guard !collapsed.isEmpty else { return false }
 
@@ -54,14 +54,14 @@ extension ModerationService {
     }
 
     // Curated English offensive terms (lowercase, post-normalization where noted).
-    private static let longProfanitySubstrings: [String] = [
+    private nonisolated static let longProfanitySubstrings: [String] = [
         "fuck", "shit", "bitch", "bastard", "asshole", "motherfucker", "bullshit",
         "dickhead", "dickbag", "cocksuck", "pisshead", "douchebag", "jackass",
         "dumbass", "hardon", "jerkoff", "cumshot", "blowjob", "handjob",
         "faggot", "nigger", "nigga", "spic", "chink", "kike", "wetback", "retard"
     ]
 
-    private static let shortProfanityTokens: Set<String> = [
+    private nonisolated static let shortProfanityTokens: Set<String> = [
         "fuk", "fck", "sht", "cnt", "dik", "twat", "slut", "whore", "piss", "crap"
     ]
 }

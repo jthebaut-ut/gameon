@@ -7,10 +7,12 @@ struct CalendarScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var selectedTab: MainTabView.AppTab
     @Environment(\.colorScheme) private var calendarColorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showDatePicker = false
     @State private var showCalendarSportMoreSheet = false
     @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
+    @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
 
     private var displayedEvents: [SportsEvent] {
         viewModel.calendarScreenDisplayedEvents(
@@ -131,7 +133,7 @@ struct CalendarScreen: View {
                         )
                         viewModel.loadGamesFromSupabase()
                         Task {
-                            await viewModel.refreshPickupGamesForDiscoverMap()
+                            await viewModel.refreshCalendarTabPickupSources()
                         }
                         showDatePicker = false
                     }
@@ -180,6 +182,28 @@ struct CalendarScreen: View {
                 }
             }
         }
+        .onAppear {
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            Task {
+                await viewModel.refreshCalendarTabPickupSources()
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            Task {
+                await viewModel.refreshCalendarTabPickupSources()
+            }
+        }
+        .onChange(of: viewModel.calendarTabSelectedDate) { _, _ in
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            Task {
+                await viewModel.refreshCalendarTabPickupSources()
+            }
+        }
+        .sheet(item: $calendarPickupDetailToken) { token in
+            DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
+        }
     }
 
     private var header: some View {
@@ -197,13 +221,42 @@ struct CalendarScreen: View {
     }
 
     private var gameTypeFilter: some View {
-        Picker("Game type", selection: $viewModel.calendarTabGameFilter) {
+        let track = RoundedRectangle(cornerRadius: 11, style: .continuous)
+            .fill(Color.primary.opacity(calendarColorScheme == .dark ? 0.14 : 0.07))
+        return HStack(spacing: 0) {
             ForEach(CalendarTabGameFilter.allCases) { filter in
-                Text(filter.segmentTitle)
-                    .tag(filter)
+                Button {
+                    viewModel.calendarTabGameFilter = filter
+                } label: {
+                    Text(filter.segmentTitle)
+                        .font(.subheadline.weight(viewModel.calendarTabGameFilter == filter ? .semibold : .medium))
+                        .foregroundStyle(
+                            viewModel.calendarTabGameFilter == filter
+                                ? Color.white
+                                : .primary
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 4)
+                        .background {
+                            if viewModel.calendarTabGameFilter == filter {
+                                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                    .fill(Color.accentColor.opacity(calendarColorScheme == .dark ? 0.55 : 0.9))
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(filter.segmentTitle)
             }
         }
-        .pickerStyle(.segmented)
+        .padding(3)
+        .background(track)
+        .overlay {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(Color.primary.opacity(calendarColorScheme == .dark ? 0.12 : 0.08), lineWidth: 1)
+        }
         .padding(.horizontal)
     }
 
@@ -308,11 +361,7 @@ struct CalendarScreen: View {
                         } else {
                             VStack(spacing: 12) {
                                 ForEach(displayedEvents) { event in
-                                    Button {
-                                        handleEventTap(event)
-                                    } label: {
-                                        eventRow(event)
-                                    }
+                                    calendarEventCard(event)
                                 }
                             }
                             .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .top)
@@ -352,7 +401,7 @@ struct CalendarScreen: View {
         let requestID = viewModel.beginDiscoverDateChange(to: event.date)
         viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
         if isPickup {
-            if let row = viewModel.pickupGamesForDiscoverMap.first(where: { $0.id == event.id }) {
+            if let row = viewModel.resolvedPickupGameRow(for: event.id) {
                 viewModel.selectPickupGameOnMap(row)
             } else {
                 viewModel.clearPickupMapSelection()
@@ -363,36 +412,190 @@ struct CalendarScreen: View {
         selectedTab = .discover
     }
 
-    private func eventRow(_ event: SportsEvent) -> some View {
-        HStack(spacing: 14) {
-            SportArtworkIconView(sport: event.sport, diameter: 56)
+    @ViewBuilder
+    private func calendarEventCard(_ event: SportsEvent) -> some View {
+        if event.league == MapViewModel.calendarTabPickupLeagueMarker {
+            pickupCalendarEventCard(event)
+        } else {
+            venueCalendarEventCard(event)
+        }
+    }
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(.primary)
+    private func pickupCalendarCapacityPillText(for row: PickupGameRow?) -> String {
+        guard let row else { return "Open" }
+        return row.isPickupFullForDiscover ? "Full" : "Open"
+    }
 
-                Text(eventSubtitle(event))
+    private func pickupCalendarEventCard(_ event: SportsEvent) -> some View {
+        let now = Date()
+        let pickupRow = viewModel.resolvedPickupGameRow(for: event.id)
+        let pickupStarted = pickupRow?.hasPickupGameStarted(now: now) ?? false
+        let addressLine = pickupRow.map { viewModel.pickupGameCalendarAddressLine($0) } ?? ""
+        let organizerRaw = pickupRow.flatMap { viewModel.pickupCreatorDisplayLabel(for: $0.creator_user_id) }?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let organizerLine = organizerRaw.isEmpty ? "Organizer" : "Organizer: \(organizerRaw)"
+        let spotsLine = pickupRow.flatMap { viewModel.pickupGameCalendarSpotsLine($0) }
+        let capacityMeta = pickupCalendarCapacityPillText(for: pickupRow)
+        let rosterState = pickupRow.map { $0.isPickupFullForDiscover ? "full" : "open" } ?? "unknown"
+        let metaLine: String? = pickupRow.map { row in
+            [row.skillLevelEnum.displayTitle, row.playEnvironmentEnum.shortLabel, row.entryFeeDisplayLine]
+                .joined(separator: " · ")
+        }
+
+        return Button {
+            if viewModel.isGuestDiscoverMode {
+                viewModel.discoverNavigateToAccountForUserAuth = true
+                return
+            }
+            calendarPickupDetailToken = PickupDetailNavigationToken(id: event.id)
+        } label: {
+            HStack(alignment: .top, spacing: 14) {
+                PickupGameStartedSportGlyphFrame(showStarted: pickupStarted) {
+                    SportArtworkIconView(sport: event.sport, diameter: 56)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(event.title)
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+
+                        Text(capacityMeta)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(calendarColorScheme))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.primary.opacity(calendarColorScheme == .dark ? 0.14 : 0.08))
+                            )
+                            .accessibilityLabel(capacityMeta == "Full" ? "Roster full" : "Spots available")
+                    }
+
+                    if let row = pickupRow {
+                        Text(viewModel.pickupGameCalendarDateTimeLine(row))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if !addressLine.isEmpty {
+                            Text(addressLine)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Text(organizerLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        if let spots = spotsLine {
+                            Text(spots)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.primary)
+                        }
+
+                        if let metaLine, !metaLine.isEmpty {
+                            Text(metaLine)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(2)
+                        }
+                    } else {
+                        Text("Pickup details loading…")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if pickupStarted {
+                        PickupGameStartedLineCaption()
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(calendarColorScheme == .dark ? 0.12 : 0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+#if DEBUG
+            print("[CalendarPickupPublicMode] personalStateHidden=true")
+            print("[CalendarPickupPublicMode] badgeRemoved=true")
+            print("[CalendarPickupPublicMode] gameId=\(event.id.uuidString.lowercased())")
+            print("[CalendarPickupPublicMode] rosterState=\(rosterState)")
+#endif
+            if let r = pickupRow {
+                PickupGameStartedStateDebug.log(row: r, now: now, allowedActions: "calendar_tab_public_row")
+            }
+            if let row = pickupRow {
+                Task {
+                    await viewModel.loadPickupCreatorDisplayNameIfNeeded(creatorUserId: row.creator_user_id)
+                }
+            }
+        }
+    }
+
+    private func venueCalendarEventCard(_ event: SportsEvent) -> some View {
+        let isVenueEvent = event.league == "Venue Event"
+        let venueBar = isVenueEvent ? viewModel.barVenueForCalendarVenueEvent(event) : nil
+        let venueBizEmail = venueBar.flatMap { VenueGameBusinessEmail.resolvedDisplayEmail(for: $0) }
+
+        return Button {
+            handleEventTap(event)
+        } label: {
+            HStack(spacing: 14) {
+                PickupGameStartedSportGlyphFrame(showStarted: false) {
+                    SportArtworkIconView(sport: event.sport, diameter: 56)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+
+                    Text(venueEventSubtitle(event))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let venueBizEmail {
+                        VenueGameBusinessContactEmailRow(email: venueBizEmail)
+                            .padding(.top, 2)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            .padding()
+            .background(Color(.secondarySystemGroupedBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .buttonStyle(.plain)
+        .onAppear {
+            if isVenueEvent, let b = venueBar {
+                VenueGameBusinessEmail.logDebug(bar: b)
+            }
+        }
     }
 
-    private func eventSubtitle(_ event: SportsEvent) -> String {
-        if event.league == MapViewModel.calendarTabPickupLeagueMarker {
-            return "\(event.sport) • Pickup • \(event.time)"
-        }
-        return "\(event.league) • \(event.sport) • \(viewModel.displayTime(for: event))"
+    private func venueEventSubtitle(_ event: SportsEvent) -> String {
+        "\(event.league) • \(event.sport) • \(viewModel.displayTime(for: event))"
     }
 }

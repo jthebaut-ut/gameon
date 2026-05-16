@@ -10,7 +10,7 @@ extension MapViewModel {
     private static let interestedOnlyVenueEventDefaultsKey = "gameon.following.interestedOnlyVenueEventIDs"
 
     private static let venueSelectColumnsFollowing =
-        "id,owner_email,business_id,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
+        "id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)"
 
     private static let venueEventSelectColumnsFollowing =
         "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time"
@@ -38,6 +38,8 @@ extension MapViewModel {
         followingTabSavedVenues = []
         myPickupGameJoinRequestCards = []
         pickupGamesFollowingTabCache.removeAll()
+        pickupJoinRequestLatestByPickupGameIdForFan.removeAll()
+        resetPickupFollowingActivityStateForCacheClear()
     }
 
     func clearFollowingInterestedOnlyDefaults() {
@@ -187,6 +189,12 @@ extension MapViewModel {
             print("ERROR refreshFollowingTabDataGlobally venue game plans:", error)
 #endif
             clearFollowingTabVenueGamePlanCachesOnly()
+        }
+
+        // Host pickup games list (shared with Settings → My Pickup Games) so Following stays in sync.
+        if canFanUsePickupGamesUI, let uid = currentUserAuthId {
+            await loadMyPickupGamesForSettings()
+            await refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
         }
     }
 
@@ -339,7 +347,11 @@ extension MapViewModel {
             coverPhotoThumbnailURL: nil,
             menuPhotoThumbnailURL: nil,
             ownerEmail: event.owner_email,
-            businessId: nil
+            businessId: nil,
+            adminStatus: event.admin_status,
+            venueOwnerEmailRaw: event.owner_email,
+            businessOwnerEmailRaw: nil,
+            contactEmailRaw: nil
         )
     }
 

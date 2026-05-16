@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VenueDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
     @State private var showClaimConfirmation = false
     @State private var claimActionError: String?
 
@@ -81,6 +82,23 @@ struct VenueDetailView: View {
         }
         lines.append("Shared from FanGeo")
         return lines.joined(separator: "\n")
+    }
+
+    /// Same resolution as ``VenueGameBusinessEmail`` (`venues.owner_email` with optional active-business fallback, non-archived, strict-valid).
+    private var venueBusinessContactEmail: String? {
+        VenueGameBusinessEmail.resolvedDisplayEmail(for: bar)
+    }
+
+    private var quickActionsSectionSubtitle: String {
+        venueBusinessContactEmail != nil
+            ? "Get there, call, email, save, or share this venue"
+            : "Get there, call, save, or share this venue"
+    }
+
+    private func openVenueBusinessMail() {
+        guard let email = venueBusinessContactEmail, let url = VenueGameBusinessEmail.mailtoURL(for: email) else { return }
+        VenueEmailActionDebug.log(bar: bar, emailActionVisible: true, openedMailto: url.absoluteString, businessClaimStatus: businessClaimStatus)
+        openURL(url)
     }
 
     private var venueFeatureItems: [(icon: String, title: String, enabled: Bool)] {
@@ -199,6 +217,10 @@ struct VenueDetailView: View {
         }
         .scrollIndicators(.hidden)
         .fanGeoScreenBackground()
+        .task(id: bar.id) {
+            VenueEmailActionDebug.logLoad(bar: bar, businessClaimStatus: businessClaimStatus)
+            VenueGameBusinessEmail.logDebug(bar: bar)
+        }
         .onAppear(perform: logVenueDetailDebugState)
         .alert("Claim this venue?", isPresented: $showClaimConfirmation) {
             Button("Cancel", role: .cancel) {}
@@ -288,6 +310,17 @@ struct VenueDetailView: View {
                         .foregroundStyle(.white.opacity(0.92))
                     }
                     .buttonStyle(.plain)
+
+                    if let bizEmail = venueBusinessContactEmail {
+                        VenueGameBusinessContactEmailRow(
+                            email: bizEmail,
+                            heroOnDarkBackground: true,
+                            onWillOpenMail: { url in
+                                VenueEmailActionDebug.log(bar: bar, emailActionVisible: true, openedMailto: url.absoluteString, businessClaimStatus: businessClaimStatus)
+                            }
+                        )
+                        .padding(.top, 2)
+                    }
 
                     HStack(spacing: FGSpacing.sm) {
                         if !bar.distance.isEmpty {
@@ -411,12 +444,11 @@ struct VenueDetailView: View {
 
     private var venueActionSection: some View {
         FGCard {
-            FGSectionHeader("Quick actions", subtitle: "Get there, call, save, or share this venue")
+            FGSectionHeader("Quick actions", subtitle: quickActionsSectionSubtitle)
 
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible(), spacing: FGSpacing.md),
-                    GridItem(.flexible(), spacing: FGSpacing.md)
+                    GridItem(.adaptive(minimum: 156, maximum: 220), spacing: FGSpacing.md, alignment: .top)
                 ],
                 spacing: FGSpacing.md
             ) {
@@ -439,6 +471,18 @@ struct VenueDetailView: View {
                     )
                 }
                 .buttonStyle(.plain)
+
+                if venueBusinessContactEmail != nil {
+                    Button(action: openVenueBusinessMail) {
+                        actionCardContent(
+                            title: "Email",
+                            subtitle: "Email venue",
+                            icon: "envelope.fill",
+                            tint: FGColor.gradientMiddle
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
 
                 Button {
                     runFanOnlyAction("favoriteVenue", onFavorite)
@@ -646,6 +690,12 @@ struct VenueDetailView: View {
                         Text("Venue-confirmed broadcast")
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    if isSelectedGame, let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar) {
+                        VenueGameBusinessContactEmailRow(email: bizEmail)
+                            .padding(.top, 4)
+                            .onAppear { VenueGameBusinessEmail.logDebug(bar: bar) }
                     }
                 }
 

@@ -269,9 +269,15 @@ final class MapViewModel: ObservableObject {
     @Published var pickupGamesForDiscoverMap: [PickupGameRow] = []
     @Published var selectedPickupGameForMap: PickupGameRow?
     @Published var myPickupGamesForSettings: [PickupGameRow] = []
+    /// Organizer soft-deleted games (`status = removed`), shown under History in Settings.
+    @Published var myRemovedPickupGamesForSettings: [PickupGameRow] = []
     @Published var isLoadingPickupGamesForMap: Bool = false
     /// Phase 2: pending / approved join request counts per game (organizer only; keyed by `pickup_games.id`).
     @Published var pickupOrganizerJoinStatsByGameId: [UUID: PickupOrganizerJoinStats] = [:]
+    /// Join requests in `cancelled` / `withdrawn` state for games the user hosts (Settings → My pickup games).
+    @Published var pickupOrganizerWithdrawnRequestsByGameId: [UUID: [PickupGameRequestRow]] = [:]
+    /// Approved joiner user ids per hosted game (Settings roster strip); ordered from `pickup_game_requests` without extra joins.
+    @Published var pickupOrganizerApprovedJoinerUserIdsByGameId: [UUID: [UUID]] = [:]
     /// Fan pickup creators: total `pending` join requests across their active games (Account tab avatar badge).
     @Published var pendingPickupGameJoinRequestCount: Int = 0
     /// Phase 2: latest join request from the current user per game (Discover detail / button state).
@@ -304,8 +310,32 @@ final class MapViewModel: ObservableObject {
     @Published var followingTabUserVenueEventInterestIDs: Set<UUID> = []
     /// Following → Games to Play: pickup join requests for the current user (see ``loadMyPickupGameJoinRequestsForFollowing()``).
     @Published var myPickupGameJoinRequestCards: [PickupGameJoinRequestCardDisplay] = []
+    /// Latest join request row per pickup game for the signed-in fan (includes declined/rejected; excludes nothing except empty fetch). Following / pickup detail surfaces.
+    @Published var pickupJoinRequestLatestByPickupGameIdForFan: [UUID: PickupGameRequestRow] = [:]
+    /// Bumped when join-request rows affecting organizer summaries may have changed (realtime / withdraw); drives ``PickupOrganizerRequestsSheet`` reload.
+    @Published var pickupOrganizerRequestsSyncGeneration: UInt64 = 0
+    /// Bumped after join-request mutations so pickup detail sheets reload request + counts.
+    @Published var pickupJoinRequestUiRevision: UInt64 = 0
+    /// Orange Following-tab / Games-to-Play activity: join/game field changed since last viewed Games to Play.
+    @Published var hasUnreadPickupActivity: Bool = false
+    /// Count of pickup games with unread activity (segment badge + tab hint).
+    @Published var pickupActivityCount: Int = 0
+    /// Last successful Following pickup join-list reload (Games to Play).
+    @Published var lastJoinStatusRefreshAt: Date?
+    /// Latest join request status string per pickup game id after the last reload (`pending`, `approved`, …).
+    @Published var lastKnownJoinStatus: [UUID: String] = [:]
+    /// Global pull-to-refresh / timer in progress for Games to Play list.
+    @Published var isPickupFollowingJoinListRefreshing: Bool = false
+    /// Per-game unread activity (card dot) until user opens Games to Play or refreshes that card.
+    @Published var pickupFollowingUnreadActivityGameIds: Set<UUID> = []
+    /// Manual per-card refresh spinner.
+    @Published var pickupFollowingCardRefreshSpinGameId: UUID?
     /// Ensures ``resolvedPickupGameRow(for:)`` can open detail from Following when the game is not on the Discover map cache.
     var pickupGamesFollowingTabCache: [UUID: PickupGameRow] = [:]
+    /// Organizer pickup trust line (avg stars + count); from ``pickup_creator_public_rating_stats`` RPC.
+    @Published var pickupCreatorPublicRatingStatsByUserId: [UUID: PickupCreatorPublicRatingStats] = [:]
+    /// Pickup games the current user has already submitted an organizer rating for.
+    @Published var pickupGameIdsWithMyCreatorRating: Set<UUID> = []
 
     // MARK: - Venue owner analytics (realtime)
 
@@ -317,6 +347,14 @@ final class MapViewModel: ObservableObject {
     var pickupJoinRequestBadgeRealtimeTask: Task<Void, Never>?
     var pickupJoinRequestBadgeRealtimeChannel: RealtimeChannelV2?
     var pickupJoinRequestBadgeDebounceTask: Task<Void, Never>?
+    /// Realtime: requester’s join rows + followed pickup games (Following → Games to Play).
+    var pickupFollowingRealtimeTask: Task<Void, Never>?
+    var pickupFollowingRealtimeChannel: RealtimeChannelV2?
+    var pickupFollowingRealtimeDebounceTask: Task<Void, Never>?
+    /// First successful Games-to-Play load completed; suppresses marking everything unread on cold start.
+    var pickupFollowingActivityPrimed: Bool = false
+    /// Per-game signature last acknowledged by the user (Games to Play visible or per-card refresh).
+    var pickupFollowingSeenActivitySignatureByGameId: [UUID: String] = [:]
     /// User’s 1–5 star rating per venue (local only).
     @Published var venueUserStarRatings: [UUID: Int] = [:]
     /// How many times the user saved a rating (drives review count display).

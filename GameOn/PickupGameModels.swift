@@ -2,7 +2,19 @@ import Foundation
 
 /// Automatic removal: `remove_after_at` is always `game_start_at` + this many hours (DB trigger + app payloads).
 enum PickupGameAutoRemoval {
-    static let hoursAfterGameStart: Int = 24
+    static let hoursAfterGameStart: Int = 12
+}
+
+/// DEBUG: pickup expiration fields immediately before Supabase insert/update (edit + roster sync).
+enum PickupExpirationEditDebug {
+    static func log(oldGameStartAt: String?, newGameStartAt: String, cleanupDelayHours: Int, computedRemoveAfterAt: String) {
+#if DEBUG
+        print("[PickupExpirationEditDebug] oldGameStartAt=\(oldGameStartAt ?? "nil")")
+        print("[PickupExpirationEditDebug] newGameStartAt=\(newGameStartAt)")
+        print("[PickupExpirationEditDebug] cleanupDelayHours=\(cleanupDelayHours)")
+        print("[PickupExpirationEditDebug] computedRemoveAfterAt=\(computedRemoveAfterAt)")
+#endif
+    }
 }
 
 // MARK: - `public.pickup_games` (Supabase snake_case matches Codable)
@@ -38,6 +50,52 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     let updated_at: String?
 }
 
+extension PickupGameRow {
+    /// Local optimistic patch (e.g. after joiner withdraw) before server row is re-fetched.
+    func replacingApprovedJoinCount(_ newApprovedJoinCount: Int?) -> PickupGameRow {
+        PickupGameRow(
+            id: id,
+            creator_user_id: creator_user_id,
+            creator_email: creator_email,
+            title: title,
+            sport: sport,
+            description: description,
+            skill_level: skill_level,
+            game_start_at: game_start_at,
+            address: address,
+            city: city,
+            state: state,
+            latitude: latitude,
+            longitude: longitude,
+            is_visible: is_visible,
+            players_needed: players_needed,
+            play_environment: play_environment,
+            participant_preference: participant_preference,
+            is_free: is_free,
+            entry_fee_amount: entry_fee_amount,
+            max_players: max_players,
+            status: status,
+            approved_join_count: newApprovedJoinCount,
+            cleanup_delay_hours: cleanup_delay_hours,
+            remove_after_at: remove_after_at,
+            created_at: created_at,
+            updated_at: updated_at
+        )
+    }
+
+    /// When this row should disappear from **Settings → My pickup games → History** (and matches organizer History footer math).
+    /// Prefers `remove_after_at` from the server; otherwise `game_start_at` + retention hours.
+    func pickupHistoryClientCleanupDeadline() -> Date? {
+        if let rem = remove_after_at, let d = PickupGameModels.parseSupabaseTimestamptz(rem) {
+            return d
+        }
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at) else { return nil }
+        let hours = cleanup_delay_hours > 0 ? cleanup_delay_hours : PickupGameAutoRemoval.hoursAfterGameStart
+        let clamped = max(1, min(168, hours))
+        return start.addingTimeInterval(Double(clamped) * 3600)
+    }
+}
+
 struct PickupGameInsert: Encodable {
     let creator_user_id: UUID
     let creator_email: String?
@@ -59,6 +117,35 @@ struct PickupGameInsert: Encodable {
     let entry_fee_amount: Double?
     let max_players: Int?
     let cleanup_delay_hours: Int
+    /// Always `game_start_at` + 12h; sent on every write so `remove_after_at` never lags behind an edited start time.
+    let remove_after_at: String
+
+    func withCanonicalPickupCleanupDelay() -> PickupGameInsert {
+        let remove = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: game_start_at)
+        return PickupGameInsert(
+            creator_user_id: creator_user_id,
+            creator_email: creator_email,
+            title: title,
+            sport: sport,
+            description: description,
+            skill_level: skill_level,
+            game_start_at: game_start_at,
+            address: address,
+            city: city,
+            state: state,
+            latitude: latitude,
+            longitude: longitude,
+            is_visible: is_visible,
+            players_needed: players_needed,
+            play_environment: play_environment,
+            participant_preference: participant_preference,
+            is_free: is_free,
+            entry_fee_amount: entry_fee_amount,
+            max_players: max_players,
+            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart,
+            remove_after_at: remove
+        )
+    }
 }
 
 struct PickupGameFullUpdate: Encodable {
@@ -80,6 +167,160 @@ struct PickupGameFullUpdate: Encodable {
     let entry_fee_amount: Double?
     let max_players: Int?
     let cleanup_delay_hours: Int
+    /// Always `game_start_at` + 12h; sent on full edit so expiration tracks the edited start instant.
+    let remove_after_at: String
+
+    /// Write payload with canonical 12h pickup retention (ignores any legacy `cleanup_delay_hours` from decoded rows).
+    func withCanonicalPickupCleanupDelay() -> PickupGameFullUpdate {
+        let remove = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: game_start_at)
+        return PickupGameFullUpdate(
+            title: title,
+            sport: sport,
+            description: description,
+            skill_level: skill_level,
+            game_start_at: game_start_at,
+            address: address,
+            city: city,
+            state: state,
+            latitude: latitude,
+            longitude: longitude,
+            is_visible: is_visible,
+            players_needed: players_needed,
+            play_environment: play_environment,
+            participant_preference: participant_preference,
+            is_free: is_free,
+            entry_fee_amount: entry_fee_amount,
+            max_players: max_players,
+            cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart,
+            remove_after_at: remove
+        )
+    }
+}
+
+/// Post-start roster patch: includes `game_start_at` / expiration columns so DB + PostgREST always re-sync `remove_after_at`
+/// to the saved start time + 12h (covers legacy `UPDATE OF …` triggers that skipped roster-only updates).
+struct PickupGameRosterCapacityUpdate: Encodable {
+    let players_needed: Int
+    let max_players: Int?
+    let game_start_at: String
+    let cleanup_delay_hours: Int
+    let remove_after_at: String
+}
+
+/// Organizer soft-delete: hide from Discover/Calendar and allow bulk-cancel of join requests.
+struct PickupGameSoftRemoveUpdate: Encodable {
+    let status: String
+    let is_visible: Bool
+    let remove_after_at: String
+}
+
+// MARK: - Pickup creator ratings (`public.pickup_game_creator_ratings`)
+
+nonisolated struct PickupCreatorPublicRatingStats: Equatable {
+    let avgRating: Double
+    let ratingCount: Int
+
+    var trustDisplayLine: String {
+        let avg = String(format: "%.1f", avgRating)
+        let n = ratingCount == 1 ? "1 rating" : "\(ratingCount) ratings"
+        return "★ \(avg) · \(n)"
+    }
+
+    /// Public pickup UI: star summary when rated, otherwise **New organizer** (no private feedback).
+    var organizerTrustSummaryLine: String {
+        guard ratingCount > 0 else { return "New organizer" }
+        return trustDisplayLine
+    }
+
+    /// Pickup game **detail** sheet: always includes a leading star; uses “reviews” wording.
+    var pickupOrganizerDetailRatingLine: String {
+        if ratingCount > 0 {
+            let avg = String(format: "%.1f", avgRating)
+            let reviews = ratingCount == 1 ? "1 review" : "\(ratingCount) reviews"
+            return "★ \(avg) · \(reviews)"
+        }
+        return "★ New organizer · No ratings yet"
+    }
+}
+
+/// Decodes JSON number or string for `numeric` columns from RPC.
+struct PickupRPCNumericOrString: Decodable {
+    let doubleValue: Double?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let d = try? c.decode(Double.self) {
+            doubleValue = d
+        } else if let s = try? c.decode(String.self), let d = Double(s) {
+            doubleValue = d
+        } else {
+            doubleValue = nil
+        }
+    }
+}
+
+/// RPC `pickup_creator_public_rating_stats` row (PostgREST JSON).
+nonisolated struct PickupCreatorPublicRatingStatsRPCRow: Decodable {
+    let avg_rating: PickupRPCNumericOrString?
+    let rating_count: Int64
+
+    nonisolated func toPublicStats() -> PickupCreatorPublicRatingStats? {
+        if rating_count == 0 {
+            return PickupCreatorPublicRatingStats(avgRating: 0, ratingCount: 0)
+        }
+        guard let avg = avg_rating?.doubleValue else { return nil }
+        return PickupCreatorPublicRatingStats(avgRating: avg, ratingCount: Int(rating_count))
+    }
+}
+
+struct PickupGameCreatorRatingUpsert: Encodable {
+    let pickup_game_id: UUID
+    let creator_user_id: UUID
+    let rater_user_id: UUID
+    let rating: Int
+    let feedback: String?
+}
+
+/// DEBUG: organizer rating line on FanGeo pickup detail (matches UI copy).
+enum PickupOrganizerRatingDebug {
+    static func log(creatorUserId: UUID, stats: PickupCreatorPublicRatingStats?) {
+#if DEBUG
+        print("[PickupOrganizerRatingDebug] creatorUserId=\(creatorUserId.uuidString.lowercased())")
+        if let stats, stats.ratingCount > 0 {
+            print("[PickupOrganizerRatingDebug] avgRating=\(String(format: "%.1f", stats.avgRating))")
+            print("[PickupOrganizerRatingDebug] ratingCount=\(stats.ratingCount)")
+            print("[PickupOrganizerRatingDebug] shownOnDetail=\(stats.pickupOrganizerDetailRatingLine)")
+        } else if let stats {
+            print("[PickupOrganizerRatingDebug] avgRating=n/a")
+            print("[PickupOrganizerRatingDebug] ratingCount=\(stats.ratingCount)")
+            print("[PickupOrganizerRatingDebug] shownOnDetail=\(stats.pickupOrganizerDetailRatingLine)")
+        } else {
+            print("[PickupOrganizerRatingDebug] avgRating=nil")
+            print("[PickupOrganizerRatingDebug] ratingCount=nil")
+            print("[PickupOrganizerRatingDebug] shownOnDetail=nil")
+        }
+#endif
+    }
+}
+
+enum PickupCreatorRatingDebug {
+    static func log(
+        pickupGameId: UUID,
+        creatorUserId: UUID,
+        raterUserId: UUID?,
+        rating: Int?,
+        submitSucceeded: Bool?,
+        alreadyRated: Bool?
+    ) {
+#if DEBUG
+        print("[PickupCreatorRatingDebug] pickupGameId=\(pickupGameId.uuidString.lowercased())")
+        print("[PickupCreatorRatingDebug] creatorUserId=\(creatorUserId.uuidString.lowercased())")
+        print("[PickupCreatorRatingDebug] raterUserId=\(raterUserId?.uuidString.lowercased() ?? "nil")")
+        print("[PickupCreatorRatingDebug] rating=\(rating.map(String.init) ?? "nil")")
+        print("[PickupCreatorRatingDebug] submitSucceeded=\(submitSucceeded.map { $0 ? "true" : "false" } ?? "nil")")
+        print("[PickupCreatorRatingDebug] alreadyRated=\(alreadyRated.map { $0 ? "true" : "false" } ?? "nil")")
+#endif
+    }
 }
 
 // MARK: - `public.pickup_game_requests` (Phase 2 join workflow)
@@ -121,9 +362,36 @@ extension PickupGameRequestRow {
         case "pending": return "Pending"
         case "approved": return "Approved"
         case "rejected": return "Rejected"
-        case "cancelled": return "Cancelled"
+        case "cancelled": return "Withdrawn"
+        case "withdrawn": return "Withdrawn"
         default: return status.capitalized
         }
+    }
+
+    /// Prefer `updated_at` over `created_at` when multiple join rows exist for the same game (re-requests).
+    var pickupJoinRequestRecencyInstant: Date {
+        let u = updated_at.flatMap { PickupGameModels.parseSupabaseTimestamptz($0) }
+        let c = created_at.flatMap { PickupGameModels.parseSupabaseTimestamptz($0) }
+        return u ?? c ?? .distantPast
+    }
+
+    /// One row per `pickup_game_id`: the most recently touched request for that game.
+    static func pickupLatestRequestByGameId(_ rows: [PickupGameRequestRow]) -> [UUID: PickupGameRequestRow] {
+        var best: [UUID: PickupGameRequestRow] = [:]
+        for r in rows {
+            guard let existing = best[r.pickup_game_id] else {
+                best[r.pickup_game_id] = r
+                continue
+            }
+            let nr = r.pickupJoinRequestRecencyInstant
+            let er = existing.pickupJoinRequestRecencyInstant
+            if nr > er {
+                best[r.pickup_game_id] = r
+            } else if nr == er, r.id.uuidString > existing.id.uuidString {
+                best[r.pickup_game_id] = r
+            }
+        }
+        return best
     }
 
     var requesterNameForUI: String {
@@ -183,15 +451,32 @@ extension PickupGameRequestRow {
                 ? Self.organizerStampShort.string(from: date)
                 : Self.organizerStampLong.string(from: date)
             return "Rejected \(stamp)"
+        case "withdrawn":
+            return "Player changed their mind"
         case "cancelled":
-            guard let date = organizerDecisionDate else { return "Cancelled" }
-            let stamp = compactWidth
-                ? Self.organizerStampShort.string(from: date)
-                : Self.organizerStampLong.string(from: date)
-            return "Cancelled \(stamp)"
+            if responded_at == nil {
+                return "Player withdrew their request"
+            }
+            return "Player changed their mind"
         default:
             return statusDisplayTitle
         }
+    }
+
+    /// Organizer-facing line for Settings “Can’t make it” list (fan withdrew / cancelled join).
+    func organizerFanWithdrawnSubtitle() -> String {
+        let st = status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if st == "withdrawn" { return "Player changed their mind" }
+        if st == "cancelled", responded_at != nil { return "Player changed their mind" }
+        return "Player withdrew their request"
+    }
+
+    func organizerFanWithdrawnTimestampLine(compactWidth: Bool) -> String? {
+        guard let date = organizerDecisionDate else { return nil }
+        let stamp = compactWidth
+            ? Self.organizerStampShort.string(from: date)
+            : Self.organizerStampLong.string(from: date)
+        return "Updated \(stamp)"
     }
 }
 
@@ -336,6 +621,43 @@ extension PickupGameRow {
         guard let max = max_players else { return nil }
         return "Max \(max)"
     }
+
+    /// True when local time has reached or passed the scheduled start (`now >= game_start_at`).
+    func hasPickupGameStarted(now: Date = Date()) -> Bool {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at) else { return false }
+        return now >= start
+    }
+
+    /// After start, or after the listing `remove_after_at` moment (post-window), show post-game organizer rating UI.
+    func isPickupCreatorRatingPromptEligible(now: Date = Date()) -> Bool {
+        if hasPickupGameStarted(now: now) { return true }
+        if let rem = remove_after_at,
+           let remDate = PickupGameModels.parseSupabaseTimestamptz(rem),
+           now >= remDate {
+            return true
+        }
+        return false
+    }
+}
+
+/// DEBUG lines for pickup post-start organizer UX (see product spec).
+enum PickupGameStartedStateDebug {
+    private static let logNowFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    static func log(row: PickupGameRow, now: Date, allowedActions: String) {
+#if DEBUG
+        let isStarted = row.hasPickupGameStarted(now: now)
+        print("[PickupGameStartedStateDebug] gameId=\(row.id.uuidString.lowercased())")
+        print("[PickupGameStartedStateDebug] game_start_at=\(row.game_start_at)")
+        print("[PickupGameStartedStateDebug] now=\(logNowFormatter.string(from: now))")
+        print("[PickupGameStartedStateDebug] isStarted=\(isStarted)")
+        print("[PickupGameStartedStateDebug] allowedActions=\(allowedActions)")
+#endif
+    }
 }
 
 enum PickupGameModels {
@@ -374,6 +696,13 @@ enum PickupGameModels {
         isoEncoder.string(from: date)
     }
 
+    /// Encoded `remove_after_at` for `pickup_games`: `game_start_at` + fixed pickup retention (12h).
+    static func encodedPickupRemoveAfterAt(forEncodedGameStart gameStartISO: String) -> String {
+        let start = parseSupabaseTimestamptz(gameStartISO) ?? Date(timeIntervalSince1970: 0)
+        let end = start.addingTimeInterval(Double(PickupGameAutoRemoval.hoursAfterGameStart) * 3600)
+        return encodeSupabaseTimestamptz(end)
+    }
+
     static func currencyEntryString(amount: Double) -> String {
         let n = NSNumber(value: amount)
         let base = moneyFormatter.string(from: n) ?? "$\(String(format: "%.2f", amount))"
@@ -390,6 +719,8 @@ enum PickupGameClientError: LocalizedError {
     case notSignedIn
     case missingRowAfterWrite
     case businessAccountsCannotUsePickupGames
+    case pickupGameNotFound
+    case pickupGameNotOrganizer
 
     var errorDescription: String? {
         switch self {
@@ -399,6 +730,10 @@ enum PickupGameClientError: LocalizedError {
             return "Couldn’t read the saved pickup game. Try again in a moment."
         case .businessAccountsCannotUsePickupGames:
             return BusinessFanGateCopy.pickupFanOnly
+        case .pickupGameNotFound:
+            return "Couldn’t find this pickup game to update. Try refreshing My pickup games."
+        case .pickupGameNotOrganizer:
+            return "Only the organizer can cancel this pickup game."
         }
     }
 }

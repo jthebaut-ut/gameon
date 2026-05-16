@@ -1,7 +1,7 @@
 import Foundation
 import CoreLocation
 
-struct SportsEvent: Identifiable, Equatable, Codable {
+nonisolated struct SportsEvent: Identifiable, Equatable, Codable {
     let id: UUID
     let title: String
     let sport: String
@@ -9,8 +9,19 @@ struct SportsEvent: Identifiable, Equatable, Codable {
     let date: Date
     let time: String
     let country: String
+    /// Legacy field; Calendar tab pickup listings are public-only and ignore this. Following / Discover detail use join state elsewhere.
+    var calendarPickupJoinStatus: String?
 
-    init(id: UUID = UUID(), title: String, sport: String, league: String, date: Date, time: String, country: String) {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        sport: String,
+        league: String,
+        date: Date,
+        time: String,
+        country: String,
+        calendarPickupJoinStatus: String? = nil
+    ) {
         self.id = id
         self.title = title
         self.sport = sport
@@ -18,10 +29,11 @@ struct SportsEvent: Identifiable, Equatable, Codable {
         self.date = date
         self.time = time
         self.country = country
+        self.calendarPickupJoinStatus = calendarPickupJoinStatus
     }
 }
 
-struct BarVenue: Identifiable, Equatable {
+nonisolated struct BarVenue: Identifiable, Equatable {
     let id: UUID
     let name: String
     let address: String
@@ -46,12 +58,18 @@ struct BarVenue: Identifiable, Equatable {
     let coverPhotoThumbnailURL: String?
     let menuPhotoThumbnailURL: String?
 
-    /// Supabase `venues.owner_email` when known (Discover scoped queries / venue_event lookup).
+    /// Public contact email after client validation (Discover: strict `venues.owner_email`, else strict embedded `businesses.owner_email` when business is not archived).
     let ownerEmail: String?
     /// Supabase `venues.business_id` when known (multi-venue businesses).
     let businessId: UUID?
     /// Supabase `venues.admin_status` when available; nil stays legacy-safe for old rows/snapshots.
     let adminStatus: String?
+    /// Raw `venues.owner_email` from the last venue row fetch (DEBUG / diagnostics; may be invalid or empty).
+    let venueOwnerEmailRaw: String?
+    /// Raw `businesses.owner_email` from embedded fetch when `business_id` is set (DEBUG / diagnostics).
+    let businessOwnerEmailRaw: String?
+    /// Reserved for a future public `contact_email`-style column; always nil today.
+    let contactEmailRaw: String?
 
     init(
         id: UUID = UUID(),
@@ -77,7 +95,10 @@ struct BarVenue: Identifiable, Equatable {
         menuPhotoThumbnailURL: String? = nil,
         ownerEmail: String? = nil,
         businessId: UUID? = nil,
-        adminStatus: String? = nil
+        adminStatus: String? = nil,
+        venueOwnerEmailRaw: String? = nil,
+        businessOwnerEmailRaw: String? = nil,
+        contactEmailRaw: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -103,6 +124,9 @@ struct BarVenue: Identifiable, Equatable {
         self.ownerEmail = ownerEmail
         self.businessId = businessId
         self.adminStatus = adminStatus
+        self.venueOwnerEmailRaw = venueOwnerEmailRaw
+        self.businessOwnerEmailRaw = businessOwnerEmailRaw
+        self.contactEmailRaw = contactEmailRaw
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {
@@ -237,7 +261,7 @@ struct VenueClaimRow: Codable {
     let rejection_acknowledged_at: String?
 }
 
-struct VenueEventRow: Codable {
+nonisolated struct VenueEventRow: Codable {
     let id: UUID?
 
     /// Canonical link to ``venues.id`` when set; legacy matching uses ``owner_email`` / ``venue_name`` when nil.
@@ -270,6 +294,8 @@ struct VenueEventRow: Codable {
 
     let scheduled_start_at: String?
     let cleanup_delay_hours: Int?
+    /// Generated column `scheduled_start_at + cleanup_delay_hours` when present in API responses.
+    let purge_after_at: String?
     let created_at: String?
 }
 
@@ -299,10 +325,17 @@ enum VenueOwnerGameScheduleValidation {
     static func combinedLocalStart(gameDate: Date, gameStartTime: Date, calendar: Calendar = .current) -> Date {
         var dc = calendar.dateComponents([.year, .month, .day], from: gameDate)
         let timeParts = calendar.dateComponents([.hour, .minute, .second], from: gameStartTime)
-        dc.hour = timeParts.hour
-        dc.minute = timeParts.minute
-        dc.second = timeParts.second
-        return calendar.date(from: dc) ?? gameDate
+        dc.hour = timeParts.hour ?? 0
+        dc.minute = timeParts.minute ?? 0
+        dc.second = timeParts.second ?? 0
+        if let merged = calendar.date(from: dc) {
+            return merged
+        }
+        let h = timeParts.hour ?? 0
+        let m = timeParts.minute ?? 0
+        let s = timeParts.second ?? 0
+        let sod = calendar.startOfDay(for: gameDate)
+        return calendar.date(bySettingHour: h, minute: m, second: s, of: sod) ?? sod
     }
 
     /// `true` when the scheduled start is **before** `now` (invalid for publish).
@@ -310,7 +343,7 @@ enum VenueOwnerGameScheduleValidation {
         combinedLocalStart(gameDate: gameDate, gameStartTime: gameStartTime, calendar: calendar) < now
     }
 
-    /// If the combined start is in the past, snap both pickers to **now** (same calendar day + clock).
+    /// If the combined start is in the past, snap pickers forward. Never moves a **future calendar day** on `gameDate` back to today.
     static func clampGameDateAndTimeToMinimumNow(
         gameDate: Date,
         gameStartTime: Date,
@@ -320,8 +353,110 @@ enum VenueOwnerGameScheduleValidation {
         if !isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime, now: now, calendar: calendar) {
             return (gameDate, gameStartTime)
         }
+        let sodGame = calendar.startOfDay(for: gameDate)
+        let sodNow = calendar.startOfDay(for: now)
+        if calendar.compare(sodGame, to: sodNow, toGranularity: .day) == .orderedDescending {
+            if let atSeven = calendar.date(bySettingHour: 19, minute: 0, second: 0, of: sodGame),
+               !isPastSchedule(gameDate: gameDate, gameStartTime: atSeven, now: now, calendar: calendar) {
+                return (gameDate, atSeven)
+            }
+            return (gameDate, gameStartTime)
+        }
         let dayStart = calendar.startOfDay(for: now)
         return (dayStart, now)
+    }
+
+    /// After the Game Date picker changes: same local calendar day as `now` → `now + 1 hour` rounded **up** to a 15-minute boundary (still on that game day; capped if `+1h` crosses midnight); strictly later local day → 7:00 PM on `newGameDate`.
+    static func recommendedStartTimeAfterGameDateChange(
+        newGameDate: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Date {
+        let sodNew = calendar.startOfDay(for: newGameDate)
+        let sodNow = calendar.startOfDay(for: now)
+        let order = calendar.compare(sodNew, to: sodNow, toGranularity: .day)
+        if order == .orderedDescending {
+            return calendar.date(bySettingHour: 19, minute: 0, second: 0, of: sodNew) ?? newGameDate
+        }
+        return defaultStartTimeSameLocalDayAsGameDate(gameDate: newGameDate, now: now, calendar: calendar)
+    }
+
+    /// `now + 1 hour`, rounded up to the next 15-minute tick, on `gameDate`’s calendar day; guaranteed `> now` when possible.
+    private static func defaultStartTimeSameLocalDayAsGameDate(gameDate: Date, now: Date, calendar: Calendar) -> Date {
+        let sod = calendar.startOfDay(for: gameDate)
+        guard let oneHourLater = calendar.date(byAdding: .hour, value: 1, to: now) else {
+            return calendar.date(bySettingHour: 19, minute: 0, second: 0, of: sod) ?? gameDate
+        }
+
+        // If +1h crosses into the next calendar day, cap to a late-evening slot on `gameDate` that is still after `now`.
+        if calendar.startOfDay(for: oneHourLater) != sod {
+            if let late = calendar.date(bySettingHour: 23, minute: 45, second: 0, of: sod), late > now {
+                return late
+            }
+            return calendar.date(byAdding: .minute, value: 1, to: now) ?? oneHourLater
+        }
+
+        let h = calendar.component(.hour, from: oneHourLater)
+        let min = calendar.component(.minute, from: oneHourLater)
+        let total = h * 60 + min
+        let roundedCeil15 = ((total + 14) / 15) * 15
+        var nh = roundedCeil15 / 60
+        var nm = roundedCeil15 % 60
+        if nh >= 24 {
+            nh = 23
+            nm = 45
+        }
+        guard var merged = calendar.date(bySettingHour: nh, minute: nm, second: 0, of: sod) else {
+            return oneHourLater
+        }
+        if merged <= now {
+            merged = calendar.date(byAdding: .minute, value: 1, to: now) ?? merged
+        }
+        return merged
+    }
+
+#if DEBUG
+    static func logBusinessAddGameTimeDateChange(
+        oldGameDate: Date,
+        newGameDate: Date,
+        startTimeBefore: Date,
+        startTimeAfter: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) {
+        let iso = ISO8601DateFormatter()
+        iso.timeZone = calendar.timeZone
+        iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        let combined = combinedLocalStart(gameDate: newGameDate, gameStartTime: startTimeAfter, calendar: calendar)
+        let isFuture = combined > now
+        print("[BusinessAddGameTimeDebug] dateChanged oldDate=\(iso.string(from: oldGameDate))")
+        print("[BusinessAddGameTimeDebug] dateChanged newDate=\(iso.string(from: newGameDate))")
+        print("[BusinessAddGameTimeDebug] dateChanged startTimeBefore=\(iso.string(from: startTimeBefore))")
+        print("[BusinessAddGameTimeDebug] dateChanged startTimeAfter=\(iso.string(from: startTimeAfter))")
+        print("[BusinessAddGameTimeDebug] dateChanged combinedStartDateTime=\(iso.string(from: combined))")
+        print("[BusinessAddGameTimeDebug] dateChanged now=\(iso.string(from: now))")
+        print("[BusinessAddGameTimeDebug] dateChanged isFuture=\(isFuture)")
+    }
+#endif
+
+    static func logBusinessAddGameSaveDebug(
+        gameDate: Date,
+        gameStartTime: Date,
+        now: Date,
+        calendar: Calendar
+    ) {
+#if DEBUG
+        let combined = combinedLocalStart(gameDate: gameDate, gameStartTime: gameStartTime, calendar: calendar)
+        let past = isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime, now: now, calendar: calendar)
+        let iso = ISO8601DateFormatter()
+        iso.timeZone = calendar.timeZone
+        iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        print("[BusinessAddGameSaveDebug] gameDate=\(iso.string(from: gameDate))")
+        print("[BusinessAddGameSaveDebug] gameStartTime=\(iso.string(from: gameStartTime))")
+        print("[BusinessAddGameSaveDebug] combinedStartDateTime=\(iso.string(from: combined))")
+        print("[BusinessAddGameSaveDebug] now=\(iso.string(from: now))")
+        print("[BusinessAddGameSaveDebug] isPastSchedule=\(past)")
+#endif
     }
 }
 

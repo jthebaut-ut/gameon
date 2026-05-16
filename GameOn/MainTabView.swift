@@ -55,7 +55,8 @@ struct MainTabView: View {
             preservedRoot(tab: .following) {
                 FollowingScreen(
                     viewModel: viewModel,
-                    suppressInitialAutoRefresh: true
+                    suppressInitialAutoRefresh: true,
+                    isFollowingTabSelected: selectedTab == .following
                 )
             }
 
@@ -78,6 +79,9 @@ struct MainTabView: View {
             if !chatViewModel.hidesFloatingTabBarForDirectChat {
                 floatingTabBarChrome
             }
+        }
+        .overlay(alignment: .top) {
+            dmInAppNotificationBannerLayer
         }
         .onAppear {
             if !Self.hasForcedDiscoverTabThisProcess {
@@ -145,6 +149,12 @@ struct MainTabView: View {
             print("[ChatTabBadge] visible=\(visible)")
 #endif
         }
+        .onChange(of: chatViewModel.pendingDmOpenPreview) { _, preview in
+            guard preview != nil else { return }
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+                selectedTabStorage = AppTab.chat.rawValue
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
@@ -162,10 +172,21 @@ struct MainTabView: View {
                     }
                     return
                 }
+                if viewModel.hasAuthenticatedVenueOwnerSession {
+                    await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+                    viewModel.checkVenueApprovalStatus()
+                }
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
-                await chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
+                chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
                 await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+                if viewModel.canFanUsePickupGamesUI {
+                    if AppTab(rawValue: selectedTabStorage) == .calendar {
+                        await viewModel.refreshCalendarTabPickupSources()
+                    } else {
+                        await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+                    }
+                }
             }
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
@@ -277,6 +298,79 @@ struct MainTabView: View {
         }
     }
 
+    /// In-app toast when a DM arrives while the thread isn’t open (see ``ChatViewModel/dmInAppNotification``).
+    private var dmInAppNotificationBannerLayer: some View {
+        VStack {
+            if let banner = chatViewModel.dmInAppNotification,
+               !chatViewModel.hidesFloatingTabBarForDirectChat {
+                dmInAppNotificationCard(banner)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .task(id: banner.id) {
+                        try? await Task.sleep(nanoseconds: 8_500_000_000)
+                        await MainActor.run {
+                            if chatViewModel.dmInAppNotification?.id == banner.id {
+                                chatViewModel.dismissDmInAppNotification()
+                            }
+                        }
+                    }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .allowsHitTesting(chatViewModel.dmInAppNotification != nil && !chatViewModel.hidesFloatingTabBarForDirectChat)
+        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: chatViewModel.dmInAppNotification?.id)
+        .zIndex(90)
+    }
+
+    private func dmInAppNotificationCard(_ banner: ChatViewModel.DmInAppNotificationPayload) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            ProfileAvatarView(preview: banner.senderPreview, size: 42)
+
+            Button {
+                chatViewModel.openConversationFromDmBanner()
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(banner.senderPreview.displayName)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                    Text(banner.bodyPreview)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                chatViewModel.dismissDmInAppNotification()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss notification")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 14, y: 6)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     /// Independent overlay: does not participate in `DirectChatView` layout; hidden during DM threads via ``ChatViewModel/hidesFloatingTabBarForDirectChat``.
     private var floatingTabBarChrome: some View {
         VStack {
@@ -285,9 +379,9 @@ struct MainTabView: View {
             HStack(spacing: 6) {
                 tabButton(.discover, title: "Discover", icon: "map.fill")
 
-                tabButton(.calendar, title: "Calendar", icon: "calendar")
+                calendarTabButton()
 
-                tabButton(.following, title: "Following", icon: "heart.fill")
+                followingTabButton()
 
                 chatTabButton()
 
@@ -483,6 +577,66 @@ struct MainTabView: View {
             .padding(.vertical, 2)
             .background(Color.red)
             .clipShape(Capsule())
+    }
+
+    private func calendarTabButton() -> some View {
+        return Button {
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.calendar.rawValue
+            }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                HStack(spacing: 5) {
+                    Image(systemName: "calendar")
+
+                    if selectedTab == .calendar {
+                        Text("Calendar")
+                    }
+                }
+                .font(.caption)
+                .fontWeight(.bold)
+                .padding(.horizontal, selectedTab == .calendar ? 12 : 10)
+                .padding(.vertical, 10)
+                .foregroundStyle(selectedTab == .calendar ? Color.white : unselectedTabForegroundColor)
+                .background(selectedTab == .calendar ? selectedTabBackgroundColor : Color.clear)
+                .clipShape(Capsule())
+
+            }
+        }
+    }
+
+    private func followingTabButton() -> some View {
+        Button {
+            withAnimation(.spring()) {
+                selectedTabStorage = AppTab.following.rawValue
+            }
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                HStack(spacing: 5) {
+                    Image(systemName: "heart.fill")
+
+                    if selectedTab == .following {
+                        Text("Following")
+                    }
+                }
+                .font(.caption)
+                .fontWeight(.bold)
+                .padding(.horizontal, selectedTab == .following ? 12 : 10)
+                .padding(.vertical, 10)
+                .foregroundStyle(selectedTab == .following ? Color.white : unselectedTabForegroundColor)
+                .background(selectedTab == .following ? selectedTabBackgroundColor : Color.clear)
+                .clipShape(Capsule())
+
+                if viewModel.hasUnreadPickupActivity {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 9, height: 9)
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.85), lineWidth: 1))
+                        .offset(x: 7, y: -6)
+                        .accessibilityLabel("Pickup games activity")
+                }
+            }
+        }
     }
 
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {

@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 import MapKit
 import SwiftUI
 
@@ -81,7 +82,8 @@ extension MapViewModel {
     }
 
     func openDirections(to bar: BarVenue) {
-        let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: bar.coordinate))
+        let location = CLLocation(latitude: bar.coordinate.latitude, longitude: bar.coordinate.longitude)
+        let mapItem = MKMapItem(location: location, address: nil)
         mapItem.name = bar.name
         mapItem.openInMaps()
     }

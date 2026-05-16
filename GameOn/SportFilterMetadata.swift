@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Central definition for Discover/Calendar sport filter chips and ``MapViewModel`` icon/color helpers.
 /// Canonical sport **names** for filters, pickers, and DB payloads live in ``AppSportCatalog``.
-enum SportFilterCatalog {
+nonisolated enum SportFilterCatalog {
 
     struct ChipVisual {
         let emoji: String
@@ -27,8 +27,11 @@ enum SportFilterCatalog {
         Definition(aliases: ["golf"], emoji: "⛳", systemImage: "figure.golf", accent: Color(red: 0.18, green: 0.62, blue: 0.32)),
         Definition(aliases: ["volleyball"], emoji: "🏐", systemImage: "volleyball.fill", accent: Color(red: 0.2, green: 0.75, blue: 0.88)),
         Definition(aliases: ["ping pong", "pingpong", "table tennis", "tabletennis"], emoji: "🏓", systemImage: "figure.table.tennis", accent: Color(red: 0.55, green: 0.22, blue: 0.85)),
-        Definition(aliases: ["ufc", "mma", "boxing"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18)),
+        Definition(aliases: ["ufc", "mma"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18)),
+        Definition(aliases: ["boxing"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.78, green: 0.15, blue: 0.12)),
+        Definition(aliases: ["wrestling"], emoji: "🤼", systemImage: "figure.wrestling", accent: Color(red: 0.42, green: 0.35, blue: 0.72)),
         Definition(aliases: ["formula 1", "formula1", "f1", "racing", "formula one"], emoji: "🏎\u{FE0F}", systemImage: "flag.pattern.checkered", accent: Color(red: 0.92, green: 0.2, blue: 0.22)),
+        Definition(aliases: ["nascar", "stock car"], emoji: "🏁", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.18, green: 0.28, blue: 0.82)),
         Definition(aliases: ["cricket"], emoji: "🏏", systemImage: "cricket.ball.fill", accent: Color(red: 0.2, green: 0.35, blue: 0.75)),
         Definition(aliases: ["rugby"], emoji: "🏉", systemImage: "sportscourt.fill", accent: Color(red: 0.15, green: 0.42, blue: 0.28)),
         Definition(aliases: ["softball"], emoji: "🥎", systemImage: "circle.fill", accent: Color(red: 0.95, green: 0.55, blue: 0.2)),
@@ -48,6 +51,15 @@ enum SportFilterCatalog {
             emoji: "🚴",
             systemImage: "bicycle",
             accent: Color(red: 0.1, green: 0.52, blue: 0.78)
+        ),
+        Definition(aliases: ["running", "run", "jogging", "road race", "marathon"], emoji: "🏃", systemImage: "figure.run", accent: Color(red: 0.22, green: 0.62, blue: 0.42)),
+        Definition(aliases: ["pickleball"], emoji: "🏓", systemImage: "figure.tennis", accent: Color(red: 0.35, green: 0.72, blue: 0.38)),
+        Definition(aliases: ["lacrosse"], emoji: "🥍", systemImage: "sportscourt.fill", accent: Color(red: 0.28, green: 0.52, blue: 0.38)),
+        Definition(
+            aliases: ["track & field", "track and field", "trackfield", "athletics"],
+            emoji: "🏃",
+            systemImage: "figure.track.and.field",
+            accent: Color(red: 0.55, green: 0.42, blue: 0.82)
         ),
         Definition(aliases: ["motogp"], emoji: "🏍️", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.92, green: 0.22, blue: 0.28)),
         Definition(aliases: ["motocross"], emoji: "🏁", systemImage: "figure.outdoor.cycle", accent: Color(red: 0.55, green: 0.38, blue: 0.22)),

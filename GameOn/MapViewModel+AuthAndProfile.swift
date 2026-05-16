@@ -50,7 +50,7 @@ extension MapViewModel {
 #endif
     }
 
-    private func hasActiveBusinessAccount(ownerEmail: String) async -> Bool {
+    private func hasActiveBusinessAccount(ownerEmail: String, ownerUserId: UUID?) async -> Bool {
         let normalized = OwnerBusinessEmail.normalized(ownerEmail)
         guard OwnerBusinessEmail.isValidStrict(normalized) else { return false }
 
@@ -59,13 +59,17 @@ extension MapViewModel {
         }) {
             return true
         }
+        if let ownerUserId,
+           ownedBusinesses.contains(where: { $0.owner_user_id == ownerUserId && $0.admin_status == "active" }) {
+            return true
+        }
 
         struct BusinessExistenceRow: Decodable {
             let id: UUID
         }
 
         do {
-            let rows: [BusinessExistenceRow] = try await supabase
+            let byEmail: [BusinessExistenceRow] = try await supabase
                 .from("businesses")
                 .select("id")
                 .eq("owner_email", value: normalized)
@@ -73,7 +77,20 @@ extension MapViewModel {
                 .limit(1)
                 .execute()
                 .value
-            return !rows.isEmpty
+            if !byEmail.isEmpty { return true }
+
+            if let ownerUserId {
+                let byUser: [BusinessExistenceRow] = try await supabase
+                    .from("businesses")
+                    .select("id")
+                    .eq("owner_user_id", value: ownerUserId)
+                    .eq("admin_status", value: "active")
+                    .limit(1)
+                    .execute()
+                    .value
+                if !byUser.isEmpty { return true }
+            }
+            return false
         } catch {
 #if DEBUG
             print("[BusinessSessionFlags] hasActiveBusinessAccount failed email=\(normalized):", error)
@@ -102,7 +119,7 @@ extension MapViewModel {
             return false
         }
 
-        guard await hasActiveBusinessAccount(ownerEmail: normalizedOwnerEmail) else {
+        guard await hasActiveBusinessAccount(ownerEmail: normalizedOwnerEmail, ownerUserId: authId) else {
             logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
             return false
         }
@@ -119,6 +136,8 @@ extension MapViewModel {
         currentUserAvatarThumbnailURL = ""
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
+        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        checkVenueApprovalStatus()
         logBusinessOwnerSessionFlags(context: "\(context)_restored")
         return true
     }
@@ -140,7 +159,7 @@ extension MapViewModel {
             return false
         }
 
-        guard await hasActiveBusinessAccount(ownerEmail: sessionEmail) else {
+        guard await hasActiveBusinessAccount(ownerEmail: sessionEmail, ownerUserId: session.user.id) else {
             logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
             return false
         }
@@ -198,10 +217,16 @@ extension MapViewModel {
         markPickupDiscoverMapDataDirtyForNextRefresh()
         selectedPickupGameForMap = nil
         myPickupGamesForSettings = []
+        myRemovedPickupGamesForSettings = []
         pickupOrganizerJoinStatsByGameId = [:]
+        pickupOrganizerWithdrawnRequestsByGameId = [:]
+        pickupOrganizerApprovedJoinerUserIdsByGameId = [:]
         pendingPickupGameJoinRequestCount = 0
         myPickupGameJoinRequestCards = []
         pickupGamesFollowingTabCache.removeAll()
+        pickupJoinRequestLatestByPickupGameIdForFan.removeAll()
+        pickupCreatorPublicRatingStatsByUserId = [:]
+        pickupGameIdsWithMyCreatorRating = []
         pickupMyLatestJoinRequestByGameId = [:]
         pickupCreatorDisplayNameByUserId = [:]
         pickupCreatorAvatarThumbnailURLByUserId = [:]
@@ -216,6 +241,7 @@ extension MapViewModel {
         Task { [weak self] in
             await self?.removeAllVenueEventCommentsRealtimeListeners()
             await self?.stopPickupJoinRequestBadgeRealtime()
+            await self?.stopFollowingPickupRealtime()
         }
 
         venueOwnerEmail = ""

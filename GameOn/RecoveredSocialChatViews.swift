@@ -115,6 +115,8 @@ struct FriendsTabView: View {
     @State private var showingAddFriendSheet = false
     @State private var showingBlockedUsersSheet = false
     @State private var manualFriendLookupDraft: String = ""
+    /// Programmatic push (in-app DM banner → Chat tab → ``DirectChatView``).
+    @State private var dmBannerNavigationFriend: UserPreview?
 
     private enum ChatSection: String, CaseIterable, Identifiable {
         case friends = "Friends"
@@ -155,6 +157,9 @@ struct FriendsTabView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
+            }
+            .navigationDestination(item: $dmBannerNavigationFriend) { friend in
+                DirectChatView(friend: friend)
             }
             .navigationTitle("Chat")
             .navigationBarTitleDisplayMode(.large)
@@ -200,10 +205,12 @@ struct FriendsTabView: View {
         }
         .onChange(of: isTabSelected) { _, on in
             if on {
+                consumePendingDmOpenPreviewIfNeeded()
                 Task { await viewModel.ensureSignedInSocialRealtimeIfNeeded() }
             }
         }
         .onAppear {
+            consumePendingDmOpenPreviewIfNeeded()
             Task {
                 await viewModel.refreshInboxSummariesIfNeeded()
                 await viewModel.refreshFriendRequestListsOnly()
@@ -211,6 +218,10 @@ struct FriendsTabView: View {
                     await viewModel.ensureSignedInSocialRealtimeIfNeeded()
                 }
             }
+        }
+        .onChange(of: viewModel.pendingDmOpenPreview) { _, preview in
+            guard preview != nil else { return }
+            consumePendingDmOpenPreviewIfNeeded()
         }
         .alert(
             "Couldn’t update friend request",
@@ -238,6 +249,16 @@ struct FriendsTabView: View {
         } message: {
             Text(viewModel.inboxDeleteError ?? "")
         }
+    }
+
+    /// When switching to Chat from another tab (e.g. Account → Settings pickup), `onChange(pendingDmOpenPreview)` may not run
+    /// because the preview is already non-nil when this view appears—drain it here so programmatic DM opens still navigate.
+    private func consumePendingDmOpenPreviewIfNeeded() {
+        guard !viewModel.requiresSignIn else { return }
+        guard let preview = viewModel.pendingDmOpenPreview else { return }
+        selectedSection = .friends
+        dmBannerNavigationFriend = preview
+        viewModel.pendingDmOpenPreview = nil
     }
 
     private var friendsList: some View {

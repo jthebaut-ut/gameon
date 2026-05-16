@@ -29,6 +29,34 @@ extension MapViewModel {
         calendarEventsListCache.removeAll(keepingCapacity: true)
     }
 
+    func invalidateCalendarTabEventsListCache() {
+        calendarEventsListCache.removeAll(keepingCapacity: true)
+    }
+
+    /// Calendar tab + MainTabView: refresh **public** pickup discover rows only (no fan join-request loads).
+    func refreshCalendarTabPickupSources() async {
+        guard canFanUsePickupGamesUI else { return }
+#if DEBUG
+        print("[CalendarPickupPublicMode] personalStateHidden=true reason=refreshCalendarTabPickupSources")
+#endif
+        let cal = Calendar.current
+        let calendarDay = cal.startOfDay(for: calendarTabSelectedDate)
+        if cal.startOfDay(for: selectedDate) != calendarDay {
+            selectedDate = calendarDay
+        }
+        await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+    }
+
+#if DEBUG
+    func logPickupActivityBadgeDebug() {
+        print("[PickupActivityBadgeDebug] followingBadgeCount=\(pickupActivityCount)")
+        print("[PickupActivityBadgeDebug] calendarPickupBadgeCount=0")
+    }
+#else
+    @inline(__always)
+    func logPickupActivityBadgeDebug() {}
+#endif
+
     /// Uncached same-day list for Discover (and internal use).
     func computeEventsForSelectedDateUncached() -> [SportsEvent] {
         let cal = Calendar.current
@@ -144,7 +172,30 @@ extension MapViewModel {
         let y = cal.component(.year, from: selectedDay)
         let m = cal.component(.month, from: selectedDay)
         let q = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        return "\(y)-\(m)|\(Int(day.timeIntervalSince1970))|\(selectedSport)|\(calendarUsesVisibleMapRegionOnly)|\(scheduleDataGeneration)|ctf:\(filter.rawValue)|q:\(q)"
+        let pd = pickupDiscoverCalendarDayPublicFingerprint(selectedDay: selectedDay, searchQuery: q, filter: filter)
+        return "\(y)-\(m)|\(Int(day.timeIntervalSince1970))|\(selectedSport)|\(calendarUsesVisibleMapRegionOnly)|\(scheduleDataGeneration)|ctf:\(filter.rawValue)|q:\(q)|pd:\(pd)"
+    }
+
+    /// Fingerprint for **public** pickup rows shown on Calendar (Discover map list only; ignores personal join-request caches).
+    private func pickupDiscoverCalendarDayPublicFingerprint(selectedDay: Date, searchQuery: String, filter: CalendarTabGameFilter) -> Int {
+        guard filter == .pickup || filter == .all else { return 0 }
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: selectedDay)
+        var h = Hasher()
+        for row in pickupGamesForDiscoverMap {
+            guard calendarTabPickupRowPassesListingFilters(row) else { continue }
+            guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { continue }
+            guard cal.isDate(start, inSameDayAs: dayStart) else { continue }
+            guard selectedSport == "All" || row.sport == selectedSport else { continue }
+            guard calendarTabLocalQueryMatchesPickupRow(row, query: searchQuery) else { continue }
+            h.combine(row.id)
+            h.combine(row.updated_at ?? "")
+            h.combine(row.approved_join_count ?? -1)
+            h.combine(row.players_needed)
+            h.combine(row.status)
+            h.combine(row.is_visible)
+        }
+        return h.finalize()
     }
 
     private func pruneCalendarEventsListCacheIfNeeded() {
@@ -167,7 +218,7 @@ extension MapViewModel {
         loadCalendarTabCalendarDotsAroundMonth(calendarTabSelectedDate, reason: "calendar_tab_active")
         loadGamesFromSupabase()
         Task {
-            await refreshPickupGamesForDiscoverMap()
+            await refreshCalendarTabPickupSources()
         }
     }
 
@@ -240,6 +291,44 @@ extension MapViewModel {
         return true
     }
 
+    /// Public Discover-map pickup rows for the Calendar tab (same-day, sport/search filters). No personal join-request merge.
+    private func calendarTabPickupPublicRows(for selectedDate: Date, searchQuery: String, logDebug: Bool = false) -> [PickupGameRow] {
+        let cal = Calendar.current
+        let now = Date()
+        var rows: [PickupGameRow] = []
+        for row in pickupGamesForDiscoverMap {
+            guard calendarTabPickupRowPassesListingFilters(row, now: now) else { continue }
+            guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { continue }
+            guard cal.isDate(start, inSameDayAs: selectedDate) else { continue }
+            guard selectedSport == "All" || row.sport == selectedSport else { continue }
+            guard calendarTabLocalQueryMatchesPickupRow(row, query: searchQuery) else { continue }
+            rows.append(row)
+        }
+        rows.sort { a, b in
+            let da = PickupGameModels.parseSupabaseTimestamptz(a.game_start_at) ?? .distantPast
+            let db = PickupGameModels.parseSupabaseTimestamptz(b.game_start_at) ?? .distantPast
+            if da != db { return da < db }
+            return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+        }
+        if logDebug {
+#if DEBUG
+            let dayLabel = Self.calendarPickupDebugDayFormatter.string(from: selectedDate)
+            print("[CalendarPickupRequestsDebug] selectedDate=\(dayLabel)")
+            print("[CalendarPickupRequestsDebug] publicPickupListCount=\(rows.count)")
+            print("[CalendarPickupPublicMode] personalStateHidden=true mode=publicCalendarList")
+#endif
+        }
+        return rows
+    }
+
+    private static let calendarPickupDebugDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     private func calendarTabVenueSportsEvents(for selectedDate: Date, searchQuery: String) -> [SportsEvent] {
         let cal = Calendar.current
         let regionTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
@@ -264,13 +353,9 @@ extension MapViewModel {
 
     private func calendarTabPickupSportsEvents(for selectedDate: Date, searchQuery: String) -> [SportsEvent] {
         let cal = Calendar.current
-        let now = Date()
-        return pickupGamesForDiscoverMap.compactMap { row -> SportsEvent? in
-            guard calendarTabPickupRowPassesListingFilters(row, now: now) else { return nil }
+        let rows = calendarTabPickupPublicRows(for: selectedDate, searchQuery: searchQuery, logDebug: true)
+        let events: [SportsEvent] = rows.compactMap { row -> SportsEvent? in
             guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
-            guard cal.isDate(start, inSameDayAs: selectedDate) else { return nil }
-            guard selectedSport == "All" || row.sport == selectedSport else { return nil }
-            guard calendarTabLocalQueryMatchesPickupRow(row, query: searchQuery) else { return nil }
             let day = cal.startOfDay(for: start)
             let timeLabel = Self.calendarTabPickupListTimeFormatter.string(from: start)
             return SportsEvent(
@@ -280,8 +365,14 @@ extension MapViewModel {
                 league: MapViewModel.calendarTabPickupLeagueMarker,
                 date: day,
                 time: timeLabel,
-                country: ""
+                country: "",
+                calendarPickupJoinStatus: nil
             )
+        }
+        return events.sorted {
+            if $0.date != $1.date { return $0.date < $1.date }
+            if $0.time != $1.time { return $0.time < $1.time }
+            return $0.title < $1.title
         }
     }
 
@@ -654,5 +745,32 @@ extension MapViewModel {
             return daySportGames
         }
         return []
+    }
+
+    /// Calendar tab: resolve a ``BarVenue`` for a merged venue event (`SportsEvent` league `Venue Event`).
+    func barVenueForCalendarVenueEvent(_ event: SportsEvent) -> BarVenue? {
+        guard event.league == "Venue Event" else { return nil }
+        let ymd = discoverPreviewSQLDayString(for: event.date)
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sport = event.sport.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let row = venueEventRows.first(where: { ev in
+            guard ev.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) == title else { return false }
+            guard ev.event_date?.trimmingCharacters(in: .whitespacesAndNewlines) == ymd else { return false }
+            let rs = ev.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return rs.isEmpty || rs == sport
+        }) {
+            if let vid = row.venue_id, let b = bars.first(where: { $0.id == vid }) {
+                return b
+            }
+            if let vn = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines), !vn.isEmpty,
+               let b = bars.first(where: { $0.name.caseInsensitiveCompare(vn) == .orderedSame }) {
+                return b
+            }
+        }
+
+        return bars.first { bar in
+            bar.games.contains(where: { $0.caseInsensitiveCompare(title) == .orderedSame })
+        }
     }
 }

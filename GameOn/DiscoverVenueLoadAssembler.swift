@@ -30,6 +30,30 @@ enum DiscoverVenueLoadAssembler {
         }
     }
 
+    /// Strict, normalized public listing email (same rules as ``VenueGameBusinessEmail``).
+    nonisolated private static func strictPublicOwnerEmail(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        let norm = OwnerBusinessEmail.normalized(trimmed)
+        guard OwnerBusinessEmail.isValidStrict(norm) else { return nil }
+        return norm
+    }
+
+    /// `businesses.admin_status`: only `active` (or legacy empty) is treated as safe for public contact email.
+    nonisolated private static func isPublicContactBusinessEmbedActive(_ embed: VenueRowBusinessEmbed?) -> Bool {
+        guard let embed else { return false }
+        let st = embed.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return st.isEmpty || st == "active"
+    }
+
+    /// Prefer strict `venues.owner_email`; when missing/invalid, fall back to embedded `businesses.owner_email` for linked active businesses.
+    nonisolated private static func mergedPublicOwnerEmail(for row: VenueRow) -> String? {
+        if let v = strictPublicOwnerEmail(row.owner_email) { return v }
+        guard row.business_id != nil else { return nil }
+        guard isPublicContactBusinessEmbedActive(row.businesses) else { return nil }
+        return strictPublicOwnerEmail(row.businesses?.owner_email)
+    }
+
     nonisolated static func buildMappedBars(
         venueRows: [VenueRow],
         fetchedVenueEventRows: [VenueEventRow]
@@ -93,12 +117,9 @@ enum DiscoverVenueLoadAssembler {
                     if let t = ev.event_title { titleSet.insert(t) }
                 }
             }
-            if let email = row.owner_email {
-                let k = OwnerBusinessEmail.normalized(email)
-                if OwnerBusinessEmail.isValidStrict(k) {
-                    for ev in eventsByOwner[k] ?? [] where ev.venue_id == nil {
-                        if let t = ev.event_title { titleSet.insert(t) }
-                    }
+            if let k = mergedPublicOwnerEmail(for: row) {
+                for ev in eventsByOwner[k] ?? [] where ev.venue_id == nil {
+                    if let t = ev.event_title { titleSet.insert(t) }
                 }
             }
             for ev in eventsByVenueName[name] ?? [] where ev.venue_id == nil {
@@ -106,9 +127,7 @@ enum DiscoverVenueLoadAssembler {
             }
             let gamesForThisVenue = Array(titleSet).sorted()
 
-            let rawOwner = row.owner_email ?? ""
-            let normOwner = OwnerBusinessEmail.normalized(rawOwner)
-            let ownerForBar: String? = OwnerBusinessEmail.isValidStrict(normOwner) ? normOwner : nil
+            let ownerForBar: String? = mergedPublicOwnerEmail(for: row)
             var supportedSports = Set<String>()
             if let venueUuid = row.id {
                 supportedSports.formUnion(sportsByVenueId[venueUuid] ?? [])
@@ -153,7 +172,10 @@ enum DiscoverVenueLoadAssembler {
                 menuPhotoThumbnailURL: row.menu_photo_thumbnail_url,
                 ownerEmail: ownerForBar,
                 businessId: row.business_id,
-                adminStatus: row.admin_status
+                adminStatus: row.admin_status,
+                venueOwnerEmailRaw: row.owner_email,
+                businessOwnerEmailRaw: row.businesses?.owner_email,
+                contactEmailRaw: nil
             )
         }
 

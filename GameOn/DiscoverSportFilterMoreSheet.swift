@@ -59,30 +59,19 @@ enum DiscoverSportFilterRowLayout {
         let rows: [SheetRow]
     }
 
-    private static func sheetRows(_ pairs: [(label: String, value: String)]) -> [SheetRow] {
-        pairs.map { SheetRow(label: $0.label, selection: $0.value) }
+    private static func sheetRows(from rows: [(label: String, selection: String)]) -> [SheetRow] {
+        rows.map { SheetRow(label: $0.label, selection: $0.selection) }
     }
 
-    static let sheetGroups: [SheetGroup] = [
-        SheetGroup(id: "motorsports", title: "Motorsports", rows: sheetRows(AppSportCatalog.DiscoverMore.motorsports)),
-        SheetGroup(id: "action", title: "Action", rows: sheetRows(AppSportCatalog.DiscoverMore.action)),
-        SheetGroup(id: "indoor", title: "Indoor", rows: sheetRows(AppSportCatalog.DiscoverMore.indoor)),
-        SheetGroup(id: "water_winter", title: "Water/Winter", rows: sheetRows(AppSportCatalog.DiscoverMore.waterWinter)),
-        SheetGroup(id: "team", title: "Team Sports", rows: sheetRows(AppSportCatalog.DiscoverMore.teamSports))
-    ]
+    static var sheetGroups: [SheetGroup] {
+        AppSportCatalog.SportCatalog.groupedCategories.map { category in
+            SheetGroup(id: category.id, title: category.title, rows: sheetRows(from: category.rows))
+        }
+    }
 
     static func sheetGroupsFiltered(query raw: String) -> [SheetGroup] {
-        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return sheetGroups }
-        return sheetGroups.compactMap { group in
-            if group.title.localizedCaseInsensitiveContains(q) {
-                return group
-            }
-            let rows = group.rows.filter { row in
-                row.label.localizedCaseInsensitiveContains(q) || row.selection.localizedCaseInsensitiveContains(q)
-            }
-            if rows.isEmpty { return nil }
-            return SheetGroup(id: group.id, title: group.title, rows: rows)
+        AppSportCatalog.SportCatalog.filteredCategories(query: raw).map { category in
+            SheetGroup(id: category.id, title: category.title, rows: sheetRows(from: category.rows))
         }
     }
 
@@ -163,47 +152,16 @@ struct ScalableSportFilterChipRow: View {
 // MARK: - Sheet
 
 struct DiscoverSportFilterMoreSheet: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var searchText = ""
-
     let selectedSport: String
     let onSelectSport: (String) -> Void
 
-    private var visibleGroups: [DiscoverSportFilterRowLayout.SheetGroup] {
-        DiscoverSportFilterRowLayout.sheetGroupsFiltered(query: searchText)
-    }
-
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(visibleGroups) { group in
-                    Section(group.title) {
-                        ForEach(group.rows, id: \.self) { row in
-                            Button {
-                                onSelectSport(row.selection)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    SportArtworkIconView(sport: row.selection, diameter: 40)
-                                    Text(row.label)
-                                        .font(.body.weight(.medium))
-                                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                                    Spacer(minLength: 0)
-                                    if DiscoverSportFilterRowLayout.selectionTokensMatch(selectedSport, row.selection) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundStyle(FGColor.accentBlue)
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Sports")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .searchable(text: $searchText, prompt: "Search sports")
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        GroupedSportPickerSheet(
+            selectedSportToken: selectedSport,
+            navigationTitle: "Sports",
+            showsSearch: true,
+            showsToolbarDone: false,
+            onSelectSport: onSelectSport
+        )
     }
 }

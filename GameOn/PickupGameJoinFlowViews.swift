@@ -1,5 +1,83 @@
 import SwiftUI
 
+// MARK: - Join request withdraw (Calendar / Following / detail)
+
+struct PickupJoinWithdrawConfirmState: Identifiable {
+    let id = UUID()
+    let requestId: UUID
+    let pickupGameId: UUID
+    let intent: PickupJoinWithdrawIntent
+
+    enum PickupJoinWithdrawIntent {
+        case pending
+        case approved
+        case declined
+
+        var alertTitle: String {
+            switch self {
+            case .pending: return "Withdraw your request to join this game?"
+            case .approved: return "Tell the organizer you can’t make it?"
+            case .declined: return "Remove this game from your list?"
+            }
+        }
+
+        var alertMessage: String {
+            switch self {
+            case .pending:
+                return "You can request to join again later if the game still has openings."
+            case .approved:
+                return "Your spot will be freed for another player."
+            case .declined:
+                return "This hides the declined request from your Games to Play and Calendar pickup lists."
+            }
+        }
+    }
+}
+
+// MARK: - Pickup “started” visuals (shared)
+
+/// Wraps a sport glyph with a small, neutral “Started” tag (not alarming).
+struct PickupGameStartedSportGlyphFrame<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let showStarted: Bool
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            content()
+            if showStarted {
+                Text("Started")
+                    .font(.system(size: 8, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.primary.opacity(colorScheme == .dark ? 0.22 : 0.07))
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
+                    )
+                    .offset(x: 5, y: -4)
+                    .accessibilityLabel("Game already started")
+            }
+        }
+    }
+}
+
+/// One-line caption for list / detail headers.
+struct PickupGameStartedLineCaption: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Text("Game already started")
+            .font(FGTypography.caption.weight(.medium))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .accessibilityLabel("Game already started")
+    }
+}
+
 /// Stable token for presenting pickup detail from Discover (`Identifiable` for `.sheet(item:)`).
 struct PickupDetailNavigationToken: Identifiable, Equatable, Hashable {
     let id: UUID
@@ -17,6 +95,7 @@ struct DiscoverPickupGameDetailSheet: View {
     @State private var showJoinComposer = false
     @State private var joinError: String?
     @State private var isCancellingRequest = false
+    @State private var withdrawConfirm: PickupJoinWithdrawConfirmState?
 
     private var game: PickupGameRow? {
         viewModel.resolvedPickupGameRow(for: gameId)
@@ -29,6 +108,15 @@ struct DiscoverPickupGameDetailSheet: View {
 
     private var myRequest: PickupGameRequestRow? {
         viewModel.pickupMyLatestJoinRequestByGameId[gameId]
+    }
+
+    private var showPickupOrganizerRatingCard: Bool {
+        guard !isCreator, let g = game, let uid = viewModel.currentUserAuthId else { return false }
+        guard g.creator_user_id != uid else { return false }
+        guard let req = myRequest, req.requester_user_id == uid else { return false }
+        guard req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "approved" else { return false }
+        guard g.isPickupCreatorRatingPromptEligible() else { return false }
+        return !viewModel.hasSubmittedPickupCreatorRating(for: gameId)
     }
 
     var body: some View {
@@ -64,20 +152,53 @@ struct DiscoverPickupGameDetailSheet: View {
                 }
             }
             .task(id: gameId) {
-                guard !viewModel.isGuestDiscoverMode else { return }
+                if viewModel.isGuestDiscoverMode {
+                    if let g = viewModel.resolvedPickupGameRow(for: gameId) {
+                        await viewModel.loadPickupOrganizerTrustStatsForPickupDetail(creatorUserId: g.creator_user_id)
+                    }
+                    return
+                }
                 if let cid = game?.creator_user_id {
                     await viewModel.loadPickupCreatorDisplayNameIfNeeded(creatorUserId: cid)
                 }
                 await viewModel.loadMyLatestJoinRequestForPickupGame(pickupGameId: gameId)
+                if let g = viewModel.resolvedPickupGameRow(for: gameId) {
+                    await viewModel.refreshPickupCreatorRatingUIContext(pickupGameId: gameId, creatorUserId: g.creator_user_id)
+                    let now = Date()
+                    let creator = viewModel.currentUserAuthId == g.creator_user_id
+                    let actions: String
+                    if creator {
+                        actions = g.hasPickupGameStarted(now: now)
+                            ? "manage_requests,roster_capacity"
+                            : "full_edit_before_start"
+                    } else {
+                        actions = g.hasPickupGameStarted(now: now) ? "view_join_state" : "join_request"
+                    }
+                    PickupGameStartedStateDebug.log(row: g, now: now, allowedActions: actions)
+                }
             }
             .onChange(of: viewModel.pickupGamesForDiscoverMap.count) { _, _ in
                 guard !viewModel.isGuestDiscoverMode else { return }
                 Task { await viewModel.loadMyLatestJoinRequestForPickupGame(pickupGameId: gameId) }
             }
+            .onChange(of: viewModel.pickupJoinRequestUiRevision) { _, _ in
+                guard !viewModel.isGuestDiscoverMode else { return }
+                Task { await viewModel.loadMyLatestJoinRequestForPickupGame(pickupGameId: gameId) }
+            }
+            .alert(item: $withdrawConfirm) { state in
+                Alert(
+                    title: Text(state.intent.alertTitle),
+                    message: Text(state.intent.alertMessage),
+                    primaryButton: .destructive(Text("Yes, withdraw")) {
+                        Task { await performPickupJoinWithdraw(state) }
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
         }
     }
 
-    /// Discover guest session (``MapViewModel/isGuestDiscoverMode``): sheet opens like signed-in flow but hides address, time, counts, organizer, and join.
+    /// Discover guest session (``MapViewModel/isGuestDiscoverMode``): hides address, time, counts, join, and organizer identity; still shows **public** organizer trust (RPC aggregates only).
     @ViewBuilder
     private func guestDiscoverPickupDetail(for g: PickupGameRow) -> some View {
         ScrollView {
@@ -98,6 +219,12 @@ struct DiscoverPickupGameDetailSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
                 .overlay { pickupGlassStroke(cornerRadius: FGRadius.large) }
 
+                PickupCreatorTrustLineView(
+                    stats: viewModel.pickupCreatorTrustStats(for: g.creator_user_id),
+                    detailAlwaysVisible: true
+                )
+                .padding(.top, FGSpacing.xs)
+
                 DiscoverGuestGameLockCard {
                     viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
                 }
@@ -117,13 +244,15 @@ struct DiscoverPickupGameDetailSheet: View {
             .joined(separator: ", ")
         let creatorLabel = viewModel.pickupCreatorDisplayLabel(for: g.creator_user_id)
         let subtitleLine = "\(g.sport) • \(g.playEnvironmentEnum.shortLabel) • \(g.skillLevelEnum.displayTitle)"
+        let showStarted = g.hasPickupGameStarted()
 
         ScrollView {
             VStack(alignment: .leading, spacing: FGSpacing.md) {
                 pickupHeroCard(
                     g: g,
                     locationLine: locationLine,
-                    subtitleLine: subtitleLine
+                    subtitleLine: subtitleLine,
+                    showStarted: showStarted
                 )
 
                 HStack(alignment: .top, spacing: FGSpacing.sm) {
@@ -162,11 +291,13 @@ struct DiscoverPickupGameDetailSheet: View {
                         systemImage: "dollarsign.circle.fill"
                     )
                     pickupOrganizerDetailTile(g: g, creatorLabel: creatorLabel)
+                        .gridCellColumns(2)
                     pickupDetailTile(
                         title: "Play",
                         value: g.playEnvironmentEnum.displayTitle,
                         systemImage: "sportscourt.fill"
                     )
+                        .gridCellColumns(2)
                 }
 
                 if let desc = g.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
@@ -185,6 +316,10 @@ struct DiscoverPickupGameDetailSheet: View {
 
                 if isCreator {
                     pickupInfoBanner(text: "You’re organizing this game.")
+                }
+
+                if showPickupOrganizerRatingCard {
+                    PickupCreatorRatingPromptCard(viewModel: viewModel, game: g)
                 }
 
                 joinSection(for: g)
@@ -291,40 +426,121 @@ struct DiscoverPickupGameDetailSheet: View {
         let token = viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: uid)
         let avatarFallback: UserAvatarView.FallbackStyle = colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
 
-        return HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 5) {
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.95 : 0.88))
-                    Text("Organizer")
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(pickupDetailSubInk)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.95 : 0.88))
+                        Text("Organizer")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(pickupDetailSubInk)
+                    }
+                    Text(value)
+                        .font(FGTypography.metadata.weight(.semibold))
+                        .foregroundStyle(pickupDetailMainInk)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(value)
-                    .font(FGTypography.metadata.weight(.semibold))
-                    .foregroundStyle(pickupDetailMainInk)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            UserAvatarView(
-                avatarThumbnailURL: thumb,
-                avatarURL: full,
-                avatarDisplayRefreshToken: token,
-                displayName: displayForAvatar,
-                email: emailLine,
-                size: 48,
-                fallbackStyle: avatarFallback,
-                imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
-            )
+                UserAvatarView(
+                    avatarThumbnailURL: thumb,
+                    avatarURL: full,
+                    avatarDisplayRefreshToken: token,
+                    displayName: displayForAvatar,
+                    email: emailLine,
+                    size: 48,
+                    fallbackStyle: avatarFallback,
+                    imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
+                )
+            }
+
+            pickupOrganizerTrustBadge(stats: viewModel.pickupCreatorTrustStats(for: uid))
+                .padding(.top, 2)
+                .padding(.bottom, 4)
         }
-        .padding(FGSpacing.sm + 2)
+        .padding(.horizontal, FGSpacing.sm + 2)
+        .padding(.top, FGSpacing.sm + 2)
+        .padding(.bottom, FGSpacing.md)
         .background { pickupGlassBackground(cornerRadius: FGRadius.medium) }
         .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
         .overlay { pickupGlassStroke(cornerRadius: FGRadius.medium) }
+    }
+
+    /// Full-width pill highlighting organizer trust (detail sheet only; stats from existing cache / RPC loaders).
+    @ViewBuilder
+    private func organizerTrustBadgeShell<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.22 : 0.16))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.52 : 0.4), lineWidth: 1.5)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func pickupOrganizerTrustBadge(stats: PickupCreatorPublicRatingStats?) -> some View {
+        let starTint = FGColor.accentYellow
+        if let stats {
+            if stats.ratingCount > 0 {
+                let reviewWords = stats.ratingCount == 1 ? "1 review" : "\(stats.ratingCount) reviews"
+                organizerTrustBadgeShell {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Image(systemName: "star.fill")
+                                .font(.title3)
+                                .foregroundStyle(starTint)
+                            Text(String(format: "%.1f", stats.avgRating))
+                                .font(.callout.weight(.bold))
+                                .foregroundStyle(pickupDetailMainInk)
+                        }
+                        Text(reviewWords)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(pickupDetailSubInk)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Organizer rating \(String(format: "%.1f", stats.avgRating)), \(reviewWords)")
+            } else {
+                organizerTrustBadgeShell {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(alignment: .center, spacing: 8) {
+                            Image(systemName: "star.fill")
+                                .font(.title3)
+                                .foregroundStyle(starTint)
+                            Text("New organizer")
+                                .font(.callout.weight(.bold))
+                                .foregroundStyle(pickupDetailMainInk)
+                        }
+                        Text("No ratings yet")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(pickupDetailSubInk)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Organizer is a new organizer, no ratings yet")
+            }
+        } else {
+            organizerTrustBadgeShell {
+                HStack(spacing: 10) {
+                    ProgressView()
+                    Text("Loading organizer trust…")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(pickupDetailSubInk)
+                }
+            }
+            .accessibilityLabel("Loading organizer trust")
+        }
     }
 
     private func pickupInfoBanner(text: String) -> some View {
@@ -353,47 +569,58 @@ struct DiscoverPickupGameDetailSheet: View {
         }
     }
 
-    private func pickupHeroCard(g: PickupGameRow, locationLine: String, subtitleLine: String) -> some View {
-        VStack(alignment: .leading, spacing: FGSpacing.sm) {
-            FGStatusPill(title: "Pickup game", kind: .custom(tint: Color.orange))
-            Text(g.title)
-                .font(FGTypography.sectionTitle)
-                .foregroundStyle(pickupDetailMainInk)
-
-            Text(subtitleLine)
-                .font(FGTypography.metadata.weight(.medium))
-                .foregroundStyle(pickupDetailSubInk)
-
-            if let start = PickupGameModels.parseSupabaseTimestamptz(g.game_start_at) {
-                Text(start.formatted(date: .abbreviated, time: .shortened))
-                    .font(FGTypography.cardTitle.weight(.semibold))
-                    .foregroundStyle(pickupDetailMainInk)
+    private func pickupHeroCard(g: PickupGameRow, locationLine: String, subtitleLine: String, showStarted: Bool) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.md) {
+            PickupGameStartedSportGlyphFrame(showStarted: showStarted) {
+                SportArtworkIconView(sport: g.sport, diameter: 48)
             }
 
-            HStack(alignment: .top, spacing: FGSpacing.md) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if !locationLine.isEmpty {
-                        Text(locationLine)
-                            .font(FGTypography.caption)
-                            .foregroundStyle(pickupDetailSubInk)
-                            .lineLimit(3)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                FGStatusPill(title: "Pickup game", kind: .custom(tint: Color.orange))
 
-                if let lat = g.latitude, let lon = g.longitude {
-                    Button {
-                        if let url = URL(string: "http://maps.apple.com/?ll=\(lat),\(lon)&q=Pickup%20game") {
-                            openURL(url)
+                Text(g.title)
+                    .font(FGTypography.sectionTitle)
+                    .foregroundStyle(pickupDetailMainInk)
+
+                Text(subtitleLine)
+                    .font(FGTypography.metadata.weight(.medium))
+                    .foregroundStyle(pickupDetailSubInk)
+
+                if showStarted {
+                    PickupGameStartedLineCaption()
+                }
+
+                if let start = PickupGameModels.parseSupabaseTimestamptz(g.game_start_at) {
+                    Text(start.formatted(date: .abbreviated, time: .shortened))
+                        .font(FGTypography.cardTitle.weight(.semibold))
+                        .foregroundStyle(pickupDetailMainInk)
+                }
+
+                HStack(alignment: .top, spacing: FGSpacing.md) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if !locationLine.isEmpty {
+                            Text(locationLine)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(pickupDetailSubInk)
+                                .lineLimit(3)
                         }
-                    } label: {
-                        Label("Directions", systemImage: "map")
-                            .font(FGTypography.caption.weight(.semibold))
-                            .labelStyle(.titleAndIcon)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(FGColor.accentBlue)
-                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if let lat = g.latitude, let lon = g.longitude {
+                        Button {
+                            if let url = URL(string: "http://maps.apple.com/?ll=\(lat),\(lon)&q=Pickup%20game") {
+                                openURL(url)
+                            }
+                        } label: {
+                            Label("Directions", systemImage: "map")
+                                .font(FGTypography.caption.weight(.semibold))
+                                .labelStyle(.titleAndIcon)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(FGColor.accentBlue)
+                        .fixedSize()
+                    }
                 }
             }
         }
@@ -428,26 +655,73 @@ struct DiscoverPickupGameDetailSheet: View {
                 .padding(.top, FGSpacing.xs)
         } else if isCreator {
             EmptyView()
-        } else if g.isPickupFullForDiscover {
-            Text("No more players needed.")
-                .font(FGTypography.caption.weight(.semibold))
-                .foregroundStyle(pickupDetailSubInk)
-                .padding(.top, FGSpacing.xs)
         } else {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
                 if let req = myRequest {
                     labeledRow("Your request", req.statusDisplayTitle)
-                    if req.status.lowercased() == "pending" {
-                        Button(role: .cancel) {
-                            Task { await cancelPendingRequest(req) }
+                    let st = req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    if st == "pending" {
+                        Button(role: .destructive) {
+#if DEBUG
+                            print("[PickupJoinWithdraw] tapped gameId=\(gameId.uuidString.lowercased())")
+                            print("[PickupJoinWithdraw] requestId=\(req.id.uuidString.lowercased())")
+#endif
+                            withdrawConfirm = PickupJoinWithdrawConfirmState(
+                                requestId: req.id,
+                                pickupGameId: gameId,
+                                intent: .pending
+                            )
                         } label: {
                             if isCancellingRequest {
                                 ProgressView()
                             } else {
-                                Text("Cancel request")
+                                Text("Withdraw request")
                             }
                         }
                         .buttonStyle(.bordered)
+                        .tint(Color.red.opacity(0.92))
+                        .disabled(isCancellingRequest)
+                    } else if st == "approved" {
+                        Button(role: .destructive) {
+#if DEBUG
+                            print("[PickupJoinWithdraw] tapped gameId=\(gameId.uuidString.lowercased())")
+                            print("[PickupJoinWithdraw] requestId=\(req.id.uuidString.lowercased())")
+#endif
+                            withdrawConfirm = PickupJoinWithdrawConfirmState(
+                                requestId: req.id,
+                                pickupGameId: gameId,
+                                intent: .approved
+                            )
+                        } label: {
+                            if isCancellingRequest {
+                                ProgressView()
+                            } else {
+                                Text("Can’t make it")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color.red.opacity(0.92))
+                        .disabled(isCancellingRequest)
+                    } else if st == "rejected" {
+                        Button(role: .destructive) {
+#if DEBUG
+                            print("[PickupJoinWithdraw] tapped gameId=\(gameId.uuidString.lowercased())")
+                            print("[PickupJoinWithdraw] requestId=\(req.id.uuidString.lowercased())")
+#endif
+                            withdrawConfirm = PickupJoinWithdrawConfirmState(
+                                requestId: req.id,
+                                pickupGameId: gameId,
+                                intent: .declined
+                            )
+                        } label: {
+                            if isCancellingRequest {
+                                ProgressView()
+                            } else {
+                                Text("Remove from list")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color.red.opacity(0.92))
                         .disabled(isCancellingRequest)
                     }
                 }
@@ -462,9 +736,27 @@ struct DiscoverPickupGameDetailSheet: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(FGColor.accentBlue)
+                } else if myRequest == nil, g.isPickupFullForDiscover {
+                    Text("No more players needed.")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(pickupDetailSubInk)
                 }
             }
             .padding(.top, FGSpacing.sm)
+        }
+    }
+
+    private func performPickupJoinWithdraw(_ state: PickupJoinWithdrawConfirmState) async {
+        isCancellingRequest = true
+        joinError = nil
+        defer {
+            isCancellingRequest = false
+            withdrawConfirm = nil
+        }
+        do {
+            try await viewModel.withdrawMyPickupJoinRequest(requestId: state.requestId, pickupGameId: state.pickupGameId)
+        } catch {
+            joinError = error.localizedDescription
         }
     }
 
@@ -472,18 +764,7 @@ struct DiscoverPickupGameDetailSheet: View {
         guard !g.isPickupFullForDiscover else { return false }
         guard let req = myRequest else { return true }
         let s = req.status.lowercased()
-        return s == "rejected" || s == "cancelled"
-    }
-
-    private func cancelPendingRequest(_ req: PickupGameRequestRow) async {
-        isCancellingRequest = true
-        joinError = nil
-        defer { isCancellingRequest = false }
-        do {
-            try await viewModel.cancelMyPickupJoinRequest(requestId: req.id, pickupGameId: gameId)
-        } catch {
-            joinError = error.localizedDescription
-        }
+        return s == "rejected" || s == "cancelled" || s == "withdrawn"
     }
 }
 
@@ -583,6 +864,29 @@ struct PickupOrganizerRequestsSheet: View {
         horizontalSizeClass == .compact
     }
 
+    private var pendingRows: [PickupGameRequestRow] {
+        rows.filter { $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "pending" }
+            .sorted { $0.pickupJoinRequestRecencyInstant > $1.pickupJoinRequestRecencyInstant }
+    }
+
+    private var approvedRows: [PickupGameRequestRow] {
+        rows.filter { $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "approved" }
+            .sorted { $0.pickupJoinRequestRecencyInstant > $1.pickupJoinRequestRecencyInstant }
+    }
+
+    private var rejectedRows: [PickupGameRequestRow] {
+        rows.filter { $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "rejected" }
+            .sorted { $0.pickupJoinRequestRecencyInstant > $1.pickupJoinRequestRecencyInstant }
+    }
+
+    private var withdrawnRows: [PickupGameRequestRow] {
+        rows.filter {
+            let s = $0.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            return s == "cancelled" || s == "withdrawn"
+        }
+        .sorted { $0.pickupJoinRequestRecencyInstant > $1.pickupJoinRequestRecencyInstant }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -598,11 +902,57 @@ struct PickupOrganizerRequestsSheet: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .listRowBackground(Color.clear)
                 }
-                ForEach(rows) { req in
-                    organizerRequestCard(req)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
+                if !pendingRows.isEmpty {
+                    Section {
+                        ForEach(pendingRows) { req in
+                            organizerRequestCard(req)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("Pending")
+                            .textCase(nil)
+                    }
+                }
+                if !approvedRows.isEmpty {
+                    Section {
+                        ForEach(approvedRows) { req in
+                            organizerRequestCard(req)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("Approved")
+                            .textCase(nil)
+                    }
+                }
+                if !rejectedRows.isEmpty {
+                    Section {
+                        ForEach(rejectedRows) { req in
+                            organizerRequestCard(req)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("Rejected")
+                            .textCase(nil)
+                    }
+                }
+                if !withdrawnRows.isEmpty {
+                    Section {
+                        ForEach(withdrawnRows) { req in
+                            organizerRequestCard(req)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("Can’t make it")
+                            .textCase(nil)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -615,6 +965,16 @@ struct PickupOrganizerRequestsSheet: View {
                 }
             }
             .task { await reload() }
+            .onChange(of: viewModel.pickupOrganizerRequestsSyncGeneration) { _, _ in
+                Task { await reload() }
+            }
+            .onAppear {
+                PickupGameStartedStateDebug.log(
+                    row: game,
+                    now: Date(),
+                    allowedActions: "approve,reject,remove_players"
+                )
+            }
         }
     }
 
@@ -628,7 +988,9 @@ struct PickupOrganizerRequestsSheet: View {
         case "rejected":
             FGStatusPill(title: "Rejected", kind: .rejected)
         case "cancelled":
-            FGStatusPill(title: "Cancelled", kind: .custom(tint: FGColor.mutedText(colorScheme)))
+            FGStatusPill(title: "Withdrawn", kind: .custom(tint: FGColor.mutedText(colorScheme)))
+        case "withdrawn":
+            FGStatusPill(title: "Withdrawn", kind: .custom(tint: FGColor.mutedText(colorScheme)))
         default:
             FGStatusPill(title: status.capitalized, kind: .custom(tint: FGColor.mutedText(colorScheme)))
         }

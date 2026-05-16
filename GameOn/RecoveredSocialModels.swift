@@ -2,6 +2,7 @@ import Foundation
 import Supabase
 #if canImport(UIKit)
 import UIKit
+import UserNotifications
 #endif
 
 // MARK: - Lightweight user surface (DM header, friend rows, navigation)
@@ -513,6 +514,21 @@ final class FriendshipService {
         return d == q || d.contains(q)
     }
 
+    /// Auth users who own an active `businesses` row (`owner_user_id`), for friend lookup when `user_profiles.is_business_account` is absent.
+    private func profileIdsWithActiveBusinessOwnerRole(_ ids: [UUID]) async throws -> Set<UUID> {
+        let unique = Array(Set(ids))
+        guard !unique.isEmpty else { return [] }
+        struct R: Decodable { let owner_user_id: UUID? }
+        let rows: [R] = try await client
+            .from("businesses")
+            .select("owner_user_id")
+            .in("owner_user_id", values: unique.map { $0.uuidString.lowercased() })
+            .eq("admin_status", value: "active")
+            .execute()
+            .value
+        return Set(rows.compactMap(\.owner_user_id))
+    }
+
     /// Searches fan ``user_profiles`` and ``businesses`` for Add Friend (does not collapse different entities that share an email).
     func searchAddFriendTargets(normalizedQuery raw: String, excludingUserId: UUID?) async throws -> [AddFriendSearchTarget] {
         let n = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -529,14 +545,52 @@ final class FriendshipService {
             let display_name: String?
             let created_at: String?
 
-            var isFan: Bool { is_business_account != true }
+            func isFanProfileExcludingBusinessOwners(businessAuthProfileIds: Set<UUID>) -> Bool {
+                if is_business_account == true { return false }
+                return !businessAuthProfileIds.contains(id)
+            }
         }
 
         var results: [AddFriendSearchTarget] = []
         var seenKeys = Set<String>()
 
+        let ilikePattern = "%\(Self.escapeForIlike(n))%"
+        let businessSelect = "id,display_name,owner_email,owner_user_id,admin_status,created_at"
+
+        let emailFanRows: [FanProfileRow] = (try? await client
+            .from("user_profiles")
+            .select("id,email,display_name,created_at")
+            .eq("admin_status", value: "active")
+            .ilike("email", pattern: ilikePattern)
+            .limit(24)
+            .execute()
+            .value) ?? []
+
+        let normFanRows: [FanProfileRow] = (try? await client
+            .from("user_profiles")
+            .select("id,email,display_name,created_at")
+            .eq("admin_status", value: "active")
+            .eq("display_name_normalized", value: n)
+            .limit(24)
+            .execute()
+            .value) ?? []
+
+        let ilikeFanRows: [FanProfileRow] = (try? await client
+            .from("user_profiles")
+            .select("id,email,display_name,created_at")
+            .eq("admin_status", value: "active")
+            .ilike("display_name", pattern: ilikePattern)
+            .limit(24)
+            .execute()
+            .value) ?? []
+
+        let fanProfileIds = Array(
+            Set(emailFanRows.map(\.id) + normFanRows.map(\.id) + ilikeFanRows.map(\.id))
+        )
+        let businessAuthProfileIds = (try? await profileIdsWithActiveBusinessOwnerRole(fanProfileIds)) ?? []
+
         func appendFan(_ row: FanProfileRow, matchedEmail: String?) {
-            guard row.isFan else { return }
+            guard row.isFanProfileExcludingBusinessOwners(businessAuthProfileIds: businessAuthProfileIds) else { return }
             if let ex = excludingUserId, row.id == ex { return }
             let key = "user-\(row.id.uuidString.lowercased())"
             guard seenKeys.insert(key).inserted else { return }
@@ -586,39 +640,12 @@ final class FriendshipService {
 #endif
         }
 
-        let ilikePattern = "%\(Self.escapeForIlike(n))%"
-        let businessSelect = "id,display_name,owner_email,admin_status,created_at"
-
-        let emailFanRows: [FanProfileRow] = (try? await client
-            .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
-            .eq("admin_status", value: "active")
-            .ilike("email", pattern: ilikePattern)
-            .limit(24)
-            .execute()
-            .value) ?? []
         for row in emailFanRows where Self.normalizedFriendLookupQuery(row.email ?? "") == n {
             appendFan(row, matchedEmail: n)
         }
 
-        let normFanRows: [FanProfileRow] = (try? await client
-            .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
-            .eq("admin_status", value: "active")
-            .eq("display_name_normalized", value: n)
-            .limit(24)
-            .execute()
-            .value) ?? []
         for row in normFanRows { appendFan(row, matchedEmail: nil) }
 
-        let ilikeFanRows: [FanProfileRow] = (try? await client
-            .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
-            .eq("admin_status", value: "active")
-            .ilike("display_name", pattern: ilikePattern)
-            .limit(24)
-            .execute()
-            .value) ?? []
         for row in ilikeFanRows { appendFan(row, matchedEmail: nil) }
 
         var businessCandidates: [BusinessRow] = []
@@ -757,19 +784,17 @@ final class FriendshipService {
             let display_name: String?
             let created_at: String?
 
-            var isRegularFanForLookup: Bool { is_business_account != true }
+            func isRegularFanExcludingBusinessOwners(_ businessAuthIds: Set<UUID>) -> Bool {
+                if is_business_account == true { return false }
+                return !businessAuthIds.contains(id)
+            }
         }
 
-        func logMatchedEntities(_ rows: [FriendLookupProfileRow], stage: String) {
+        func logMatchedEntities(_ rows: [FriendLookupProfileRow], stage: String, businessAuthIds: Set<UUID>) {
 #if DEBUG
             let summary = rows.map { r in
-                let biz: String
-                switch r.is_business_account {
-                case .some(true): biz = "1"
-                case .some(false): biz = "0"
-                case .none: biz = "nil"
-                }
-                return "\(r.id.uuidString)(biz=\(biz))"
+                let biz = businessAuthIds.contains(r.id) ? "owner" : "fan"
+                return "\(r.id.uuidString)(\(biz))"
             }.joined(separator: ",")
             print("[FriendIdentityDebug] matchedEntities stage=\(stage) count=\(rows.count) ids=\(summary)")
 #endif
@@ -777,23 +802,25 @@ final class FriendshipService {
 
         let emailCandidates: [FriendLookupProfileRow] = try await client
             .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
+            .select("id,email,display_name,created_at")
             .eq("admin_status", value: "active")
             .ilike("email", pattern: n)
             .limit(24)
             .execute()
             .value
 
+        let emailBizIds = try await profileIdsWithActiveBusinessOwnerRole(emailCandidates.map(\.id))
+
         let emailNormMatches = emailCandidates.filter {
             Self.normalizedFriendLookupQuery($0.email ?? "") == n
         }
-        logMatchedEntities(emailNormMatches, stage: "email")
+        logMatchedEntities(emailNormMatches, stage: "email", businessAuthIds: emailBizIds)
 
         let fanEmailMatches = emailNormMatches
-            .filter(\.isRegularFanForLookup)
+            .filter { $0.isRegularFanExcludingBusinessOwners(emailBizIds) }
             .sorted { ($0.created_at ?? "") < ($1.created_at ?? "") }
 
-        let excludedBusiness = emailNormMatches.filter { !$0.isRegularFanForLookup }
+        let excludedBusiness = emailNormMatches.filter { !$0.isRegularFanExcludingBusinessOwners(emailBizIds) }
 #if DEBUG
         if !excludedBusiness.isEmpty {
             print("[FriendIdentityDebug] excludedBusinessEntity=\(excludedBusiness.map(\.id.uuidString).joined(separator: ","))")
@@ -813,15 +840,16 @@ final class FriendshipService {
 
         let normalizedNameRows: [FriendLookupProfileRow] = try await client
             .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
+            .select("id,email,display_name,created_at")
             .eq("admin_status", value: "active")
             .eq("display_name_normalized", value: n)
             .limit(24)
             .execute()
             .value
-        logMatchedEntities(normalizedNameRows, stage: "display_name_normalized")
+        let nameNormBizIds = try await profileIdsWithActiveBusinessOwnerRole(normalizedNameRows.map(\.id))
+        logMatchedEntities(normalizedNameRows, stage: "display_name_normalized", businessAuthIds: nameNormBizIds)
         let fanNormMatches = normalizedNameRows
-            .filter(\.isRegularFanForLookup)
+            .filter { $0.isRegularFanExcludingBusinessOwners(nameNormBizIds) }
             .sorted { ($0.created_at ?? "") < ($1.created_at ?? "") }
         if let picked = fanNormMatches.first {
 #if DEBUG
@@ -832,15 +860,16 @@ final class FriendshipService {
 
         let displayNameRows: [FriendLookupProfileRow] = try await client
             .from("user_profiles")
-            .select("id,is_business_account,email,display_name,created_at")
+            .select("id,email,display_name,created_at")
             .eq("admin_status", value: "active")
             .ilike("display_name", pattern: n)
             .limit(24)
             .execute()
             .value
-        logMatchedEntities(displayNameRows, stage: "display_name_ilike")
+        let displayBizIds = try await profileIdsWithActiveBusinessOwnerRole(displayNameRows.map(\.id))
+        logMatchedEntities(displayNameRows, stage: "display_name_ilike", businessAuthIds: displayBizIds)
         let fanDisplayMatches = displayNameRows
-            .filter(\.isRegularFanForLookup)
+            .filter { $0.isRegularFanExcludingBusinessOwners(displayBizIds) }
             .filter { Self.normalizedFriendLookupQuery($0.display_name ?? "") == n }
             .sorted { ($0.created_at ?? "") < ($1.created_at ?? "") }
         if let picked = fanDisplayMatches.first {
@@ -899,20 +928,30 @@ final class FriendshipService {
 
     /// Active `user_profiles` row → social entity (Add Friend pending matching).
     func fetchSocialEntity(userId: UUID) async throws -> FriendSocialEntity? {
-        struct Row: Decodable {
-            let id: UUID
-            let is_business_account: Bool?
+        struct BizRow: Decodable { let id: UUID }
+        let bizRows: [BizRow] = try await client
+            .from("businesses")
+            .select("id")
+            .eq("owner_user_id", value: userId)
+            .eq("admin_status", value: "active")
+            .limit(1)
+            .execute()
+            .value
+        if !bizRows.isEmpty {
+            return FriendSocialEntity(id: userId, kind: .businessUser)
         }
+
+        struct Row: Decodable { let id: UUID }
         let rows: [Row] = try await client
             .from("user_profiles")
-            .select("id,is_business_account")
+            .select("id")
             .eq("id", value: userId)
             .eq("admin_status", value: "active")
             .limit(1)
             .execute()
             .value
         guard let row = rows.first else { return nil }
-        return FriendSocialEntity(id: row.id, kind: Self.entityKind(isBusinessAccount: row.is_business_account))
+        return FriendSocialEntity(id: row.id, kind: .fanUser)
     }
 
     /// Pending friendship for an Add Friend target, if any (exact entity pair).
@@ -932,13 +971,12 @@ final class FriendshipService {
 
         struct Row: Decodable {
             let id: UUID
-            let is_business_account: Bool?
             let email: String?
         }
 
         let candidates: [Row] = try await client
             .from("user_profiles")
-            .select("id,is_business_account,email")
+            .select("id,email")
             .eq("admin_status", value: "active")
             .ilike("email", pattern: n)
             .limit(24)
@@ -948,6 +986,8 @@ final class FriendshipService {
         let emailMatches = candidates.filter {
             Self.normalizedFriendLookupQuery($0.email ?? "") == n
         }
+
+        let businessAuthIds = try await profileIdsWithActiveBusinessOwnerRole(emailMatches.map(\.id))
 
         for row in emailMatches where row.id != excludePeerUserId {
             guard let pending = try await findPendingFriendship(
@@ -961,7 +1001,8 @@ final class FriendshipService {
             ) else {
                 continue
             }
-            let other = FriendSocialEntity(id: row.id, kind: Self.entityKind(isBusinessAccount: row.is_business_account))
+            let kind: FriendSocialEntityKind = businessAuthIds.contains(row.id) ? .businessUser : .fanUser
+            let other = FriendSocialEntity(id: row.id, kind: kind)
             return (pending, other)
         }
         return nil
@@ -1182,8 +1223,10 @@ enum AppIconBadgeSync {
     static func apply(count: Int) async {
         let clamped = max(0, count)
         #if canImport(UIKit)
-        await MainActor.run {
-            UIApplication.shared.applicationIconBadgeNumber = clamped
+        do {
+            try await UNUserNotificationCenter.current().setBadgeCount(clamped)
+        } catch {
+            // Best-effort: ignore badge failures (permission, unsupported environment, etc.).
         }
         #endif
     }

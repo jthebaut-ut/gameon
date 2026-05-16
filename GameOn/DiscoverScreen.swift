@@ -1,6 +1,7 @@
 import CoreLocation
 import SwiftUI
 import MapKit
+import UIKit
 
 private enum GuestDiscoverLockedCopy {
     static let body =
@@ -1214,7 +1215,16 @@ struct DiscoverScreen: View {
     }
     
     private var discoverAdvertisementBannerLayoutWidth: CGFloat {
-        max(320, UIScreen.main.bounds.width - FGSpacing.lg * 2)
+        let screenWidth: CGFloat
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        if let scene = scenes.first(where: { $0.activationState == .foregroundActive }) {
+            screenWidth = scene.screen.bounds.width
+        } else if let scene = scenes.first {
+            screenWidth = scene.screen.bounds.width
+        } else {
+            screenWidth = 393
+        }
+        return max(320, screenWidth - FGSpacing.lg * 2)
     }
 
     /// Reserved vertical space for anchored adaptive banner (avoids jump before ad loads).
@@ -1509,38 +1519,41 @@ struct DiscoverScreen: View {
         let openDetailAction = {
             onOpenDetails()
         }
+        let showStarted = !guestMapsActionsToLogin && row.hasPickupGameStarted()
 
         return VStack(alignment: .leading, spacing: FGSpacing.md) {
             HStack(alignment: .top, spacing: FGSpacing.md) {
-                ZStack {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 58, height: 58)
-                        .overlay {
-                            Circle()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.35 : 0.65),
-                                            sportTint.opacity(0.55)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.25
-                                )
-                        }
-                        .shadow(color: sportTint.opacity(0.35), radius: 10, y: 4)
+                PickupGameStartedSportGlyphFrame(showStarted: showStarted) {
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 58, height: 58)
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(colorScheme == .dark ? 0.35 : 0.65),
+                                                sportTint.opacity(0.55)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        ),
+                                        lineWidth: 1.25
+                                    )
+                            }
+                            .shadow(color: sportTint.opacity(0.35), radius: 10, y: 4)
 
-                    if !sportEmoji.isEmpty {
-                        Text(sportEmoji)
-                            .font(.system(size: 30))
-                            .accessibilityHidden(true)
-                    } else {
-                        Image(systemName: sportIconName)
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(sportTint)
-                            .accessibilityHidden(true)
+                        if !sportEmoji.isEmpty {
+                            Text(sportEmoji)
+                                .font(.system(size: 30))
+                                .accessibilityHidden(true)
+                        } else {
+                            Image(systemName: sportIconName)
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundStyle(sportTint)
+                                .accessibilityHidden(true)
+                        }
                     }
                 }
 
@@ -1574,6 +1587,10 @@ struct DiscoverScreen: View {
                                     .font(FGTypography.metadata.weight(.semibold))
                                     .foregroundStyle(mainInk)
                             }
+                            if showStarted {
+                                PickupGameStartedLineCaption()
+                                    .padding(.top, 2)
+                            }
                         }
 
                         if !locationLine.isEmpty {
@@ -1595,6 +1612,9 @@ struct DiscoverScreen: View {
                                 pickupPreviewMetricCapsule("\(row.playersNeededClamped) players needed", mainInk: mainInk)
                             }
                             .padding(.top, 2)
+
+                            PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id))
+                                .padding(.top, 2)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1669,6 +1689,18 @@ struct DiscoverScreen: View {
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.42 : 0.16), radius: colorScheme == .dark ? 28 : 18, x: 0, y: colorScheme == .dark ? 16 : 10)
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.1 : 0.05), radius: 14, x: 0, y: 3)
+        .task(id: row.id) {
+            guard !guestMapsActionsToLogin else { return }
+            await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [row.creator_user_id])
+        }
+        .onAppear {
+            guard !guestMapsActionsToLogin else { return }
+            PickupGameStartedStateDebug.log(
+                row: row,
+                now: Date(),
+                allowedActions: "discover_map_preview"
+            )
+        }
     }
 
     private var discoverPickupPinsInBounds: Int {
@@ -2062,6 +2094,12 @@ struct DiscoverScreen: View {
                         }
                     }
                     .buttonStyle(.plain)
+
+                    if let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar) {
+                        VenueGameBusinessContactEmailRow(email: bizEmail)
+                            .padding(.top, 2)
+                            .onAppear { VenueGameBusinessEmail.logDebug(bar: bar) }
+                    }
                 }
 
                 Spacer(minLength: 8)

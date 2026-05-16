@@ -87,25 +87,25 @@ struct ModerationService {
         }
     }
 
-    private struct BlockedUserRow: Decodable {
+    private nonisolated struct BlockedUserRow: Decodable {
         let blocker_user_id: UUID?
         let blocked_user_id: UUID?
         let created_at: String?
     }
 
-    private struct BlockedUserInsert: Encodable {
+    private nonisolated struct BlockedUserInsert: Encodable {
         let blocker_user_id: UUID
         let blocked_user_id: UUID
     }
 
-    private struct UserReportInsert: Encodable {
+    private nonisolated struct UserReportInsert: Encodable {
         let reporter_user_id: UUID
         let reported_user_id: UUID
         let category: String
         let details: String?
     }
 
-    private struct ConversationReportInsert: Encodable {
+    private nonisolated struct ConversationReportInsert: Encodable {
         let reporter_user_id: UUID
         let reported_user_id: UUID
         let conversation_id: UUID
@@ -114,7 +114,7 @@ struct ModerationService {
         let status: String
     }
 
-    private struct MessageReportInsert: Encodable {
+    private nonisolated struct MessageReportInsert: Encodable {
         let reporter_user_id: UUID
         let reported_user_id: UUID
         let message_id: UUID
@@ -124,7 +124,7 @@ struct ModerationService {
         let status: String
     }
 
-    private struct VenueReportInsert: Encodable {
+    private nonisolated struct VenueReportInsert: Encodable {
         let reporter_user_id: UUID
         let venue_id: UUID
         let category: String
@@ -133,7 +133,7 @@ struct ModerationService {
     }
 
     /// Edge function derives reporter from JWT (`auth.getUser()`); do not send client `reporter_user_id`.
-    private struct NotifyModerationReportPayload: Encodable {
+    private nonisolated struct NotifyModerationReportPayload: Encodable {
         let report_type: String
         let reported_user_id: UUID
         let category: String
@@ -146,16 +146,16 @@ struct ModerationService {
         let conversation_recent_context: String?
     }
 
-    private struct NotifyModerationReportResponse: Decodable {
+    private nonisolated struct NotifyModerationReportResponse: Decodable {
         let ok: Bool?
         let error: String?
     }
 
-    private struct NotifyCommentModerationAlertPayload: Encodable {
+    private nonisolated struct NotifyCommentModerationAlertPayload: Encodable {
         let comment_id: String
     }
 
-    private struct NotifyCommentModerationAlertResponse: Decodable {
+    private nonisolated struct NotifyCommentModerationAlertResponse: Decodable {
         let ok: Bool?
         let skipped: Bool?
         let error: String?
@@ -178,29 +178,30 @@ struct ModerationService {
         messageTextSnapshot: String? = nil,
         conversationRecentContext: String? = nil
     ) {
-        let createdAt = Self.moderationReportNotifyISO.string(from: Date()) ?? ""
+        let createdAt = Self.moderationReportNotifyISO.string(from: Date())
         let detailsCopy = details
         let categoryRaw = category.rawValue
         let contextCopy = conversationRecentContext
-        Task.detached { [supabase] in
+        let payload = NotifyModerationReportPayload(
+            report_type: reportType,
+            reported_user_id: reportedUserId,
+            category: categoryRaw,
+            details: detailsCopy,
+            created_at: createdAt,
+            conversation_id: conversationId,
+            message_id: messageId,
+            message_text_snapshot: messageTextSnapshot,
+            conversation_recent_context: contextCopy
+        )
+        guard let bodyData = try? JSONEncoder().encode(payload) else { return }
+        Task { [supabase, bodyData] in
 #if DEBUG
             print("Moderation: notify-moderation-report fire-and-forget started (type=\(reportType))")
 #endif
-            let payload = NotifyModerationReportPayload(
-                report_type: reportType,
-                reported_user_id: reportedUserId,
-                category: categoryRaw,
-                details: detailsCopy,
-                created_at: createdAt,
-                conversation_id: conversationId,
-                message_id: messageId,
-                message_text_snapshot: messageTextSnapshot,
-                conversation_recent_context: contextCopy
-            )
             do {
                 let response: NotifyModerationReportResponse = try await supabase.functions.invoke(
                     "notify-moderation-report",
-                    options: FunctionInvokeOptions(method: .post, body: payload)
+                    options: FunctionInvokeOptions(method: .post, body: bodyData)
                 )
 #if DEBUG
                 print("Moderation: notify-moderation-report finished ok=\(response.ok ?? false) error=\(response.error ?? "nil")")
@@ -225,15 +226,16 @@ struct ModerationService {
     /// Fire-and-forget admin email when a comment crosses the auto-hide report threshold (Edge Function sends at most once per comment).
     func notifyCommentModerationAlertBestEffort(commentId: UUID) {
         let idCopy = commentId
-        Task.detached { [supabase] in
+        let payload = NotifyCommentModerationAlertPayload(comment_id: idCopy.uuidString)
+        guard let bodyData = try? JSONEncoder().encode(payload) else { return }
+        Task { [supabase, bodyData] in
 #if DEBUG
             print("Moderation: notify-comment-moderation-alert fire-and-forget comment=\(idCopy.uuidString)")
 #endif
-            let payload = NotifyCommentModerationAlertPayload(comment_id: idCopy.uuidString)
             do {
                 let response: NotifyCommentModerationAlertResponse = try await supabase.functions.invoke(
                     "notify-comment-moderation-alert",
-                    options: FunctionInvokeOptions(method: .post, body: payload)
+                    options: FunctionInvokeOptions(method: .post, body: bodyData)
                 )
 #if DEBUG
                 print(

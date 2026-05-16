@@ -59,7 +59,7 @@ function screenCountClamp(raw: number | string | null | undefined): number {
 }
 
 /** Columns on `public.venues` (claim uses `venue_*` / `venue_zip_code` / `venue_features`). */
-function venuePayloadFromClaim(claim: VenueClaimRecord): Record<string, unknown> {
+function venuePayloadFromClaim(claim: VenueClaimRecord, ownerUserIdFromBusiness: string | null): Record<string, unknown> {
   const cover = norm(claim.cover_photo_url)
   const menu = norm(claim.menu_photo_url)
   return {
@@ -89,7 +89,22 @@ function venuePayloadFromClaim(claim: VenueClaimRecord): Record<string, unknown>
     menu_photo_url: menu.length > 0 ? menu : "",
     cover_photo_thumbnail_url: null,
     menu_photo_thumbnail_url: null,
+    ...(ownerUserIdFromBusiness ? { owner_user_id: ownerUserIdFromBusiness } : {}),
   }
+}
+
+async function businessOwnerUserIdForVenue(
+  supabase: SupabaseClient,
+  businessId: string,
+): Promise<string | null> {
+  const bid = norm(businessId)
+  if (!bid) return null
+  const { data, error } = await supabase.from("businesses").select("owner_user_id").eq("id", bid).maybeSingle()
+  if (error || !data) return null
+  const v = (data as { owner_user_id?: string | null }).owner_user_id
+  if (v == null) return null
+  const s = String(v).trim()
+  return s.length ? s : null
 }
 
 function logVenuePayloadKeys(label: string, row: Record<string, unknown>) {
@@ -181,9 +196,18 @@ export async function ensureVenueForApprovedClaim(
   const biz = norm(claim.business_id)
   const approved = isApprovedStatus(claim.approval_status)
   let existingVid = norm(claim.venue_id)
+  const ownerUserIdFromBiz = await businessOwnerUserIdForVenue(supabase, biz)
+  const claimStatusBefore = (claim.approval_status ?? "").trim() || "(empty)"
+  const ownerEmailLog = norm(claim.owner_email) || "nil"
+
+  console.log(`[VenueApprovalDebug] claimId=${cid}`)
+  console.log(`[VenueApprovalDebug] claimStatusBefore=${claimStatusBefore}`)
+  console.log(`[VenueApprovalDebug] businessId=${biz || "nil"}`)
+  console.log(`[VenueApprovalDebug] ownerEmail=${ownerEmailLog}`)
+  console.log(`[VenueApprovalDebug] ownerUserId=${ownerUserIdFromBiz ?? "nil"}`)
 
   console.log(
-    `[ClaimApprove] loaded claim id=${cid} approval_status=${(claim.approval_status ?? "").trim() || "(empty)"} venue_id=${existingVid || "NULL"} business_id=${biz || "nil"}`,
+    `[ClaimApprove] loaded claim id=${cid} approval_status=${claimStatusBefore} venue_id=${existingVid || "NULL"} business_id=${biz || "nil"}`,
   )
 
   // Idempotent: already approved, linked, venues row present
@@ -192,6 +216,8 @@ export async function ensureVenueForApprovedClaim(
     if (exists) {
       try {
         const venueId = await verifyLinkageOrThrow(supabase, cid)
+        console.log(`[VenueApprovalDebug] createdVenueId=`)
+        console.log(`[VenueApprovalDebug] updatedVenueId=${venueId}`)
         console.log(`[ClaimApprove] idempotent ok venue_id=${venueId}`)
         return {
           venueName: norm(claim.venue_name) || "Venue",
@@ -210,9 +236,11 @@ export async function ensureVenueForApprovedClaim(
     }
   }
 
-  const payload = venuePayloadFromClaim(claim)
+  const payload = venuePayloadFromClaim(claim, ownerUserIdFromBiz)
 
   if (existingVid && (await venueRowExists(supabase, existingVid))) {
+    console.log(`[VenueApprovalDebug] updatedVenueId=${existingVid}`)
+    console.log(`[VenueApprovalDebug] createdVenueId=`)
     console.log(`[ClaimApprove] branch=update_existing_venue venue_id=${existingVid}`)
     const updateRow: Record<string, unknown> = {
       ...payload,
@@ -272,6 +300,8 @@ export async function ensureVenueForApprovedClaim(
   }
 
   const newId = String(inserted.id)
+  console.log(`[VenueApprovalDebug] createdVenueId=${newId}`)
+  console.log(`[VenueApprovalDebug] updatedVenueId=`)
   console.log(`[ClaimApprove] insert venue success venue_id=${newId}`)
 
   const { error: upClaimErr } = await supabase

@@ -853,7 +853,7 @@ extension MapViewModel {
     private func fetchVenueRowForClaim(venueId: UUID) async throws -> VenueRow? {
         let rows: [VenueRow] = try await supabase
             .from("venues")
-            .select("id,owner_email,business_id,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url")
+            .select("id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)")
             .eq("id", value: venueId)
             .limit(1)
             .execute()
@@ -1252,28 +1252,57 @@ extension MapViewModel {
         return out
     }
 
+    private static func dedupeBusinessRowsPreservingOrder(_ rows: [BusinessRow]) -> [BusinessRow] {
+        var seen = Set<UUID>()
+        var out: [BusinessRow] = []
+        for r in rows {
+            if seen.insert(r.id).inserted {
+                out.append(r)
+            }
+        }
+        return out
+    }
+
     private struct VenueClaimVenueLinkRow: Decodable {
         let venue_id: UUID?
         let approval_status: String?
     }
 
-    /// Venues referenced by approved claims (`venue_claims.venue_id`) for this owner (covers admin flows that set `venue_id` before `venues.business_id` backfill).
-    private func loadVenuesLinkedFromApprovedClaims(ownerEmail: String) async throws -> [VenueProfileRow] {
+    /// Venues referenced by approved claims: by `owner_email`, then by `business_id` for loaded businesses (covers email drift).
+    private func loadVenuesLinkedFromApprovedClaims(ownerEmail: String, businessIds: [UUID]) async throws -> [VenueProfileRow] {
         let ownerEmailNorm = OwnerBusinessEmail.normalized(ownerEmail)
-        guard OwnerBusinessEmail.isValidStrict(ownerEmailNorm) else { return [] }
-        let links: [VenueClaimVenueLinkRow] = try await supabase
-            .from("venue_claims")
-            .select("venue_id,approval_status")
-            .eq("owner_email", value: ownerEmailNorm)
-            .limit(120)
-            .execute()
-            .value
+        var approvedIds = Set<UUID>()
 
-        let approvedIds: [UUID] = links.compactMap { row in
-            guard Self.isApprovedClaimStatus(row.approval_status), let vid = row.venue_id else { return nil }
-            return vid
+        if OwnerBusinessEmail.isValidStrict(ownerEmailNorm) {
+            let links: [VenueClaimVenueLinkRow] = try await supabase
+                .from("venue_claims")
+                .select("venue_id,approval_status")
+                .eq("owner_email", value: ownerEmailNorm)
+                .limit(120)
+                .execute()
+                .value
+            for row in links {
+                guard Self.isApprovedClaimStatus(row.approval_status), let vid = row.venue_id else { continue }
+                approvedIds.insert(vid)
+            }
         }
-        let unique = Array(Set(approvedIds))
+
+        if !businessIds.isEmpty {
+            let idStrings = businessIds.map(\.uuidString)
+            let links: [VenueClaimVenueLinkRow] = try await supabase
+                .from("venue_claims")
+                .select("venue_id,approval_status")
+                .in("business_id", values: idStrings)
+                .limit(120)
+                .execute()
+                .value
+            for row in links {
+                guard Self.isApprovedClaimStatus(row.approval_status), let vid = row.venue_id else { continue }
+                approvedIds.insert(vid)
+            }
+        }
+
+        let unique = Array(approvedIds)
         guard !unique.isEmpty else { return [] }
 
         let idStrings = unique.map(\.uuidString)
@@ -1350,17 +1379,26 @@ extension MapViewModel {
 
     /// Fire-and-forget admin email via Edge Function ``notify-venue-claim``.
     private func notifyVenueClaimAdminEmail(payload: VenueClaimAdminNotifyPayload) {
-        Task.detached { [supabase] in
+        let bodyData: Data
+        do {
+            bodyData = try JSONEncoder().encode(payload)
+        } catch {
 #if DEBUG
-            print("[VenueClaimNotify] sending notification claim_id=\(payload.claim_id)")
-            print("[VenueClaimNotify] business_id=\(payload.business_id ?? "nil")")
-            print("[VenueClaimNotify] venue_id=\(payload.venue_id ?? "nil")")
+            print("[VenueClaimNotify] encode failed:", error)
 #endif
+            return
+        }
+#if DEBUG
+        print("[VenueClaimNotify] sending notification claim_id=\(payload.claim_id)")
+        print("[VenueClaimNotify] business_id=\(payload.business_id ?? "nil")")
+        print("[VenueClaimNotify] venue_id=\(payload.venue_id ?? "nil")")
+#endif
+        Task.detached { [supabase, bodyData] in
             struct NotifyResponse: Decodable { let ok: Bool?; let error: String?; let detail: String? }
             do {
                 let response: NotifyResponse = try await supabase.functions.invoke(
                     "notify-venue-claim",
-                    options: FunctionInvokeOptions(method: .post, body: payload)
+                    options: FunctionInvokeOptions(method: .post, body: bodyData)
                 )
 #if DEBUG
                 _ = response
@@ -1728,21 +1766,55 @@ extension MapViewModel {
         }
 
         do {
-            let businesses: [BusinessRow] = try await supabase
-                .from("businesses")
-                .select("id,display_name,owner_email,admin_status,created_at")
-                .eq("owner_email", value: emailTrimmed)
-                .eq("admin_status", value: "active")
-                .execute()
-                .value
+            let authUid = await MainActor.run { currentUserAuthId }
 
-            let archivedBusinesses: [BusinessRow] = try await supabase
-                .from("businesses")
-                .select("id,display_name,owner_email,admin_status,created_at")
-                .eq("owner_email", value: emailTrimmed)
-                .eq("admin_status", value: "archived")
-                .execute()
-                .value
+            var businessesFromEmail: [BusinessRow] = []
+            if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
+                businessesFromEmail = try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .eq("owner_email", value: emailTrimmed)
+                    .eq("admin_status", value: "active")
+                    .execute()
+                    .value
+            }
+
+            var businessesFromUser: [BusinessRow] = []
+            if let authUid {
+                businessesFromUser = try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .eq("owner_user_id", value: authUid)
+                    .eq("admin_status", value: "active")
+                    .execute()
+                    .value
+            }
+
+            let businesses = Self.dedupeBusinessRowsPreservingOrder(businessesFromEmail + businessesFromUser)
+
+            var archivedFromEmail: [BusinessRow] = []
+            if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
+                archivedFromEmail = try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .eq("owner_email", value: emailTrimmed)
+                    .eq("admin_status", value: "archived")
+                    .execute()
+                    .value
+            }
+
+            var archivedFromUser: [BusinessRow] = []
+            if let authUid {
+                archivedFromUser = try await supabase
+                    .from("businesses")
+                    .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+                    .eq("owner_user_id", value: authUid)
+                    .eq("admin_status", value: "archived")
+                    .execute()
+                    .value
+            }
+
+            let archivedBusinesses = Self.dedupeBusinessRowsPreservingOrder(archivedFromEmail + archivedFromUser)
 
             let businessIds = businesses.map(\.id)
 
@@ -1778,7 +1850,7 @@ extension MapViewModel {
                     let idStrings = bids.map(\.uuidString)
                     let fromVenueLinks: [BusinessRow] = try await supabase
                         .from("businesses")
-                        .select("id,display_name,owner_email,admin_status,created_at")
+                        .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
                         .in("id", values: idStrings)
                         .eq("admin_status", value: "active")
                         .execute()
@@ -1803,9 +1875,23 @@ extension MapViewModel {
                 }
             }
 
-            let claimLinkedVenues = try await loadVenuesLinkedFromApprovedClaims(ownerEmail: emailTrimmed)
+            var venueRowsByOwnerUser: [VenueProfileRow] = []
+            if let authUid {
+                venueRowsByOwnerUser = try await supabase
+                    .from("venues")
+                    .select()
+                    .eq("owner_user_id", value: authUid)
+                    .eq("admin_status", value: "active")
+                    .execute()
+                    .value
+            }
+
+            let claimLinkedVenues = try await loadVenuesLinkedFromApprovedClaims(
+                ownerEmail: emailTrimmed,
+                businessIds: resolvedBusinesses.map(\.id)
+            )
             let mergedVenues = Self.dedupeVenueProfileRowsPreservingOrder(
-                venueRowsByBusiness + emailVenueRows + claimLinkedVenues
+                venueRowsByBusiness + emailVenueRows + venueRowsByOwnerUser + claimLinkedVenues
             )
 
             await MainActor.run {
@@ -1827,6 +1913,13 @@ extension MapViewModel {
                     print("[BusinessRefresh] loaded venue id=\(vid) name=\(name) business_id=\(bid) admin_status=\(adm)")
                 }
                 print("[BusinessRefresh] managedVenues count=\(managedVenuesForOwner().count)")
+                let managedIds = managedVenuesForOwner().compactMap(\.id).map(\.uuidString).sorted().joined(separator: ",")
+                let sel = ownerVenueDatabaseId?.uuidString ?? "nil"
+                print("[ManagedVenuesDebug] businessIds=\(bizIds.isEmpty ? "(none)" : bizIds)")
+                print("[ManagedVenuesDebug] ownerEmail=\(emailTrimmed)")
+                print("[ManagedVenuesDebug] rowsReturned=\(mergedVenues.count)")
+                print("[ManagedVenuesDebug] venueIds=\(managedIds.isEmpty ? "(none)" : managedIds)")
+                print("[ManagedVenuesDebug] selectedVenueId=\(sel)")
 #endif
                 applySelectedVenueAfterBusinessLoad()
             }
@@ -2498,7 +2591,7 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = 48
+        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
     ) {
         Task {
             _ = await saveVenueGameListingAsync(
@@ -2550,7 +2643,7 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = 48
+        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
     ) async -> Result<VenueEventRow, Error> {
         let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerRowEmail) else {
@@ -2572,6 +2665,10 @@ extension MapViewModel {
                 )
             )
         }
+
+        let retentionHours = VenueOwnerGameDataRetentionHours.standardOptions.contains(cleanupDelayHours)
+            ? cleanupDelayHours
+            : VenueOwnerGameDataRetentionHours.defaultPickerHours
 
         do {
             let dateFormatter = DateFormatter()
@@ -2605,7 +2702,7 @@ extension MapViewModel {
                 waitlist_available: !reservationInfo.isEmpty,
                 admin_status: "active",
                 scheduled_start_at: venueEventScheduledStartTimestamptzString(gameDate: gameDate, gameStartTime: gameStartTime),
-                cleanup_delay_hours: cleanupDelayHours
+                cleanup_delay_hours: retentionHours
             )
 
             let inserted: [VenueEventRow] = try await supabase
@@ -2643,6 +2740,7 @@ extension MapViewModel {
             print(
                 "[DiscoverDotsSave] table=venue_events op=insert venue_id=\(vidStr) event_id=\(eid) event_date=\(row.event_date ?? "nil") scheduled_start_at=\(row.scheduled_start_at ?? "nil") sport=\(row.sport ?? "nil") admin_status=\(adm) (no status/is_visible columns on client venue_events model)"
             )
+            logVenueGameExpirationDebug(selectedDurationHours: retentionHours, row: row)
 #endif
             print("GAME LISTING SAVED")
             return .success(row)
@@ -2893,13 +2991,30 @@ extension MapViewModel {
 
     /// Updates retention for an owned `venue_events` row (`purge_after_at` is generated from `scheduled_start_at` + hours).
     func updateVenueEventCleanupDelay(venueEventId: UUID, hours: Int) async -> String? {
-        guard [24, 48, 72].contains(hours) else { return "Cleanup delay must be 24, 48, or 72 hours." }
+        guard VenueOwnerGameDataRetentionHours.allPersistedValues.contains(hours) else {
+            return "Cleanup delay must be one of: \(VenueOwnerGameDataRetentionHours.standardOptions.map(String.init).joined(separator: ", ")) hours (or a legacy saved value)."
+        }
         do {
             try await supabase
                 .from("venue_events")
                 .update(VenueEventCleanupDelayPatch(cleanup_delay_hours: hours))
                 .eq("id", value: venueEventId.uuidString.lowercased())
                 .execute()
+
+#if DEBUG
+            do {
+                let refreshed: [VenueEventRow] = try await supabase
+                    .from("venue_events")
+                    .select()
+                    .eq("id", value: venueEventId.uuidString.lowercased())
+                    .limit(1)
+                    .execute()
+                    .value
+                if let row = refreshed.first {
+                    logVenueGameExpirationDebug(selectedDurationHours: hours, row: row)
+                }
+            } catch {}
+#endif
             return nil
         } catch {
             print("ERROR UPDATING VENUE EVENT CLEANUP DELAY:", error)
@@ -3037,4 +3152,26 @@ extension MapViewModel {
         }
         return "✨ Starting up"
     }
+
+#if DEBUG
+    /// Debug-only: logs canonical start + purge threshold (`purge_after_at` from API when returned, else derived from `scheduled_start_at` + `cleanup_delay_hours`).
+    func logVenueGameExpirationDebug(selectedDurationHours: Int, row: VenueEventRow) {
+        let gameStart = row.scheduled_start_at ?? "nil"
+        let removeAfter: String = {
+            if let p = row.purge_after_at, !p.isEmpty { return p }
+            guard let sched = row.scheduled_start_at,
+                  let h = row.cleanup_delay_hours,
+                  let start = PickupGameModels.parseSupabaseTimestamptz(sched)
+            else { return "nil" }
+            let end = start.addingTimeInterval(Double(h) * 3600)
+            let f = ISO8601DateFormatter()
+            f.timeZone = TimeZone(secondsFromGMT: 0)
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return f.string(from: end)
+        }()
+        print("[VenueGameExpirationDebug] selectedDurationHours=\(selectedDurationHours)")
+        print("[VenueGameExpirationDebug] game_start_at=\(gameStart)")
+        print("[VenueGameExpirationDebug] remove_after_at=\(removeAfter)")
+    }
+#endif
 }

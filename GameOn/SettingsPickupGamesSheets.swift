@@ -19,6 +19,7 @@ enum PickupGameFormMode: Identifiable, Equatable {
 struct SettingsPickupGamesListSheet: View {
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dismiss) private var dismiss
 
     @State private var formMode: PickupGameFormMode?
@@ -34,7 +35,7 @@ struct SettingsPickupGamesListSheet: View {
 
     var body: some View {
         List {
-            if viewModel.myPickupGamesForSettings.isEmpty {
+            if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
                 SettingsPickupGamesEmptyStateCard(colorScheme: colorScheme) {
                     formMode = .add
                 }
@@ -42,42 +43,69 @@ struct SettingsPickupGamesListSheet: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             } else {
-                Section {
-                    ForEach(viewModel.myPickupGamesForSettings) { row in
-                        let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
-                        SettingsPickupMyGameListCard(
-                            row: row,
-                            pendingJoinCount: pendingHere,
-                            now: listClockTick,
-                            colorScheme: colorScheme,
-                            onEdit: {
-                                viewModel.logPickupGamesEditRequested(id: row.id)
-                                formMode = .edit(row)
-                            },
-                            onDelete: { deleteTarget = row },
-                            onManageRequests: { organizerRequestsGame = row }
-                        )
-                        .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                    }
-                } header: {
-                    if viewModel.pendingPickupGameJoinRequestCount > 0 {
-                        HStack(alignment: .center, spacing: FGSpacing.sm) {
-                            Image(systemName: "person.crop.circle.badge.clock")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Color.orange)
-                            Text(
-                                viewModel.pendingPickupGameJoinRequestCount == 1
-                                    ? "1 player asked to join a game you host — review below."
-                                    : "\(viewModel.pendingPickupGameJoinRequestCount) players asked to join games you host — review below."
+                if !viewModel.myPickupGamesForSettings.isEmpty {
+                    Section {
+                        ForEach(viewModel.myPickupGamesForSettings) { row in
+                            let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
+                            SettingsPickupMyGameListCard(
+                                viewModel: viewModel,
+                                row: row,
+                                pendingJoinCount: pendingHere,
+                                withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
+                                now: listClockTick,
+                                colorScheme: colorScheme,
+                                onEdit: {
+                                    viewModel.logPickupGamesEditRequested(id: row.id)
+                                    formMode = .edit(row)
+                                },
+                                onDelete: { deleteTarget = row },
+                                onManageRequests: { organizerRequestsGame = row }
                             )
-                            .font(FGTypography.caption.weight(.semibold))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .fixedSize(horizontal: false, vertical: true)
+                            .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                         }
-                        .padding(.vertical, 6)
-                        .textCase(nil)
+                    } header: {
+                        if viewModel.pendingPickupGameJoinRequestCount > 0 {
+                            HStack(alignment: .center, spacing: FGSpacing.sm) {
+                                Image(systemName: "person.crop.circle.badge.clock")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Color.orange)
+                                Text(
+                                    viewModel.pendingPickupGameJoinRequestCount == 1
+                                        ? "1 player asked to join a game you host — review below."
+                                        : "\(viewModel.pendingPickupGameJoinRequestCount) players asked to join games you host — review below."
+                                )
+                                .font(FGTypography.caption.weight(.semibold))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(.vertical, 6)
+                            .textCase(nil)
+                        }
+                    }
+                }
+
+                if !viewModel.myRemovedPickupGamesForSettings.isEmpty {
+                    Section {
+                        ForEach(viewModel.myRemovedPickupGamesForSettings) { row in
+                            SettingsPickupRemovedHistoryCard(
+                                viewModel: viewModel,
+                                row: row,
+                                withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
+                                now: listClockTick,
+                                colorScheme: colorScheme,
+                                useCompactCopy: horizontalSizeClass == .compact
+                            )
+                            .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                        }
+                    } header: {
+                        Text("History")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .textCase(nil)
                     }
                 }
             }
@@ -102,6 +130,9 @@ struct SettingsPickupGamesListSheet: View {
         }
         .task {
             await viewModel.loadMyPickupGamesForSettings()
+            if let uid = viewModel.currentUserAuthId {
+                await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
+            }
         }
         .onAppear {
             listClockTick = Date()
@@ -128,18 +159,18 @@ struct SettingsPickupGamesListSheet: View {
         }) { game in
             PickupOrganizerRequestsSheet(viewModel: viewModel, game: game)
         }
-        .alert("Delete pickup game?", isPresented: Binding(
+        .alert("Cancel this pickup game?", isPresented: Binding(
             get: { deleteTarget != nil },
             set: { if !$0 { deleteTarget = nil } }
         )) {
-            Button("Cancel", role: .cancel) { deleteTarget = nil }
-            Button("Delete", role: .destructive) {
+            Button("Keep game", role: .cancel) { deleteTarget = nil }
+            Button("Cancel game", role: .destructive) {
                 guard let row = deleteTarget else { return }
                 deleteTarget = nil
                 Task { await performDelete(row) }
             }
         } message: {
-            Text("This permanently deletes the game, all join requests, and removes it from Discover, the calendar, and Games to Join.")
+            Text("Players who requested or joined will be notified.")
         }
         .overlay(alignment: .bottom) {
             if let banner, !banner.isEmpty {
@@ -157,9 +188,9 @@ struct SettingsPickupGamesListSheet: View {
 
     private func scheduleOneShotListRefreshIfAnyRowPastCleanup(now: Date) {
         guard !didScheduleExpiryListRefresh else { return }
-        let rows = viewModel.myPickupGamesForSettings
+        let rows = viewModel.myPickupGamesForSettings + viewModel.myRemovedPickupGamesForSettings
         let anyPast = rows.contains { row in
-            guard let deadline = SettingsPickupCleanupDisplay.cleanupDeadline(for: row) else { return false }
+            guard let deadline = row.pickupHistoryClientCleanupDeadline() else { return false }
             return now >= deadline
         }
         guard anyPast else { return }
@@ -230,6 +261,11 @@ private struct SettingsPickupGamesEmptyStateCard: View {
     }
 }
 
+enum SettingsPickupMyGameListCardDisplayStyle: Equatable {
+    case settingsFull
+    case followingCompact
+}
+
 private enum SettingsPickupGameListCardStatus: Equatable {
     case open
     case full
@@ -278,17 +314,159 @@ private enum SettingsPickupGameListCardStatus: Equatable {
     }
 }
 
-private struct SettingsPickupMyGameListCard: View {
+// MARK: - Organizer pickup roster (Settings → My pickup games)
+
+private struct PickupOrganizerApprovedRosterStripView: View {
+    @ObservedObject var viewModel: MapViewModel
+    let game: PickupGameRow
+    let colorScheme: ColorScheme
+    let approvedUserIds: [UUID]
+    var onAvatarTapped: (UUID) -> Void
+
+    private let avatarDiameter: CGFloat = 34
+    private var avatarOverlapInset: CGFloat { -(avatarDiameter - 12) }
+
+    private var organizerStatsApproved: Int {
+        viewModel.pickupOrganizerJoinStatsByGameId[game.id]?.approved ?? 0
+    }
+
+    private var totalApproved: Int {
+        max(approvedUserIds.count, game.approvedJoinCount, organizerStatsApproved)
+    }
+
+    private var visibleFaceUserIds: [UUID] {
+        if approvedUserIds.count <= 5 { return approvedUserIds }
+        return Array(approvedUserIds.prefix(5))
+    }
+
+    private var overflowCountLabel: String? {
+        guard approvedUserIds.count > 5 else { return nil }
+        return "+\(approvedUserIds.count - 5)"
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            if totalApproved > 0, approvedUserIds.isEmpty {
+                ProgressView()
+                    .scaleEffect(0.85)
+                    .padding(.trailing, 8)
+            }
+
+            HStack(spacing: avatarOverlapInset) {
+                ForEach(Array(visibleFaceUserIds.enumerated()), id: \.element) { idx, uid in
+                    rosterFace(for: uid)
+                        .zIndex(Double(idx))
+                }
+                if let overflowCountLabel {
+                    overflowChip(text: overflowCountLabel)
+                        .zIndex(Double(visibleFaceUserIds.count))
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 4)
+        .accessibilityElement(children: .contain)
+        .onAppear { logPickupRosterUI(reason: "appear") }
+        .onChange(of: approvedUserIds.count) { _, _ in logPickupRosterUI(reason: "idsCount") }
+        .onChange(of: game.approved_join_count ?? -1) { _, _ in logPickupRosterUI(reason: "approvedJoinCount") }
+        .onChange(of: game.pickupOpenSlotsRemaining) { _, _ in logPickupRosterUI(reason: "openSlots") }
+    }
+
+    @ViewBuilder
+    private func rosterFace(for userId: UUID) -> some View {
+        let profile = viewModel.pickupJoinRequesterProfileByUserId[userId]
+        let profileName = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let displayName = profileName.isEmpty ? "Player" : profileName
+        let emailLine = (profile?.email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let thumbRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
+        let fullRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
+        let thumb: String? = thumbRaw.isEmpty ? nil : thumbRaw
+        let full = fullRaw.isEmpty ? "" : fullRaw
+        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[userId] ?? UUID()
+        let fallback: UserAvatarView.FallbackStyle = colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+
+        Button {
+            onAvatarTapped(userId)
+        } label: {
+            UserAvatarView(
+                avatarThumbnailURL: thumb,
+                avatarURL: full,
+                avatarDisplayRefreshToken: token,
+                displayName: displayName,
+                email: emailLine,
+                size: avatarDiameter,
+                fallbackStyle: fallback,
+                imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
+            )
+            .overlay(
+                Circle()
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.35 : 0.72), lineWidth: 1.5)
+            )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.12), radius: 3, x: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Joined player \(displayName)")
+    }
+
+    private func overflowChip(text: String) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.primary.opacity(colorScheme == .dark ? 0.22 : 0.1))
+            Text(text)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+        }
+        .frame(width: avatarDiameter, height: avatarDiameter)
+        .overlay(
+            Circle()
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.35 : 0.72), lineWidth: 1.5)
+        )
+        .accessibilityLabel("\(text) more players")
+    }
+
+    private func logPickupRosterUI(reason: String) {
+#if DEBUG
+        let visFaces = visibleFaceUserIds.count + (overflowCountLabel != nil ? 1 : 0)
+        print("[PickupRosterUI] gameId=\(game.id.uuidString.lowercased()) reason=\(reason)")
+        print("[PickupRosterUI] approvedCount=\(totalApproved)")
+        print("[PickupRosterUI] visibleAvatars=\(visFaces)")
+#endif
+    }
+}
+
+struct SettingsPickupMyGameListCard: View {
+    @ObservedObject var viewModel: MapViewModel
+    @EnvironmentObject private var chatViewModel: ChatViewModel
     let row: PickupGameRow
     let pendingJoinCount: Int
+    let withdrawnJoinRows: [PickupGameRequestRow]
     let now: Date
     let colorScheme: ColorScheme
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     var onEdit: () -> Void
     var onDelete: () -> Void
     var onManageRequests: () -> Void
+    var displayStyle: SettingsPickupMyGameListCardDisplayStyle = .settingsFull
+    var onOpenDetails: (() -> Void)? = nil
+
+    @State private var rosterActionUserId: UUID?
+    @State private var showRosterPlayerActions: Bool = false
+
+    private var approvedJoinerUserIds: [UUID] {
+        viewModel.pickupOrganizerApprovedJoinerUserIdsByGameId[row.id] ?? []
+    }
+
+    private var isFollowingCompact: Bool {
+        displayStyle == .followingCompact
+    }
 
     private var status: SettingsPickupGameListCardStatus {
         Self.computeStatus(row: row, pendingJoinCount: pendingJoinCount, now: now)
+    }
+
+    private var gameStarted: Bool {
+        row.hasPickupGameStarted(now: now)
     }
 
     private static func computeStatus(row: PickupGameRow, pendingJoinCount: Int, now: Date) -> SettingsPickupGameListCardStatus {
@@ -317,27 +495,52 @@ private struct SettingsPickupMyGameListCard: View {
         return start.formatted(date: .abbreviated, time: .shortened)
     }
 
-    private var spotsLine: String {
-        let open = row.pickupOpenSlotsRemaining
+    private var organizerStatsApproved: Int {
+        viewModel.pickupOrganizerJoinStatsByGameId[row.id]?.approved ?? 0
+    }
+
+    private var displayedJoinedPlayerCount: Int {
+        max(organizerStatsApproved, row.approvedJoinCount, approvedJoinerUserIds.count)
+    }
+
+    private var displayedOpenSlots: Int {
+        max(0, row.playersNeededClamped - displayedJoinedPlayerCount)
+    }
+
+    private var displayedRosterIsFull: Bool {
+        displayedJoinedPlayerCount >= row.playersNeededClamped
+    }
+
+    private var playersSummaryLine: String {
         let need = row.playersNeededClamped
-        if row.isPickupFullForDiscover {
-            return "Roster full · \(need) players"
+        let joined = displayedJoinedPlayerCount
+        let open = displayedOpenSlots
+        if displayedRosterIsFull {
+            return "Roster full"
         }
-        return "\(open) of \(need) spots left"
+        if joined == 0 {
+            return open == 1 ? "1 spot open" : "\(open) spots open"
+        }
+        let base = "\(joined)/\(need) players joined"
+        if open <= 0 { return base }
+        let spotPhrase = open == 1 ? "1 spot open" : "\(open) spots open"
+        return "\(base) · \(spotPhrase)"
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: isFollowingCompact ? 16 : 24, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 14) {
-                SportArtworkIconView(sport: row.sport, diameter: 50)
+            HStack(alignment: .top, spacing: isFollowingCompact ? 10 : 14) {
+                PickupGameStartedSportGlyphFrame(showStarted: gameStarted) {
+                    SportArtworkIconView(sport: row.sport, diameter: isFollowingCompact ? 44 : 50)
+                }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: isFollowingCompact ? 4 : 6) {
                     HStack(alignment: .top, spacing: 10) {
                         Text(row.title)
-                            .font(.title3.weight(.bold))
+                            .font(isFollowingCompact ? .headline.weight(.bold) : .title3.weight(.bold))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .lineLimit(3)
+                            .lineLimit(isFollowingCompact ? 2 : 3)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         Text(status.pillTitle)
@@ -357,22 +560,26 @@ private struct SettingsPickupMyGameListCard: View {
                             .accessibilityLabel("Status: \(status.pillTitle)")
                     }
 
+                    if !isFollowingCompact {
+                        PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id))
+                    }
+
                     if pendingJoinCount > 0 {
                         Button(action: onManageRequests) {
                             HStack(spacing: 8) {
                                 Image(systemName: "person.crop.circle.badge.clock")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: isFollowingCompact ? 14 : 15, weight: .semibold))
                                     .foregroundStyle(Color.orange)
                                 Text(pendingJoinCount == 1 ? "1 pending request" : "\(pendingJoinCount) pending requests")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(isFollowingCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
                                     .foregroundStyle(Color.orange)
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundStyle(Color.orange.opacity(0.85))
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, isFollowingCompact ? 10 : 12)
+                            .padding(.vertical, isFollowingCompact ? 6 : 8)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(Color.orange.opacity(colorScheme == .dark ? 0.16 : 0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .overlay(
@@ -387,21 +594,76 @@ private struct SettingsPickupMyGameListCard: View {
             }
             .padding(.bottom, 4)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: isFollowingCompact ? 8 : 10) {
                 if let dateTimeLine {
                     SettingsPickupCardMetaRow(systemImage: "calendar", title: "When", value: dateTimeLine)
+                    if gameStarted {
+                        HStack(alignment: .center, spacing: 10) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(FGColor.accentGreen.opacity(0.65))
+                                .frame(width: 22, alignment: .center)
+                            PickupGameStartedLineCaption()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
                 }
                 if let locationLine {
                     SettingsPickupCardMetaRow(systemImage: "mappin.and.ellipse", title: "Location", value: locationLine)
                 }
-                SettingsPickupCardMetaRow(systemImage: "person.3", title: "Players", value: spotsLine)
-                SettingsPickupCardMetaRow(systemImage: "chart.bar", title: "Skill", value: row.skillLevelEnum.displayTitle)
-                SettingsPickupCardMetaRow(
-                    systemImage: row.playEnvironmentEnum == .indoor ? "house.fill" : (row.playEnvironmentEnum == .outdoor ? "sun.max.fill" : "arrow.left.arrow.right"),
-                    title: "Play",
-                    value: row.playEnvironmentEnum.shortLabel
+                SettingsPickupCardMetaRow(systemImage: "person.3", title: "Players", value: playersSummaryLine)
+                PickupOrganizerApprovedRosterStripView(
+                    viewModel: viewModel,
+                    game: row,
+                    colorScheme: colorScheme,
+                    approvedUserIds: approvedJoinerUserIds,
+                    onAvatarTapped: { uid in
+                        Task {
+                            let isSelf = viewModel.currentUserAuthId == uid
+                            let canSocial = viewModel.isAuthenticatedForSocialFeatures
+                            let emailLine = Self.tappedPlayerEmailLine(userId: uid, viewModel: viewModel)
+                            if isSelf || !canSocial {
+                                Self.logPickupRosterAvatarFriendship(
+                                    tappedPlayerId: uid,
+                                    tappedPlayerEmail: emailLine,
+                                    friendshipStatus: isSelf ? "self" : "socialDisabled",
+                                    actionShown: "none",
+                                    requestCreated: false,
+                                    existingRequestFound: false,
+                                    openedDM: false
+                                )
+                                return
+                            }
+                            await chatViewModel.loadIfNeeded()
+                            await chatViewModel.refresh()
+                            let chip = chatViewModel.chipKind(forOtherUserId: uid)
+                            let actionShown = Self.pickupRosterFriendshipActionShown(chip: chip)
+                            let existingPending = chip == .pendingOutgoing || chip == .pendingIncoming
+                            Self.logPickupRosterAvatarFriendship(
+                                tappedPlayerId: uid,
+                                tappedPlayerEmail: emailLine,
+                                friendshipStatus: Self.friendshipStatusLog(chip: chip),
+                                actionShown: actionShown,
+                                requestCreated: false,
+                                existingRequestFound: existingPending,
+                                openedDM: false
+                            )
+                            await MainActor.run {
+                                rosterActionUserId = uid
+                                showRosterPlayerActions = true
+                            }
+                        }
+                    }
                 )
-                SettingsPickupCardMetaRow(systemImage: row.is_free ? "gift.fill" : "dollarsign.circle", title: "Cost", value: row.entryFeeDisplayLine)
+                if !isFollowingCompact {
+                    SettingsPickupCardMetaRow(systemImage: "chart.bar", title: "Skill", value: row.skillLevelEnum.displayTitle)
+                    SettingsPickupCardMetaRow(
+                        systemImage: row.playEnvironmentEnum == .indoor ? "house.fill" : (row.playEnvironmentEnum == .outdoor ? "sun.max.fill" : "arrow.left.arrow.right"),
+                        title: "Play",
+                        value: row.playEnvironmentEnum.shortLabel
+                    )
+                    SettingsPickupCardMetaRow(systemImage: row.is_free ? "gift.fill" : "dollarsign.circle", title: "Cost", value: row.entryFeeDisplayLine)
+                }
             }
             .padding(.top, 6)
 
@@ -412,8 +674,8 @@ private struct SettingsPickupMyGameListCard: View {
                     .padding(.top, 8)
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                if pendingJoinCount > 0 {
+            VStack(alignment: .leading, spacing: isFollowingCompact ? 8 : 10) {
+                if pendingJoinCount > 0, !isFollowingCompact {
                     Button(action: onManageRequests) {
                         Label("Manage requests", systemImage: "person.badge.clock")
                             .font(.subheadline.weight(.semibold))
@@ -428,9 +690,26 @@ private struct SettingsPickupMyGameListCard: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
 
+                if !withdrawnJoinRows.isEmpty {
+                    VStack(alignment: .leading, spacing: isFollowingCompact ? 6 : 10) {
+                        Text("Can’t make it")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        ForEach(withdrawnJoinRows) { wr in
+                            SettingsPickupWithdrawnJoinRow(
+                                viewModel: viewModel,
+                                request: wr,
+                                organizerCanceledJoinCopy: false,
+                                useCompact: horizontalSizeClass == .compact || isFollowingCompact
+                            )
+                        }
+                    }
+                    .padding(.top, pendingJoinCount > 0 && !isFollowingCompact ? 8 : 0)
+                }
+
                 HStack(spacing: 10) {
                     Button(action: onEdit) {
-                        Label("Edit", systemImage: "pencil")
+                        Label(gameStarted ? "Manage" : "Edit", systemImage: "pencil")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                     }
@@ -438,28 +717,443 @@ private struct SettingsPickupMyGameListCard: View {
                     .tint(FGColor.accentBlue)
 
                     Button(role: .destructive, action: onDelete) {
-                        Label("Delete", systemImage: "trash")
+                        Label("Cancel game", systemImage: "trash")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if isFollowingCompact, let onOpenDetails {
+                    Button(action: onOpenDetails) {
+                        Label("Details & cleanup", systemImage: "ellipsis.circle")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                 }
             }
-            .padding(.top, 14)
+            .padding(.top, isFollowingCompact ? 10 : 14)
 
-            Divider()
-                .opacity(colorScheme == .dark ? 0.35 : 0.5)
-                .padding(.vertical, 10)
+            if !isFollowingCompact {
+                Divider()
+                    .opacity(colorScheme == .dark ? 0.35 : 0.5)
+                    .padding(.vertical, 10)
 
-            SettingsPickupCleanupCountdownRow(row: row, now: now, isFooterStyle: true)
+                SettingsPickupCleanupCountdownRow(row: row, now: now, isFooterStyle: true)
+            } else {
+                let snap = SettingsPickupCleanupDisplay.snapshot(row: row, now: now)
+                HStack(alignment: .center, spacing: 6) {
+                    Image(systemName: snap.symbolName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text(snap.label)
+                        .font(FGTypography.metadata)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(isFollowingCompact ? 14 : 18)
+        .background(.ultraThinMaterial, in: shape)
+        .overlay(
+            shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.42 : 0.1), radius: isFollowingCompact ? 8 : 14, x: 0, y: isFollowingCompact ? 3 : 6)
+        .accessibilityElement(children: .contain)
+        .onAppear {
+            let actions = gameStarted ? "manage_players,roster_capacity_only" : "full_edit,delete,manage_requests"
+            PickupGameStartedStateDebug.log(row: row, now: now, allowedActions: actions)
+        }
+        .confirmationDialog("Player", isPresented: $showRosterPlayerActions, titleVisibility: .visible) {
+            if let uid = rosterActionUserId,
+               viewModel.isAuthenticatedForSocialFeatures,
+               viewModel.currentUserAuthId != uid {
+                rosterPlayerAvatarSocialActions(for: uid)
+            }
+            Button("Cancel", role: .cancel) {
+                rosterActionUserId = nil
+            }
+        } message: {
+            if let u = rosterActionUserId {
+                Text(Self.rosterActionMessage(userId: u, viewModel: viewModel))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rosterPlayerAvatarSocialActions(for uid: UUID) -> some View {
+        switch chatViewModel.chipKind(forOtherUserId: uid) {
+        case .friends:
+            Button("Message friend") {
+                rosterActionUserId = nil
+                showRosterPlayerActions = false
+                guard let p = userPreviewForRoster(userId: uid) else {
+                    print("[PickupRosterAvatarFriendship] error=missing_user_preview userId=\(uid.uuidString.lowercased())")
+                    viewModel.showSocialActionToast("Couldn’t open chat. Try again.", isError: true)
+                    return
+                }
+                Task { await openMessageFriendFromRoster(preview: p, peerUserId: uid) }
+            }
+        case .addFriend, .declinedOutgoing:
+            Button("Request friendship") {
+                rosterActionUserId = nil
+                Task { await sendRosterFriendRequest(to: uid) }
+            }
+        case .pendingOutgoing, .pendingIncoming:
+            Button("Friendship requested") {}
+                .disabled(true)
+        }
+    }
+
+    private func userPreviewForRoster(userId: UUID) -> UserPreview? {
+        let profile = viewModel.pickupJoinRequesterProfileByUserId[userId]
+        let name = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let display = name.isEmpty ? "Player" : name
+        let email = profile?.email
+        let full = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
+        let thumb = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
+        return UserPreview(
+            id: userId,
+            displayName: display,
+            email: email,
+            avatarURL: full.isEmpty ? nil : full,
+            avatarThumbnailURL: thumb.isEmpty ? nil : thumb
+        )
+    }
+
+    private static func rosterActionMessage(userId: UUID, viewModel: MapViewModel) -> String {
+        let profile = viewModel.pickupJoinRequesterProfileByUserId[userId]
+        let name = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return name.isEmpty ? "Joined player" : name
+    }
+
+    private static func tappedPlayerEmailLine(userId: UUID, viewModel: MapViewModel) -> String {
+        let raw = (viewModel.pickupJoinRequesterProfileByUserId[userId]?.email ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw.isEmpty ? "(none)" : raw
+    }
+
+    private static func friendshipStatusLog(chip: ChatViewModel.FriendshipChipKind) -> String {
+        switch chip {
+        case .addFriend: return "addFriend"
+        case .friends: return "friends"
+        case .pendingOutgoing: return "pendingOutgoing"
+        case .pendingIncoming: return "pendingIncoming"
+        case .declinedOutgoing: return "declinedOutgoing"
+        }
+    }
+
+    private static func pickupRosterFriendshipActionShown(chip: ChatViewModel.FriendshipChipKind) -> String {
+        switch chip {
+        case .friends:
+            return "Message friend"
+        case .addFriend, .declinedOutgoing:
+            return "Request friendship"
+        case .pendingOutgoing, .pendingIncoming:
+            return "Friendship requested(disabled)"
+        }
+    }
+
+    private static func logPickupRosterAvatarFriendship(
+        tappedPlayerId: UUID,
+        tappedPlayerEmail: String,
+        friendshipStatus: String,
+        actionShown: String,
+        requestCreated: Bool,
+        existingRequestFound: Bool,
+        openedDM: Bool
+    ) {
+#if DEBUG
+        print("[PickupRosterAvatarFriendship] tappedPlayerId=\(tappedPlayerId.uuidString.lowercased())")
+        print("[PickupRosterAvatarFriendship] tappedPlayerEmail=\(tappedPlayerEmail)")
+        print("[PickupRosterAvatarFriendship] friendshipStatus=\(friendshipStatus)")
+        print("[PickupRosterAvatarFriendship] actionShown=\(actionShown)")
+        print("[PickupRosterAvatarFriendship] requestCreated=\(requestCreated)")
+        print("[PickupRosterAvatarFriendship] existingRequestFound=\(existingRequestFound)")
+        print("[PickupRosterAvatarFriendship] openedDM=\(openedDM)")
+#endif
+    }
+
+    private static func logPickupRosterMessageFriendOpen(
+        messageFriendTapped: Bool,
+        tappedPlayerId: UUID,
+        tappedPlayerEmail: String,
+        friendshipStatus: String,
+        conversationId: UUID?,
+        openedDM: Bool,
+        error: String
+    ) {
+#if DEBUG
+        print("[PickupRosterAvatarFriendship] messageFriendTapped=\(messageFriendTapped)")
+        print("[PickupRosterAvatarFriendship] tappedPlayerId=\(tappedPlayerId.uuidString.lowercased())")
+        print("[PickupRosterAvatarFriendship] tappedPlayerEmail=\(tappedPlayerEmail)")
+        print("[PickupRosterAvatarFriendship] friendshipStatus=\(friendshipStatus)")
+        if let conversationId {
+            print("[PickupRosterAvatarFriendship] conversationId=\(conversationId.uuidString.lowercased())")
+        } else {
+            print("[PickupRosterAvatarFriendship] conversationId=")
+        }
+        print("[PickupRosterAvatarFriendship] openedDM=\(openedDM)")
+        print("[PickupRosterAvatarFriendship] error=\(error)")
+#endif
+    }
+
+    private func openMessageFriendFromRoster(preview: UserPreview, peerUserId: UUID) async {
+        let emailLine = Self.tappedPlayerEmailLine(userId: peerUserId, viewModel: viewModel)
+        let friendshipStatus = Self.friendshipStatusLog(chip: .friends)
+        do {
+            let cid = try await chatViewModel.startDirectConversationWithFriend(friendUserId: peerUserId)
+            await chatViewModel.refreshInboxSummaries()
+            await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+            await MainActor.run {
+                chatViewModel.pendingDmOpenPreview = preview
+            }
+            Self.logPickupRosterMessageFriendOpen(
+                messageFriendTapped: true,
+                tappedPlayerId: peerUserId,
+                tappedPlayerEmail: emailLine,
+                friendshipStatus: friendshipStatus,
+                conversationId: cid,
+                openedDM: true,
+                error: ""
+            )
+        } catch {
+            print("[PickupRosterAvatarFriendship] error=\(error.localizedDescription)")
+            Self.logPickupRosterMessageFriendOpen(
+                messageFriendTapped: true,
+                tappedPlayerId: peerUserId,
+                tappedPlayerEmail: emailLine,
+                friendshipStatus: friendshipStatus,
+                conversationId: nil,
+                openedDM: false,
+                error: error.localizedDescription
+            )
+            await MainActor.run {
+                viewModel.showSocialActionToast("Couldn’t open chat. Try again.", isError: true)
+            }
+        }
+    }
+
+    private func sendRosterFriendRequest(to userId: UUID) async {
+        let emailLine = Self.tappedPlayerEmailLine(userId: userId, viewModel: viewModel)
+        let chipBefore = chatViewModel.chipKind(forOtherUserId: userId)
+        if chipBefore == .pendingOutgoing || chipBefore == .pendingIncoming {
+            Self.logPickupRosterAvatarFriendship(
+                tappedPlayerId: userId,
+                tappedPlayerEmail: emailLine,
+                friendshipStatus: Self.friendshipStatusLog(chip: chipBefore),
+                actionShown: Self.pickupRosterFriendshipActionShown(chip: chipBefore),
+                requestCreated: false,
+                existingRequestFound: true,
+                openedDM: false
+            )
+            return
+        }
+        await chatViewModel.sendFriendRequestFromComments(to: userId)
+        if let err = chatViewModel.errorMessage, !err.isEmpty {
+            let duplicate = err.localizedCaseInsensitiveContains("already exists")
+            Self.logPickupRosterAvatarFriendship(
+                tappedPlayerId: userId,
+                tappedPlayerEmail: emailLine,
+                friendshipStatus: Self.friendshipStatusLog(chip: chatViewModel.chipKind(forOtherUserId: userId)),
+                actionShown: "Request friendship",
+                requestCreated: false,
+                existingRequestFound: duplicate,
+                openedDM: false
+            )
+            if duplicate {
+                await chatViewModel.refreshFriendRequestListsOnly()
+                await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+                viewModel.showSocialActionToast("Friend request already pending.", isError: false)
+            } else {
+                viewModel.showSocialActionToast(err, isError: true)
+            }
+            return
+        }
+        Self.logPickupRosterAvatarFriendship(
+            tappedPlayerId: userId,
+            tappedPlayerEmail: emailLine,
+            friendshipStatus: Self.friendshipStatusLog(chip: chatViewModel.chipKind(forOtherUserId: userId)),
+            actionShown: Self.pickupRosterFriendshipActionShown(chip: chatViewModel.chipKind(forOtherUserId: userId)),
+            requestCreated: true,
+            existingRequestFound: false,
+            openedDM: false
+        )
+        viewModel.showSocialActionToast("Friend request sent", isError: false)
+        await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+    }
+}
+
+/// Soft-removed pickup (`status = removed`) shown under History.
+struct SettingsPickupRemovedHistoryCard: View {
+    @ObservedObject var viewModel: MapViewModel
+    let row: PickupGameRow
+    let withdrawnJoinRows: [PickupGameRequestRow]
+    let now: Date
+    let colorScheme: ColorScheme
+    var useCompactCopy: Bool
+
+    private var dateTimeLine: String? {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
+        return start.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                SportArtworkIconView(sport: row.sport, diameter: 44)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(row.title)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(3)
+                    if let dateTimeLine {
+                        Text(dateTimeLine)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                }
+                Spacer(minLength: 0)
+                Text("Removed")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.06), in: Capsule(style: .continuous))
+            }
+
+            Text("This pickup was canceled and is hidden from Discover and player lists.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !withdrawnJoinRows.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Players affected")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    ForEach(withdrawnJoinRows) { wr in
+                        SettingsPickupWithdrawnJoinRow(
+                            viewModel: viewModel,
+                            request: wr,
+                            organizerCanceledJoinCopy: true,
+                            useCompact: useCompactCopy
+                        )
+                    }
+                }
+            }
+
+            SettingsPickupRemovedHistoryCleanupFooter(
+                viewModel: viewModel,
+                row: row,
+                now: now,
+                colorScheme: colorScheme
+            )
         }
         .padding(18)
         .background(.ultraThinMaterial, in: shape)
         .overlay(
             shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.42 : 0.1), radius: 14, x: 0, y: 6)
-        .accessibilityElement(children: .contain)
+    }
+}
+
+/// Footer for removed games: explicit clear action + auto-clear hint (no “in progress” copy unless something is actually running).
+private struct SettingsPickupRemovedHistoryCleanupFooter: View {
+    @ObservedObject var viewModel: MapViewModel
+    let row: PickupGameRow
+    let now: Date
+    let colorScheme: ColorScheme
+
+    private var cleanupDeadline: Date? {
+        row.pickupHistoryClientCleanupDeadline()
+    }
+
+    private var autoClearCaption: String {
+        guard let deadline = cleanupDeadline else {
+            return "Auto-clears 12h after start"
+        }
+        if now >= deadline {
+            return "Auto-clears 12h after start"
+        }
+        return "Auto-clears \(deadline.formatted(date: .abbreviated, time: .shortened))"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(autoClearCaption)
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button {
+                viewModel.markPickupOrganizerSettingsHistoryUserCleared(pickupGameId: row.id)
+            } label: {
+                Text("Clear now")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.bordered)
+            .tint(Color.red.opacity(0.88))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One withdrawn / cancelled joiner row on the organizer’s Settings pickup card.
+private struct SettingsPickupWithdrawnJoinRow: View {
+    @ObservedObject var viewModel: MapViewModel
+    let request: PickupGameRequestRow
+    var organizerCanceledJoinCopy: Bool
+    var useCompact: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let profile = viewModel.pickupJoinRequesterProfileByUserId[request.requester_user_id]
+        let profileName = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let displayName = profileName.isEmpty ? request.requesterNameForUI : profileName
+        let emailLine = (profile?.email ?? request.requester_email ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let thumbRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
+        let fullRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
+        let thumb: String? = thumbRaw.isEmpty ? nil : thumbRaw
+        let full = fullRaw.isEmpty ? "" : fullRaw
+        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[request.requester_user_id] ?? UUID()
+
+        HStack(alignment: .top, spacing: 12) {
+            UserAvatarView(
+                avatarThumbnailURL: thumb,
+                avatarURL: full,
+                avatarDisplayRefreshToken: token,
+                displayName: displayName,
+                email: emailLine,
+                size: 40,
+                fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(organizerCanceledJoinCopy ? "Canceled by organizer" : request.organizerFanWithdrawnSubtitle())
+                    .font(.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                if let stamp = request.organizerFanWithdrawnTimestampLine(compactWidth: useCompact) {
+                    Text(stamp)
+                        .font(.caption2)
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .task(id: request.requester_user_id) {
+            await viewModel.loadPickupJoinRequesterProfilesForOrganizerSheet(requesterIds: [request.requester_user_id])
+        }
     }
 }
 
@@ -506,20 +1200,16 @@ private enum SettingsPickupCleanupDisplay {
     }
 
     static func cleanupDeadline(for row: PickupGameRow) -> Date? {
-        if let rem = row.remove_after_at, let d = PickupGameModels.parseSupabaseTimestamptz(rem) {
-            return d
-        }
-        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
-        return start.addingTimeInterval(Double(PickupGameAutoRemoval.hoursAfterGameStart) * 3600)
+        row.pickupHistoryClientCleanupDeadline()
     }
 
     static func snapshot(row: PickupGameRow, now: Date) -> Snapshot {
         guard let deadline = cleanupDeadline(for: row) else {
-            return Snapshot(label: "Clears 24h after start", symbolName: "clock.arrow.circlepath", tone: .normal)
+            return Snapshot(label: "Auto-clears 12h after start", symbolName: "clock.arrow.circlepath", tone: .normal)
         }
         guard let gameStart = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else {
             if now >= deadline {
-                return Snapshot(label: "Clearing now…", symbolName: "clock.arrow.circlepath", tone: .danger)
+                return Snapshot(label: "Past auto-clear time", symbolName: "clock", tone: .normal)
             }
             let remaining = deadline.timeIntervalSince(now)
             if remaining < 3600 {
@@ -533,11 +1223,11 @@ private enum SettingsPickupCleanupDisplay {
         }
 
         if now >= deadline {
-            return Snapshot(label: "Clearing now…", symbolName: "clock.arrow.circlepath", tone: .danger)
+            return Snapshot(label: "Past auto-clear time", symbolName: "clock", tone: .normal)
         }
 
         if now < gameStart {
-            return Snapshot(label: "Clears 24h after start", symbolName: "clock.arrow.circlepath", tone: .normal)
+            return Snapshot(label: "Auto-clears 12h after start", symbolName: "clock.arrow.circlepath", tone: .normal)
         }
 
         let remaining = deadline.timeIntervalSince(now)
@@ -647,8 +1337,30 @@ struct SettingsPickupGameFormView: View {
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var showPickupMapLocationPicker = false
+    @State private var showGameDatePopover = false
+    @State private var suppressGameDatePickerChangeLog = false
     @State private var coordinatesLockedFromMap = false
     @State private var mapPinnedCoordinate: CLLocationCoordinate2D?
+
+    private var organizerPostStartLockedRow: PickupGameRow? {
+        if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
+            return row
+        }
+        return nil
+    }
+
+    private var isOrganizerPostStartManage: Bool { organizerPostStartLockedRow != nil }
+
+    private func isCurrentUserCreator(of row: PickupGameRow) -> Bool {
+        guard let uid = viewModel.currentUserAuthId else { return false }
+        return row.creator_user_id == uid
+    }
+
+    private var lockedGameStartDisplay: String {
+        guard case .edit(let row) = mode,
+              let d = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return "—" }
+        return d.formatted(date: .abbreviated, time: .shortened)
+    }
 
     private var trimmedAddress: String {
         address.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -734,11 +1446,50 @@ struct SettingsPickupGameFormView: View {
                 }
             }
 
+            if isOrganizerPostStartManage {
+                Section {
+                    Text(
+                        "This game has already started. You can still manage players and open spots, but core details can no longer be changed."
+                    )
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             Section("Game") {
-                TextField("Title", text: $title)
-                GameSportSearchablePickerFormRow(selection: $sport)
-                DatePicker("Date", selection: $gameDate, displayedComponents: .date)
-                DatePicker("Start time", selection: $gameTime, displayedComponents: .hourAndMinute)
+                if isOrganizerPostStartManage {
+                    LabeledContent("Title") {
+                        Text(title)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Sport") {
+                        Text(sport)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+                    LabeledContent("Start") {
+                        Text(lockedGameStartDisplay)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+                } else {
+                    TextField("Title", text: $title)
+                    GameSportSearchablePickerFormRow(selection: $sport)
+                    LabeledContent("Date") {
+                        Button {
+                            showGameDatePopover = true
+                        } label: {
+                            Text(gameDate.formatted(.dateTime.month(.abbreviated).day().year(.defaultDigits)))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                    .popover(isPresented: $showGameDatePopover) {
+                        pickupGameDatePopover
+                    }
+                    DatePicker("Start time", selection: $gameTime, displayedComponents: .hourAndMinute)
+                }
                 Stepper(value: $playersNeeded, in: 1...20) {
                     HStack {
                         Text("Players needed")
@@ -760,93 +1511,126 @@ struct SettingsPickupGameFormView: View {
                 }
             }
 
-            Section("How you play") {
-                Picker("Indoor / outdoor", selection: $playEnvironment) {
-                    ForEach(PickupPlayEnvironment.allCases) { env in
-                        Text(env.displayTitle).tag(env)
+            if !isOrganizerPostStartManage {
+                Section("How you play") {
+                    Picker("Indoor / outdoor", selection: $playEnvironment) {
+                        ForEach(PickupPlayEnvironment.allCases) { env in
+                            Text(env.displayTitle).tag(env)
+                        }
+                    }
+                    Picker("Skill level", selection: $skillLevel) {
+                        ForEach(PickupGameSkillLevel.allCases) { level in
+                            Text(level.displayTitle).tag(level)
+                        }
+                    }
+                    Picker("Who’s welcome", selection: $participantPreference) {
+                        ForEach(PickupParticipantPreference.allCases) { pref in
+                            Text(pref.displayTitle).tag(pref)
+                        }
                     }
                 }
-                Picker("Skill level", selection: $skillLevel) {
-                    ForEach(PickupGameSkillLevel.allCases) { level in
-                        Text(level.displayTitle).tag(level)
+
+                Section("Cost") {
+                    Picker("Entry", selection: $costKind) {
+                        ForEach(PickupCostKind.allCases) { k in
+                            Text(k.title).tag(k)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    if costKind == .paid {
+                        TextField("Amount (USD)", text: $entryFeeText)
+                            .keyboardType(.decimalPad)
+                        Text("Paid games require an entry amount greater than zero.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
                 }
-                Picker("Who’s welcome", selection: $participantPreference) {
-                    ForEach(PickupParticipantPreference.allCases) { pref in
-                        Text(pref.displayTitle).tag(pref)
+
+                Section("Location") {
+                    Button {
+                        showPickupMapLocationPicker = true
+                    } label: {
+                        Label("Pick location from map", systemImage: "mappin.and.ellipse")
+                            .font(FGTypography.metadata.weight(.semibold))
+                    }
+
+                    TextField("Street address", text: addressBinding, axis: .vertical)
+                        .lineLimit(1...3)
+                    TextField("City", text: cityBinding)
+                    TextField("State", text: stateBinding)
+
+                    if coordinatesLockedFromMap {
+                        Text("Using exact coordinates from your map pin.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+
+                    if let foot = locationGuidanceFootnote {
+                        Text(foot)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.accentYellow)
                     }
                 }
-            }
-
-            Section("Cost") {
-                Picker("Entry", selection: $costKind) {
-                    ForEach(PickupCostKind.allCases) { k in
-                        Text(k.title).tag(k)
+            } else {
+                Section("Location") {
+                    LabeledContent("Street") {
+                        Text(trimmedAddress.isEmpty ? "—" : trimmedAddress)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.trailing)
                     }
-                }
-                .pickerStyle(.segmented)
-                if costKind == .paid {
-                    TextField("Amount (USD)", text: $entryFeeText)
-                        .keyboardType(.decimalPad)
-                    Text("Paid games require an entry amount greater than zero.")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                }
-            }
-
-            Section("Location") {
-                Button {
-                    showPickupMapLocationPicker = true
-                } label: {
-                    Label("Pick location from map", systemImage: "mappin.and.ellipse")
-                        .font(FGTypography.metadata.weight(.semibold))
-                }
-
-                TextField("Street address", text: addressBinding, axis: .vertical)
-                    .lineLimit(1...3)
-                TextField("City", text: cityBinding)
-                TextField("State", text: stateBinding)
-
-                if coordinatesLockedFromMap {
-                    Text("Using exact coordinates from your map pin.")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.accentBlue)
-                }
-
-                if let foot = locationGuidanceFootnote {
-                    Text(foot)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.accentYellow)
+                    LabeledContent("City") {
+                        Text(trimmedCity.isEmpty ? "—" : trimmedCity)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+                    LabeledContent("State") {
+                        Text(trimmedState.isEmpty ? "—" : trimmedState)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
                 }
             }
 
             Section("Details") {
-                TextField("Description (optional)", text: $description, axis: .vertical)
-                    .lineLimit(2...6)
-                Toggle("Visible on Discover map", isOn: $isVisible)
+                if isOrganizerPostStartManage {
+                    let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
+                    LabeledContent("Description") {
+                        Text(desc.isEmpty ? "—" : desc)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Discover map") {
+                        Text(isVisible ? "Visible" : "Hidden")
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+                } else {
+                    TextField("Description (optional)", text: $description, axis: .vertical)
+                        .lineLimit(2...6)
+                    Toggle("Visible on Discover map", isOn: $isVisible)
 
-                HStack(alignment: .top, spacing: FGSpacing.sm) {
-                    Image(systemName: "info.circle.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(FGColor.accentBlue)
-                        .padding(.top, 1)
-                    Text("This pickup game will be automatically deleted \(PickupGameAutoRemoval.hoursAfterGameStart) hours after the start time.")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .top, spacing: FGSpacing.sm) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(FGColor.accentBlue)
+                            .padding(.top, 1)
+                        Text("This pickup game will be automatically deleted 12 hours after the start time.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(FGSpacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                            .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
+                    )
                 }
-                .padding(FGSpacing.md)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                        .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
-                )
             }
         }
         .scrollContentBackground(.hidden)
         .fanGeoScreenBackground()
-        .navigationTitle(mode == .add ? "Add pickup game" : "Edit pickup game")
+        .navigationTitle(
+            mode == .add ? "Add pickup game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
+        )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -858,15 +1642,23 @@ struct SettingsPickupGameFormView: View {
                 }
                 .disabled(
                     isSaving
-                        || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || !hasPlacedLocationForPostButton
+                        || (!isOrganizerPostStartManage && title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        || (!isOrganizerPostStartManage && !hasPlacedLocationForPostButton)
                 )
             }
         }
         .onAppear {
             applyModeToFields()
-        }
-        .onAppear {
+            if case .edit(let row) = mode {
+                let now = Date()
+                let actions: String
+                if isOrganizerPostStartManage {
+                    actions = "roster_capacity_only,manage_requests_sheet"
+                } else {
+                    actions = "full_edit_before_start"
+                }
+                PickupGameStartedStateDebug.log(row: row, now: now, allowedActions: actions)
+            }
             if !viewModel.canFanUsePickupGamesUI {
                 onFinished()
                 dismiss()
@@ -966,6 +1758,80 @@ struct SettingsPickupGameFormView: View {
         return f.string(from: n) ?? String(format: "%.2f", amount)
     }
 
+    private func logPickupDatePicker(todayTapped: Bool, doneTapped: Bool, selectedDate: Date) {
+#if DEBUG
+        let f = ISO8601DateFormatter()
+        f.timeZone = .current
+        f.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        print("[PickupDatePicker] todayTapped=\(todayTapped)")
+        print("[PickupDatePicker] doneTapped=\(doneTapped)")
+        print("[PickupDatePicker] selectedDate=\(f.string(from: selectedDate))")
+#endif
+    }
+
+    /// Sets the game calendar day to today; if the combined start is still in the past, advances clock time using shared venue rules.
+    private func applyPickupDatePickerJumpToToday() {
+        let cal = Calendar.current
+        let now = Date()
+        let todayStart = cal.startOfDay(for: now)
+        suppressGameDatePickerChangeLog = true
+        gameDate = todayStart
+        if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameTime, now: now) {
+            gameTime = VenueOwnerGameScheduleValidation.recommendedStartTimeAfterGameDateChange(newGameDate: todayStart, now: now)
+        }
+        suppressGameDatePickerChangeLog = false
+        logPickupDatePicker(todayTapped: true, doneTapped: false, selectedDate: gameDate)
+    }
+
+    private var pickupGameDatePopover: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .center) {
+                Button("Today") {
+                    applyPickupDatePickerJumpToToday()
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
+
+                Spacer(minLength: 0)
+
+                Button("Done") {
+                    logPickupDatePicker(todayTapped: false, doneTapped: true, selectedDate: gameDate)
+                    showGameDatePopover = false
+                }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background(.ultraThinMaterial)
+
+            Divider()
+                .opacity(colorScheme == .dark ? 0.35 : 0.45)
+
+            DatePicker("", selection: $gameDate, displayedComponents: .date)
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .padding(.horizontal, 6)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
+                .onChange(of: gameDate) { _, newValue in
+                    guard !suppressGameDatePickerChangeLog else { return }
+                    logPickupDatePicker(todayTapped: false, doneTapped: false, selectedDate: newValue)
+                }
+        }
+        .frame(minWidth: 320)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.18 : 0.1), lineWidth: 1)
+        }
+    }
+
     private func combinedStartDate() -> Date {
         VenueOwnerGameScheduleValidation.combinedLocalStart(gameDate: gameDate, gameStartTime: gameTime)
     }
@@ -979,6 +1845,42 @@ struct SettingsPickupGameFormView: View {
 
     private func save() async {
         errorText = nil
+
+        if let postStartRow = organizerPostStartLockedRow {
+            let playersN = min(20, max(1, playersNeeded))
+            let approved = postStartRow.approvedJoinCount
+            guard playersN >= approved else {
+                errorText = "Players needed can’t be fewer than the number already approved (\(approved))."
+                return
+            }
+            var maxP: Int?
+            if useMaxPlayers {
+                let capped = min(100, max(1, maxPlayers))
+                guard capped >= playersN else {
+                    errorText = "Max players must be at least the number of players needed."
+                    return
+                }
+                maxP = capped
+            }
+
+            isSaving = true
+            defer { isSaving = false }
+
+            do {
+                try await viewModel.updatePickupGameRosterCapacity(
+                    id: postStartRow.id,
+                    playersNeeded: playersN,
+                    maxPlayers: maxP
+                )
+                await viewModel.refreshPickupGamesForDiscoverMap(force: true)
+                onFinished()
+                dismiss()
+            } catch {
+                errorText = error.localizedDescription
+            }
+            return
+        }
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             errorText = "Title is required."
@@ -1069,12 +1971,14 @@ struct SettingsPickupGameFormView: View {
                     maxPlayers: maxP
                 )
             case .edit(let row):
+                let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(start)
+                let removeISO = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: gameStartISO)
                 let patch = PickupGameFullUpdate(
                     title: trimmedTitle,
                     sport: sport,
                     description: desc.isEmpty ? nil : desc,
                     skill_level: skillLevel.rawValue,
-                    game_start_at: PickupGameModels.encodeSupabaseTimestamptz(start),
+                    game_start_at: gameStartISO,
                     address: addr.isEmpty ? nil : addr,
                     city: c.isEmpty ? nil : c,
                     state: st.isEmpty ? nil : st,
@@ -1087,7 +1991,8 @@ struct SettingsPickupGameFormView: View {
                     is_free: isFree,
                     entry_fee_amount: feeParsed,
                     max_players: maxP,
-                    cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart
+                    cleanup_delay_hours: PickupGameAutoRemoval.hoursAfterGameStart,
+                    remove_after_at: removeISO
                 )
                 try await viewModel.updatePickupGame(id: row.id, full: patch)
             }

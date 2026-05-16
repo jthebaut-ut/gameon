@@ -20,7 +20,7 @@ enum DiscoverMapSearchKind: String, Sendable {
     case globalPlace
 }
 
-fileprivate enum DiscoverMapSearchFilter {
+nonisolated fileprivate enum DiscoverMapSearchFilter {
     static func isInBounds(
         lat: Double,
         lon: Double,
@@ -159,13 +159,11 @@ extension MapViewModel {
         }
         let barsSnapshot = bars
 
-        let orderedIds = await Task.detached(priority: .userInitiated) {
-            DiscoverMapSearchFilter.orderedMatchingBarIds(
-                snapshots: snapshots,
-                bounds: bounds,
-                queryLower: lower
-            )
-        }.value
+        let orderedIds = DiscoverMapSearchFilter.orderedMatchingBarIds(
+            snapshots: snapshots,
+            bounds: bounds,
+            queryLower: lower
+        )
 
         return orderedIds.compactMap { id in barsSnapshot.first { $0.id == id } }
     }

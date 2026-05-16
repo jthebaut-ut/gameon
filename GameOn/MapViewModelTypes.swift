@@ -88,12 +88,50 @@ struct VenueEventInsert: Encodable {
     let admin_status: String
     /// ISO 8601 timestamptz string (UTC offset) for retention and Scheduled tab queries.
     let scheduled_start_at: String
-    /// Must be 24, 48, or 72 — hours after start when server purge may remove the row and fan data.
+    /// Hours after start when purge may remove fan data (Manage Games: 6/12/18; legacy DB rows may be 24/48/72).
     let cleanup_delay_hours: Int
 }
 
 struct VenueEventCleanupDelayPatch: Encodable {
     let cleanup_delay_hours: Int
+}
+
+/// Retention duration for venue games (`venue_events.cleanup_delay_hours`; `purge_after_at` is generated server-side).
+nonisolated enum VenueOwnerGameDataRetentionHours {
+    static let standardOptions: [Int] = [6, 12, 18]
+    static let legacyOptions: [Int] = [24, 48, 72]
+    static let defaultPickerHours: Int = 12
+
+    static var allPersistedValues: Set<Int> {
+        Set(standardOptions + legacyOptions)
+    }
+
+    /// Segmented picker: 6 / 12 / 18, plus the row’s current value when it is a legacy hour so SwiftUI selection stays valid.
+    static func segmentedPickerHours(currentSaved: Int?) -> [Int] {
+        let base = standardOptions
+        guard let h = currentSaved, !base.contains(h), allPersistedValues.contains(h) else {
+            return base
+        }
+        return (base + [h]).sorted()
+    }
+
+    static func segmentedLabel(for hours: Int) -> String {
+        switch hours {
+        case 6: return "6hr"
+        case 12: return "12hr"
+        case 18: return "18hr"
+        default: return "\(hours)hr"
+        }
+    }
+
+    static func longLabel(for hours: Int) -> String {
+        switch hours {
+        case 6: return "6hr after start"
+        case 12: return "12hr after start"
+        case 18: return "18hr after start"
+        default: return "\(hours)hr after start"
+        }
+    }
 }
 
 /// Row from `public.businesses` (multi-venue owner Phase B1).
@@ -226,6 +264,12 @@ struct VenueProfileRow: Decodable {
     let menu_photo_thumbnail_url: String?
 }
 
+/// Embedded `public.businesses` row from PostgREST when selecting `businesses!venues_business_id_fkey(...)` on `venues`.
+struct VenueRowBusinessEmbed: Decodable, Equatable {
+    let owner_email: String?
+    let admin_status: String?
+}
+
 struct VenueRow: Decodable {
     let id: UUID?
     let owner_email: String?
@@ -256,6 +300,8 @@ struct VenueRow: Decodable {
     let menu_photo_url: String?
     let cover_photo_thumbnail_url: String?
     let menu_photo_thumbnail_url: String?
+    /// Present when venue queries embed `businesses!venues_business_id_fkey(...)`.
+    let businesses: VenueRowBusinessEmbed?
 }
 
 struct DiscoverMapBoundsWindow: Equatable {
@@ -382,7 +428,7 @@ struct VenueClaimInsert: Encodable {
 }
 
 /// Payload for Edge Function ``notify-venue-claim`` (admin email with claim details).
-struct VenueClaimAdminNotifyPayload: Encodable {
+nonisolated struct VenueClaimAdminNotifyPayload: Encodable {
     let claim_id: String
     let business_id: String?
     let venue_id: String?
@@ -570,6 +616,8 @@ enum PickupFollowingJoinRequestPillKind: String, Equatable {
     case approved
     case declined
     case cancelled
+    case withdrawing
+    case canceledByOrganizer
 
     var title: String {
         switch self {
@@ -577,6 +625,8 @@ enum PickupFollowingJoinRequestPillKind: String, Equatable {
         case .approved: return "Approved"
         case .declined: return "Declined"
         case .cancelled: return "Cancelled"
+        case .withdrawing: return "Withdrawing…"
+        case .canceledByOrganizer: return "Canceled"
         }
     }
 }
@@ -588,6 +638,8 @@ struct PickupGameJoinRequestCardDisplay: Identifiable, Equatable {
     let pickupGameId: UUID
     let title: String
     let sport: String
+    /// Raw `pickup_games.game_start_at` for post-start UI (Following cards).
+    let game_start_at: String
     let dateTimeLine: String
     let locationLine: String
     let organizerUserId: UUID

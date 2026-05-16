@@ -36,7 +36,7 @@ struct SocialIdentityService {
 
         return (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -52,7 +52,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
             .in("id", values: ids)
             .eq("admin_status", value: "active")
             .execute()
@@ -105,11 +105,15 @@ struct SocialIdentityService {
 
             for (userId, profile) in profilesById {
                 if businessesByUserId[userId] != nil { continue }
-                // Do not attach a business row to a fan profile by shared email alone.
-                guard profile.isBusinessIdentity else { continue }
                 let email = OwnerBusinessEmail.normalized(profile.email ?? "")
                 guard OwnerBusinessEmail.isValidStrict(email), let row = businessByEmail[email] else { continue }
-                businessesByUserId[userId] = row
+                if profile.isBusinessIdentity {
+                    businessesByUserId[userId] = row
+                    continue
+                }
+                if row.owner_user_id == userId {
+                    businessesByUserId[userId] = row
+                }
             }
         }
 
@@ -176,7 +180,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -190,25 +194,31 @@ struct SocialIdentityService {
             .execute()
             .value) ?? []
 
-        var profilesByEmail: [String: UserProfileRow] = [:]
-        for row in profiles {
-            let email = OwnerBusinessEmail.normalized(row.email ?? "")
-            guard OwnerBusinessEmail.isValidStrict(email) else { continue }
-            if let existing = profilesByEmail[email] {
-                if existing.isBusinessIdentity, !row.isBusinessIdentity {
-                    profilesByEmail[email] = row
-                }
-            } else {
-                profilesByEmail[email] = row
-            }
-        }
-
         var businessesByEmail: [String: BusinessRow] = [:]
         for row in businesses {
             let email = OwnerBusinessEmail.normalized(row.owner_email ?? "")
             guard OwnerBusinessEmail.isValidStrict(email) else { continue }
             if businessesByEmail[email] == nil || !trimmedNonEmpty(row.display_name).isEmpty {
                 businessesByEmail[email] = row
+            }
+        }
+
+        var profilesByEmail: [String: UserProfileRow] = [:]
+        for row in profiles {
+            let email = OwnerBusinessEmail.normalized(row.email ?? "")
+            guard OwnerBusinessEmail.isValidStrict(email) else { continue }
+            let biz = businessesByEmail[email]
+            func profilePriority(_ p: UserProfileRow) -> Int {
+                guard let id = p.id else { return 0 }
+                if let ownerId = biz?.owner_user_id, ownerId == id { return 2 }
+                return p.isBusinessIdentity ? 1 : 0
+            }
+            if let existing = profilesByEmail[email] {
+                if profilePriority(row) > profilePriority(existing) {
+                    profilesByEmail[email] = row
+                }
+            } else {
+                profilesByEmail[email] = row
             }
         }
 
@@ -231,8 +241,10 @@ struct SocialIdentityService {
     /// When a fan profile exists for an email, do not collapse identity to the business row with the same email.
     private func businessRowForEmailResolution(profile: UserProfileRow?, business: BusinessRow?) -> BusinessRow? {
         guard let business else { return nil }
-        guard let profile else { return business }
-        return profile.isBusinessIdentity ? business : nil
+        guard let profile, let pid = profile.id else { return business }
+        if profile.isBusinessIdentity { return business }
+        if business.owner_user_id == pid { return business }
+        return nil
     }
 
     private func resolveIdentity(

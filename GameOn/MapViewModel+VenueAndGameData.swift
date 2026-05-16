@@ -11,13 +11,20 @@ private enum DiscoverVenueGameDateFormatting {
     }()
 }
 
+private let discoverVenueBusinessEmbedSelectSuffix =
+    ",businesses!venues_business_id_fkey(owner_email,admin_status)"
+
 private let discoverVenueRowSelectColumns =
     "id,owner_email,business_id,venue_identity_key,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features," +
     "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
-    "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
+    "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
+    discoverVenueBusinessEmbedSelectSuffix
 
-private let discoverVenueFastPinSelectColumns =
-    "id,venue_name,address,city,state,zip_code,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key"
+private enum DiscoverVenueFastPinSelect {
+    nonisolated static let columns =
+        "id,venue_name,address,city,state,zip_code,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key" +
+        ",businesses!venues_business_id_fkey(owner_email,admin_status)"
+}
 
 private let discoverVenueActiveLegacySafeOrFilter = "admin_status.is.null,admin_status.eq.active"
 
@@ -61,7 +68,7 @@ private enum DiscoverVenueSearchFallbackBounds {
 
 // MARK: - Discover disk snapshot (venues + venue_events + merged events for instant map/calendar)
 
-private struct DiscoverPersistedBarVenue: Codable {
+nonisolated private struct DiscoverPersistedBarVenue: Codable {
     let id: UUID
     let name: String
     let address: String
@@ -87,6 +94,9 @@ private struct DiscoverPersistedBarVenue: Codable {
     let ownerEmail: String?
     let businessId: UUID?
     let adminStatus: String?
+    let venueOwnerEmailRaw: String?
+    let businessOwnerEmailRaw: String?
+    let contactEmailRaw: String?
 
     init(bar: BarVenue) {
         id = bar.id
@@ -114,6 +124,9 @@ private struct DiscoverPersistedBarVenue: Codable {
         ownerEmail = bar.ownerEmail
         businessId = bar.businessId
         adminStatus = bar.adminStatus
+        venueOwnerEmailRaw = bar.venueOwnerEmailRaw
+        businessOwnerEmailRaw = bar.businessOwnerEmailRaw
+        contactEmailRaw = bar.contactEmailRaw
     }
 
     func toBarVenue() -> BarVenue {
@@ -141,12 +154,15 @@ private struct DiscoverPersistedBarVenue: Codable {
             menuPhotoThumbnailURL: menuPhotoThumbnailURL,
             ownerEmail: ownerEmail,
             businessId: businessId,
-            adminStatus: adminStatus
+            adminStatus: adminStatus,
+            venueOwnerEmailRaw: venueOwnerEmailRaw,
+            businessOwnerEmailRaw: businessOwnerEmailRaw,
+            contactEmailRaw: contactEmailRaw
         )
     }
 }
 
-private struct DiscoverCoreDiskSnapshot: Codable {
+nonisolated private struct DiscoverCoreDiskSnapshot: Codable {
     var savedAt: Date
     var bars: [DiscoverPersistedBarVenue]
     var venueEventRows: [VenueEventRow]
@@ -221,7 +237,7 @@ private extension MapViewModel {
 
         let extra: [VenueRow] = try await supabase
             .from("venues")
-            .select(discoverVenueFastPinSelectColumns)
+            .select(DiscoverVenueFastPinSelect.columns)
             .eq("id", value: vid.uuidString.lowercased())
             .or(discoverVenueActiveLegacySafeOrFilter)
             .limit(1)
@@ -335,7 +351,7 @@ private extension MapViewModel {
         let idStrings = ids.map { $0.uuidString.lowercased() }
         let fresh: [VenueRow] = try await supabase
             .from("venues")
-            .select(discoverVenueFastPinSelectColumns)
+            .select(DiscoverVenueFastPinSelect.columns)
             .in("id", values: idStrings)
             .or(discoverVenueActiveLegacySafeOrFilter)
             .limit(max(200, idStrings.count))
@@ -454,12 +470,20 @@ extension MapViewModel {
             events: events
         )
         let url = Self.discoverCoreSnapshotFileURL()
+        let dataToWrite: Data
+        do {
+            let enc = JSONEncoder()
+            enc.dateEncodingStrategy = .deferredToDate
+            dataToWrite = try enc.encode(snap)
+        } catch {
+            #if DEBUG
+            print("[CriticalPath] discover snapshot encode failed:", error)
+            #endif
+            return
+        }
         Task.detached(priority: .utility) {
             do {
-                let enc = JSONEncoder()
-                enc.dateEncodingStrategy = .deferredToDate
-                let data = try enc.encode(snap)
-                try data.write(to: url, options: .atomic)
+                try dataToWrite.write(to: url, options: .atomic)
             } catch {
                 #if DEBUG
                 print("[CriticalPath] discover snapshot save failed:", error)
@@ -1947,7 +1971,11 @@ extension MapViewModel {
                     coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,
                     menuPhotoThumbnailURL: bar.menuPhotoThumbnailURL,
                     ownerEmail: bar.ownerEmail,
-                    businessId: bar.businessId
+                    businessId: bar.businessId,
+                    adminStatus: bar.adminStatus,
+                    venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
+                    businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
+                    contactEmailRaw: bar.contactEmailRaw
                 )
             }
         }
@@ -2016,7 +2044,11 @@ extension MapViewModel {
                     coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,
                     menuPhotoThumbnailURL: bar.menuPhotoThumbnailURL,
                     ownerEmail: bar.ownerEmail,
-                    businessId: bar.businessId
+                    businessId: bar.businessId,
+                    adminStatus: bar.adminStatus,
+                    venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
+                    businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
+                    contactEmailRaw: bar.contactEmailRaw
                 )
             }
         }
@@ -2184,7 +2216,7 @@ extension MapViewModel {
 
     func fetchVenueRowsInCurrentBounds(
         limit: Int = 200,
-        selectColumns: String = discoverVenueFastPinSelectColumns
+        selectColumns: String = DiscoverVenueFastPinSelect.columns
     ) async throws -> [VenueRow] {
         let queryWindow = discoverFastPinQueryBounds()
         return try await fetchVenueRows(
@@ -2379,7 +2411,7 @@ extension MapViewModel {
             let venueRowsRaw = try await fetchVenueRowsUsingViewportCache(
                 requestedBounds: boundsWindow(from: phase1Query.bounds),
                 source: phase1Query.source,
-                selectColumns: discoverVenueFastPinSelectColumns,
+                selectColumns: DiscoverVenueFastPinSelect.columns,
                 limit: 200,
                 forceRefresh: forceRefresh
             )
