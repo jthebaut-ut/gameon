@@ -539,6 +539,7 @@ struct UserProfileRow: Decodable {
     let id: UUID?
     let email: String?
     let display_name: String?
+    let username: String?
     let avatar_url: String?
     let avatar_thumbnail_url: String?
     let is_business_account: Bool?
@@ -548,6 +549,7 @@ struct UserProfileRow: Decodable {
         id: UUID?,
         email: String?,
         display_name: String?,
+        username: String? = nil,
         avatar_url: String?,
         avatar_thumbnail_url: String?,
         is_business_account: Bool? = nil,
@@ -556,6 +558,7 @@ struct UserProfileRow: Decodable {
         self.id = id
         self.email = email
         self.display_name = display_name
+        self.username = username
         self.avatar_url = avatar_url
         self.avatar_thumbnail_url = avatar_thumbnail_url
         self.is_business_account = is_business_account
@@ -572,6 +575,7 @@ struct UserProfileInsert: Encodable {
     let id: UUID
     let email: String
     let display_name: String
+    let username: String?
     let avatar_url: String
     let avatar_thumbnail_url: String?
 }

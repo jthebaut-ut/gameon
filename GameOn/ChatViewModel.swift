@@ -7,6 +7,9 @@ import SwiftUI
 @MainActor
 final class ChatViewModel: ObservableObject {
 
+    /// Used to refresh Fan Level and show XP toasts after friend accept (set from ``FriendsTabView``).
+    weak var mapViewModel: MapViewModel?
+
     /// Compact friendship state for comment rows (and similar surfaces). Absence in ``friendshipChipByOtherUserId`` means treat as stranger → Add Friend.
     enum FriendshipChipKind: Equatable {
         case addFriend
@@ -998,11 +1001,31 @@ final class ChatViewModel: ObservableObject {
 
     func accept(_ item: IncomingRequestDisplay) async {
         do {
-            _ = try await service.acceptFriendRequest(requestId: item.friendship.id)
+            let friendship = try await service.acceptFriendRequest(requestId: item.friendship.id)
             await refresh()
+            await awardFriendConnectedXP(friendship: friendship)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func awardFriendConnectedXP(friendship: FriendshipRow) async {
+        guard let map = mapViewModel else { return }
+        guard let me = try? await service.currentUserId() else { return }
+        let otherId = friendship.requester_id == me ? friendship.addressee_id : friendship.requester_id
+        await map.awardFanXP(
+            userId: me,
+            amount: 5,
+            source: FanXPSource.friendConnected,
+            sourceId: friendship.id
+        )
+        await map.awardFanXP(
+            userId: otherId,
+            amount: 5,
+            source: FanXPSource.friendConnected,
+            sourceId: friendship.id,
+            showToast: false
+        )
     }
 
     func reject(_ item: IncomingRequestDisplay) async {

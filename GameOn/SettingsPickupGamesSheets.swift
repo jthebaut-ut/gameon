@@ -618,41 +618,7 @@ struct SettingsPickupMyGameListCard: View {
                     colorScheme: colorScheme,
                     approvedUserIds: approvedJoinerUserIds,
                     onAvatarTapped: { uid in
-                        Task {
-                            let isSelf = viewModel.currentUserAuthId == uid
-                            let canSocial = viewModel.isAuthenticatedForSocialFeatures
-                            let emailLine = Self.tappedPlayerEmailLine(userId: uid, viewModel: viewModel)
-                            if isSelf || !canSocial {
-                                Self.logPickupRosterAvatarFriendship(
-                                    tappedPlayerId: uid,
-                                    tappedPlayerEmail: emailLine,
-                                    friendshipStatus: isSelf ? "self" : "socialDisabled",
-                                    actionShown: "none",
-                                    requestCreated: false,
-                                    existingRequestFound: false,
-                                    openedDM: false
-                                )
-                                return
-                            }
-                            await chatViewModel.loadIfNeeded()
-                            await chatViewModel.refresh()
-                            let chip = chatViewModel.chipKind(forOtherUserId: uid)
-                            let actionShown = Self.pickupRosterFriendshipActionShown(chip: chip)
-                            let existingPending = chip == .pendingOutgoing || chip == .pendingIncoming
-                            Self.logPickupRosterAvatarFriendship(
-                                tappedPlayerId: uid,
-                                tappedPlayerEmail: emailLine,
-                                friendshipStatus: Self.friendshipStatusLog(chip: chip),
-                                actionShown: actionShown,
-                                requestCreated: false,
-                                existingRequestFound: existingPending,
-                                openedDM: false
-                            )
-                            await MainActor.run {
-                                rosterActionUserId = uid
-                                showRosterPlayerActions = true
-                            }
-                        }
+                        viewModel.presentPublicProfile(userId: uid, context: "pickup_roster_avatar")
                     }
                 )
                 if !isFollowingCompact {
@@ -813,9 +779,11 @@ struct SettingsPickupMyGameListCard: View {
         let email = profile?.email
         let full = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
         let thumb = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
+        let handle = profile?.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return UserPreview(
             id: userId,
             displayName: display,
+            username: handle.isEmpty ? nil : FanGeoHandleRules.normalizeForStorage(handle),
             email: email,
             avatarURL: full.isEmpty ? nil : full,
             avatarThumbnailURL: thumb.isEmpty ? nil : thumb
@@ -1123,15 +1091,17 @@ private struct SettingsPickupWithdrawnJoinRow: View {
         let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[request.requester_user_id] ?? UUID()
 
         HStack(alignment: .top, spacing: 12) {
-            UserAvatarView(
-                avatarThumbnailURL: thumb,
-                avatarURL: full,
-                avatarDisplayRefreshToken: token,
-                displayName: displayName,
-                email: emailLine,
-                size: 40,
-                fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
-            )
+            PublicProfileAvatarTap(userId: request.requester_user_id, context: "pickup_withdrawn_joiner") {
+                UserAvatarView(
+                    avatarThumbnailURL: thumb,
+                    avatarURL: full,
+                    avatarDisplayRefreshToken: token,
+                    displayName: displayName,
+                    email: emailLine,
+                    size: 40,
+                    fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+                )
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(displayName)
                     .font(.subheadline.weight(.semibold))

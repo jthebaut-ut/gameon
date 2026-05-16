@@ -181,6 +181,10 @@ final class MapViewModel: ObservableObject {
     @Published var mapStatusText: String?
     @Published var socialActionToastText: String?
     @Published var socialActionToastIsError: Bool = false
+    @Published var currentUserFanXP: FanXPState = .rookie
+    @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
+    /// When set, ``MainTabView`` presents ``PublicUserProfilePreviewView`` for another fan.
+    @Published var publicProfileSheetUserId: UUID?
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = []
     @Published var isLoadingMapVenues: Bool = false
@@ -208,6 +212,8 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingPickupCalendarDots: Bool = false
     @Published var calendarDotStatusText: String?
     @Published var currentUserDisplayName: String = ""
+    /// Stored without `@`, lowercase — public FanGeo handle.
+    @Published var currentUserUsername: String = ""
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
     /// Bumped after avatar profile save (and related clears) so UI uses a new `?v=` display URL while stored URLs stay canonical.
@@ -236,6 +242,27 @@ final class MapViewModel: ObservableObject {
         let email = authenticatedSocialEmailForUI
         let local = email.split(separator: "@").first.map(String.init) ?? ""
         return local.isEmpty ? "" : local
+    }
+
+    /// Blocks app entry until a new fan sets display name + @handle (empty profile row after signup).
+    var needsBlockingFanIdentitySetup: Bool {
+        guard isLoggedIn, !isVenueOwnerLoggedIn else { return false }
+        let name = currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let handle = currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty && handle.isEmpty
+    }
+
+    /// True when no persisted @handle — existing users may still have a display name.
+    var needsFanHandleSelection: Bool {
+        guard isLoggedIn, !isVenueOwnerLoggedIn else { return false }
+        return currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var currentUserPublicHandleLine: String {
+        FanGeoHandleRules.publicHandleLine(
+            storedUsername: currentUserUsername,
+            email: currentUserEmail
+        )
     }
     /// Best-effort current auth email for social UI decisions (comment ownership, friend chips, etc.).
     var authenticatedSocialEmailForUI: String {

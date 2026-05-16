@@ -4,11 +4,14 @@ import SwiftUI
 
 struct ProfileAvatarView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var mapViewModel: MapViewModel
     let preview: UserPreview
     let size: CGFloat
+    /// Passed to ``MapViewModel/presentPublicProfile(userId:context:)`` debug logs.
+    var profileTapContext: String = "profile_avatar"
 
     var body: some View {
-        SocialAvatarRenderer.socialAvatarView(for: preview, size: size)
+        let avatar = SocialAvatarRenderer.socialAvatarView(for: preview, size: size)
             .frame(width: size, height: size)
             .background(
                 Circle()
@@ -20,6 +23,14 @@ struct ProfileAvatarView: View {
                     .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
             }
             .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 8, y: 4)
+
+        if preview.isBusinessIdentity {
+            avatar
+        } else {
+            PublicProfileAvatarTap(userId: preview.id, context: profileTapContext) {
+                avatar
+            }
+        }
     }
 }
 
@@ -210,6 +221,7 @@ struct FriendsTabView: View {
             }
         }
         .onAppear {
+            viewModel.mapViewModel = mapViewModel
             consumePendingDmOpenPreviewIfNeeded()
             Task {
                 await viewModel.refreshInboxSummariesIfNeeded()
@@ -551,6 +563,80 @@ private struct BlockedUsersSheet: View {
 
 // MARK: - Add Friend (Liquid Glass sheet)
 
+private struct AddFriendSearchResultRow: View {
+    let target: AddFriendSearchTarget
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                addFriendResultAvatar
+                addFriendResultText
+                Spacer(minLength: 0)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? Color.accentColor.opacity(0.12)
+                            : Color(.secondarySystemGroupedBackground).opacity(0.6)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var addFriendResultAvatar: some View {
+        if target.entityType == .user {
+            PublicProfileAvatarTap(userId: target.entityId, context: "add_friend_search") {
+                UserAvatarView(
+                    avatarThumbnailURL: target.avatarThumbnailURL,
+                    avatarURL: target.avatarURL ?? "",
+                    avatarDisplayRefreshToken: UUID(),
+                    displayName: target.displayName,
+                    email: "",
+                    size: 36,
+                    fallbackStyle: .lightOnWhiteChrome,
+                    imagePlaceholderTint: FGColor.accentBlue
+                )
+            }
+        } else {
+            Image(systemName: "building.2.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(width: 36, height: 36)
+                .background(Color.accentColor.opacity(0.12))
+                .clipShape(Circle())
+        }
+    }
+
+    private var addFriendResultText: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(target.listTitle)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+            if !target.publicHandleLine.isEmpty {
+                Text(target.publicHandleLine)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            } else if target.entityType == .business {
+                Text("Business")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 private struct AddFriendGlassSheet: View {
     @Binding var lookupDraft: String
     @ObservedObject var viewModel: ChatViewModel
@@ -579,7 +665,7 @@ private struct AddFriendGlassSheet: View {
                 Text("Search fans or businesses")
                     .font(.subheadline.weight(.semibold))
 
-                TextField("Email or display name", text: $lookupDraft)
+                TextField("Search by @handle, name, or email", text: $lookupDraft)
                     .textFieldStyle(.plain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -650,7 +736,7 @@ private struct AddFriendGlassSheet: View {
     private var searchResultsList: some View {
         if viewModel.addFriendSearchResults.isEmpty {
             if !normalizedDraft.isEmpty, !viewModel.addFriendSearchIsLoading {
-                Text("No matches yet. Try another email or name.")
+                Text("No matches yet. Try another @handle, name, or email.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -658,39 +744,12 @@ private struct AddFriendGlassSheet: View {
             ScrollView {
                 VStack(spacing: 6) {
                     ForEach(viewModel.addFriendSearchResults) { target in
-                        Button {
+                        AddFriendSearchResultRow(
+                            target: target,
+                            isSelected: selectedTarget?.id == target.id
+                        ) {
                             selectedTarget = target
-                        } label: {
-                            HStack(spacing: 10) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(target.listTitle)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                    if let email = target.matchedEmail, !email.isEmpty {
-                                        Text(email)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-                                Spacer(minLength: 0)
-                                if selectedTarget?.id == target.id {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(Color.accentColor)
-                                }
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(
-                                        selectedTarget?.id == target.id
-                                            ? Color.accentColor.opacity(0.12)
-                                            : Color(.secondarySystemGroupedBackground).opacity(0.6)
-                                    )
-                            )
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

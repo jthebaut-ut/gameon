@@ -106,6 +106,8 @@ extension MapViewModel {
         let previousFollowingInterestIDs = followingTabUserVenueEventInterestIDs
         let previousFollowingInterestCounts = followingTabGoingInterestCounts
         let previousFollowingItems = followingTabGoingItems
+        let wasAlreadyInterested = venueEventInterestIDs.contains(venueEventID)
+            || followingTabUserVenueEventInterestIDs.contains(venueEventID)
 
         await MainActor.run {
             venueEventInterestWriteInFlightIDs.insert(venueEventID)
@@ -156,6 +158,15 @@ extension MapViewModel {
 
             if isInterested {
                 await loadVisibleVenueEventInterests()
+            }
+
+            if isInterested, !wasAlreadyInterested, let uid = await MainActor.run(body: { currentUserAuthId }) {
+                await awardFanXP(
+                    userId: uid,
+                    amount: 5,
+                    source: FanXPSource.venueEventInterest,
+                    sourceId: venueEventID
+                )
             }
 
             return true

@@ -95,7 +95,14 @@ struct SettingsScreen: View {
         NavigationStack {
             List {
                 Section {
-                    if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
+                    if viewModel.isLoggedIn {
+                        ProfileIdentityCard(
+                            viewModel: viewModel,
+                            showProfileScreen: $showProfileScreen
+                        )
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                    } else if viewModel.isVenueOwnerLoggedIn {
                         SettingsProfileHero(
                             viewModel: viewModel,
                             showProfileScreen: $showProfileScreen,
@@ -107,8 +114,8 @@ struct SettingsScreen: View {
                                 showDeleteVenueOwnerSheet = false
                             }
                         )
-                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                            .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
                     } else {
                         SettingsUnifiedAccountEntryCard(
                             onSignIn: {
@@ -573,6 +580,16 @@ struct SettingsScreen: View {
                         await viewModel.loadMyPickupGamesForSettings()
                     }
                 }
+            }
+        }
+        .overlay(alignment: .top) {
+            if let toast = viewModel.socialActionToastText, !toast.isEmpty {
+                settingsSocialToastBanner(
+                    text: toast,
+                    isError: viewModel.socialActionToastIsError
+                )
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
             }
         }
         .onChange(of: viewModel.openVenueOwnerAuthSheetFromClaimFlow) { _, shouldPresent in
@@ -1178,6 +1195,26 @@ struct SettingsScreen: View {
         f.dateStyle = .medium
         f.timeStyle = .none
         return "Member since \(f.string(from: date))"
+    }
+
+    private func settingsSocialToastBanner(text: String, isError: Bool) -> some View {
+        HStack(spacing: FGSpacing.sm) {
+            Image(systemName: isError ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
+                .foregroundStyle(isError ? FGColor.accentYellow : FGColor.accentGreen)
+            Text(text)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(2)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, FGSpacing.sm)
+        .background(.ultraThinMaterial)
+        .clipShape(Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.16 : 0.06), radius: 10, y: 4)
     }
 
     private func settingsParseSupabaseTimestamptz(_ raw: String) -> Date? {

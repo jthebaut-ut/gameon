@@ -139,7 +139,7 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url")
                 .eq("id", value: creatorUserId.uuidString.lowercased())
                 .limit(1)
                 .execute()
@@ -386,7 +386,7 @@ extension MapViewModel {
             let ids = Array(requesterIds)
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
                 .in("id", values: ids.map { $0.uuidString.lowercased() })
                 .limit(200)
                 .execute()
@@ -619,6 +619,15 @@ extension MapViewModel {
         print("[PickupRequest] approve requested id=\(requestId.uuidString.lowercased())")
 #endif
         do {
+            let requestRows: [PickupGameRequestRow] = try await supabase
+                .from("pickup_game_requests")
+                .select("id,requester_user_id")
+                .eq("id", value: requestId.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+            let requesterId = requestRows.first?.requester_user_id
+
             try await supabase
                 .from("pickup_game_requests")
                 .update(PickupJoinRequestStatusUpdate(status: "approved"))
@@ -628,6 +637,15 @@ extension MapViewModel {
 #if DEBUG
             print("[PickupRequest] approve completed id=\(requestId.uuidString.lowercased())")
 #endif
+            if let requesterId {
+                await awardFanXP(
+                    userId: requesterId,
+                    amount: 10,
+                    source: FanXPSource.pickupJoinApproved,
+                    sourceId: requestId,
+                    showToast: false
+                )
+            }
             refreshPickupJoinCachesAfterMutation()
             await refreshPickupGamesForDiscoverMap(force: true)
             recomputeCalendarDotDates()

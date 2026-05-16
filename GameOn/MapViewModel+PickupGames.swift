@@ -525,6 +525,12 @@ extension MapViewModel {
         )
 #endif
         mergePickupInsertedLocally(row)
+        await awardFanXP(
+            userId: uid,
+            amount: 20,
+            source: FanXPSource.pickupCreate,
+            sourceId: row.id
+        )
         return row
     }
 

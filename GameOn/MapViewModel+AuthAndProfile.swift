@@ -184,6 +184,7 @@ extension MapViewModel {
 
     func clearCurrentUserProfileLocalCache() {
         UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
+        UserDefaults.standard.removeObject(forKey: "cachedUserUsername")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
     }
@@ -193,6 +194,8 @@ extension MapViewModel {
     func clearAuthenticatedSessionCaches() {
         currentUserEmail = ""
         currentUserDisplayName = ""
+        currentUserUsername = ""
+        currentUserFanXP = .rookie
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserAuthId = nil
@@ -350,7 +353,8 @@ extension MapViewModel {
         }
     }
 
-    private static let userProfileSelectColumns = "id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status"
+    private static let userProfileSelectColumns =
+        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
 
     private static func logPostgrestError(_ prefix: String, _ error: Error) {
         print("\(prefix):", error)
@@ -380,7 +384,7 @@ extension MapViewModel {
         do {
             let existing: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,avatar_url,avatar_thumbnail_url")
+                .select(Self.userProfileSelectColumns)
                 .eq("id", value: authId)
                 .limit(1)
                 .execute()
@@ -501,6 +505,7 @@ extension MapViewModel {
                 clearAuthenticatedSessionCaches()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
+                currentUserUsername = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
 
@@ -569,6 +574,7 @@ extension MapViewModel {
                 clearAuthenticatedSessionCaches()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
+                currentUserUsername = ""
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
 
@@ -725,6 +731,7 @@ extension MapViewModel {
     ) async {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+            currentUserUsername = UserDefaults.standard.string(forKey: "cachedUserUsername") ?? ""
             currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
             currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
             currentUserEmail = sessionEmail
@@ -931,7 +938,9 @@ extension MapViewModel {
 
         await ensureUserProfileExists()
         await loadUserProfile()
+        await refreshProfileXP()
         await loadFavoriteVenuesFromSupabase()
+        await loadFavoriteTeamsFromSupabase()
         await refreshFollowingTabDataGlobally()
         await loadPendingPickupGameJoinRequestCountForCreator()
 
@@ -969,6 +978,7 @@ extension MapViewModel {
                             currentUserEmail = em
                         }
                         currentUserDisplayName = profile.display_name ?? ""
+                        currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                         currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
                         currentUserAuthId = authId
@@ -979,6 +989,7 @@ extension MapViewModel {
                 } else {
                     await MainActor.run {
                         currentUserDisplayName = ""
+                        currentUserUsername = ""
                         currentUserAvatarURL = ""
                         currentUserAvatarThumbnailURL = ""
                     }
@@ -1012,6 +1023,7 @@ extension MapViewModel {
             if let profile = rows.first {
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
+                    currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
                     cacheCurrentUserProfileLocally()
@@ -1021,6 +1033,7 @@ extension MapViewModel {
             } else {
                 await MainActor.run {
                     currentUserDisplayName = ""
+                    currentUserUsername = ""
                     currentUserAvatarURL = ""
                     currentUserAvatarThumbnailURL = ""
                 }
@@ -1033,9 +1046,51 @@ extension MapViewModel {
         }
     }
 
+    /// Checks whether a @handle is available for the signed-in user (`check_username_available` RPC).
+    func checkUsernameAvailable(_ rawHandle: String) async -> Bool? {
+        let stored = FanGeoHandleRules.normalizeForStorage(rawHandle)
+        guard FanGeoHandleRules.validate(rawHandle) == nil else { return false }
+
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            return nil
+        }
+
+        struct RpcParams: Encodable {
+            let p_username: String
+            let p_exclude_user_id: UUID
+        }
+
+        do {
+            let available: Bool = try await supabase
+                .rpc(
+                    "check_username_available",
+                    params: RpcParams(p_username: stored, p_exclude_user_id: session.user.id)
+                )
+                .execute()
+                .value
+#if DEBUG
+            print("[HandleAvailabilityDebug] handle=\(stored) available=\(available)")
+#endif
+            return available
+        } catch {
+#if DEBUG
+            print("[HandleAvailabilityDebug] rpc_failed handle=\(stored) error=\(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
+
     /// Upserts `user_profiles` keyed by authenticated user id. Returns `nil` on success, or a user-visible error string.
     @discardableResult
-    func saveUserProfile(displayName: String, avatarURL: String, avatarThumbnailURL: String? = nil) async -> String? {
+    func saveUserProfile(
+        displayName: String,
+        avatarURL: String,
+        avatarThumbnailURL: String? = nil,
+        username: String? = nil
+    ) async -> String? {
         let session: Session
         do {
             session = try await supabase.auth.session
@@ -1091,7 +1146,7 @@ extension MapViewModel {
                     .execute()
                     .value
                 if available == false {
-                    return "This avatar name is already taken. Please choose another."
+                    return "This display name is already taken. Please choose another."
                 }
             } catch {
 #if DEBUG
@@ -1100,6 +1155,30 @@ extension MapViewModel {
                 return "Could not verify whether this name is available. Please try again."
             }
         }
+
+        if let username {
+            if let issue = FanGeoHandleRules.validate(username) {
+                return FanGeoHandleRules.validationMessage(for: issue)
+            }
+            let stored = FanGeoHandleRules.normalizeForStorage(username)
+            guard !stored.isEmpty else {
+                return "Choose a @handle."
+            }
+            if let available = await checkUsernameAvailable(stored) {
+                if !available { return "That handle is already taken." }
+            } else {
+                return "Could not verify whether this handle is available. Please try again."
+            }
+        }
+
+        let usernameToSave: String? = {
+            if let username {
+                let stored = FanGeoHandleRules.normalizeForStorage(username)
+                return stored.isEmpty ? nil : stored
+            }
+            let existing = currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+            return existing.isEmpty ? nil : FanGeoHandleRules.normalizeForStorage(existing)
+        }()
 
         do {
             let canonFull = ImageDisplayURL.canonicalStorageURLString(avatarURL)
@@ -1121,6 +1200,7 @@ extension MapViewModel {
                 id: authId,
                 email: emailForRow,
                 display_name: displayName,
+                username: usernameToSave,
                 avatar_url: canonFull,
                 avatar_thumbnail_url: resolvedThumb
             )
@@ -1135,6 +1215,9 @@ extension MapViewModel {
                     currentUserEmail = emailForRow
                 }
                 currentUserDisplayName = displayName
+                if let usernameToSave {
+                    currentUserUsername = usernameToSave
+                }
                 currentUserAvatarURL = canonFull
                 currentUserAvatarThumbnailURL = resolvedThumb ?? ""
                 cacheCurrentUserProfileLocally()
@@ -1146,8 +1229,11 @@ extension MapViewModel {
 
         } catch {
             print("ERROR SAVING USER PROFILE:", error)
+            if Self.isDuplicateUsernameConstraintViolation(error) {
+                return "That handle is already taken."
+            }
             if Self.isDuplicateDisplayNameConstraintViolation(error) {
-                return "This avatar name is already taken. Please choose another."
+                return "This display name is already taken. Please choose another."
             }
             return "Couldn’t save your profile. Please try again."
         }
@@ -1167,6 +1253,14 @@ extension MapViewModel {
             || d.contains("uq_user_profiles_display_name_normalized")
             || d.contains("avatar_name_normalized")
             || d.contains("uq_user_profiles_avatar_name_normalized")
+    }
+
+    private static func isDuplicateUsernameConstraintViolation(_ error: Error) -> Bool {
+        let d = error.localizedDescription.lowercased()
+        let isDup = d.contains("23505") || d.contains("duplicate key")
+        guard isDup else { return false }
+        return d.contains("username")
+            || d.contains("uq_user_profiles_username_lower")
     }
 
     /// Uploads full + thumbnail JPEGs to `user-avatars` under `{auth_user_uuid}/` (RLS: first path segment must equal `auth.uid()`).
@@ -1270,6 +1364,7 @@ extension MapViewModel {
 
     func cacheCurrentUserProfileLocally() {
         UserDefaults.standard.set(currentUserDisplayName, forKey: "cachedUserDisplayName")
+        UserDefaults.standard.set(currentUserUsername, forKey: "cachedUserUsername")
         UserDefaults.standard.set(currentUserAvatarURL, forKey: "cachedUserAvatarURL")
         UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
     }

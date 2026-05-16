@@ -164,6 +164,14 @@ extension MapViewModel {
 #if DEBUG
             print("[FollowingState] favorite venue saved venue=\(bar.id.uuidString)")
 #endif
+            if isFavorite, let uid = await MainActor.run(body: { currentUserAuthId }) {
+                await awardFanXP(
+                    userId: uid,
+                    amount: 2,
+                    source: FanXPSource.favoriteVenue,
+                    sourceId: bar.id
+                )
+            }
             return true
         } catch {
             let message = error.localizedDescription.lowercased()

@@ -373,17 +373,18 @@ struct FollowingScreen: View {
         }
     }
 
-    /// Row 1: section headers. Row 2: all pills in one line (horizontal scroll on narrow widths). Maps 1:1 to ``FollowingScreenMainTab``.
+    /// Row 1: section headers. Row 2: four pills in one row (equal width within each half, no horizontal scroll). Maps 1:1 to ``FollowingScreenMainTab``.
     private var followingGroupedSegmentControl: some View {
         let corner: CGFloat = 16
         let shell = RoundedRectangle(cornerRadius: corner, style: .continuous)
         let isDark = followingColorScheme == .dark
         let venueHeaderTint = Color(red: 1.0, green: 0.58, blue: 0.18)
         let pickupHeaderTint = Color(red: 0.2, green: 0.78, blue: 0.45)
-        let pillRowHeight: CGFloat = 36
-        let pillHPadding: CGFloat = 12
+        let pillMinHeight: CGFloat = 34
+        let pillHPadding: CGFloat = 7
+        let pillFont: CGFloat = 10
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 followingSelectorSectionHeader(
                     icon: "building.2.fill",
@@ -400,56 +401,60 @@ struct FollowingScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .center, spacing: 0) {
-                    HStack(spacing: 8) {
-                        followingSelectorPillButton(
-                            title: "Games",
-                            tab: .venueGames,
-                            accent: .venuesWarm,
-                            accessibilityLabel: "Venue games you’re following",
-                            badgeCount: nil,
-                            rowHeight: pillRowHeight,
-                            horizontalPadding: pillHPadding
-                        )
-                        followingSelectorPillButton(
-                            title: "Saved Venues",
-                            tab: .savedVenues,
-                            accent: .venuesWarm,
-                            accessibilityLabel: "Saved venues",
-                            badgeCount: nil,
-                            rowHeight: pillRowHeight,
-                            horizontalPadding: pillHPadding
-                        )
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
-
-                    followingSelectorInterGroupDivider(isDark: isDark, height: pillRowHeight - 6)
-
-                    HStack(spacing: 8) {
-                        followingSelectorPillButton(
-                            title: "Games to Play",
-                            tab: .gamesToPlay,
-                            accent: .pickupGreen,
-                            accessibilityLabel: "Pickup games you asked to join",
-                            badgeCount: viewModel.pickupActivityCount,
-                            rowHeight: pillRowHeight,
-                            horizontalPadding: pillHPadding
-                        )
-                        followingSelectorPillButton(
-                            title: "My Pickup Games",
-                            tab: .myPickupGames,
-                            accent: .pickupGreen,
-                            accessibilityLabel: "Pickup games you host",
-                            badgeCount: nil,
-                            rowHeight: pillRowHeight,
-                            horizontalPadding: pillHPadding
-                        )
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
+            HStack(alignment: .center, spacing: 6) {
+                HStack(spacing: 5) {
+                    followingSelectorPillButton(
+                        title: "Games",
+                        tab: .venueGames,
+                        accent: .venuesWarm,
+                        accessibilityLabel: "Venue games you’re following",
+                        badgeCount: nil,
+                        minHeight: pillMinHeight,
+                        horizontalPadding: pillHPadding,
+                        fontSize: pillFont,
+                        titleLineLimit: 1
+                    )
+                    followingSelectorPillButton(
+                        title: "Saved Venues",
+                        tab: .savedVenues,
+                        accent: .venuesWarm,
+                        accessibilityLabel: "Saved venues",
+                        badgeCount: nil,
+                        minHeight: pillMinHeight,
+                        horizontalPadding: pillHPadding,
+                        fontSize: pillFont,
+                        titleLineLimit: 1
+                    )
                 }
-                .padding(.vertical, 2)
-                .padding(.horizontal, 2)
+                .frame(maxWidth: .infinity)
+
+                followingSelectorInterGroupDivider(isDark: isDark, height: pillMinHeight - 4)
+
+                HStack(spacing: 5) {
+                    followingSelectorPillButton(
+                        title: "Games to Play",
+                        tab: .gamesToPlay,
+                        accent: .pickupGreen,
+                        accessibilityLabel: "Pickup games you asked to join",
+                        badgeCount: viewModel.pickupActivityCount,
+                        minHeight: pillMinHeight,
+                        horizontalPadding: pillHPadding,
+                        fontSize: pillFont,
+                        titleLineLimit: 1
+                    )
+                    followingSelectorPillButton(
+                        title: "My Pickup Games",
+                        tab: .myPickupGames,
+                        accent: .pickupGreen,
+                        accessibilityLabel: "Pickup games you host",
+                        badgeCount: nil,
+                        minHeight: pillMinHeight,
+                        horizontalPadding: pillHPadding,
+                        fontSize: pillFont,
+                        titleLineLimit: 2
+                    )
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal, 12)
@@ -505,7 +510,7 @@ struct FollowingScreen: View {
         Rectangle()
             .fill(Color.white.opacity(isDark ? 0.14 : 0.22))
             .frame(width: 1, height: height)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 6)
     }
 
     private func followingSelectorPillButton(
@@ -514,8 +519,10 @@ struct FollowingScreen: View {
         accent: FollowingGroupAccentKind,
         accessibilityLabel summary: String,
         badgeCount: Int?,
-        rowHeight: CGFloat,
-        horizontalPadding: CGFloat
+        minHeight: CGFloat,
+        horizontalPadding: CGFloat,
+        fontSize: CGFloat,
+        titleLineLimit: Int
     ) -> some View {
         let isDark = followingColorScheme == .dark
         let selected = followingSegment == tab
@@ -527,17 +534,18 @@ struct FollowingScreen: View {
         } label: {
             ZStack(alignment: .topTrailing) {
                 Text(title)
-                    .font(.system(size: 10.5, weight: selected ? .semibold : .medium, design: .rounded))
+                    .font(.system(size: fontSize, weight: selected ? .semibold : .medium, design: .rounded))
                     .foregroundStyle(
                         selected
                             ? Color.white
                             : (isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.72))
                     )
-                    .lineLimit(1)
-                    .minimumScaleFactor(1)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(titleLineLimit)
+                    .minimumScaleFactor(titleLineLimit == 1 ? 0.86 : 1)
+                    .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .center)
                     .padding(.horizontal, horizontalPadding)
-                    .frame(height: rowHeight)
+                    .padding(.vertical, titleLineLimit > 1 ? 5 : 6)
                     .background {
                         Group {
                             if selected {
@@ -558,17 +566,18 @@ struct FollowingScreen: View {
 
                 if showBadge {
                     Text(count > 99 ? "99+" : "\(count)")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .font(.system(size: 8, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                        .padding(.horizontal, 4)
+                        .padding(.horizontal, 3)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.orange.opacity(0.92)))
-                        .offset(x: 6, y: -6)
+                        .offset(x: 3, y: -4)
                         .accessibilityHidden(true)
                 }
             }
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .center)
         .accessibilityLabel(summary)
     }
 
@@ -959,15 +968,17 @@ struct FollowingScreen: View {
             }
 
             HStack(spacing: FGSpacing.sm) {
-                UserAvatarView(
-                    avatarThumbnailURL: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: card.organizerUserId),
-                    avatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
-                    avatarDisplayRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId),
-                    displayName: card.organizerName,
-                    email: viewModel.pickupOrganizerEmailForDetail(userId: card.organizerUserId),
-                    size: 36,
-                    fallbackStyle: followingColorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
-                )
+                PublicProfileAvatarTap(userId: card.organizerUserId, context: "following_pickup_organizer") {
+                    UserAvatarView(
+                        avatarThumbnailURL: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: card.organizerUserId),
+                        avatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: card.organizerUserId),
+                        avatarDisplayRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: card.organizerUserId),
+                        displayName: card.organizerName,
+                        email: viewModel.pickupOrganizerEmailForDetail(userId: card.organizerUserId),
+                        size: 36,
+                        fallbackStyle: followingColorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+                    )
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Organizer")
                         .font(FGTypography.metadata)

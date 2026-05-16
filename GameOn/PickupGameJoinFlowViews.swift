@@ -446,16 +446,18 @@ struct DiscoverPickupGameDetailSheet: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                UserAvatarView(
-                    avatarThumbnailURL: thumb,
-                    avatarURL: full,
-                    avatarDisplayRefreshToken: token,
-                    displayName: displayForAvatar,
-                    email: emailLine,
-                    size: 48,
-                    fallbackStyle: avatarFallback,
-                    imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
-                )
+                PublicProfileAvatarTap(userId: uid, context: "pickup_detail_organizer") {
+                    UserAvatarView(
+                        avatarThumbnailURL: thumb,
+                        avatarURL: full,
+                        avatarDisplayRefreshToken: token,
+                        displayName: displayForAvatar,
+                        email: emailLine,
+                        size: 48,
+                        fallbackStyle: avatarFallback,
+                        imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
+                    )
+                }
             }
 
             pickupOrganizerTrustBadge(stats: viewModel.pickupCreatorTrustStats(for: uid))
@@ -1012,16 +1014,18 @@ struct PickupOrganizerRequestsSheet: View {
 
         VStack(alignment: .leading, spacing: FGSpacing.md) {
             HStack(alignment: .top, spacing: FGSpacing.md) {
-                UserAvatarView(
-                    avatarThumbnailURL: thumb,
-                    avatarURL: full,
-                    avatarDisplayRefreshToken: token,
-                    displayName: displayName,
-                    email: emailLine,
-                    size: 56,
-                    fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome,
-                    imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
-                )
+                PublicProfileAvatarTap(userId: req.requester_user_id, context: "pickup_join_request") {
+                    UserAvatarView(
+                        avatarThumbnailURL: thumb,
+                        avatarURL: full,
+                        avatarDisplayRefreshToken: token,
+                        displayName: displayName,
+                        email: emailLine,
+                        size: 56,
+                        fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome,
+                        imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.75) : nil
+                    )
+                }
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: FGSpacing.sm) {

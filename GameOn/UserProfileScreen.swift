@@ -9,6 +9,10 @@ struct UserProfileScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @State private var editedDisplayName: String = ""
+    @State private var editedUsername: String = ""
+    @State private var handleStatusMessage = ""
+    @State private var handleStatusIsPositive = false
+    @State private var availabilityTask: Task<Void, Never>?
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isSaving: Bool = false
     @State private var isUploadingAvatar: Bool = false
@@ -20,6 +24,7 @@ struct UserProfileScreen: View {
                 VStack(alignment: .leading, spacing: FGSpacing.xl) {
                     profileHeaderCard
                     displayNameCard
+                    usernameCard
                     photoCard
                     accountActionsCard
 
@@ -49,6 +54,10 @@ struct UserProfileScreen: View {
             }
             .onAppear {
                 editedDisplayName = resolvedDisplayName
+                editedUsername = viewModel.currentUserUsername
+            }
+            .onChange(of: editedUsername) { _, _ in
+                scheduleHandleAvailabilityCheck()
             }
             .onChange(of: selectedAvatarItem) { _, item in
                 guard let item else { return }
@@ -74,7 +83,7 @@ struct UserProfileScreen: View {
                             .font(FGTypography.sectionTitle)
                             .foregroundStyle(.white)
 
-                        Text(viewModel.currentUserEmail)
+                        Text(viewModel.currentUserPublicHandleLine)
                             .font(FGTypography.caption)
                             .foregroundStyle(.white.opacity(0.82))
                             .lineLimit(1)
@@ -107,6 +116,39 @@ struct UserProfileScreen: View {
                 .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
         }
         .floatingShadow()
+    }
+
+    private var usernameCard: some View {
+        FGCard {
+            FGSectionHeader(
+                "@handle",
+                subtitle: "Your unique public username for friend search."
+            )
+
+            HStack(spacing: 4) {
+                Text("@")
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                TextField("handle", text: $editedUsername)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(FGTypography.body)
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, FGSpacing.sm + 2)
+            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
+            .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+
+            if !handleStatusMessage.isEmpty {
+                Text(handleStatusMessage)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(handleStatusIsPositive ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+            }
+        }
     }
 
     private var displayNameCard: some View {
@@ -307,16 +349,53 @@ struct UserProfileScreen: View {
             await MainActor.run { message = ModerationService.profanityRejectionUserMessage() }
             return
         }
+        if let issue = FanGeoHandleRules.validate(editedUsername) {
+            await MainActor.run { message = FanGeoHandleRules.validationMessage(for: issue) }
+            return
+        }
+
         if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: viewModel.currentUserAvatarURL,
-            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL
+            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+            username: editedUsername
         ) {
             await MainActor.run { message = err }
             return
         }
         await MainActor.run { message = "Saved." }
         onDone()
+    }
+
+    private func scheduleHandleAvailabilityCheck() {
+        availabilityTask?.cancel()
+        handleStatusMessage = ""
+        handleStatusIsPositive = false
+
+        let raw = editedUsername
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return
+        }
+        if let issue = FanGeoHandleRules.validate(raw) {
+            handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            return
+        }
+
+        availabilityTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled else { return }
+            guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
+            await MainActor.run {
+                guard !Task.isCancelled else { return }
+                if available {
+                    handleStatusMessage = "Handle available."
+                    handleStatusIsPositive = true
+                } else {
+                    handleStatusMessage = "That handle is already taken."
+                    handleStatusIsPositive = false
+                }
+            }
+        }
     }
 
     private func replaceAvatar(with item: PhotosPickerItem) async {

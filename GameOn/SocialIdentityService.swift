@@ -36,7 +36,7 @@ struct SocialIdentityService {
 
         return (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -52,7 +52,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
             .in("id", values: ids)
             .eq("admin_status", value: "active")
             .execute()
@@ -180,7 +180,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,avatar_url,avatar_thumbnail_url,admin_status")
+            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -261,6 +261,7 @@ struct SocialIdentityService {
                 userId: business.owner_user_id ?? profile?.id ?? fallbackUserId,
                 email: email,
                 displayName: name,
+                username: nil,
                 avatarURL: nil,
                 avatarThumbnailURL: nil,
                 isBusinessAccount: true
@@ -279,10 +280,13 @@ struct SocialIdentityService {
             displayName = local.isEmpty ? "Player" : local
         }
 
+        let storedUsername = trimmedNonEmpty(profile?.username)
+
         return ResolvedIdentity(
             userId: profile?.id ?? fallbackUserId,
             email: email,
             displayName: displayName,
+            username: storedUsername.isEmpty ? nil : FanGeoHandleRules.normalizeForStorage(storedUsername),
             avatarURL: profile?.avatar_url,
             avatarThumbnailURL: profile?.avatar_thumbnail_url,
             isBusinessAccount: profile?.isBusinessIdentity == true
@@ -297,6 +301,7 @@ struct SocialIdentityService {
         let userId: UUID?
         let email: String
         let displayName: String
+        let username: String?
         let avatarURL: String?
         let avatarThumbnailURL: String?
         let isBusinessAccount: Bool
@@ -305,6 +310,7 @@ struct SocialIdentityService {
             UserPreview(
                 id: userId ?? UUID(),
                 displayName: displayName,
+                username: username,
                 email: email,
                 avatarURL: avatarURL,
                 avatarThumbnailURL: avatarThumbnailURL,
@@ -317,6 +323,7 @@ struct SocialIdentityService {
                 id: userId,
                 email: email,
                 display_name: displayName,
+                username: username,
                 avatar_url: avatarURL,
                 avatar_thumbnail_url: avatarThumbnailURL,
                 is_business_account: isBusinessAccount,

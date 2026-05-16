@@ -619,16 +619,32 @@ struct VenueEventCommentsView: View {
 
         let name = displayName(for: comment)
 
+        let authorUserId = commentProfile?.id
+
         return Group {
-            SocialAvatarRenderer.socialAvatarView(
-                displayName: name,
-                email: email,
-                avatarURL: avatarURL,
-                avatarThumbnailURL: nil,
-                isBusinessIdentity: isBusinessComment,
-                size: 38,
-                fallbackStyle: .blueInitials
-            )
+            if let authorUserId, !isAuthoredByCurrentUser(email: email) {
+                PublicProfileAvatarTap(userId: authorUserId, context: "venue_event_comment") {
+                    SocialAvatarRenderer.socialAvatarView(
+                        displayName: name,
+                        email: email,
+                        avatarURL: avatarURL,
+                        avatarThumbnailURL: nil,
+                        isBusinessIdentity: isBusinessComment,
+                        size: 38,
+                        fallbackStyle: .blueInitials
+                    )
+                }
+            } else {
+                SocialAvatarRenderer.socialAvatarView(
+                    displayName: name,
+                    email: email,
+                    avatarURL: avatarURL,
+                    avatarThumbnailURL: nil,
+                    isBusinessIdentity: isBusinessComment,
+                    size: 38,
+                    fallbackStyle: .blueInitials
+                )
+            }
         }
         .frame(width: 38, height: 38)
         .clipShape(Circle())

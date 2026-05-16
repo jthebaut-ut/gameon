@@ -16,6 +16,7 @@ struct MainTabView: View {
     @AppStorage("gameon.require_device_auth_for_private_chat") private var requireDeviceAuthForPrivateChat = true
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
+    @State private var showBlockingFanIdentitySetup = false
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -40,6 +41,46 @@ struct MainTabView: View {
     private static let floatingTabBarStackHeight: CGFloat = 92
 
     var body: some View {
+        tabShellWithLifecycleModifiers
+            .environmentObject(viewModel)
+            .environmentObject(chatViewModel)
+            .overlay {
+                FanXPRewardOverlayHost(manager: viewModel.fanXPRewardOverlay)
+                    .id(ObjectIdentifier(viewModel.fanXPRewardOverlay))
+            }
+            .sheet(isPresented: publicProfileSheetBinding) {
+                if let userId = viewModel.publicProfileSheetUserId {
+                    PublicUserProfilePreviewView(userId: userId, viewModel: viewModel)
+                        .environmentObject(chatViewModel)
+                }
+            }
+            .fullScreenCover(isPresented: $showBlockingFanIdentitySetup) {
+                FanGeoIdentitySetupView(viewModel: viewModel, mode: .complete) {
+                    showBlockingFanIdentitySetup = false
+                }
+                .interactiveDismissDisabled()
+            }
+            .alert(
+                "Private chat",
+                isPresented: Binding(
+                    get: { chatGateAlertMessage != nil },
+                    set: { if !$0 { chatGateAlertMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    chatGateAlertMessage = nil
+                }
+            } message: {
+                Text(chatGateAlertMessage ?? "")
+            }
+            .onAppear {
+                guard !didRunInitialPrivateChatTabGate else { return }
+                didRunInitialPrivateChatTabGate = true
+                Task { await enforcePrivateChatGateOnLaunchIfNeeded() }
+            }
+    }
+
+    private var tabShellWithLifecycleModifiers: some View {
         ZStack {
             preservedRoot(tab: .discover) {
                 DiscoverScreen(viewModel: viewModel)
@@ -91,6 +132,7 @@ struct MainTabView: View {
                 print("[StartupDiscover] selected Discover tab")
 #endif
             }
+            showBlockingFanIdentitySetup = viewModel.needsBlockingFanIdentitySetup
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
@@ -140,6 +182,9 @@ struct MainTabView: View {
             print("[ChatTabBadge] unreadCount=\(newValue)")
             print("[ChatTabBadge] visible=\(visible)")
 #endif
+        }
+        .onChange(of: viewModel.needsBlockingFanIdentitySetup) { _, needs in
+            showBlockingFanIdentitySetup = needs
         }
         .onChange(of: chatViewModel.requiresSignIn) { _, _ in
 #if DEBUG
@@ -206,24 +251,6 @@ struct MainTabView: View {
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.discover.rawValue
             }
-        }
-        .alert(
-            "Private chat",
-            isPresented: Binding(
-                get: { chatGateAlertMessage != nil },
-                set: { if !$0 { chatGateAlertMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {
-                chatGateAlertMessage = nil
-            }
-        } message: {
-            Text(chatGateAlertMessage ?? "")
-        }
-        .onAppear {
-            guard !didRunInitialPrivateChatTabGate else { return }
-            didRunInitialPrivateChatTabGate = true
-            Task { await enforcePrivateChatGateOnLaunchIfNeeded() }
         }
     }
 
@@ -720,6 +747,17 @@ struct MainTabView: View {
     }
 
     /// Account tab avatar only (no badge); clipped separately from the badge overlay.
+    private var publicProfileSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.publicProfileSheetUserId != nil },
+            set: { isPresented in
+                if !isPresented {
+                    viewModel.dismissPublicProfile()
+                }
+            }
+        )
+    }
+
     private var accountTabAvatarCircleOnly: some View {
         Group {
             if viewModel.isLoggedIn {

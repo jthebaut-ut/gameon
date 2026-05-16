@@ -241,6 +241,51 @@ nonisolated struct PickupCreatorPublicRatingStats: Equatable {
         }
         return "★ New organizer · No ratings yet"
     }
+
+    /// Optional tier for public profile (derived from existing ``ratingCount`` / ``avgRating`` only).
+    var publicProfileOrganizerTierLabel: String? {
+        guard ratingCount > 0 else { return nil }
+        if ratingCount >= 15, avgRating >= 4.7 { return "Top host" }
+        if ratingCount >= 8, avgRating >= 4.5 { return "Trusted host" }
+        if ratingCount >= 3 { return "Rated host" }
+        return nil
+    }
+
+    /// Short trust copy for public profile organizer card.
+    var publicProfileOrganizerTrustCopy: String {
+        guard ratingCount > 0 else {
+            return "This host is just getting started."
+        }
+        if avgRating >= 4.5, ratingCount >= 5 {
+            return "Trusted by local players."
+        }
+        if avgRating >= 4.0 {
+            return "Well rated by local players."
+        }
+        return "Building a pickup reputation."
+    }
+
+    var hasPublicOrganizerRatings: Bool {
+        ratingCount > 0
+    }
+}
+
+/// DEBUG: public profile pickup organizer reputation card.
+enum PickupOrganizerReputationDebug {
+    static func log(creatorUserId: UUID, stats: PickupCreatorPublicRatingStats?) {
+#if DEBUG
+        let resolved = stats ?? PickupCreatorPublicRatingStats(avgRating: 0, ratingCount: 0)
+        print("[PickupOrganizerReputationDebug] userId=\(creatorUserId.uuidString.lowercased())")
+        print("[PickupOrganizerReputationDebug] existingRatingLine=\(resolved.pickupOrganizerDetailRatingLine)")
+        if resolved.ratingCount > 0 {
+            print("[PickupOrganizerReputationDebug] avgRating=\(String(format: "%.1f", resolved.avgRating))")
+            print("[PickupOrganizerReputationDebug] ratingCount=\(resolved.ratingCount)")
+        } else {
+            print("[PickupOrganizerReputationDebug] avgRating=n/a")
+            print("[PickupOrganizerReputationDebug] ratingCount=0")
+        }
+#endif
+    }
 }
 
 /// Decodes JSON number or string for `numeric` columns from RPC.

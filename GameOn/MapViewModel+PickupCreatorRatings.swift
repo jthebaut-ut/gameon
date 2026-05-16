@@ -142,13 +142,14 @@ extension MapViewModel {
             feedback: feedbackOut
         )
 
+        let alreadyRated = hasSubmittedPickupCreatorRating(for: pickupGameId)
         PickupCreatorRatingDebug.log(
             pickupGameId: pickupGameId,
             creatorUserId: creatorUserId,
             raterUserId: rater,
             rating: payload.rating,
             submitSucceeded: nil,
-            alreadyRated: hasSubmittedPickupCreatorRating(for: pickupGameId)
+            alreadyRated: alreadyRated
         )
 
         do {
@@ -168,6 +169,14 @@ extension MapViewModel {
                 submitSucceeded: true,
                 alreadyRated: false
             )
+            if !alreadyRated {
+                await awardFanXP(
+                    userId: rater,
+                    amount: 15,
+                    source: FanXPSource.pickupComplete,
+                    sourceId: pickupGameId
+                )
+            }
             return true
         } catch {
             let msg = String(describing: error).lowercased()

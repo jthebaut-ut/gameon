@@ -46,6 +46,110 @@ struct PickupCreatorTrustLineView: View {
     }
 }
 
+/// Public profile organizer reputation (reuses ``PickupCreatorPublicRatingStats`` / ``pickupOrganizerDetailRatingLine``).
+struct PublicProfilePickupOrganizerCard: View {
+    let creatorUserId: UUID
+    let stats: PickupCreatorPublicRatingStats?
+
+    private var resolved: PickupCreatorPublicRatingStats {
+        stats ?? PickupCreatorPublicRatingStats(avgRating: 0, ratingCount: 0)
+    }
+
+    private var isRated: Bool {
+        resolved.hasPublicOrganizerRatings
+    }
+
+    private var ratingAccent: Color {
+        if !isRated { return Color.white.opacity(0.55) }
+        if resolved.avgRating >= 4.5 { return FGColor.accentGreen }
+        if resolved.avgRating >= 4.0 { return FGColor.accentGreen.opacity(0.88) }
+        return Color.white.opacity(0.78)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FGColor.accentBlue.opacity(0.9))
+                Text("Pickup Organizer")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.88))
+                Spacer(minLength: 0)
+                if let tier = resolved.publicProfileOrganizerTierLabel {
+                    Text(tier)
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(isRated ? FGColor.accentGreen : Color.white.opacity(0.6))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(
+                                    isRated
+                                        ? FGColor.accentGreen.opacity(0.18)
+                                        : Color.white.opacity(0.08)
+                                )
+                        }
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(
+                                    isRated ? FGColor.accentGreen.opacity(0.45) : Color.white.opacity(0.12),
+                                    lineWidth: 1
+                                )
+                        }
+                }
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(ratingAccent)
+                Text(resolved.pickupOrganizerDetailRatingLine)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(ratingAccent)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+
+            Text(resolved.publicProfileOrganizerTrustCopy)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.52))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.black.opacity(0.32))
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    isRated ? FGColor.accentGreen.opacity(0.22) : Color.white.opacity(0.1),
+                    lineWidth: 1
+                )
+        }
+        .onAppear {
+            PickupOrganizerReputationDebug.log(creatorUserId: creatorUserId, stats: stats)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var accessibilitySummary: String {
+        let line = resolved.pickupOrganizerDetailRatingLine
+        let copy = resolved.publicProfileOrganizerTrustCopy
+        if let tier = resolved.publicProfileOrganizerTierLabel {
+            return "Pickup organizer. \(tier). \(line). \(copy)"
+        }
+        return "Pickup organizer. \(line). \(copy)"
+    }
+}
+
 /// Compact post-game organizer rating (approved joiners only; parent gates visibility).
 struct PickupCreatorRatingPromptCard: View {
     @ObservedObject var viewModel: MapViewModel
