@@ -1014,7 +1014,11 @@ struct PickupOrganizerRequestsSheet: View {
 
         VStack(alignment: .leading, spacing: FGSpacing.md) {
             HStack(alignment: .top, spacing: FGSpacing.md) {
-                PublicProfileAvatarTap(userId: req.requester_user_id, context: "pickup_join_request") {
+                PublicProfileAvatarTap(
+                    userId: req.requester_user_id,
+                    context: "pickup_join_request",
+                    activeSheet: "manage_requests"
+                ) {
                     UserAvatarView(
                         avatarThumbnailURL: thumb,
                         avatarURL: full,

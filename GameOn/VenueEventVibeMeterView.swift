@@ -3,6 +3,7 @@ import SwiftUI
 struct VenueEventVibeMeterView: View {
     @ObservedObject var viewModel: MapViewModel
     let venueEventID: UUID
+    @State private var chipsVisible = false
 
     private let vibes: [(type: String, label: String)] = [
         ("audio_on", "🔊 Audio"),
@@ -23,12 +24,17 @@ struct VenueEventVibeMeterView: View {
                 HStack(spacing: 8) {
                     ForEach(vibes, id: \.type) { vibe in
                         vibeButton(type: vibe.type, label: vibe.label)
+                            .progressiveAppear(isVisible: chipsVisible, yOffset: 4)
                     }
                 }
+                .animation(.easeOut(duration: 0.2), value: viewModel.venueEventVibeCounts[venueEventID]?.values.reduce(0, +) ?? 0)
             }
         }
         .task {
-            await viewModel.loadVibes(for: venueEventID)
+            withAnimation(.easeOut(duration: 0.2)) {
+                chipsVisible = true
+            }
+            viewModel.prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
         }
     }
 

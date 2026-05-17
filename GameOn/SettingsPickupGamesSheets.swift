@@ -618,7 +618,11 @@ struct SettingsPickupMyGameListCard: View {
                     colorScheme: colorScheme,
                     approvedUserIds: approvedJoinerUserIds,
                     onAvatarTapped: { uid in
-                        viewModel.presentPublicProfile(userId: uid, context: "pickup_roster_avatar")
+                        viewModel.presentPublicProfile(
+                            userId: uid,
+                            context: "pickup_roster_avatar",
+                            activeSheet: "settings_pickup_games"
+                        )
                     }
                 )
                 if !isFollowingCompact {
@@ -1091,7 +1095,11 @@ private struct SettingsPickupWithdrawnJoinRow: View {
         let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[request.requester_user_id] ?? UUID()
 
         HStack(alignment: .top, spacing: 12) {
-            PublicProfileAvatarTap(userId: request.requester_user_id, context: "pickup_withdrawn_joiner") {
+            PublicProfileAvatarTap(
+                userId: request.requester_user_id,
+                context: "pickup_withdrawn_joiner",
+                activeSheet: "settings_pickup_games"
+            ) {
                 UserAvatarView(
                     avatarThumbnailURL: thumb,
                     avatarURL: full,

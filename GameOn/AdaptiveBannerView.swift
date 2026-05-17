@@ -2,37 +2,12 @@ import SwiftUI
 import UIKit
 import GoogleMobileAds
 
-// MARK: - UIKit bridge (root VC for ad load)
-
-private enum AdaptiveBannerRootViewController {
-    static func bestKeyWindow() -> UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)
-    }
-
-    static func topViewController() -> UIViewController? {
-        guard let root = bestKeyWindow()?.rootViewController else { return nil }
-        var top: UIViewController = root
-        while let presented = top.presentedViewController {
-            top = presented
-        }
-        if let nav = top as? UINavigationController, let visible = nav.visibleViewController {
-            top = visible
-        }
-        if let tab = top as? UITabBarController, let selected = tab.selectedViewController {
-            top = selected
-        }
-        return top
-    }
-}
-
 // MARK: - UIViewRepresentable
 
 private struct AdaptiveBannerRepresentable: UIViewRepresentable {
     let adUnitID: String
     let adSize: AdSize
+    let slotSize: CGSize
     let onAdLoaded: () -> Void
     let onAdFailed: (Error) -> Void
 
@@ -40,36 +15,39 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         Coordinator(onAdLoaded: onAdLoaded, onAdFailed: onAdFailed)
     }
 
-    func makeUIView(context: Context) -> BannerView {
+    func makeUIView(context: Context) -> UIView {
+        let container = UIView()
+        container.backgroundColor = .clear
+        container.clipsToBounds = true
+
         let banner = BannerView(adSize: adSize)
         banner.adUnitID = adUnitID
         banner.delegate = context.coordinator
-        context.coordinator.attach(banner)
+        banner.translatesAutoresizingMaskIntoConstraints = false
 
-        DispatchQueue.main.async {
-            if banner.rootViewController == nil {
-                banner.rootViewController = AdaptiveBannerRootViewController.topViewController()
-            }
-            banner.load(Request())
-        }
+        container.addSubview(banner)
+        context.coordinator.attach(banner, in: container, adSize: adSize, slotSize: slotSize)
+        context.coordinator.loadBannerIfNeeded(force: true)
 
-        return banner
+        return container
     }
 
-    func updateUIView(_ uiView: BannerView, context: Context) {
-        if uiView.rootViewController == nil {
-            uiView.rootViewController = AdaptiveBannerRootViewController.topViewController()
-        }
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.update(adSize: adSize, slotSize: slotSize, adUnitID: adUnitID)
     }
 
-    static func dismantleUIView(_ uiView: BannerView, coordinator: Coordinator) {
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
         coordinator.detach()
-        uiView.delegate = nil
-        uiView.isHidden = true
     }
 
     final class Coordinator: NSObject, BannerViewDelegate {
         private weak var banner: BannerView?
+        private weak var container: UIView?
+        private var widthConstraint: NSLayoutConstraint?
+        private var heightConstraint: NSLayoutConstraint?
+        private var currentAdSize: CGSize?
+        private var currentSlotSize: CGSize?
+        private var didRequestAd = false
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
 
@@ -78,12 +56,65 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             self.onAdFailed = onAdFailed
         }
 
-        func attach(_ banner: BannerView) {
+        func attach(_ banner: BannerView, in container: UIView, adSize: AdSize, slotSize: CGSize) {
             self.banner = banner
+            self.container = container
+            currentAdSize = adSize.size
+            currentSlotSize = slotSize
+
+            let width = banner.widthAnchor.constraint(equalToConstant: slotSize.width)
+            let height = banner.heightAnchor.constraint(equalToConstant: slotSize.height)
+            widthConstraint = width
+            heightConstraint = height
+
+            NSLayoutConstraint.activate([
+                banner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+                banner.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                width,
+                height
+            ])
+        }
+
+        func update(adSize: AdSize, slotSize: CGSize, adUnitID: String) {
+            guard let banner else { return }
+            if banner.adUnitID != adUnitID {
+                banner.adUnitID = adUnitID
+                didRequestAd = false
+            }
+
+            let nextSize = adSize.size
+            if currentAdSize != nextSize || currentSlotSize != slotSize {
+                currentAdSize = nextSize
+                currentSlotSize = slotSize
+                banner.adSize = adSize
+                widthConstraint?.constant = slotSize.width
+                heightConstraint?.constant = slotSize.height
+                container?.setNeedsLayout()
+                loadBannerIfNeeded(force: true)
+                return
+            }
+
+            loadBannerIfNeeded(force: false)
+        }
+
+        func loadBannerIfNeeded(force: Bool) {
+            guard let banner else { return }
+            if banner.rootViewController == nil {
+                banner.rootViewController = AdMobRootViewController.topViewController()
+            }
+            guard force || !didRequestAd else { return }
+            didRequestAd = true
+            banner.load(Request())
         }
 
         func detach() {
+            banner?.delegate = nil
+            banner?.isHidden = true
+            banner?.removeFromSuperview()
             banner = nil
+            container = nil
+            widthConstraint = nil
+            heightConstraint = nil
         }
 
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
@@ -99,30 +130,37 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
 // MARK: - Layout helpers
 
 enum AdaptiveBannerLayout {
+    private static let compactMaxHeight: CGFloat = 50
+
     /// Width passed to Google's anchored adaptive API (points). Uses `currentOrientationAnchoredAdaptiveBanner`.
     static func anchoredAdSize(forBannerSlotWidth slotWidth: CGFloat) -> AdSize {
-        let w = max(320, slotWidth)
-        return currentOrientationAnchoredAdaptiveBanner(width: w)
+        let w = max(1, floor(slotWidth))
+        return inlineAdaptiveBanner(width: w, maxHeight: compactMaxHeight)
+    }
+
+    /// Exact rendered size returned by Google's adaptive banner API for the available slot width.
+    static func adaptiveBannerSize(forAvailableWidth availableWidth: CGFloat) -> CGSize {
+        let width = max(1, floor(availableWidth))
+        let adSize = anchoredAdSize(forBannerSlotWidth: width)
+        return CGSize(width: width, height: adSize.size.height)
     }
 
     /// Vertical space to reserve for the banner (anchored adaptive height for the current orientation).
     static func reservedSlotHeight(forOuterLayoutWidth layoutWidth: CGFloat) -> CGFloat {
-        anchoredAdSize(forBannerSlotWidth: max(320, layoutWidth - 24)).size.height
+        adaptiveBannerSize(forAvailableWidth: layoutWidth).height
     }
 }
 
-/// Anchored adaptive AdMob banner in a FanGeo-style rounded glass shell. Reserves adaptive height before the ad loads to avoid layout jumps.
+/// Anchored adaptive AdMob banner sized to the exact parent slot.
 struct AdaptiveBannerView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     let adUnitID: String
-    /// Width available **inside** the parent’s horizontal padding (e.g. Discover row after `FGSpacing.lg`). Inner ad slot subtracts this view’s own horizontal padding (12+12).
+    /// Final visible width available to the banner after parent screen margins.
     let layoutWidth: CGFloat
     var onAdLoaded: () -> Void = {}
     var onAdFailed: (Error) -> Void = { _ in }
 
     private var bannerSlotWidth: CGFloat {
-        max(320, layoutWidth - 24)
+        max(1, floor(layoutWidth))
     }
 
     private var adSize: AdSize {
@@ -130,34 +168,16 @@ struct AdaptiveBannerView: View {
     }
 
     var body: some View {
-        let size = adSize.size
-        HStack(spacing: 0) {
-            Spacer(minLength: 0)
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08))
-                AdaptiveBannerRepresentable(
-                    adUnitID: adUnitID,
-                    adSize: adSize,
-                    onAdLoaded: onAdLoaded,
-                    onAdFailed: onAdFailed
-                )
-                .frame(width: size.width, height: size.height)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(width: size.width, height: size.height)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.45 : 0.35), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(colorScheme == .dark ? 0.42 : 0.14), radius: 14, y: 7)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity, minHeight: size.height, maxHeight: size.height)
+        let slotSize = CGSize(width: bannerSlotWidth, height: adSize.size.height)
+        AdaptiveBannerRepresentable(
+            adUnitID: adUnitID,
+            adSize: adSize,
+            slotSize: slotSize,
+            onAdLoaded: onAdLoaded,
+            onAdFailed: onAdFailed
+        )
+        .frame(width: slotSize.width, height: slotSize.height)
+        .clipped()
         .accessibilityElement(children: .contain)
     }
 }

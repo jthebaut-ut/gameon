@@ -4,6 +4,8 @@ import SwiftUI
 struct PublicProfileAvatarTap<Content: View>: View {
     let userId: UUID?
     let context: String
+    /// Optional nested sheet name for ``[PublicProfilePresentationDebug] activeSheet=``.
+    var activeSheet: String?
     @ViewBuilder let content: () -> Content
 
     @EnvironmentObject private var viewModel: MapViewModel
@@ -11,7 +13,11 @@ struct PublicProfileAvatarTap<Content: View>: View {
     var body: some View {
         if let userId, userId != viewModel.currentUserAuthId {
             Button {
-                viewModel.presentPublicProfile(userId: userId, context: context)
+                viewModel.presentPublicProfile(
+                    userId: userId,
+                    context: context,
+                    activeSheet: activeSheet
+                )
             } label: {
                 content()
             }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum FGColor {
     static func background(_ scheme: ColorScheme) -> Color {
@@ -121,6 +122,45 @@ private struct FGGlowShadowModifier: ViewModifier {
     }
 }
 
+enum FGInteractionHaptics {
+    static func selection() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    static func softImpact() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.55)
+    }
+
+    static func success() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+}
+
+struct FGPremiumPressButtonStyle: ButtonStyle {
+    var pressedScale: CGFloat = 0.975
+    var hapticOnPress = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? pressedScale : 1)
+            .animation(.spring(response: 0.18, dampingFraction: 0.76), value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, pressed in
+                guard pressed, hapticOnPress else { return }
+                FGInteractionHaptics.softImpact()
+            }
+    }
+}
+
+private struct FGSoftActiveGlowModifier: ViewModifier {
+    let isActive: Bool
+    let color: Color
+
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: color.opacity(isActive ? 0.16 : 0), radius: isActive ? 10 : 0, y: 0)
+    }
+}
+
 private struct FGScreenBackgroundModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -191,6 +231,18 @@ private struct FGInputFieldStyleModifier: ViewModifier {
     }
 }
 
+private struct FGProgressiveAppearModifier: ViewModifier {
+    let isVisible: Bool
+    let yOffset: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isVisible ? 1 : 0)
+            .offset(y: isVisible ? 0 : yOffset)
+            .animation(.easeOut(duration: 0.24), value: isVisible)
+    }
+}
+
 extension View {
     func softCardShadow() -> some View {
         modifier(FGSoftCardShadowModifier())
@@ -202,6 +254,10 @@ extension View {
 
     func glowShadow(_ color: Color = FGColor.accentBlue) -> some View {
         modifier(FGGlowShadowModifier(color: color))
+    }
+
+    func softActiveGlow(_ isActive: Bool, color: Color = FGColor.accentBlue) -> some View {
+        modifier(FGSoftActiveGlowModifier(isActive: isActive, color: color))
     }
 
     func fanGeoScreenBackground() -> some View {
@@ -222,6 +278,10 @@ extension View {
 
     func fanGeoInputFieldStyle() -> some View {
         modifier(FGInputFieldStyleModifier())
+    }
+
+    func progressiveAppear(isVisible: Bool, yOffset: CGFloat = 8) -> some View {
+        modifier(FGProgressiveAppearModifier(isVisible: isVisible, yOffset: yOffset))
     }
 }
 
@@ -266,7 +326,7 @@ struct FGPrimaryButton: View {
             .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
             .floatingShadow()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: true))
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.7 : 1)
     }
@@ -298,7 +358,7 @@ struct FGSecondaryButton: View {
                     .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: true))
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1)
     }
@@ -360,6 +420,8 @@ struct FGSearchBar: View {
     var contentSpacing: CGFloat = FGSpacing.sm
     var textFont: Font = FGTypography.body
     var showsBackground = true
+    /// Reserved trailing space inside the bar (e.g. Discover integrated location control).
+    var trailingAccessoryInset: CGFloat = 0
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -378,6 +440,12 @@ struct FGSearchBar: View {
                         .foregroundStyle(FGColor.mutedText(colorScheme))
                 }
                 .buttonStyle(.plain)
+            }
+
+            if trailingAccessoryInset > 0 {
+                Color.clear
+                    .frame(width: trailingAccessoryInset)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, horizontalPadding)
@@ -481,6 +549,24 @@ struct FGEmptyState: View {
         }
         .frame(maxWidth: .infinity)
         .padding(FGSpacing.xxl)
+    }
+}
+
+struct FGSmoothPlaceholderBlock: View {
+    var height: CGFloat
+    var cornerRadius: CGFloat = FGRadius.medium
+    var opacity: Double = 0.10
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(FGColor.primaryText(colorScheme).opacity(opacity))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.65), lineWidth: 0.75)
+            }
+            .frame(height: height)
+            .accessibilityHidden(true)
     }
 }
 

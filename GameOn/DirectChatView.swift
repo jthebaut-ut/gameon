@@ -112,18 +112,6 @@ private final class DirectChatPresenter: ObservableObject {
     }
 #endif
 
-    private enum DMActivePollTickLog {
-        static let isoFormatter: ISO8601DateFormatter = {
-            let f = ISO8601DateFormatter()
-            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            return f
-        }()
-
-        static func iso(_ date: Date) -> String {
-            isoFormatter.string(from: date)
-        }
-    }
-
     let friend: UserPreview
     private let service = DirectChatService()
 
@@ -222,6 +210,10 @@ private final class DirectChatPresenter: ObservableObject {
 
     func bindChatViewModel(_ vm: ChatViewModel) {
         chatViewModel = vm
+#if DEBUG
+        print("[ChatViewModelInstanceDebug] DirectChatPresenter bound ChatViewModel id=\(ObjectIdentifier(vm))")
+        print("[MainActorDebug] DirectChatPresenter.bindChatViewModel actor=MainActor")
+#endif
     }
 
     private func isMessagingBlocked() -> Bool {
@@ -344,13 +336,20 @@ private final class DirectChatPresenter: ObservableObject {
     }
 
     /// Upserts read cursor with `Date()` so `last_read_at` is never behind DB `created_at` microsecond precision.
-    func flushMarkReadNow() async {
-        guard loadError == nil, let cid = conversationId, let me = currentUserId else { return }
-        try? await service.markConversationRead(
-            conversationId: cid,
-            userId: me,
-            lastReadAt: Date()
-        )
+    @discardableResult
+    func flushMarkReadNow(reason: String) async -> Bool {
+        guard loadError == nil, let cid = conversationId, let me = currentUserId else { return false }
+        guard chatViewModel?.canMarkActiveDirectThreadRead(conversationId: cid, reason: reason) == true else { return false }
+        do {
+            try await service.markConversationRead(
+                conversationId: cid,
+                userId: me,
+                lastReadAt: Date()
+            )
+            return true
+        } catch {
+            return false
+        }
     }
 
     private func subscribeThreadChannelWithTimeout(_ channel: RealtimeChannelV2, timeoutNs: UInt64 = 15_000_000_000) async throws {
@@ -494,120 +493,6 @@ private final class DirectChatPresenter: ObservableObject {
         }
     }
 
-    /// While ``DirectChatView`` is visible: fetch latest window via REST on a fixed cadence (parallel to Realtime); cancels with the chat `.task`.
-    func runActiveThreadIncrementalPollLoop() async {
-        let intervalNs: UInt64 = 500_000_000
-        while !Task.isCancelled {
-            guard loadError == nil, let cid = conversationId, let me = currentUserId else {
-                try? await Task.sleep(nanoseconds: intervalNs)
-                continue
-            }
-
-            let anchorRow = newestStableAnchorForIncrementalPoll()
-            let anchorMessageId = anchorRow?.id.uuidString.lowercased() ?? "nil"
-            let anchorCreatedAt = anchorRow?.created_at ?? "nil"
-            let conversationLow = cid.uuidString.lowercased()
-
-            let queryStartedAt = Date()
-            let queryStartedIso = DMActivePollTickLog.iso(queryStartedAt)
-
-            let svc = service
-            let rows: [DirectMessageRow]
-            do {
-                rows = try await Task.detached(priority: .utility) {
-                    try await svc.fetchLatestMessages(conversationId: cid, limit: 20)
-                }.value
-            } catch is CancellationError {
-                break
-            } catch {
-                let queryCompletedIso = DMActivePollTickLog.iso(Date())
-                print(
-                    "[DMActivePollTick] conversationId=\(conversationLow) anchorMessageId=\(anchorMessageId) anchorCreatedAt=\(anchorCreatedAt) queryStartedAt=\(queryStartedIso) queryCompletedAt=\(queryCompletedIso) fetchedCount=0 appendedCount=0"
-                )
-                try? await Task.sleep(nanoseconds: intervalNs)
-                continue
-            }
-
-            let queryCompletedIso = DMActivePollTickLog.iso(Date())
-
-            let existing = Set(messages.map(\.id))
-            let fresh = rows.filter { !existing.contains($0.id) }
-            let appended = fresh.isEmpty ? 0 : mergeActivePollMessages(fresh, threadConversationId: cid, me: me)
-
-            print(
-                "[DMActivePollTick] conversationId=\(conversationLow) anchorMessageId=\(anchorMessageId) anchorCreatedAt=\(anchorCreatedAt) queryStartedAt=\(queryStartedIso) queryCompletedAt=\(queryCompletedIso) fetchedCount=\(rows.count) appendedCount=\(appended)"
-            )
-
-            try? await Task.sleep(nanoseconds: intervalNs)
-        }
-    }
-
-    /// Observability only: newest loaded row excluding pending optimistic sends (tail cursor for ``[DMActivePollTick]``).
-    private func newestStableAnchorForIncrementalPoll() -> DirectMessageRow? {
-        let stable = messages.filter { pendingOptimisticMessages[$0.id] == nil }
-        if let anchor = stable.max(by: Self.messageTimelineSort) { return anchor }
-        return messages.max(by: Self.messageTimelineSort)
-    }
-
-    @discardableResult
-    private func mergeActivePollMessages(_ incoming: [DirectMessageRow], threadConversationId: UUID, me: UUID) -> Int {
-        let sorted = incoming.sorted(by: Self.messageTimelineSort)
-        guard !sorted.isEmpty else { return 0 }
-
-#if DEBUG
-        let ids = sorted.map { $0.id.uuidString.lowercased() }.joined(separator: ",")
-        DMRealtimeDiagnostics.log(
-            "phase=receiver_active_poll_found_message thread=\(threadConversationId.uuidString.lowercased()) newMessageIds=\(ids)"
-        )
-#endif
-
-        var appendedCount = 0
-        var hadPeer = false
-        var appendedPeerRows: [DirectMessageRow] = []
-        var txn = Transaction()
-        txn.disablesAnimations = true
-        withTransaction(txn) {
-            for row in sorted {
-                guard let msgCid = row.conversation_id, msgCid == threadConversationId else { continue }
-                if row.deleted_at != nil { continue }
-                if row.is_deleted == true { continue }
-
-                if let removedLocalId = absorbPendingOptimistic(forConfirmedRow: row, me: me) {
-                    removeDisplayTimelineMessage(id: removedLocalId)
-                }
-                guard !messages.contains(where: { $0.id == row.id }) else { continue }
-                messages.append(row)
-                appendedCount += 1
-                if row.sender_id != me {
-                    hadPeer = true
-                    appendedPeerRows.append(row)
-                }
-            }
-            messages.sort(by: Self.messageTimelineSort)
-            rebuildDisplayTimelineFromMessages()
-            lastRealtimeStreamInsertAt = Date()
-        }
-
-#if DEBUG
-        for row in appendedPeerRows {
-            let rowIdLow = row.id.uuidString.lowercased()
-            DMRealtimeDiagnostics.log(
-                "phase=receiver_ui_append_completed source=active_poll messageId=\(rowIdLow) conversation=\(threadConversationId.uuidString.lowercased())"
-            )
-        }
-#endif
-
-        if hadPeer {
-            Task { [weak self] in
-                guard let self else { return }
-                await self.flushMarkReadNow()
-                self.chatViewModel?.notifyIncomingDmHandledInActiveThread()
-            }
-        }
-
-        return appendedCount
-    }
-
     private static func messageTimelineSort(_ a: DirectMessageRow, _ b: DirectMessageRow) -> Bool {
         let da = DirectChatTimeGrouping.parseDate(a.created_at) ?? .distantPast
         let db = DirectChatTimeGrouping.parseDate(b.created_at) ?? .distantPast
@@ -728,8 +613,9 @@ private final class DirectChatPresenter: ObservableObject {
         if row.sender_id != me {
             Task { [weak self] in
                 guard let self else { return }
-                await self.flushMarkReadNow()
-                self.chatViewModel?.notifyIncomingDmHandledInActiveThread()
+                if await self.flushMarkReadNow(reason: "thread_realtime_peer_message") {
+                    self.chatViewModel?.notifyIncomingDmHandledInActiveThread()
+                }
             }
         }
     }
@@ -769,6 +655,7 @@ private final class DirectChatPresenter: ObservableObject {
             let insCid = row.conversation_id?.uuidString.lowercased() ?? conversationId.uuidString.lowercased()
             print("[DirectChatSend] inserted conversationId=\(insCid)")
             print("[DirectChatSend] insert success serverId=\(row.id.uuidString.lowercased())")
+            chatViewModel?.requestBadgeRecalculation(reason: "messageSent", includeInboxSummaries: true)
 #if DEBUG
             print("[DMRealtimePerf] sentAt=\(row.created_at ?? "nil")")
             print("[DMRealtimePerf] insertAckAt=\(DMRealtimePerfLog.stamp())")
@@ -1139,20 +1026,29 @@ struct DirectChatView: View {
             await presenter.onAppear()
 
             if presenter.loadError == nil {
-                chatViewModel.markDirectInboxReadLocally(peerUserId: presenter.friend.id)
-                // Active poll and Realtime subscribe start together as sibling tasks; the poll loop does not await subscribe.
+                chatViewModel.setActiveVisibleConversationIdIfAllowed(
+                    presenter.conversationId,
+                    reason: "thread_task_loaded"
+                )
+                if chatViewModel.canMarkActiveDirectThreadRead(
+                    conversationId: presenter.conversationId,
+                    reason: "thread_open_local"
+                ) {
+                    chatViewModel.markDirectInboxReadLocally(
+                        peerUserId: presenter.friend.id,
+                        conversationId: presenter.conversationId
+                    )
+                }
                 await withTaskGroup(of: Void.self) { group in
-                    group.addTask {
-                        await presenter.runActiveThreadIncrementalPollLoop()
-                    }
                     group.addTask {
                         await presenter.runRealtimeSubscription()
                     }
                     group.addTask {
                         do {
                             try await Task.sleep(nanoseconds: 90_000_000)
-                            await presenter.flushMarkReadNow()
-                            await chatViewModel.refreshUnreadDirectMessageCount()
+                            if await presenter.flushMarkReadNow(reason: "thread_open") {
+                                await chatViewModel.requestBadgeRecalculation(reason: "thread_open_mark_read")
+                            }
                             while !Task.isCancelled {
                                 try await Task.sleep(nanoseconds: 60_000_000_000)
                             }
@@ -1166,23 +1062,42 @@ struct DirectChatView: View {
         }
         .onAppear {
             chatViewModel.hidesFloatingTabBarForDirectChat = true
-            chatViewModel.setActiveDirectChatContext(
-                conversationId: presenter.conversationId,
-                peerUserId: presenter.friend.id
+            chatViewModel.setActiveVisibleConversationIdIfAllowed(
+                presenter.conversationId,
+                reason: "direct_chat_appear"
             )
         }
         .onChange(of: presenter.conversationId) { _, cid in
-            chatViewModel.setActiveDirectChatContext(conversationId: cid, peerUserId: presenter.friend.id)
+            chatViewModel.setActiveVisibleConversationIdIfAllowed(cid, reason: "conversation_id_changed")
+        }
+        .onChange(of: chatViewModel.directChatReadVisibilityVersion) { _, _ in
+            Task {
+                guard chatViewModel.setActiveVisibleConversationIdIfAllowed(
+                    presenter.conversationId,
+                    reason: "became_visible"
+                ) else { return }
+                if await presenter.flushMarkReadNow(reason: "became_visible") {
+                    chatViewModel.markDirectInboxReadLocally(
+                        peerUserId: presenter.friend.id,
+                        conversationId: presenter.conversationId
+                    )
+                    chatViewModel.requestBadgeRecalculation(reason: "became_visible_mark_read")
+                }
+            }
         }
         .onDisappear {
             chatViewModel.hidesFloatingTabBarForDirectChat = false
             chatOverflowPhase = .hidden
-            chatViewModel.setActiveDirectChatContext(conversationId: nil, peerUserId: nil)
+            chatViewModel.clearActiveVisibleConversationId(reason: "direct_chat_disappear")
             Task {
                 await presenter.stopDirectMessageRealtime()
-                await presenter.flushMarkReadNow()
-                chatViewModel.markDirectInboxReadLocally(peerUserId: presenter.friend.id)
-                await chatViewModel.refreshUnreadDirectMessageCount()
+                if await presenter.flushMarkReadNow(reason: "thread_disappear") {
+                    chatViewModel.markDirectInboxReadLocally(
+                        peerUserId: presenter.friend.id,
+                        conversationId: presenter.conversationId
+                    )
+                    chatViewModel.requestBadgeRecalculation(reason: "thread_disappear_mark_read")
+                }
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -1970,6 +1885,7 @@ struct DirectChatView: View {
     private var composerInputRow: some View {
         HStack(alignment: .bottom, spacing: FGSpacing.sm) {
             Button {
+                FGInteractionHaptics.selection()
                 showEmojiQuickTray.toggle()
             } label: {
                 Image(systemName: "face.smiling")
@@ -1980,7 +1896,7 @@ struct DirectChatView: View {
                     .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.58 : 0.94))
                     .clipShape(Circle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
             .accessibilityLabel("Toggle emoji reactions")
             .disabled(messagingBlocked)
 
@@ -1991,6 +1907,7 @@ struct DirectChatView: View {
                 .submitLabel(.send)
                 .onSubmit {
                     guard presenter.canSend, !messagingBlocked else { return }
+                    FGInteractionHaptics.softImpact()
                     Task { await presenter.sendDraft() }
                 }
                 .padding(.horizontal, FGSpacing.md)
@@ -2018,6 +1935,7 @@ struct DirectChatView: View {
                 .disabled(messagingBlocked)
 
             Button {
+                FGInteractionHaptics.softImpact()
                 Task { await presenter.sendDraft() }
             } label: {
                 Image(systemName: "arrow.up")
@@ -2034,6 +1952,7 @@ struct DirectChatView: View {
                     )
             }
             .disabled(!presenter.canSend || messagingBlocked)
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.94, hapticOnPress: false))
             .contentShape(Rectangle())
             .accessibilityLabel("Send")
         }

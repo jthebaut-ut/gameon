@@ -140,6 +140,27 @@ private final class DiscoverCurrentLocationFetchSession: NSObject, CLLocationMan
 
 extension MapViewModel {
 
+    func recordCurrentUserLocation(_ coordinate: CLLocationCoordinate2D) {
+        guard CLLocationCoordinate2DIsValid(coordinate) else { return }
+        currentUserLocation = coordinate
+    }
+
+    /// Updates ``currentUserLocation`` when location permission is already granted (no new permission prompt).
+    @discardableResult
+    func refreshCurrentUserLocationIfAuthorized(timeoutSeconds: TimeInterval = 6) async -> Bool {
+        let status = CLLocationManager().authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else {
+            return false
+        }
+        let session = DiscoverCurrentLocationFetchSession()
+        let result = await session.fetchBestCoordinateOnce(timeoutSeconds: timeoutSeconds)
+        guard case .coordinate(let coordinate) = result else {
+            return false
+        }
+        recordCurrentUserLocation(coordinate)
+        return true
+    }
+
     func experience(for bar: BarVenue) -> VenueExperience? {
         venueExperiences.first { $0.venueName == bar.name }
     }
@@ -516,6 +537,7 @@ extension MapViewModel {
             return false
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
+        recordCurrentUserLocation(coordinate)
         cameraPosition = .region(
             MKCoordinateRegion(
                 center: coordinate,
@@ -546,6 +568,7 @@ extension MapViewModel {
             print("[StartupDiscover] userLocationFound lat=\(c.latitude) lon=\(c.longitude)")
             print("[StartupDiscover] usingInitialRadiusMiles=\(Self.startupDiscoverInitialRadiusMiles)")
 #endif
+            recordCurrentUserLocation(c)
             cameraPosition = .region(
                 Self.discoverStartupMKRegion(center: c, radiusMiles: Self.startupDiscoverInitialRadiusMiles)
             )

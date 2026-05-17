@@ -18,6 +18,7 @@ private enum VenueEventCommentsPagination {
     static let initialLimit = 100
     static let pageLimit = 50
     static let selectColumns = "id,venue_event_id,user_email,comment,created_at,is_moderation_hidden"
+    static let previewLimit = 2
 }
 
 private enum CurrentUserCommentReportFlags {
@@ -36,6 +37,11 @@ private enum VenueEventCommentsQuery {
         let uid = commentId.uuidString.lowercased()
         return "created_at.lt.\(iso),and(created_at.eq.\(iso),id.lt.\(uid))"
     }
+}
+
+private enum FanUpdatesPrefetchTTL {
+    static let comments: TimeInterval = 30
+    static let vibes: TimeInterval = 20
 }
 
 extension MapViewModel {
@@ -85,6 +91,9 @@ extension MapViewModel {
         var list = venueEventComments[venueEventID] ?? []
         list.append(row)
         venueEventComments[venueEventID] = list
+        if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
+            venueEventCommentPreviewCounts[venueEventID] = existingCount + 1
+        }
     }
 
     @MainActor
@@ -120,6 +129,9 @@ extension MapViewModel {
         }
         list.append(row)
         venueEventComments[venueEventID] = list
+        if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
+            venueEventCommentPreviewCounts[venueEventID] = existingCount + 1
+        }
         #if DEBUG
         print("[GameChatPerf] \(source) append event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
         #endif
@@ -425,6 +437,7 @@ extension MapViewModel {
             await MainActor.run {
                 venueEventVibeCounts[venueEventID] = counts
                 myVenueEventVibes[venueEventID] = myVibes
+                fanUpdatesVibePrefetchedAt[venueEventID] = Date()
             }
 
             print("LOADED VIBES:", counts)
@@ -484,9 +497,132 @@ extension MapViewModel {
         _ = await loadCommentsFirstPage(for: venueEventID)
     }
 
-    /// Keyset-paginated first page. Returns `true` if older rows may exist (page was full).
-    func loadCommentsFirstPage(for venueEventID: UUID) async -> Bool {
+    func fanUpdatesDisplayCommentCount(for venueEventID: UUID) -> Int {
+        if let exact = venueEventCommentPreviewCounts[venueEventID] {
+            return exact
+        }
+        return venueEventComments[venueEventID]?.count ?? 0
+    }
+
+    @MainActor
+    func prefetchFanUpdatesCardSocialData(for venueEventID: UUID) {
+        prefetchCommentsForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
+        prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
+        prefetchGoingProfilesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
+    }
+
+    @MainActor
+    func prefetchCommentsForFanUpdatesCardIfNeeded(venueEventID: UUID) {
+        if let task = fanUpdatesCommentPrefetchTasks[venueEventID] {
+            Task { await task.value }
+            return
+        }
+        if fanUpdatesPrefetchIsFresh(fanUpdatesCommentPrefetchedAt[venueEventID], ttl: FanUpdatesPrefetchTTL.comments),
+           venueEventCommentPreviewCounts[venueEventID] != nil {
+            #if DEBUG
+            print("[FanUpdatesPreviewDebug] preview cache hit eventId=\(venueEventID.uuidString.lowercased())")
+            #endif
+            return
+        }
+
+        fanUpdatesCommentPrefetchTasks[venueEventID] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.fanUpdatesCommentPrefetchTasks[venueEventID] = nil }
+            #if DEBUG
+            print("[FanUpdatesPreviewDebug] skipped heavy preload eventId=\(venueEventID.uuidString.lowercased())")
+            #endif
+            await self.loadFanUpdatesPreview(for: venueEventID)
+        }
+    }
+
+    @MainActor
+    func prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: UUID) {
+        if let task = fanUpdatesVibePrefetchTasks[venueEventID] {
+            Task { await task.value }
+            return
+        }
+        if fanUpdatesPrefetchIsFresh(fanUpdatesVibePrefetchedAt[venueEventID], ttl: FanUpdatesPrefetchTTL.vibes),
+           venueEventVibeCounts[venueEventID] != nil {
+            return
+        }
+
+        fanUpdatesVibePrefetchTasks[venueEventID] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.fanUpdatesVibePrefetchTasks[venueEventID] = nil }
+            await self.loadVibes(for: venueEventID)
+        }
+    }
+
+    @MainActor
+    private func fanUpdatesPrefetchIsFresh(_ date: Date?, ttl: TimeInterval) -> Bool {
+        guard let date else { return false }
+        return Date().timeIntervalSince(date) < ttl
+    }
+
+    /// Lightweight card-only preload: exact visible count + latest preview rows, no report flags/enrichment/pagination.
+    func loadFanUpdatesPreview(for venueEventID: UUID) async {
         #if DEBUG
+        print("[FanUpdatesPreviewDebug] lightweight preload eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
+        async let count: Int? = loadFanUpdatesExactVisibleCommentCount(for: venueEventID)
+        async let previews: [VenueEventCommentRow] = loadFanUpdatesPreviewRows(for: venueEventID)
+        let (exactCount, previewRows) = await (count, previews)
+
+        await MainActor.run {
+            if let exactCount {
+                venueEventCommentPreviewCounts[venueEventID] = exactCount
+            }
+            venueEventCommentPreviews[venueEventID] = previewRows
+            fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
+        }
+    }
+
+    private func loadFanUpdatesExactVisibleCommentCount(for venueEventID: UUID) async -> Int? {
+        do {
+            let response = try await supabase
+                .from("venue_event_comments")
+                .select("id", head: true, count: .exact)
+                .eq("venue_event_id", value: venueEventID)
+                .or("is_moderation_hidden.is.null,is_moderation_hidden.eq.false")
+                .execute()
+            let count = response.count ?? 0
+            #if DEBUG
+            print("[FanUpdatesPreviewDebug] exact count loaded eventId=\(venueEventID.uuidString.lowercased()) count=\(count)")
+            #endif
+            return count
+        } catch {
+            #if DEBUG
+            print("[FanUpdatesPreviewDebug] count fallback eventId=\(venueEventID.uuidString.lowercased())")
+            #endif
+            return nil
+        }
+    }
+
+    private func loadFanUpdatesPreviewRows(for venueEventID: UUID) async -> [VenueEventCommentRow] {
+        do {
+            let rows: [VenueEventCommentRow] = try await supabase
+                .from("venue_event_comments")
+                .select(VenueEventCommentsPagination.selectColumns)
+                .eq("venue_event_id", value: venueEventID)
+                .or("is_moderation_hidden.is.null,is_moderation_hidden.eq.false")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(VenueEventCommentsPagination.previewLimit)
+                .execute()
+                .value
+            return rows.filter { !$0.isHiddenFromThread }
+        } catch {
+            logVenueEventSocialLoadError("ERROR LOADING FAN UPDATES PREVIEW:", loadCancelledTag: "fan_updates_preview", error: error)
+            return []
+        }
+    }
+
+    /// Keyset-paginated first page. Returns `true` if older rows may exist (page was full).
+    func loadCommentsFirstPage(for venueEventID: UUID, logFullSheetLoad: Bool = false) async -> Bool {
+        #if DEBUG
+        if logFullSheetLoad {
+            print("[FanUpdatesPreviewDebug] full sheet load eventId=\(venueEventID.uuidString.lowercased())")
+        }
         let t0 = CFAbsoluteTimeGetCurrent()
         #endif
         do {
@@ -504,6 +640,8 @@ extension MapViewModel {
 
             await MainActor.run {
                 venueEventComments[venueEventID] = rows
+                venueEventCommentPreviewCounts[venueEventID] = max(venueEventCommentPreviewCounts[venueEventID] ?? 0, rows.count)
+                fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
             }
 
             await loadCurrentUserCommentReportFlags(for: venueEventID)
@@ -663,6 +801,9 @@ extension MapViewModel {
             if let venueEventID = comment.venue_event_id {
                 await MainActor.run {
                     venueEventComments[venueEventID]?.removeAll { $0.id == id }
+                    if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
+                        venueEventCommentPreviewCounts[venueEventID] = max(existingCount - 1, 0)
+                    }
                 }
             }
 

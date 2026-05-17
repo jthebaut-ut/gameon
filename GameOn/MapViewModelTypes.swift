@@ -47,17 +47,17 @@ enum DiscoverCalendarDotPalette: Equatable {
 
 /// Bottom-tab Calendar: filter list + day dots (session-only; not persisted).
 enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
-    case all
-    case venue
-    case pickup
+    case venueGames
+    case pickupGames
+    case live
 
     var id: String { rawValue }
 
     var segmentTitle: String {
         switch self {
-        case .all: return "All"
-        case .venue: return "Venue games"
-        case .pickup: return "Pickup games"
+        case .venueGames: return "Venues Games"
+        case .pickupGames: return "Pickup Games"
+        case .live: return "Live"
         }
     }
 }

@@ -12,16 +12,25 @@ struct ContentView: View {
                 FanGeoSplashView(bootstrapError: bootstrapCoordinator.bootstrapError)
                     .transition(.opacity)
             } else {
-                MainTabView(
+                PublicProfilePresentationHost(
                     viewModel: viewModel,
-                    chatViewModel: chatViewModel,
-                    performsInitialBootstrap: bootstrapCoordinator.shouldUseMainTabFallbackBootstrap
-                )
+                    chatViewModel: chatViewModel
+                ) {
+                    MainTabView(
+                        viewModel: viewModel,
+                        chatViewModel: chatViewModel,
+                        performsInitialBootstrap: bootstrapCoordinator.shouldUseMainTabFallbackBootstrap
+                    )
+                }
                 .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.45), value: bootstrapCoordinator.isBootstrapping)
         .task {
+#if DEBUG
+            print("[ChatViewModelInstanceDebug] ContentView root ChatViewModel id=\(ObjectIdentifier(chatViewModel))")
+            print("[MainActorDebug] ContentView bootstrap task actor=MainActor")
+#endif
             await bootstrapCoordinator.beginIfNeeded(
                 viewModel: viewModel,
                 chatViewModel: chatViewModel

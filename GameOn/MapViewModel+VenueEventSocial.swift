@@ -1,6 +1,10 @@
 import Foundation
 import Supabase
 
+private enum FanUpdatesGoingProfilesPrefetchTTL {
+    static let profiles: TimeInterval = 45
+}
+
 extension MapViewModel {
 
     /// Same normalized **Supabase Auth session** email as ``strictNormalizedSessionEmailForSocialTables`` (writes + Following reloads). Do not substitute profile/owner UI emails.
@@ -299,6 +303,7 @@ extension MapViewModel {
                 await MainActor.run {
                     goingUserProfiles = []
                     goingProfilesByVenueEventID[venueEventID] = []
+                    fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
                 }
                 return
             }
@@ -308,6 +313,7 @@ extension MapViewModel {
             await MainActor.run {
                 goingUserProfiles = profileRows
                 goingProfilesByVenueEventID[venueEventID] = profileRows
+                fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
             }
 
         } catch {
@@ -319,6 +325,30 @@ extension MapViewModel {
                 print("ERROR LOADING GOING USER PROFILES:", error)
             }
         }
+    }
+
+    @MainActor
+    func prefetchGoingProfilesForFanUpdatesCardIfNeeded(venueEventID: UUID) {
+        if let task = fanUpdatesGoingProfilePrefetchTasks[venueEventID] {
+            Task { await task.value }
+            return
+        }
+        if fanUpdatesGoingProfilesPrefetchIsFresh(fanUpdatesGoingProfilePrefetchedAt[venueEventID]),
+           goingProfilesByVenueEventID[venueEventID] != nil {
+            return
+        }
+
+        fanUpdatesGoingProfilePrefetchTasks[venueEventID] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.fanUpdatesGoingProfilePrefetchTasks[venueEventID] = nil }
+            await self.loadGoingUserProfiles(for: venueEventID)
+        }
+    }
+
+    @MainActor
+    private func fanUpdatesGoingProfilesPrefetchIsFresh(_ date: Date?) -> Bool {
+        guard let date else { return false }
+        return Date().timeIntervalSince(date) < FanUpdatesGoingProfilesPrefetchTTL.profiles
     }
 
     func removeInterested(in bar: BarVenue, gameTitle: String) {

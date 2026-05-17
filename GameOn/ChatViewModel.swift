@@ -7,6 +7,23 @@ import SwiftUI
 @MainActor
 final class ChatViewModel: ObservableObject {
 
+    private var instanceDebugID: String {
+        "\(ObjectIdentifier(self))"
+    }
+
+    init() {
+#if DEBUG
+        print("[ChatViewModelInstanceDebug] init id=\(instanceDebugID)")
+        print("[MainActorDebug] ChatViewModel.init actor=MainActor")
+#endif
+    }
+
+    deinit {
+#if DEBUG
+        print("[ChatViewModelInstanceDebug] deinit id=\(ObjectIdentifier(self))")
+#endif
+    }
+
     /// Used to refresh Fan Level and show XP toasts after friend accept (set from ``FriendsTabView``).
     weak var mapViewModel: MapViewModel?
 
@@ -72,6 +89,8 @@ final class ChatViewModel: ObservableObject {
 
     /// When true, ``MainTabView`` hides the floating tab bar so ``DirectChatView`` composer stays visible.
     @Published var hidesFloatingTabBarForDirectChat: Bool = false
+    @Published private(set) var activeVisibleConversationId: UUID?
+    @Published private(set) var directChatReadVisibilityVersion: Int = 0
 
     @Published private(set) var addFriendSearchResults: [AddFriendSearchTarget] = []
     @Published private(set) var addFriendSearchIsLoading: Bool = false
@@ -84,10 +103,8 @@ final class ChatViewModel: ObservableObject {
     private var lastInboxLoadAt: Date?
     private let minInboxRefreshInterval: TimeInterval = 2
 
-    /// Conversation currently visible in ``DirectChatView`` (nil when list or another tab). Used to avoid double-counting unread from inbox realtime.
-    private var activeDirectChatConversationId: UUID?
-    /// Peer user id for the open DM thread (set with conversation id for quicker matching before cid resolves).
-    private var activeDirectChatPeerUserId: UUID?
+    private var chatTabVisibleForDirectReadState = false
+    private var privateChatUnlockedForDirectReadState = false
 
     /// Payload for the top-of-app DM toast/banner.
     struct DmInAppNotificationPayload: Identifiable, Equatable {
@@ -114,8 +131,9 @@ final class ChatViewModel: ObservableObject {
     private var inboxUnreadDebounceTask: Task<Void, Never>?
     /// Coalesces rare “peer not in inbox list yet” cases into a single full ``refreshInboxSummaries()`` (not per INSERT).
     private var inboxMissingPeerReconcileTask: Task<Void, Never>?
-    /// Periodic full inbox reconcile while the listener is active (friendship/block drift, ordering, unread correctness).
-    private var inboxReconciliationTask: Task<Void, Never>?
+    /// Coalesces explicit badge recount requests from foreground, tab switches, and read-state changes.
+    private var badgeRecalculationTask: Task<Void, Never>?
+    private var badgeRecalculationNeedsInboxSummaries = false
     /// User id the active inbox channel was bound to (debug + duplicate-guard).
     private var inboxRealtimeBoundUserId: UUID?
     /// True when the inbox listener uses a client-side `conversation_id IN (...)` filter (see run loop).
@@ -159,14 +177,16 @@ final class ChatViewModel: ObservableObject {
         addFriendSearchIsLoading = false
         pendingDmOpenPreview = nil
         dmInAppNotification = nil
-        activeDirectChatConversationId = nil
-        activeDirectChatPeerUserId = nil
+        activeVisibleConversationId = nil
+        chatTabVisibleForDirectReadState = false
+        privateChatUnlockedForDirectReadState = false
         inboxUnreadDebounceTask?.cancel()
         inboxUnreadDebounceTask = nil
         inboxMissingPeerReconcileTask?.cancel()
         inboxMissingPeerReconcileTask = nil
-        inboxReconciliationTask?.cancel()
-        inboxReconciliationTask = nil
+        badgeRecalculationTask?.cancel()
+        badgeRecalculationTask = nil
+        badgeRecalculationNeedsInboxSummaries = false
         friendRequestRealtimeDebounceTask?.cancel()
         friendRequestRealtimeDebounceTask = nil
         socialRealtimeForegroundTask?.cancel()
@@ -203,6 +223,10 @@ final class ChatViewModel: ObservableObject {
     /// Tab switches, DM navigation, and sheets do **not** stop these listeners (see ``setChatTabRealtimeEnabled``).
     func ensureSignedInSocialRealtimeIfNeeded() async {
         guard requiresSignIn == false else { return }
+#if DEBUG
+        print("[BadgeArchitectureDebug] ensureRealtime vm=\(instanceDebugID)")
+        print("[MainActorDebug] ensureRealtime actor=MainActor")
+#endif
         startInboxRealtimeListenerIfNeeded()
         startFriendshipsRealtimeListenerIfNeeded()
     }
@@ -219,13 +243,70 @@ final class ChatViewModel: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             print("[RealtimeLifecycle] foreground debounced ensure")
             await self.ensureSignedInSocialRealtimeIfNeeded()
+            self.requestForegroundBadgeRefresh()
         }
     }
 
-    /// Call from ``DirectChatView`` when the thread conversation id resolves / changes.
-    func setActiveDirectChatContext(conversationId: UUID?, peerUserId: UUID?) {
-        activeDirectChatConversationId = conversationId
-        activeDirectChatPeerUserId = peerUserId
+    func setDirectChatReadStateVisibility(chatTabVisible: Bool, privateChatUnlocked: Bool) {
+        let wasAllowed = chatTabVisibleForDirectReadState && privateChatUnlockedForDirectReadState
+        chatTabVisibleForDirectReadState = chatTabVisible
+        privateChatUnlockedForDirectReadState = privateChatUnlocked
+        let isAllowed = chatTabVisible && privateChatUnlocked
+        if !isAllowed {
+            clearActiveVisibleConversationId(reason: chatTabVisible ? "private_chat_locked" : "chat_tab_hidden")
+        } else if !wasAllowed {
+            directChatReadVisibilityVersion += 1
+        }
+#if DEBUG
+        print("[DMReadStateDebug] chatTabVisible=\(chatTabVisible)")
+        print("[DMReadStateDebug] privateChatUnlocked=\(privateChatUnlocked)")
+#endif
+    }
+
+    @discardableResult
+    func setActiveVisibleConversationIdIfAllowed(_ conversationId: UUID?, reason: String) -> Bool {
+        guard let conversationId else {
+            clearActiveVisibleConversationId(reason: "\(reason):missing_conversation")
+            return false
+        }
+        guard chatTabVisibleForDirectReadState && privateChatUnlockedForDirectReadState else {
+            clearActiveVisibleConversationId(reason: reason)
+            return false
+        }
+        activeVisibleConversationId = conversationId
+#if DEBUG
+        print("[DMActiveVisibilityDebug] setActiveVisibleConversationId=\(conversationId.uuidString.lowercased())")
+#endif
+        return true
+    }
+
+    func clearActiveVisibleConversationId(reason: String) {
+        guard activeVisibleConversationId != nil else {
+#if DEBUG
+            print("[DMActiveVisibilityDebug] clearActiveVisibleConversationId reason=\(reason)")
+#endif
+            return
+        }
+        activeVisibleConversationId = nil
+#if DEBUG
+        print("[DMActiveVisibilityDebug] clearActiveVisibleConversationId reason=\(reason)")
+#endif
+    }
+
+    func canMarkActiveDirectThreadRead(conversationId: UUID?, reason: String) -> Bool {
+#if DEBUG
+        print("[DMReadStateDebug] activeVisibleConversationId=\(activeVisibleConversationId?.uuidString.lowercased() ?? "nil")")
+#endif
+        guard let conversationId, activeVisibleConversationId == conversationId else {
+#if DEBUG
+            print("[DMReadStateDebug] markReadSuppressed reason=notActiveVisibleThread")
+#endif
+            return false
+        }
+#if DEBUG
+        print("[DMReadStateDebug] markReadAllowed reason=\(reason)")
+#endif
+        return true
     }
 
     func dismissDmInAppNotification() {
@@ -251,6 +332,62 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    func requestBadgeRecalculation(
+        reason: String,
+        includeInboxSummaries: Bool = false,
+        delayNanoseconds: UInt64 = 120_000_000
+    ) {
+#if DEBUG
+        print("[BadgeSyncDebug] recalculation requested reason=\(reason)")
+        print("[BadgeSyncDebug] includeInboxSummaries=\(includeInboxSummaries)")
+#endif
+        if badgeRecalculationTask != nil {
+            if includeInboxSummaries && !badgeRecalculationNeedsInboxSummaries {
+                badgeRecalculationNeedsInboxSummaries = true
+#if DEBUG
+                print("[BadgeSyncDebug] upgraded pending refresh reason=\(reason)")
+                print("[BadgeSyncDebug] includeInboxSummaries=true")
+#endif
+            }
+#if DEBUG
+            print("[BadgeSyncDebug] skipped duplicate refresh")
+#endif
+            return
+        }
+
+        badgeRecalculationNeedsInboxSummaries = includeInboxSummaries
+        badgeRecalculationTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: delayNanoseconds)
+            } catch {
+                await MainActor.run {
+                    if self?.badgeRecalculationTask != nil {
+                        self?.badgeRecalculationTask = nil
+                        self?.badgeRecalculationNeedsInboxSummaries = false
+                    }
+                }
+                return
+            }
+
+            guard let self, !Task.isCancelled else { return }
+            let shouldRefreshInbox = self.badgeRecalculationNeedsInboxSummaries
+            self.badgeRecalculationNeedsInboxSummaries = false
+            if shouldRefreshInbox {
+                await self.refreshInboxSummaries()
+            } else {
+                await self.refreshUnreadDirectMessageCount()
+            }
+            self.badgeRecalculationTask = nil
+        }
+    }
+
+    func requestForegroundBadgeRefresh() {
+#if DEBUG
+        print("[BadgeSyncDebug] foreground refresh")
+#endif
+        requestBadgeRecalculation(reason: "foreground", includeInboxSummaries: true)
+    }
+
     /// Legacy hook from the Chat tab: **only starts** listeners when enabled; disabling is a no-op so
     /// friend requests + inbox badges keep updating while on other tabs or inside a DM thread.
     func setChatTabRealtimeEnabled(_ enabled: Bool) {
@@ -269,9 +406,16 @@ final class ChatViewModel: ObservableObject {
         guard requiresSignIn == false else { return }
         guard inboxListenTask == nil, inboxChannel == nil else {
             print("[RealtimeLifecycle] duplicate prevented (inbox listener already active)")
+#if DEBUG
+            print("[RealtimeSubscriptionDebug] duplicatePrevented vm=\(instanceDebugID) taskActive=\(inboxListenTask != nil) channelActive=\(inboxChannel != nil)")
+#endif
             return
         }
         print("[RealtimeLifecycle] starting inbox listener")
+#if DEBUG
+        print("[RealtimeSubscriptionDebug] startingInbox vm=\(instanceDebugID)")
+        print("[MainActorDebug] startInboxRealtimeListenerIfNeeded actor=MainActor")
+#endif
         inboxListenTask = Task { [weak self] in
             guard let self else { return }
             await self.runInboxRealtimeListenerLoop()
@@ -299,8 +443,6 @@ final class ChatViewModel: ObservableObject {
         }
 
         defer {
-            inboxReconciliationTask?.cancel()
-            inboxReconciliationTask = nil
             inboxUnreadDebounceTask?.cancel()
             inboxUnreadDebounceTask = nil
             inboxMissingPeerReconcileTask?.cancel()
@@ -317,49 +459,29 @@ final class ChatViewModel: ObservableObject {
             table: "conversation_read_state"
         )
 
-        let convIds = (try? await directChatService.fetchMyDirectConversationIds(userId: me)) ?? []
-        let inserts: AsyncStream<InsertAction>
-        if !convIds.isEmpty, convIds.count <= kMaxConversationIdsForInboxRealtimeClientFilter {
-            let filter = RealtimePostgresFilter.in("conversation_id", values: convIds)
-            inserts = channel.postgresChange(
-                InsertAction.self,
-                schema: "public",
-                table: "direct_messages",
-                filter: filter
-            )
-            inboxRealtimeUsesConversationFilter = true
-            #if DEBUG
-            print("[ChatRealtime] inbox scope: postgresChange filter conversation_id IN (\(convIds.count) ids); RLS still applies.")
-            #endif
-        } else {
-            inserts = channel.postgresChange(
-                InsertAction.self,
-                schema: "public",
-                table: "direct_messages"
-            )
-            inboxRealtimeUsesConversationFilter = false
-            #if DEBUG
-            print("[ChatRealtime] inbox scope: postgresChange unfiltered (convIds=\(convIds.count)); user-visible events rely on RLS.")
-            #endif
-        }
+        let inserts = channel.postgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "direct_messages"
+        )
+        inboxRealtimeUsesConversationFilter = false
+#if DEBUG
+        print("[ChatRealtime] inbox scope: postgresChange unfiltered; user-visible events rely on RLS.")
+        print("[RealtimeSubscriptionDebug] inboxFilter=none reason=avoid_stale_conversation_snapshot vm=\(instanceDebugID)")
+#endif
 
         do {
             try await channel.subscribeWithError()
             inboxRealtimeBoundUserId = me
             print("[DMRealtime] inbox subscribed channel=dm-inbox-\(me.uuidString.lowercased())")
 #if DEBUG
+            print("[RealtimeSubscriptionDebug] inboxSubscribed vm=\(instanceDebugID) user=\(me.uuidString.lowercased()) filtered=\(inboxRealtimeUsesConversationFilter)")
+#endif
+#if DEBUG
             DMRealtimeDiagnostics.log(
                 "phase=inbox_realtime_subscribe_ready channel=dm-inbox-\(me.uuidString.lowercased()) filtered=\(inboxRealtimeUsesConversationFilter)"
             )
 #endif
-
-            inboxReconciliationTask = Task { [weak self] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 180_000_000_000)
-                    guard !Task.isCancelled else { break }
-                    await self?.refreshInboxSummaries()
-                }
-            }
 
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { [weak self] in
@@ -427,8 +549,14 @@ final class ChatViewModel: ObservableObject {
             let patched = await applyRealtimeIncomingPeerMessage(row)
             maybeEmitDmInAppNotification(row: row, me: me)
             if patched {
-                scheduleDebouncedUnreadDirectMessageRPCRefresh()
+#if DEBUG
+                print("[UnreadStateDebug] incomingInsert source=localRealtimePatch action=keptLocalUnread")
+#endif
             } else {
+#if DEBUG
+                print("[UnreadStateDebug] incomingInsert source=missingLocalRow action=serverRecountAndInboxReconcile")
+#endif
+                scheduleDebouncedUnreadDirectMessageRPCRefresh()
                 scheduleLightweightInboxReconcile(delayNanoseconds: 600_000_000)
             }
         }
@@ -436,32 +564,17 @@ final class ChatViewModel: ObservableObject {
 
     /// Called from ``DirectChatPresenter`` after flushes read cursor for an incoming peer message (no full inbox fetch).
     func notifyIncomingDmHandledInActiveThread() {
-        scheduleDebouncedUnreadDirectMessageRPCRefresh()
+        requestBadgeRecalculation(reason: "active_thread_incoming_handled")
     }
 
     /// Coalesces server unread recount RPC after local patches (low latency).
     private func scheduleDebouncedUnreadDirectMessageRPCRefresh() {
-        inboxUnreadDebounceTask?.cancel()
-        inboxUnreadDebounceTask = Task { [weak self] in
-            do {
-                try await Task.sleep(nanoseconds: 110_000_000)
-            } catch { return }
-            guard let self, !Task.isCancelled else { return }
-            await self.refreshUnreadDirectMessageCount()
-#if DEBUG
-            print("[ChatRealtime] debounced refreshUnreadDirectMessageCount completed")
-#endif
-        }
+        requestBadgeRecalculation(reason: "debounced_unread_rpc", delayNanoseconds: 110_000_000)
     }
 
-    private func isUserViewingThisDmThread(conversationId: UUID?, peerSenderId: UUID) -> Bool {
-        if let cid = conversationId, let active = activeDirectChatConversationId, cid == active {
-            return true
-        }
-        if let activePeer = activeDirectChatPeerUserId, activePeer == peerSenderId {
-            return true
-        }
-        return false
+    private func isUserViewingThisDmThread(conversationId: UUID?, peerSenderId _: UUID) -> Bool {
+        guard let conversationId else { return false }
+        return activeVisibleConversationId == conversationId
     }
 
     private func maybeEmitDmInAppNotification(row: DirectMessageRow, me: UUID) {
@@ -495,13 +608,19 @@ final class ChatViewModel: ObservableObject {
     }
 
     /// Zeros this peer’s row in the local inbox immediately after opening a thread / mark-read so the tab badge drops before summaries refetch.
-    func markDirectInboxReadLocally(peerUserId: UUID) {
+    func markDirectInboxReadLocally(peerUserId: UUID, conversationId: UUID? = nil) {
+#if DEBUG
+        print("[BadgeSyncDebug] marked read conversationId=\(conversationId?.uuidString.lowercased() ?? "nil")")
+#endif
         guard let idx = friends.firstIndex(where: { $0.id == peerUserId }) else {
-            scheduleDebouncedUnreadDirectMessageRPCRefresh()
+            requestBadgeRecalculation(reason: "marked_read_missing_row")
             return
         }
         let old = friends[idx]
-        guard old.unreadCount > 0 else { return }
+        guard old.unreadCount > 0 else {
+            requestBadgeRecalculation(reason: "marked_read_no_local_unread")
+            return
+        }
 #if DEBUG
         print("[UnreadBadgeDebug] conversationId=local_mark_read")
         print("[UnreadBadgeDebug] oldUnread=\(old.unreadCount)")
@@ -517,20 +636,35 @@ final class ChatViewModel: ObservableObject {
         var next = friends
         next[idx] = updated
         friends = next
+#if DEBUG
+        print("[BadgeSyncDebug] chat list updated")
+#endif
         let totalUnread = next.reduce(0) { $0 + $1.unreadCount }
 #if DEBUG
         print("[UnreadBadgeDebug] totalBadge=\(totalUnread)")
 #endif
-        Task { await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread) }
+        Task { await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "local_mark_read") }
+        requestBadgeRecalculation(reason: "marked_read")
     }
 
     /// Applies a lightweight inbox row update for an incoming peer DM (1:1). Returns false if a full inbox reconcile should run.
     private func applyRealtimeIncomingPeerMessage(_ row: DirectMessageRow) async -> Bool {
         let peerId = row.sender_id
         let viewing = isUserViewingThisDmThread(conversationId: row.conversation_id, peerSenderId: peerId)
+        let badgeBefore = unreadDirectMessageCount
+#if DEBUG
+        print("[BadgeReceiveDebug] incomingDM conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil")")
+        print("[BadgeReceiveDebug] activeVisibleConversationId=\(activeVisibleConversationId?.uuidString.lowercased() ?? "nil")")
+        print("[BadgeReceiveDebug] isExactVisibleThread=\(viewing)")
+        print("[BadgeReceiveDebug] shouldCountUnread=\(!viewing)")
+        print("[BadgeReceiveDebug] badgeBefore=\(badgeBefore)")
+        print("[BadgeReceiveDebug] actor=MainActor")
+#endif
 
         guard let idx = friends.firstIndex(where: { $0.id == peerId }) else {
-            scheduleLightweightInboxReconcile(delayNanoseconds: 600_000_000)
+#if DEBUG
+            print("[BadgeReceiveDebug] skipped reason=missing_inbox_row")
+#endif
             return false
         }
 
@@ -565,11 +699,18 @@ final class ChatViewModel: ObservableObject {
         next[idx] = updated
         next.sort { ($0.lastMessageAt ?? .distantPast) > ($1.lastMessageAt ?? .distantPast) }
         friends = next
+#if DEBUG
+        print("[BadgeSyncDebug] chat list updated")
+#endif
         let totalUnread = next.reduce(0) { $0 + $1.unreadCount }
 #if DEBUG
         print("[UnreadBadgeDebug] totalBadge=\(totalUnread)")
 #endif
-        await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+        await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: viewing ? "incoming_visible_thread" : "incoming_realtime_local_increment")
+#if DEBUG
+        print("[BadgeReceiveDebug] badgeAfter=\(totalUnread)")
+#endif
+        requestBadgeRecalculation(reason: "incoming_message")
         return true
     }
 
@@ -579,9 +720,6 @@ final class ChatViewModel: ObservableObject {
         inboxUnreadDebounceTask = nil
         inboxMissingPeerReconcileTask?.cancel()
         inboxMissingPeerReconcileTask = nil
-        inboxReconciliationTask?.cancel()
-        inboxReconciliationTask = nil
-
         if let task = inboxListenTask {
             task.cancel()
             _ = await task.result
@@ -745,6 +883,9 @@ final class ChatViewModel: ObservableObject {
                 }
 
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
+#if DEBUG
+            print("[BadgeSyncDebug] tab badge updated")
+#endif
             currentUserAuthId = me
             applyFriendshipChipStates(me: me, accepted: accRows, incoming: inRows, outgoing: outRows)
         } catch {
@@ -762,7 +903,7 @@ final class ChatViewModel: ObservableObject {
         guard let n = try? await directChatService.fetchUnreadDirectMessageCount(currentUserId: me) else {
             return
         }
-        await setUnreadDirectMessageCountAndSyncAppIcon(n)
+        await setUnreadDirectMessageCountAndSyncAppIcon(n, source: "rpc_total_refresh")
 #if DEBUG
         print("[UnreadBadgeDebug] conversationId=rpc_total_refresh")
         print("[UnreadBadgeDebug] oldUnread=\(prior)")
@@ -828,8 +969,11 @@ final class ChatViewModel: ObservableObject {
             var visible = displays.filter { !isEitherDirectionBlocked(with: $0.id) }
             visible = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: visible)
             friends = visible
+#if DEBUG
+            print("[BadgeSyncDebug] chat list updated")
+#endif
             let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
-            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "refresh_inbox_summaries")
             lastInboxLoadAt = Date()
             currentUserAuthId = me
         } catch {
@@ -874,7 +1018,7 @@ final class ChatViewModel: ObservableObject {
             try await directChatService.clearDirectConversation(conversationId: cid)
             friends.removeAll { $0.id == friendUserId }
             let totalUnread = friends.reduce(0) { $0 + $1.unreadCount }
-            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "clear_inbox_conversation")
             await refreshInboxSummaries()
         } catch {
             friends = snapshot
@@ -940,6 +1084,9 @@ final class ChatViewModel: ObservableObject {
             }
             friendDisplays = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: friendDisplays)
             friends = friendDisplays
+#if DEBUG
+            print("[BadgeSyncDebug] chat list updated")
+#endif
 
             incomingRequests = inRows
                 .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
@@ -956,6 +1103,9 @@ final class ChatViewModel: ObservableObject {
             }
 
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
+#if DEBUG
+            print("[BadgeSyncDebug] tab badge updated")
+#endif
             requiresSignIn = false
             lastLoadAt = Date()
             lastInboxLoadAt = Date()
@@ -967,7 +1117,7 @@ final class ChatViewModel: ObservableObject {
                 outgoing: outRows
             )
             let totalUnread = friends.reduce(0) { $0 + $1.unreadCount }
-            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread)
+            await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "full_refresh")
             await ensureSignedInSocialRealtimeIfNeeded()
         } catch {
             friends = []
@@ -1398,8 +1548,16 @@ final class ChatViewModel: ObservableObject {
     }
 
     /// Updates DM unread state for the Chat tab **and** mirrors it to the app icon badge (foreground / local only until APNs). See ``AppIconBadgeSync``.
-    private func setUnreadDirectMessageCountAndSyncAppIcon(_ newValue: Int) async {
-        unreadDirectMessageCount = max(0, newValue)
+    private func setUnreadDirectMessageCountAndSyncAppIcon(_ newValue: Int, source: String = "unspecified") async {
+        let clamped = max(0, newValue)
+        let oldValue = unreadDirectMessageCount
+        unreadDirectMessageCount = clamped
+#if DEBUG
+        print("[UnreadStateDebug] source=\(source) oldTotal=\(oldValue) newTotal=\(clamped) vm=\(instanceDebugID)")
+        print("[BadgeSyncDebug] unread total=\(clamped)")
+        print("[BadgeSyncDebug] tab badge updated")
+        print("[MainActorDebug] setUnreadDirectMessageCount actor=MainActor")
+#endif
         await AppIconBadgeSync.apply(count: unreadDirectMessageCount)
     }
 

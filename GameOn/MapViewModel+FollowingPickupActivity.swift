@@ -160,19 +160,6 @@ extension MapViewModel {
         hasUnreadPickupActivity = pickupActivityCount > 0
     }
 
-    /// 60s cadence while Following tab is visible (see ``FollowingScreen``).
-    func runPickupFollowingJoinListAutoRefreshLoop() async {
-        guard canFanUsePickupGamesUI, currentUserAuthId != nil else { return }
-        while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 60 * 1_000_000_000)
-            guard !Task.isCancelled else { break }
-#if DEBUG
-            print("[PickupJoinRefresh] timer_tick")
-#endif
-            await loadMyPickupGameJoinRequestsForFollowing()
-        }
-    }
-
     func stopFollowingPickupRealtime() async {
         pickupFollowingRealtimeDebounceTask?.cancel()
         pickupFollowingRealtimeDebounceTask = nil

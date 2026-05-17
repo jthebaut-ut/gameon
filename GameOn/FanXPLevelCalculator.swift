@@ -94,7 +94,7 @@ struct FanXPState: Equatable {
     }
 
     var progressLine: String {
-        if let remaining = xpToNextLevel, let next = FanXPLevelCalculator.xpForNextLevel(level) {
+        if let remaining = xpToNextLevel {
             return "\(remaining.formatted()) XP to Level \(level + 1)"
         }
         return "Max level reached · \(totalXP.formatted()) XP"

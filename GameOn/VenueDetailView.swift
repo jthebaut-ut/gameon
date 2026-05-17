@@ -5,6 +5,7 @@ struct VenueDetailView: View {
     @Environment(\.openURL) private var openURL
     @State private var showClaimConfirmation = false
     @State private var claimActionError: String?
+    @State private var contentRevealPhase = 1
 
     let bar: BarVenue
     let selectedEvent: SportsEvent?
@@ -192,22 +193,32 @@ struct VenueDetailView: View {
             VStack(alignment: .leading, spacing: FGSpacing.xl) {
                 venueHeroSection
                 venueStatsSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 2)
                 venueActionSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 2)
                 if locksScheduledGameDetailsForGuest {
                     DiscoverGuestGameLockCard {
                         onGuestGameLoginCTA?()
                     }
+                    .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 } else {
                     venueFanActivitySection
+                        .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 }
                 venueBusinessClaimSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 if !locksScheduledGameDetailsForGuest {
                     venueGamesSection
+                        .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 }
                 venueExperienceSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
                 venueInfoSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
                 venueFeaturesSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
                 venueTagsSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
             }
             .frame(maxWidth: 680, alignment: .top)
             .frame(maxWidth: .infinity, alignment: .top)
@@ -218,6 +229,7 @@ struct VenueDetailView: View {
         .scrollIndicators(.hidden)
         .fanGeoScreenBackground()
         .task(id: bar.id) {
+            await revealVenueDetailContent()
             VenueEmailActionDebug.logLoad(bar: bar, businessClaimStatus: businessClaimStatus)
             VenueGameBusinessEmail.logDebug(bar: bar)
         }
@@ -250,6 +262,29 @@ struct VenueDetailView: View {
         }
     }
 
+    @MainActor
+    private func revealVenueDetailContent() async {
+        contentRevealPhase = 1
+        await Task.yield()
+        guard !Task.isCancelled else { return }
+
+        withAnimation(.easeOut(duration: 0.22)) {
+            contentRevealPhase = 2
+        }
+
+        try? await Task.sleep(nanoseconds: 55_000_000)
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeOut(duration: 0.24)) {
+            contentRevealPhase = 3
+        }
+
+        try? await Task.sleep(nanoseconds: 65_000_000)
+        guard !Task.isCancelled else { return }
+        withAnimation(.easeOut(duration: 0.24)) {
+            contentRevealPhase = 4
+        }
+    }
+
     private var venueHeroSection: some View {
         ZStack(alignment: .topTrailing) {
             heroBackground
@@ -271,6 +306,7 @@ struct VenueDetailView: View {
                                 compactHeroBadge(displaySport, tint: FGColor.accentBlue)
                             }
                         }
+                        .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
                     }
 
                     Spacer(minLength: FGSpacing.md)
@@ -287,6 +323,7 @@ struct VenueDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
+                    .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
                 }
 
                 Spacer(minLength: 0)
@@ -332,6 +369,7 @@ struct VenueDetailView: View {
                         )
                     }
                 }
+                .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 6)
             }
             .padding(FGSpacing.lg)
         }

@@ -113,11 +113,6 @@ struct FollowingScreen: View {
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canFanUsePickupGamesUI else { return }
             Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing() }
         }
-        .task(id: isFollowingTabSelected) {
-            guard isFollowingTabSelected else { return }
-            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
-            await viewModel.runPickupFollowingJoinListAutoRefreshLoop()
-        }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             Task { await syncFollowingAfterAuthChange() }
         }

@@ -17,7 +17,7 @@ struct MapVenuePreviewCard: View {
     let onDirections: () -> Void
     let onDetails: () -> Void
     
-    @State private var selectedCommentsEventID: UUID?
+    @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
     @State private var fanFeatureBlockedMessage: String?
     
 
@@ -137,7 +137,9 @@ struct MapVenuePreviewCard: View {
             
             Button {
                 if let venueEventID {
-                    selectedCommentsEventID = venueEventID
+                    FanUpdatesTapPerf.handleTap(eventId: venueEventID) {
+                        fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID)
+                    }
                 }
             } label: {
                 HStack(spacing: 10) {
@@ -157,6 +159,7 @@ struct MapVenuePreviewCard: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 6)
             }
+            .buttonStyle(FanUpdatesPressButtonStyle())
             .disabled(venueEventID == nil)
         .padding(.horizontal, 18)
         .padding(.bottom, 18)
@@ -166,16 +169,11 @@ struct MapVenuePreviewCard: View {
         .shadow(color: .black.opacity(0.15), radius: 18, x: 0, y: 8)
         .padding(.horizontal, 16)
             
-        .sheet(isPresented: Binding(
-            get: { selectedCommentsEventID != nil },
-            set: { if !$0 { selectedCommentsEventID = nil } }
-        )) {
-            if let eventID = selectedCommentsEventID {
-                VenueEventCommentsSheet(
-                    viewModel: viewModel,
-                    venueEventID: eventID
-                )
-            }
+        .sheet(item: $fanUpdatesSheetEvent) { event in
+            VenueEventCommentsSheet(
+                viewModel: viewModel,
+                venueEventID: event.id
+            )
         }
         }
             

@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Polished read-only profile sheet for another fan (no email, no UUID in UI).
+/// Polished read-only profile preview for another fan (no email, no UUID in UI). Shown via ``PublicProfileOverlayWindowPresenter``.
 struct PublicUserProfilePreviewView: View {
     let userId: UUID
     @ObservedObject var viewModel: MapViewModel
     @EnvironmentObject private var chatViewModel: ChatViewModel
+    var onDismiss: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dismiss) private var dismiss
 
     @State private var profile: PublicUserProfileData?
     @State private var isLoading = true
@@ -40,14 +40,11 @@ struct PublicUserProfilePreviewView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") {
-                        viewModel.dismissPublicProfile()
-                        dismiss()
+                        onDismiss()
                     }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
         .task(id: userId) {
             await loadProfile()
         }
@@ -443,8 +440,7 @@ struct PublicUserProfilePreviewView: View {
             await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
             await MainActor.run {
                 chatViewModel.pendingDmOpenPreview = preview
-                viewModel.dismissPublicProfile()
-                dismiss()
+                onDismiss()
             }
 #if DEBUG
             print("[PublicProfileFriendActionDebug] message_opened_dm userId=\(data.userId.uuidString.lowercased())")

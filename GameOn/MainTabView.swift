@@ -17,6 +17,8 @@ struct MainTabView: View {
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
     @State private var showBlockingFanIdentitySetup = false
+    @State private var privateChatUnlockedForCurrentSelection = false
+    @State private var discoverCalendarOverlayPresented = false
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -48,12 +50,6 @@ struct MainTabView: View {
                 FanXPRewardOverlayHost(manager: viewModel.fanXPRewardOverlay)
                     .id(ObjectIdentifier(viewModel.fanXPRewardOverlay))
             }
-            .sheet(isPresented: publicProfileSheetBinding) {
-                if let userId = viewModel.publicProfileSheetUserId {
-                    PublicUserProfilePreviewView(userId: userId, viewModel: viewModel)
-                        .environmentObject(chatViewModel)
-                }
-            }
             .fullScreenCover(isPresented: $showBlockingFanIdentitySetup) {
                 FanGeoIdentitySetupView(viewModel: viewModel, mode: .complete) {
                     showBlockingFanIdentitySetup = false
@@ -83,7 +79,10 @@ struct MainTabView: View {
     private var tabShellWithLifecycleModifiers: some View {
         ZStack {
             preservedRoot(tab: .discover) {
-                DiscoverScreen(viewModel: viewModel)
+                DiscoverScreen(
+                    viewModel: viewModel,
+                    isCalendarOverlayPresented: $discoverCalendarOverlayPresented
+                )
             }
 
             preservedRoot(tab: .calendar) {
@@ -119,6 +118,10 @@ struct MainTabView: View {
 
             if !chatViewModel.hidesFloatingTabBarForDirectChat {
                 floatingTabBarChrome
+                    .opacity(discoverCalendarOverlayPresented && selectedTab == .discover ? 0.32 : 1)
+                    .blur(radius: discoverCalendarOverlayPresented && selectedTab == .discover ? 1.25 : 0)
+                    .allowsHitTesting(!(discoverCalendarOverlayPresented && selectedTab == .discover))
+                    .animation(.easeInOut(duration: 0.24), value: discoverCalendarOverlayPresented)
             }
         }
         .overlay(alignment: .top) {
@@ -132,6 +135,7 @@ struct MainTabView: View {
                 print("[StartupDiscover] selected Discover tab")
 #endif
             }
+            updateDirectChatReadStateVisibility()
             showBlockingFanIdentitySetup = viewModel.needsBlockingFanIdentitySetup
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
@@ -168,6 +172,7 @@ struct MainTabView: View {
             }
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+            updateDirectChatReadStateVisibility()
             Task { await syncChatAuthState() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, _ in
@@ -179,8 +184,10 @@ struct MainTabView: View {
         .onChange(of: chatViewModel.unreadDirectMessageCount) { _, newValue in
 #if DEBUG
             let visible = chatTabUnreadBadgeVisible(unreadCount: newValue)
+            print("[BadgeArchitectureDebug] MainTabView observed ChatViewModel id=\(ObjectIdentifier(chatViewModel))")
             print("[ChatTabBadge] unreadCount=\(newValue)")
             print("[ChatTabBadge] visible=\(visible)")
+            print("[MainActorDebug] MainTabView unread observer actor=MainActor")
 #endif
         }
         .onChange(of: viewModel.needsBlockingFanIdentitySetup) { _, needs in
@@ -196,8 +203,14 @@ struct MainTabView: View {
         }
         .onChange(of: chatViewModel.pendingDmOpenPreview) { _, preview in
             guard preview != nil else { return }
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
-                selectedTabStorage = AppTab.chat.rawValue
+            if requireDeviceAuthForPrivateChat && viewModel.isAuthenticatedForSocialFeatures {
+                Task { await selectChatTabAfterDeviceAuth() }
+            } else {
+                privateChatUnlockedForCurrentSelection = true
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
+                    selectedTabStorage = AppTab.chat.rawValue
+                }
+                updateDirectChatReadStateVisibility()
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -221,6 +234,10 @@ struct MainTabView: View {
                     await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
                     viewModel.checkVenueApprovalStatus()
                 }
+                if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
+                    await viewModel.enforceFanSingleSessionOnForeground()
+                    await viewModel.startFanSingleSessionRealtimeIfNeeded()
+                }
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
                 chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
@@ -239,11 +256,25 @@ struct MainTabView: View {
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.account.rawValue
             }
+            privateChatUnlockedForCurrentSelection = false
+            updateDirectChatReadStateVisibility()
             viewModel.discoverNavigateToAccountForUserAuth = false
         }
         .onChange(of: selectedTabStorage) { _, newRaw in
-            guard AppTab(rawValue: newRaw) == .calendar else { return }
-            viewModel.noteCalendarTabBecameActive()
+            switch AppTab(rawValue: newRaw) {
+            case .calendar:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
+                viewModel.noteCalendarTabBecameActive()
+            case .chat:
+                updateDirectChatReadStateVisibility()
+                guard viewModel.isAuthenticatedForSocialFeatures else { return }
+                chatViewModel.requestBadgeRecalculation(reason: "chat_tab_selected", includeInboxSummaries: true)
+            default:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
+                return
+            }
         }
         .environmentObject(chatViewModel)
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
@@ -261,12 +292,20 @@ struct MainTabView: View {
         guard requireDeviceAuthForPrivateChat else { return }
 
         let outcome = await PrivateChatAccessGate.authenticateForPrivateChat()
-        guard outcome != .granted else { return }
+        if outcome == .granted {
+            await MainActor.run {
+                privateChatUnlockedForCurrentSelection = true
+                updateDirectChatReadStateVisibility()
+            }
+            return
+        }
 
         await MainActor.run {
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.discover.rawValue
             }
+            privateChatUnlockedForCurrentSelection = false
+            updateDirectChatReadStateVisibility()
             switch outcome {
             case .authenticationFailed:
                 chatGateAlertMessage = PrivateChatAccessGate.authenticationFailedMessage
@@ -284,18 +323,22 @@ struct MainTabView: View {
 
         if !viewModel.isAuthenticatedForSocialFeatures {
             await MainActor.run {
+                privateChatUnlockedForCurrentSelection = true
                 withAnimation(.spring()) {
                     selectedTabStorage = AppTab.chat.rawValue
                 }
+                updateDirectChatReadStateVisibility()
             }
             return
         }
 
         guard requireDeviceAuthForPrivateChat else {
             await MainActor.run {
+                privateChatUnlockedForCurrentSelection = true
                 withAnimation(.spring()) {
                     selectedTabStorage = AppTab.chat.rawValue
                 }
+                updateDirectChatReadStateVisibility()
             }
             return
         }
@@ -304,15 +347,32 @@ struct MainTabView: View {
         await MainActor.run {
             switch outcome {
             case .granted:
+                privateChatUnlockedForCurrentSelection = true
                 withAnimation(.spring()) {
                     selectedTabStorage = AppTab.chat.rawValue
                 }
+                updateDirectChatReadStateVisibility()
             case .authenticationFailed:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
                 chatGateAlertMessage = PrivateChatAccessGate.authenticationFailedMessage
             case .deviceSecurityNotConfigured:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
                 chatGateAlertMessage = PrivateChatAccessGate.noPasscodeMessage
             }
         }
+    }
+
+    private func updateDirectChatReadStateVisibility() {
+        let chatVisible = selectedTab == .chat
+        let unlocked = chatVisible
+            && viewModel.isAuthenticatedForSocialFeatures
+            && (!requireDeviceAuthForPrivateChat || privateChatUnlockedForCurrentSelection)
+        chatViewModel.setDirectChatReadStateVisibility(
+            chatTabVisible: chatVisible,
+            privateChatUnlocked: unlocked
+        )
     }
 
     private func syncChatAuthState() async {
@@ -413,12 +473,14 @@ struct MainTabView: View {
                 chatTabButton()
 
                 Button {
+                    FGInteractionHaptics.selection()
                     withAnimation(.spring()) {
                         selectedTabStorage = AppTab.account.rawValue
                     }
                 } label: {
                     accountTabAvatarWithPickupBadge
                 }
+                .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
             }
             .padding(8)
             .background {
@@ -523,6 +585,7 @@ struct MainTabView: View {
     
     private func chatTabButton() -> some View {
         Button {
+            FGInteractionHaptics.selection()
             Task { await selectChatTabAfterDeviceAuth() }
         } label: {
             ZStack(alignment: .topTrailing) {
@@ -539,6 +602,7 @@ struct MainTabView: View {
                 .foregroundStyle(selectedTab == .chat ? Color.white : unselectedTabForegroundColor)
                 .background(selectedTab == .chat ? selectedTabBackgroundColor : Color.clear)
                 .clipShape(Capsule())
+                .softActiveGlow(selectedTab == .chat, color: FGColor.accentBlue)
 
                 if chatViewModel.pendingBadgeCount > 0 {
                     chatTabPillBadge(count: chatViewModel.pendingBadgeCount)
@@ -546,6 +610,7 @@ struct MainTabView: View {
                 }
             }
         }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
 
     /// Same gate as ``FriendsTabView`` inbox (not ``MapViewModel/canUsePrivateChat``, which can lag session used by ``ChatViewModel``).
@@ -608,6 +673,7 @@ struct MainTabView: View {
 
     private func calendarTabButton() -> some View {
         return Button {
+            FGInteractionHaptics.selection()
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.calendar.rawValue
             }
@@ -627,13 +693,16 @@ struct MainTabView: View {
                 .foregroundStyle(selectedTab == .calendar ? Color.white : unselectedTabForegroundColor)
                 .background(selectedTab == .calendar ? selectedTabBackgroundColor : Color.clear)
                 .clipShape(Capsule())
+                .softActiveGlow(selectedTab == .calendar, color: FGColor.accentBlue)
 
             }
         }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
 
     private func followingTabButton() -> some View {
         Button {
+            FGInteractionHaptics.selection()
             withAnimation(.spring()) {
                 selectedTabStorage = AppTab.following.rawValue
             }
@@ -653,6 +722,7 @@ struct MainTabView: View {
                 .foregroundStyle(selectedTab == .following ? Color.white : unselectedTabForegroundColor)
                 .background(selectedTab == .following ? selectedTabBackgroundColor : Color.clear)
                 .clipShape(Capsule())
+                .softActiveGlow(selectedTab == .following, color: FGColor.accentGreen)
 
                 if viewModel.hasUnreadPickupActivity {
                     Circle()
@@ -664,10 +734,12 @@ struct MainTabView: View {
                 }
             }
         }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
 
     private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {
         Button {
+            FGInteractionHaptics.selection()
             withAnimation(.spring()) {
                 selectedTabStorage = tab.rawValue
             }
@@ -686,7 +758,9 @@ struct MainTabView: View {
             .foregroundStyle(selectedTab == tab ? Color.white : unselectedTabForegroundColor)
             .background(selectedTab == tab ? selectedTabBackgroundColor : Color.clear)
             .clipShape(Capsule())
+            .softActiveGlow(selectedTab == tab, color: FGColor.accentBlue)
         }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
     
     private var accountTabIcon: String {
@@ -744,18 +818,6 @@ struct MainTabView: View {
                     .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
             )
             .offset(x: 2, y: -2)
-    }
-
-    /// Account tab avatar only (no badge); clipped separately from the badge overlay.
-    private var publicProfileSheetBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.publicProfileSheetUserId != nil },
-            set: { isPresented in
-                if !isPresented {
-                    viewModel.dismissPublicProfile()
-                }
-            }
-        )
     }
 
     private var accountTabAvatarCircleOnly: some View {

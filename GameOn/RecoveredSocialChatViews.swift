@@ -283,28 +283,69 @@ struct FriendsTabView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(viewModel.friends) { item in
-                        NavigationLink {
-                            DirectChatView(friend: item.preview)
-                        } label: {
-                            friendRow(item)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                Task {
-                                    await viewModel.clearInboxConversation(withFriendUserId: item.id)
-                                }
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
+                GeometryReader { layoutGeo in
+                    friendsInboxList(layoutWidth: layoutGeo.size.width)
                 }
-                .listStyle(.plain)
-                .refreshable { await viewModel.refreshInboxSummaries() }
             }
         }
+    }
+
+    private func friendsInboxList(layoutWidth: CGFloat) -> some View {
+        List {
+            ForEach(ChatInboxAdPlacement.listItems(for: viewModel.friends)) { item in
+                chatInboxListRow(item, layoutWidth: layoutWidth)
+            }
+        }
+        .listStyle(.plain)
+        .refreshable { await viewModel.refreshInboxSummaries() }
+        .onAppear {
+            viewModel.clearActiveVisibleConversationId(reason: "chat_list_visible")
+            logChatInboxAdPlacement()
+        }
+        .onChange(of: viewModel.friends.count) { _, _ in
+            logChatInboxAdPlacement()
+        }
+    }
+
+    @ViewBuilder
+    private func chatInboxListRow(_ item: ChatInboxListItem, layoutWidth: CGFloat) -> some View {
+        switch item {
+        case .conversation(let friend):
+            NavigationLink {
+                DirectChatView(friend: friend.preview)
+            } label: {
+                friendRow(friend)
+            }
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button(role: .destructive) {
+                    Task {
+                        await viewModel.clearInboxConversation(withFriendUserId: friend.id)
+                    }
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        case .nativeAd:
+            CompactNativeAdCard(
+                slotIndex: ChatInboxAdPlacement.nativeAdSlotIndex,
+                layoutWidth: max(280, layoutWidth)
+            )
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
+    }
+
+    private func logChatInboxAdPlacement() {
+#if DEBUG
+        print("[ChatInboxAdDebug] conversationCount=\(viewModel.friends.count)")
+        print("[ChatInboxAdDebug] insertionIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
+        print("[ChatInboxAdDebug] debugOverride=\(ChatInboxAdPlacement.debugOverrideEnabled)")
+        print("[ChatInboxAdDebug] enabled=true")
+        print("[ChatInboxAdDebug] insertedAfterIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
+        print("[ChatInboxAdDebug] dmThreadAds=false")
+#endif
     }
 
     private var requestsList: some View {

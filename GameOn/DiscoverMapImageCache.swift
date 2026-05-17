@@ -57,6 +57,7 @@ struct DiscoverCachedRemoteImage<Placeholder: View>: View {
     @ViewBuilder var placeholder: () -> Placeholder
 
     @State private var uiImage: UIImage?
+    @State private var loadedImageVisible = false
 
     var body: some View {
         Group {
@@ -64,20 +65,30 @@ struct DiscoverCachedRemoteImage<Placeholder: View>: View {
                 Image(uiImage: uiImage)
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
+                    .opacity(loadedImageVisible ? 1 : 0)
             } else {
                 placeholder()
             }
         }
+        .animation(.easeOut(duration: 0.22), value: loadedImageVisible)
         .task(id: url?.absoluteString) {
+            loadedImageVisible = false
             guard let url else {
                 uiImage = nil
                 return
             }
             if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
                 uiImage = cached
+                loadedImageVisible = true
                 return
             }
-            uiImage = await DiscoverMapImageCache.shared.image(for: url)
+            if let loaded = await DiscoverMapImageCache.shared.image(for: url) {
+                uiImage = loaded
+                await Task.yield()
+                loadedImageVisible = true
+            } else {
+                uiImage = nil
+            }
         }
     }
 }

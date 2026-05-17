@@ -15,7 +15,7 @@ final class MapViewModel: ObservableObject {
     @Published var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     /// Bottom-tab Calendar only (never drives Discover map date).
     @Published var calendarTabSelectedDate: Date = Calendar.current.startOfDay(for: Date())
-    @Published var calendarTabGameFilter: CalendarTabGameFilter = .all
+    @Published var calendarTabGameFilter: CalendarTabGameFilter = .venueGames
     /// Guest Discover: set when the user confirms a date from the map calendar (`Done`); blocks automatic “jump to next day with games” for that cold start / session.
     var discoverCalendarGuestUserPinnedDateThisSession: Bool = false
     @Published var selectedSport: String = "All"
@@ -177,14 +177,19 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingEvents: Bool = false
     /// True while schedule data is re-fetched but existing ``events``/UI should stay visible (Phase 1 perf).
     @Published var isRefreshingDiscoverEvents: Bool = false
+    @Published var liveMatches: [LiveMatch] = []
+    @Published var isLoadingLiveMatches: Bool = false
+    @Published var liveMatchesLoadError: String?
     @Published var isUpdatingMapGames: Bool = false
     @Published var mapStatusText: String?
     @Published var socialActionToastText: String?
     @Published var socialActionToastIsError: Bool = false
     @Published var currentUserFanXP: FanXPState = .rookie
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
-    /// When set, ``MainTabView`` presents ``PublicUserProfilePreviewView`` for another fan.
+    /// When set, ``PublicProfileOverlayWindowPresenter`` shows ``PublicUserProfilePreviewView`` in a top-level UIWindow (not a SwiftUI sheet).
     @Published var publicProfileSheetUserId: UUID?
+    /// Latest avatar-tap context for presentation debug (not shown in UI).
+    @Published var publicProfilePresentationContext: String?
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = []
     @Published var isLoadingMapVenues: Bool = false
@@ -198,6 +203,8 @@ final class MapViewModel: ObservableObject {
             span: MKCoordinateSpan(latitudeDelta: 0.55, longitudeDelta: 0.55)
         )
     )
+    /// Last known GPS fix for the signed-in user (Discover weather, “my location”, startup centering).
+    @Published var currentUserLocation: CLLocationCoordinate2D?
     @Published var calendarSyncMessage: String = ""
     @Published var venueEventRows: [VenueEventRow] = []
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
@@ -290,6 +297,14 @@ final class MapViewModel: ObservableObject {
     @Published var followingMapNavigationMessage: String?
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
+    @Published var venueEventCommentPreviewCounts: [UUID: Int] = [:]
+    @Published var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] = [:]
+    var fanUpdatesCommentPrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    var fanUpdatesGoingProfilePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    var fanUpdatesCommentPrefetchedAt: [UUID: Date] = [:]
+    var fanUpdatesVibePrefetchedAt: [UUID: Date] = [:]
+    var fanUpdatesGoingProfilePrefetchedAt: [UUID: Date] = [:]
 
     // MARK: - Pickup games (fan-created; see ``MapViewModel+PickupGames``)
 
@@ -377,6 +392,12 @@ final class MapViewModel: ObservableObject {
     /// Realtime: requester’s join rows + followed pickup games (Following → Games to Play).
     var pickupFollowingRealtimeTask: Task<Void, Never>?
     var pickupFollowingRealtimeChannel: RealtimeChannelV2?
+    /// Fan single-device session enforcement (`user_profiles.active_session_id`).
+    var fanSingleSessionRealtimeChannel: RealtimeChannelV2?
+    var fanSingleSessionRealtimeTask: Task<Void, Never>?
+    var fanSingleSessionRealtimeDebounceTask: Task<Void, Never>?
+    var isPerformingSingleSessionLogout = false
+    var singleSessionIgnoreRealtimeUntil: Date?
     var pickupFollowingRealtimeDebounceTask: Task<Void, Never>?
     /// First successful Games-to-Play load completed; suppresses marking everything unread on cold start.
     var pickupFollowingActivityPrimed: Bool = false
@@ -442,6 +463,8 @@ final class MapViewModel: ObservableObject {
     /// Coalesces overlapping ``loadGamesFromSupabase()`` / ``refreshDiscoverCoreInBackground`` schedule work onto one serial chain.
     var loadGamesCoalesceTask: Task<Void, Never>?
     var loadGamesCoalesceNeedsAnotherPass = false
+    /// Coalesces Calendar Live refreshes; no continuous UI polling.
+    var liveMatchesRefreshTask: Task<Void, Never>?
     /// Fire-and-forget phase-3 Discover enrichment after pins are visible.
     var discoverFullEnrichmentTask: Task<Void, Never>?
     /// One-shot pickup calendar + map-row warmup after enrichment (not triggered by map pan).

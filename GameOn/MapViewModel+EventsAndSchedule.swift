@@ -178,7 +178,7 @@ extension MapViewModel {
 
     /// Fingerprint for **public** pickup rows shown on Calendar (Discover map list only; ignores personal join-request caches).
     private func pickupDiscoverCalendarDayPublicFingerprint(selectedDay: Date, searchQuery: String, filter: CalendarTabGameFilter) -> Int {
-        guard filter == .pickup || filter == .all else { return 0 }
+        guard filter == .pickupGames else { return 0 }
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: selectedDay)
         var h = Hasher()
@@ -242,21 +242,21 @@ extension MapViewModel {
     }
 
     private func buildCalendarTabDisplayedEvents(selectedDate: Date, searchQuery: String, filter: CalendarTabGameFilter) -> [SportsEvent] {
-        let venuePart = calendarTabVenueSportsEvents(for: selectedDate, searchQuery: searchQuery)
-        let pickupPart = calendarTabPickupSportsEvents(for: selectedDate, searchQuery: searchQuery)
-        let combined: [SportsEvent]
         switch filter {
-        case .all:
-            combined = venuePart + pickupPart
-        case .venue:
-            combined = venuePart
-        case .pickup:
-            combined = pickupPart
-        }
-        return combined.sorted {
-            if $0.date != $1.date { return $0.date < $1.date }
-            if $0.time != $1.time { return $0.time < $1.time }
-            return $0.title < $1.title
+        case .pickupGames:
+            return calendarTabPickupSportsEvents(for: selectedDate, searchQuery: searchQuery).sorted {
+                if $0.date != $1.date { return $0.date < $1.date }
+                if $0.time != $1.time { return $0.time < $1.time }
+                return $0.title < $1.title
+            }
+        case .venueGames:
+            return calendarTabVenueSportsEvents(for: selectedDate, searchQuery: searchQuery).sorted {
+                if $0.date != $1.date { return $0.date < $1.date }
+                if $0.time != $1.time { return $0.time < $1.time }
+                return $0.title < $1.title
+            }
+        case .live:
+            return []
         }
     }
 

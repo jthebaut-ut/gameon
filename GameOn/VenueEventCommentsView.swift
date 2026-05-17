@@ -14,12 +14,20 @@ struct VenueEventCommentsView: View {
     @State private var isPostingComment = false
     @State private var postMessage = ""
     @State private var postMessageIsError = false
+    @State private var postMessageIsSoftNotice = false
     @State private var reportingCommentID: UUID?
     @State private var showUnreportConfirmation = false
     @State private var unreportTargetCommentID: UUID?
     @State private var sendingFriendRequestUserId: UUID?
     @State private var commentsHasOlder = false
     @State private var commentsLoadingOlder = false
+    @State private var isLoadingInitialComments = false
+    @State private var showNativeAdsInFeed = false
+    @State private var commentsChromeVisible = false
+    @State private var fanUpdateCooldownUntil: Date?
+    @State private var fanUpdateCooldownRemainingSeconds = 0
+    @State private var lastSuccessfulFanUpdateKey: String?
+    @State private var lastSuccessfulFanUpdateAt: Date?
 
     private let quickUpdates = [
         "🎙️ Audio confirmed",
@@ -79,6 +87,24 @@ struct VenueEventCommentsView: View {
     private var sendAccentColor: Color {
         fanUpdatesIsDark ? Color(red: 0.45, green: 0.75, blue: 1.0) : Color.accentColor
     }
+
+    private var composerPostButtonDisabled: Bool {
+        newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isPostingComment
+    }
+
+    private var fanUpdateComposerHelperText: String? {
+        if fanUpdateCooldownRemainingSeconds > 0 {
+            return "Posting too fast — try again in \(fanUpdateCooldownRemainingSeconds)s"
+        }
+        return postMessage.isEmpty ? nil : postMessage
+    }
+
+    private var fanUpdateComposerHelperColor: Color {
+        if fanUpdateCooldownRemainingSeconds > 0 || postMessageIsSoftNotice {
+            return fanUpdatesIsDark ? Color.orange.opacity(0.82) : Color.orange.opacity(0.76)
+        }
+        return postMessageIsError ? Color.red : Color.green
+    }
     
     var comments: [VenueEventCommentRow] {
         (viewModel.venueEventComments[venueEventID] ?? [])
@@ -90,7 +116,24 @@ struct VenueEventCommentsView: View {
             }
     }
 
+    private var venueCommentsListItems: [VenueCommentsListItem] {
+        guard showNativeAdsInFeed else {
+            return comments.map { .comment($0) }
+        }
+        return VenueCommentsAdPlacement.listItems(for: comments)
+    }
+
+    private func venueCommentsAdLayoutWidth(for layoutWidth: CGFloat) -> CGFloat {
+        max(1, layoutWidth)
+    }
+
     var body: some View {
+        GeometryReader { layoutGeo in
+            venueCommentsRoot(layoutWidth: layoutGeo.size.width)
+        }
+    }
+
+    private func venueCommentsRoot(layoutWidth: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             ScrollViewReader { proxy in
                 ScrollView {
@@ -132,13 +175,18 @@ struct VenueEventCommentsView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
 
-                        if comments.isEmpty {
+                        if isLoadingInitialComments && comments.isEmpty {
+                            fanUpdatesLoadingPlaceholder
+                                .transition(.opacity)
+                        } else if comments.isEmpty {
                             Text("No updates yet. Be the first to share audio, crowd, or seating info.")
                                 .font(.caption)
                                 .foregroundStyle(secondaryLabelColor)
+                                .transition(.opacity)
                         } else {
-                            ForEach(comments) { comment in
-                                commentRow(comment)
+                            ForEach(venueCommentsListItems) { item in
+                                venueCommentsListRow(item, layoutWidth: layoutWidth)
+                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                             }
                         }
 
@@ -154,6 +202,8 @@ struct VenueEventCommentsView: View {
                             .id("comments-bottom-anchor")
                     }
                     .padding(12)
+                    .animation(.easeOut(duration: 0.22), value: comments.count)
+                    .animation(.easeOut(duration: 0.22), value: showNativeAdsInFeed)
                 }
                 .background(scrollSurfaceBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -184,10 +234,16 @@ struct VenueEventCommentsView: View {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .strokeBorder(cardBorderColor, lineWidth: fanUpdatesIsDark ? 1 : 0.5)
                 )
+                .progressiveAppear(isVisible: commentsChromeVisible, yOffset: 6)
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(sheetRootBackground)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.22)) {
+                commentsChromeVisible = true
+            }
+        }
         .onChange(of: showUnreportConfirmation) { _, open in
             if !open { unreportTargetCommentID = nil }
         }
@@ -230,24 +286,129 @@ struct VenueEventCommentsView: View {
             }
         }
         .task(id: venueEventID) {
-            commentsLoadingOlder = false
-            commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID)
-            await viewModel.startVenueEventCommentsRealtime(for: venueEventID)
-
-            let emails = comments.compactMap { $0.user_email }
-            await viewModel.loadUserProfilesForEmails(emails)
-            await refreshCommentFriendshipIfNeeded()
+            await loadCommentsAndRealtimeInSheet()
         }
         .onDisappear {
             Task { await viewModel.stopVenueEventCommentsRealtime(for: venueEventID) }
         }
         .onChange(of: comments.count) { _, _ in
+            if showNativeAdsInFeed {
+                discoverLogVenueCommentsAdPlacement()
+            }
             Task {
                 let emails = comments.compactMap { $0.user_email }
                 await viewModel.loadUserProfilesForEmails(emails)
                 await refreshCommentFriendshipIfNeeded()
             }
         }
+        .onChange(of: showNativeAdsInFeed) { _, showAds in
+            if showAds {
+                discoverLogVenueCommentsAdPlacement()
+            }
+        }
+    }
+
+    private var fanUpdatesLoadingPlaceholder: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .scaleEffect(0.82)
+                    .tint(fanUpdatesIsDark ? primaryLabelColor : nil)
+                Text("Loading fan updates…")
+                    .font(.caption)
+                    .foregroundStyle(secondaryLabelColor)
+            }
+            fanUpdatesSkeletonCard
+            fanUpdatesSkeletonCard
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .progressiveAppear(isVisible: isLoadingInitialComments && comments.isEmpty, yOffset: 5)
+    }
+
+    private var fanUpdatesSkeletonCard: some View {
+        FGSmoothPlaceholderBlock(height: 56, cornerRadius: 14, opacity: fanUpdatesIsDark ? 0.13 : 0.08)
+            .background(cardSurfaceBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func loadCommentsAndRealtimeInSheet() async {
+        showNativeAdsInFeed = false
+        commentsLoadingOlder = false
+
+        let hadCache = !(viewModel.venueEventComments[venueEventID] ?? []).isEmpty
+        isLoadingInitialComments = !hadCache
+
+        FanUpdatesTapPerf.logCommentLoadStarted(eventId: venueEventID)
+        let loadStarted = CFAbsoluteTimeGetCurrent()
+
+        if hadCache {
+            Task {
+                let hasMore = await viewModel.loadCommentsFirstPage(for: venueEventID, logFullSheetLoad: true)
+                await MainActor.run {
+                    commentsHasOlder = hasMore
+                    withAnimation(.easeOut(duration: 0.22)) {
+                        isLoadingInitialComments = false
+                    }
+                    FanUpdatesTapPerf.logCommentLoadCompleted(
+                        ms: (CFAbsoluteTimeGetCurrent() - loadStarted) * 1000
+                    )
+                    scheduleNativeAdsAfterCommentsRender()
+                }
+                await loadCommentProfilesAndFriendshipChips()
+            }
+            await viewModel.startVenueEventCommentsRealtime(for: venueEventID)
+        } else {
+            commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID, logFullSheetLoad: true)
+            withAnimation(.easeOut(duration: 0.22)) {
+                isLoadingInitialComments = false
+            }
+            FanUpdatesTapPerf.logCommentLoadCompleted(
+                ms: (CFAbsoluteTimeGetCurrent() - loadStarted) * 1000
+            )
+            scheduleNativeAdsAfterCommentsRender()
+            await viewModel.startVenueEventCommentsRealtime(for: venueEventID)
+            await loadCommentProfilesAndFriendshipChips()
+        }
+    }
+
+    private func scheduleNativeAdsAfterCommentsRender() {
+        FanUpdatesTapPerf.logAdLoadStartedNonBlocking()
+        Task { @MainActor in
+            await Task.yield()
+            withAnimation(.easeOut(duration: 0.22)) {
+                showNativeAdsInFeed = true
+            }
+            FanUpdatesTapPerf.logAdInsertedAfterComments()
+        }
+    }
+
+    private func loadCommentProfilesAndFriendshipChips() async {
+        let emails = comments.compactMap { $0.user_email }
+        await viewModel.loadUserProfilesForEmails(emails)
+        await refreshCommentFriendshipIfNeeded()
+    }
+
+    @ViewBuilder
+    private func venueCommentsListRow(_ item: VenueCommentsListItem, layoutWidth: CGFloat) -> some View {
+        switch item {
+        case .comment(let comment):
+            commentRow(comment)
+        case .nativeAd(let slotIndex):
+            CompactNativeAdCard(slotIndex: slotIndex, layoutWidth: venueCommentsAdLayoutWidth(for: layoutWidth))
+        }
+    }
+
+    private func discoverLogVenueCommentsAdPlacement() {
+#if DEBUG
+        let count = comments.count
+        print("[VenueCommentsAdDebug] enabled=true")
+        print("[VenueCommentsAdDebug] commentCount=\(count)")
+        print("[VenueCommentsAdDebug] insertedAfterIndexes=\(VenueCommentsAdPlacement.insertedAfterCommentPositions(commentCount: count))")
+        print("[VenueCommentsAdDebug] nativeAdValidatorFix=true")
+        print("[VenueCommentsAdDebug] minAssetSize=40")
+        print("[VenueCommentsAdDebug] allAssetsInsideNativeAdView=true")
+#endif
     }
 
     private func parseCommentCreatedAt(_ raw: String?) -> Date? {
@@ -477,26 +638,7 @@ struct VenueEventCommentsView: View {
                         HStack(spacing: 8) {
                             ForEach(quickUpdates, id: \.self) { update in
                                 Button {
-                                    Task {
-                                        guard !isPostingComment else { return }
-                                        isPostingComment = true
-                                        defer { isPostingComment = false }
-
-                                        if let err = await viewModel.addComment(to: venueEventID, text: update) {
-                                            await MainActor.run {
-                                                postMessage = err
-                                                postMessageIsError = true
-                                            }
-                                        } else {
-                                            await MainActor.run {
-                                                postMessage = ""
-                                            }
-                                        }
-
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                            postMessage = ""
-                                        }
-                                    }
+                                    submitFanUpdate(update, restoreTextOnFailure: false)
                                 } label: {
                                     Text(update)
                                         .font(.caption)
@@ -534,37 +676,14 @@ struct VenueEventCommentsView: View {
                         Button {
                             let textToSend = newComment
                             newComment = ""
-
-                            Task {
-                                guard !isPostingComment else { return }
-                                isPostingComment = true
-                                defer { isPostingComment = false }
-
-                                if let err = await viewModel.addComment(to: venueEventID, text: textToSend) {
-                                    await MainActor.run {
-                                        newComment = textToSend
-                                        postMessage = err
-                                        postMessageIsError = true
-                                    }
-                                } else {
-                                    await MainActor.run {
-                                        postMessage = ""
-                                    }
-                                }
-
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    postMessage = ""
-                                }
-                            }
+                            submitFanUpdate(textToSend, restoreTextOnFailure: true)
                         } label: {
-                            Image(systemName: "paperplane.fill")
-                                .foregroundStyle(sendAccentColor)
+                            composerPostButton
                         }
-                        .disabled(
-                            newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                            isPostingComment
-                        )
-                        .opacity(isPostingComment ? 0.5 : 1.0)
+                        .disabled(composerPostButtonDisabled)
+                        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.94, hapticOnPress: false))
+                        .opacity(composerPostButtonDisabled ? 0.55 : 1.0)
+                        .animation(.easeOut(duration: 0.16), value: composerPostButtonDisabled)
                     }
 
                     Text("\(newComment.count)/\(maxCommentLength)")
@@ -575,12 +694,17 @@ struct VenueEventCommentsView: View {
                                 : mutedLabelColor
                         )
 
-                    if !postMessage.isEmpty {
-                        Text(postMessage)
+                    if let helperText = fanUpdateComposerHelperText {
+                        Text(helperText)
                             .font(.caption2)
                             .fontWeight(.semibold)
-                            .foregroundStyle(postMessageIsError ? Color.red : Color.green)
+                            .foregroundStyle(fanUpdateComposerHelperColor)
+                            .contentTransition(.numericText())
+                            .animation(.easeOut(duration: 0.18), value: helperText)
                     }
+                }
+                .task(id: fanUpdateCooldownUntil) {
+                    await runFanUpdateCooldownCountdown()
                 }
             } else if viewModel.isAuthenticatedForSocialFeatures, !viewModel.canUseFanSocialFeatures {
                 Text(BusinessFanGateCopy.commentsViewOnlyForBusiness)
@@ -594,6 +718,170 @@ struct VenueEventCommentsView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+    }
+
+    private func submitFanUpdate(_ rawText: String, restoreTextOnFailure: Bool) {
+        let cleanText = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanText.isEmpty else {
+            if restoreTextOnFailure { newComment = rawText }
+            return
+        }
+
+        if let blockMessage = clientSideFanUpdateBlockMessage(for: cleanText) {
+            if restoreTextOnFailure { newComment = rawText }
+            showSoftFanUpdateNotice(blockMessage)
+            FGInteractionHaptics.selection()
+            return
+        }
+
+        Task { @MainActor in
+            guard !isPostingComment else {
+                if restoreTextOnFailure { newComment = rawText }
+                return
+            }
+
+            isPostingComment = true
+            defer { isPostingComment = false }
+
+            if let err = await viewModel.addComment(to: venueEventID, text: cleanText) {
+                if restoreTextOnFailure { newComment = rawText }
+                showFanUpdatePostMessage(err, isError: true, isSoftNotice: isSoftFanUpdateNotice(err))
+            } else {
+                registerSuccessfulFanUpdate(cleanText)
+                postMessage = ""
+                postMessageIsError = false
+                postMessageIsSoftNotice = false
+                FGInteractionHaptics.softImpact()
+            }
+
+            schedulePostMessageClear()
+        }
+    }
+
+    private func clientSideFanUpdateBlockMessage(for cleanText: String) -> String? {
+        if fanUpdateCooldownRemainingSeconds > 0 {
+            return "Posting too fast — try again in \(fanUpdateCooldownRemainingSeconds)s"
+        }
+
+        guard RateLimitService.fanUpdateHasMinimumContentQuality(cleanText) else {
+            return RateLimitService.fanUpdateMinimumQualityMessage
+        }
+
+        if let lastSuccessfulFanUpdateKey,
+           let lastSuccessfulFanUpdateAt,
+           lastSuccessfulFanUpdateKey == fanUpdateDuplicateKey(for: cleanText),
+           Date().timeIntervalSince(lastSuccessfulFanUpdateAt) < RateLimitService.venueEventCommentDuplicateWindow {
+            return "You already posted that update."
+        }
+
+        return nil
+    }
+
+    private func registerSuccessfulFanUpdate(_ cleanText: String) {
+        let now = Date()
+        lastSuccessfulFanUpdateKey = fanUpdateDuplicateKey(for: cleanText)
+        lastSuccessfulFanUpdateAt = now
+        fanUpdateCooldownUntil = now.addingTimeInterval(RateLimitService.venueEventCommentMinInterval)
+        updateFanUpdateCooldownRemainingSeconds()
+    }
+
+    private func fanUpdateDuplicateKey(for text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = ModerationService.normalizeModerationText(trimmed)
+        if !normalized.isEmpty {
+            return normalized
+        }
+        return trimmed.filter { !$0.isWhitespace && !$0.isNewline }.lowercased()
+    }
+
+    private func showSoftFanUpdateNotice(_ message: String) {
+        showFanUpdatePostMessage(message, isError: true, isSoftNotice: true)
+        schedulePostMessageClear()
+    }
+
+    private func showFanUpdatePostMessage(_ message: String, isError: Bool, isSoftNotice: Bool) {
+        postMessage = message
+        postMessageIsError = isError
+        postMessageIsSoftNotice = isSoftNotice
+    }
+
+    private func isSoftFanUpdateNotice(_ message: String) -> Bool {
+        message == RateLimitService.slowDownMessage
+            || message == RateLimitService.duplicateBlockedMessage
+            || message == RateLimitService.fanUpdateMinimumQualityMessage
+            || message.localizedCaseInsensitiveContains("too fast")
+            || message.localizedCaseInsensitiveContains("duplicate")
+    }
+
+    private func schedulePostMessageClear() {
+        let messageToClear = postMessage
+        guard !messageToClear.isEmpty else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            guard postMessage == messageToClear else { return }
+            postMessage = ""
+            postMessageIsError = false
+            postMessageIsSoftNotice = false
+        }
+    }
+
+    @MainActor
+    private func runFanUpdateCooldownCountdown() async {
+        updateFanUpdateCooldownRemainingSeconds()
+
+        while fanUpdateCooldownRemainingSeconds > 0 {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { return }
+            updateFanUpdateCooldownRemainingSeconds()
+        }
+    }
+
+    private func updateFanUpdateCooldownRemainingSeconds(now: Date = Date()) {
+        guard let fanUpdateCooldownUntil else {
+            fanUpdateCooldownRemainingSeconds = 0
+            return
+        }
+
+        let remaining = max(0, Int(ceil(fanUpdateCooldownUntil.timeIntervalSince(now))))
+        fanUpdateCooldownRemainingSeconds = remaining
+        if remaining == 0 {
+            self.fanUpdateCooldownUntil = nil
+        }
+    }
+
+    private var composerPostButton: some View {
+        Image(systemName: "megaphone.fill")
+            .font(.system(size: 15, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 36, height: 36)
+            .background {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        FGColor.accentBlue.opacity(fanUpdatesIsDark ? 0.88 : 0.82),
+                                        FGColor.accentGreen.opacity(fanUpdatesIsDark ? 0.72 : 0.64)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.white.opacity(fanUpdatesIsDark ? 0.22 : 0.34), lineWidth: 0.75)
+            }
+            .shadow(color: FGColor.accentBlue.opacity(composerPostButtonDisabled ? 0 : 0.22), radius: 8, y: 2)
+            .contentShape(Circle())
+            .accessibilityLabel("Post fan update")
+            .onAppear {
+#if DEBUG
+                print("[FanUpdatesComposerDebug] iconRendered=megaphone.fill")
+#endif
+            }
     }
     
     private func commentAvatar(for comment: VenueEventCommentRow) -> some View {

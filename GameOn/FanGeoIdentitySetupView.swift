@@ -26,13 +26,20 @@ struct FanGeoIdentitySetupView: View {
     @State private var availabilityTask: Task<Void, Never>?
 
     var body: some View {
-        NavigationStack {
+        let avatarSnapshot = IdentityAvatarSnapshot(
+            thumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+            avatarURL: viewModel.currentUserAvatarURL,
+            refreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+            email: viewModel.currentUserEmail
+        )
+
+        return NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: FGSpacing.lg) {
                     headerCopy
 
                     if mode == .complete {
-                        avatarSection
+                        avatarSection(snapshot: avatarSnapshot)
                         displayNameSection
                     }
 
@@ -87,27 +94,16 @@ struct FanGeoIdentitySetupView: View {
         }
     }
 
-    private var avatarSection: some View {
+    private func avatarSection(snapshot: IdentityAvatarSnapshot) -> some View {
         FGCard {
             FGSectionHeader("Profile photo", subtitle: "Optional — add or change anytime.")
-            PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
-                HStack(spacing: FGSpacing.md) {
-                    UserAvatarView(
-                        avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
-                        avatarURL: viewModel.currentUserAvatarURL,
-                        avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
-                        displayName: displayNameDraft,
-                        email: viewModel.currentUserEmail,
-                        size: 56,
-                        fallbackStyle: .lightOnWhiteChrome,
-                        imagePlaceholderTint: FGColor.accentBlue
-                    )
-                    Text(isUploadingAvatar ? "Uploading…" : "Choose photo")
-                        .font(FGTypography.cardTitle)
-                    Spacer(minLength: 0)
-                }
-            }
-            .disabled(isUploadingAvatar || isSaving)
+            IdentitySetupAvatarPickerRow(
+                snapshot: snapshot,
+                displayName: displayNameDraft,
+                isUploadingAvatar: isUploadingAvatar,
+                isSaving: isSaving,
+                selectedAvatarItem: $selectedAvatarItem
+            )
         }
     }
 
@@ -160,6 +156,7 @@ struct FanGeoIdentitySetupView: View {
         }
     }
 
+    @MainActor
     private func scheduleHandleAvailabilityCheck() {
         availabilityTask?.cancel()
         handleStatusMessage = ""
@@ -171,23 +168,22 @@ struct FanGeoIdentitySetupView: View {
             return
         }
 
-        availabilityTask = Task {
+        availabilityTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
             guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
-            await MainActor.run {
-                guard !Task.isCancelled else { return }
-                if available {
-                    handleStatusMessage = "Handle available."
-                    handleStatusIsPositive = true
-                } else {
-                    handleStatusMessage = "That handle is already taken."
-                    handleStatusIsPositive = false
-                }
+            guard !Task.isCancelled else { return }
+            if available {
+                handleStatusMessage = "Handle available."
+                handleStatusIsPositive = true
+            } else {
+                handleStatusMessage = "That handle is already taken."
+                handleStatusIsPositive = false
             }
         }
     }
 
+    @MainActor
     private func saveIdentity() async {
         errorMessage = ""
         isSaving = true
@@ -222,9 +218,10 @@ struct FanGeoIdentitySetupView: View {
             return
         }
 
-        await MainActor.run { onFinished() }
+        onFinished()
     }
 
+    @MainActor
     private func replaceAvatar(with item: PhotosPickerItem) async {
         isUploadingAvatar = true
         defer { isUploadingAvatar = false }
@@ -237,5 +234,43 @@ struct FanGeoIdentitySetupView: View {
             avatarURL: urls.fullURL,
             avatarThumbnailURL: urls.thumbnailURL
         )
+    }
+}
+
+/// Value snapshot for avatar UI (PhotosPicker label closure is nonisolated).
+private struct IdentityAvatarSnapshot {
+    let thumbnailURL: String?
+    let avatarURL: String
+    let refreshToken: UUID
+    let email: String
+}
+
+/// PhotosPicker label uses plain snapshot fields — not MapViewModel — to satisfy concurrency checking.
+private struct IdentitySetupAvatarPickerRow: View {
+    let snapshot: IdentityAvatarSnapshot
+    let displayName: String
+    let isUploadingAvatar: Bool
+    let isSaving: Bool
+    @Binding var selectedAvatarItem: PhotosPickerItem?
+
+    var body: some View {
+        PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
+            HStack(spacing: FGSpacing.md) {
+                UserAvatarView(
+                    avatarThumbnailURL: snapshot.thumbnailURL,
+                    avatarURL: snapshot.avatarURL,
+                    avatarDisplayRefreshToken: snapshot.refreshToken,
+                    displayName: displayName,
+                    email: snapshot.email,
+                    size: 56,
+                    fallbackStyle: .lightOnWhiteChrome,
+                    imagePlaceholderTint: FGColor.accentBlue
+                )
+                Text(isUploadingAvatar ? "Uploading…" : "Choose photo")
+                    .font(FGTypography.cardTitle)
+                Spacer(minLength: 0)
+            }
+        }
+        .disabled(isUploadingAvatar || isSaving)
     }
 }

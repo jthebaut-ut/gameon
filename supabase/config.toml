@@ -435,3 +435,9 @@ entrypoint = "./functions/venue-claim-approve/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/venue-claim-reject/index.ts"
+
+[functions.sync-live-matches]
+enabled = true
+verify_jwt = true
+import_map = "./functions/sync-live-matches/deno.json"
+entrypoint = "./functions/sync-live-matches/index.ts"

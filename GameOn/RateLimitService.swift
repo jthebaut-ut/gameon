@@ -11,6 +11,7 @@ enum RateLimitService {
 
     /// Same text resent within the duplicate window.
     static let duplicateBlockedMessage = "Duplicate message blocked."
+    static let fanUpdateMinimumQualityMessage = "Add a little more detail before posting."
 
     // MARK: - Private chat (`DirectChatService.sendMessage`)
 
@@ -23,10 +24,13 @@ enum RateLimitService {
 
     // MARK: - Venue event comments / fan updates (`MapViewModel.addComment`)
 
-    private static let commentMinInterval: TimeInterval = 3
+    static let venueEventCommentMinInterval: TimeInterval = 10
+    static let venueEventCommentDuplicateWindow: TimeInterval = 60
+    static let venueEventCommentMinimumMeaningfulCharacters = 3
+    private static let commentMinInterval: TimeInterval = venueEventCommentMinInterval
     private static let commentWindow2m: TimeInterval = 120
     private static let commentMaxPer2m: Int = 5
-    private static let commentDuplicateWindow: TimeInterval = 60
+    private static let commentDuplicateWindow: TimeInterval = venueEventCommentDuplicateWindow
 
     // MARK: - Conversation reports (`ModerationService.reportConversation`)
 
@@ -123,6 +127,9 @@ enum RateLimitService {
 
     /// Returns a user-facing error string, or `nil` if the post may proceed.
     static func checkVenueEventCommentSend(venueEventId: UUID, body: String, now: Date = Date()) -> String? {
+        guard fanUpdateHasMinimumContentQuality(body) else {
+            return fanUpdateMinimumQualityMessage
+        }
         let fingerprint = sendFingerprint(for: body)
         lock.lock()
         defer { lock.unlock() }
@@ -231,6 +238,25 @@ enum RateLimitService {
     }
 
     // MARK: - Helpers
+
+    static func fanUpdateHasMinimumContentQuality(_ body: String) -> Bool {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        let meaningfulCharacters = trimmed.filter { !$0.isWhitespace && !$0.isNewline }
+        guard meaningfulCharacters.count >= venueEventCommentMinimumMeaningfulCharacters else { return false }
+
+        let normalized = ModerationService.normalizeModerationText(String(meaningfulCharacters))
+        if !normalized.isEmpty {
+            let alphanumericScalars = normalized.unicodeScalars.filter {
+                CharacterSet.alphanumerics.contains($0)
+            }
+            let uniqueAlphanumericScalars = Set(alphanumericScalars)
+            if alphanumericScalars.count <= 2 { return false }
+            if uniqueAlphanumericScalars.count == 1 { return false }
+            return true
+        }
+
+        return Set(meaningfulCharacters).count > 1
+    }
 
     private static func sendFingerprint(for body: String) -> String {
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)

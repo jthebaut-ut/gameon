@@ -524,6 +524,8 @@ extension MapViewModel {
                 clearExplicitLogoutMarkerAfterManualAuthSucceeded()
             }
 
+            await registerFanActiveSessionOnLogin()
+
             if recordFanGuidelinesAcceptance {
                 UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
             }
@@ -594,6 +596,7 @@ extension MapViewModel {
 
             clearExplicitLogoutMarkerAfterManualAuthSucceeded()
 
+            await registerFanActiveSessionOnLogin()
             Task { await refreshUserPersonalizationInBackground() }
         } catch {
             await MainActor.run {
@@ -678,6 +681,7 @@ extension MapViewModel {
 
         await stopVenueOwnerAnalyticsRealtime()
         await removeAllVenueEventCommentsRealtimeListeners()
+        await clearFanActiveSessionOnLogout()
 
         await MainActor.run {
             clearAuthenticatedSessionCaches()
@@ -781,7 +785,19 @@ extension MapViewModel {
         }
 
         do {
-            let session = try await supabase.auth.session
+            guard let session = try await supabaseResolvedAuthSession() else {
+                await MainActor.run {
+                    clearAuthenticatedSessionCaches()
+                    clearVenueOwnerDraftState()
+                    isLoggedIn = false
+                    isVenueOwnerLoggedIn = false
+                    venueOwnerMode = false
+                    isAdminLoggedIn = false
+                }
+                clearPersistedAccountMode()
+                print("NO ACTIVE SESSION")
+                return
+            }
             let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
             let sessionUid = session.user.id.uuidString.lowercased()
             logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
@@ -878,6 +894,10 @@ extension MapViewModel {
                 )
                 logBusinessOwnerSessionFlags(context: "bootstrap_restore_fan_user")
                 print("SESSION RESTORED:", sessionEmail)
+                Task {
+                    await self.enforceFanSingleSessionOnForeground()
+                    await self.startFanSingleSessionRealtimeIfNeeded()
+                }
                 return
             }
 
@@ -899,7 +919,22 @@ extension MapViewModel {
     func refreshUserPersonalizationInBackground() async {
         let t0 = Date()
         do {
-            _ = try await supabase.auth.session
+            guard try await supabaseResolvedAuthSession() != nil else {
+                await MainActor.run {
+                    clearAuthenticatedSessionCaches()
+                    clearVenueOwnerDraftState()
+                    isLoggedIn = false
+                    isVenueOwnerLoggedIn = false
+                    venueOwnerMode = false
+                    isAdminLoggedIn = false
+                }
+                clearPersistedAccountMode()
+                #if DEBUG
+                let ms = Int(Date().timeIntervalSince(t0) * 1000)
+                print("[Background] personalization loaded ms=\(ms) (no session)")
+                #endif
+                return
+            }
         } catch {
             await MainActor.run {
                 clearAuthenticatedSessionCaches()
@@ -941,6 +976,8 @@ extension MapViewModel {
         await refreshProfileXP()
         await loadFavoriteVenuesFromSupabase()
         await loadFavoriteTeamsFromSupabase()
+        await enforceFanSingleSessionOnForeground()
+        await startFanSingleSessionRealtimeIfNeeded()
         await refreshFollowingTabDataGlobally()
         await loadPendingPickupGameJoinRequestCountForCreator()
 

@@ -44,35 +44,35 @@ extension MapViewModel {
         let today = cal.startOfDay(for: Date())
         let merged: Set<Date>
         switch calendarTabGameFilter {
-        case .all:
-            merged = venueGameCalendarDotDates.union(pickupGameCalendarDotDates)
-        case .venue:
+        case .venueGames:
             merged = venueGameCalendarDotDates
-        case .pickup:
+        case .pickupGames:
             merged = pickupGameCalendarDotDates
+        case .live:
+            merged = []
         }
         return Set(merged.filter { cal.startOfDay(for: $0) >= today })
     }
 
     func calendarTabCalendarDotPaletteForFilter() -> DiscoverCalendarDotPalette? {
         switch calendarTabGameFilter {
-        case .all:
-            return nil
-        case .venue:
+        case .venueGames:
             return .venueGames
-        case .pickup:
+        case .pickupGames:
             return .pickupGames
+        case .live:
+            return nil
         }
     }
 
     var calendarTabCalendarDotsLoading: Bool {
         switch calendarTabGameFilter {
-        case .all:
-            return isLoadingVenueCalendarDots || isLoadingPickupCalendarDots
-        case .venue:
+        case .venueGames:
             return isLoadingVenueCalendarDots
-        case .pickup:
+        case .pickupGames:
             return isLoadingPickupCalendarDots
+        case .live:
+            return isLoadingLiveMatches
         }
     }
 
