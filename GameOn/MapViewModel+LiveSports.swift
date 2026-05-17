@@ -14,6 +14,9 @@ extension MapViewModel {
 
             do {
                 let matches = try await LiveSportsService.shared.fetchLiveMatches(forceRefresh: forceRefresh)
+#if DEBUG
+                print("[LiveRefreshDebug] replace_not_append=true previous_count=\(self.liveMatches.count) incoming_count=\(matches.count)")
+#endif
                 self.liveMatches = matches
                 self.liveMatchesLoadError = nil
                 self.invalidateCalendarTabEventsListCache()

@@ -35,6 +35,7 @@ struct CalendarScreen: View {
     @State private var liveAutoRefreshPulse = false
     @State private var liveLastRefreshDate = Date()
     @State private var liveRefreshSource: LiveRefreshSource = .auto
+    @FocusState private var isGameSearchFocused: Bool
 
     private var displayedEvents: [SportsEvent] {
         viewModel.calendarScreenDisplayedEvents(
@@ -153,6 +154,20 @@ struct CalendarScreen: View {
                 eventsList
             }
             .padding(.top, 18)
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                dismissCalendarSearchKeyboard()
+            }
+        )
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    dismissCalendarSearchKeyboard()
+                }
+            }
         }
         .sheet(isPresented: $showDatePicker) {
             LiquidGlassCalendarPicker(
@@ -543,6 +558,11 @@ struct CalendarScreen: View {
 
             TextField("Search game, team, league, or sport", text: $gameSearchText)
                 .textInputAutocapitalization(.words)
+                .submitLabel(.done)
+                .focused($isGameSearchFocused)
+                .onSubmit {
+                    dismissCalendarSearchKeyboard()
+                }
 
             if !gameSearchText.isEmpty {
                 Button {
@@ -557,6 +577,11 @@ struct CalendarScreen: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal)
+    }
+
+    private func dismissCalendarSearchKeyboard() {
+        guard isGameSearchFocused else { return }
+        isGameSearchFocused = false
     }
 
     private var eventsList: some View {

@@ -41,11 +41,12 @@ actor LiveSportsService {
     }
 
     private static func fetchLiveMatchesFromSupabase() async throws -> [LiveMatch] {
-        let requestURL = try liveMatchesRequestURL()
+        let requestURL = try await liveMatchesRequestURL()
+        let publishableKey = await supabasePublishableKey
         var request = URLRequest(url: requestURL)
         request.httpMethod = "GET"
-        request.setValue(supabasePublishableKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(supabasePublishableKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(publishableKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(publishableKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         logRequest(requestURL: requestURL, request: request)
@@ -92,7 +93,8 @@ actor LiveSportsService {
         print("[LiveDebug] first_row =", rows.first as Any)
 #endif
         let normalized = rows.compactMap(\.liveMatch)
-        let matches = normalized.sorted { lhs, rhs in
+        let deduped = deduplicateLiveMatches(normalized)
+        let matches = deduped.sorted { lhs, rhs in
             if lhs.matchStatus.isHappeningNow != rhs.matchStatus.isHappeningNow {
                 return lhs.matchStatus.isHappeningNow && !rhs.matchStatus.isHappeningNow
             }
@@ -103,22 +105,84 @@ actor LiveSportsService {
 #if DEBUG
         print("[LiveDebug] normalized_count =", normalized.count)
         print("[LiveDebug] final_count =", matches.count)
+        print("[LiveDedupDebug] raw_count=\(normalized.count)")
+        print("[LiveDedupDebug] deduped_count=\(deduped.count)")
+        print("[LiveDedupDebug] duplicate_removed=\(normalized.count - deduped.count)")
         print("[LiveDebug] raw_count=\(rows.count)")
         logRowSamples(rows)
-        print("[LiveDebug] filtered_count=\(normalized.count)")
-        logMatchSamples(normalized)
+        print("[LiveDebug] filtered_count=\(deduped.count)")
+        logMatchSamples(deduped)
         print("[LiveDebug] final_count=\(matches.count)")
 #endif
 
         return matches
     }
 
-    private static func liveMatchesRequestURL() throws -> URL {
+    private static func deduplicateLiveMatches(_ matches: [LiveMatch]) -> [LiveMatch] {
+        var seenProviderKeys = Set<String>()
+        var seenNormalizedKeys = Set<String>()
+        var deduped: [LiveMatch] = []
+
+        for match in matches {
+            let providerKey = normalizedProviderMatchKey(match.id)
+            let normalizedKey = normalizedFixtureKey(for: match)
+
+            if !providerKey.isEmpty, seenProviderKeys.contains(providerKey) {
+#if DEBUG
+                print("[LiveDedupDebug] duplicate_removed=providerMatchId:\(providerKey)")
+#endif
+                continue
+            }
+
+            if seenNormalizedKeys.contains(normalizedKey) {
+#if DEBUG
+                print("[LiveDedupDebug] duplicate_removed=normalizedFixture:\(normalizedKey)")
+#endif
+                continue
+            }
+
+            if !providerKey.isEmpty {
+                seenProviderKeys.insert(providerKey)
+            }
+            seenNormalizedKeys.insert(normalizedKey)
+            deduped.append(match)
+        }
+
+        return deduped
+    }
+
+    private static func normalizedProviderMatchKey(_ raw: String) -> String {
+        normalizeDedupComponent(raw)
+    }
+
+    private static func normalizedFixtureKey(for match: LiveMatch) -> String {
+        [
+            normalizeDedupComponent(match.sport),
+            normalizeDedupComponent(match.league),
+            normalizeDedupComponent(match.homeTeam),
+            normalizeDedupComponent(match.awayTeam),
+            normalizedStartMinute(match.startTime)
+        ].joined(separator: "|")
+    }
+
+    private static func normalizedStartMinute(_ date: Date) -> String {
+        String(Int(date.timeIntervalSince1970 / 60))
+    }
+
+    private static func normalizeDedupComponent(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: #"[\s\-_]+"#, with: " ", options: .regularExpression)
+    }
+
+    private static func liveMatchesRequestURL() async throws -> URL {
         let now = Date()
         let windowStart = now.addingTimeInterval(-2 * 60 * 60)
         let windowEnd = now.addingTimeInterval(7 * 24 * 60 * 60)
+        let projectURL = await supabaseProjectURL
         var components = URLComponents(
-            url: supabaseProjectURL
+            url: projectURL
                 .appendingPathComponent("rest")
                 .appendingPathComponent("v1")
                 .appendingPathComponent("live_matches"),
@@ -263,7 +327,7 @@ private nonisolated struct LiveMatchRow: Decodable {
         }
     }
 
-    private static func parseSupabaseTimestamp(_ raw: String) -> Date? {
+    private nonisolated static func parseSupabaseTimestamp(_ raw: String) -> Date? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
@@ -275,6 +339,6 @@ private nonisolated struct LiveMatchRow: Decodable {
         plain.formatOptions = [.withInternetDateTime]
         if let date = plain.date(from: trimmed) { return date }
 
-        return PickupGameModels.parseSupabaseTimestamptz(trimmed)
+        return nil
     }
 }

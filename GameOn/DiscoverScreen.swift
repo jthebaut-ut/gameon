@@ -1806,7 +1806,7 @@ struct DiscoverScreen: View {
                     HStack(spacing: FGSpacing.sm) {
                         Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(isOn ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
+                            .foregroundStyle(isOn ? FGColor.accentBlue : (colorScheme == .dark ? Color.white.opacity(0.76) : FGColor.mutedText(colorScheme)))
                         Text(mode.title)
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
@@ -1826,15 +1826,32 @@ struct DiscoverScreen: View {
         .padding(6)
         .background {
             RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .fill(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.74 : 0.76))
+                        .fill(
+                            colorScheme == .dark
+                                ? Color.black.opacity(0.34)
+                                : FGColor.background(colorScheme).opacity(0.76)
+                        )
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.10 : 0.18),
+                                    Color.white.opacity(0.02)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                 }
         }
         .overlay {
             RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.22) : FGColor.divider(colorScheme), lineWidth: 1)
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 16, y: 8)
     }
@@ -2382,7 +2399,28 @@ struct DiscoverScreen: View {
 
         return ZStack {
             Capsule(style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.88 : 0.96))
+                .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .fill(
+                            colorScheme == .dark
+                                ? Color.black.opacity(0.36)
+                                : Color.white.opacity(0.86)
+                        )
+                }
+                .overlay {
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.16 : 0.34),
+                                    Color.white.opacity(colorScheme == .dark ? 0.04 : 0.12)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
 
             HStack(spacing: 0) {
                 discoverFloatingModeSegment(
@@ -2401,7 +2439,10 @@ struct DiscoverScreen: View {
         }
         .overlay {
             Capsule(style: .continuous)
-                .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.75)
+                .strokeBorder(
+                    colorScheme == .dark ? Color.white.opacity(0.24) : Color.black.opacity(0.07),
+                    lineWidth: colorScheme == .dark ? 1 : 0.75
+                )
         }
         .frame(width: discoverEmbeddedToggleWidth(for: layoutWidth), height: 36)
         .animation(discoverBottomControlModeSpring, value: viewModel.discoverMapContentMode)
@@ -2416,7 +2457,16 @@ struct DiscoverScreen: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .shadow(color: FGColor.accentGreen.opacity(0.2), radius: 2, y: 1)
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 0.75)
+            }
+            .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.34 : 0.2), radius: 6, y: 1)
+    }
+
+    private func discoverModeToggleInactiveForeground(_ selected: Bool) -> Color {
+        if selected { return .white }
+        return colorScheme == .dark ? Color.white.opacity(0.86) : FGColor.primaryText(colorScheme)
     }
 
     private func discoverFloatingModeSegment(
@@ -2450,7 +2500,7 @@ struct DiscoverScreen: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                 }
-                .foregroundStyle(selected ? Color.white : FGColor.primaryText(colorScheme))
+                .foregroundStyle(discoverModeToggleInactiveForeground(selected))
             }
             .frame(width: segmentWidth)
             .frame(maxHeight: .infinity)
@@ -2489,9 +2539,34 @@ struct DiscoverScreen: View {
         }
         .frame(width: bannerSize.width, height: bannerSize.height, alignment: .center)
         .fixedSize(horizontal: true, vertical: true)
-        .background(.ultraThinMaterial)
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.black.opacity(0.22) : Color.white.opacity(0.22))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.28),
+                                    Color.white.opacity(0.03)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .opacity(0.9)
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.20) : FGColor.divider(colorScheme), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 12, y: 5)
+        .opacity(0.94)
         .zIndex(8)
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -3770,21 +3845,25 @@ private struct DiscoverOverlaySportPill: View {
 
                 Text(label)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(isSelected ? 0.96 : 0.86) : FGColor.primaryText(colorScheme))
                     .lineLimit(1)
             }
             .padding(.horizontal, 11)
             .frame(height: Self.chipHeight)
             .background {
                 RoundedRectangle(cornerRadius: Self.chipCornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Self.chipCornerRadius, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.black.opacity(isSelected ? 0.24 : 0.34) : Color.clear)
+                    }
                     .overlay {
                         RoundedRectangle(cornerRadius: Self.chipCornerRadius, style: .continuous)
                             .fill(
                                 Color.white.opacity(
                                     isSelected
-                                        ? (colorScheme == .dark ? 0.52 : 0.62)
-                                        : (colorScheme == .dark ? 0.32 : 0.44)
+                                        ? (colorScheme == .dark ? 0.18 : 0.62)
+                                        : (colorScheme == .dark ? 0.10 : 0.44)
                                 )
                             )
                     }
@@ -3792,14 +3871,16 @@ private struct DiscoverOverlaySportPill: View {
             .overlay {
                 RoundedRectangle(cornerRadius: Self.chipCornerRadius, style: .continuous)
                     .strokeBorder(
-                        isSelected ? FGColor.accentGreen : Color.black.opacity(0.04),
-                        lineWidth: isSelected ? 1.25 : 0.5
+                        isSelected
+                            ? FGColor.accentGreen
+                            : (colorScheme == .dark ? Color.white.opacity(0.18) : Color.black.opacity(0.04)),
+                        lineWidth: isSelected ? 1.25 : (colorScheme == .dark ? 0.75 : 0.5)
                     )
             }
             .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.06 : 0.025),
-                radius: 1,
-                y: 0.5
+                color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.025),
+                radius: colorScheme == .dark ? 3 : 1,
+                y: colorScheme == .dark ? 1.5 : 0.5
             )
         }
         .buttonStyle(.plain)
@@ -3823,9 +3904,9 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
 
     private var material: Material {
         switch style {
-        case .searchBar:
+        case .searchBar, .bottomControl:
             return .thinMaterial
-        case .bottomControl, .sportsRow, .weather, .overlay:
+        case .sportsRow, .weather, .overlay:
             return .ultraThinMaterial
         }
     }
@@ -3834,28 +3915,48 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
     private var whiteOverlayOpacity: CGFloat {
         switch style {
         case .searchBar:
-            return colorScheme == .dark ? 0.37 : 0.44
+            return colorScheme == .dark ? 0.17 : 0.44
         case .sportsRow:
-            return colorScheme == .dark ? 0.28 : 0.33
+            return colorScheme == .dark ? 0.13 : 0.33
         case .weather:
-            return colorScheme == .dark ? 0.35 : 0.42
+            return colorScheme == .dark ? 0.18 : 0.42
         case .overlay:
-            return colorScheme == .dark ? 0.33 : 0.39
+            return colorScheme == .dark ? 0.16 : 0.39
         case .bottomControl:
-            return colorScheme == .dark ? 0.82 : 0.94
+            return colorScheme == .dark ? 0.12 : 0.94
         }
+    }
+
+    private var darkSeparationScrimOpacity: CGFloat {
+        guard colorScheme == .dark else { return 0 }
+        switch style {
+        case .searchBar:
+            return 0.30
+        case .sportsRow:
+            return 0.24
+        case .weather, .overlay:
+            return 0.28
+        case .bottomControl:
+            return 0.34
+        }
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(style == .bottomControl ? 0.24 : 0.19)
+            : FGColor.divider(colorScheme)
     }
 
     private var shadowOpacity: Double {
         switch style {
         case .searchBar:
-            return colorScheme == .dark ? 0.09 : 0.081
+            return colorScheme == .dark ? 0.24 : 0.081
         case .sportsRow:
-            return colorScheme == .dark ? 0.063 : 0.045
+            return colorScheme == .dark ? 0.18 : 0.045
         case .weather, .overlay:
-            return colorScheme == .dark ? 0.081 : 0.072
+            return colorScheme == .dark ? 0.22 : 0.072
         case .bottomControl:
-            return colorScheme == .dark ? 0.2 : 0.1
+            return colorScheme == .dark ? 0.28 : 0.1
         }
     }
 
@@ -3901,6 +4002,10 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
                     .fill(material)
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.black.opacity(darkSeparationScrimOpacity))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(Color.white.opacity(whiteOverlayOpacity))
                     }
                     .overlay {
@@ -3920,6 +4025,10 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
                     }
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: colorScheme == .dark ? 1 : 0.75)
+            }
             .shadow(
                 color: Color.black.opacity(shadowOpacity),
                 radius: shadowRadius,
