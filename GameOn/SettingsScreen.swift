@@ -7,14 +7,80 @@ import SwiftUI
 /// Scroll tail insets for the Account tab and settings-presented sheets.
 /// `floatingTabBarStackHeight` must stay aligned with ``MainTabView/floatingTabBarStackHeight``.
 enum SettingsScrollBottomLayout {
-    static let floatingTabBarStackHeight: CGFloat = 92
-    static let breathingRoomBelowLastCard: CGFloat = 22
+    static let floatingTabBarStackHeight: CGFloat = 78
+    static let breathingRoomBelowLastCard: CGFloat = 72
     static var accountTabScrollBottomInset: CGFloat {
         floatingTabBarStackHeight + breathingRoomBelowLastCard
     }
 
     /// Sheets are not under the main floating tab; use for scrollable tails above the home indicator / drag handle.
     static let sheetScrollComfortInset: CGFloat = 32
+}
+
+private enum SettingsPremiumChrome {
+    static let cardRadius: CGFloat = 20
+    static let rowIconSize: CGFloat = 34
+    static let rowMinHeight: CGFloat = 58
+
+    static func cardFill(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.085, green: 0.105, blue: 0.115).opacity(0.72)
+            : Color(.secondarySystemGroupedBackground).opacity(0.96)
+    }
+
+    static func cardHighlight(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.035) : Color.white.opacity(0.56)
+    }
+
+    static func cardStroke(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.07)
+    }
+
+    static func divider(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.065) : Color.black.opacity(0.08)
+    }
+
+    static func primaryText(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.92) : Color(red: 0.10, green: 0.12, blue: 0.15)
+    }
+
+    static func secondaryText(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.60) : Color(red: 0.38, green: 0.42, blue: 0.50)
+    }
+
+    static func mutedText(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.36) : Color(red: 0.58, green: 0.62, blue: 0.68)
+    }
+
+    static func iconSurface(_ scheme: ColorScheme) -> Color {
+        scheme == .dark ? Color.white.opacity(0.055) : Color.black.opacity(0.045)
+    }
+
+    static func screenBackground(_ scheme: ColorScheme) -> some View {
+        ZStack {
+            scheme == .dark
+                ? Color(red: 0.025, green: 0.032, blue: 0.04)
+                : Color(.systemGroupedBackground)
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(scheme == .dark ? 0.035 : 0.56),
+                    Color.clear,
+                    Color.black.opacity(scheme == .dark ? 0.20 : 0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            RadialGradient(
+                colors: [
+                    FGColor.accentGreen.opacity(scheme == .dark ? 0.10 : 0.08),
+                    Color.clear
+                ],
+                center: .topTrailing,
+                startRadius: 12,
+                endRadius: 320
+            )
+        }
+    }
 }
 
 /// One ``Identifiable`` sheet route for ``VenueOwnerDashboardView`` so only one venue-owner dashboard
@@ -39,10 +105,6 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
     }
 }
 
-private struct PickupGamesListPresentation: Identifiable {
-    var id: String { "pickup-games-list" }
-}
-
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -59,6 +121,7 @@ struct SettingsScreen: View {
     @State private var showVenueAuthSheet = false
     @State private var showNotificationsSheet = false
     @State private var showTimeZoneSheet = false
+    @State private var showAppearanceSheet = false
     @State private var showResetPasswordSheet = false
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteVenueOwnerSheet = false
@@ -72,8 +135,11 @@ struct SettingsScreen: View {
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
-    @State private var pickupGamesListPresentation: PickupGamesListPresentation?
-    @State private var pickupGameFormMode: PickupGameFormMode?
+    @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
+
+    private var appearancePreference: FanGeoAppearancePreference {
+        FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
+    }
 
     /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
     private func performBusinessAccountLogout() {
@@ -137,7 +203,7 @@ struct SettingsScreen: View {
                             Button { showProfileScreen = true } label: {
                                 settingsRow(
                                     title: "Edit Profile",
-                                    subtitle: "Update your display name, photo, and sports.",
+                                    subtitle: "Name, photo, sports, teams, and reputation.",
                                     systemImage: "person.crop.circle"
                                 )
                             }
@@ -159,10 +225,15 @@ struct SettingsScreen: View {
                             }
                             .buttonStyle(.plain)
 
-                            settingsRowDivider()
+                            settingsDestructiveSpacer()
 
                             Button { showDeleteAccountSheet = true } label: {
-                                settingsRow(title: "Delete Account", subtitle: "Permanently remove your data.", systemImage: "trash", tint: .red)
+                                settingsRow(
+                                    title: "Delete account",
+                                    subtitle: "Permanent removal.",
+                                    systemImage: "trash",
+                                    tint: FGColor.dangerRed.opacity(0.82)
+                                )
                             }
                             .buttonStyle(.plain)
 
@@ -171,45 +242,43 @@ struct SettingsScreen: View {
 
                                 Button { showDeleteVenueOwnerSheet = true } label: {
                                     settingsRow(
-                                        title: "Delete venue owner access",
-                                        subtitle: "Remove venue owner profile, listings, and uploads.",
+                                        title: "Delete venue access",
+                                        subtitle: "Remove owner profile, listings, and uploads.",
                                         systemImage: "trash",
-                                        tint: .red
+                                        tint: FGColor.dangerRed.opacity(0.82)
                                     )
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 10, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
                         .listRowBackground(Color.clear)
                     } else if viewModel.isVenueOwnerLoggedIn {
-                        settingsSectionCard {
-                            Button { showDeleteVenueOwnerSheet = true } label: {
-                                settingsRow(
-                                    title: "Delete Account",
-                                    subtitle: "Permanently remove your venue owner profile and data.",
-                                    systemImage: "trash",
-                                    tint: .red
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                        .listRowBackground(Color.clear)
-
                         settingsSectionCard {
                             Button {
                                 performBusinessAccountLogout()
                             } label: {
                                 settingsRow(
-                                    title: "Log out",
+                                    title: "Logout",
                                     subtitle: "Sign out of this business account.",
                                     systemImage: "rectangle.portrait.and.arrow.right"
                                 )
                             }
                             .buttonStyle(.plain)
+
+                            settingsDestructiveSpacer()
+
+                            Button { showDeleteVenueOwnerSheet = true } label: {
+                                settingsRow(
+                                    title: "Delete account",
+                                    subtitle: "Permanent owner profile removal.",
+                                    systemImage: "trash",
+                                    tint: FGColor.dangerRed.opacity(0.82)
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 10, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
                         .listRowBackground(Color.clear)
                     }
                 } header: {
@@ -435,101 +504,44 @@ struct SettingsScreen: View {
                         }
                         .buttonStyle(.plain)
 
-                        settingsRowDivider()
-
-                        Button { showTimeZoneSheet = true } label: {
-                            settingsRow(title: "Game Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
-                        }
-                        .buttonStyle(.plain)
                     }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
                     .listRowBackground(Color.clear)
                 } header: {
-                    settingsSectionHeader("Preferences")
+                    settingsSectionHeader("Social")
                 }
 
                 Section {
-                    if viewModel.hasAuthenticatedVenueOwnerSession {
-                        settingsSectionCard {
-                            settingsInlineNote(
-                                "Pickup games are for fan accounts only.",
-                                systemImage: "info.circle"
+                    settingsSectionCard {
+                        Button { showTimeZoneSheet = true } label: {
+                            settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { showAppearanceSheet = true } label: {
+                            settingsRow(
+                                title: "Appearance",
+                                subtitle: appearancePreference.displayName,
+                                systemImage: "circle.lefthalf.filled"
                             )
                         }
-                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                        .listRowBackground(Color.clear)
-                    } else if viewModel.canFanUsePickupGamesUI {
-                        settingsSectionCard {
-                            Button {
-                                pickupGamesListPresentation = PickupGamesListPresentation()
-                            } label: {
-                                settingsRow(
-                                    title: "My pickup games",
-                                    subtitle: "View, edit, or remove games you posted.",
-                                    systemImage: "list.bullet.rectangle"
-                                ) {
-                                    if viewModel.pendingPickupGameJoinRequestCount > 0 {
-                                        settingsPickupOrganizerPendingBadge(count: viewModel.pendingPickupGameJoinRequestCount)
-                                    }
-                                }
-                            }
-                            .buttonStyle(.plain)
-
-                            settingsRowDivider()
-
-                            Button {
-                                pickupGameFormMode = .add
-                            } label: {
-                                settingsRow(
-                                    title: "Add pickup game",
-                                    subtitle: "Post a casual game and optional map pin.",
-                                    systemImage: "figure.run"
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                        .listRowBackground(Color.clear)
+                        .buttonStyle(.plain)
                     }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+                    .listRowBackground(Color.clear)
                 } header: {
-                    settingsSectionHeader("Pickup Games")
+                    settingsSectionHeader("Experience")
                 }
 
                 Section {
                     settingsSectionCard {
                         Button { showContactSupportSheet = true } label: {
                             settingsRow(
-                                title: "Contact FanGeo Support",
-                                subtitle: "Message the team",
+                                title: "Support",
+                                subtitle: "Message the FanGeo team.",
                                 systemImage: "envelope.open.fill"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                    .listRowBackground(Color.clear)
-                } header: {
-                    settingsSectionHeader("Help")
-                }
-
-                Section {
-                    settingsSectionCard {
-                        Button { legalDocumentSheet = .privacyPolicy } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.privacyPolicy.title,
-                                subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRowDivider()
-
-                        Button { legalDocumentSheet = .termsOfService } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.termsOfService.title,
-                                subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
                             )
                         }
                         .buttonStyle(.plain)
@@ -556,7 +568,35 @@ struct SettingsScreen: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+                    .listRowBackground(Color.clear)
+                } header: {
+                    settingsSectionHeader("Help & Safety")
+                }
+
+                Section {
+                    settingsSectionCard {
+                        Button { legalDocumentSheet = .privacyPolicy } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.privacyPolicy.title,
+                                subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button { legalDocumentSheet = .termsOfService } label: {
+                            settingsRow(
+                                title: SettingsLegalDocumentKind.termsOfService.title,
+                                subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
+                                systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
                     .listRowBackground(Color.clear)
                 } header: {
                     settingsSectionHeader("Legal")
@@ -567,10 +607,10 @@ struct SettingsScreen: View {
                     .frame(height: SettingsScrollBottomLayout.accountTabScrollBottomInset)
             }
             .listStyle(.plain)
-            .listSectionSpacing(18)
+            .listSectionSpacing(10)
             .scrollContentBackground(.hidden)
-            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
-            .navigationTitle("Settings")
+            .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
+            .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
@@ -631,12 +671,6 @@ struct SettingsScreen: View {
                 showAddLocationSheet = false
             }
         }
-        .onChange(of: viewModel.canFanUsePickupGamesUI) { _, canUse in
-            if !canUse {
-                pickupGamesListPresentation = nil
-                pickupGameFormMode = nil
-            }
-        }
         .sheet(item: $venueOwnerDashboardSheet) { route in
             VenueOwnerDashboardView(viewModel: viewModel, entryPoint: route.entryPoint)
                 .id(route.id)
@@ -683,7 +717,12 @@ struct SettingsScreen: View {
         }
         .sheet(isPresented: $showNotificationsSheet) {
             NavigationStack {
-                Form { SettingsGameNotificationsCard(viewModel: viewModel) }
+                ScrollView {
+                    SettingsGameNotificationsCard(viewModel: viewModel)
+                        .padding(.horizontal, FGSpacing.lg)
+                        .padding(.top, FGSpacing.lg)
+                }
+                    .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
                     }
@@ -695,6 +734,10 @@ struct SettingsScreen: View {
                         }
                     }
             }
+            .tint(FGColor.accentGreen)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showTimeZoneSheet) {
             NavigationStack {
@@ -702,7 +745,7 @@ struct SettingsScreen: View {
                     .safeAreaInset(edge: .bottom, spacing: 0) {
                         Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
                     }
-                    .navigationTitle("Game Time Zone")
+                    .navigationTitle("Time Zone")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -710,6 +753,21 @@ struct SettingsScreen: View {
                         }
                     }
             }
+        }
+        .sheet(isPresented: $showAppearanceSheet) {
+            NavigationStack {
+                FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
+                    .navigationTitle("Appearance")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { showAppearanceSheet = false }
+                        }
+                    }
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showResetPasswordSheet) {
             NavigationStack {
@@ -770,38 +828,6 @@ struct SettingsScreen: View {
                 }
             }
         }
-        .sheet(item: $pickupGamesListPresentation) { _ in
-            NavigationStack {
-                SettingsPickupGamesListSheet(viewModel: viewModel)
-            }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(FGAdaptiveSurface.sheetRoot)
-            .onAppear {
-                if !viewModel.canFanUsePickupGamesUI {
-                    pickupGamesListPresentation = nil
-                }
-            }
-        }
-        .sheet(item: $pickupGameFormMode) { mode in
-            NavigationStack {
-                SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
-                    pickupGameFormMode = nil
-                    Task {
-                        await viewModel.loadMyPickupGamesForSettings()
-                        await viewModel.refreshPickupGamesForDiscoverMap(force: true)
-                    }
-                }
-            }
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(FGAdaptiveSurface.sheetRoot)
-            .onAppear {
-                if !viewModel.canFanUsePickupGamesUI {
-                    pickupGameFormMode = nil
-                }
-            }
-        }
         .sheet(item: $legalDocumentSheet) { document in
             SettingsLegalDocumentSheet(document: document)
                 .presentationDetents([.large])
@@ -822,12 +848,13 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func settingsSectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(FGTypography.metadata.weight(.semibold))
-            .foregroundStyle(FGColor.secondaryText(colorScheme))
+        Text(title.uppercased())
+            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+            .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme).opacity(0.72))
+            .tracking(0.8)
             .textCase(nil)
-            .padding(.top, FGSpacing.lg)
-            .padding(.bottom, FGSpacing.sm)
+            .padding(.top, 10)
+            .padding(.bottom, 4)
     }
 
 
@@ -838,20 +865,59 @@ struct SettingsScreen: View {
 
     private struct SettingsSectionCardContainer<Content: View>: View {
         let content: () -> Content
+        @Environment(\.colorScheme) private var colorScheme
 
         var body: some View {
             VStack(alignment: .leading, spacing: 0) {
                 content()
             }
-            .padding(1)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(SettingsPremiumChrome.cardFill(colorScheme))
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    SettingsPremiumChrome.cardHighlight(colorScheme),
+                                    Color.clear
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                    .strokeBorder(SettingsPremiumChrome.cardStroke(colorScheme), lineWidth: 0.75)
+            }
+            .shadow(color: .black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 14, y: 7)
         }
     }
 
     @ViewBuilder
     private func settingsRowDivider() -> some View {
         Divider()
-            .overlay(FGColor.divider(colorScheme))
-            .padding(.leading, 68)
+            .overlay(SettingsPremiumChrome.divider(colorScheme))
+            .opacity(0.42)
+            .padding(.leading, 58)
+            .padding(.trailing, FGSpacing.md)
+    }
+
+    @ViewBuilder
+    private func settingsDestructiveSpacer() -> some View {
+        VStack(spacing: 0) {
+            Divider()
+                .overlay(SettingsPremiumChrome.divider(colorScheme))
+                .opacity(0.22)
+                .padding(.leading, 58)
+                .padding(.trailing, FGSpacing.md)
+            Color.clear
+                .frame(height: 6)
+        }
     }
 
     @ViewBuilder
@@ -869,16 +935,16 @@ struct SettingsScreen: View {
             }
 
             Text(text)
-                .font(FGTypography.caption)
-                .foregroundStyle(tint ?? FGColor.secondaryText(colorScheme))
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundStyle(tint ?? SettingsPremiumChrome.secondaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, FGSpacing.md)
-        .padding(.vertical, FGSpacing.md)
+        .padding(.vertical, 10)
     }
 
     @ViewBuilder
-    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
+    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = FGColor.accentGreen) -> some View {
         settingsRow(title: title, subtitle: subtitle, systemImage: systemImage, tint: tint) {
             EmptyView()
         }
@@ -889,29 +955,29 @@ struct SettingsScreen: View {
         title: String,
         subtitle: String?,
         systemImage: String,
-        tint: Color = .primary,
+        tint: Color = FGColor.accentGreen,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
         HStack(alignment: .center, spacing: FGSpacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
                 Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(tint)
             }
-            .frame(width: 40, height: 40)
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(FGTypography.cardTitle)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
                     .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -923,56 +989,39 @@ struct SettingsScreen: View {
             trailing()
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
                 .frame(width: 14, height: 14, alignment: .center)
         }
         .padding(.horizontal, FGSpacing.md)
-        .padding(.vertical, 13)
-        .frame(minHeight: 66, alignment: .center)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
         .contentShape(Rectangle())
-    }
-
-    /// Trailing pill for Settings → My pickup games when the fan organizer has pending join requests (same count as Account tab badge).
-    @ViewBuilder
-    private func settingsPickupOrganizerPendingBadge(count: Int) -> some View {
-        let label = count > 9 ? "9+" : "\(count)"
-        Text(label)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
-            .frame(minWidth: 22, minHeight: 22)
-            .padding(.horizontal, count > 9 ? 6 : 0)
-            .background(Color.orange, in: Capsule(style: .continuous))
-            .overlay(
-                Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.35 : 0.9), lineWidth: 1)
-            )
-            .accessibilityLabel("\(count) pending join requests on your pickup games")
     }
 
     /// Non-interactive settings row (no chevron) for read-only info such as venue claim status.
     @ViewBuilder
-    private func settingsInfoRow(title: String, subtitle: String?, systemImage: String, tint: Color = .primary) -> some View {
+    private func settingsInfoRow(title: String, subtitle: String?, systemImage: String, tint: Color = FGColor.accentGreen) -> some View {
         HStack(alignment: .center, spacing: FGSpacing.md) {
             ZStack {
-                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
                 Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(tint)
             }
-            .frame(width: 40, height: 40)
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(FGTypography.cardTitle)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
                     .lineLimit(2)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -982,8 +1031,8 @@ struct SettingsScreen: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, FGSpacing.md)
-        .padding(.vertical, 13)
-        .frame(minHeight: 66, alignment: .center)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
     }
@@ -2127,7 +2176,7 @@ private struct SettingsTimeZoneCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Game Time Zone")
+            Text("Time Zone")
                 .font(.subheadline)
                 .fontWeight(.semibold)
 
@@ -2868,22 +2917,77 @@ private struct SettingsVenuePasswordResetCard: View {
     }
 }
 
-private struct SettingsGameNotificationsCard: View {
-    @ObservedObject var viewModel: MapViewModel
+private struct FanGeoAppearanceSelectionView: View {
+    @Binding var selectionRaw: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var selection: FanGeoAppearancePreference {
+        FanGeoAppearancePreference(rawValue: selectionRaw) ?? .system
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Game Notifications")
-                .font(.title2)
-                .fontWeight(.bold)
+        List {
+            Section {
+                ForEach(FanGeoAppearancePreference.allCases) { preference in
+                    Button {
+                        selectionRaw = preference.rawValue
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(preference.displayName)
+                                .font(FGTypography.body.weight(.semibold))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
 
-            Toggle("Notify me before games I’m going to", isOn: $viewModel.notifyBeforeGame)
-                .fontWeight(.semibold)
+                            Spacer(minLength: 0)
 
-            
+                            if preference == selection {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(FGColor.accentGreen)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(FGAdaptiveSurface.cardElevated)
+                }
+            } footer: {
+                Text("System Default follows your iPhone appearance. Light and Dark override FanGeo locally on this device.")
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+        .tint(FGColor.accentGreen)
+    }
+}
+
+private struct SettingsGameNotificationsCard: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        FGCard {
+            FGSectionHeader(
+                "Game Notifications",
+                subtitle: "Choose when FanGeo reminds you about games you’re going to."
+            )
+
+            notificationToggle(
+                title: "Notify me before games I’m going to",
+                subtitle: "Get a local reminder before kickoff.",
+                isOn: gameNotificationsEnabledBinding
+            )
+
+            if !viewModel.notificationPermissionMessage.isEmpty {
+                Text(viewModel.notificationPermissionMessage)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, FGSpacing.md)
+            }
 
             if viewModel.notifyBeforeGame {
-                Picker("Remind me before", selection: $viewModel.reminderMinutesBefore) {
+                notificationPicker(title: "Remind me before", selection: reminderMinutesBinding) {
                     Text("15 minutes before").tag(15)
                     Text("30 minutes before").tag(30)
                     Text("1 hour before").tag(60)
@@ -2891,32 +2995,118 @@ private struct SettingsGameNotificationsCard: View {
                     Text("3 hours before").tag(180)
                     Text("1 day before").tag(1440)
                 }
-                .pickerStyle(.menu)
 
-                Toggle("Repeat reminder until game starts", isOn: $viewModel.repeatGameReminder)
-                    .fontWeight(.semibold)
+                notificationToggle(
+                    title: "Repeat reminder until game starts",
+                    subtitle: "Keep nudging you until the game begins.",
+                    isOn: repeatReminderBinding
+                )
 
                 if viewModel.repeatGameReminder {
-                    Picker("Repeat every", selection: $viewModel.repeatEveryMinutes) {
+                    notificationPicker(title: "Repeat every", selection: repeatEveryMinutesBinding) {
                         Text("Every 15 minutes").tag(15)
                         Text("Every 30 minutes").tag(30)
                         Text("Every hour").tag(60)
                         Text("Every 2 hours").tag(120)
                     }
-                    .pickerStyle(.menu)
                 }
             }
-            
-            Toggle("Sync games I’m going to with Apple Calendar", isOn: $viewModel.syncGoingGamesToAppleCalendar)
-                .fontWeight(.semibold)
-            
-            Text("When enabled, games marked as Going will be added to your Apple Calendar.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+
+            notificationToggle(
+                title: "Sync games I’m going to with Apple Calendar",
+                subtitle: "Games marked as Going will be added to your Apple Calendar.",
+                isOn: $viewModel.syncGoingGamesToAppleCalendar
+            )
         }
-        .padding()
-        .background(Color.white.opacity(0.95))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .tint(FGColor.accentGreen)
+        .task {
+            await viewModel.refreshGameNotificationAuthorizationState()
+        }
+    }
+
+    private var gameNotificationsEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.notifyBeforeGame },
+            set: { enabled in
+                Task { await viewModel.setGameNotificationsEnabled(enabled) }
+            }
+        )
+    }
+
+    private var reminderMinutesBinding: Binding<Int> {
+        Binding(
+            get: { viewModel.reminderMinutesBefore },
+            set: { minutes in
+                viewModel.reminderMinutesBefore = minutes
+                Task { await viewModel.gameReminderPreferenceDidChange() }
+            }
+        )
+    }
+
+    private var repeatEveryMinutesBinding: Binding<Int> {
+        Binding(
+            get: { viewModel.repeatEveryMinutes },
+            set: { minutes in
+                viewModel.repeatEveryMinutes = minutes
+                Task { await viewModel.gameReminderPreferenceDidChange() }
+            }
+        )
+    }
+
+    private var repeatReminderBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.repeatGameReminder },
+            set: { enabled in
+                viewModel.repeatGameReminder = enabled
+                Task { await viewModel.gameReminderPreferenceDidChange() }
+            }
+        )
+    }
+
+    private func notificationToggle(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .toggleStyle(.switch)
+        .padding(FGSpacing.md)
+        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+    }
+
+    private func notificationPicker<Content: View>(
+        title: String,
+        selection: Binding<Int>,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            Text(title)
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Spacer(minLength: FGSpacing.sm)
+            Picker(title, selection: selection, content: content)
+                .pickerStyle(.menu)
+                .tint(FGColor.accentGreen)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+        }
+        .padding(FGSpacing.md)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
     }
 }
 

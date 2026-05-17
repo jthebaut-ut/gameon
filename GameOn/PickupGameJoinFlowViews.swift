@@ -28,7 +28,7 @@ struct PickupJoinWithdrawConfirmState: Identifiable {
             case .approved:
                 return "Your spot will be freed for another player."
             case .declined:
-                return "This hides the declined request from your Games to Play and Calendar pickup lists."
+                return "This hides the declined request from your Playing and Calendar pickup lists."
             }
         }
     }

@@ -12,7 +12,7 @@ extension MapViewModel {
         await MainActor.run { currentUserFanXP = state }
     }
 
-    /// Awards XP via RPC; refreshes profile summary and queues reward overlay when newly awarded.
+    /// Awards an internal reputation signal via RPC; refreshes profile summary and queues subtle feedback when newly awarded.
     func awardFanXP(
         userId: UUID,
         amount: Int,
@@ -44,7 +44,12 @@ extension MapViewModel {
             if showToast, userId == currentUserAuthId {
                 let gained = result.xp_gained ?? amount
                 let newLevel = await MainActor.run { currentUserFanXP.level }
-                let newTitle = await MainActor.run { currentUserFanXP.title }
+                let newTitle = await MainActor.run {
+                    FanReputationEngine.evaluate(
+                        FanReputationSignals(fanXP: currentUserFanXP),
+                        shouldLog: false
+                    ).title
+                }
                 await MainActor.run {
                     if newLevel > previousLevel {
                         fanXPRewardOverlay.enqueueLevelUp(level: newLevel, title: newTitle)
@@ -60,7 +65,7 @@ extension MapViewModel {
         }
     }
 
-    /// Routes XP feedback through the premium overlay (not ``showSocialActionToast``).
+    /// Routes legacy reputation feedback through the premium overlay (not ``showSocialActionToast``).
     func showFanXPToast(_ message: String) {
         let parts = message.split(separator: "·", maxSplits: 1).map {
             $0.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -77,7 +82,7 @@ extension MapViewModel {
         fanXPRewardOverlay.enqueue(
             FanXPRewardPresentation(
                 id: UUID(),
-                kind: .xpGain,
+                kind: .reputationSignal,
                 primaryLine: message,
                 secondaryLine: "FanGeo"
             )

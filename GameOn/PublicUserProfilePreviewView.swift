@@ -58,7 +58,7 @@ struct PublicUserProfilePreviewView: View {
     @ViewBuilder
     private func profileContent(_ data: PublicUserProfileData) -> some View {
         heroCard(data)
-        fanLevelCard(data.fanXP)
+        reputationCard(data.reputation)
         favoriteTeamsCard(data.favoriteTeams)
         PublicProfilePickupOrganizerCard(creatorUserId: data.userId, stats: data.organizerStats)
         friendActionSection(data)
@@ -102,7 +102,7 @@ struct PublicUserProfilePreviewView: View {
                         Text(data.publicHandleLine)
                             .font(.system(size: 13, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.accentGreen.opacity(0.95))
-                        levelBadge(level: data.fanXP.level, title: data.fanXP.title)
+                        reputationBadge(data.reputation)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 8)
@@ -121,11 +121,11 @@ struct PublicUserProfilePreviewView: View {
         }
     }
 
-    private func levelBadge(level: Int, title: String) -> some View {
+    private func reputationBadge(_ reputation: FanReputationProfile) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: "star.fill")
+            Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "person.crop.circle.badge.checkmark")
                 .font(.system(size: 9, weight: .bold))
-            Text("Lv \(level)")
+            Text(reputation.title)
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
         .foregroundStyle(.white)
@@ -139,14 +139,14 @@ struct PublicUserProfilePreviewView: View {
             Capsule(style: .continuous)
                 .strokeBorder(FGColor.accentGreen.opacity(0.6), lineWidth: 1)
         }
-        .accessibilityLabel("Fan level \(level), \(title)")
+        .accessibilityLabel("Fan reputation, \(reputation.title)")
     }
 
-    private func fanLevelCard(_ fanXP: FanXPState) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Fan Level")
+    private func reputationCard(_ reputation: FanReputationProfile) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Reputation")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.68))
 
             HStack(spacing: 10) {
                 ZStack {
@@ -156,15 +156,20 @@ struct PublicUserProfilePreviewView: View {
                     Circle()
                         .fill(FGColor.accentGreen.opacity(0.18))
                         .frame(width: 36, height: 36)
-                    Image(systemName: "soccerball")
-                        .font(.system(size: 18, weight: .semibold))
+                    Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "person.2.wave.2.fill")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Level \(fanXP.level) · \(fanXP.title)")
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(reputation.title.uppercased())
                         .font(.system(size: 12, weight: .bold, design: .rounded))
                         .foregroundStyle(FGColor.accentGreen)
+                        .tracking(0.8)
+
+                    Text(reputation.subtitle)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.86))
 
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -178,17 +183,15 @@ struct PublicUserProfilePreviewView: View {
                                         endPoint: .trailing
                                     )
                                 )
-                                .frame(width: max(0, geo.size.width * fanXP.progressFraction))
+                                .frame(width: max(0, geo.size.width * reputation.progressFraction))
                         }
                     }
-                    .frame(height: 5)
+                    .frame(height: 4)
 
-                    Text(fanXP.xpRangeLine)
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen.opacity(0.85))
-                    Text(fanXP.progressLine)
-                        .font(.system(size: 8, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.45))
+                    Text(reputation.whyEarnedText)
+                        .font(.system(size: 9, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.48))
+                        .lineLimit(2)
                 }
             }
         }

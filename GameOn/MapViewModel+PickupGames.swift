@@ -451,7 +451,6 @@ extension MapViewModel {
         state: String?,
         latitude: Double?,
         longitude: Double?,
-        isVisible: Bool,
         playersNeeded: Int,
         playEnvironment: String,
         participantPreference: String,
@@ -495,7 +494,7 @@ extension MapViewModel {
             state: emptyStringToNil(state),
             latitude: latitude,
             longitude: longitude,
-            is_visible: isVisible,
+            is_visible: true,
             players_needed: playersNeededClamped,
             play_environment: playEnvironment,
             participant_preference: participantPreference,
@@ -506,6 +505,9 @@ extension MapViewModel {
             remove_after_at: removeISO
         ).withCanonicalPickupCleanupDelay()
 
+#if DEBUG
+        print("[PickupVisibilityDebug] discoverVisibilityForced=true")
+#endif
         let inserted: [PickupGameRow] = try await supabase
             .from("pickup_games")
             .insert(payload)
@@ -543,6 +545,9 @@ extension MapViewModel {
             cleanupDelayHours: PickupGameAutoRemoval.hoursAfterGameStart,
             computedRemoveAfterAt: normalized.remove_after_at
         )
+#if DEBUG
+        print("[PickupVisibilityDebug] discoverVisibilityForced=true")
+#endif
         let updated: [PickupGameRow] = try await supabase
             .from("pickup_games")
             .update(normalized)

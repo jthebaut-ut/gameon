@@ -5,11 +5,11 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Presentation model for a single queued XP reward toast.
+/// Presentation model for a single queued reputation toast.
 struct FanXPRewardPresentation: Identifiable, Equatable {
     enum Kind: Equatable {
-        case xpGain
-        case levelUp
+        case reputationSignal
+        case reputationMilestone
     }
 
     let id: UUID
@@ -17,13 +17,13 @@ struct FanXPRewardPresentation: Identifiable, Equatable {
     let primaryLine: String
     let secondaryLine: String
 
-    var isLevelUp: Bool { kind == .levelUp }
+    var isLevelUp: Bool { kind == .reputationMilestone }
 
     static func xpGain(amount: Int, subtitle: String) -> FanXPRewardPresentation {
         FanXPRewardPresentation(
             id: UUID(),
-            kind: .xpGain,
-            primaryLine: "+\(amount) XP",
+            kind: .reputationSignal,
+            primaryLine: "Reputation noted",
             secondaryLine: subtitle
         )
     }
@@ -31,14 +31,14 @@ struct FanXPRewardPresentation: Identifiable, Equatable {
     static func levelUp(level: Int, title: String) -> FanXPRewardPresentation {
         FanXPRewardPresentation(
             id: UUID(),
-            kind: .levelUp,
-            primaryLine: "LEVEL UP",
-            secondaryLine: "Level \(level) · \(title)"
+            kind: .reputationMilestone,
+            primaryLine: title.uppercased(),
+            secondaryLine: "Your FanGeo identity is growing"
         )
     }
 }
 
-/// Serializes XP reward UI so multiple awards never overlap.
+/// Serializes reputation feedback UI so multiple awards never overlap.
 @MainActor
 final class FanXPRewardOverlayManager: ObservableObject {
     @Published private(set) var presentation: FanXPRewardPresentation?

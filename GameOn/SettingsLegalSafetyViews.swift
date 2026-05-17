@@ -15,7 +15,7 @@ enum SettingsLegalDocumentKind: String, Identifiable {
         case .privacyPolicy: return "Privacy Policy"
         case .termsOfService: return "Terms of Service"
         case .communityGuidelines: return "Community Guidelines"
-        case .safetyReporting: return "Safety & Reporting"
+        case .safetyReporting: return "Trust & Safety"
         }
     }
 
@@ -23,8 +23,8 @@ enum SettingsLegalDocumentKind: String, Identifiable {
         switch self {
         case .privacyPolicy: return "How we use and protect your information."
         case .termsOfService: return "Rules for using FanGeo."
-        case .communityGuidelines: return "Rules, reporting, and moderation in FanGeo."
-        case .safetyReporting: return "How reports are reviewed and when content may hide."
+        case .communityGuidelines: return "Community rules for FanGeo."
+        case .safetyReporting: return "How FanGeo reviews reports."
         }
     }
 

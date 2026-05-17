@@ -1,7 +1,7 @@
 import Foundation
 import Supabase
 
-/// Centralized Fan Level / XP reads and awards via `award_fan_xp` RPC.
+/// Centralized internal reputation-signal reads and awards via the legacy `award_fan_xp` RPC.
 enum FanXPSource {
     static let favoriteVenue = "favorite_venue"
     static let venueEventInterest = "venue_event_interest"
@@ -24,7 +24,7 @@ enum FanXPSource {
 
     /// Legacy plain string (social toast); prefer ``FanXPRewardOverlayManager``.
     static func toastLabel(for source: String, amount: Int) -> String {
-        "+\(amount) XP · \(rewardSubtitle(for: source))"
+        "Reputation noted · \(rewardSubtitle(for: source))"
     }
 }
 

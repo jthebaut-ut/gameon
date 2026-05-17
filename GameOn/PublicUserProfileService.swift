@@ -18,6 +18,7 @@ struct PublicUserProfileData: Equatable {
     let avatarURL: String?
     let avatarThumbnailURL: String?
     let fanXP: FanXPState
+    let reputation: FanReputationProfile
     let organizerStats: PickupCreatorPublicRatingStats?
     let favoriteTeams: [FavoriteTeam]
     let isBusinessAccount: Bool
@@ -89,7 +90,7 @@ enum PublicUserProfileService {
         let chipNote = "see_preview_friendState_log"
         print("[PublicProfileLoadDebug] friendState=\(chipNote)")
         print(
-            "[PublicProfileLoadDebug] finalProfile userId=\(built.userId.uuidString.lowercased()) name=\(built.displayName) handle=\(built.publicHandleLine) level=\(built.fanXP.level) resolvedIdentity=\(built.hasResolvedIdentity) business=\(built.isBusinessAccount)"
+            "[PublicProfileLoadDebug] finalProfile userId=\(built.userId.uuidString.lowercased()) name=\(built.displayName) handle=\(built.publicHandleLine) reputation=\(built.reputation.title) resolvedIdentity=\(built.hasResolvedIdentity) business=\(built.isBusinessAccount)"
         )
 #endif
 
@@ -251,6 +252,13 @@ enum PublicUserProfileService {
 
         let avatarFull = ImageDisplayURL.canonicalStorageURLString(row?.avatar_url)
         let avatarThumb = ImageDisplayURL.canonicalStorageURLString(row?.avatar_thumbnail_url)
+        let reputation = FanReputationEngine.evaluate(
+            FanReputationSignals(
+                fanXP: fanXP,
+                favoriteTeams: favoriteTeams,
+                organizerStats: organizerStats
+            )
+        )
 
         return PublicUserProfileData(
             userId: userId,
@@ -259,6 +267,7 @@ enum PublicUserProfileService {
             avatarURL: avatarFull.isEmpty ? nil : avatarFull,
             avatarThumbnailURL: avatarThumb.isEmpty ? nil : avatarThumb,
             fanXP: fanXP,
+            reputation: reputation,
             organizerStats: organizerStats,
             favoriteTeams: favoriteTeams,
             isBusinessAccount: isBusinessAccount,

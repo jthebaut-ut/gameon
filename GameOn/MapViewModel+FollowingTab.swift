@@ -13,7 +13,7 @@ extension MapViewModel {
         "id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)"
 
     private static let venueEventSelectColumnsFollowing =
-        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time"
+        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,scheduled_start_at"
 
     private static let interestChunkSize = 90
 
@@ -177,6 +177,7 @@ extension MapViewModel {
             followingTabGoingItems = goingItems
             followingTabGoingInterestCounts = totals
             followingTabUserVenueEventInterestIDs = serverEventIDs
+            await reconcileGameRemindersAfterFollowingRefresh()
 
 #if DEBUG
             print("[FollowingRegression] favoriteVenuesCount=\(favoriteVenuesCount)")
@@ -191,7 +192,7 @@ extension MapViewModel {
             clearFollowingTabVenueGamePlanCachesOnly()
         }
 
-        // Host pickup games list (shared with Settings → My Pickup Games) so Following stays in sync.
+        // Host pickup game cache for the Going hub.
         if canFanUsePickupGamesUI, let uid = currentUserAuthId {
             await loadMyPickupGamesForSettings()
             await refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])

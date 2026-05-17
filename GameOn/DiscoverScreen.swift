@@ -228,6 +228,7 @@ private struct GuestDiscoverLockedPreviewCard<Preview: View>: View {
 struct DiscoverScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var chatViewModel: ChatViewModel
     @Binding var isCalendarOverlayPresented: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
@@ -260,6 +261,12 @@ struct DiscoverScreen: View {
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
+
+    private var acceptedFriendUserIDs: Set<UUID> {
+        Set(chatViewModel.friendshipChipByOtherUserId.compactMap { userID, kind in
+            kind == .friends ? userID : nil
+        })
+    }
     private let primaryMapUtilityButtonSize: CGFloat = 44
     private let secondaryMapUtilityButtonSize: CGFloat = 44
     private let discoverLightGlassCornerRadius: CGFloat = 28
@@ -360,7 +367,8 @@ struct DiscoverScreen: View {
             ZStack(alignment: .top) {
                 mapLayer
 
-                if showMapDisplayModePopup, viewModel.discoverMapContentMode == .venues {
+                if showMapDisplayModePopup,
+                   viewModel.discoverMapContentMode == .venues {
                     Color.black.opacity(0.001)
                         .ignoresSafeArea()
                         .onTapGesture {
@@ -387,7 +395,8 @@ struct DiscoverScreen: View {
                 }
             }
         .overlay(alignment: .topTrailing) {
-            if showMapDisplayModePopup, viewModel.discoverMapContentMode == .venues {
+            if showMapDisplayModePopup,
+               viewModel.discoverMapContentMode == .venues {
                 discoverMapDisplayModePopup
                     .padding(.top, 160)
                     .padding(.trailing, 20)
@@ -627,11 +636,19 @@ struct DiscoverScreen: View {
             let supportedSports = venueSupportedSports(from: selectedDayGames)
             let displaySport = venueSportLabel(sportsSupported: supportedSports)
             let isBusinessConfirmed = venueIsBusinessConfirmed(bar: selectedBar, claimStatus: claimStatus)
+            let liveEnergy = selectedVenueEvent.map {
+                viewModel.liveEnergy(for: selectedBar, event: $0, friendUserIDs: acceptedFriendUserIDs)
+            } ?? viewModel.strongestLiveEnergy(
+                for: selectedBar,
+                events: selectedDayGames,
+                friendUserIDs: acceptedFriendUserIDs
+            )
             VenueDetailView(
                 bar: selectedBar,
                 selectedEvent: selectedVenueEvent,
                 isFavorite: viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(selectedBar.id),
                 goingCount: viewModel.displayedGoingCount(for: selectedBar),
+                liveEnergy: liveEnergy,
                 iconForSport: viewModel.iconForSport,
                 mergedRating: viewModel.mergedDisplayRating(for: selectedBar),
                 ratingCount: ratingCount,
@@ -873,6 +890,7 @@ struct DiscoverScreen: View {
         )
         let effectiveMode = pin.mode
         let isSelected = viewModel.selectedBar?.id == bar.id
+        let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
 
 #if DEBUG
         let _: Void = {
@@ -899,7 +917,7 @@ struct DiscoverScreen: View {
             mapDepthStyledMarker(
                 id: bar.id.uuidString.lowercased(),
                 isSelected: isSelected,
-                tint: pin.energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
+                tint: hasLiveNow || pin.energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
             ) {
                 Group {
                     switch venuePinDisplayState(bar) {
@@ -1206,7 +1224,7 @@ struct DiscoverScreen: View {
             VStack(spacing: 14) {
                 if let mapHint = viewModel.followingMapNavigationMessage, !mapHint.isEmpty {
                     HStack(alignment: .top, spacing: FGSpacing.sm) {
-                        FGStatusPill(title: "Following", kind: .custom(tint: FGColor.accentBlue))
+                        FGStatusPill(title: "Going", kind: .custom(tint: FGColor.accentBlue))
                         Text(mapHint)
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
@@ -3242,6 +3260,49 @@ struct DiscoverScreen: View {
         return "\(count) people are going"
     }
 
+    @ViewBuilder
+    private func liveEnergyChips(_ energy: FanGeoLiveEnergy) -> some View {
+        if energy.compactChips.isEmpty {
+            Text(energy.goingCount > 0 ? "\(energy.goingCount) fans going" : "Start the crowd")
+                .font(FGTypography.metadata)
+                .fontWeight(.semibold)
+                .foregroundStyle(energy.goingCount > 0 ? FGColor.accentGreen : discoverPreviewSecondaryTextColor)
+        } else {
+            FGWrappingLayout(horizontalSpacing: FGSpacing.xs, verticalSpacing: FGSpacing.xs) {
+                ForEach(energy.compactChips, id: \.self) { chip in
+                    liveEnergyChip(chip)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func liveEnergyChip(_ chip: String) -> some View {
+        let tint = liveEnergyChipTint(chip)
+
+        return Text(chip)
+            .font(FGTypography.metadata.weight(.bold))
+            .foregroundStyle(tint)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(0.28), lineWidth: 1)
+            }
+    }
+
+    private func liveEnergyChipTint(_ chip: String) -> Color {
+        if chip.contains("LIVE NOW") { return FGColor.accentGreen }
+        if chip.contains("Crowd building") { return FGColor.accentYellow }
+        return FGColor.accentBlue
+    }
+
     private func guestVenueGamePreviewRow(bar: BarVenue, event: SportsEvent, onOpenLockedDetail: @escaping () -> Void) -> some View {
         Button {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
@@ -3299,8 +3360,9 @@ struct DiscoverScreen: View {
         } ?? 0
 
         let score = venueEventID.map { trendingScore(for: $0, goingCount: count) } ?? count
+        let energy = viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 12) {
                 SportArtworkIconView(sport: event.sport, diameter: 54)
 
@@ -3313,10 +3375,7 @@ struct DiscoverScreen: View {
                         .font(FGTypography.caption)
                         .foregroundStyle(discoverPreviewSecondaryTextColor)
 
-                    Text("\(count) interested / going")
-                        .font(FGTypography.metadata)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(FGColor.accentGreen)
+                    liveEnergyChips(energy)
 
                     if let venueEventID,
                        let topVibe = topVibeText(for: venueEventID) {
@@ -3339,65 +3398,30 @@ struct DiscoverScreen: View {
                     }
                 }
 
-                Spacer(minLength: 8)
-
-                Button {
-                    FGInteractionHaptics.softImpact()
-                    if !viewModel.isAuthenticatedForSocialFeatures {
-                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
-                        return
-                    }
-                    guard viewModel.canMarkGoing else {
-                        viewModel.logBusinessUserGateBlocked(action: "markGoing")
-                        fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
-                        return
-                    }
-                    toggleSupabaseInterest(for: bar, selectedEvent: event)
-                } label: {
-                    Text(
-                        !viewModel.isAuthenticatedForSocialFeatures
-                            ? "Please log in to interact"
-                            : (alreadyInterested ? "Going" : "I’m going")
-                    )
-                        .font(FGTypography.metadata)
-                        .fontWeight(.bold)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .minimumScaleFactor(0.72)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background {
-                            Capsule(style: .continuous)
-                                .fill(
-                                    !viewModel.isAuthenticatedForSocialFeatures
-                                        ? AnyShapeStyle(Color.gray.opacity(0.22))
-                                        : (!viewModel.canMarkGoing
-                                            ? AnyShapeStyle(Color.gray.opacity(0.22))
-                                            : (alreadyInterested
-                                                ? AnyShapeStyle(FGColor.accentGreen)
-                                                : AnyShapeStyle(FGColor.brandGradient)))
-                                )
-                        }
-                        .foregroundStyle(
-                            !viewModel.isAuthenticatedForSocialFeatures
-                                || (viewModel.isAuthenticatedForSocialFeatures && !viewModel.canMarkGoing)
-                                ? Color.secondary
-                                : Color.white
-                        )
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
+                Spacer(minLength: 0)
             }
 
             HStack(alignment: .center, spacing: 10) {
-                if let venueEventID {
+                if energy.friendGoingCount > 0 {
+                    GoingAvatarStack(profiles: energy.friendProfiles)
+                } else if let venueEventID {
                     GoingAvatarStack(profiles: viewModel.goingProfiles(for: venueEventID))
                 }
-                Text(perGameGoingLine(venueEventID: venueEventID, count: count))
+                Text(energy.friendPresenceLabel ?? perGameGoingLine(venueEventID: venueEventID, count: count))
                     .font(FGTypography.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
+            }
+
+            HStack {
+                Spacer(minLength: 0)
+                venuePreviewGoingButton(
+                    bar: bar,
+                    event: event,
+                    alreadyInterested: alreadyInterested
+                )
             }
 
             if let venueEventID {
@@ -3445,6 +3469,57 @@ struct DiscoverScreen: View {
             guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) else { return }
             viewModel.prefetchFanUpdatesCardSocialData(for: id)
         }
+    }
+
+    private func venuePreviewGoingButton(
+        bar: BarVenue,
+        event: SportsEvent,
+        alreadyInterested: Bool
+    ) -> some View {
+        let requiresLogin = !viewModel.isAuthenticatedForSocialFeatures
+        let isBlocked = viewModel.isAuthenticatedForSocialFeatures && !viewModel.canMarkGoing
+        let title = requiresLogin ? "Log in" : "Going"
+        let tint = isBlocked ? Color.secondary : (alreadyInterested ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
+        let fill = isBlocked
+            ? Color.gray.opacity(0.16)
+            : (alreadyInterested ? FGColor.accentGreen.opacity(0.14) : discoverPreviewControlBackground)
+
+        return Button {
+            FGInteractionHaptics.softImpact()
+            if requiresLogin {
+                viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                return
+            }
+            guard viewModel.canMarkGoing else {
+                viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                return
+            }
+            toggleSupabaseInterest(for: bar, selectedEvent: event)
+        } label: {
+            HStack(spacing: 5) {
+                if !requiresLogin {
+                    Image(systemName: alreadyInterested ? "checkmark.circle.fill" : "checkmark")
+                        .font(.caption.weight(.bold))
+                }
+                Text(title)
+                    .font(FGTypography.metadata.weight(.bold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(fill)
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(isBlocked ? 0.18 : 0.26), lineWidth: 1)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
 
     private func presentFanUpdatesSheet(venueEventID: UUID) {
@@ -3517,12 +3592,16 @@ struct DiscoverScreen: View {
         goingTotal: Int
     ) -> some View {
         let liveScore = liveActivityScore(for: bar, gamesToday: gamesToday)
+        let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
 
         return HStack(spacing: 6) {
             Image(systemName: viewModel.iconForSport(gamesToday.first?.sport ?? bar.primarySport))
                 .font(.system(size: 14, weight: .bold))
 
-            if liveScore > 0 {
+            if hasLiveNow {
+                Text("LIVE")
+                    .font(.caption2.weight(.heavy))
+            } else if liveScore > 0 {
                 Text("\(liveScoreEmoji(for: liveScore)) \(liveScore)")
                     .font(.caption2)
                     .fontWeight(.bold)
@@ -3533,9 +3612,9 @@ struct DiscoverScreen: View {
         .padding(.vertical, 7)
         .background {
             ZStack {
-                if liveScore >= livePulseThreshold {
+                if hasLiveNow || liveScore >= livePulseThreshold {
                     LivePulseView(
-                        isTrending: liveScore >= 40
+                        isTrending: hasLiveNow || liveScore >= 40
                     )
                 }
 
@@ -3565,6 +3644,7 @@ struct DiscoverScreen: View {
     ) -> some View {
         
         VStack(spacing: 4) {
+            let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
             HStack(spacing: -6) {
                 ForEach(gamesToday.prefix(3), id: \.id) { game in
                     Image(systemName: viewModel.iconForSport(game.sport))
@@ -3575,9 +3655,9 @@ struct DiscoverScreen: View {
                             ZStack {
                                 let liveScore = liveActivityScore(for: bar, gamesToday: gamesToday)
 
-                                if liveScore >= livePulseThreshold {
+                                if hasLiveNow || liveScore >= livePulseThreshold {
                                     LivePulseView(
-                                        isTrending: liveScore >= 40
+                                        isTrending: hasLiveNow || liveScore >= 40
                                     )
                                 }
 
@@ -3598,14 +3678,14 @@ struct DiscoverScreen: View {
                 .background(Color.black.opacity(0.75))
                 .clipShape(Capsule())
 
-            if liveScore > 0 {
-                Text("🔥 \(liveScore) live")
+            if hasLiveNow || liveScore > 0 {
+                Text(hasLiveNow ? "LIVE NOW" : "🔥 \(liveScore) live")
                     .font(.caption2)
                     .fontWeight(.bold)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(Color.orange.opacity(0.95))
+                    .background((hasLiveNow ? FGColor.accentGreen : Color.orange).opacity(0.95))
                     .clipShape(Capsule())
             }
 

@@ -13,6 +13,10 @@ struct GameSportSearchablePickerFormRow: View {
         selection.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var accessibilitySelection: String {
+        displaySelection.isEmpty ? "Choose" : AppSportCatalog.displayLabel(forSportToken: displaySelection)
+    }
+
     var body: some View {
         Button {
             showSheet = true
@@ -20,13 +24,10 @@ struct GameSportSearchablePickerFormRow: View {
             HStack {
                 Text(label)
                 Spacer()
-                Text(displaySelection.isEmpty ? "Choose" : displaySelection)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.trailing)
-                    .lineLimit(2)
+                SportSelectionValueView(sport: displaySelection)
             }
         }
-        .accessibilityLabel("\(label): \(displaySelection.isEmpty ? "Choose" : displaySelection)")
+        .accessibilityLabel("\(label): \(accessibilitySelection)")
         .sheet(isPresented: $showSheet) {
             GroupedSportPickerSheet(
                 selectedSportToken: displaySelection,
@@ -35,6 +36,46 @@ struct GameSportSearchablePickerFormRow: View {
                 showsToolbarDone: true,
                 onSelectSport: { selection = $0 }
             )
+        }
+    }
+}
+
+struct SportSelectionValueView: View {
+    let sport: String
+
+    private var displaySport: String {
+        AppSportCatalog.displayLabel(forSportToken: sport)
+    }
+
+    private var visual: SportFilterCatalog.ChipVisual {
+        SportFilterCatalog.resolve(sport)
+    }
+
+    var body: some View {
+        let trimmedSport = sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedSport.isEmpty {
+            Text("Choose")
+                .foregroundStyle(.secondary)
+        } else {
+            HStack(alignment: .center, spacing: 6) {
+                if !visual.emoji.isEmpty {
+                    Text(visual.emoji)
+                        .font(.system(size: 16))
+                        .baselineOffset(-0.5)
+                } else {
+                    Image(systemName: visual.systemImage)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(visual.accent)
+                }
+                Text(displaySport)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(displaySport)
         }
     }
 }

@@ -11,6 +11,7 @@ struct VenueDetailView: View {
     let selectedEvent: SportsEvent?
     let isFavorite: Bool
     let goingCount: Int
+    var liveEnergy: FanGeoLiveEnergy? = nil
     let iconForSport: (String) -> String
     /// When nil, no rating card is shown.
     var mergedRating: Double? = nil
@@ -94,6 +95,10 @@ struct VenueDetailView: View {
         venueBusinessContactEmail != nil
             ? "Get there, call, email, save, or share this venue"
             : "Get there, call, save, or share this venue"
+    }
+
+    private var venueHasFanActivity: Bool {
+        selectedEvent != nil || goingCount > 0 || liveEnergy?.hasAnySignal == true
     }
 
     private func openVenueBusinessMail() {
@@ -571,11 +576,13 @@ struct VenueDetailView: View {
 
     @ViewBuilder
     private var venueFanActivitySection: some View {
-        if selectedEvent != nil || goingCount > 0 {
+        if venueHasFanActivity {
             FGCard {
                 FGSectionHeader(
                     "Venue buzz",
-                    subtitle: selectedEvent.map { "Fan activity for \($0.title)" } ?? "Current venue activity"
+                    subtitle: liveEnergy?.energySubtitle
+                        ?? selectedEvent.map { "Fan activity for \($0.title)" }
+                        ?? "Current venue activity"
                 )
 
                 if let selectedEvent {
@@ -587,7 +594,9 @@ struct VenueDetailView: View {
                     }
                 }
 
-                if goingCount > 0, let selectedEvent {
+                if let liveEnergy {
+                    liveEnergyDetailRow(liveEnergy)
+                } else if goingCount > 0, let selectedEvent {
                     HStack(alignment: .top, spacing: FGSpacing.md) {
                         Image(systemName: "person.3.fill")
                             .font(.title3.weight(.semibold))
@@ -615,6 +624,63 @@ struct VenueDetailView: View {
                 }
             }
         }
+    }
+
+    private func liveEnergyDetailRow(_ energy: FanGeoLiveEnergy) -> some View {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                Image(systemName: energy.isLiveNow ? "dot.radiowaves.left.and.right" : "person.3.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(energy.isLiveNow ? FGColor.accentGreen : FGColor.accentBlue)
+
+                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                    Text(energy.energyLabel ?? "Fan energy")
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(energy.energySubtitle ?? "Be the first fan there")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            if energy.friendGoingCount > 0 {
+                HStack(spacing: FGSpacing.sm) {
+                    GoingAvatarStack(profiles: energy.friendProfiles)
+                    Text(energy.friendPresenceLabel ?? "\(energy.friendGoingCount) friends going")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 2)
+            }
+
+            if !energy.compactChips.isEmpty {
+                FGWrappingLayout(horizontalSpacing: FGSpacing.xs, verticalSpacing: FGSpacing.xs) {
+                    ForEach(energy.compactChips, id: \.self) { chip in
+                        liveEnergyDetailChip(chip)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FGSpacing.lg)
+        .background((energy.isLiveNow ? FGColor.accentGreen : FGColor.accentBlue).opacity(0.10))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+    }
+
+    private func liveEnergyDetailChip(_ chip: String) -> some View {
+        let tint: Color = {
+            if chip.contains("LIVE NOW") { return FGColor.accentGreen }
+            if chip.contains("Crowd building") { return FGColor.accentYellow }
+            return FGColor.accentBlue
+        }()
+
+        return FGStatusPill(title: chip, kind: .custom(tint: tint))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 
     @ViewBuilder

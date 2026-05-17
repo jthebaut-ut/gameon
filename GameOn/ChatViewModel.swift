@@ -24,7 +24,7 @@ final class ChatViewModel: ObservableObject {
 #endif
     }
 
-    /// Used to refresh Fan Level and show XP toasts after friend accept (set from ``FriendsTabView``).
+    /// Used to refresh internal reputation state after friend accept (set from ``FriendsTabView``).
     weak var mapViewModel: MapViewModel?
 
     /// Compact friendship state for comment rows (and similar surfaces). Absence in ``friendshipChipByOtherUserId`` means treat as stranger → Add Friend.

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Composition root: presents Discover, Calendar, Following, Chat, and Account tabs using shared view models from the root container.
+/// Composition root: presents Discover, Live, Calendar, Going, Chat, and Account tabs using shared view models from the root container.
 ///
 /// Inactive tabs stay in the hierarchy with opacity and hit testing disabled so map and list state survive tab switches. The root bootstrap container usually preloads startup data first; this view keeps a fallback ``.task`` only for timeout / degraded-entry cases.
 struct MainTabView: View {
@@ -33,6 +33,7 @@ struct MainTabView: View {
 
     enum AppTab: String {
         case discover
+        case live
         case calendar
         case following
         case chat
@@ -81,7 +82,16 @@ struct MainTabView: View {
             preservedRoot(tab: .discover) {
                 DiscoverScreen(
                     viewModel: viewModel,
+                    chatViewModel: chatViewModel,
                     isCalendarOverlayPresented: $discoverCalendarOverlayPresented
+                )
+            }
+
+            preservedRoot(tab: .live) {
+                LiveScreen(
+                    viewModel: viewModel,
+                    chatViewModel: chatViewModel,
+                    selectedTab: selectedTabBinding
                 )
             }
 
@@ -122,6 +132,7 @@ struct MainTabView: View {
                     .blur(radius: discoverCalendarOverlayPresented && selectedTab == .discover ? 1.25 : 0)
                     .allowsHitTesting(!(discoverCalendarOverlayPresented && selectedTab == .discover))
                     .animation(.easeInOut(duration: 0.24), value: discoverCalendarOverlayPresented)
+
             }
         }
         .overlay(alignment: .top) {
@@ -132,9 +143,10 @@ struct MainTabView: View {
                 Self.hasForcedDiscoverTabThisProcess = true
                 selectedTabStorage = AppTab.discover.rawValue
 #if DEBUG
-                print("[StartupDiscover] selected Discover tab")
+                print("[StartupDiscover] selectedTab=\(AppTab.discover.rawValue)")
 #endif
             }
+            logBottomTabStructure()
             updateDirectChatReadStateVisibility()
             showBlockingFanIdentitySetup = viewModel.needsBlockingFanIdentitySetup
         }
@@ -146,7 +158,7 @@ struct MainTabView: View {
                 selectedTabStorage = AppTab.account.rawValue
             }
         }
-        // Discover-first: disk snapshot + map/calendar core refresh never waits on profile, favorites, or social enrichment.
+        // Startup core refresh: map/calendar data should not wait on profile, favorites, or social enrichment.
         .task {
             guard performsInitialBootstrap else { return }
             await viewModel.renderCachedDiscoverCore()
@@ -261,6 +273,9 @@ struct MainTabView: View {
             viewModel.discoverNavigateToAccountForUserAuth = false
         }
         .onChange(of: selectedTabStorage) { _, newRaw in
+#if DEBUG
+            print("[LiveTabDebug] selectedTab=\(newRaw)")
+#endif
             switch AppTab(rawValue: newRaw) {
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false
@@ -385,6 +400,12 @@ struct MainTabView: View {
         }
     }
 
+    private func logBottomTabStructure() {
+#if DEBUG
+        print("[NavigationDebug] bottomTabStructure=Discover|Live|Calendar|Going|Chat|Profile")
+#endif
+    }
+
     /// In-app toast when a DM arrives while the thread isn’t open (see ``ChatViewModel/dmInAppNotification``).
     private var dmInAppNotificationBannerLayer: some View {
         VStack {
@@ -466,6 +487,8 @@ struct MainTabView: View {
             HStack(spacing: 6) {
                 tabButton(.discover, title: "Discover", icon: "map.fill")
 
+                tabButton(.live, title: "Live", icon: "dot.radiowaves.left.and.right", glow: FGColor.accentGreen)
+
                 calendarTabButton()
 
                 followingTabButton()
@@ -478,7 +501,7 @@ struct MainTabView: View {
                         selectedTabStorage = AppTab.account.rawValue
                     }
                 } label: {
-                    accountTabAvatarWithPickupBadge
+                    accountTabAvatar
                 }
                 .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
             }
@@ -712,7 +735,7 @@ struct MainTabView: View {
                     Image(systemName: "heart.fill")
 
                     if selectedTab == .following {
-                        Text("Following")
+                        Text("Going")
                     }
                 }
                 .font(.caption)
@@ -724,7 +747,7 @@ struct MainTabView: View {
                 .clipShape(Capsule())
                 .softActiveGlow(selectedTab == .following, color: FGColor.accentGreen)
 
-                if viewModel.hasUnreadPickupActivity {
+                if goingTabHasActivity {
                     Circle()
                         .fill(Color.orange)
                         .frame(width: 9, height: 9)
@@ -737,7 +760,13 @@ struct MainTabView: View {
         .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
 
-    private func tabButton(_ tab: AppTab, title: String, icon: String) -> some View {
+    private var goingTabHasActivity: Bool {
+        viewModel.hasUnreadPickupActivity
+            || viewModel.pickupActivityCount > 0
+            || viewModel.pendingPickupGameJoinRequestCount > 0
+    }
+
+    private func tabButton(_ tab: AppTab, title: String, icon: String, glow: Color = FGColor.accentBlue) -> some View {
         Button {
             FGInteractionHaptics.selection()
             withAnimation(.spring()) {
@@ -758,7 +787,7 @@ struct MainTabView: View {
             .foregroundStyle(selectedTab == tab ? Color.white : unselectedTabForegroundColor)
             .background(selectedTab == tab ? selectedTabBackgroundColor : Color.clear)
             .clipShape(Capsule())
-            .softActiveGlow(selectedTab == tab, color: FGColor.accentBlue)
+            .softActiveGlow(selectedTab == tab, color: glow)
         }
         .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
     }
@@ -787,37 +816,12 @@ struct MainTabView: View {
         return "Login"
     }
 
-    /// Avatar + optional pickup-request badge; outer frame reserves space so the tab bar capsule does not clip the badge.
-    private var accountTabAvatarWithPickupBadge: some View {
+    /// Avatar only; pickup participation activity now belongs in Going.
+    private var accountTabAvatar: some View {
         accountTabAvatarCircleOnly
             .frame(width: 44, height: 44)
             .clipShape(Circle())
-            .overlay(alignment: .topTrailing) {
-                if viewModel.isLoggedIn,
-                   viewModel.canFanUsePickupGamesUI,
-                   viewModel.pendingPickupGameJoinRequestCount > 0 {
-                    pickupJoinRequestAccountTabBadge
-                }
-            }
             .frame(width: 52, height: 52)
-    }
-
-    private var pickupJoinRequestAccountTabBadge: some View {
-        let n = viewModel.pendingPickupGameJoinRequestCount
-        let label = n > 9 ? "9+" : "\(n)"
-        return Text(label)
-            .font(.caption2.weight(.bold))
-            .foregroundStyle(.white)
-            .frame(width: 20, height: 20)
-            .minimumScaleFactor(0.65)
-            .lineLimit(1)
-            .background(Color.orange)
-            .clipShape(Circle())
-            .overlay(
-                Circle()
-                    .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
-            )
-            .offset(x: 2, y: -2)
     }
 
     private var accountTabAvatarCircleOnly: some View {

@@ -79,6 +79,7 @@ enum PublicProfileOverlayWindowPresenter {
         let window = UIWindow(windowScene: scene)
         window.windowLevel = UIWindow.Level(rawValue: UIWindow.Level.statusBar.rawValue + 1)
         window.backgroundColor = .clear
+        window.overrideUserInterfaceStyle = currentAppearancePreference.userInterfaceStyle
         window.rootViewController = hosting
 
         restoredKeyWindow = keyWindow(in: scene)
@@ -144,6 +145,11 @@ enum PublicProfileOverlayWindowPresenter {
 
     private static func keyWindow(in scene: UIWindowScene) -> UIWindow? {
         scene.windows.first(where: \.isKeyWindow)
+    }
+
+    private static var currentAppearancePreference: FanGeoAppearancePreference {
+        let rawValue = UserDefaults.standard.string(forKey: FanGeoAppearancePreference.appStorageKey)
+        return rawValue.flatMap(FanGeoAppearancePreference.init(rawValue:)) ?? .system
     }
 
     private static func logPresentation(activeSheet: String?, presented: Bool, alreadyVisible: Bool) {

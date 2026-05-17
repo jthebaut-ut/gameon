@@ -280,7 +280,7 @@ extension MapViewModel {
                 return total
             }
             let going = interestCountForVenueEvent(id)
-            let comments = venueEventComments[id]?.count ?? 0
+            let comments = fanUpdatesDisplayCommentCount(for: id)
             let vibes = venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
             return total + going + comments + vibes
         }
@@ -295,7 +295,7 @@ extension MapViewModel {
             for game in gamesToday {
                 guard let id = cachedVenueEventID(for: bar, gameTitle: game.title) else { continue }
                 let going = interestCountForVenueEvent(id)
-                let comments = venueEventComments[id]?.count ?? 0
+                let comments = fanUpdatesDisplayCommentCount(for: id)
                 let vibes = venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
                 let score = going + comments + vibes
                 if score > maxScore {
@@ -469,60 +469,146 @@ extension MapViewModel {
         }
     }
 
-    /// Reverse geocode for pickup map pin (street line, city, state); all nil if lookup fails.
+    /// Reverse geocode for pickup map pin (street line, city, state, postal code); all nil if lookup fails.
     func reverseGeocodeAddressFields(for coordinate: CLLocationCoordinate2D) async -> (
         street: String?,
         city: String?,
-        state: String?
+        state: String?,
+        postalCode: String?
     ) {
+#if DEBUG
+        print("[PickupLocationDebug] reverseGeocodeStarted coordinate=\(coordinate.latitude),\(coordinate.longitude)")
+#endif
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        guard let request = MKReverseGeocodingRequest(location: location) else { return (nil, nil, nil) }
         do {
-            let items = try await request.mapItems
-            guard let item = items.first else { return (nil, nil, nil) }
-            return Self.reverseGeocodedStreetCityState(from: item)
+            let fields: (street: String?, city: String?, state: String?, postalCode: String?)
+            if #available(iOS 26.0, *) {
+                fields = try await Self.reverseGeocodedAddressFieldsUsingMapKit(for: location)
+            } else {
+                let placemark = try await CLGeocoder().reverseGeocodeLocation(location).first
+                fields = Self.reverseGeocodedAddressFields(from: placemark)
+            }
+#if DEBUG
+            print("[PickupLocationDebug] reverseGeocodeResult street=\(fields.street ?? "")")
+            print("[PickupLocationDebug] reverseGeocodeResult city=\(fields.city ?? "")")
+            print("[PickupLocationDebug] reverseGeocodeResult state=\(fields.state ?? "")")
+            print("[PickupLocationDebug] reverseGeocodeResult postalCode=\(fields.postalCode ?? "")")
+#endif
+            return fields
         } catch {
-            return (nil, nil, nil)
+#if DEBUG
+            print("[PickupLocationDebug] reverseGeocodeResult street=")
+            print("[PickupLocationDebug] reverseGeocodeResult city=")
+            print("[PickupLocationDebug] reverseGeocodeResult state=")
+            print("[PickupLocationDebug] reverseGeocodeResult postalCode=")
+#endif
+            return (nil, nil, nil, nil)
         }
     }
 
-    /// Best-effort street / city / state from MapKit’s iOS 26+ ``MKMapItem`` address representations.
-    nonisolated private static func reverseGeocodedStreetCityState(from mapItem: MKMapItem) -> (
+    /// iOS 26+ reverse geocoding. MapKit exposes formatted address strings here, so this keeps field extraction
+    /// narrowly focused on the US-style addresses FanGeo's pickup flow stores today.
+    @available(iOS 26.0, *)
+    nonisolated private static func reverseGeocodedAddressFieldsUsingMapKit(for location: CLLocation) async throws -> (
         street: String?,
         city: String?,
-        state: String?
+        state: String?,
+        postalCode: String?
     ) {
-        if let reps = mapItem.addressRepresentations {
-            let street: String? = {
-                if let short = mapItem.address?.shortAddress?.trimmingCharacters(in: .whitespacesAndNewlines), !short.isEmpty {
-                    return short
-                }
-                let multi =
-                    reps.fullAddress(includingRegion: false, singleLine: false)
-                    ?? reps.fullAddress(includingRegion: true, singleLine: false)
-                    ?? ""
-                let firstLine = multi
-                    .components(separatedBy: .newlines)
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .first(where: { !$0.isEmpty })
-                return firstLine
-            }()
-
-            let city = reps.cityName
-
-            var state: String?
-            if let cwc = reps.cityWithContext {
-                let parts = cwc.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
-                if parts.count >= 2 {
-                    state = parts.last
-                }
-            }
-
-            return (street, city, state)
+        guard let request = MKReverseGeocodingRequest(location: location) else {
+            return (nil, nil, nil, nil)
         }
 
-        let fallback = mapItem.address?.shortAddress ?? mapItem.address?.fullAddress
-        return (fallback, nil, nil)
+        let item = try await request.mapItems.first
+        let representations = item?.addressRepresentations
+        let lines = Self.addressLines(from: representations, address: item?.address)
+        let city = Self.trimmedNonEmpty(representations?.cityName)
+        let cityContext = Self.trimmedNonEmpty(representations?.cityWithContext)
+        let street = Self.streetLine(from: lines, city: city)
+        let statePostal = Self.stateAndPostalCode(from: lines, city: city)
+        let state = Self.stateAbbreviation(from: cityContext, city: city) ?? statePostal.state
+        let postalCode = statePostal.postalCode
+
+        return (street, city, state, postalCode)
+    }
+
+    @available(iOS 26.0, *)
+    nonisolated private static func addressLines(from representations: MKAddressRepresentations?, address: MKAddress?) -> [String] {
+        let addressText = representations?.fullAddress(includingRegion: false, singleLine: false)
+            ?? address?.fullAddress
+            ?? address?.shortAddress
+        return addressText?
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+    }
+
+    nonisolated private static func streetLine(from lines: [String], city: String?) -> String? {
+        lines.first { line in
+            guard let city, !city.isEmpty else { return true }
+            return !line.localizedCaseInsensitiveContains(city)
+        }
+    }
+
+    nonisolated private static func stateAbbreviation(from cityContext: String?, city: String?) -> String? {
+        guard
+            let cityContext,
+            let city,
+            cityContext.localizedCaseInsensitiveContains(city),
+            let commaIndex = cityContext.firstIndex(of: ",")
+        else {
+            return nil
+        }
+
+        let remainder = cityContext[cityContext.index(after: commaIndex)...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return remainder.split(separator: ",").first.map(String.init).flatMap(Self.trimmedNonEmpty)
+    }
+
+    nonisolated private static func stateAndPostalCode(from lines: [String], city: String?) -> (state: String?, postalCode: String?) {
+        guard
+            let city,
+            let cityLine = lines.first(where: { $0.localizedCaseInsensitiveContains(city) }),
+            let commaIndex = cityLine.firstIndex(of: ",")
+        else {
+            return (nil, nil)
+        }
+
+        let statePostal = cityLine[cityLine.index(after: commaIndex)...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let pieces = statePostal.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true).map(String.init)
+        return (
+            pieces.first.flatMap(Self.trimmedNonEmpty),
+            pieces.dropFirst().first.flatMap(Self.trimmedNonEmpty)
+        )
+    }
+
+    /// Best-effort street / city / state / postal code from iOS reverse-geocoded placemark fields.
+    nonisolated private static func reverseGeocodedAddressFields(from placemark: CLPlacemark?) -> (
+        street: String?,
+        city: String?,
+        state: String?,
+        postalCode: String?
+    ) {
+        guard let placemark else { return (nil, nil, nil, nil) }
+        let streetParts = [placemark.subThoroughfare, placemark.thoroughfare]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let street = streetParts.isEmpty ? nil : streetParts.joined(separator: " ")
+        let city = placemark.locality?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let state = placemark.administrativeArea?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let postalCode = placemark.postalCode?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (
+            street,
+            city?.isEmpty == false ? city : nil,
+            state?.isEmpty == false ? state : nil,
+            postalCode?.isEmpty == false ? postalCode : nil
+        )
+    }
+
+    nonisolated private static func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 
     /// Discover “my location” control: centers on a real GPS fix using the same span rule as ``centerMap(on:selectedBar:)`` (not Utah/Lehi fallback).

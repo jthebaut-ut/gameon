@@ -1,6 +1,7 @@
 import Photos
 import SwiftUI
 import PhotosUI
+import CoreLocation
 
 struct UserProfileScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -17,6 +18,30 @@ struct UserProfileScreen: View {
     @State private var isSaving: Bool = false
     @State private var isUploadingAvatar: Bool = false
     @State private var message: String = ""
+    @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
+
+    private var selectedTeams: [FavoriteTeam] {
+        FavoriteTeamsStore.resolvedTeams(from: favoriteTeamIDsRaw)
+    }
+
+    private var reputation: FanReputationProfile {
+        FanReputationEngine.evaluate(
+            FanReputationSignals(
+                fanXP: viewModel.currentUserFanXP,
+                favoriteTeams: selectedTeams,
+                localContext: FanReputationEngine.localContext(
+                    latitude: viewModel.currentUserLocation?.latitude,
+                    longitude: viewModel.currentUserLocation?.longitude
+                ),
+                savedVenueCount: viewModel.favoriteVenueIDs.count,
+                venuePlanCount: viewModel.followingTabGoingItems.count,
+                pickupHostedCount: viewModel.myPickupGamesForSettings.count + viewModel.myRemovedPickupGamesForSettings.count,
+                pickupJoinedCount: viewModel.myPickupGameJoinRequestCards.count,
+                organizerStats: viewModel.currentUserAuthId.flatMap { viewModel.pickupCreatorTrustStats(for: $0) }
+            ),
+            shouldLog: false
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -89,9 +114,9 @@ struct UserProfileScreen: View {
                             .lineLimit(1)
 
                         HStack(spacing: FGSpacing.sm) {
-                            FGStatusPill(title: "Fan profile", kind: .custom(tint: .white))
+                            FGStatusPill(title: reputation.title, kind: .custom(tint: .white))
                             FGStatusPill(
-                                title: "\(viewModel.favoriteVenueIDs.count) saved venues",
+                                title: reputation.contextLine,
                                 kind: .custom(tint: Color.white.opacity(0.92))
                             )
                         }
@@ -100,7 +125,7 @@ struct UserProfileScreen: View {
                     Spacer(minLength: 0)
                 }
 
-                Text("Keep your FanGeo identity polished across chats, comments, and venue activity.")
+                Text(reputation.profileSubtitle)
                     .font(FGTypography.caption)
                     .foregroundStyle(.white.opacity(0.82))
             }

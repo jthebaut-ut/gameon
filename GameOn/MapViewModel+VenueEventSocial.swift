@@ -173,6 +173,12 @@ extension MapViewModel {
                 )
             }
 
+            if isInterested {
+                await scheduleGameReminderIfPossible(venueEventID: venueEventID)
+            } else {
+                await cancelGameReminder(venueEventID: venueEventID)
+            }
+
             return true
         } catch {
             let message = error.localizedDescription.lowercased()

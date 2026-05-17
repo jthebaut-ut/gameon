@@ -1,6 +1,10 @@
 import Foundation
 
 extension MapViewModel {
+    func refreshLiveMatchesForLiveTab(forceRefresh: Bool = false) {
+        refreshLiveMatchesForCalendar(forceRefresh: forceRefresh)
+    }
+
     func refreshLiveMatchesForCalendar(forceRefresh: Bool = false) {
         guard liveMatchesRefreshTask == nil else { return }
 
@@ -36,7 +40,15 @@ extension MapViewModel {
         }
     }
 
+    func liveTabLiveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
+        liveMatchesDisplayed(searchQuery: searchQuery)
+    }
+
     func calendarLiveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
+        liveMatchesDisplayed(searchQuery: searchQuery)
+    }
+
+    private func liveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         return liveMatches
             .filter { $0.matchStatus == .live || $0.matchStatus == .halfTime }

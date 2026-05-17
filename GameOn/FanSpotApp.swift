@@ -3,6 +3,8 @@ import SwiftUI
 
 @main
 struct WatchZoneApp: App {
+    @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
+
     init() {
         GoogleMobileAdsBootstrap.startIfNeeded()
         #if DEBUG
@@ -16,6 +18,11 @@ struct WatchZoneApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(appearancePreference.colorScheme)
         }
+    }
+
+    private var appearancePreference: FanGeoAppearancePreference {
+        FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
     }
 }

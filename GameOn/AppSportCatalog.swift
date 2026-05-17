@@ -141,6 +141,29 @@ public enum AppSportCatalog {
     /// Stored sport strings for pickup + venue owner game forms (same tokens Discover filters on).
     public static var formPickerSportsOrdered: [String] { sportsExcludingAll }
 
+    /// Friendly label for a stored sport token, e.g. `NBA` -> `Basketball`.
+    public static func displayLabel(forSportToken token: String) -> String {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
+        for category in SportCatalog.groupedCategories {
+            if let row = category.rows.first(where: {
+                $0.selection.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+                    || $0.label.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+            }) {
+                return row.label
+            }
+        }
+
+        if let pair = discoverMapDefaultPopularPairs.first(where: {
+            $0.selection.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            return pair.display
+        }
+
+        return trimmed
+    }
+
     /// Compact Discover toolbar: stored selection token + chip label (see ``DiscoverSportFilterRowLayout``).
     public static let discoverMapDefaultPopularPairs: [(selection: String, display: String)] = [
         ("Soccer", "Soccer"),

@@ -82,8 +82,8 @@ struct MapVenuePreviewCard: View {
                             .font(.subheadline)
                     }
                     
-                    Text("🔥 \(goingCount) people going")
-                        .font(.headline)
+                    Text(goingCount == 1 ? "👥 1 fan going" : "👥 \(goingCount) fans going")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.red)
                     
                     Text("Great crowd • Multiple screens • Full audio")
@@ -92,44 +92,67 @@ struct MapVenuePreviewCard: View {
                 }
             }
             
-            HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 
-                GoingAvatarStack(profiles: profiles)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    
-                    Text("\(goingCount) people going")
-                        .font(.subheadline.weight(.semibold))
-                    
-                    Text("Live attendees")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                Button {
-                    if viewModel.canMarkGoing {
-                        onGoing()
-                    } else if viewModel.isAuthenticatedForSocialFeatures {
-                        viewModel.logBusinessUserGateBlocked(action: "markGoing")
-                        fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
-                    } else {
-                        onGoing()
+                HStack(spacing: 10) {
+                    GoingAvatarStack(profiles: profiles)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(goingCount == 1 ? "1 fan going" : "\(goingCount) fans going")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text("Live attendees")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
-                } label: {
-                    
-                    Text("I'm going")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 13)
-                        .background(Color.black)
-                        .clipShape(Capsule())
+
+                    Spacer(minLength: 0)
                 }
-                .opacity(viewModel.canMarkGoing || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
+
+                FGWrappingLayout(horizontalSpacing: 6, verticalSpacing: 6) {
+                    previewSocialChip(goingCount == 1 ? "👥 1 fan" : "👥 \(goingCount) fans", tint: .red)
+                    if profiles.isEmpty {
+                        previewSocialChip("Start the crowd", tint: .secondary)
+                    } else {
+                        previewSocialChip("Friends going", tint: .blue)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack {
+                    Spacer(minLength: 0)
+
+                    Button {
+                        if viewModel.canMarkGoing {
+                            onGoing()
+                        } else if viewModel.isAuthenticatedForSocialFeatures {
+                            viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                            fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
+                        } else {
+                            onGoing()
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "checkmark")
+                                .font(.caption.weight(.bold))
+                            Text("Going")
+                                .font(.caption.weight(.bold))
+                        }
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.08))
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.black.opacity(0.16), lineWidth: 1)
+                        }
+                        .clipShape(Capsule(style: .continuous))
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .opacity(viewModel.canMarkGoing || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
+                }
             }
-            .padding()
+            .padding(14)
             .background(
                 RoundedRectangle(cornerRadius: 22)
                     .fill(Color.white)
@@ -242,5 +265,17 @@ struct MapVenuePreviewCard: View {
         }
         .frame(width: 135, height: 112)
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func previewSocialChip(_ title: String, tint: Color) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(tint)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(tint.opacity(0.10))
+            .clipShape(Capsule(style: .continuous))
     }
 }

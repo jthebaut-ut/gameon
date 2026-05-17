@@ -125,7 +125,7 @@ struct SettingsPickupGamesListSheet: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                 }
-                .accessibilityLabel("Add pickup game")
+                .accessibilityLabel("Host Pickup Game")
             }
         }
         .task {
@@ -238,7 +238,7 @@ private struct SettingsPickupGamesEmptyStateCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(action: onAdd) {
-                Text("Add pickup game")
+                Text("Host Pickup Game")
                     .font(FGTypography.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -570,7 +570,7 @@ struct SettingsPickupMyGameListCard: View {
                                 Image(systemName: "person.crop.circle.badge.clock")
                                     .font(.system(size: isFollowingCompact ? 14 : 15, weight: .semibold))
                                     .foregroundStyle(Color.orange)
-                                Text(pendingJoinCount == 1 ? "1 pending request" : "\(pendingJoinCount) pending requests")
+                                Text(pendingJoinCount == 1 ? "1 player waiting" : "\(pendingJoinCount) players waiting")
                                     .font(isFollowingCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
                                     .foregroundStyle(Color.orange)
                                 Spacer(minLength: 0)
@@ -588,7 +588,7 @@ struct SettingsPickupMyGameListCard: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("\(pendingJoinCount) pending join requests. Tap to review.")
+                        .accessibilityLabel("\(pendingJoinCount) players waiting. Tap to review.")
                     }
                 }
             }
@@ -1302,6 +1302,7 @@ struct SettingsPickupGameFormView: View {
     @State private var address: String = ""
     @State private var city: String = ""
     @State private var state: String = ""
+    @State private var zipCode: String = ""
     @State private var description: String = ""
     @State private var playEnvironment: PickupPlayEnvironment = .either
     @State private var skillLevel: PickupGameSkillLevel = .casual
@@ -1311,7 +1312,6 @@ struct SettingsPickupGameFormView: View {
     @State private var playersNeeded: Int = 1
     @State private var useMaxPlayers: Bool = false
     @State private var maxPlayers: Int = 10
-    @State private var isVisible: Bool = true
     @State private var isSaving = false
     @State private var errorText: String?
     @State private var showPickupMapLocationPicker = false
@@ -1352,13 +1352,17 @@ struct SettingsPickupGameFormView: View {
         state.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var hasCompleteTypedAddress: Bool {
-        !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty
+    private var trimmedZipCode: String {
+        zipCode.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// Post/Save enabled when address fields are complete (typed or filled from map picker).
+    private var hasCompleteTypedAddress: Bool {
+        !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty && !trimmedZipCode.isEmpty
+    }
+
+    /// Post/Save stays tappable once the major address fields are present so ZIP validation can show a clear error.
     private var hasPlacedLocationForPostButton: Bool {
-        hasCompleteTypedAddress
+        !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty
     }
 
     private var pickMapSeedCoordinate: CLLocationCoordinate2D {
@@ -1406,12 +1410,26 @@ struct SettingsPickupGameFormView: View {
         )
     }
 
+    private var zipCodeBinding: Binding<String> {
+        Binding(
+            get: { zipCode },
+            set: { newValue in
+                zipCode = newValue
+                coordinatesLockedFromMap = false
+                mapPinnedCoordinate = nil
+            }
+        )
+    }
+
     private var locationGuidanceFootnote: String? {
         if hasCompleteTypedAddress { return nil }
-        if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty {
+        if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
             return "Location missing"
         }
-        return "Enter a complete street address, city, and state"
+        if trimmedZipCode.isEmpty {
+            return "Enter the ZIP code for this pickup game."
+        }
+        return "Enter a complete street address, city, state, and ZIP code."
     }
 
     var body: some View {
@@ -1443,8 +1461,7 @@ struct SettingsPickupGameFormView: View {
                             .multilineTextAlignment(.trailing)
                     }
                     LabeledContent("Sport") {
-                        Text(sport)
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        SportSelectionValueView(sport: sport)
                     }
                     LabeledContent("Start") {
                         Text(lockedGameStartDisplay)
@@ -1536,6 +1553,9 @@ struct SettingsPickupGameFormView: View {
                         .lineLimit(1...3)
                     TextField("City", text: cityBinding)
                     TextField("State", text: stateBinding)
+                    TextField("ZIP code", text: zipCodeBinding)
+                        .textInputAutocapitalization(.characters)
+                        .keyboardType(.numbersAndPunctuation)
 
                     if coordinatesLockedFromMap {
                         Text("Using exact coordinates from your map pin.")
@@ -1564,6 +1584,10 @@ struct SettingsPickupGameFormView: View {
                         Text(trimmedState.isEmpty ? "—" : trimmedState)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                     }
+                    LabeledContent("ZIP") {
+                        Text(trimmedZipCode.isEmpty ? "—" : trimmedZipCode)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
                 }
             }
 
@@ -1575,15 +1599,9 @@ struct SettingsPickupGameFormView: View {
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .multilineTextAlignment(.trailing)
                     }
-                    LabeledContent("Discover map") {
-                        Text(isVisible ? "Visible" : "Hidden")
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                    }
                 } else {
                     TextField("Description (optional)", text: $description, axis: .vertical)
                         .lineLimit(2...6)
-                    Toggle("Visible on Discover map", isOn: $isVisible)
-
                     HStack(alignment: .top, spacing: FGSpacing.sm) {
                         Image(systemName: "info.circle.fill")
                             .font(.system(size: 20, weight: .semibold))
@@ -1607,7 +1625,7 @@ struct SettingsPickupGameFormView: View {
         .scrollContentBackground(.hidden)
         .fanGeoScreenBackground()
         .navigationTitle(
-            mode == .add ? "Add pickup game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
+            mode == .add ? "Host Pickup Game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1647,7 +1665,7 @@ struct SettingsPickupGameFormView: View {
                 viewModel: viewModel,
                 initialCoordinate: pickMapSeedCoordinate,
                 onCancel: { showPickupMapLocationPicker = false },
-                onConfirm: { coord, street, cityName, stateAbbr in
+                onConfirm: { coord, street, cityName, stateAbbr, postalCode in
                     if let s = street, !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         address = s
                     }
@@ -1656,6 +1674,9 @@ struct SettingsPickupGameFormView: View {
                     }
                     if let st = stateAbbr, !st.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         state = st
+                    }
+                    if let zip = postalCode, !zip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        zipCode = zip
                     }
                     mapPinnedCoordinate = coord
                     coordinatesLockedFromMap = true
@@ -1676,6 +1697,7 @@ struct SettingsPickupGameFormView: View {
             address = ""
             city = ""
             state = ""
+            zipCode = ""
             description = ""
             playEnvironment = .either
             skillLevel = .casual
@@ -1685,7 +1707,6 @@ struct SettingsPickupGameFormView: View {
             playersNeeded = 1
             useMaxPlayers = false
             maxPlayers = 10
-            isVisible = true
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
         case .edit(let row):
@@ -1697,7 +1718,9 @@ struct SettingsPickupGameFormView: View {
             }
             address = row.address ?? ""
             city = row.city ?? ""
-            state = row.state ?? ""
+            let splitState = Self.splitStoredStateAndZip(row.state)
+            state = splitState.state
+            zipCode = splitState.zipCode
             description = row.description ?? ""
             playEnvironment = row.playEnvironmentEnum
             skillLevel = row.skillLevelEnum
@@ -1721,7 +1744,6 @@ struct SettingsPickupGameFormView: View {
                 useMaxPlayers = false
                 maxPlayers = Swift.max(row.playersNeededClamped, 2)
             }
-            isVisible = row.is_visible
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
         }
@@ -1734,6 +1756,25 @@ struct SettingsPickupGameFormView: View {
         f.minimumFractionDigits = 0
         f.maximumFractionDigits = 2
         return f.string(from: n) ?? String(format: "%.2f", amount)
+    }
+
+    private static func splitStoredStateAndZip(_ raw: String?) -> (state: String, zipCode: String) {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return ("", "") }
+        let parts = trimmed.split(separator: " ").map(String.init)
+        guard parts.count > 1,
+              let last = parts.last,
+              last.rangeOfCharacter(from: .decimalDigits) != nil else {
+            return (trimmed, "")
+        }
+        return (parts.dropLast().joined(separator: " "), last)
+    }
+
+    private static func storedStateWithZip(state: String, zipCode: String) -> String {
+        [state, zipCode]
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     private func logPickupDatePicker(todayTapped: Bool, doneTapped: Bool, selectedDate: Date) {
@@ -1895,16 +1936,22 @@ struct SettingsPickupGameFormView: View {
 
         let start = combinedStartDate()
 
+        let missingZip = trimmedZipCode.isEmpty
+#if DEBUG
+        print("[PickupLocationDebug] postValidationMissingZip=\(missingZip)")
+#endif
         guard hasCompleteTypedAddress else {
-            if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty {
+            if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
                 errorText = "Location missing"
+            } else if missingZip {
+                errorText = "Enter the ZIP code for this pickup game."
             } else {
-                errorText = "Enter a complete street address, city, and state"
+                errorText = "Enter a complete street address, city, state, and ZIP code."
             }
             return
         }
 
-        let addressLine = [trimmedAddress, trimmedCity, trimmedState].joined(separator: ", ")
+        let addressLine = [trimmedAddress, trimmedCity, trimmedState, trimmedZipCode].joined(separator: ", ")
 
         let latFinal: Double
         let lonFinal: Double
@@ -1922,7 +1969,7 @@ struct SettingsPickupGameFormView: View {
 
         let addr = trimmedAddress
         let c = trimmedCity
-        let st = trimmedState
+        let st = Self.storedStateWithZip(state: trimmedState, zipCode: trimmedZipCode)
 
         let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -1940,7 +1987,6 @@ struct SettingsPickupGameFormView: View {
                     state: st.isEmpty ? nil : st,
                     latitude: latFinal,
                     longitude: lonFinal,
-                    isVisible: isVisible,
                     playersNeeded: playersN,
                     playEnvironment: playEnvironment.rawValue,
                     participantPreference: participantPreference.rawValue,
@@ -1962,7 +2008,7 @@ struct SettingsPickupGameFormView: View {
                     state: st.isEmpty ? nil : st,
                     latitude: latFinal,
                     longitude: lonFinal,
-                    is_visible: isVisible,
+                    is_visible: true,
                     players_needed: playersN,
                     play_environment: playEnvironment.rawValue,
                     participant_preference: participantPreference.rawValue,

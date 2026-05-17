@@ -16,7 +16,6 @@ struct FollowingScreen: View {
 
     /// Venue events the user marked "Interested" from Following without a Supabase row (table has no status column).
     @AppStorage("gameon.following.interestedOnlyVenueEventIDs") private var interestedOnlyEncoded: String = ""
-    @State private var followingSegment: FollowingScreenMainTab = .venueGames
     @State private var pickupDetailNav: PickupDetailNavigationToken?
     @State private var followingPickupWithdrawConfirm: PickupJoinWithdrawConfirmState?
     @State private var followingPickupWithdrawInFlight = false
@@ -28,26 +27,11 @@ struct FollowingScreen: View {
     @State private var followingMyPickupDetailGame: PickupGameRow?
     @State private var followingMyPickupBanner: String?
     @State private var followingMyPickupDidScheduleExpiryRefresh = false
+    @State private var selectedGoingMode: GoingParticipationMode = .venueGames
+    @State private var selectedGoingVenueTab: GoingVenueTab = .games
+    @State private var selectedGoingPickupTab: GoingPickupTab = .playing
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
-
-    private enum FollowingScreenMainTab: Int, CaseIterable, Identifiable, Hashable {
-        case venueGames
-        case savedVenues
-        case gamesToPlay
-        case myPickupGames
-
-        var id: Int { rawValue }
-
-        var title: String {
-            switch self {
-            case .venueGames: return "Venue Games"
-            case .savedVenues: return "Saved Venues"
-            case .gamesToPlay: return "Games to Play"
-            case .myPickupGames: return "My Pickup Games"
-            }
-        }
-    }
 
     var body: some View {
         ZStack {
@@ -90,23 +74,6 @@ struct FollowingScreen: View {
             Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing() }
         }) { token in
             DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
-        }
-        .onChange(of: followingSegment) { _, newSeg in
-            if newSeg == .gamesToPlay {
-                viewModel.acknowledgePickupFollowingGamesToPlayActivity()
-            }
-            if newSeg == .myPickupGames {
-                followingMyPickupClockTick = Date()
-                followingMyPickupDidScheduleExpiryRefresh = false
-                Task {
-                    await viewModel.loadMyPickupGamesForSettings()
-                    if let uid = viewModel.currentUserAuthId {
-                        await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
-                    }
-                    logFollowingMyPickupGames(action: "segmentSelect")
-                }
-                scheduleFollowingMyPickupExpiryRefreshIfNeeded(now: Date())
-            }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, isFollowingTabSelected else { return }
@@ -282,7 +249,7 @@ struct FollowingScreen: View {
                 .font(.system(size: 44, weight: .semibold))
                 .foregroundStyle(FGColor.accentYellow)
 
-            Text("Following")
+            Text("Going")
                 .font(FGTypography.screenTitle)
                 .foregroundStyle(FGColor.primaryText(followingColorScheme))
 
@@ -306,38 +273,12 @@ struct FollowingScreen: View {
 
     private var loggedInContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Following")
-                    .font(FGTypography.screenTitle)
-                    .foregroundStyle(FGColor.primaryText(followingColorScheme))
-                    .padding(.top, 8)
-
-                Text("Venue games you follow, saved spots, pickup games you’ve asked to join, and pickup games you host.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let favoriteActionBanner {
-                    Text(favoriteActionBanner)
-                        .font(FGTypography.metadata)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(FGColor.accentYellow)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(10)
-                        .background(FGColor.accentYellow.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
-            }
+            goingHubHeader
             .padding(.horizontal, FGSpacing.md)
-
-            followingGroupedSegmentControl
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.top, 6)
-                .padding(.bottom, 6)
+            .padding(.bottom, 8)
 
             ScrollView {
-                followingSegmentContent
+                goingHubContent
                     .padding(.horizontal, FGSpacing.md)
                     .padding(.bottom, 110)
             }
@@ -345,290 +286,534 @@ struct FollowingScreen: View {
                 await viewModel.refreshFollowingTabDataGlobally()
                 await viewModel.performPickupFollowingJoinListRefresh(isUserPull: true)
                 logFollowingMyPickupGames(action: "pullToRefresh")
+                logGoingHubDebug(reason: "pullToRefresh")
             }
             .onReceive(followingMyPickupMinuteTicker) { date in
-                guard followingSegment == .myPickupGames else { return }
                 followingMyPickupClockTick = date
                 scheduleFollowingMyPickupExpiryRefreshIfNeeded(now: date)
             }
         }
-    }
-
-    @ViewBuilder
-    private var followingSegmentContent: some View {
-        switch followingSegment {
-        case .venueGames:
-            venueGamesTabContent
-        case .savedVenues:
-            savedVenuesTabContent
-        case .gamesToPlay:
-            gamesToPlayTabContent
-        case .myPickupGames:
-            myPickupGamesTabContent
+        .onAppear {
+            logGoingHubDebug(reason: "appear")
         }
     }
 
-    /// Row 1: section headers. Row 2: four pills in one row (equal width within each half, no horizontal scroll). Maps 1:1 to ``FollowingScreenMainTab``.
-    private var followingGroupedSegmentControl: some View {
-        let corner: CGFloat = 16
-        let shell = RoundedRectangle(cornerRadius: corner, style: .continuous)
-        let isDark = followingColorScheme == .dark
-        let venueHeaderTint = Color(red: 1.0, green: 0.58, blue: 0.18)
-        let pickupHeaderTint = Color(red: 0.2, green: 0.78, blue: 0.45)
-        let pillMinHeight: CGFloat = 34
-        let pillHPadding: CGFloat = 7
-        let pillFont: CGFloat = 10
+    private var goingHubHeader: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Going")
+                        .font(FGTypography.screenTitle)
+                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                        .padding(.top, 8)
 
-        return VStack(alignment: .leading, spacing: 9) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                followingSelectorSectionHeader(
-                    icon: "building.2.fill",
-                    iconTint: venueHeaderTint,
-                    title: "Venues"
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Games, venues, and pickup plans you're part of.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                followingSelectorSectionHeader(
-                    icon: "person.2.fill",
-                    iconTint: pickupHeaderTint,
-                    title: "Pickup Games"
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Spacer(minLength: 8)
             }
 
-            HStack(alignment: .center, spacing: 6) {
-                HStack(spacing: 5) {
-                    followingSelectorPillButton(
-                        title: "Games",
-                        tab: .venueGames,
-                        accent: .venuesWarm,
-                        accessibilityLabel: "Venue games you’re following",
-                        badgeCount: nil,
-                        minHeight: pillMinHeight,
-                        horizontalPadding: pillHPadding,
-                        fontSize: pillFont,
-                        titleLineLimit: 1
-                    )
-                    followingSelectorPillButton(
-                        title: "Saved Venues",
-                        tab: .savedVenues,
-                        accent: .venuesWarm,
-                        accessibilityLabel: "Saved venues",
-                        badgeCount: nil,
-                        minHeight: pillMinHeight,
-                        horizontalPadding: pillHPadding,
-                        fontSize: pillFont,
-                        titleLineLimit: 1
-                    )
-                }
-                .frame(maxWidth: .infinity)
-
-                followingSelectorInterGroupDivider(isDark: isDark, height: pillMinHeight - 4)
-
-                HStack(spacing: 5) {
-                    followingSelectorPillButton(
-                        title: "Games to Play",
-                        tab: .gamesToPlay,
-                        accent: .pickupGreen,
-                        accessibilityLabel: "Pickup games you asked to join",
-                        badgeCount: viewModel.pickupActivityCount,
-                        minHeight: pillMinHeight,
-                        horizontalPadding: pillHPadding,
-                        fontSize: pillFont,
-                        titleLineLimit: 1
-                    )
-                    followingSelectorPillButton(
-                        title: "My Pickup Games",
-                        tab: .myPickupGames,
-                        accent: .pickupGreen,
-                        accessibilityLabel: "Pickup games you host",
-                        badgeCount: nil,
-                        minHeight: pillMinHeight,
-                        horizontalPadding: pillHPadding,
-                        fontSize: pillFont,
-                        titleLineLimit: 2
-                    )
-                }
-                .frame(maxWidth: .infinity)
+            if let favoriteActionBanner {
+                Text(favoriteActionBanner)
+                    .font(FGTypography.metadata)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(FGColor.accentYellow)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(FGColor.accentYellow.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
+
+            if goingHubShouldShowActivityStrip {
+                goingHubActivityStrip
+            }
+        }
+    }
+
+    private var goingHubContent: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            goingModeSwitcher
+
+            Group {
+                switch selectedGoingMode {
+                case .venueGames:
+                    goingVenueTabsGroup
+                case .pickupGames:
+                    goingPickupTabsGroup
+                }
+            }
+            .id(selectedGoingMode)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+        .padding(.top, 6)
+    }
+
+    private var goingVenueGameItems: [FollowingGoingDisplayItem] {
+        viewModel.followingTabGoingItems.filter(\.isServerGoing)
+    }
+
+    private var goingModeSwitcher: some View {
+        HStack(spacing: 8) {
+            goingModeButton(.venueGames)
+            goingModeButton(.pickupGames)
+        }
+        .padding(4)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground).opacity(followingColorScheme == .dark ? 0.32 : 0.64))
+        }
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(FGColor.divider(followingColorScheme).opacity(0.58), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(followingColorScheme == .dark ? 0.18 : 0.045), radius: 9, y: 3)
+    }
+
+    private func goingModeButton(_ mode: GoingParticipationMode) -> some View {
+        let isSelected = selectedGoingMode == mode
+        let tint = mode.tint
+        return Button {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+                selectedGoingMode = mode
+            }
+        } label: {
+            VStack(spacing: 5) {
+                HStack(spacing: 6) {
+                    Text(mode.title)
+                        .font(.system(size: 14, weight: isSelected ? .semibold : .medium, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.84)
+                    if mode == .pickupGames, viewModel.pendingPickupGameJoinRequestCount > 0 {
+                        Circle()
+                            .fill(Color.orange.opacity(0.9))
+                            .frame(width: 6, height: 6)
+                            .accessibilityLabel("Players waiting")
+                    }
+                }
+                Capsule(style: .continuous)
+                    .fill(isSelected ? tint.opacity(0.92) : Color.clear)
+                    .frame(width: 30, height: 2)
+            }
+            .foregroundStyle(isSelected ? FGColor.primaryText(followingColorScheme) : FGColor.secondaryText(followingColorScheme))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(isSelected ? tint.opacity(followingColorScheme == .dark ? 0.14 : 0.10) : Color.clear)
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var goingVenueTabsGroup: some View {
+        goingTabbedPanel(title: "Venue Games", subtitle: "Watch parties, sports bars, saved venues, and friends watching later.") {
+            HStack(spacing: 10) {
+                goingTabButton(
+                    title: "Watching",
+                    badge: nil,
+                    isSelected: selectedGoingVenueTab == .games,
+                    tint: FGColor.accentGreen
+                ) {
+                    selectedGoingVenueTab = .games
+                }
+
+                goingTabButton(
+                    title: "Saved",
+                    badge: nil,
+                    isSelected: selectedGoingVenueTab == .saved,
+                    tint: FGColor.accentGreen
+                ) {
+                    selectedGoingVenueTab = .saved
+                }
+            }
+        } content: {
+            Group {
+                switch selectedGoingVenueTab {
+                case .games:
+                    venueGamesTabContent
+                case .saved:
+                    savedVenuesTabContent
+                }
+            }
+            .id(selectedGoingVenueTab)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private var goingPickupTabsGroup: some View {
+        goingTabbedPanel(title: "Pickup Games", subtitle: "Games you joined, games you host, requests, and player management.") {
+            HStack(spacing: 10) {
+                goingTabButton(
+                    title: "Playing",
+                    badge: pickupPlayingTabBadge,
+                    isSelected: selectedGoingPickupTab == .playing,
+                    tint: FGColor.accentGreen
+                ) {
+                    selectedGoingPickupTab = .playing
+                }
+
+                goingTabButton(
+                    title: "Hosting",
+                    badge: pickupHostingTabBadge,
+                    isSelected: selectedGoingPickupTab == .hosting,
+                    tint: Color.orange
+                ) {
+                    selectedGoingPickupTab = .hosting
+                }
+            }
+        } content: {
+            Group {
+                switch selectedGoingPickupTab {
+                case .playing:
+                    gamesToPlayTabContent
+                case .hosting:
+                    myPickupGamesTabContent
+                }
+            }
+            .id(selectedGoingPickupTab)
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private var pickupPlayingTabBadge: String? {
+        guard viewModel.pickupActivityCount > 0 else { return nil }
+        return viewModel.pickupActivityCount > 9 ? "9+ new" : "\(viewModel.pickupActivityCount) new"
+    }
+
+    private var pickupHostingTabBadge: String? {
+        let count = viewModel.pendingPickupGameJoinRequestCount
+        guard count > 0 else { return nil }
+        if count == 1 { return "1 waiting" }
+        return count > 9 ? "9+ waiting" : "\(count) waiting"
+    }
+
+    private func goingTabbedPanel<Tabs: View, Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder tabs: () -> Tabs,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .tracking(1.0)
+                    .foregroundStyle(FGColor.mutedText(followingColorScheme))
+                Text(subtitle)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            tabs()
+
+            Divider()
+                .overlay(FGColor.divider(followingColorScheme).opacity(0.65))
+                .padding(.top, 2)
+
+            content()
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground).opacity(followingColorScheme == .dark ? 0.38 : 0.72))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(FGColor.divider(followingColorScheme).opacity(0.72), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(followingColorScheme == .dark ? 0.20 : 0.055), radius: 10, y: 3)
+    }
+
+    private func goingTabButton(
+        title: String,
+        badge: String?,
+        isSelected: Bool,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                action()
+            }
+        } label: {
+            VStack(spacing: 6) {
+                HStack(spacing: 7) {
+                    Text(title)
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular, design: .rounded))
+                    if let badge {
+                        Text(badge)
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .foregroundStyle(isSelected ? tint : Color.orange.opacity(0.95))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.orange.opacity(followingColorScheme == .dark ? 0.18 : 0.12), in: Capsule())
+                    }
+                }
+                .foregroundStyle(isSelected ? FGColor.primaryText(followingColorScheme) : FGColor.secondaryText(followingColorScheme))
+
+                Capsule()
+                    .fill(isSelected ? tint : Color.clear)
+                    .frame(width: isSelected ? 24 : 12, height: 2)
+                    .opacity(isSelected ? 0.9 : 0)
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(isSelected ? tint.opacity(followingColorScheme == .dark ? 0.11 : 0.08) : Color.clear)
+            )
+            .shadow(color: tint.opacity(isSelected ? 0.16 : 0), radius: 10, y: 0)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func goingCategoryBlock<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text(title)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .tracking(1.1)
+                .foregroundStyle(FGColor.mutedText(followingColorScheme))
+
+            content()
+        }
+    }
+
+    private var goingHubParticipationSummaryCard: some View {
+        HStack(spacing: 12) {
+            goingHubMetricPill(
+                value: viewModel.myPickupGamesForSettings.count + viewModel.myPickupGameJoinRequestCards.count,
+                label: "Pickup",
+                tint: FGColor.accentGreen
+            )
+            goingHubMetricPill(
+                value: viewModel.followingTabGoingItems.count,
+                label: "Watching",
+                tint: Color.orange
+            )
+            goingHubMetricPill(
+                value: chatViewModel.friends.count,
+                label: "Social",
+                tint: FGColor.accentBlue
+            )
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
+    }
+
+    private func goingHubMetricPill(value: Int, label: String, tint: Color) -> some View {
+        VStack(spacing: 4) {
+            Text(value > 0 ? "\(value)" : "0")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+            Text(label)
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(tint.opacity(followingColorScheme == .dark ? 0.13 : 0.09), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var goingHubUpcomingSubtitle: String {
+        let attendance = viewModel.followingTabGoingItems.count
+        let joined = viewModel.myPickupGameJoinRequestCards.count
+        let hosting = viewModel.myPickupGamesForSettings.count
+        let total = attendance + joined + hosting
+        guard total > 0 else { return "Your next games and plans will collect here." }
+        if total == 1 { return "1 upcoming thing you’re part of." }
+        return "\(total) upcoming things you’re part of."
+    }
+
+    private var goingHubPickupActivityCount: Int {
+        viewModel.pendingPickupGameJoinRequestCount + viewModel.pickupActivityCount
+    }
+
+    private var goingHubActivityBadgeState: String {
+        if viewModel.pendingPickupGameJoinRequestCount > 0 {
+            return "pendingResponse:\(viewModel.pendingPickupGameJoinRequestCount)"
+        }
+        if viewModel.pickupActivityCount > 0 || viewModel.hasUnreadPickupActivity {
+            return "pickupActivity:\(max(viewModel.pickupActivityCount, 1))"
+        }
+        return "none"
+    }
+
+    private var goingHubShouldShowActivityStrip: Bool {
+        goingHubActivityBadgeState != "none"
+    }
+
+    private var goingHubActivityStrip: some View {
+        HStack(spacing: 9) {
+            Circle()
+                .fill(Color.orange.opacity(0.92))
+                .frame(width: 7, height: 7)
+
+            Text(goingHubActivityText)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            Text("Pickup")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.orange.opacity(0.95))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(followingColorScheme == .dark ? 0.16 : 0.11), in: Capsule())
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
         .background {
-            ZStack {
-                shell.fill(.ultraThinMaterial)
-                shell.fill(isDark ? Color.black.opacity(0.52) : Color.black.opacity(0.14))
-            }
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.ultraThinMaterial)
         }
-        .clipShape(shell)
-        .overlay {
-            shell
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(isDark ? 0.16 : 0.42),
-                            Color.white.opacity(isDark ? 0.05 : 0.14)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 16))
+        .accessibilityLabel(goingHubActivityText)
+    }
+
+    private var goingHubActivityText: String {
+        if viewModel.pendingPickupGameJoinRequestCount == 1 {
+            return "1 player waiting to join."
         }
-        .shadow(color: Color.black.opacity(isDark ? 0.35 : 0.1), radius: 10, x: 0, y: 4)
-        .fixedSize(horizontal: false, vertical: true)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Following categories")
-    }
-
-    private enum FollowingGroupAccentKind {
-        case venuesWarm
-        case pickupGreen
-    }
-
-    private func followingSelectorSectionHeader(icon: String, iconTint: Color, title: String) -> some View {
-        let isDark = followingColorScheme == .dark
-        return HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(iconTint)
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .tracking(0.48)
-                .foregroundStyle(isDark ? Color.white.opacity(0.92) : Color.black.opacity(0.78))
+        if viewModel.pendingPickupGameJoinRequestCount > 1 {
+            return "\(viewModel.pendingPickupGameJoinRequestCount) players waiting to join."
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(title)
+        if viewModel.pickupActivityCount == 1 {
+            return "New activity on a pickup game you joined."
+        }
+        if viewModel.pickupActivityCount > 1 {
+            return "\(viewModel.pickupActivityCount) pickup games have new activity."
+        }
+        return "Pickup activity is waiting in Going."
     }
 
-    private func followingSelectorInterGroupDivider(isDark: Bool, height: CGFloat) -> some View {
-        Rectangle()
-            .fill(Color.white.opacity(isDark ? 0.14 : 0.22))
-            .frame(width: 1, height: height)
-            .padding(.horizontal, 6)
-    }
-
-    private func followingSelectorPillButton(
+    private func goingHubSection<Content: View>(
+        eyebrow: String,
         title: String,
-        tab: FollowingScreenMainTab,
-        accent: FollowingGroupAccentKind,
-        accessibilityLabel summary: String,
-        badgeCount: Int?,
-        minHeight: CGFloat,
-        horizontalPadding: CGFloat,
-        fontSize: CGFloat,
-        titleLineLimit: Int
+        subtitle: String,
+        icon: String,
+        activityCount: Int?,
+        @ViewBuilder content: () -> Content
     ) -> some View {
-        let isDark = followingColorScheme == .dark
-        let selected = followingSegment == tab
-        let showBadge = (tab == .gamesToPlay) && (badgeCount ?? 0) > 0
-        let count = badgeCount ?? 0
+        VStack(alignment: .leading, spacing: 11) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(FGColor.accentGreen)
+                    .frame(width: 28, height: 28)
+                    .background(FGColor.accentGreen.opacity(followingColorScheme == .dark ? 0.16 : 0.11), in: Circle())
 
-        return Button {
-            followingSegment = tab
-        } label: {
-            ZStack(alignment: .topTrailing) {
-                Text(title)
-                    .font(.system(size: fontSize, weight: selected ? .semibold : .medium, design: .rounded))
-                    .foregroundStyle(
-                        selected
-                            ? Color.white
-                            : (isDark ? Color.white.opacity(0.85) : Color.black.opacity(0.72))
-                    )
-                    .multilineTextAlignment(.center)
-                    .lineLimit(titleLineLimit)
-                    .minimumScaleFactor(titleLineLimit == 1 ? 0.86 : 1)
-                    .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .center)
-                    .padding(.horizontal, horizontalPadding)
-                    .padding(.vertical, titleLineLimit > 1 ? 5 : 6)
-                    .background {
-                        Group {
-                            if selected {
-                                followingSelectorPillSelectedFill(accent: accent, isDark: isDark)
-                            } else {
-                                followingSelectorPillUnselectedFill(isDark: isDark)
-                            }
-                        }
-                        .clipShape(Capsule(style: .continuous))
-                    }
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(
-                                followingSelectorPillStroke(selected: selected, accent: accent, isDark: isDark),
-                                lineWidth: 1
-                            )
-                    }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(eyebrow.uppercased())
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .tracking(0.7)
+                        .foregroundStyle(FGColor.mutedText(followingColorScheme))
+                    Text(title)
+                        .font(FGTypography.sectionTitle)
+                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                    Text(subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
-                if showBadge {
-                    Text(count > 99 ? "99+" : "\(count)")
-                        .font(.system(size: 8, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 3)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.orange.opacity(0.92)))
-                        .offset(x: 3, y: -4)
-                        .accessibilityHidden(true)
+                Spacer(minLength: 0)
+
+                if let activityCount, activityCount > 0 {
+                    goingHubSmallBadge(count: activityCount)
                 }
             }
+
+            content()
+        }
+    }
+
+    private func goingHubSmallBadge(count: Int) -> some View {
+        let label = count > 9 ? "9+" : "\(count)"
+        return Text(label)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .foregroundStyle(.white)
+            .frame(minWidth: 20, minHeight: 20)
+            .padding(.horizontal, count > 9 ? 4 : 0)
+            .background(Color.orange.opacity(0.92), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.5), lineWidth: 1))
+            .accessibilityLabel("\(count) pickup activity items")
+    }
+
+    private var hostPickupInlineCTA: some View {
+        Button {
+            openCreatePickupFromGoing()
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(FGColor.accentGreen, in: Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Host Pickup Game")
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                    Text("Create a casual game and manage it here.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(FGColor.mutedText(followingColorScheme))
+            }
+            .padding(14)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 20))
         }
         .buttonStyle(.plain)
-        .frame(maxWidth: .infinity, alignment: .center)
-        .accessibilityLabel(summary)
-    }
-
-    @ViewBuilder
-    private func followingSelectorPillSelectedFill(accent: FollowingGroupAccentKind, isDark: Bool) -> some View {
-        switch accent {
-        case .venuesWarm:
-            LinearGradient(
-                colors: [
-                    Color(red: 0.9, green: 0.52, blue: 0.22),
-                    Color(red: 0.55, green: 0.34, blue: 0.16)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .opacity(isDark ? 1.0 : 0.94)
-        case .pickupGreen:
-            LinearGradient(
-                colors: [
-                    Color(red: 0.16, green: 0.72, blue: 0.42),
-                    Color(red: 0.08, green: 0.48, blue: 0.3)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .opacity(isDark ? 1.0 : 0.92)
-        }
-    }
-
-    private func followingSelectorPillUnselectedFill(isDark: Bool) -> some View {
-        isDark ? Color.white.opacity(0.07) : Color.black.opacity(0.06)
-    }
-
-    private func followingSelectorPillStroke(selected: Bool, accent: FollowingGroupAccentKind, isDark: Bool) -> Color {
-        if selected {
-            switch accent {
-            case .venuesWarm:
-                return Color(red: 1.0, green: 0.68, blue: 0.35).opacity(0.55)
-            case .pickupGreen:
-                return Color(red: 0.35, green: 0.9, blue: 0.62).opacity(0.45)
-            }
-        }
-        return Color.white.opacity(isDark ? 0.14 : 0.22)
+        .disabled(!viewModel.canFanUsePickupGamesUI)
+        .opacity(viewModel.canFanUsePickupGamesUI ? 1 : 0.55)
+        .accessibilityLabel("Host Pickup Game")
     }
 
     private var venueGamesTabContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-            if viewModel.followingTabGoingItems.isEmpty {
+            if goingVenueGameItems.isEmpty {
                 emptyCard(
                     icon: "sportscourt.fill",
-                    title: "No venue game plans",
-                    subtitle: "Save a venue and tap “I’m going” on a game to see it here."
+                    title: "No watch plans yet.",
+                    subtitle: "Mark a venue game as Going to see it here."
                 )
             } else {
                 VStack(spacing: 12) {
-                    ForEach(viewModel.followingTabGoingItems) { item in
+                    ForEach(goingVenueGameItems) { item in
                         goingPlanCard(item)
                     }
                 }
@@ -642,8 +827,8 @@ struct FollowingScreen: View {
             if viewModel.followingTabSavedVenues.isEmpty {
                 emptyCard(
                     icon: "heart",
-                    title: "No saved venues",
-                    subtitle: "Tap the heart on a venue in Discover to save it."
+                    title: "No favorite venues yet.",
+                    subtitle: "Save bars and watch spots from Discover."
                 )
             } else {
                 VStack(spacing: 12) {
@@ -672,8 +857,8 @@ struct FollowingScreen: View {
             if viewModel.myPickupGameJoinRequestCards.isEmpty {
                 emptyCard(
                     icon: "figure.run",
-                    title: "No pickup games yet",
-                    subtitle: "Request to join a pickup game from Discover — it will show up here with status updates."
+                    title: "No pickup games joined yet.",
+                    subtitle: "Join a pickup game to see it here."
                 )
             } else {
                 VStack(spacing: 12) {
@@ -684,6 +869,47 @@ struct FollowingScreen: View {
             }
         }
         .padding(.top, 6)
+        .onAppear {
+            viewModel.acknowledgePickupFollowingGamesToPlayActivity()
+        }
+    }
+
+    private var hostingEmptyStateCard: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "sportscourt.fill")
+                .font(.largeTitle)
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+
+            Text("You’re not hosting yet.")
+                .font(FGTypography.cardTitle)
+                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+
+            Text("Create a pickup game when you’re ready to play.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                .multilineTextAlignment(.center)
+
+            Button {
+                openCreatePickupFromGoing()
+            } label: {
+                Text("Host Pickup Game")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(FGColor.accentGreen)
+            .padding(.top, 2)
+            .accessibilityLabel("Host Pickup Game")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(18)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
     }
 
     private var myPickupGamesTabContent: some View {
@@ -694,14 +920,12 @@ struct FollowingScreen: View {
                     title: "Pickup games unavailable",
                     subtitle: "Switch to a fan account to create and manage pickup games."
                 )
-            } else if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
-                emptyCard(
-                    icon: "sportscourt.fill",
-                    title: "No pickup games created yet",
-                    subtitle: "Create one from Discover or the + button."
-                )
+            } else if viewModel.myPickupGamesForSettings.isEmpty {
+                hostingEmptyStateCard
             } else {
                 VStack(spacing: 12) {
+                    hostPickupInlineCTA
+
                     if !viewModel.myPickupGamesForSettings.isEmpty {
                         ForEach(viewModel.myPickupGamesForSettings) { row in
                             let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
@@ -803,8 +1027,46 @@ struct FollowingScreen: View {
     }
 #endif
 
+    private func openCreatePickupFromGoing() {
+        guard viewModel.canFanUsePickupGamesUI else { return }
+        logGoingHubDebug(reason: "createPickupTapped", createPickupTapped: true)
+        followingMyPickupFormMode = .add
+    }
+
+#if DEBUG
+    private func logGoingHubDebug(reason: String, createPickupTapped: Bool = false) {
+        print("[GoingStructureDebug] venueGamesGoingCount=\(goingVenueGameItems.count)")
+        print("[GoingStructureDebug] favoriteVenuesCount=\(viewModel.followingTabSavedVenues.count)")
+        print("[GoingStructureDebug] pickupPlayingCount=\(viewModel.myPickupGameJoinRequestCards.count)")
+        print("[GoingStructureDebug] pickupHostingCount=\(viewModel.myPickupGamesForSettings.count)")
+        print("[GoingStructureDebug] hostPickupTapped=\(createPickupTapped)")
+        let emptySections = goingStructureEmptySections()
+        if emptySections.isEmpty {
+            print("[GoingStructureDebug] sectionEmptyState=none")
+        } else {
+            for section in emptySections {
+                print("[GoingStructureDebug] sectionEmptyState=\(section)")
+            }
+        }
+        print("[GoingStructureDebug] reason=\(reason)")
+    }
+#else
+    private func logGoingHubDebug(reason: String, createPickupTapped: Bool = false) {
+        _ = reason
+        _ = createPickupTapped
+    }
+#endif
+
+    private func goingStructureEmptySections() -> [String] {
+        var sections: [String] = []
+        if goingVenueGameItems.isEmpty { sections.append("Games") }
+        if viewModel.followingTabSavedVenues.isEmpty { sections.append("Saved") }
+        if viewModel.myPickupGameJoinRequestCards.isEmpty { sections.append("Playing") }
+        if viewModel.myPickupGamesForSettings.isEmpty { sections.append("Hosting") }
+        return sections
+    }
+
     private func scheduleFollowingMyPickupExpiryRefreshIfNeeded(now: Date) {
-        guard followingSegment == .myPickupGames else { return }
         guard !followingMyPickupDidScheduleExpiryRefresh else { return }
         let rows = viewModel.myPickupGamesForSettings + viewModel.myRemovedPickupGamesForSettings
         let anyPast = rows.contains { row in
@@ -1611,6 +1873,35 @@ private enum FollowingAttendanceTarget {
     case going
     case interested
     case notGoing
+}
+
+private enum GoingParticipationMode: Hashable {
+    case venueGames
+    case pickupGames
+
+    var title: String {
+        switch self {
+        case .venueGames: return "Venue Games"
+        case .pickupGames: return "Pickup Games"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .venueGames: return FGColor.accentGreen
+        case .pickupGames: return FGColor.accentGreen
+        }
+    }
+}
+
+private enum GoingVenueTab: Hashable {
+    case games
+    case saved
+}
+
+private enum GoingPickupTab: Hashable {
+    case playing
+    case hosting
 }
 
 private func decodeInterestedOnlyUUIDs(from encoded: String) -> Set<UUID> {

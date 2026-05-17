@@ -1487,7 +1487,7 @@ extension MapViewModel {
 
         let t0 = Date()
         var byID: [UUID: VenueEventRow] = [:]
-        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,admin_status"
+        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,admin_status,scheduled_start_at"
         let chunkSize = 80
 
         func mergeRows(_ rows: [VenueEventRow]) {
@@ -1611,6 +1611,7 @@ extension MapViewModel {
         venueEventRows = fetchedVenueEventRows
         venueEventIDsByKey = idsByKey
         await mergeVenueSliceIntoEvents(venueRows: fetchedVenueEventRows)
+        await reconcileGameRemindersForLoadedVenueEvents()
         pruneSelectionIfNeededAfterFilterChange()
         persistDiscoverCoreSnapshot()
     }
@@ -2524,6 +2525,7 @@ extension MapViewModel {
             venueEventRows = fetchedVenueEventRows
             venueEventIDsByKey = idsByKey
             await mergeVenueSliceIntoEvents(venueRows: fetchedVenueEventRows)
+            await reconcileGameRemindersForLoadedVenueEvents()
             pruneSelectionIfNeededAfterFilterChange()
             persistDiscoverCoreSnapshot()
             preloadDiscoverCalendarDotsForVisibleVenues()

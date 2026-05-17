@@ -1,7 +1,7 @@
 import SwiftUI
-import UIKit
+import CoreLocation
 
-/// Unified Account-tab “Profile & Identity” card: stadium hero, stats, fan level, and favorite teams in one surface.
+/// Unified Account-tab “Profile & Identity” card: compact profile, reputation, and favorite teams in one surface.
 struct ProfileIdentityCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var showProfileScreen: Bool
@@ -38,6 +38,46 @@ struct ProfileIdentityCard: View {
         viewModel.currentUserFanXP
     }
 
+    private var reputation: FanReputationProfile {
+        FanReputationEngine.evaluate(
+            FanReputationSignals(
+                fanXP: fanXP,
+                favoriteTeams: selectedTeams,
+                localContext: localContext,
+                savedVenueCount: savedVenueCount,
+                venuePlanCount: viewModel.followingTabGoingItems.count,
+                pickupHostedCount: viewModel.myPickupGamesForSettings.count + viewModel.myRemovedPickupGamesForSettings.count,
+                pickupJoinedCount: viewModel.myPickupGameJoinRequestCards.count,
+                organizerStats: currentOrganizerStats,
+                commentCount: locallyLoadedCommentCount,
+                reactionCount: locallyLoadedReactionCount
+            ),
+            shouldLog: false
+        )
+    }
+
+    private var currentOrganizerStats: PickupCreatorPublicRatingStats? {
+        guard let uid = viewModel.currentUserAuthId else { return nil }
+        return viewModel.pickupCreatorTrustStats(for: uid)
+    }
+
+    private var localContext: String? {
+        FanReputationEngine.localContext(
+            latitude: viewModel.currentUserLocation?.latitude,
+            longitude: viewModel.currentUserLocation?.longitude
+        )
+    }
+
+    private var locallyLoadedCommentCount: Int {
+        viewModel.venueEventComments.values.reduce(0) { $0 + $1.count }
+    }
+
+    private var locallyLoadedReactionCount: Int {
+        viewModel.venueEventVibeCounts.values.reduce(0) { total, counts in
+            total + counts.values.reduce(0, +)
+        }
+    }
+
     private var savedVenueCount: Int {
         max(viewModel.favoriteVenueIDs.count, viewModel.followingTabSavedVenues.count)
     }
@@ -52,27 +92,28 @@ struct ProfileIdentityCard: View {
 
             integratedDivider
 
-            fanLevelSection
-                .padding(.horizontal, 14)
-                .padding(.top, 12)
+            fanReputationSection
+                .padding(.horizontal, 13)
+                .padding(.top, 8)
 
             integratedDivider
-                .padding(.top, 12)
+                .padding(.top, 10)
 
             favoriteTeamsSection
-                .padding(.horizontal, 14)
-                .padding(.top, 12)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 13)
+                .padding(.top, 8)
+                .padding(.bottom, 11)
         }
         .background(cardShellBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
         .overlay(cardBorder)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.5 : 0.16), radius: 20, y: 10)
-        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.06), radius: 28, y: 4)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 12, y: 7)
+        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.025 : 0.018), radius: 10, y: 2)
         .onAppear {
 #if DEBUG
-            print("[ProfileIdentityCardDebug] layout=stadium_identity_card")
+            print("[ProfileIdentityCardDebug] layout=compact_social_identity_card")
 #endif
+            FanReputationEngine.log(reputation)
         }
         .sheet(isPresented: $showProfileScreen) {
             UserProfileScreen(viewModel: viewModel) {
@@ -102,11 +143,11 @@ struct ProfileIdentityCard: View {
 
     private var cardShellBackground: some View {
         ZStack {
-            Color(red: 0.03, green: 0.04, blue: 0.06)
+            Color(red: 0.035, green: 0.045, blue: 0.052)
             LinearGradient(
                 colors: [
-                    Color(red: 0.05, green: 0.08, blue: 0.06).opacity(0.55),
-                    Color(red: 0.03, green: 0.04, blue: 0.07)
+                    Color.white.opacity(0.04),
+                    Color(red: 0.025, green: 0.032, blue: 0.045).opacity(0.88)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -115,18 +156,18 @@ struct ProfileIdentityCard: View {
     }
 
     private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        RoundedRectangle(cornerRadius: 19, style: .continuous)
             .strokeBorder(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(colorScheme == .dark ? 0.22 : 0.38),
-                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.28 : 0.18),
-                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.12)
+                        Color.white.opacity(colorScheme == .dark ? 0.08 : 0.16),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.04),
+                        Color.white.opacity(colorScheme == .dark ? 0.035 : 0.08)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
-                lineWidth: 1
+                lineWidth: 0.75
             )
     }
 
@@ -136,7 +177,7 @@ struct ProfileIdentityCard: View {
                 LinearGradient(
                     colors: [
                         Color.white.opacity(0.02),
-                        Color.white.opacity(colorScheme == .dark ? 0.1 : 0.14),
+                        Color.white.opacity(colorScheme == .dark ? 0.055 : 0.09),
                         Color.white.opacity(0.02)
                     ],
                     startPoint: .leading,
@@ -174,205 +215,138 @@ struct ProfileIdentityCard: View {
         .padding(.top, 12)
     }
 
-    // MARK: - Hero (stadium header + stats)
+    // MARK: - Hero (compact header + stats)
 
     private var heroBlock: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerRow
-                .padding(.horizontal, 14)
-                .padding(.top, 16)
-                .padding(.bottom, 10)
-
-            quickActionRow
-                .padding(.horizontal, 14)
-                .padding(.bottom, 12)
+                .padding(.horizontal, 13)
+                .padding(.top, 13)
+                .padding(.bottom, 9)
 
             statsRow
-                .padding(.horizontal, 8)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 13)
+                .padding(.bottom, 10)
         }
-        .background { StadiumIdentityBackground() }
+        .background { MatteIdentityHeaderBackground() }
         .clipShape(
             UnevenRoundedRectangle(
-                topLeadingRadius: 22,
+                topLeadingRadius: 19,
                 bottomLeadingRadius: 0,
                 bottomTrailingRadius: 0,
-                topTrailingRadius: 22,
+                topTrailingRadius: 19,
                 style: .continuous
             )
         )
     }
 
     private var headerRow: some View {
-        Button {
-            showProfileScreen = true
-        } label: {
-            HStack(alignment: .center, spacing: 14) {
-                avatarStack
+        HStack(alignment: .center, spacing: 12) {
+            Button {
+                showProfileScreen = true
+            } label: {
+                HStack(alignment: .center, spacing: 12) {
+                    avatarStack
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("FanGeo profile")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen)
-                        .shadow(color: FGColor.accentGreen.opacity(0.35), radius: 4)
-
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(displayName)
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
-                            .shadow(color: .black.opacity(0.45), radius: 6, y: 2)
 
-                        fanLevelBadge
+                        Text(handleLine)
+                            .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.54))
+                            .lineLimit(1)
+
+                        Text(reputation.title.uppercased())
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.accentGreen.opacity(0.78))
+                            .tracking(0.6)
+                            .lineLimit(1)
                     }
-
-                    Text(handleLine)
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.82))
-                        .lineLimit(1)
                 }
-
-                Spacer(minLength: 72)
+                .contentShape(Rectangle())
             }
-            .padding(.trailing, 4)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit profile")
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 6) {
+                compactHeaderButton(title: "Edit", systemImage: "pencil") {
+                    showProfileScreen = true
+                }
+                compactHeaderButton(
+                    title: savedVenueCount == 1 ? "1 saved" : "\(savedVenueCount) saved",
+                    systemImage: "bookmark"
+                ) {
+                    showProfileScreen = true
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Edit profile")
     }
 
     private var avatarStack: some View {
         ZStack(alignment: .bottomTrailing) {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            FGColor.accentGreen.opacity(0.42),
-                            FGColor.accentGreen.opacity(0.08),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: 8,
-                        endRadius: 44
-                    )
-                )
-                .frame(width: 78, height: 78)
-                .blur(radius: 2)
-                .offset(y: -2)
-
             UserAvatarView(
                 avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
                 avatarURL: viewModel.currentUserAvatarURL,
                 avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
                 displayName: displayName,
                 email: viewModel.currentUserEmail,
-                size: 64,
+                size: 52,
                 fallbackStyle: .darkCardTranslucent,
                 imagePlaceholderTint: .white
             )
             .overlay {
                 Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.65),
-                                FGColor.accentGreen.opacity(0.45)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 2.5
-                    )
+                    .strokeBorder(Color.white.opacity(0.28), lineWidth: 1.2)
             }
-            .shadow(color: FGColor.accentGreen.opacity(0.38), radius: 12, y: 2)
-            .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+            .shadow(color: .black.opacity(0.28), radius: 7, y: 4)
 
             Circle()
-                .fill(FGColor.accentGreen)
-                .frame(width: 22, height: 22)
+                .fill(Color(red: 0.04, green: 0.055, blue: 0.06))
+                .frame(width: 18, height: 18)
                 .overlay {
                     Image(systemName: "pencil")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Color(red: 0.04, green: 0.06, blue: 0.08))
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(FGColor.accentGreen.opacity(0.9))
                 }
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
                 }
                 .offset(x: 2, y: 2)
         }
     }
 
-    private var fanLevelBadge: some View {
-        Text("Level \(fanXP.level)")
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundStyle(FGColor.accentGreen)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(FGColor.accentGreen.opacity(0.16))
-            }
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(FGColor.accentGreen.opacity(0.65), lineWidth: 1)
-            }
-            .shadow(color: FGColor.accentGreen.opacity(0.35), radius: 6)
-    }
-
-    private var quickActionRow: some View {
-        HStack(spacing: 10) {
-            quickActionPill(title: "User account", systemImage: "person.crop.circle") {
-                showProfileScreen = true
-            }
-
-            quickActionPill(
-                title: savedVenueCount == 1 ? "1 saved venue" : "\(savedVenueCount) saved venues",
-                systemImage: "mappin.circle.fill",
-                accentDot: savedVenueCount > 0
-            ) {
-                showProfileScreen = true
-            }
-        }
-    }
-
-    private func quickActionPill(
+    private func compactHeaderButton(
         title: String,
         systemImage: String,
-        accentDot: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.56))
                 Text(title)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.88))
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.66))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                if accentDot {
-                    Circle()
-                        .fill(FGColor.accentYellow)
-                        .frame(width: 6, height: 6)
-                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background {
-                Capsule(style: .continuous)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.1 : 0.14))
-                    .background {
-                        Capsule(style: .continuous)
-                            .fill(Color.black.opacity(0.28))
+                Capsule()
+                    .fill(Color.white.opacity(0.04))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.045), lineWidth: 0.75)
                     }
-            }
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
@@ -382,31 +356,31 @@ struct ProfileIdentityCard: View {
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statCell(value: gamesWatchedValue, label: "Games Watched", icon: "sportscourt.fill")
+            statCell(value: gamesWatchedValue, label: "Plans")
             statDivider
-            statCell(value: venuesVisitedValue, label: "Venues Visited", icon: "mappin.and.ellipse")
+            statCell(value: venuesVisitedValue, label: "Venues")
             statDivider
-            statCell(value: pickupGamesValue, label: "Pickup Games", icon: "figure.run")
+            statCell(value: teamsValue, label: "Teams")
             statDivider
-            statCell(value: friendsValue, label: "Friends", icon: "person.2.fill")
+            statCell(value: friendsValue, label: "Friends")
         }
-        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 6)
         .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.black.opacity(colorScheme == .dark ? 0.32 : 0.22))
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.white.opacity(0.026))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.035), lineWidth: 0.75)
                 }
         }
-        .padding(.horizontal, 6)
     }
 
     private var statDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.12))
+            .fill(Color.white.opacity(0.04))
             .frame(width: 1)
-            .padding(.vertical, 8)
+            .padding(.vertical, 3)
     }
 
     private var gamesWatchedValue: String {
@@ -419,8 +393,8 @@ struct ProfileIdentityCard: View {
         return n > 0 ? "\(n)" : "—"
     }
 
-    private var pickupGamesValue: String {
-        let n = viewModel.myPickupGameJoinRequestCards.count + viewModel.myPickupGamesForSettings.count
+    private var teamsValue: String {
+        let n = selectedTeams.count
         return n > 0 ? "\(n)" : "—"
     }
 
@@ -429,114 +403,74 @@ struct ProfileIdentityCard: View {
         return n > 0 ? "\(n)" : "—"
     }
 
-    private func statCell(value: String, label: String, icon: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(FGColor.accentGreen)
-                .shadow(color: FGColor.accentGreen.opacity(0.45), radius: 4)
-
+    private func statCell(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.72))
 
             Text(label)
                 .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(.white.opacity(0.38))
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
+                .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Fan level
+    // MARK: - Reputation
 
-    private var fanLevelSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Fan Level")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+    private var fanReputationSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reputation")
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.58))
+                .textCase(.uppercase)
+                .tracking(0.7)
 
-            HStack(spacing: 14) {
-                fanLevelRing
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Level \(fanXP.level) · \(fanXP.title)")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen)
-
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule(style: .continuous)
-                                .fill(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.18))
-                            Capsule(style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            FGColor.accentGreen,
-                                            FGColor.accentGreen.opacity(0.72)
-                                        ],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(width: max(0, geo.size.width * fanXP.progressFraction))
-                                .shadow(color: FGColor.accentGreen.opacity(0.5), radius: 4)
-                        }
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "person.2.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(FGColor.accentGreen.opacity(0.82))
+                    .frame(width: 24, height: 24)
+                    .background {
+                        Circle()
+                    .fill(Color.white.opacity(0.034))
                     }
-                    .frame(height: 6)
 
-                    Text(fanXP.xpRangeLine)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen.opacity(0.9))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(reputation.title.uppercased())
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.88))
+                        .tracking(0.6)
 
-                    Text(fanXP.progressLine)
+                    Text(reputation.subtitle)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.66))
+
+                    Text(reputation.contextLine)
                         .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(colorScheme == .dark ? 0.45 : 0.55))
+                        .foregroundStyle(.white.opacity(0.5))
+
+                    Text(reputation.whyEarnedText)
+                        .font(.system(size: 10, weight: .regular, design: .rounded))
+                        .foregroundStyle(.white.opacity(colorScheme == .dark ? 0.36 : 0.48))
+                        .lineLimit(1)
                 }
+
+                Spacer(minLength: 0)
             }
-        }
-    }
-
-    private var fanLevelRing: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.12), lineWidth: 4)
-                .frame(width: 56, height: 56)
-
-            Circle()
-                .trim(from: 0, to: fanXP.progressFraction)
-                .stroke(
-                    LinearGradient(
-                        colors: [FGColor.accentGreen, FGColor.accentGreen.opacity(0.65)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-                .frame(width: 56, height: 56)
-                .shadow(color: FGColor.accentGreen.opacity(0.45), radius: 6)
-
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            FGColor.accentGreen.opacity(0.22),
-                            Color(red: 0.06, green: 0.08, blue: 0.1)
-                        ],
-                        center: .center,
-                        startRadius: 4,
-                        endRadius: 28
-                    )
-                )
-                .frame(width: 46, height: 46)
-
-            Image(systemName: "soccerball")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(.white)
-                .shadow(color: FGColor.accentGreen.opacity(0.35), radius: 4)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 9)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.026 : 0.048))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.038), lineWidth: 0.75)
+                    }
+            }
         }
     }
 
@@ -544,21 +478,34 @@ struct ProfileIdentityCard: View {
 
     private var favoriteTeamsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center) {
-                Text("Favorite Teams")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.9))
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Favorite Teams")
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.60))
+                        .textCase(.uppercase)
+                        .tracking(0.7)
+                    Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Part of your profile")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.34))
+                }
                 Spacer(minLength: 0)
                 Button {
                     showFavoriteTeamsPicker = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "pencil")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                         Text(selectedTeams.isEmpty ? "Add Teams" : "Edit Teams")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(FGColor.accentGreen)
+                    .foregroundStyle(.white.opacity(0.58))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background {
+                        Capsule()
+                            .fill(Color.white.opacity(0.045))
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -577,7 +524,7 @@ struct ProfileIdentityCard: View {
         let visible = Array(selectedTeams.prefix(3))
         let overflow = selectedTeams.count - visible.count
 
-        return HStack(alignment: .top, spacing: 12) {
+        return HStack(alignment: .top, spacing: 8) {
             ForEach(visible) { team in
                 teamBadgeColumn(team: team)
             }
@@ -589,86 +536,105 @@ struct ProfileIdentityCard: View {
     }
 
     private func teamBadgeColumn(team: FavoriteTeam) -> some View {
-        VStack(spacing: 5) {
-            ZStack(alignment: .bottomTrailing) {
-                FavoriteTeamLogoBadge(team: team, diameter: 44)
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(FGColor.accentGreen)
-                    .background(Circle().fill(Color(red: 0.04, green: 0.05, blue: 0.07)))
-                    .offset(x: 3, y: 3)
+        HStack(spacing: 7) {
+            PremiumTeamIdentityOrb(team: team, diameter: 28)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(team.name)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.75)
+
+                Text(team.sport.chipTitle)
+                    .font(.system(size: 8, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .lineLimit(1)
             }
-
-            Text(team.name)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.88))
-                .lineLimit(1)
-                .frame(maxWidth: 72)
-
-            Text(team.sport.chipTitle)
-                .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.48))
-                .lineLimit(1)
         }
-        .frame(width: 72)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: 112, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.032 : 0.055))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    team.badgeColor.opacity(0.12),
+                                    Color.white.opacity(0.055)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
+        }
     }
 
     private func moreTeamsBadge(count: Int) -> some View {
-        VStack(spacing: 5) {
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        FGColor.accentGreen.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])
-                    )
-                    .frame(width: 44, height: 44)
-                Text("+\(count)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.accentGreen)
-            }
-
-            Text("More")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.88))
-            Text("Teams")
-                .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.48))
+        HStack(spacing: 6) {
+            Text("+\(count)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.accentGreen.opacity(0.84))
+            Text("more")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.5))
         }
-        .frame(width: 72)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 7)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.032 : 0.055))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+                }
+        }
     }
 
     private var addTeamsRow: some View {
         Button {
             showFavoriteTeamsPicker = true
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(FGColor.accentGreen.opacity(0.16))
-                        .frame(width: 32, height: 32)
+                        .fill(Color.white.opacity(0.045))
+                        .frame(width: 24, height: 24)
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(FGColor.accentGreen)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.56))
                 }
 
-                Text(selectedTeams.isEmpty ? "Add your teams" : "Manage your teams")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.82))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(selectedTeams.isEmpty ? "Add your teams" : "Manage your teams")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.64))
+                    Text("Reputation, venues, and fan matches")
+                        .font(.system(size: 9, weight: .regular, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.3))
+                        .lineLimit(1)
+                }
 
                 Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.35))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white.opacity(0.24))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 7)
             .background {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.1))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.025 : 0.045))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
                     }
             }
         }
@@ -677,248 +643,95 @@ struct ProfileIdentityCard: View {
     }
 }
 
-// MARK: - Stadium hero background (real image + generated fallback)
-
-private struct StadiumIdentityBackground: View {
-    static let assetName = "StadiumHeroBackground"
-
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var useGeneratedFallback = false
-    @State private var shimmerOffset: CGFloat = -0.4
+private struct PremiumTeamIdentityOrb: View {
+    let team: FavoriteTeam
+    let diameter: CGFloat
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                heroPhotographyLayer(in: geo.size)
-                cinematicOverlayStack
-                logoWatermark
-                shimmerSweep(in: geo.size)
-            }
-        }
-        .clipped()
-        .onAppear {
-            // Asset must be stadium photography only — never a UI mockup/screenshot.
-            useGeneratedFallback = UIImage(named: Self.assetName) == nil
-#if DEBUG
-            if useGeneratedFallback {
-                print("[ProfileIdentityCardDebug] stadiumHero=generated_fallback")
-            } else {
-                print("[ProfileIdentityCardDebug] stadiumHero=real_image asset=\(Self.assetName)")
-            }
-            print("[ProfileIdentityCardDebug] logoWatermark=FanGeoLogoWhite_overlay")
-#endif
-            withAnimation(.linear(duration: 5.2).repeatForever(autoreverses: false)) {
-                shimmerOffset = 1.35
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func heroPhotographyLayer(in size: CGSize) -> some View {
-        if useGeneratedFallback {
-            GeneratedStadiumFallbackBackground()
-        } else {
-            Image(Self.assetName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: size.width, height: size.height)
-                .blur(radius: 0.8)
-                .clipped()
-        }
-    }
-
-    private var cinematicOverlayStack: some View {
         ZStack {
-            Color.black.opacity(colorScheme == .dark ? 0.34 : 0.28)
+            Circle()
+                .fill(team.badgeColor.opacity(0.18))
+                .frame(width: diameter, height: diameter)
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.11), lineWidth: 1)
+                }
 
-            RadialGradient(
-                colors: [
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.16),
-                    Color.clear
-                ],
-                center: .init(x: 0.5, y: 0.88),
-                startRadius: 12,
-                endRadius: 220
-            )
-
-            RadialGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.96, blue: 0.84).opacity(0.2),
-                    Color.clear
-                ],
-                center: .init(x: 0.5, y: 0.0),
-                startRadius: 4,
-                endRadius: 180
-            )
-
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(colorScheme == .dark ? 0.55 : 0.42),
-                    Color.black.opacity(0.12),
-                    Color.black.opacity(colorScheme == .dark ? 0.68 : 0.52)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            RadialGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(colorScheme == .dark ? 0.62 : 0.45)
-                ],
-                center: .center,
-                startRadius: 40,
-                endRadius: 320
-            )
+            Text(team.initials)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.86))
         }
-    }
-
-    private var logoWatermark: some View {
-        VStack {
-            HStack {
-                Spacer(minLength: 0)
-                Image("FanGeoLogoWhite")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 170)
-                    .opacity(colorScheme == .dark ? 0.18 : 0.16)
-                    .blur(radius: 0.25)
-                    .shadow(color: .white.opacity(0.12), radius: 14)
-                    .shadow(color: FGColor.accentGreen.opacity(0.08), radius: 18)
-                    .padding(.top, 8)
-                    .padding(.trailing, 6)
-                    .allowsHitTesting(false)
-            }
-            Spacer(minLength: 0)
-        }
-    }
-
-    private func shimmerSweep(in size: CGSize) -> some View {
-        LinearGradient(
-            colors: [
-                Color.clear,
-                Color.white.opacity(colorScheme == .dark ? 0.07 : 0.05),
-                Color.clear
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
-        .frame(width: size.width * 0.42)
-        .rotationEffect(.degrees(14))
-        .offset(x: shimmerOffset * size.width)
-        .blendMode(.screen)
-        .allowsHitTesting(false)
+        .frame(width: diameter, height: diameter)
+        .accessibilityLabel("\(team.name), \(team.sport.chipTitle)")
     }
 }
 
-/// Procedural stadium art used when ``StadiumIdentityBackground`` asset is unavailable.
-private struct GeneratedStadiumFallbackBackground: View {
+// MARK: - Matte profile background
+
+private struct MatteIdentityHeaderBackground: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                matteBase
+                subtleTexture(in: geo.size)
+            }
+        }
+        .clipped()
+    }
+
+    private var matteBase: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(red: 0.04, green: 0.07, blue: 0.12),
-                    Color(red: 0.03, green: 0.10, blue: 0.08),
-                    Color(red: 0.02, green: 0.05, blue: 0.07)
+                    Color(red: 0.045, green: 0.055, blue: 0.06),
+                    Color(red: 0.025, green: 0.032, blue: 0.045)
                 ],
-                startPoint: .top,
-                endPoint: .bottom
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-
-            fieldLayer
 
             RadialGradient(
                 colors: [
-                    Color(red: 1.0, green: 0.95, blue: 0.82).opacity(colorScheme == .dark ? 0.38 : 0.28),
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.08),
                     Color.clear
                 ],
-                center: .init(x: 0.18, y: 0.0),
-                startRadius: 4,
-                endRadius: 140
+                center: .init(x: 0.18, y: 0.02),
+                startRadius: 2,
+                endRadius: 145
             )
+
             RadialGradient(
                 colors: [
-                    Color(red: 1.0, green: 0.95, blue: 0.82).opacity(colorScheme == .dark ? 0.32 : 0.22),
+                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.08),
                     Color.clear
                 ],
                 center: .init(x: 0.82, y: 0.0),
-                startRadius: 4,
-                endRadius: 135
+                startRadius: 1,
+                endRadius: 110
             )
-
-            RadialGradient(
-                colors: [
-                    Color(red: 0.12, green: 0.62, blue: 0.34).opacity(0.5),
-                    Color.clear
-                ],
-                center: .init(x: 0.5, y: 0.92),
-                startRadius: 8,
-                endRadius: 200
-            )
-
-            stadiumCrowdSilhouette
         }
     }
 
-    private var fieldLayer: some View {
-        GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.10, green: 0.42, blue: 0.24).opacity(0.85),
-                                Color(red: 0.06, green: 0.32, blue: 0.18).opacity(0.9)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .frame(width: w * 0.92, height: h * 0.42)
-                    .offset(y: h * 0.08)
-
-                fieldMarkings(in: CGSize(width: w * 0.92, height: h * 0.42))
-                    .offset(y: h * 0.08)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-    }
-
-    private func fieldMarkings(in size: CGSize) -> some View {
+    private func subtleTexture(in size: CGSize) -> some View {
         Canvas { context, canvasSize in
-            let lineColor = Color.white.opacity(0.22)
-            var path = Path()
-            let midX = canvasSize.width / 2
-            let midY = canvasSize.height / 2
-
-            path.addRect(CGRect(x: 8, y: 8, width: canvasSize.width - 16, height: canvasSize.height - 16))
-            path.move(to: CGPoint(x: midX, y: 8))
-            path.addLine(to: CGPoint(x: midX, y: canvasSize.height - 8))
-            path.addEllipse(in: CGRect(x: midX - 28, y: midY - 28, width: 56, height: 56))
-            path.addRect(CGRect(x: midX - 70, y: 8, width: 140, height: 52))
-            path.addRect(CGRect(x: midX - 70, y: canvasSize.height - 60, width: 140, height: 52))
-
-            context.stroke(path, with: .color(lineColor), lineWidth: 1.2)
+            let light = Color.white.opacity(colorScheme == .dark ? 0.018 : 0.014)
+            let glow = FGColor.accentGreen.opacity(0.035)
+            for index in 0..<10 {
+                let x = CGFloat(index * 43).truncatingRemainder(dividingBy: max(canvasSize.width, 1))
+                let y = CGFloat((index * 19) + 9).truncatingRemainder(dividingBy: max(canvasSize.height, 1))
+                context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 1, height: 1)), with: .color(light))
+            }
+            for index in 0..<3 {
+                let y = CGFloat(index) * 18 + 10
+                var path = Path()
+                path.move(to: CGPoint(x: 0, y: y))
+                path.addLine(to: CGPoint(x: canvasSize.width, y: y + 12))
+                context.stroke(path, with: .color(glow), lineWidth: 0.7)
+            }
         }
         .frame(width: size.width, height: size.height)
-    }
-
-    private var stadiumCrowdSilhouette: some View {
-        VStack {
-            HStack(spacing: 3) {
-                ForEach(0..<24, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(Color.white.opacity(0.04 + Double(i % 3) * 0.02))
-                        .frame(width: 8, height: CGFloat(10 + (i % 5) * 3))
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 6)
-            Spacer()
-        }
+        .allowsHitTesting(false)
     }
 }

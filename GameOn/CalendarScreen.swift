@@ -1,23 +1,8 @@
 import SwiftUI
 
-private enum LiveRefreshSource {
-    case auto
-    case manual
-
-    var displayText: String {
-        switch self {
-        case .auto:
-            return "Auto"
-        case .manual:
-            return "Manual refresh"
-        }
-    }
-}
-
 struct CalendarScreen: View {
     /// Minimum height for the scrollable events region so empty vs populated lists do not resize the header stack.
     private static let eventsListMinHeight: CGFloat = 320
-    private static let liveAutoRefreshIntervalNanoseconds: UInt64 = 15_000_000_000
 
     @ObservedObject var viewModel: MapViewModel
     @Binding var selectedTab: MainTabView.AppTab
@@ -28,14 +13,8 @@ struct CalendarScreen: View {
     @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
     @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
-    @State private var liveIndicatorPulse = false
-    @State private var liveRefreshRotation: Double = 0
-    @State private var liveAutoRefreshTask: Task<Void, Never>?
-    @State private var isLiveAutoRefreshActive = false
-    @State private var liveAutoRefreshPulse = false
-    @State private var liveLastRefreshDate = Date()
-    @State private var liveRefreshSource: LiveRefreshSource = .auto
-    @FocusState private var isGameSearchFocused: Bool
+
+    private let calendarVisibleGameFilters: [CalendarTabGameFilter] = [.venueGames, .pickupGames]
 
     private var displayedEvents: [SportsEvent] {
         viewModel.calendarScreenDisplayedEvents(
@@ -43,24 +22,6 @@ struct CalendarScreen: View {
             searchQuery: gameSearchText,
             filter: viewModel.calendarTabGameFilter
         )
-    }
-
-    private var displayedLiveMatches: [LiveMatch] {
-        viewModel.calendarLiveMatchesDisplayed(
-            searchQuery: gameSearchText
-        )
-    }
-
-    private var isLiveMode: Bool {
-        viewModel.calendarTabGameFilter == .live
-    }
-
-    private var shouldAutoRefreshLiveMatches: Bool {
-        selectedTab == .calendar && isLiveMode && scenePhase == .active
-    }
-
-    private var liveRefreshStatusText: String {
-        "Updated \(formattedLiveRefreshDate(liveLastRefreshDate)) • \(liveRefreshSource.displayText)"
     }
 
     private var calendarTabSelectedDayIsTodayOrFuture: Bool {
@@ -139,35 +100,17 @@ struct CalendarScreen: View {
 
                 gameTypeFilter
 
-                if !isLiveMode {
-                    dateButton
-                }
+                dateButton
 
                 gameSearchBar
 
-                if !isLiveMode {
-                    sportFilterBar
-                }
+                sportFilterBar
 
                 eventsHeader
 
                 eventsList
             }
             .padding(.top, 18)
-        }
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                dismissCalendarSearchKeyboard()
-            }
-        )
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    dismissCalendarSearchKeyboard()
-                }
-            }
         }
         .sheet(isPresented: $showDatePicker) {
             LiquidGlassCalendarPicker(
@@ -232,7 +175,7 @@ struct CalendarScreen: View {
                 viewModel.calendarTabSelectedDate,
                 reason: "calendar_tab_filter_change"
             )
-            updateLiveAutoRefreshForCurrentState(immediatelyRefresh: true)
+            normalizeCalendarGameFilter()
         }
         .sheet(isPresented: $showCalendarSportMoreSheet) {
             DiscoverSportFilterMoreSheet(selectedSport: viewModel.selectedSport) { sport in
@@ -243,20 +186,13 @@ struct CalendarScreen: View {
             }
         }
         .onAppear {
-            updateLiveAutoRefreshForCurrentState(immediatelyRefresh: true)
+            normalizeCalendarGameFilter()
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
             }
         }
-        .onDisappear {
-            stopLiveAutoRefresh()
-        }
-        .onChange(of: selectedTab) { _, _ in
-            updateLiveAutoRefreshForCurrentState(immediatelyRefresh: true)
-        }
         .onChange(of: scenePhase) { _, phase in
-            updateLiveAutoRefreshForCurrentState(immediatelyRefresh: phase == .active)
             guard phase == .active else { return }
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
@@ -292,7 +228,7 @@ struct CalendarScreen: View {
         let track = RoundedRectangle(cornerRadius: 11, style: .continuous)
             .fill(Color.primary.opacity(calendarColorScheme == .dark ? 0.14 : 0.07))
         return HStack(spacing: 0) {
-            ForEach(CalendarTabGameFilter.allCases) { filter in
+            ForEach(calendarVisibleGameFilters) { filter in
                 Button {
                     viewModel.calendarTabGameFilter = filter
                 } label: {
@@ -326,9 +262,9 @@ struct CalendarScreen: View {
 
     private func calendarFilterSelectedColor(_ filter: CalendarTabGameFilter) -> Color {
         switch filter {
-        case .live:
-            return .red
         case .venueGames, .pickupGames:
+            return Color.accentColor
+        case .live:
             return Color.accentColor
         }
     }
@@ -367,32 +303,14 @@ struct CalendarScreen: View {
 
     private var eventsHeader: some View {
         HStack {
-            VStack(alignment: .leading, spacing: isLiveMode ? 3 : 0) {
-                HStack(spacing: 8) {
-                    Text(eventsHeaderTitle)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
-
-                    if isLiveMode && isLiveAutoRefreshActive {
-                        liveAutoRefreshIndicator
-                    }
-                }
-
-                if isLiveMode {
-                    Text(liveRefreshStatusText)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                        .accessibilityLabel(liveRefreshStatusText)
-                }
-            }
+            Text(eventsHeaderTitle)
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundStyle(.primary)
 
             Spacer()
 
-            if isLiveMode {
-                liveRefreshButton
-            } else if viewModel.isLoadingEvents {
+            if viewModel.isLoadingEvents {
                 ProgressView()
             } else if viewModel.isRefreshingDiscoverEvents && !displayedEvents.isEmpty {
                 ProgressView()
@@ -402,153 +320,20 @@ struct CalendarScreen: View {
         .padding(.horizontal)
     }
 
-    private var liveRefreshButton: some View {
-        Button {
-            manuallyRefreshLiveMatches()
-        } label: {
-            Image(systemName: "arrow.clockwise")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(viewModel.isLoadingLiveMatches ? .secondary : Color.red)
-                .rotationEffect(.degrees(liveRefreshRotation))
-                .frame(width: 34, height: 34)
-                .background(
-                    Circle()
-                        .fill(Color(.secondarySystemGroupedBackground))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color.red.opacity(calendarColorScheme == .dark ? 0.32 : 0.18), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isLoadingLiveMatches)
-        .accessibilityLabel("Refresh live games")
-        .onAppear {
-            guard viewModel.isLoadingLiveMatches else { return }
-            startLiveRefreshSpin()
-        }
-        .onChange(of: viewModel.isLoadingLiveMatches) { _, isLoading in
-            if isLoading {
-                startLiveRefreshSpin()
-            } else {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    liveRefreshRotation = 0
-                }
-            }
-        }
-    }
-
-    private var liveAutoRefreshIndicator: some View {
-        Circle()
-            .fill(Color.green)
-            .frame(width: 8, height: 8)
-            .scaleEffect(viewModel.isLoadingLiveMatches && liveAutoRefreshPulse ? 1.45 : 1.0)
-            .opacity(viewModel.isLoadingLiveMatches && liveAutoRefreshPulse ? 0.55 : 1.0)
-            .shadow(color: Color.green.opacity(viewModel.isLoadingLiveMatches ? 0.28 : 0), radius: 4)
-            .animation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true), value: liveAutoRefreshPulse)
-            .animation(.easeOut(duration: 0.18), value: viewModel.isLoadingLiveMatches)
-            .accessibilityLabel("Live games updating")
-    }
-
-    private func startLiveRefreshSpin() {
-        withAnimation(.linear(duration: 0.85).repeatForever(autoreverses: false)) {
-            liveRefreshRotation += 360
-        }
-    }
-
-    private func manuallyRefreshLiveMatches() {
-        recordLiveRefresh(source: .manual)
-        viewModel.refreshLiveMatchesForCalendar(forceRefresh: true)
-        updateLiveAutoRefreshForCurrentState(immediatelyRefresh: false)
-    }
-
-    private func updateLiveAutoRefreshForCurrentState(immediatelyRefresh: Bool) {
-        if shouldAutoRefreshLiveMatches {
-            startLiveAutoRefresh(immediatelyRefresh: immediatelyRefresh)
-        } else {
-            stopLiveAutoRefresh()
-        }
-    }
-
-    private func startLiveAutoRefresh(immediatelyRefresh: Bool) {
-        if liveAutoRefreshTask != nil {
-            if immediatelyRefresh {
-                return
-            }
-            stopLiveAutoRefresh()
-        }
-
-        isLiveAutoRefreshActive = true
-        liveAutoRefreshPulse = true
-
-        if immediatelyRefresh {
-            logLiveAutoRefresh(reason: "immediate")
-            recordLiveRefresh(source: .auto)
-            viewModel.refreshLiveMatchesForCalendar(forceRefresh: true)
-        }
-
-        liveAutoRefreshTask = Task { @MainActor in
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(nanoseconds: Self.liveAutoRefreshIntervalNanoseconds)
-                } catch {
-                    break
-                }
-
-                guard !Task.isCancelled else { break }
-                guard shouldAutoRefreshLiveMatches else {
-                    stopLiveAutoRefresh()
-                    break
-                }
-                guard !viewModel.isLoadingLiveMatches else { continue }
-
-                logLiveAutoRefresh(reason: "scheduled")
-                recordLiveRefresh(source: .auto)
-                viewModel.refreshLiveMatchesForCalendar(forceRefresh: true)
-            }
-        }
-    }
-
-    private func stopLiveAutoRefresh() {
-        liveAutoRefreshTask?.cancel()
-        liveAutoRefreshTask = nil
-        isLiveAutoRefreshActive = false
-        liveAutoRefreshPulse = false
-    }
-
     private var eventsHeaderTitle: String {
-        if isLiveMode { return "Live Games" }
         switch viewModel.calendarTabGameFilter {
         case .venueGames:
             return "Venue Games"
         case .pickupGames:
             return "Pickup Games"
         case .live:
-            return "Live Games"
+            return "Venue Games"
         }
     }
 
-    private func recordLiveRefresh(source: LiveRefreshSource) {
-        let timestamp = Date()
-        liveLastRefreshDate = timestamp
-        liveRefreshSource = source
-#if DEBUG
-        print("[LiveRefreshTimestamp] \(timestamp.formatted(date: .omitted, time: .standard))")
-        print("[LiveRefreshSource] \(source.displayText)")
-#endif
-    }
-
-    private func logLiveAutoRefresh(reason: String) {
-#if DEBUG
-        print("[LiveAutoRefresh] reason=\(reason)")
-#endif
-    }
-
-    private func formattedLiveRefreshDate(_ date: Date) -> String {
-        if Date().timeIntervalSince(date) < 60 {
-            return "just now"
-        }
-        return date.formatted(date: .omitted, time: .shortened)
+    private func normalizeCalendarGameFilter() {
+        guard viewModel.calendarTabGameFilter == .live else { return }
+        viewModel.calendarTabGameFilter = .venueGames
     }
 
     private var gameSearchBar: some View {
@@ -558,11 +343,6 @@ struct CalendarScreen: View {
 
             TextField("Search game, team, league, or sport", text: $gameSearchText)
                 .textInputAutocapitalization(.words)
-                .submitLabel(.done)
-                .focused($isGameSearchFocused)
-                .onSubmit {
-                    dismissCalendarSearchKeyboard()
-                }
 
             if !gameSearchText.isEmpty {
                 Button {
@@ -579,16 +359,9 @@ struct CalendarScreen: View {
         .padding(.horizontal)
     }
 
-    private func dismissCalendarSearchKeyboard() {
-        guard isGameSearchFocused else { return }
-        isGameSearchFocused = false
-    }
-
     private var eventsList: some View {
         Group {
-            if isLiveMode {
-                liveMatchesList
-            } else if !calendarTabSelectedDayIsTodayOrFuture {
+            if !calendarTabSelectedDayIsTodayOrFuture {
                 Text("Past dates are not available. Choose today or a future day.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -622,30 +395,6 @@ struct CalendarScreen: View {
                     .padding(.horizontal)
                     .padding(.bottom, 100)
                 }
-            }
-        }
-    }
-
-    private var liveMatchesList: some View {
-        ScrollView {
-            Group {
-                if displayedLiveMatches.isEmpty {
-                    calendarEmptyState("No live games right now")
-                } else {
-                    VStack(spacing: 12) {
-                        ForEach(displayedLiveMatches) { match in
-                            liveMatchCard(match)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .top)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.bottom, 100)
-        }
-        .refreshable {
-            await MainActor.run {
-                manuallyRefreshLiveMatches()
             }
         }
     }
@@ -879,144 +628,6 @@ struct CalendarScreen: View {
             if isVenueEvent, let b = venueBar {
                 VenueGameBusinessEmail.logDebug(bar: b)
             }
-        }
-    }
-
-    private func liveMatchCard(_ match: LiveMatch) -> some View {
-        let sportType = match.liveSportVisualType
-        let accent = liveSportAccent(sportType)
-        let artworkSportKey = sportType.artworkSportKey
-        return HStack(alignment: .center, spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(accent.opacity(calendarColorScheme == .dark ? 0.24 : 0.13))
-                SportArtworkIconView(sport: artworkSportKey, diameter: 48)
-            }
-            .frame(width: 58, height: 58)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    liveStatusPill(match, accent: accent)
-
-                    Text(sportType.displayLabel)
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(accent)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
-                        )
-
-                    Text(match.league)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    liveTeamScoreLine(team: match.awayTeam, score: match.scoreAway)
-                    liveTeamScoreLine(team: match.homeTeam, score: match.scoreHome)
-                }
-
-                Text("\(sportType.displayLabel) • Started \(match.startTime.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(accent.opacity(calendarColorScheme == .dark ? 0.46 : 0.28), lineWidth: 1)
-        )
-        .onAppear {
-#if DEBUG
-            let visual = SportFilterCatalog.resolve(artworkSportKey)
-            print("[LiveSportIconMapping] id=\(match.id) normalized=\(match.sport) artworkKey=\(artworkSportKey) systemImage=\(visual.systemImage) label=\(sportType.displayLabel)")
-            print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
-#endif
-        }
-    }
-
-    private func liveStatusPill(_ match: LiveMatch, accent: Color) -> some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 5, height: 5)
-                .scaleEffect(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 1.45 : 0.9)
-                .opacity(match.matchStatus.isHappeningNow && liveIndicatorPulse ? 0.45 : 1.0)
-                .animation(
-                    match.matchStatus.isHappeningNow
-                        ? .easeInOut(duration: 0.95).repeatForever(autoreverses: true)
-                        : .default,
-                    value: liveIndicatorPulse
-                )
-
-            Text(liveStatusText(match))
-                .font(.caption2.weight(.bold))
-        }
-        .foregroundStyle(Color.white)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(Capsule(style: .continuous).fill(accent))
-        .accessibilityLabel(liveStatusText(match))
-        .onAppear {
-            guard match.matchStatus.isHappeningNow else { return }
-            liveIndicatorPulse = true
-        }
-    }
-
-    private func liveSportAccent(_ sportType: LiveSportVisualType) -> Color {
-        switch sportType {
-        case .soccer:
-            return Color(red: 0.05, green: 0.55, blue: 0.28)
-        case .basketball:
-            return Color(red: 0.95, green: 0.45, blue: 0.12)
-        case .hockey:
-            return Color(red: 0.12, green: 0.45, blue: 0.92)
-        case .baseball:
-            return Color(red: 0.85, green: 0.15, blue: 0.18)
-        case .nfl:
-            return Color(red: 0.45, green: 0.32, blue: 0.18)
-        case .tennis:
-            return Color(red: 0.78, green: 0.68, blue: 0.06)
-        case .golf:
-            return Color(red: 0.18, green: 0.62, blue: 0.32)
-        case .formula1:
-            return Color(red: 0.92, green: 0.2, blue: 0.22)
-        case .other:
-            return Color.accentColor
-        }
-    }
-
-    private func liveStatusText(_ match: LiveMatch) -> String {
-        if match.matchStatus == .halfTime {
-            return "HT"
-        }
-        if let minute = match.minute {
-            return "LIVE \(minute)'"
-        }
-        return "LIVE"
-    }
-
-    private func liveTeamScoreLine(team: String, score: Int) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(team)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-
-            Spacer(minLength: 8)
-
-            Text("\(score)")
-                .font(.title3.monospacedDigit().weight(.bold))
-                .foregroundStyle(.primary)
         }
     }
 

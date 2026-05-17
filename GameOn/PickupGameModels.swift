@@ -120,6 +120,7 @@ struct PickupGameInsert: Encodable {
     /// Always `game_start_at` + 12h; sent on every write so `remove_after_at` never lags behind an edited start time.
     let remove_after_at: String
 
+    /// Write payload with canonical 12h pickup retention and forced Discover visibility.
     func withCanonicalPickupCleanupDelay() -> PickupGameInsert {
         let remove = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: game_start_at)
         return PickupGameInsert(
@@ -135,7 +136,7 @@ struct PickupGameInsert: Encodable {
             state: state,
             latitude: latitude,
             longitude: longitude,
-            is_visible: is_visible,
+            is_visible: true,
             players_needed: players_needed,
             play_environment: play_environment,
             participant_preference: participant_preference,
@@ -170,7 +171,7 @@ struct PickupGameFullUpdate: Encodable {
     /// Always `game_start_at` + 12h; sent on full edit so expiration tracks the edited start instant.
     let remove_after_at: String
 
-    /// Write payload with canonical 12h pickup retention (ignores any legacy `cleanup_delay_hours` from decoded rows).
+    /// Write payload with canonical 12h pickup retention and forced Discover visibility.
     func withCanonicalPickupCleanupDelay() -> PickupGameFullUpdate {
         let remove = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: game_start_at)
         return PickupGameFullUpdate(
@@ -184,7 +185,7 @@ struct PickupGameFullUpdate: Encodable {
             state: state,
             latitude: latitude,
             longitude: longitude,
-            is_visible: is_visible,
+            is_visible: true,
             players_needed: players_needed,
             play_environment: play_environment,
             participant_preference: participant_preference,

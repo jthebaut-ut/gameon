@@ -5,7 +5,7 @@ enum BusinessFanGateCopy {
     static let actionTapBlocked =
         "Business accounts can't use this fan feature. Please sign in with a regular FanGeo account."
     static let followingLockedBody =
-        "Business accounts can't use fan-only features. Sign in with a regular FanGeo account to save venues, join games, and manage games to play."
+        "Business accounts can't use fan-only Going features. Sign in with a regular FanGeo account to save venues, join games, and manage games to play."
     static let pickupFanOnly = "Pickup games are for regular FanGeo accounts."
     static let commentsViewOnlyForBusiness =
         "Business accounts can read fan updates here. Posting updates is available on a regular FanGeo account."

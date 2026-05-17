@@ -1,6 +1,6 @@
 import Foundation
 
-/// Fan Level thresholds and titles (mirrors SQL `fan_xp_*` helpers in migration).
+/// Legacy internal XP thresholds kept for persisted-account compatibility.
 enum FanXPLevelCalculator {
     private static let anchors: [(level: Int, xp: Int)] = [
         (1, 0), (2, 100), (3, 250), (4, 450), (5, 700),
@@ -95,15 +95,15 @@ struct FanXPState: Equatable {
 
     var progressLine: String {
         if let remaining = xpToNextLevel {
-            return "\(remaining.formatted()) XP to Level \(level + 1)"
+            return "\(remaining.formatted()) internal reputation signals to next tier"
         }
-        return "Max level reached · \(totalXP.formatted()) XP"
+        return "Highest internal tier reached"
     }
 
     var xpRangeLine: String {
         if let next = FanXPLevelCalculator.xpForNextLevel(level) {
-            return "\(xpIntoCurrentLevel.formatted()) / \((next - FanXPLevelCalculator.xpForCurrentLevel(level)).formatted()) XP"
+            return "\(xpIntoCurrentLevel.formatted()) / \((next - FanXPLevelCalculator.xpForCurrentLevel(level)).formatted()) internal signals"
         }
-        return "\(totalXP.formatted()) XP total"
+        return "\(totalXP.formatted()) internal signals"
     }
 }

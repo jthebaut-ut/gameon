@@ -184,6 +184,7 @@ final class MapViewModel: ObservableObject {
     @Published var mapStatusText: String?
     @Published var socialActionToastText: String?
     @Published var socialActionToastIsError: Bool = false
+    @Published var notificationPermissionMessage: String = ""
     @Published var currentUserFanXP: FanXPState = .rookie
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
     /// When set, ``PublicProfileOverlayWindowPresenter`` shows ``PublicUserProfilePreviewView`` in a top-level UIWindow (not a SwiftUI sheet).

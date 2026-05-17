@@ -1,6 +1,40 @@
 import SwiftUI
 import UIKit
 
+enum FanGeoAppearancePreference: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    static let appStorageKey = "fangeo.appearance.preference"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .system: return "System Default"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    var userInterfaceStyle: UIUserInterfaceStyle {
+        switch self {
+        case .system: return .unspecified
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
 enum FGColor {
     static func background(_ scheme: ColorScheme) -> Color {
         scheme == .dark
@@ -516,6 +550,69 @@ struct FGStatusPill: View {
             .padding(.vertical, FGSpacing.xs + 2)
             .background(kind.tint.opacity(0.12))
             .clipShape(Capsule(style: .continuous))
+    }
+}
+
+struct FGWrappingLayout: Layout {
+    var horizontalSpacing: CGFloat = FGSpacing.xs
+    var verticalSpacing: CGFloat = FGSpacing.xs
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let layout = measuredLayout(sizes: sizes, maxWidth: proposal.width)
+        return CGSize(width: proposal.width ?? layout.width, height: layout.height)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let layout = measuredLayout(sizes: sizes, maxWidth: bounds.width)
+
+        for index in subviews.indices {
+            subviews[index].place(
+                at: CGPoint(
+                    x: bounds.minX + layout.origins[index].x,
+                    y: bounds.minY + layout.origins[index].y
+                ),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(sizes[index])
+            )
+        }
+    }
+
+    private func measuredLayout(sizes: [CGSize], maxWidth proposedMaxWidth: CGFloat?) -> (origins: [CGPoint], width: CGFloat, height: CGFloat) {
+        let maxWidth = max(proposedMaxWidth ?? .greatestFiniteMagnitude, 1)
+        var origins: [CGPoint] = []
+        origins.reserveCapacity(sizes.count)
+
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var measuredWidth: CGFloat = 0
+
+        for size in sizes {
+            let nextX = x == 0 ? size.width : x + horizontalSpacing + size.width
+            if nextX > maxWidth, x > 0 {
+                y += rowHeight + verticalSpacing
+                x = 0
+                rowHeight = 0
+            }
+
+            origins.append(CGPoint(x: x, y: y))
+            measuredWidth = max(measuredWidth, x + size.width)
+            rowHeight = max(rowHeight, size.height)
+            x += (x == 0 ? 0 : horizontalSpacing) + size.width
+        }
+
+        return (origins, measuredWidth, y + rowHeight)
     }
 }
 
