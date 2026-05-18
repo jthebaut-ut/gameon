@@ -560,8 +560,12 @@ struct DiscoverScreen: View {
             if newMode == .pickupGames {
                 viewModel.onDiscoverMapBecamePickupGamesFromUserToggle()
             } else if newMode == .venues, oldMode == .pickupGames {
-                viewModel.loadGamesFromSupabase()
-                Task { await viewModel.loadVenuesFromSupabase() }
+                let requestID = viewModel.beginDiscoverDateChange(to: viewModel.selectedDate)
+                #if DEBUG
+                print("[DiscoverNarrowRefreshDebug] modeSwitchPickupToVenuesUsingSelectedDayRefresh=true")
+                print("[DiscoverNarrowRefreshDebug] skippedBroadLoadGamesOnModeSwitch=true")
+                #endif
+                viewModel.scheduleDiscoverSelectedDayRefresh(requestID: requestID)
             }
             let anchorMonth = showDatePicker ? discoverCalendarDisplayedMonth : viewModel.selectedDate
             Task { @MainActor in
