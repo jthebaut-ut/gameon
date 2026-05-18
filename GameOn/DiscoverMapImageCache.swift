@@ -6,6 +6,7 @@ actor DiscoverMapImageCache {
     static let shared = DiscoverMapImageCache()
 
     private var storage: [URL: UIImage] = [:]
+    private var inFlight: [URL: Task<UIImage?, Never>] = [:]
     private var order: [URL] = []
     private let maxEntries = 72
 
@@ -15,32 +16,54 @@ actor DiscoverMapImageCache {
 
     func image(for url: URL) async -> UIImage? {
         if let existing = storage[url] {
+            #if DEBUG
+            print("[ImageCacheDebug] cacheHit url=\(url.absoluteString)")
+            #endif
             return existing
         }
+
+        if let existingTask = inFlight[url] {
+            #if DEBUG
+            print("[ImageCacheDebug] inFlightJoin url=\(url.absoluteString)")
+            #endif
+            return await existingTask.value
+        }
+
         #if DEBUG
-        print("[DiscoverPerf] image cache MISS fetch \(url.lastPathComponent)")
+        print("[ImageCacheDebug] fetchStart url=\(url.absoluteString)")
         let t0 = Date()
         #endif
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let decoded: UIImage? = await Task.detached(priority: .userInitiated) {
-                UIImage(data: data)
-            }.value
-            guard let ui = decoded else { return nil }
-            if storage.count >= maxEntries, let old = order.first {
-                storage.removeValue(forKey: old)
-                order.removeFirst()
+
+        let task = Task<UIImage?, Never> {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                return await Task.detached(priority: .userInitiated) {
+                    UIImage(data: data)
+                }.value
+            } catch {
+                return nil
             }
-            storage[url] = ui
-            order.append(url)
-            #if DEBUG
-            let ms = Int(Date().timeIntervalSince(t0) * 1000)
-            print("[DiscoverPerf] image decode+store ms=\(ms) \(url.lastPathComponent)")
-            #endif
-            return ui
-        } catch {
+        }
+
+        inFlight[url] = task
+        let decoded = await task.value
+        inFlight.removeValue(forKey: url)
+
+        #if DEBUG
+        let ms = Int(Date().timeIntervalSince(t0) * 1000)
+        print("[ImageCacheDebug] fetchFinished url=\(url.absoluteString) ms=\(ms)")
+        #endif
+
+        guard let ui = decoded else {
             return nil
         }
+        if storage.count >= maxEntries, let old = order.first {
+            storage.removeValue(forKey: old)
+            order.removeFirst()
+        }
+        storage[url] = ui
+        order.append(url)
+        return ui
     }
 
     func prefetch(urls: [URL]) async {
