@@ -40,7 +40,11 @@ struct VenueEventCommentsSheet: View {
                         .padding(.top, 8)
                         .padding(.bottom, 4)
                 }
-                VenueEventCommentsView(viewModel: viewModel, venueEventID: venueEventID)
+                VenueEventCommentsView(
+                    viewModel: viewModel,
+                    fanUpdatesStore: viewModel.fanUpdatesStore,
+                    venueEventID: venueEventID
+                )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(sheetRootBackground)

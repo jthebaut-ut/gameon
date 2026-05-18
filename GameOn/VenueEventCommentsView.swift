@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VenueEventCommentsView: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
 
@@ -121,7 +122,7 @@ struct VenueEventCommentsView: View {
     }
     
     var comments: [VenueEventCommentRow] {
-        (viewModel.venueEventComments[venueEventID] ?? [])
+        (fanUpdatesStore.venueEventComments[venueEventID] ?? [])
             .sorted {
                 let a = $0.created_at ?? ""
                 let b = $1.created_at ?? ""
@@ -239,6 +240,9 @@ struct VenueEventCommentsView: View {
             withAnimation(.easeOut(duration: 0.22)) {
                 commentsChromeVisible = true
             }
+            #if DEBUG
+            print("[FanUpdatesStoreMigrationDebug] VenueEventCommentsViewReadsStore=true")
+            #endif
         }
         .onChange(of: showUnreportConfirmation) { _, open in
             if !open { unreportTargetCommentID = nil }
@@ -515,7 +519,7 @@ struct VenueEventCommentsView: View {
         hasUnseenNewComments = false
         isNearCommentsBottom = true
 
-        let hadCache = !(viewModel.venueEventComments[venueEventID] ?? []).isEmpty
+        let hadCache = !(fanUpdatesStore.venueEventComments[venueEventID] ?? []).isEmpty
         isLoadingInitialComments = !hadCache
 
         FanUpdatesTapPerf.logCommentLoadStarted(eventId: venueEventID)
@@ -742,7 +746,7 @@ struct VenueEventCommentsView: View {
                            !comment.isPendingSend,
                            !comment.isFailedSend,
                            viewModel.isAuthenticatedForSocialFeatures {
-                            let alreadyReported = viewModel.hasCurrentUserReportedComment(commentID: commentID)
+                            let alreadyReported = fanUpdatesStore.commentIDsReportedByCurrentUser.contains(commentID)
                             Button {
                                 if alreadyReported {
                                     unreportTargetCommentID = commentID

@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct VenueEventVibeMeterView: View {
-    @ObservedObject var viewModel: MapViewModel
+    let viewModel: MapViewModel
+    @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
     let venueEventID: UUID
     @State private var chipsVisible = false
 
@@ -27,7 +28,7 @@ struct VenueEventVibeMeterView: View {
                             .progressiveAppear(isVisible: chipsVisible, yOffset: 4)
                     }
                 }
-                .animation(.easeOut(duration: 0.2), value: viewModel.venueEventVibeCounts[venueEventID]?.values.reduce(0, +) ?? 0)
+                .animation(.easeOut(duration: 0.2), value: fanUpdatesStore.venueEventVibeCounts[venueEventID]?.values.reduce(0, +) ?? 0)
             }
         }
         .task {
@@ -39,8 +40,8 @@ struct VenueEventVibeMeterView: View {
     }
 
     private func vibeButton(type: String, label: String) -> some View {
-        let count = viewModel.venueEventVibeCounts[venueEventID]?[type] ?? 0
-        let isSelected = viewModel.myVenueEventVibes[venueEventID]?.contains(type) ?? false
+        let count = fanUpdatesStore.venueEventVibeCounts[venueEventID]?[type] ?? 0
+        let isSelected = fanUpdatesStore.myVenueEventVibes[venueEventID]?.contains(type) ?? false
 
         return Button {
             Task {
