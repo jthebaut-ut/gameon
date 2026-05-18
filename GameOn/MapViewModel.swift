@@ -143,36 +143,108 @@ final class MapViewModel: ObservableObject {
     @Published var ownerVenuePetFriendly: Bool = false
     @Published var venueEventInterestIDs: Set<UUID> = []
     @Published var venueEventInterestCounts: [UUID: Int] = [:]
-    @Published var venueEventComments: [UUID: [VenueEventCommentRow]] = [:]
+    let fanUpdatesStore = FanUpdatesRealtimeStore()
+    private var fanUpdatesStoreCancellable: AnyCancellable?
+
+    var venueEventComments: [UUID: [VenueEventCommentRow]] {
+        get { fanUpdatesStore.venueEventComments }
+        set { fanUpdatesStore.venueEventComments = newValue }
+    }
     /// Comment ids the signed-in fan has already reported (from successful submit, duplicate constraint, or REST sync).
-    @Published var commentIDsReportedByCurrentUser: Set<UUID> = []
+    var commentIDsReportedByCurrentUser: Set<UUID> {
+        get { fanUpdatesStore.commentIDsReportedByCurrentUser }
+        set { fanUpdatesStore.commentIDsReportedByCurrentUser = newValue }
+    }
     /// Per-thread realtime listener tasks for venue-event fan updates.
-    var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] = [:]
-    var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
-    var venueEventCommentsRealtimeListenerTokens: [UUID: UUID] = [:]
-    var venueEventCommentsRealtimeReadyIDs: Set<UUID> = []
-    var venueEventCommentsRealtimeSubscribeStartedAt: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentRealtimeReceivedServerIDs: Set<UUID> = []
-    var venueEventCommentInsertSuccessTimesByServerID: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentRealtimeFallbackTasks: [UUID: Task<Void, Never>] = [:]
-    var fanChatReceiverRefreshBurstTasks: [UUID: Task<Void, Never>] = [:]
-    var fanChatAutoRefreshInFlightIDs: Set<UUID> = []
-    var venueEventCommentDebugSendTapDatesByLocalID: [UUID: Date] = [:]
-    var venueEventCommentDebugSendTapTimesByServerID: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentDebugReceivedDatesByServerID: [UUID: Date] = [:]
-    var venueEventCommentDebugFallbackCommentIDs: Set<UUID> = []
-    var venueEventCommentLatencySendTimesByLocalID: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentLatencySendTimesByServerID: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentLatencyLastSendTimeByEventID: [UUID: CFAbsoluteTime] = [:]
-    var venueEventCommentLatencyInsertStartTimesByLocalID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.venueEventCommentsRealtimeTasks }
+        set { fanUpdatesStore.venueEventCommentsRealtimeTasks = newValue }
+    }
+    var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] {
+        get { fanUpdatesStore.venueEventCommentsRealtimeChannels }
+        set { fanUpdatesStore.venueEventCommentsRealtimeChannels = newValue }
+    }
+    var venueEventCommentsRealtimeListenerTokens: [UUID: UUID] {
+        get { fanUpdatesStore.venueEventCommentsRealtimeListenerTokens }
+        set { fanUpdatesStore.venueEventCommentsRealtimeListenerTokens = newValue }
+    }
+    var venueEventCommentsRealtimeReadyIDs: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentsRealtimeReadyIDs }
+        set { fanUpdatesStore.venueEventCommentsRealtimeReadyIDs = newValue }
+    }
+    var venueEventCommentsRealtimeSubscribeStartedAt: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentsRealtimeSubscribeStartedAt }
+        set { fanUpdatesStore.venueEventCommentsRealtimeSubscribeStartedAt = newValue }
+    }
+    var venueEventCommentRealtimeReceivedServerIDs: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentRealtimeReceivedServerIDs }
+        set { fanUpdatesStore.venueEventCommentRealtimeReceivedServerIDs = newValue }
+    }
+    var venueEventCommentInsertSuccessTimesByServerID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentInsertSuccessTimesByServerID }
+        set { fanUpdatesStore.venueEventCommentInsertSuccessTimesByServerID = newValue }
+    }
+    var venueEventCommentRealtimeFallbackTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.venueEventCommentRealtimeFallbackTasks }
+        set { fanUpdatesStore.venueEventCommentRealtimeFallbackTasks = newValue }
+    }
+    var fanChatReceiverRefreshBurstTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.fanChatReceiverRefreshBurstTasks }
+        set { fanUpdatesStore.fanChatReceiverRefreshBurstTasks = newValue }
+    }
+    var fanChatAutoRefreshInFlightIDs: Set<UUID> {
+        get { fanUpdatesStore.fanChatAutoRefreshInFlightIDs }
+        set { fanUpdatesStore.fanChatAutoRefreshInFlightIDs = newValue }
+    }
+    var venueEventCommentDebugSendTapDatesByLocalID: [UUID: Date] {
+        get { fanUpdatesStore.venueEventCommentDebugSendTapDatesByLocalID }
+        set { fanUpdatesStore.venueEventCommentDebugSendTapDatesByLocalID = newValue }
+    }
+    var venueEventCommentDebugSendTapTimesByServerID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentDebugSendTapTimesByServerID }
+        set { fanUpdatesStore.venueEventCommentDebugSendTapTimesByServerID = newValue }
+    }
+    var venueEventCommentDebugReceivedDatesByServerID: [UUID: Date] {
+        get { fanUpdatesStore.venueEventCommentDebugReceivedDatesByServerID }
+        set { fanUpdatesStore.venueEventCommentDebugReceivedDatesByServerID = newValue }
+    }
+    var venueEventCommentDebugFallbackCommentIDs: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentDebugFallbackCommentIDs }
+        set { fanUpdatesStore.venueEventCommentDebugFallbackCommentIDs = newValue }
+    }
+    var venueEventCommentLatencySendTimesByLocalID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentLatencySendTimesByLocalID }
+        set { fanUpdatesStore.venueEventCommentLatencySendTimesByLocalID = newValue }
+    }
+    var venueEventCommentLatencySendTimesByServerID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentLatencySendTimesByServerID }
+        set { fanUpdatesStore.venueEventCommentLatencySendTimesByServerID = newValue }
+    }
+    var venueEventCommentLatencyLastSendTimeByEventID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentLatencyLastSendTimeByEventID }
+        set { fanUpdatesStore.venueEventCommentLatencyLastSendTimeByEventID = newValue }
+    }
+    var venueEventCommentLatencyInsertStartTimesByLocalID: [UUID: CFAbsoluteTime] {
+        get { fanUpdatesStore.venueEventCommentLatencyInsertStartTimesByLocalID }
+        set { fanUpdatesStore.venueEventCommentLatencyInsertStartTimesByLocalID = newValue }
+    }
     @Published var venueEventIDsByKey: [String: UUID] = [:]
     @Published var visibleLatitudeDelta: Double = 0.55
     @Published var userProfilesByEmail: [String: UserProfileRow] = [:]
     @Published var reportedComments: [CommentReportRow] = []
     @Published var reportedCommentDisplays: [ReportedCommentDisplay] = []
-    @Published var venueEventVibeCounts: [UUID: [String: Int]] = [:]
-    @Published var myVenueEventVibes: [UUID: Set<String>] = [:]
-    var venueEventVibeWriteInFlightKeys: Set<String> = []
+    var venueEventVibeCounts: [UUID: [String: Int]] {
+        get { fanUpdatesStore.venueEventVibeCounts }
+        set { fanUpdatesStore.venueEventVibeCounts = newValue }
+    }
+    var myVenueEventVibes: [UUID: Set<String>] {
+        get { fanUpdatesStore.myVenueEventVibes }
+        set { fanUpdatesStore.myVenueEventVibes = newValue }
+    }
+    var venueEventVibeWriteInFlightKeys: Set<String> {
+        get { fanUpdatesStore.venueEventVibeWriteInFlightKeys }
+        set { fanUpdatesStore.venueEventVibeWriteInFlightKeys = newValue }
+    }
     
     let notificationSettingsStore = NotificationSettingsStore()
 
@@ -338,19 +410,55 @@ final class MapViewModel: ObservableObject {
     @Published var followingMapNavigationMessage: String?
     /// Per-venue-event interest avatars (Discover game rows). See ``loadGoingUserProfiles(for:)``.
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
-    @Published var venueEventCommentPreviewCounts: [UUID: Int] = [:]
-    @Published var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] = [:]
-    var fanChatAppLevelRealtimeTask: Task<Void, Never>?
-    var fanChatAppLevelRealtimeChannel: RealtimeChannelV2?
-    var fanChatAppLevelRealtimeTrackedEventIDs: [UUID] = []
-    var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>?
-    var fanChatAppLevelSeenCommentIDs: Set<UUID> = []
-    var fanChatCommentCountReconcileTasks: [UUID: Task<Void, Never>] = [:]
-    var fanUpdatesCommentPrefetchTasks: [UUID: Task<Void, Never>] = [:]
-    var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    var venueEventCommentPreviewCounts: [UUID: Int] {
+        get { fanUpdatesStore.venueEventCommentPreviewCounts }
+        set { fanUpdatesStore.venueEventCommentPreviewCounts = newValue }
+    }
+    var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] {
+        get { fanUpdatesStore.venueEventCommentPreviews }
+        set { fanUpdatesStore.venueEventCommentPreviews = newValue }
+    }
+    var fanChatAppLevelRealtimeTask: Task<Void, Never>? {
+        get { fanUpdatesStore.fanChatAppLevelRealtimeTask }
+        set { fanUpdatesStore.fanChatAppLevelRealtimeTask = newValue }
+    }
+    var fanChatAppLevelRealtimeChannel: RealtimeChannelV2? {
+        get { fanUpdatesStore.fanChatAppLevelRealtimeChannel }
+        set { fanUpdatesStore.fanChatAppLevelRealtimeChannel = newValue }
+    }
+    var fanChatAppLevelRealtimeTrackedEventIDs: [UUID] {
+        get { fanUpdatesStore.fanChatAppLevelRealtimeTrackedEventIDs }
+        set { fanUpdatesStore.fanChatAppLevelRealtimeTrackedEventIDs = newValue }
+    }
+    var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>? {
+        get { fanUpdatesStore.fanChatAppLevelRealtimeResubscribeTask }
+        set { fanUpdatesStore.fanChatAppLevelRealtimeResubscribeTask = newValue }
+    }
+    var fanChatAppLevelSeenCommentIDs: Set<UUID> {
+        get { fanUpdatesStore.fanChatAppLevelSeenCommentIDs }
+        set { fanUpdatesStore.fanChatAppLevelSeenCommentIDs = newValue }
+    }
+    var fanChatCommentCountReconcileTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.fanChatCommentCountReconcileTasks }
+        set { fanUpdatesStore.fanChatCommentCountReconcileTasks = newValue }
+    }
+    var fanUpdatesCommentPrefetchTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.fanUpdatesCommentPrefetchTasks }
+        set { fanUpdatesStore.fanUpdatesCommentPrefetchTasks = newValue }
+    }
+    var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.fanUpdatesVibePrefetchTasks }
+        set { fanUpdatesStore.fanUpdatesVibePrefetchTasks = newValue }
+    }
     var fanUpdatesGoingProfilePrefetchTasks: [UUID: Task<Void, Never>] = [:]
-    var fanUpdatesCommentPrefetchedAt: [UUID: Date] = [:]
-    var fanUpdatesVibePrefetchedAt: [UUID: Date] = [:]
+    var fanUpdatesCommentPrefetchedAt: [UUID: Date] {
+        get { fanUpdatesStore.fanUpdatesCommentPrefetchedAt }
+        set { fanUpdatesStore.fanUpdatesCommentPrefetchedAt = newValue }
+    }
+    var fanUpdatesVibePrefetchedAt: [UUID: Date] {
+        get { fanUpdatesStore.fanUpdatesVibePrefetchedAt }
+        set { fanUpdatesStore.fanUpdatesVibePrefetchedAt = newValue }
+    }
     var fanUpdatesGoingProfilePrefetchedAt: [UUID: Date] = [:]
 
     // MARK: - Pickup games (fan-created; see ``MapViewModel+PickupGames``)
@@ -468,6 +576,14 @@ final class MapViewModel: ObservableObject {
     let venueExperiences = SampleData.venueExperiences
     let reminderMinuteOptions = [15, 30, 60, 120, 180, 1440]
     let repeatMinuteOptions = [15, 30, 60, 120]
+
+    init() {
+        fanUpdatesStoreCancellable = fanUpdatesStore.objectWillChange.sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.objectWillChange.send()
+            }
+        }
+    }
 
     // MARK: - Discover / map venue_events fetch cache (region + sport + date window)
 
