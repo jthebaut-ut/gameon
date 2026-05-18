@@ -344,6 +344,8 @@ final class MapViewModel: ObservableObject {
         }
     }
     @Published private(set) var discoverMapRenderSnapshot = DiscoverMapRenderSnapshot.empty
+    /// Monotonic fence for detached Discover map snapshot builds; only the latest request may publish.
+    var discoverMapRenderSnapshotGeneration: UInt64 = 0
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
     /// Discover calendar overlay: venue ``venue_events`` days from RPC (green dots; Venues map mode only).
