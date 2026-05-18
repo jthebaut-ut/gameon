@@ -124,6 +124,7 @@ struct SettingsScreen: View {
     @State private var venueOwnerDashboardSheet: VenueOwnerDashboardSheetRoute?
     @State private var showVenueRegisterMode = false
     @State private var showProfileScreen = false
+    @State private var showProfileSettingsSheet = false
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
     @State private var showNotificationsSheet = false
@@ -233,91 +234,8 @@ struct SettingsScreen: View {
                         .listRowBackground(Color.clear)
                     }
 
-                    if viewModel.isLoggedIn {
-                        settingsSectionCard {
-                            Button { showProfileScreen = true } label: {
-                                settingsRow(
-                                    title: "Edit Profile",
-                                    subtitle: "Name, photo, sports, teams, and reputation.",
-                                    systemImage: "person.crop.circle"
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            settingsRowDivider()
-
-                            Button { showResetPasswordSheet = true } label: {
-                                settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
-                            }
-                            .buttonStyle(.plain)
-
-                            settingsRowDivider()
-
-                            Button {
-                                Task { await viewModel.logoutUser() }
-                            } label: {
-                                settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
-                            }
-                            .buttonStyle(.plain)
-
-                            settingsDestructiveSpacer()
-
-                            Button { showDeleteAccountSheet = true } label: {
-                                settingsRow(
-                                    title: "Delete account",
-                                    subtitle: "Permanent removal.",
-                                    systemImage: "trash",
-                                    tint: FGColor.dangerRed.opacity(0.82)
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            if viewModel.isVenueOwnerLoggedIn {
-                                settingsRowDivider()
-
-                                Button { showDeleteVenueOwnerSheet = true } label: {
-                                    settingsRow(
-                                        title: "Delete venue access",
-                                        subtitle: "Remove owner profile, listings, and uploads.",
-                                        systemImage: "trash",
-                                        tint: FGColor.dangerRed.opacity(0.82)
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
-                        .listRowBackground(Color.clear)
-                    } else if viewModel.isVenueOwnerLoggedIn {
-                        settingsSectionCard {
-                            Button {
-                                performBusinessAccountLogout()
-                            } label: {
-                                settingsRow(
-                                    title: "Logout",
-                                    subtitle: "Sign out of this business account.",
-                                    systemImage: "rectangle.portrait.and.arrow.right"
-                                )
-                            }
-                            .buttonStyle(.plain)
-
-                            settingsDestructiveSpacer()
-
-                            Button { showDeleteVenueOwnerSheet = true } label: {
-                                settingsRow(
-                                    title: "Delete account",
-                                    subtitle: "Permanent owner profile removal.",
-                                    systemImage: "trash",
-                                    tint: FGColor.dangerRed.opacity(0.82)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 12, trailing: 16))
-                        .listRowBackground(Color.clear)
-                    }
                 } header: {
-                    settingsSectionHeader("Account")
+                    settingsSectionHeader("Profile")
                 }
 
                 if viewModel.isVenueOwnerLoggedIn || !viewModel.isLoggedIn {
@@ -532,116 +450,6 @@ struct SettingsScreen: View {
                     }
                 }
 
-                Section {
-                    settingsSectionCard {
-                        if canShowLiveActivitySharing {
-                            liveActivitySharingRow()
-
-                            settingsRowDivider()
-                        }
-
-                        Button { showNotificationsSheet = true } label: {
-                            settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
-                        }
-                        .buttonStyle(.plain)
-
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
-                    .listRowBackground(Color.clear)
-                } header: {
-                    settingsSectionHeader("Privacy & Social")
-                }
-
-                Section {
-                    settingsSectionCard {
-                        Button { showTimeZoneSheet = true } label: {
-                            settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRowDivider()
-
-                        Button { showAppearanceSheet = true } label: {
-                            settingsRow(
-                                title: "Appearance",
-                                subtitle: appearancePreference.displayName,
-                                systemImage: "circle.lefthalf.filled"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
-                    .listRowBackground(Color.clear)
-                } header: {
-                    settingsSectionHeader("Experience")
-                }
-
-                Section {
-                    settingsSectionCard {
-                        Button { showContactSupportSheet = true } label: {
-                            settingsRow(
-                                title: "Support",
-                                subtitle: "Message the FanGeo team.",
-                                systemImage: "envelope.open.fill"
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRowDivider()
-
-                        Button { legalDocumentSheet = .communityGuidelines } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.communityGuidelines.title,
-                                subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRowDivider()
-
-                        Button { legalDocumentSheet = .safetyReporting } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.safetyReporting.title,
-                                subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
-                    .listRowBackground(Color.clear)
-                } header: {
-                    settingsSectionHeader("Help & Safety")
-                }
-
-                Section {
-                    settingsSectionCard {
-                        Button { legalDocumentSheet = .privacyPolicy } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.privacyPolicy.title,
-                                subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        settingsRowDivider()
-
-                        Button { legalDocumentSheet = .termsOfService } label: {
-                            settingsRow(
-                                title: SettingsLegalDocumentKind.termsOfService.title,
-                                subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
-                                systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
-                    .listRowBackground(Color.clear)
-                } header: {
-                    settingsSectionHeader("Legal")
-                }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear
@@ -653,6 +461,17 @@ struct SettingsScreen: View {
             .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showProfileSettingsSheet = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                    .accessibilityLabel("Open settings")
+                }
+            }
             .onAppear {
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
                 Task {
@@ -755,6 +574,12 @@ struct SettingsScreen: View {
                     showAddLocationSheet = false
                 }
             }
+        }
+        .sheet(isPresented: $showProfileSettingsSheet) {
+            profileSettingsSheet
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showNotificationsSheet) {
             NavigationStack {
@@ -949,6 +774,299 @@ struct SettingsScreen: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var profileSettingsSheet: some View {
+        NavigationStack {
+            List {
+                profileSettingsPrivacySection()
+                profileSettingsNotificationsSection()
+                profileSettingsExperienceSection()
+                profileSettingsHelpSafetySection()
+                profileSettingsLegalSection()
+                profileSettingsAccountSection()
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+            }
+            .listStyle(.plain)
+            .listSectionSpacing(10)
+            .scrollContentBackground(.hidden)
+            .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showProfileSettingsSheet = false }
+                }
+            }
+        }
+        .tint(FGColor.accentGreen)
+    }
+
+    private func presentFromProfileSettings(_ present: @escaping () -> Void) {
+        showProfileSettingsSheet = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            present()
+        }
+    }
+
+    @ViewBuilder
+    private func profileSettingsAccountSection() -> some View {
+        if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
+            Section {
+                settingsSectionCard {
+                    if viewModel.isLoggedIn {
+                        Button {
+                            presentFromProfileSettings { showResetPasswordSheet = true }
+                        } label: {
+                            settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
+                        }
+                        .buttonStyle(.plain)
+
+                        if viewModel.isVenueOwnerLoggedIn {
+                            settingsRowDivider()
+
+                            Button {
+                                presentFromProfileSettings { showVenueOwnerPasswordResetSheet = true }
+                            } label: {
+                                settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } else if viewModel.isVenueOwnerLoggedIn {
+                        Button {
+                            presentFromProfileSettings { showVenueOwnerPasswordResetSheet = true }
+                        } label: {
+                            settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key")
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Color.clear)
+
+                settingsSectionCard {
+                    if viewModel.isLoggedIn {
+                        Button {
+                            showProfileSettingsSheet = false
+                            Task { await viewModel.logoutUser() }
+                        } label: {
+                            settingsRow(title: "Logout", subtitle: nil, systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button {
+                            presentFromProfileSettings { showDeleteAccountSheet = true }
+                        } label: {
+                            settingsRow(
+                                title: "Delete account",
+                                subtitle: "Permanent removal.",
+                                systemImage: "trash",
+                                tint: FGColor.dangerRed.opacity(0.82)
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        if viewModel.isVenueOwnerLoggedIn {
+                            settingsRowDivider()
+
+                            Button {
+                                presentFromProfileSettings { showDeleteVenueOwnerSheet = true }
+                            } label: {
+                                settingsRow(
+                                    title: "Delete venue access",
+                                    subtitle: "Remove owner profile, listings, and uploads.",
+                                    systemImage: "trash",
+                                    tint: FGColor.dangerRed.opacity(0.82)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } else if viewModel.isVenueOwnerLoggedIn {
+                        Button {
+                            showProfileSettingsSheet = false
+                            performBusinessAccountLogout()
+                        } label: {
+                            settingsRow(
+                                title: "Logout",
+                                subtitle: "Sign out of this business account.",
+                                systemImage: "rectangle.portrait.and.arrow.right"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        settingsRowDivider()
+
+                        Button {
+                            presentFromProfileSettings { showDeleteVenueOwnerSheet = true }
+                        } label: {
+                            settingsRow(
+                                title: "Delete account",
+                                subtitle: "Permanent owner profile removal.",
+                                systemImage: "trash",
+                                tint: FGColor.dangerRed.opacity(0.82)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 12, trailing: 16))
+                .listRowBackground(Color.clear)
+            } header: {
+                settingsSectionHeader("Account")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func profileSettingsPrivacySection() -> some View {
+        if canShowLiveActivitySharing {
+            Section {
+                settingsSectionCard {
+                    Button {
+                        presentFromProfileSettings { showLiveSharingModeDialog = true }
+                    } label: {
+                        settingsRow(title: "Live Activity Sharing", subtitle: liveSharingModeSubtitle, systemImage: "person.2.wave.2.fill")
+                    }
+                    .buttonStyle(.plain)
+                }
+                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+                .listRowBackground(Color.clear)
+            } header: {
+                settingsSectionHeader("Privacy & Social")
+            }
+        }
+    }
+
+    private func profileSettingsNotificationsSection() -> some View {
+        Section {
+            settingsSectionCard {
+                Button {
+                    presentFromProfileSettings { showNotificationsSheet = true }
+                } label: {
+                    settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
+                }
+                .buttonStyle(.plain)
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("Notifications")
+        }
+    }
+
+    private func profileSettingsExperienceSection() -> some View {
+        Section {
+            settingsSectionCard {
+                Button {
+                    presentFromProfileSettings { showTimeZoneSheet = true }
+                } label: {
+                    settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
+                }
+                .buttonStyle(.plain)
+
+                settingsRowDivider()
+
+                Button {
+                    presentFromProfileSettings { showAppearanceSheet = true }
+                } label: {
+                    settingsRow(
+                        title: "Appearance",
+                        subtitle: appearancePreference.displayName,
+                        systemImage: "circle.lefthalf.filled"
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("Experience")
+        }
+    }
+
+    private func profileSettingsHelpSafetySection() -> some View {
+        Section {
+            settingsSectionCard {
+                Button {
+                    presentFromProfileSettings { showContactSupportSheet = true }
+                } label: {
+                    settingsRow(
+                        title: "Support",
+                        subtitle: "Message the FanGeo team.",
+                        systemImage: "envelope.open.fill"
+                    )
+                }
+                .buttonStyle(.plain)
+
+                settingsRowDivider()
+
+                Button {
+                    presentFromProfileSettings { legalDocumentSheet = .communityGuidelines }
+                } label: {
+                    settingsRow(
+                        title: SettingsLegalDocumentKind.communityGuidelines.title,
+                        subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
+                        systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
+                    )
+                }
+                .buttonStyle(.plain)
+
+                settingsRowDivider()
+
+                Button {
+                    presentFromProfileSettings { legalDocumentSheet = .safetyReporting }
+                } label: {
+                    settingsRow(
+                        title: SettingsLegalDocumentKind.safetyReporting.title,
+                        subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
+                        systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("Help & Safety")
+        }
+    }
+
+    private func profileSettingsLegalSection() -> some View {
+        Section {
+            settingsSectionCard {
+                Button {
+                    presentFromProfileSettings { legalDocumentSheet = .privacyPolicy }
+                } label: {
+                    settingsRow(
+                        title: SettingsLegalDocumentKind.privacyPolicy.title,
+                        subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
+                        systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
+                    )
+                }
+                .buttonStyle(.plain)
+
+                settingsRowDivider()
+
+                Button {
+                    presentFromProfileSettings { legalDocumentSheet = .termsOfService }
+                } label: {
+                    settingsRow(
+                        title: SettingsLegalDocumentKind.termsOfService.title,
+                        subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
+                        systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
+            .listRowBackground(Color.clear)
+        } header: {
+            settingsSectionHeader("Legal")
         }
     }
 
@@ -2109,7 +2227,6 @@ private struct SettingsProfileHero: View {
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
-    @State private var showVenueOwnerHeroActions = false
 
     /// Email shown in the hero: fan session vs venue-owner session (existing ``MapViewModel`` flags; no auth changes).
     private var heroEmailLine: String {
@@ -2326,28 +2443,7 @@ private struct SettingsProfileHero: View {
                 }
                 .buttonStyle(.plain)
             } else if viewModel.isVenueOwnerLoggedIn {
-                Button {
-                    showVenueOwnerHeroActions = true
-                } label: {
-                    heroCard
-                }
-                .buttonStyle(.plain)
-                .confirmationDialog(
-                    "Business owner",
-                    isPresented: $showVenueOwnerHeroActions,
-                    titleVisibility: .hidden
-                ) {
-                    Button("Reset venue password") {
-                        venueOwnerOnResetPassword()
-                    }
-                    Button("Log Out Business Owner", role: .destructive) {
-                        Task { @MainActor in
-                            await viewModel.logoutUser()
-                            venueOwnerOnDismissSheetsAfterLogout()
-                        }
-                    }
-                    Button("Cancel", role: .cancel) {}
-                }
+                heroCard
             } else {
                 heroCard
             }

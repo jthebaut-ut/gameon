@@ -51,7 +51,6 @@ struct UserProfileScreen: View {
                     displayNameCard
                     usernameCard
                     photoCard
-                    accountActionsCard
 
                     if !message.isEmpty {
                         messageBanner
@@ -251,26 +250,6 @@ struct UserProfileScreen: View {
             Text("If nothing appears, open Settings ▸ Privacy & Security ▸ Photos for FanGeo.")
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
-        }
-    }
-
-    private var accountActionsCard: some View {
-        FGCard {
-            FGSectionHeader(
-                "Account actions",
-                subtitle: "Sign out without affecting your saved FanGeo profile."
-            )
-
-            FGSecondaryButton(title: "Log Out", systemImage: "rectangle.portrait.and.arrow.right") {
-                Task {
-                    await viewModel.logoutUser()
-                    await MainActor.run {
-                        onDone()
-                        dismiss()
-                    }
-                }
-            }
-            .disabled(isSaving || isUploadingAvatar)
         }
     }
 
