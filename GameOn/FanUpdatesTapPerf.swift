@@ -21,26 +21,38 @@ enum FanUpdatesTapPerf {
         lastEventID = eventId
         lastTapTime = now
 
+#if DEBUG
         print("[FanUpdatesTapPerf] tapReceived eventId=\(eventId.uuidString.lowercased())")
+#endif
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         present()
+#if DEBUG
         print("[FanUpdatesTapPerf] sheetPresentedImmediately=true")
+#endif
     }
 
     static func logCommentLoadStarted(eventId: UUID) {
+#if DEBUG
         print("[FanUpdatesTapPerf] commentLoadStarted=\(eventId.uuidString.lowercased())")
+#endif
     }
 
     static func logCommentLoadCompleted(ms: Double) {
+#if DEBUG
         print("[FanUpdatesTapPerf] commentLoadCompletedMs=\(String(format: "%.0f", ms))")
+#endif
     }
 
     static func logAdLoadStartedNonBlocking() {
+#if DEBUG
         print("[FanUpdatesTapPerf] adLoadStartedNonBlocking=true")
+#endif
     }
 
     static func logAdInsertedAfterComments() {
+#if DEBUG
         print("[FanUpdatesTapPerf] adInsertedAfterComments=true")
+#endif
     }
 }
 
