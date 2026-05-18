@@ -54,6 +54,7 @@ enum VenueOwnerDashboardEntryPoint: Equatable {
 
 struct VenueOwnerDashboardView: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
 
     @State private var selectedSection: VenueDashboardSection = .profile
@@ -151,6 +152,15 @@ struct VenueOwnerDashboardView: View {
     @State private var showSchedulePicker = false
     @State private var schedulePickerDate = Date()
 
+    init(
+        viewModel: MapViewModel,
+        entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
+    ) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
+        self.entryPoint = entryPoint
+    }
+
     enum VenueDashboardSection: String, CaseIterable {
         case profile = "Profile"
         case games = "Games"
@@ -196,6 +206,12 @@ struct VenueOwnerDashboardView: View {
 #endif
     }
 
+    private func logFanUpdatesStoreMigrationDebug() {
+#if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] VenueOwnerReadsStore=true")
+#endif
+    }
+
     private var venueOwnerPendingApprovalCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Pending approval")
@@ -216,6 +232,8 @@ struct VenueOwnerDashboardView: View {
     }
 
     var body: some View {
+        let _: Void = logFanUpdatesStoreMigrationDebug()
+
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
 
@@ -831,6 +849,7 @@ struct VenueOwnerDashboardView: View {
                         ScrollView {
                             VenueOwnerGameAnalyticsCard(
                                 viewModel: viewModel,
+                                fanUpdatesStore: fanUpdatesStore,
                                 row: selection.row,
                                 eventID: selection.id,
                                 isLiveToday: isGameLiveToday(selection.row)
@@ -929,6 +948,7 @@ struct VenueOwnerDashboardView: View {
                                 }, id: \.0) { pair in
                                     VenueOwnerCompactAnalyticsRow(
                                         viewModel: viewModel,
+                                        fanUpdatesStore: fanUpdatesStore,
                                         row: pair.1,
                                         eventID: pair.0,
                                         isLiveToday: isGameLiveToday(pair.1),
@@ -1064,7 +1084,7 @@ struct VenueOwnerDashboardView: View {
         var totals: [String: Int] = [:]
         for row in rows {
             guard let id = row.id else { continue }
-            let m = viewModel.venueEventVibeCounts[id] ?? [:]
+            let m = fanUpdatesStore.venueEventVibeCounts[id] ?? [:]
             for (k, v) in m {
                 totals[k, default: 0] += v
             }
@@ -1467,7 +1487,7 @@ struct VenueOwnerDashboardView: View {
                             formattedDateTime: formattedManageGameDateTime(row: item.row),
                             statusLabel: derivedManageGameStatus(row: item.row),
                             goingCount: viewModel.interestCountForVenueEvent(item.id),
-                            commentCount: viewModel.venueEventComments[item.id]?.count ?? 0,
+                            commentCount: fanUpdatesStore.venueEventComments[item.id]?.count ?? 0,
                             vibeTotal: aggregateVibeTotal(eventID: item.id),
                             onEditTitle: {
                                 clearManageGamesBanners()
@@ -2177,7 +2197,7 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func aggregateVibeTotal(eventID: UUID) -> Int {
-        let dict = viewModel.venueEventVibeCounts[eventID] ?? [:]
+        let dict = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
         return dict.values.reduce(0, +)
     }
     
@@ -2868,6 +2888,7 @@ private struct VenueOwnerManageGameRow: View {
 
 private struct VenueOwnerCompactAnalyticsRow: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
     let row: VenueEventRow
     let eventID: UUID
     let isLiveToday: Bool
@@ -2882,27 +2903,27 @@ private struct VenueOwnerCompactAnalyticsRow: View {
     }
 
     private var comments: Int {
-        viewModel.venueEventComments[eventID]?.count ?? 0
+        fanUpdatesStore.venueEventComments[eventID]?.count ?? 0
     }
 
     private var audioCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["audio_on"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["audio_on"] ?? 0
     }
 
     private var packedCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["packed"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["packed"] ?? 0
     }
 
     private var seatsOpenCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["seats_open"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["seats_open"] ?? 0
     }
 
     private var specialsCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["specials"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["specials"] ?? 0
     }
 
     private var tvVisibleCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["tv_visible"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["tv_visible"] ?? 0
     }
 
     private var shortTitle: String {
@@ -2931,7 +2952,7 @@ private struct VenueOwnerCompactAnalyticsRow: View {
     }
 
     private var topVibeSnippet: String? {
-        let m = viewModel.venueEventVibeCounts[eventID] ?? [:]
+        let m = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
         guard let best = m.max(by: { $0.value < $1.value }), best.value > 0 else { return nil }
         let label: String
         switch best.key {
@@ -3063,6 +3084,7 @@ private struct VenueOwnerCompactAnalyticsRow: View {
 
 private struct VenueOwnerGameAnalyticsCard: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
     let row: VenueEventRow
     let eventID: UUID
     let isLiveToday: Bool
@@ -3072,27 +3094,27 @@ private struct VenueOwnerGameAnalyticsCard: View {
     }
 
     private var commentCount: Int {
-        viewModel.venueEventComments[eventID]?.count ?? 0
+        fanUpdatesStore.venueEventComments[eventID]?.count ?? 0
     }
 
     private var audioCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["audio_on"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["audio_on"] ?? 0
     }
 
     private var packedCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["packed"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["packed"] ?? 0
     }
 
     private var seatsOpenCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["seats_open"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["seats_open"] ?? 0
     }
 
     private var specialsCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["specials"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["specials"] ?? 0
     }
 
     private var tvVisibleCount: Int {
-        viewModel.venueEventVibeCounts[eventID]?["tv_visible"] ?? 0
+        fanUpdatesStore.venueEventVibeCounts[eventID]?["tv_visible"] ?? 0
     }
 
     private var score: Int {
@@ -3100,7 +3122,7 @@ private struct VenueOwnerGameAnalyticsCard: View {
     }
 
     private var topVibeLine: String? {
-        let m = viewModel.venueEventVibeCounts[eventID] ?? [:]
+        let m = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
         guard let best = m.max(by: { $0.value < $1.value }), best.value > 0 else { return nil }
         switch best.key {
         case "audio_on": return "Top vibe: 🔊 Audio (\(best.value))"
