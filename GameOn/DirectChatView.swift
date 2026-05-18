@@ -394,12 +394,16 @@ private final class DirectChatPresenter: ObservableObject {
         if let pending = establishingRealtimeChannel {
             establishingRealtimeChannel = nil
             let tid = conversationId?.uuidString.lowercased() ?? "?"
+#if DEBUG
             print("[DirectChatRealtime] remove establishing channel thread=\(tid)")
+#endif
             await service.removeRealtimeChannel(pending)
         }
         guard let ch = messagesRealtimeChannel else { return }
         let tid = conversationId?.uuidString.lowercased() ?? "?"
+#if DEBUG
         print("[DirectChatRealtime] unsubscribe thread=\(tid)")
+#endif
         messagesRealtimeChannel = nil
         await service.removeRealtimeChannel(ch)
     }
@@ -492,9 +496,11 @@ private final class DirectChatPresenter: ObservableObject {
 #if DEBUG
         realtimeConnectionStatus = .reconnecting
 #endif
+#if DEBUG
         print("[DirectChatRealtime] subscribe start thread=\(tid)")
         print("[DirectChatRealtime] subscribing conversationId=\(tid)")
         print("[DirectChatRealtime] pending subscribe conversationId=\(tid)")
+#endif
         let healthSubscribeStartedAt = CFAbsoluteTimeGetCurrent()
 #if DEBUG
         DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_attempt conversation=\(tid)")
@@ -535,11 +541,15 @@ private final class DirectChatPresenter: ObservableObject {
             establishingRealtimeChannel = nil
             await service.removeRealtimeChannel(channel)
             if error is CancellationError {
+#if DEBUG
                 print("[DirectChatRealtime] subscribe cancelled thread=\(tid)")
+#endif
                 throw error
             }
             let errLabel = (error is DMThreadRealtimeSubscribeTimeoutError) ? "subscribe_timeout_15s" : error.localizedDescription
+#if DEBUG
             print("[DirectChatRealtime] subscribe failed thread=\(tid) error=\(errLabel)")
+#endif
 #if DEBUG
             realtimeConnectionStatus = .reconnecting
             DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_failed conversation=\(tid) error=\(errLabel)")
@@ -549,7 +559,9 @@ private final class DirectChatPresenter: ObservableObject {
         }
 
         establishingRealtimeChannel = nil
+#if DEBUG
         print("[DirectChatRealtime] subscribe success thread=\(tid)")
+#endif
 #if DEBUG
         DMRealtimeDiagnostics.log("phase=thread_realtime_subscribe_ready conversation=\(tid)")
         print("[DMRealtimeLatencyDebug] realtimeSubscribed conversationId=\(tid) channel=\(channel.topic)")
@@ -585,7 +597,9 @@ private final class DirectChatPresenter: ObservableObject {
 
         activeRealtimeThreadConversationId = nil
         if messagesRealtimeChannel != nil {
+#if DEBUG
             print("[DirectChatRealtime] unsubscribe thread=\(tid)")
+#endif
             messagesRealtimeChannel = nil
 #if DEBUG
             realtimeConnectionStatus = .reconnecting
@@ -660,7 +674,9 @@ private final class DirectChatPresenter: ObservableObject {
 #if DEBUG
             realtimeConnectionStatus = .fallback
 #endif
+#if DEBUG
             print("[DirectChatRealtime] refresh merged newCount=\(tailNew.count) thread=\(tid) reason=\(reason)")
+#endif
 #if DEBUG
             let ids = tailNew.map { $0.id.uuidString.lowercased() }.joined(separator: ",")
             DMRealtimeDiagnostics.log(
@@ -685,7 +701,9 @@ private final class DirectChatPresenter: ObservableObject {
             rebuildDisplayTimelineFromMessages()
             return tailNew.count
         } catch {
+#if DEBUG
             print("[DirectChatRealtime] refresh failed thread=\(tid) reason=\(reason) err=\(error.localizedDescription)")
+#endif
             return 0
         }
     }
@@ -825,11 +843,15 @@ private final class DirectChatPresenter: ObservableObject {
 #if DEBUG
         print("[DirectChatLatency] insert_callback_received id=\(rowIdLow) t=\(tInsert)")
 #endif
+#if DEBUG
         print("[DirectChatRealtime] INSERT callback fired id=\(rowIdLow)")
+#endif
         guard let msgCid = row.conversation_id, msgCid == threadConversationId else {
             let got = row.conversation_id?.uuidString.lowercased() ?? "nil"
             let want = threadConversationId.uuidString.lowercased()
+#if DEBUG
             print("[DirectChatRealtime] skipped insert wrong conversation_id=\(got) expected=\(want)")
+#endif
             return
         }
         if row.deleted_at != nil { return }
@@ -846,7 +868,9 @@ private final class DirectChatPresenter: ObservableObject {
 #endif
         }
         guard !messages.contains(where: { $0.id == row.id }) else {
+#if DEBUG
             print("[DirectChatRealtime] skipped duplicate id=\(row.id.uuidString.lowercased())")
+#endif
 #if DEBUG
             print("[DMRealtimeLatencyDebug] dedupeApplied conversationId=\(threadConversationId.uuidString.lowercased()) messageId=\(rowIdLow)")
 #endif
@@ -889,7 +913,9 @@ private final class DirectChatPresenter: ObservableObject {
             print("[DMRealtimePerf] serverToUiLatencyMs=\(String(format: "%.1f", serverMs))")
         }
 #endif
+#if DEBUG
         print("[DirectChatRealtime] appended live message id=\(rowIdLow)")
+#endif
 #if DEBUG
         RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - mainActorApplyStartedAt) * 1000)) table=direct_messages id=\(rowIdLow)")
 #endif
@@ -955,8 +981,10 @@ private final class DirectChatPresenter: ObservableObject {
                 lastRealtimeStreamInsertAt = Date()
             }
             let insCid = row.conversation_id?.uuidString.lowercased() ?? conversationId.uuidString.lowercased()
+#if DEBUG
             print("[DirectChatSend] inserted conversationId=\(insCid)")
             print("[DirectChatSend] insert success serverId=\(row.id.uuidString.lowercased())")
+#endif
             chatViewModel?.requestBadgeRecalculation(reason: "messageSent", includeInboxSummaries: true)
             scheduleDirectMessageRealtimeFallback(conversationId: conversationId, expectedMessageID: row.id)
 #if DEBUG
@@ -968,7 +996,9 @@ private final class DirectChatPresenter: ObservableObject {
 #endif
             logDMEndToEnd(row: row, conversationId: conversationId, fallbackUsed: false)
         } catch {
+#if DEBUG
             print("[DirectChatSend] insert failed localId=\(localId.uuidString.lowercased()) err=\(error.localizedDescription)")
+#endif
 #if DEBUG
             print("[DMRealtimeLatencyDebug] insertFailure conversationId=\(conversationId.uuidString.lowercased()) elapsedMs=\(DMRealtimePerfLog.elapsedMs(since: dmLatencyInsertStartTimesByLocalID[localId])) error=\(error.localizedDescription)")
 #endif
@@ -1061,7 +1091,9 @@ private final class DirectChatPresenter: ObservableObject {
             messages.append(optimistic)
             appendDisplayTimelineTail(for: optimistic)
         }
+#if DEBUG
         print("[DirectChatSend] optimistic append localId=\(localId.uuidString.lowercased())")
+#endif
 #if DEBUG
         print("[DMRealtimeLatencyDebug] optimisticAppend conversationId=\(conversationId.uuidString.lowercased()) tempId=\(localId.uuidString.lowercased()) localTime=\(DMRealtimePerfLog.stamp())")
         print("[DMRealtimeLatencyDebug] uiMessageListUpdated conversationId=\(conversationId.uuidString.lowercased()) count=\(messages.count) elapsedMs=\(DMRealtimePerfLog.elapsedMs(since: dmLatencySendTimesByLocalID[localId]))")
@@ -1132,7 +1164,9 @@ private final class DirectChatPresenter: ObservableObject {
             messages.append(optimistic)
             appendDisplayTimelineTail(for: optimistic)
         }
+#if DEBUG
         print("[DirectChatSend] optimistic append localId=\(localId.uuidString.lowercased())")
+#endif
 #if DEBUG
         print("[DMRealtimeLatencyDebug] optimisticAppend conversationId=\(conversationId.uuidString.lowercased()) tempId=\(localId.uuidString.lowercased()) localTime=\(DMRealtimePerfLog.stamp())")
         print("[DMRealtimeLatencyDebug] uiMessageListUpdated conversationId=\(conversationId.uuidString.lowercased()) count=\(messages.count) elapsedMs=\(DMRealtimePerfLog.elapsedMs(since: dmLatencySendTimesByLocalID[localId]))")

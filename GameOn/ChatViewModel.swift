@@ -251,7 +251,9 @@ final class ChatViewModel: ObservableObject {
                 return
             }
             guard let self, !Task.isCancelled else { return }
+#if DEBUG
             print("[RealtimeLifecycle] foreground debounced ensure")
+#endif
 #if DEBUG
             RealtimeHealthDiagnostics.log("appForegroundReconnect=chat_social")
 #endif
@@ -443,13 +445,17 @@ final class ChatViewModel: ObservableObject {
     private func startInboxRealtimeListenerIfNeeded() {
         guard requiresSignIn == false else { return }
         guard inboxListenTask == nil, inboxChannel == nil else {
+#if DEBUG
             print("[RealtimeLifecycle] duplicate prevented (inbox listener already active)")
+#endif
 #if DEBUG
             print("[RealtimeSubscriptionDebug] duplicatePrevented vm=\(instanceDebugID) taskActive=\(inboxListenTask != nil) channelActive=\(inboxChannel != nil)")
 #endif
             return
         }
+#if DEBUG
         print("[RealtimeLifecycle] starting inbox listener")
+#endif
 #if DEBUG
         print("[RealtimeSubscriptionDebug] startingInbox vm=\(instanceDebugID)")
         print("[MainActorDebug] startInboxRealtimeListenerIfNeeded actor=MainActor")
@@ -514,7 +520,9 @@ final class ChatViewModel: ObservableObject {
         do {
             try await channel.subscribeWithError()
             inboxRealtimeBoundUserId = me
+#if DEBUG
             print("[DMRealtime] inbox subscribed channel=dm-inbox-\(me.uuidString.lowercased())")
+#endif
 #if DEBUG
             print("[RealtimeSubscriptionDebug] inboxSubscribed vm=\(instanceDebugID) user=\(me.uuidString.lowercased()) filtered=\(inboxRealtimeUsesConversationFilter)")
             print("[DMRealtimeLatencyDebug] realtimeSubscribed conversationId=inbox channel=\(channel.topic)")
@@ -535,9 +543,13 @@ final class ChatViewModel: ObservableObject {
                 }
             }
         } catch is CancellationError {
+#if DEBUG
             print("[DMRealtime] inbox listener cancelled")
+#endif
         } catch {
+#if DEBUG
             print("[DMRealtime] inbox listener error: \(error)")
+#endif
 #if DEBUG
             RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
 #endif
@@ -772,7 +784,9 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func stopInboxRealtimeListener() async {
+#if DEBUG
         print("[RealtimeLifecycle] stopping inbox listener")
+#endif
         inboxUnreadDebounceTask?.cancel()
         inboxUnreadDebounceTask = nil
         inboxMissingPeerReconcileTask?.cancel()
@@ -796,11 +810,15 @@ final class ChatViewModel: ObservableObject {
 
     private func startFriendshipsRealtimeListenerIfNeeded() {
         guard friendshipsListenTask == nil, friendshipsChannel == nil else {
+#if DEBUG
             print("[RealtimeLifecycle] duplicate prevented (friendship listener already active)")
+#endif
             return
         }
         guard requiresSignIn == false else { return }
+#if DEBUG
         print("[RealtimeLifecycle] starting friendship listener")
+#endif
         friendshipsListenTask = Task { [weak self] in
             guard let self else { return }
             await self.runFriendshipsRealtimeListenerLoop()
@@ -821,7 +839,9 @@ final class ChatViewModel: ObservableObject {
             return
         }
 
+#if DEBUG
         print("[FriendRequestRealtime] friendship channel bound user=\(me.uuidString.lowercased())")
+#endif
 
         let channel = supabase.channel("friendships-\(me.uuidString.lowercased())")
         friendshipsChannel = channel
@@ -847,14 +867,18 @@ final class ChatViewModel: ObservableObject {
                 switch action {
                 case .insert, .update, .delete:
                     logFriendRequestRealtimeCancelledIfNeeded(action)
+#if DEBUG
                     print("[FriendRequestRealtime] event received")
+#endif
                     scheduleFriendRequestRealtimeRefresh()
                 }
             }
         } catch {
             if !(error is CancellationError) {
+#if DEBUG
                 print("[FriendRequestRealtime] subscribe/stream error: \(error)")
                 print("[RealtimeLifecycle] friendship listener ended with error")
+#endif
             }
         }
 
@@ -872,7 +896,9 @@ final class ChatViewModel: ObservableObject {
             lowered = nil
         }
         if lowered == "cancelled" {
+#if DEBUG
             print("[FriendRequestRealtime] cancelled request received")
+#endif
         }
     }
 
@@ -885,9 +911,13 @@ final class ChatViewModel: ObservableObject {
                 return
             }
             guard let self, !Task.isCancelled else { return }
+#if DEBUG
             print("[FriendRequestRealtime] refreshing requests")
+#endif
             await self.refreshFriendRequestListsOnly()
+#if DEBUG
             print("[FriendRequestRealtime] badge updated pending=\(self.pendingBadgeCount)")
+#endif
         }
     }
 
@@ -903,7 +933,9 @@ final class ChatViewModel: ObservableObject {
 
         await removeFriendshipsChannelOnly()
         friendshipsRealtimeBoundUserId = nil
+#if DEBUG
         print("[RealtimeLifecycle] stopping friendship listener")
+#endif
     }
 
     /// Refreshes friend request rows + chip map + pending badge without reloading DM inbox.
