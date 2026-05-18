@@ -174,20 +174,32 @@ final class MapViewModel: ObservableObject {
     @Published var myVenueEventVibes: [UUID: Set<String>] = [:]
     var venueEventVibeWriteInFlightKeys: Set<String> = []
     
-    @AppStorage("notifyBeforeGame")
-    var notifyBeforeGame: Bool = true
+    let notificationSettingsStore = NotificationSettingsStore()
 
-    @AppStorage("reminderMinutesBefore")
-    var reminderMinutesBefore: Int = 60
+    var notifyBeforeGame: Bool {
+        get { notificationSettingsStore.notifyBeforeGame }
+        set { notificationSettingsStore.notifyBeforeGame = newValue }
+    }
 
-    @AppStorage("repeatGameReminder")
-    var repeatGameReminder: Bool = false
+    var reminderMinutesBefore: Int {
+        get { notificationSettingsStore.reminderMinutesBefore }
+        set { notificationSettingsStore.reminderMinutesBefore = newValue }
+    }
 
-    @AppStorage("repeatEveryMinutes")
-    var repeatEveryMinutes: Int = 30
+    var repeatGameReminder: Bool {
+        get { notificationSettingsStore.repeatGameReminder }
+        set { notificationSettingsStore.repeatGameReminder = newValue }
+    }
 
-    @AppStorage("syncGoingGamesToAppleCalendar")
-    var syncGoingGamesToAppleCalendar: Bool = false
+    var repeatEveryMinutes: Int {
+        get { notificationSettingsStore.repeatEveryMinutes }
+        set { notificationSettingsStore.repeatEveryMinutes = newValue }
+    }
+
+    var syncGoingGamesToAppleCalendar: Bool {
+        get { notificationSettingsStore.syncGoingGamesToAppleCalendar }
+        set { notificationSettingsStore.syncGoingGamesToAppleCalendar = newValue }
+    }
     
     @Published var events: [SportsEvent] = SampleData.events
     @Published var isLoadingEvents: Bool = false
@@ -200,7 +212,10 @@ final class MapViewModel: ObservableObject {
     @Published var mapStatusText: String?
     @Published var socialActionToastText: String?
     @Published var socialActionToastIsError: Bool = false
-    @Published var notificationPermissionMessage: String = ""
+    var notificationPermissionMessage: String {
+        get { notificationSettingsStore.notificationPermissionMessage }
+        set { notificationSettingsStore.notificationPermissionMessage = newValue }
+    }
     @Published var currentUserFanXP: FanXPState = .rookie
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
     /// When set, ``PublicProfileOverlayWindowPresenter`` shows ``PublicUserProfilePreviewView`` in a top-level UIWindow (not a SwiftUI sheet).

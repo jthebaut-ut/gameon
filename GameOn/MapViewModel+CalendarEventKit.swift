@@ -17,7 +17,7 @@ extension MapViewModel {
         date: Date,
         location: String
     ) async {
-        guard syncGoingGamesToAppleCalendar else { return }
+        guard notificationSettingsStore.syncGoingGamesToAppleCalendar else { return }
 
         let granted = await requestCalendarAccess()
         guard granted else {

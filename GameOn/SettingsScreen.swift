@@ -108,8 +108,14 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject private var notificationSettingsStore: NotificationSettingsStore
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+
+    init(viewModel: MapViewModel) {
+        self._viewModel = ObservedObject(wrappedValue: viewModel)
+        self._notificationSettingsStore = ObservedObject(wrappedValue: viewModel.notificationSettingsStore)
+    }
 
     @State private var email = ""
     @State private var password = ""
@@ -535,7 +541,7 @@ struct SettingsScreen: View {
                         }
 
                         Button { showNotificationsSheet = true } label: {
-                            settingsRow(title: "Notifications", subtitle: viewModel.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
+                            settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
                         }
                         .buttonStyle(.plain)
 
@@ -753,7 +759,7 @@ struct SettingsScreen: View {
         .sheet(isPresented: $showNotificationsSheet) {
             NavigationStack {
                 ScrollView {
-                    SettingsGameNotificationsCard(viewModel: viewModel)
+                    SettingsGameNotificationsCard(viewModel: viewModel, notificationSettingsStore: notificationSettingsStore)
                         .padding(.horizontal, FGSpacing.lg)
                         .padding(.top, FGSpacing.lg)
                 }
@@ -2593,7 +2599,7 @@ private struct SettingsUserSection: View {
         VStack(alignment: .leading, spacing: 22) {
             if viewModel.isLoggedIn {
                 SettingsProfileButton(viewModel: viewModel, showProfileScreen: $showProfileScreen)
-                SettingsGameNotificationsCard(viewModel: viewModel)
+                SettingsGameNotificationsCard(viewModel: viewModel, notificationSettingsStore: viewModel.notificationSettingsStore)
                 SettingsSavedGamesCard()
             }
 
@@ -3172,6 +3178,7 @@ private struct FanGeoAppearanceSelectionView: View {
 
 private struct SettingsGameNotificationsCard: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject var notificationSettingsStore: NotificationSettingsStore
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("venueFavoriteTeamNearbyNotifications") private var venueFavoriteTeamNearbyNotifications = true
     @AppStorage("venueFriendsGoingNotifications") private var venueFriendsGoingNotifications = true
@@ -3324,7 +3331,7 @@ private struct SettingsGameNotificationsCard: View {
         .tint(FGColor.accentGreen)
         .task {
             print("[NotificationSettingsDebug] removedSocialFanSection=true")
-            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(viewModel.notifyBeforeGame) reminderMinutesBefore=\(viewModel.reminderMinutesBefore) repeatGameReminder=\(viewModel.repeatGameReminder) repeatEveryMinutes=\(viewModel.repeatEveryMinutes) calendarSync=\(viewModel.syncGoingGamesToAppleCalendar)")
+            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(notificationSettingsStore.notifyBeforeGame) reminderMinutesBefore=\(notificationSettingsStore.reminderMinutesBefore) repeatGameReminder=\(notificationSettingsStore.repeatGameReminder) repeatEveryMinutes=\(notificationSettingsStore.repeatEveryMinutes) calendarSync=\(notificationSettingsStore.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
             if normalizeInvalidRepeatReminderIntervalIfNeeded() {
                 await viewModel.gameReminderPreferenceDidChange()
@@ -3347,7 +3354,7 @@ private struct SettingsGameNotificationsCard: View {
 
     private var gameNotificationsEnabledBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.notifyBeforeGame },
+            get: { notificationSettingsStore.notifyBeforeGame },
             set: { enabled in
                 print("[NotificationSettingsDebug] save key=notifyBeforeGame value=\(enabled)")
                 Task { await viewModel.setGameNotificationsEnabled(enabled) }
@@ -3357,10 +3364,10 @@ private struct SettingsGameNotificationsCard: View {
 
     private var reminderMinutesBinding: Binding<Int> {
         Binding(
-            get: { viewModel.reminderMinutesBefore },
+            get: { notificationSettingsStore.reminderMinutesBefore },
             set: { minutes in
                 print("[NotificationSettingsDebug] save key=reminderMinutesBefore value=\(minutes)")
-                viewModel.reminderMinutesBefore = minutes
+                notificationSettingsStore.reminderMinutesBefore = minutes
                 Task { await viewModel.gameReminderPreferenceDidChange() }
             }
         )
@@ -3370,8 +3377,8 @@ private struct SettingsGameNotificationsCard: View {
         Binding(
             get: {
                 RepeatReminderOption.current(
-                    isEnabled: viewModel.repeatGameReminder,
-                    minutes: viewModel.repeatEveryMinutes
+                    isEnabled: notificationSettingsStore.repeatGameReminder,
+                    minutes: notificationSettingsStore.repeatEveryMinutes
                 )
             },
             set: { option in
@@ -3428,44 +3435,44 @@ private struct SettingsGameNotificationsCard: View {
     private func applyRepeatReminderOption(_ option: RepeatReminderOption) {
         switch option {
         case .never:
-            print("[NotificationSettingsDebug] save key=repeatGameReminder value=false repeatEveryMinutes=\(viewModel.repeatEveryMinutes)")
-            viewModel.repeatGameReminder = false
+            print("[NotificationSettingsDebug] save key=repeatGameReminder value=false repeatEveryMinutes=\(notificationSettingsStore.repeatEveryMinutes)")
+            notificationSettingsStore.repeatGameReminder = false
         case .every15Minutes, .every30Minutes, .everyHour:
             let minutes = option.minutes ?? 30
             print("[NotificationSettingsDebug] save key=repeatGameReminder value=true repeatEveryMinutes=\(minutes)")
-            viewModel.repeatGameReminder = true
-            viewModel.repeatEveryMinutes = minutes
+            notificationSettingsStore.repeatGameReminder = true
+            notificationSettingsStore.repeatEveryMinutes = minutes
         }
 
         Task { await viewModel.gameReminderPreferenceDidChange() }
     }
 
     private func normalizeInvalidRepeatReminderIntervalIfNeeded() -> Bool {
-        guard viewModel.repeatGameReminder,
-              RepeatReminderOption(rawValue: viewModel.repeatEveryMinutes)?.minutes == nil
+        guard notificationSettingsStore.repeatGameReminder,
+              RepeatReminderOption(rawValue: notificationSettingsStore.repeatEveryMinutes)?.minutes == nil
         else {
             return false
         }
 
-        print("[NotificationSettingsDebug] normalize repeatEveryMinutes invalid=\(viewModel.repeatEveryMinutes) fallback=30")
-        viewModel.repeatEveryMinutes = RepeatReminderOption.every30Minutes.rawValue
+        print("[NotificationSettingsDebug] normalize repeatEveryMinutes invalid=\(notificationSettingsStore.repeatEveryMinutes) fallback=30")
+        notificationSettingsStore.repeatEveryMinutes = RepeatReminderOption.every30Minutes.rawValue
         return true
     }
 
     private var calendarSyncBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.syncGoingGamesToAppleCalendar },
+            get: { notificationSettingsStore.syncGoingGamesToAppleCalendar },
             set: { enabled in
                 print("[NotificationSettingsDebug] save key=syncGoingGamesToAppleCalendar value=\(enabled)")
-                viewModel.syncGoingGamesToAppleCalendar = enabled
+                notificationSettingsStore.syncGoingGamesToAppleCalendar = enabled
             }
         )
     }
 
     @ViewBuilder
     private var permissionMessage: some View {
-        if !viewModel.notificationPermissionMessage.isEmpty {
-            Text(viewModel.notificationPermissionMessage)
+        if !notificationSettingsStore.notificationPermissionMessage.isEmpty {
+            Text(notificationSettingsStore.notificationPermissionMessage)
                 .font(FGTypography.caption.weight(.semibold))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
