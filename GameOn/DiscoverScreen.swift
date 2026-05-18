@@ -281,6 +281,7 @@ private struct GuestDiscoverLockedPreviewCard<Preview: View>: View {
 struct DiscoverScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     @ObservedObject var chatViewModel: ChatViewModel
     @Binding var isCalendarOverlayPresented: Bool
     @Environment(\.colorScheme) private var colorScheme
@@ -348,6 +349,17 @@ struct DiscoverScreen: View {
         let countColor: Color
         let background: Color
         let selectedBackground: Color
+    }
+
+    init(
+        viewModel: MapViewModel,
+        chatViewModel: ChatViewModel,
+        isCalendarOverlayPresented: Binding<Bool>
+    ) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
+        _chatViewModel = ObservedObject(wrappedValue: chatViewModel)
+        _isCalendarOverlayPresented = isCalendarOverlayPresented
     }
 
     var body: some View {
@@ -3325,7 +3337,6 @@ struct DiscoverScreen: View {
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {
         let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
-        let fanUpdatesStore = viewModel.fanUpdatesStore
 
         let vibeCount = fanUpdatesStore.venueEventVibeCounts[venueEventID]?
             .values
@@ -3625,7 +3636,6 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewInteractionStrip(venueEventID: UUID) -> some View {
-        let fanUpdatesStore = viewModel.fanUpdatesStore
         let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
         let selected = fanUpdatesStore.myVenueEventVibes[venueEventID] ?? []
         let _ = logFanUpdatesStoreMigrationDebug()
@@ -3709,6 +3719,7 @@ struct DiscoverScreen: View {
 
     private func logFanUpdatesStoreMigrationDebug() {
 #if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] DiscoverObservesStore=true")
         print("[FanUpdatesStoreMigrationDebug] DiscoverPreviewReadsStore=true")
 #endif
     }
@@ -3729,7 +3740,6 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewEnergy(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> VenueGamePreviewEnergy {
-        let fanUpdatesStore = viewModel.fanUpdatesStore
         let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
         let previewEnergy = VenueGamePreviewEnergy.evaluate(
             fireCount: counts["packed"] ?? 0,
@@ -4118,7 +4128,6 @@ struct DiscoverScreen: View {
     }
 
     private func topVibeText(for venueEventID: UUID) -> String? {
-        let fanUpdatesStore = viewModel.fanUpdatesStore
         let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
 
         guard let top = counts.max(by: { $0.value < $1.value }),
