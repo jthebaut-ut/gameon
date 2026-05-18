@@ -132,8 +132,12 @@ extension MapViewModel {
         venueOwnerEmail = normalizedOwnerEmail
         currentUserEmail = ""
         currentUserDisplayName = ""
+        currentUserIsBusinessAccount = true
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
+        currentUserLiveVisibilityEnabled = true
+        currentUserLiveVisibilityMode = .allFriends
+        currentUserSelectedLiveVisibilityFriendIDs = []
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
         await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
@@ -170,8 +174,12 @@ extension MapViewModel {
         isLoggedIn = false
         currentUserEmail = ""
         currentUserDisplayName = ""
+        currentUserIsBusinessAccount = true
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
+        currentUserLiveVisibilityEnabled = true
+        currentUserLiveVisibilityMode = .allFriends
+        currentUserSelectedLiveVisibilityFriendIDs = []
         isAdminLoggedIn = false
         currentUserAuthId = session.user.id
 
@@ -187,6 +195,9 @@ extension MapViewModel {
         UserDefaults.standard.removeObject(forKey: "cachedUserUsername")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
+        UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityEnabled")
+        UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityMode")
+        UserDefaults.standard.removeObject(forKey: "cachedUserSelectedLiveVisibilityFriendIDs")
     }
 
     /// Clears authenticated/private session caches that must never survive logout, session loss, or account switching.
@@ -195,9 +206,14 @@ extension MapViewModel {
         currentUserEmail = ""
         currentUserDisplayName = ""
         currentUserUsername = ""
+        currentUserIsBusinessAccount = false
         currentUserFanXP = .rookie
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
+        currentUserLiveVisibilityEnabled = true
+        currentUserLiveVisibilityMode = .allFriends
+        currentUserSelectedLiveVisibilityFriendIDs = []
+        isUpdatingLiveVisibilitySetting = false
         currentUserAuthId = nil
 
         favoriteVenueIDs = []
@@ -239,6 +255,7 @@ extension MapViewModel {
         commentIDsReportedByCurrentUser = []
         userProfilesByEmail = [:]
         myVenueEventVibes = [:]
+        venueEventVibeWriteInFlightKeys = []
         venueUserStarRatings = [:]
         venueRatingContributionCount = [:]
         Task { [weak self] in
@@ -354,7 +371,19 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
+        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+
+    private static let userProfileIdentitySelectColumns =
+        "id,email,display_name,username,avatar_url,avatar_thumbnail_url"
+
+    private struct UserProfileIdentityRow: Decodable {
+        let id: UUID?
+        let email: String?
+        let display_name: String?
+        let username: String?
+        let avatar_url: String?
+        let avatar_thumbnail_url: String?
+    }
 
     private static func logPostgrestError(_ prefix: String, _ error: Error) {
         print("\(prefix):", error)
@@ -365,6 +394,70 @@ extension MapViewModel {
         }
         let ns = error as NSError
         print("\(prefix) NSError domain=\(ns.domain) code=\(ns.code) userInfo=\(ns.userInfo)")
+    }
+
+    private static func liveVisibilityErrorText(_ error: Error) -> String {
+        let ns = error as NSError
+        var parts = [
+            error.localizedDescription,
+            ns.domain,
+            "\(ns.code)"
+        ]
+        if let pe = error as? PostgrestError {
+            parts.append(pe.code ?? "")
+            parts.append(pe.message)
+            parts.append(pe.detail ?? "")
+            parts.append(pe.hint ?? "")
+        }
+        return parts.joined(separator: " ").lowercased()
+    }
+
+    private static func isMissingLiveVisibilityAudienceColumnsError(_ error: Error) -> Bool {
+        let text = liveVisibilityErrorText(error)
+        let mentionsColumn = text.contains("live_visibility_mode")
+            || text.contains("selected_live_visibility_friend_ids")
+        return mentionsColumn
+            && (
+                text.contains("column")
+                || text.contains("schema cache")
+                || text.contains("pgrst204")
+                || text.contains("not find")
+                || text.contains("does not exist")
+            )
+    }
+
+    private static func isMissingLiveVisibilityEnabledColumnError(_ error: Error) -> Bool {
+        let text = liveVisibilityErrorText(error)
+        return text.contains("live_visibility_enabled")
+            && (
+                text.contains("column")
+                || text.contains("schema cache")
+                || text.contains("pgrst204")
+                || text.contains("not find")
+                || text.contains("does not exist")
+            )
+    }
+
+    private static func trimmedNonEmpty(_ raw: String?) -> String {
+        raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private static func emailLocalDisplayFallback(for email: String) -> String {
+        let local = OwnerBusinessEmail.normalized(email)
+            .split(separator: "@")
+            .first
+            .map(String.init) ?? ""
+        guard !local.isEmpty else { return "" }
+        return local.prefix(1).uppercased() + local.dropFirst()
+    }
+
+    private static func isEmailFallbackDisplayName(_ displayName: String, email: String) -> Bool {
+        let candidate = displayName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !candidate.isEmpty else { return false }
+        let normalizedEmail = OwnerBusinessEmail.normalized(email)
+        let local = normalizedEmail.split(separator: "@").first.map(String.init)?.lowercased() ?? ""
+        guard !local.isEmpty else { return false }
+        return candidate == local || candidate == emailLocalDisplayFallback(for: normalizedEmail).lowercased()
     }
 
     /// Ensures `public.user_profiles` has a row with `id == auth.uid`; inserts a minimal row if missing. Does not use email as PK or random UUIDs.
@@ -379,6 +472,7 @@ extension MapViewModel {
         let authId = session.user.id
 #if DEBUG
         print("[ProfileBootstrap] auth uid = \(authId)")
+        print("[ProfilePersistenceDebug] loadingProfileForUserId=\(authId.uuidString.lowercased())")
 #endif
 
         do {
@@ -393,11 +487,18 @@ extension MapViewModel {
             if existing.first != nil {
 #if DEBUG
                 print("[ProfileBootstrap] profile found")
+                print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
                 await MainActor.run { currentUserAuthId = authId }
                 return
             }
+#if DEBUG
+            print("[ProfilePersistenceDebug] existingProfileFound=false")
+#endif
         } catch {
+#if DEBUG
+            print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
+#endif
             Self.logPostgrestError("[ProfileBootstrap] error querying user_profiles by id", error)
             return
         }
@@ -428,7 +529,10 @@ extension MapViewModel {
             email: emailForRow,
             display_name: "",
             avatar_url: "",
-            avatar_thumbnail_url: nil
+            avatar_thumbnail_url: nil,
+            live_visibility_enabled: true,
+            live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
+            selected_live_visibility_friend_ids: []
         )
 
         do {
@@ -506,6 +610,7 @@ extension MapViewModel {
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
+                currentUserIsBusinessAccount = false
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
 
@@ -577,6 +682,7 @@ extension MapViewModel {
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
+                currentUserIsBusinessAccount = false
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
 
@@ -736,8 +842,12 @@ extension MapViewModel {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserUsername = UserDefaults.standard.string(forKey: "cachedUserUsername") ?? ""
+            currentUserIsBusinessAccount = false
             currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
             currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
+            currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
+            currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
+            currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
             currentUserEmail = sessionEmail
             isLoggedIn = !sessionEmail.isEmpty
             isVenueOwnerLoggedIn = false
@@ -844,8 +954,12 @@ extension MapViewModel {
                     venueOwnerEmail = ""
                     currentUserEmail = ""
                     currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+                    currentUserIsBusinessAccount = false
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
+                    currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
+                    currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
+                    currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
                     currentUserAuthId = session.user.id
                     clearVenueOwnerOwnedBusinessCaches()
                     ownerVenueDatabaseId = nil
@@ -1000,6 +1114,9 @@ extension MapViewModel {
             guard await checkCurrentUserAdminStatus() else { return }
 
             let authId = session.user.id
+#if DEBUG
+            print("[ProfilePersistenceDebug] loadingProfileForUserId=\(authId.uuidString.lowercased())")
+#endif
             do {
                 let rows: [UserProfileRow] = try await supabase
                     .from("user_profiles")
@@ -1010,31 +1127,37 @@ extension MapViewModel {
                     .value
 
                 if let profile = rows.first {
+#if DEBUG
+                    print("[ProfilePersistenceDebug] existingProfileFound=true")
+#endif
                     await MainActor.run {
                         if let em = profile.email?.trimmingCharacters(in: .whitespacesAndNewlines), !em.isEmpty {
                             currentUserEmail = em
                         }
                         currentUserDisplayName = profile.display_name ?? ""
                         currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        currentUserIsBusinessAccount = profile.isBusinessIdentity
                         currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                         currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
+                        currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
+                        currentUserLiveVisibilityMode = profile.liveVisibilityMode
+                        currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
                         currentUserAuthId = authId
                         cacheCurrentUserProfileLocally()
                     }
 
                     print("USER PROFILE LOADED")
                 } else {
-                    await MainActor.run {
-                        currentUserDisplayName = ""
-                        currentUserUsername = ""
-                        currentUserAvatarURL = ""
-                        currentUserAvatarThumbnailURL = ""
-                    }
-
+#if DEBUG
+                    print("[ProfilePersistenceDebug] existingProfileFound=false")
+#endif
                     print("NO USER PROFILE FOUND")
                 }
 
             } catch {
+#if DEBUG
+                print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
+#endif
                 print("ERROR LOADING USER PROFILE:", error)
             }
             return
@@ -1058,27 +1181,33 @@ extension MapViewModel {
                 .value
 
             if let profile = rows.first {
+#if DEBUG
+                print("[ProfilePersistenceDebug] existingProfileFound=true")
+#endif
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
                     currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    currentUserIsBusinessAccount = profile.isBusinessIdentity
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
+                    currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
+                    currentUserLiveVisibilityMode = profile.liveVisibilityMode
+                    currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
                     cacheCurrentUserProfileLocally()
                 }
 
                 print("USER PROFILE LOADED")
             } else {
-                await MainActor.run {
-                    currentUserDisplayName = ""
-                    currentUserUsername = ""
-                    currentUserAvatarURL = ""
-                    currentUserAvatarThumbnailURL = ""
-                }
-
+#if DEBUG
+                print("[ProfilePersistenceDebug] existingProfileFound=false")
+#endif
                 print("NO USER PROFILE FOUND")
             }
 
         } catch {
+#if DEBUG
+            print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
+#endif
             print("ERROR LOADING USER PROFILE:", error)
         }
     }
@@ -1160,6 +1289,7 @@ extension MapViewModel {
         print("[ProfileSave] auth user id = \(authId)")
         print("[ProfileSave] profile upsert id = \(authId)")
         print("[ProfileSave] current email = \(emailForRow)")
+        print("[ProfilePersistenceDebug] loadingProfileForUserId=\(authId.uuidString.lowercased())")
 #endif
 
         if let cached = currentUserAuthId, cached != authId {
@@ -1169,7 +1299,43 @@ extension MapViewModel {
         }
         await MainActor.run { currentUserAuthId = authId }
 
-        if Self.normalizedDisplayNameForUniqueness(displayName) != nil {
+        let existingProfile: UserProfileIdentityRow?
+        do {
+            let rows: [UserProfileIdentityRow] = try await supabase
+                .from("user_profiles")
+                .select(Self.userProfileIdentitySelectColumns)
+                .eq("id", value: authId.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+            existingProfile = rows.first
+#if DEBUG
+            print("[ProfilePersistenceDebug] existingProfileFound=\(existingProfile != nil)")
+#endif
+        } catch {
+#if DEBUG
+            print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
+            print("[ProfilePersistenceDebug] preventedBlankProfileOverwrite=true reason=existing_profile_unavailable")
+#endif
+            return "Couldn’t verify your existing profile before saving. Please try again."
+        }
+
+        let localDisplayWasBlank = await MainActor.run {
+            currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        let incomingDisplay = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existingDisplay = Self.trimmedNonEmpty(existingProfile?.display_name)
+        let finalDisplayName: String
+        var preventedBlankProfileOverwrite = false
+        if !existingDisplay.isEmpty,
+           incomingDisplay.isEmpty || (localDisplayWasBlank && Self.isEmailFallbackDisplayName(incomingDisplay, email: emailForRow)) {
+            finalDisplayName = existingDisplay
+            preventedBlankProfileOverwrite = true
+        } else {
+            finalDisplayName = displayName
+        }
+
+        if Self.normalizedDisplayNameForUniqueness(finalDisplayName) != nil {
             struct RpcParams: Encodable {
                 let p_display_name: String
                 let p_exclude_user_id: UUID
@@ -1178,7 +1344,7 @@ extension MapViewModel {
                 let available: Bool = try await supabase
                     .rpc(
                         "check_display_name_normalized_available",
-                        params: RpcParams(p_display_name: displayName, p_exclude_user_id: authId)
+                        params: RpcParams(p_display_name: finalDisplayName, p_exclude_user_id: authId)
                     )
                     .execute()
                     .value
@@ -1219,6 +1385,14 @@ extension MapViewModel {
 
         do {
             let canonFull = ImageDisplayURL.canonicalStorageURLString(avatarURL)
+            let existingAvatarURL = ImageDisplayURL.canonicalStorageURLString(existingProfile?.avatar_url)
+            let finalAvatarURL: String
+            if canonFull.isEmpty, !existingAvatarURL.isEmpty {
+                finalAvatarURL = existingAvatarURL
+                preventedBlankProfileOverwrite = true
+            } else {
+                finalAvatarURL = canonFull
+            }
 
             let resolvedThumb: String? = {
                 if let t = avatarThumbnailURL {
@@ -1232,15 +1406,47 @@ extension MapViewModel {
                 let c = ImageDisplayURL.canonicalStorageURLString(x)
                 return c.isEmpty ? nil : c
             }()
+            let existingAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(existingProfile?.avatar_thumbnail_url)
+            let finalAvatarThumbnailURL: String? = {
+                let incoming = ImageDisplayURL.canonicalStorageURLString(resolvedThumb)
+                if incoming.isEmpty, !existingAvatarThumbnailURL.isEmpty {
+                    preventedBlankProfileOverwrite = true
+                    return existingAvatarThumbnailURL
+                }
+                return incoming.isEmpty ? nil : incoming
+            }()
+
+            let existingUsername = Self.trimmedNonEmpty(existingProfile?.username)
+            let finalUsernameToSave: String?
+            if usernameToSave == nil, !existingUsername.isEmpty {
+                finalUsernameToSave = FanGeoHandleRules.normalizeForStorage(existingUsername)
+                preventedBlankProfileOverwrite = true
+            } else {
+                finalUsernameToSave = usernameToSave
+            }
 
             let profile = UserProfileInsert(
                 id: authId,
                 email: emailForRow,
-                display_name: displayName,
-                username: usernameToSave,
-                avatar_url: canonFull,
-                avatar_thumbnail_url: resolvedThumb
+                display_name: finalDisplayName,
+                username: finalUsernameToSave,
+                avatar_url: finalAvatarURL,
+                avatar_thumbnail_url: finalAvatarThumbnailURL,
+                live_visibility_enabled: currentUserLiveVisibilityEnabled,
+                live_visibility_mode: currentUserLiveVisibilityMode.rawValue,
+                selected_live_visibility_friend_ids: currentUserSelectedLiveVisibilityFriendIDs
+                    .sorted { $0.uuidString < $1.uuidString }
+                    .map { $0.uuidString.lowercased() }
             )
+
+#if DEBUG
+            print(
+                "[ProfilePersistenceDebug] profileUpsertPayload=id=\(authId.uuidString.lowercased()), email=\(emailForRow), displayNameEmpty=\(finalDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), usernameEmpty=\((finalUsernameToSave ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), avatarEmpty=\(finalAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), live_visibility_enabled=\(currentUserLiveVisibilityEnabled), live_visibility_mode=\(currentUserLiveVisibilityMode.rawValue), selectedFriendCount=\(currentUserSelectedLiveVisibilityFriendIDs.count)"
+            )
+            if preventedBlankProfileOverwrite {
+                print("[ProfilePersistenceDebug] preventedBlankProfileOverwrite=true")
+            }
+#endif
 
             try await supabase
                 .from("user_profiles")
@@ -1251,12 +1457,12 @@ extension MapViewModel {
                 if currentUserEmail != emailForRow {
                     currentUserEmail = emailForRow
                 }
-                currentUserDisplayName = displayName
-                if let usernameToSave {
-                    currentUserUsername = usernameToSave
+                currentUserDisplayName = finalDisplayName
+                if let finalUsernameToSave {
+                    currentUserUsername = finalUsernameToSave
                 }
-                currentUserAvatarURL = canonFull
-                currentUserAvatarThumbnailURL = resolvedThumb ?? ""
+                currentUserAvatarURL = finalAvatarURL
+                currentUserAvatarThumbnailURL = finalAvatarThumbnailURL ?? ""
                 cacheCurrentUserProfileLocally()
                 bumpCurrentUserAvatarDisplayRefresh()
             }
@@ -1274,6 +1480,235 @@ extension MapViewModel {
             }
             return "Couldn’t save your profile. Please try again."
         }
+    }
+
+    func setLiveVisibilityEnabled(_ enabled: Bool) async {
+        await setLiveVisibilitySettings(
+            enabled: enabled,
+            mode: currentUserLiveVisibilityMode,
+            selectedFriendIDs: currentUserSelectedLiveVisibilityFriendIDs
+        )
+    }
+
+    func setLiveVisibilityMode(_ mode: LiveVisibilityMode) async {
+        await setLiveVisibilitySettings(
+            enabled: currentUserLiveVisibilityEnabled,
+            mode: mode,
+            selectedFriendIDs: currentUserSelectedLiveVisibilityFriendIDs
+        )
+    }
+
+    func setSelectedLiveVisibilityFriendIDs(_ selectedFriendIDs: Set<UUID>) async {
+        await setLiveVisibilitySettings(
+            enabled: currentUserLiveVisibilityEnabled,
+            mode: currentUserLiveVisibilityMode,
+            selectedFriendIDs: selectedFriendIDs
+        )
+    }
+
+    func setLiveVisibilitySettings(
+        enabled: Bool,
+        mode: LiveVisibilityMode,
+        selectedFriendIDs: Set<UUID>
+    ) async {
+        guard canUseFanSocialFeatures else {
+            await MainActor.run {
+                socialActionToastText = "Live friend presence is available for fan accounts only."
+                socialActionToastIsError = true
+            }
+            return
+        }
+
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            await MainActor.run {
+                socialActionToastText = "Sign in to update Live visibility."
+                socialActionToastIsError = true
+            }
+            return
+        }
+
+        let selectedIDs = selectedFriendIDs.sorted { $0.uuidString < $1.uuidString }
+        let selectedIDStrings = selectedIDs.map { $0.uuidString.lowercased() }
+        let payloadDebugDescription = "enabled=\(enabled), mode=\(mode.rawValue), selected_live_visibility_friend_ids=\(selectedIDStrings)"
+        let previous = await MainActor.run {
+            (
+                enabled: currentUserLiveVisibilityEnabled,
+                mode: currentUserLiveVisibilityMode,
+                selectedFriendIDs: currentUserSelectedLiveVisibilityFriendIDs
+            )
+        }
+
+        if previous.enabled == enabled,
+           previous.mode == mode,
+           previous.selectedFriendIDs == Set(selectedIDs) {
+#if DEBUG
+            print("[LiveVisibilityDebug] no changes; skipping save")
+            print("[LiveVisibilityDebug] selectedFriendCount=\(selectedIDs.count)")
+#endif
+            return
+        }
+
+#if DEBUG
+        print("[LiveVisibilityDebug] payload=\(payloadDebugDescription)")
+        print("[LiveVisibilityDebug] selectedFriendCount=\(selectedIDs.count)")
+        print("[ProfilePersistenceDebug] liveVisibilityUpdatePayload=\(payloadDebugDescription)")
+#endif
+
+        await MainActor.run {
+            currentUserLiveVisibilityEnabled = enabled
+            currentUserLiveVisibilityMode = mode
+            currentUserSelectedLiveVisibilityFriendIDs = Set(selectedIDs)
+            isUpdatingLiveVisibilitySetting = true
+            applyCurrentUserLiveVisibilityToProfileCaches(
+                enabled: enabled,
+                mode: mode,
+                selectedFriendIDs: selectedIDs,
+                userId: session.user.id
+            )
+            cacheCurrentUserProfileLocally()
+        }
+
+        do {
+            let response = try await supabase
+                .from("user_profiles")
+                .update(
+                    UserLiveVisibilityPatch(
+                        live_visibility_enabled: enabled,
+                        live_visibility_mode: mode.rawValue,
+                        selected_live_visibility_friend_ids: selectedIDStrings
+                    )
+                )
+                .eq("id", value: session.user.id.uuidString.lowercased())
+                .execute()
+
+#if DEBUG
+            print("[LiveVisibilityDebug] response=\(response)")
+#endif
+
+            await MainActor.run {
+                isUpdatingLiveVisibilitySetting = false
+                refreshLiveVisibilityPresentationCaches()
+            }
+        } catch {
+            if Self.isMissingLiveVisibilityAudienceColumnsError(error) {
+#if DEBUG
+                print("[LiveVisibilityDebug] error=\(error)")
+                Self.logPostgrestError("[LiveVisibilityDebug] missing audience columns; trying boolean-only fallback", error)
+#endif
+                do {
+                    let fallbackResponse = try await supabase
+                        .from("user_profiles")
+                        .update(UserLiveVisibilityEnabledPatch(live_visibility_enabled: enabled))
+                        .eq("id", value: session.user.id.uuidString.lowercased())
+                        .execute()
+
+#if DEBUG
+                    print("[LiveVisibilityDebug] response=\(fallbackResponse)")
+#endif
+
+                    await MainActor.run {
+                        isUpdatingLiveVisibilitySetting = false
+                        refreshLiveVisibilityPresentationCaches()
+                        if mode == .selectedFriends {
+                            socialActionToastText = "Live sharing was updated, but Selected Friends needs the latest Supabase migration."
+                            socialActionToastIsError = true
+                        }
+                    }
+                    return
+                } catch {
+#if DEBUG
+                    print("[LiveVisibilityDebug] error=\(error)")
+                    Self.logPostgrestError("[LiveVisibilityDebug] boolean-only fallback failed", error)
+#endif
+                    await MainActor.run {
+                        currentUserLiveVisibilityEnabled = previous.enabled
+                        currentUserLiveVisibilityMode = previous.mode
+                        currentUserSelectedLiveVisibilityFriendIDs = previous.selectedFriendIDs
+                        isUpdatingLiveVisibilitySetting = false
+                        applyCurrentUserLiveVisibilityToProfileCaches(
+                            enabled: previous.enabled,
+                            mode: previous.mode,
+                            selectedFriendIDs: previous.selectedFriendIDs.sorted { $0.uuidString < $1.uuidString },
+                            userId: session.user.id
+                        )
+                        cacheCurrentUserProfileLocally()
+                        socialActionToastText = Self.isMissingLiveVisibilityEnabledColumnError(error)
+                            ? "Live visibility needs the latest Supabase migration before it can be saved."
+                            : "Couldn’t update Live visibility. Please try again."
+                        socialActionToastIsError = true
+                    }
+                    return
+                }
+            }
+
+            await MainActor.run {
+                currentUserLiveVisibilityEnabled = previous.enabled
+                currentUserLiveVisibilityMode = previous.mode
+                currentUserSelectedLiveVisibilityFriendIDs = previous.selectedFriendIDs
+                isUpdatingLiveVisibilitySetting = false
+                applyCurrentUserLiveVisibilityToProfileCaches(
+                    enabled: previous.enabled,
+                    mode: previous.mode,
+                    selectedFriendIDs: previous.selectedFriendIDs.sorted { $0.uuidString < $1.uuidString },
+                    userId: session.user.id
+                )
+                cacheCurrentUserProfileLocally()
+                socialActionToastText = "Couldn’t update Live visibility. Please try again."
+                socialActionToastIsError = true
+            }
+#if DEBUG
+            print("[LiveVisibilityDebug] error=\(error)")
+            Self.logPostgrestError("[LiveVisibility] update failed", error)
+#endif
+        }
+    }
+
+    @MainActor
+    private func applyCurrentUserLiveVisibilityToProfileCaches(
+        enabled: Bool,
+        mode: LiveVisibilityMode,
+        selectedFriendIDs: [UUID],
+        userId: UUID
+    ) {
+        func patched(_ row: UserProfileRow) -> UserProfileRow {
+            UserProfileRow(
+                id: row.id,
+                email: row.email,
+                display_name: row.display_name,
+                username: row.username,
+                avatar_url: row.avatar_url,
+                avatar_thumbnail_url: row.avatar_thumbnail_url,
+                is_business_account: row.is_business_account,
+                admin_status: row.admin_status,
+                live_visibility_enabled: enabled,
+                live_visibility_mode: mode.rawValue,
+                selected_live_visibility_friend_ids: selectedFriendIDs
+            )
+        }
+
+        let currentEmail = OwnerBusinessEmail.normalized(currentUserEmail)
+        for (key, row) in userProfilesByEmail {
+            let rowEmail = OwnerBusinessEmail.normalized(row.email ?? "")
+            if row.id == userId || (!currentEmail.isEmpty && rowEmail == currentEmail) {
+                userProfilesByEmail[key] = patched(row)
+            }
+        }
+
+        goingUserProfiles = goingUserProfiles.map { $0.id == userId ? patched($0) : $0 }
+        for eventID in goingProfilesByVenueEventID.keys {
+            goingProfilesByVenueEventID[eventID] = goingProfilesByVenueEventID[eventID]?.map {
+                $0.id == userId ? patched($0) : $0
+            }
+        }
+    }
+
+    @MainActor
+    private func refreshLiveVisibilityPresentationCaches() {
+        fanUpdatesGoingProfilePrefetchedAt.removeAll()
+        refreshFollowingInterestDerivedSnapshotsForUI()
     }
 
     /// Same normalization as ``display_name_normalized`` in Postgres: `lower(trim)`; empty → unavailable for uniqueness checks.
@@ -1404,6 +1839,21 @@ extension MapViewModel {
         UserDefaults.standard.set(currentUserUsername, forKey: "cachedUserUsername")
         UserDefaults.standard.set(currentUserAvatarURL, forKey: "cachedUserAvatarURL")
         UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
+        UserDefaults.standard.set(currentUserLiveVisibilityEnabled, forKey: "cachedUserLiveVisibilityEnabled")
+        UserDefaults.standard.set(currentUserLiveVisibilityMode.rawValue, forKey: "cachedUserLiveVisibilityMode")
+        UserDefaults.standard.set(
+            currentUserSelectedLiveVisibilityFriendIDs.map { $0.uuidString.lowercased() }.sorted(),
+            forKey: "cachedUserSelectedLiveVisibilityFriendIDs"
+        )
+    }
+
+    private func cachedLiveVisibilityMode() -> LiveVisibilityMode {
+        LiveVisibilityMode(rawValue: UserDefaults.standard.string(forKey: "cachedUserLiveVisibilityMode") ?? "") ?? .allFriends
+    }
+
+    private func cachedSelectedLiveVisibilityFriendIDs() -> Set<UUID> {
+        let raw = UserDefaults.standard.stringArray(forKey: "cachedUserSelectedLiveVisibilityFriendIDs") ?? []
+        return Set(raw.compactMap(UUID.init(uuidString:)))
     }
 
     enum PasswordResetAccountKind {

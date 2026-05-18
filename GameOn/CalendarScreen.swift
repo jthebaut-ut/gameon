@@ -225,48 +225,18 @@ struct CalendarScreen: View {
     }
 
     private var gameTypeFilter: some View {
-        let track = RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(Color.primary.opacity(calendarColorScheme == .dark ? 0.14 : 0.07))
-        return HStack(spacing: 0) {
-            ForEach(calendarVisibleGameFilters) { filter in
-                Button {
-                    viewModel.calendarTabGameFilter = filter
-                } label: {
-                    Text(filter.segmentTitle)
-                        .font(.subheadline.weight(viewModel.calendarTabGameFilter == filter ? .semibold : .medium))
-                        .foregroundStyle(viewModel.calendarTabGameFilter == filter ? Color.white : .primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .padding(.horizontal, 4)
-                        .background {
-                            if viewModel.calendarTabGameFilter == filter {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(calendarFilterSelectedColor(filter).opacity(calendarColorScheme == .dark ? 0.72 : 0.92))
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(filter.segmentTitle)
-            }
-        }
-        .padding(3)
-        .background(track)
-        .overlay {
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .strokeBorder(Color.primary.opacity(calendarColorScheme == .dark ? 0.12 : 0.08), lineWidth: 1)
-        }
+        GameOnSegmentedControl(
+            tabs: calendarVisibleGameFilters.map { filter in
+                GameOnSegmentedTab(
+                    id: filter,
+                    title: filter.segmentTitle,
+                    tint: FGColor.accentGreen,
+                    accessibilityLabel: "Show \(filter.segmentTitle)"
+                )
+            },
+            selection: $viewModel.calendarTabGameFilter
+        )
         .padding(.horizontal)
-    }
-
-    private func calendarFilterSelectedColor(_ filter: CalendarTabGameFilter) -> Color {
-        switch filter {
-        case .venueGames, .pickupGames:
-            return Color.accentColor
-        case .live:
-            return Color.accentColor
-        }
     }
 
     private var dateButton: some View {

@@ -381,6 +381,9 @@ extension MapViewModel {
                 await refreshPickupMyJoinRequestsForDiscoverGames(gameIds: filtered.map(\.id))
                 await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
             }
+            if !isGuestDiscoverMode {
+                await loadPickupCreatorProfilesIfNeeded(creatorUserIds: Set(filtered.map(\.creator_user_id)))
+            }
             if isGuestDiscoverMode, filtered.isEmpty {
                 loadDiscoverCalendarDots(around: selectedDate, reason: "pickup_map_refresh_guest_empty_day")
             }

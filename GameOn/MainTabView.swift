@@ -253,6 +253,7 @@ struct MainTabView: View {
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
                 chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
+                await viewModel.verifyFanChatRealtimeAfterForeground()
                 await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
                 if viewModel.canFanUsePickupGamesUI {
                     if AppTab(rawValue: selectedTabStorage) == .calendar {

@@ -150,6 +150,21 @@ final class MapViewModel: ObservableObject {
     var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] = [:]
     var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
     var venueEventCommentsRealtimeListenerTokens: [UUID: UUID] = [:]
+    var venueEventCommentsRealtimeReadyIDs: Set<UUID> = []
+    var venueEventCommentsRealtimeSubscribeStartedAt: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentRealtimeReceivedServerIDs: Set<UUID> = []
+    var venueEventCommentInsertSuccessTimesByServerID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentRealtimeFallbackTasks: [UUID: Task<Void, Never>] = [:]
+    var fanChatReceiverRefreshBurstTasks: [UUID: Task<Void, Never>] = [:]
+    var fanChatAutoRefreshInFlightIDs: Set<UUID> = []
+    var venueEventCommentDebugSendTapDatesByLocalID: [UUID: Date] = [:]
+    var venueEventCommentDebugSendTapTimesByServerID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentDebugReceivedDatesByServerID: [UUID: Date] = [:]
+    var venueEventCommentDebugFallbackCommentIDs: Set<UUID> = []
+    var venueEventCommentLatencySendTimesByLocalID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentLatencySendTimesByServerID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentLatencyLastSendTimeByEventID: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentLatencyInsertStartTimesByLocalID: [UUID: CFAbsoluteTime] = [:]
     @Published var venueEventIDsByKey: [String: UUID] = [:]
     @Published var visibleLatitudeDelta: Double = 0.55
     @Published var userProfilesByEmail: [String: UserProfileRow] = [:]
@@ -157,6 +172,7 @@ final class MapViewModel: ObservableObject {
     @Published var reportedCommentDisplays: [ReportedCommentDisplay] = []
     @Published var venueEventVibeCounts: [UUID: [String: Int]] = [:]
     @Published var myVenueEventVibes: [UUID: Set<String>] = [:]
+    var venueEventVibeWriteInFlightKeys: Set<String> = []
     
     @AppStorage("notifyBeforeGame")
     var notifyBeforeGame: Bool = true
@@ -207,7 +223,11 @@ final class MapViewModel: ObservableObject {
     /// Last known GPS fix for the signed-in user (Discover weather, “my location”, startup centering).
     @Published var currentUserLocation: CLLocationCoordinate2D?
     @Published var calendarSyncMessage: String = ""
-    @Published var venueEventRows: [VenueEventRow] = []
+    @Published var venueEventRows: [VenueEventRow] = [] {
+        didSet {
+            scheduleFanChatAppLevelRealtimeForLoadedVenueEvents()
+        }
+    }
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
     /// Discover calendar overlay: venue ``venue_events`` days from RPC (green dots; Venues map mode only).
@@ -222,8 +242,13 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserDisplayName: String = ""
     /// Stored without `@`, lowercase — public FanGeo handle.
     @Published var currentUserUsername: String = ""
+    @Published var currentUserIsBusinessAccount: Bool = false
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
+    @Published var currentUserLiveVisibilityEnabled: Bool = true
+    @Published var currentUserLiveVisibilityMode: LiveVisibilityMode = .allFriends
+    @Published var currentUserSelectedLiveVisibilityFriendIDs: Set<UUID> = []
+    @Published var isUpdatingLiveVisibilitySetting: Bool = false
     /// Bumped after avatar profile save (and related clears) so UI uses a new `?v=` display URL while stored URLs stay canonical.
     @Published var currentUserAvatarDisplayRefreshToken: UUID = UUID()
     var authenticatedBusinessDisplayNameForSocialFeatures: String {
@@ -300,6 +325,12 @@ final class MapViewModel: ObservableObject {
     @Published var goingProfilesByVenueEventID: [UUID: [UserProfileRow]] = [:]
     @Published var venueEventCommentPreviewCounts: [UUID: Int] = [:]
     @Published var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] = [:]
+    var fanChatAppLevelRealtimeTask: Task<Void, Never>?
+    var fanChatAppLevelRealtimeChannel: RealtimeChannelV2?
+    var fanChatAppLevelRealtimeTrackedEventIDs: [UUID] = []
+    var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>?
+    var fanChatAppLevelSeenCommentIDs: Set<UUID> = []
+    var fanChatCommentCountReconcileTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesCommentPrefetchTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesGoingProfilePrefetchTasks: [UUID: Task<Void, Never>] = [:]

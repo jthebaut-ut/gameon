@@ -7,6 +7,7 @@ extension MapViewModel {
     }
 
     func refreshGameNotificationAuthorizationState() async {
+        print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         let status = await gameReminderService.authorizationStatus()
         switch status {
         case .denied:
@@ -23,11 +24,13 @@ extension MapViewModel {
     }
 
     func setGameNotificationsEnabled(_ enabled: Bool) async {
+        print("[NotificationSettingsDebug] save notifyBeforeGame requested=\(enabled)")
         if enabled {
             let granted = await gameReminderService.requestAuthorizationIfNeeded()
             guard granted else {
                 notifyBeforeGame = false
                 notificationPermissionMessage = "Notifications are off for FanGeo. Turn them on in iOS Settings to receive game reminders."
+                print("[NotificationSettingsDebug] save notifyBeforeGame deniedBySystem")
                 return
             }
 
@@ -42,6 +45,7 @@ extension MapViewModel {
     }
 
     func gameReminderPreferenceDidChange() async {
+        print("[NotificationSettingsDebug] save reminderPreference notifyBeforeGame=\(notifyBeforeGame) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         print("[NotificationDebug] reminderPreference=\(reminderMinutesBefore)")
         guard notifyBeforeGame else { return }
         await rescheduleAvailableGameReminders(reason: "preferenceChanged")

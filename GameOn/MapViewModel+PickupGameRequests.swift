@@ -127,40 +127,66 @@ extension MapViewModel {
 
     /// Loads `user_profiles` display name + avatar URLs + email for pickup detail (existing columns only).
     func loadPickupCreatorDisplayNameIfNeeded(creatorUserId: UUID) async {
-        let shouldFetch = await MainActor.run { () -> Bool in
-            if pickupCreatorAvatarTokenByUserId[creatorUserId] != nil {
-                return false
+        await loadPickupCreatorProfilesIfNeeded(creatorUserIds: [creatorUserId])
+    }
+
+    /// Batch-loads organizer profile hints for pickup cards without per-card profile queries.
+    func loadPickupCreatorProfilesIfNeeded(creatorUserIds: Set<UUID>) async {
+        let idsToFetch = await MainActor.run { () -> [UUID] in
+            let missing = creatorUserIds.filter { pickupCreatorAvatarTokenByUserId[$0] == nil }
+            for id in missing {
+                pickupCreatorAvatarTokenByUserId[id] = UUID()
             }
-            pickupCreatorAvatarTokenByUserId[creatorUserId] = UUID()
-            return true
+            return Array(missing)
         }
-        guard shouldFetch else { return }
+        guard !idsToFetch.isEmpty else { return }
 
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url")
-                .eq("id", value: creatorUserId.uuidString.lowercased())
-                .limit(1)
+                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,is_business_account")
+                .in("id", values: idsToFetch.map { $0.uuidString.lowercased() })
+                .limit(idsToFetch.count)
                 .execute()
                 .value
-            let row = rows.first
-            let name = row?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let email = row?.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let full = ImageDisplayURL.canonicalStorageURLString(row?.avatar_url)
-            let thumb = ImageDisplayURL.canonicalStorageURLString(row?.avatar_thumbnail_url)
+            let rowsById = Dictionary(uniqueKeysWithValues: rows.compactMap { row -> (UUID, UserProfileRow)? in
+                guard let id = row.id else { return nil }
+                return (id, row)
+            })
+
             await MainActor.run {
-                pickupCreatorDisplayNameByUserId[creatorUserId] = name
-                pickupCreatorEmailByUserId[creatorUserId] = email
-                pickupCreatorAvatarURLByUserId[creatorUserId] = full
-                pickupCreatorAvatarThumbnailURLByUserId[creatorUserId] = thumb
+                for id in idsToFetch {
+                    let row = rowsById[id]
+                    let isBusiness = row?.is_business_account == true
+                    let name = isBusiness ? "" : (row?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                    let email = isBusiness ? "" : (row?.email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                    let full = isBusiness ? "" : ImageDisplayURL.canonicalStorageURLString(row?.avatar_url)
+                    let thumb = isBusiness ? "" : ImageDisplayURL.canonicalStorageURLString(row?.avatar_thumbnail_url)
+                    pickupCreatorDisplayNameByUserId[id] = name
+                    pickupCreatorEmailByUserId[id] = email
+                    pickupCreatorAvatarURLByUserId[id] = full
+                    pickupCreatorAvatarThumbnailURLByUserId[id] = thumb
+                    pickupCreatorAvatarTokenByUserId[id] = UUID()
+                    PickupOrganizerDebug.log(
+                        organizerUserId: id,
+                        organizerAvatarUrl: ImageDisplayURL.forList(thumbnail: thumb, full: full) ?? "",
+                        organizerDisplayName: name
+                    )
+                }
             }
         } catch {
             await MainActor.run {
-                pickupCreatorDisplayNameByUserId[creatorUserId] = ""
-                pickupCreatorEmailByUserId[creatorUserId] = ""
-                pickupCreatorAvatarURLByUserId[creatorUserId] = ""
-                pickupCreatorAvatarThumbnailURLByUserId[creatorUserId] = ""
+                for id in idsToFetch {
+                    pickupCreatorDisplayNameByUserId[id] = ""
+                    pickupCreatorEmailByUserId[id] = ""
+                    pickupCreatorAvatarURLByUserId[id] = ""
+                    pickupCreatorAvatarThumbnailURLByUserId[id] = ""
+                    PickupOrganizerDebug.log(
+                        organizerUserId: id,
+                        organizerAvatarUrl: "",
+                        organizerDisplayName: ""
+                    )
+                }
             }
         }
     }
@@ -1082,9 +1108,7 @@ extension MapViewModel {
                 return $0.pickupGameId.uuidString < $1.pickupGameId.uuidString
             }
 
-            for cid in Set(cards.map(\.organizerUserId)) {
-                await loadPickupCreatorDisplayNameIfNeeded(creatorUserId: cid)
-            }
+            await loadPickupCreatorProfilesIfNeeded(creatorUserIds: Set(cards.map(\.organizerUserId)))
 
 #if DEBUG
             let activeGamesToPlayCount = cards.filter { $0.pill != .canceledByOrganizer }.count

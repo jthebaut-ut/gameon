@@ -55,7 +55,7 @@ enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
 
     var segmentTitle: String {
         switch self {
-        case .venueGames: return "Venues Games"
+        case .venueGames: return "Venue Games"
         case .pickupGames: return "Pickup Games"
         case .live: return "Live"
         }
@@ -383,13 +383,13 @@ struct AddLocationClaimForm: Sendable {
     /// Human-readable feature line stored in ``venue_claims.venue_features`` (schema has no separate columns for parking / family).
     func mergedVenueFeaturesLine() -> String {
         var bits: [String] = []
-        if servesFood { bits.append("Food & drinks") }
-        if hasWifi { bits.append("Wi‑Fi") }
-        if hasGarden { bits.append("Outdoor / patio") }
-        if hasProjector { bits.append("Projector") }
-        if petFriendly { bits.append("Pet friendly") }
-        if familyFriendly { bits.append("Family friendly") }
-        if parkingAvailable { bits.append("Parking") }
+        if servesFood { bits.append(VenueFeatureDefinitions.foodDrinks.label) }
+        if hasWifi { bits.append(VenueFeatureDefinitions.wifi.label) }
+        if hasGarden { bits.append(VenueFeatureDefinitions.patio.label) }
+        if hasProjector { bits.append(VenueFeatureDefinitions.projector.label) }
+        if petFriendly { bits.append(VenueFeatureDefinitions.petFriendly.label) }
+        if familyFriendly { bits.append(VenueFeatureDefinitions.familyFriendly.label) }
+        if parkingAvailable { bits.append(VenueFeatureDefinitions.parkingAvailable.label) }
         return bits.joined(separator: " · ")
     }
 }
@@ -535,6 +535,22 @@ struct PickupGameCluster: Identifiable {
     var count: Int { rows.count }
 }
 
+enum LiveVisibilityMode: String, Codable, CaseIterable, Identifiable {
+    case allFriends = "all_friends"
+    case selectedFriends = "selected_friends"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .allFriends:
+            return "All Friends"
+        case .selectedFriends:
+            return "Selected Friends"
+        }
+    }
+}
+
 struct UserProfileRow: Decodable {
     let id: UUID?
     let email: String?
@@ -544,6 +560,23 @@ struct UserProfileRow: Decodable {
     let avatar_thumbnail_url: String?
     let is_business_account: Bool?
     let admin_status: String?
+    let live_visibility_enabled: Bool?
+    let live_visibility_mode: String?
+    let selected_live_visibility_friend_ids: [UUID]?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case display_name
+        case username
+        case avatar_url
+        case avatar_thumbnail_url
+        case is_business_account
+        case admin_status
+        case live_visibility_enabled
+        case live_visibility_mode
+        case selected_live_visibility_friend_ids
+    }
 
     init(
         id: UUID?,
@@ -553,7 +586,10 @@ struct UserProfileRow: Decodable {
         avatar_url: String?,
         avatar_thumbnail_url: String?,
         is_business_account: Bool? = nil,
-        admin_status: String? = nil
+        admin_status: String? = nil,
+        live_visibility_enabled: Bool? = nil,
+        live_visibility_mode: String? = nil,
+        selected_live_visibility_friend_ids: [UUID]? = nil
     ) {
         self.id = id
         self.email = email
@@ -563,10 +599,74 @@ struct UserProfileRow: Decodable {
         self.avatar_thumbnail_url = avatar_thumbnail_url
         self.is_business_account = is_business_account
         self.admin_status = admin_status
+        self.live_visibility_enabled = live_visibility_enabled
+        self.live_visibility_mode = live_visibility_mode
+        self.selected_live_visibility_friend_ids = selected_live_visibility_friend_ids
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decodeIfPresent(UUID.self, forKey: .id)
+        email = try c.decodeIfPresent(String.self, forKey: .email)
+        display_name = try c.decodeIfPresent(String.self, forKey: .display_name)
+        username = try c.decodeIfPresent(String.self, forKey: .username)
+        avatar_url = try c.decodeIfPresent(String.self, forKey: .avatar_url)
+        avatar_thumbnail_url = try c.decodeIfPresent(String.self, forKey: .avatar_thumbnail_url)
+        is_business_account = try c.decodeIfPresent(Bool.self, forKey: .is_business_account)
+        admin_status = try c.decodeIfPresent(String.self, forKey: .admin_status)
+        live_visibility_enabled = try c.decodeIfPresent(Bool.self, forKey: .live_visibility_enabled)
+        live_visibility_mode = try c.decodeIfPresent(String.self, forKey: .live_visibility_mode)
+
+        if let ids = try? c.decodeIfPresent([UUID].self, forKey: .selected_live_visibility_friend_ids) {
+            selected_live_visibility_friend_ids = ids
+        } else if let raw = try? c.decodeIfPresent([String].self, forKey: .selected_live_visibility_friend_ids) {
+            selected_live_visibility_friend_ids = raw.compactMap(UUID.init(uuidString:))
+        } else {
+            selected_live_visibility_friend_ids = nil
+        }
     }
 
     var isBusinessIdentity: Bool {
         is_business_account == true
+    }
+
+    func isRegularFanProfile(excludingBusinessOwnerUserIDs businessOwnerUserIDs: Set<UUID> = []) -> Bool {
+        if admin_status != nil, admin_status != "active" { return false }
+        if isBusinessIdentity { return false }
+        if let id, businessOwnerUserIDs.contains(id) { return false }
+        return true
+    }
+
+    var isVisibleForLiveFriendPresence: Bool {
+        liveVisibilityEnabled
+    }
+
+    var liveVisibilityEnabled: Bool {
+        live_visibility_enabled ?? true
+    }
+
+    var liveVisibilityMode: LiveVisibilityMode {
+        LiveVisibilityMode(rawValue: live_visibility_mode ?? "") ?? .allFriends
+    }
+
+    var selectedLiveVisibilityFriendIDs: Set<UUID> {
+        Set(selected_live_visibility_friend_ids ?? [])
+    }
+
+    func isVisibleForLiveFriendPresence(to viewerUserID: UUID?) -> Bool {
+        isFanVisibleForLivePresence(to: viewerUserID)
+    }
+
+    func isFanVisibleForLivePresence(to viewerUserID: UUID?) -> Bool {
+        guard isRegularFanProfile() else { return false }
+        guard liveVisibilityEnabled else { return false }
+        switch liveVisibilityMode {
+        case .allFriends:
+            return true
+        case .selectedFriends:
+            guard let viewerUserID else { return false }
+            return selectedLiveVisibilityFriendIDs.contains(viewerUserID)
+        }
     }
 }
 
@@ -578,6 +678,9 @@ struct UserProfileInsert: Encodable {
     let username: String?
     let avatar_url: String
     let avatar_thumbnail_url: String?
+    let live_visibility_enabled: Bool
+    let live_visibility_mode: String
+    let selected_live_visibility_friend_ids: [String]
 }
 
 /// Initial `user_profiles` row when auth exists but no row yet (`insert` only — never random `id`).
@@ -588,6 +691,19 @@ struct UserProfileBootstrapInsert: Encodable {
     /// Empty string when the column is `NOT NULL` and no asset yet.
     let avatar_url: String
     let avatar_thumbnail_url: String?
+    let live_visibility_enabled: Bool
+    let live_visibility_mode: String
+    let selected_live_visibility_friend_ids: [String]
+}
+
+struct UserLiveVisibilityPatch: Encodable {
+    let live_visibility_enabled: Bool
+    let live_visibility_mode: String
+    let selected_live_visibility_friend_ids: [String]
+}
+
+struct UserLiveVisibilityEnabledPatch: Encodable {
+    let live_visibility_enabled: Bool
 }
 
 struct FavoriteVenueRow: Decodable {

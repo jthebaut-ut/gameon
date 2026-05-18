@@ -166,6 +166,7 @@ enum DiscoverVenueLoadAssembler {
                 hasGarden: row.has_garden ?? false,
                 hasProjector: row.has_projector ?? false,
                 petFriendly: row.pet_friendly ?? false,
+                rawVenueFeatures: row.features,
                 coverPhotoURL: row.cover_photo_url,
                 menuPhotoURL: row.menu_photo_url,
                 coverPhotoThumbnailURL: row.cover_photo_thumbnail_url,

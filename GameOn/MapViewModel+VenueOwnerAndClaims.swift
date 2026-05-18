@@ -2106,7 +2106,7 @@ extension MapViewModel {
 
                 guard !trimmedCover.isEmpty, !trimmedMenu.isEmpty else {
                     await MainActor.run {
-                        venueAuthErrorMessage = "Please upload a venue photo and menu photo before submitting."
+                        venueAuthErrorMessage = "Please upload a venue photo and one other venue image before submitting."
                     }
                     return
                 }

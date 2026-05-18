@@ -18,7 +18,7 @@ extension MapViewModel {
 
     /// Fan-only social participation (saved venues, going, ratings, pickup join, Following tab lists). Does **not** include private DM/chat.
     var canUseFanSocialFeatures: Bool {
-        isLoggedIn && !isVenueOwnerLoggedIn && !hasAuthenticatedVenueOwnerSession
+        isLoggedIn && !currentUserIsBusinessAccount && !isVenueOwnerLoggedIn && !hasAuthenticatedVenueOwnerSession
     }
 
     var canFavoriteVenues: Bool { canUseFanSocialFeatures }

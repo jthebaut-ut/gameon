@@ -25,13 +25,19 @@ extension MapViewModel {
         let startDate = row.flatMap { FanGeoLiveEnergyTiming.parseScheduledStart($0.scheduled_start_at) }
             ?? event.flatMap { liveEnergyFallbackStartDate(for: $0) }
 
-        let goingCount = eventID.map { interestCountForVenueEvent($0) } ?? max(displayedGoingCount(for: bar), 0)
         let commentCount = eventID.map { fanUpdatesDisplayCommentCount(for: $0) } ?? 0
         let profiles = eventID.map { goingProfiles(for: $0) } ?? []
+        let totalGoingCount = eventID == nil ? max(displayedGoingCount(for: bar), 0) : profiles.count
         let friendProfiles = profiles.filter { profile in
             guard let id = profile.id else { return false }
             return friendUserIDs.contains(id)
         }
+        let friendGoingCount = friendProfiles.count
+        let fanGoingCount = max(totalGoingCount - friendGoingCount, 0)
+        let socialProfiles = liveEnergyPrioritizedPresenceProfiles(
+            profiles,
+            friendUserIDs: friendUserIDs
+        )
         let friendAvatarURLs = friendProfiles.compactMap { profile in
             let raw = profile.avatar_thumbnail_url ?? profile.avatar_url
             let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -58,44 +64,58 @@ extension MapViewModel {
             isLiveNow: isLiveNow,
             startsSoon: startsSoon,
             minutesUntilStart: minutesUntilStart,
-            goingCount: goingCount,
+            goingCount: totalGoingCount,
             commentCount: commentCount
         )
         let friendLabel = liveEnergyFriendPresenceLabel(friendProfiles)
+        let socialLabel = liveEnergySocialPresenceLabel(
+            totalGoingCount: totalGoingCount,
+            friendGoingCount: friendGoingCount,
+            fanGoingCount: fanGoingCount
+        )
         let subtitle = liveEnergySubtitle(
             isLiveNow: isLiveNow,
             startsSoon: startsSoon,
             minutesUntilStart: minutesUntilStart,
-            goingCount: goingCount,
+            goingCount: totalGoingCount,
             commentCount: commentCount,
-            friendGoingCount: friendProfiles.count
+            friendGoingCount: friendGoingCount
         )
 
         let energy = FanGeoLiveEnergy(
             isLiveNow: isLiveNow,
             startsSoon: startsSoon,
             minutesUntilStart: minutesUntilStart,
-            goingCount: goingCount,
+            goingCount: totalGoingCount,
             commentCount: commentCount,
-            friendGoingCount: friendProfiles.count,
+            friendGoingCount: friendGoingCount,
             friendAvatarURLs: friendAvatarURLs,
             mutualTeamLabel: nil,
             energyLabel: energyLabel,
             energySubtitle: subtitle,
             friendPresenceLabel: friendLabel,
-            friendProfiles: friendProfiles
+            friendProfiles: friendProfiles,
+            socialPresenceProfiles: socialProfiles,
+            socialPresenceLabel: socialLabel
         )
 
 #if DEBUG
-        print("[LiveEnergyDebug] venueId=\(bar.id.uuidString.lowercased())")
-        print("[LiveEnergyDebug] eventId=\(eventID?.uuidString.lowercased() ?? "nil")")
-        print("[LiveEnergyDebug] isLiveNow=\(energy.isLiveNow)")
-        print("[LiveEnergyDebug] startsSoon=\(energy.startsSoon)")
-        print("[LiveEnergyDebug] goingCount=\(energy.goingCount)")
-        print("[LiveEnergyDebug] friendGoingCount=\(energy.friendGoingCount)")
-        print("[LiveEnergyDebug] energyLabel=\(energy.energyLabel ?? "nil")")
-        print("[FriendPresenceDebug] friendIdsGoing=\(friendProfiles.compactMap { $0.id?.uuidString.lowercased() })")
-        print("[FriendPresenceDebug] mutualTeamLabel=\(energy.mutualTeamLabel ?? "nil")")
+        DebugLogGate.noisy("[LiveEnergyDebug] venueId=\(bar.id.uuidString.lowercased())")
+        DebugLogGate.noisy("[LiveEnergyDebug] eventId=\(eventID?.uuidString.lowercased() ?? "nil")")
+        DebugLogGate.noisy("[LiveEnergyDebug] isLiveNow=\(energy.isLiveNow)")
+        DebugLogGate.noisy("[LiveEnergyDebug] startsSoon=\(energy.startsSoon)")
+        DebugLogGate.noisy("[LiveEnergyDebug] goingCount=\(energy.goingCount)")
+        DebugLogGate.noisy("[LiveEnergyDebug] friendGoingCount=\(energy.friendGoingCount)")
+        DebugLogGate.noisy("[VenueGoingCountDebug] totalGoingCount=\(totalGoingCount)")
+        DebugLogGate.noisy("[VenueGoingCountDebug] friendGoingCount=\(friendGoingCount)")
+        DebugLogGate.noisy("[VenueGoingCountDebug] visibleProfileIds=\(profiles.compactMap { $0.id?.uuidString.lowercased() })")
+        DebugLogGate.noisy("[LiveEnergyDebug] energyLabel=\(energy.energyLabel ?? "nil")")
+        DebugLogGate.noisy("[FriendPresenceDebug] friendIdsGoing=\(friendProfiles.compactMap { $0.id?.uuidString.lowercased() })")
+        DebugLogGate.noisy("[FriendPresenceDebug] mutualTeamLabel=\(energy.mutualTeamLabel ?? "nil")")
+        DebugLogGate.noisy("[LiveAvatarDebug] rawCandidateCount=\(eventID.flatMap { goingProfilesByVenueEventID[$0]?.count } ?? 0)")
+        DebugLogGate.noisy("[LiveAvatarDebug] visibleCandidateIds=\(profiles.compactMap { $0.id?.uuidString.lowercased() })")
+        DebugLogGate.noisy("[LiveAvatarDebug] prioritizedVisibleIds=\(socialProfiles.compactMap { $0.id?.uuidString.lowercased() })")
+        DebugLogGate.noisy("[LiveAvatarDebug] filteredHiddenOrBusinessCount=\(max((eventID.flatMap { goingProfilesByVenueEventID[$0]?.count } ?? 0) - profiles.count, 0))")
 #endif
 
         return energy
@@ -187,6 +207,50 @@ extension MapViewModel {
             return "\(name) and \(friendProfiles.count - 1) others are going"
         }
         return "\(friendProfiles.count) friends going"
+    }
+
+    private func liveEnergyPrioritizedPresenceProfiles(
+        _ profiles: [UserProfileRow],
+        friendUserIDs: Set<UUID>
+    ) -> [UserProfileRow] {
+        var seen: Set<UUID> = []
+        func appendUnique(_ source: [UserProfileRow], to result: inout [UserProfileRow]) {
+            for profile in source {
+                guard let id = profile.id else { continue }
+                guard !seen.contains(id) else { continue }
+                seen.insert(id)
+                result.append(profile)
+            }
+        }
+
+        let friends = profiles.filter { profile in
+            guard let id = profile.id else { return false }
+            return friendUserIDs.contains(id)
+        }
+        let otherVisibleFans = profiles.filter { profile in
+            guard let id = profile.id else { return false }
+            return !friendUserIDs.contains(id)
+        }
+
+        var prioritized: [UserProfileRow] = []
+        appendUnique(friends, to: &prioritized)
+        appendUnique(otherVisibleFans, to: &prioritized)
+        return prioritized
+    }
+
+    private func liveEnergySocialPresenceLabel(
+        totalGoingCount: Int,
+        friendGoingCount: Int,
+        fanGoingCount: Int
+    ) -> String? {
+        let displayedGoingCount = max(totalGoingCount, friendGoingCount + fanGoingCount)
+        guard displayedGoingCount > 0 else { return nil }
+
+        let goingText = "\(displayedGoingCount) going"
+        guard friendGoingCount > 0 else { return goingText }
+
+        let friendText = friendGoingCount == 1 ? "1 friend" : "\(friendGoingCount) friends"
+        return "\(goingText) · \(friendText)"
     }
 
     private func liveEnergyFirstName(_ profile: UserProfileRow) -> String? {

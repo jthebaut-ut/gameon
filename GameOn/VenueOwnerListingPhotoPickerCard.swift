@@ -85,11 +85,14 @@ struct VenueOwnerListingPhotoPickerCard: View {
                 Text(title)
                     .font(FGTypography.cardTitle)
                     .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(.top, 2)
 
             PhotosPicker(selection: $pickerSelection, matching: .images) {
                 VStack(alignment: .leading, spacing: 10) {
@@ -151,6 +154,7 @@ struct VenueOwnerListingPhotoPickerCard: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
                 }
+                .padding(.bottom, 2)
             }
             .buttonStyle(.plain)
 

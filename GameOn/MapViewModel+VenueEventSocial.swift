@@ -231,7 +231,9 @@ extension MapViewModel {
     }
 
     func goingProfiles(for venueEventID: UUID) -> [UserProfileRow] {
-        goingProfilesByVenueEventID[venueEventID] ?? []
+        guard canUseFanSocialFeatures else { return [] }
+        return (goingProfilesByVenueEventID[venueEventID] ?? [])
+            .filter { $0.isFanVisibleForLivePresence(to: currentUserAuthId) }
     }
 
     func venueEventLookupKey(for bar: BarVenue, gameTitle: String) -> String {
@@ -295,6 +297,15 @@ extension MapViewModel {
     }
 
     func loadGoingUserProfiles(for venueEventID: UUID) async {
+        guard canUseFanSocialFeatures else {
+            await MainActor.run {
+                goingUserProfiles = []
+                goingProfilesByVenueEventID[venueEventID] = []
+                fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
+            }
+            return
+        }
+
         do {
             let interestRows: [VenueEventInterestRow] = try await supabase
                 .from("venue_event_interests")
@@ -316,8 +327,12 @@ extension MapViewModel {
 
             let profileRows = try await SocialIdentityService().fetchUserProfileRows(forEmails: emails)
 
+            let fanPresenceRows = profileRows.filter {
+                $0.isFanVisibleForLivePresence(to: currentUserAuthId)
+            }
+
             await MainActor.run {
-                goingUserProfiles = profileRows
+                goingUserProfiles = fanPresenceRows
                 goingProfilesByVenueEventID[venueEventID] = profileRows
                 fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
             }

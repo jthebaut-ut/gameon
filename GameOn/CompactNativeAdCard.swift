@@ -8,6 +8,8 @@ import UIKit
 struct CompactNativeAdCard: View {
     let slotIndex: Int
     let layoutWidth: CGFloat
+    var onAdLoaded: (() -> Void)? = nil
+    var onAdFailed: ((Error) -> Void)? = nil
 
     @State private var adLoaded = false
     @State private var adFailed = false
@@ -23,6 +25,7 @@ struct CompactNativeAdCard: View {
                         withAnimation(.easeOut(duration: 0.2)) {
                             adLoaded = true
                         }
+                        onAdLoaded?()
 #if DEBUG
                         print("[VenueCommentsAdDebug] nativeAdValidatorFix=true")
                         print("[VenueCommentsAdDebug] minAssetSize=\(Int(CompactNativeAdHostView.minIconSize))")
@@ -32,9 +35,10 @@ struct CompactNativeAdCard: View {
                         print("[NativeAdDebug] assetOverflowDetected=false")
 #endif
                     },
-                    onAdFailed: { _ in
+                    onAdFailed: { error in
                         adFailed = true
                         adLoaded = false
+                        onAdFailed?(error)
                     }
                 )
                 .frame(maxWidth: .infinity)

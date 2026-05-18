@@ -21,3 +21,11 @@ enum DMRealtimeDiagnostics {
 #endif
     }
 }
+
+enum RealtimeHealthDiagnostics {
+    static func log(_ fields: String) {
+#if DEBUG
+        print("[RealtimeHealthDebug] \(fields)")
+#endif
+    }
+}

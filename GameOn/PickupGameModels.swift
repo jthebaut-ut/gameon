@@ -289,6 +289,17 @@ enum PickupOrganizerReputationDebug {
     }
 }
 
+/// DEBUG: organizer identity resolved for pickup preview/detail cards.
+enum PickupOrganizerDebug {
+    static func log(organizerUserId: UUID, organizerAvatarUrl: String, organizerDisplayName: String) {
+#if DEBUG
+        print("[PickupOrganizerDebug] organizerUserId=\(organizerUserId.uuidString.lowercased())")
+        print("[PickupOrganizerDebug] organizerAvatarUrl=\(organizerAvatarUrl)")
+        print("[PickupOrganizerDebug] organizerDisplayName=\(organizerDisplayName)")
+#endif
+    }
+}
+
 /// Decodes JSON number or string for `numeric` columns from RPC.
 struct PickupRPCNumericOrString: Decodable {
     let doubleValue: Double?

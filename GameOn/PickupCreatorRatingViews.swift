@@ -46,6 +46,66 @@ struct PickupCreatorTrustLineView: View {
     }
 }
 
+struct PickupOrganizerPreviewIdentityRow: View {
+    @ObservedObject var viewModel: MapViewModel
+    let organizerUserId: UUID
+    let stats: PickupCreatorPublicRatingStats?
+    let colorScheme: ColorScheme
+
+    private var displayName: String {
+        viewModel.pickupCreatorDisplayLabel(for: organizerUserId) ?? ""
+    }
+
+    private var emailLine: String {
+        viewModel.pickupOrganizerEmailForDetail(userId: organizerUserId)
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            UserAvatarView(
+                avatarThumbnailURL: viewModel.pickupOrganizerAvatarThumbnailForDetail(userId: organizerUserId),
+                avatarURL: viewModel.pickupOrganizerAvatarFullForDetail(userId: organizerUserId),
+                avatarDisplayRefreshToken: viewModel.pickupOrganizerAvatarRefreshTokenForDetail(userId: organizerUserId),
+                displayName: displayName,
+                email: emailLine,
+                size: 32,
+                fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome,
+                imagePlaceholderTint: colorScheme == .dark ? .white.opacity(0.72) : nil
+            )
+            .background {
+                Circle()
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color(white: 0.88))
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.28 : 0.58), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 5, x: 0, y: 2)
+
+            VStack(alignment: .leading, spacing: 1) {
+                if !displayName.isEmpty {
+                    Text("\(displayName) • Organizer")
+                        .font(FGTypography.metadata.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+
+                PickupCreatorTrustLineView(stats: stats)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        let organizer = displayName.isEmpty ? "Organizer" : "\(displayName), organizer"
+        let trust = stats?.organizerTrustSummaryLine ?? "Organizer trust loading"
+        return "\(organizer). \(trust)"
+    }
+}
+
 /// Public profile organizer reputation (reuses ``PickupCreatorPublicRatingStats`` / ``pickupOrganizerDetailRatingLine``).
 struct PublicProfilePickupOrganizerCard: View {
     let creatorUserId: UUID

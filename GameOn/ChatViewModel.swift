@@ -134,6 +134,7 @@ final class ChatViewModel: ObservableObject {
     /// Coalesces explicit badge recount requests from foreground, tab switches, and read-state changes.
     private var badgeRecalculationTask: Task<Void, Never>?
     private var badgeRecalculationNeedsInboxSummaries = false
+    private var dmLatencyInboxEventStartByConversationID: [UUID: CFAbsoluteTime] = [:]
     /// User id the active inbox channel was bound to (debug + duplicate-guard).
     private var inboxRealtimeBoundUserId: UUID?
     /// True when the inbox listener uses a client-side `conversation_id IN (...)` filter (see run loop).
@@ -227,6 +228,7 @@ final class ChatViewModel: ObservableObject {
         print("[BadgeArchitectureDebug] ensureRealtime vm=\(instanceDebugID)")
         print("[MainActorDebug] ensureRealtime actor=MainActor")
 #endif
+        await repairInconsistentSocialRealtimeChannelsIfNeeded()
         startInboxRealtimeListenerIfNeeded()
         startFriendshipsRealtimeListenerIfNeeded()
     }
@@ -242,8 +244,36 @@ final class ChatViewModel: ObservableObject {
             }
             guard let self, !Task.isCancelled else { return }
             print("[RealtimeLifecycle] foreground debounced ensure")
-            await self.ensureSignedInSocialRealtimeIfNeeded()
+#if DEBUG
+            RealtimeHealthDiagnostics.log("appForegroundReconnect=chat_social")
+#endif
+            await self.restartSocialRealtimeAfterForeground()
             self.requestForegroundBadgeRefresh()
+        }
+    }
+
+    private func restartSocialRealtimeAfterForeground() async {
+        guard requiresSignIn == false else { return }
+#if DEBUG
+        RealtimeHealthDiagnostics.log("reconnectDetected=chat_social_foreground_resubscribe")
+#endif
+        await stopInboxRealtimeListener()
+        await stopFriendshipsRealtimeListener()
+        await ensureSignedInSocialRealtimeIfNeeded()
+    }
+
+    private func repairInconsistentSocialRealtimeChannelsIfNeeded() async {
+        if (inboxListenTask == nil) != (inboxChannel == nil) {
+#if DEBUG
+            RealtimeHealthDiagnostics.log("reconnectDetected=dm_inbox_inconsistent_state")
+#endif
+            await stopInboxRealtimeListener()
+        }
+        if (friendshipsListenTask == nil) != (friendshipsChannel == nil) {
+#if DEBUG
+            RealtimeHealthDiagnostics.log("reconnectDetected=friendships_inconsistent_state")
+#endif
+            await stopFriendshipsRealtimeListener()
         }
     }
 
@@ -452,6 +482,7 @@ final class ChatViewModel: ObservableObject {
 
         let channel = supabase.channel("dm-inbox-\(me.uuidString.lowercased())")
         inboxChannel = channel
+        let subscribeStartedAt = CFAbsoluteTimeGetCurrent()
 
         let readStateChanges = channel.postgresChange(
             AnyAction.self,
@@ -468,6 +499,8 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
         print("[ChatRealtime] inbox scope: postgresChange unfiltered; user-visible events rely on RLS.")
         print("[RealtimeSubscriptionDebug] inboxFilter=none reason=avoid_stale_conversation_snapshot vm=\(instanceDebugID)")
+        RealtimeHealthDiagnostics.log("channelName=\(channel.topic)")
+        RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channel.topic)")
 #endif
 
         do {
@@ -476,6 +509,8 @@ final class ChatViewModel: ObservableObject {
             print("[DMRealtime] inbox subscribed channel=dm-inbox-\(me.uuidString.lowercased())")
 #if DEBUG
             print("[RealtimeSubscriptionDebug] inboxSubscribed vm=\(instanceDebugID) user=\(me.uuidString.lowercased()) filtered=\(inboxRealtimeUsesConversationFilter)")
+            print("[DMRealtimeLatencyDebug] realtimeSubscribed conversationId=inbox channel=\(channel.topic)")
+            RealtimeHealthDiagnostics.log("subscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000)) channelName=\(channel.topic)")
 #endif
 #if DEBUG
             DMRealtimeDiagnostics.log(
@@ -495,6 +530,9 @@ final class ChatViewModel: ObservableObject {
             print("[DMRealtime] inbox listener cancelled")
         } catch {
             print("[DMRealtime] inbox listener error: \(error)")
+#if DEBUG
+            RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
+#endif
         }
 
         await removeInboxRealtimeChannelOnly()
@@ -531,6 +569,11 @@ final class ChatViewModel: ObservableObject {
             if row.deleted_at != nil { continue }
             if row.sender_id == me { continue }
 #if DEBUG
+            if let cid = row.conversation_id {
+                dmLatencyInboxEventStartByConversationID[cid] = CFAbsoluteTimeGetCurrent()
+            }
+            print("[DMRealtimeLatencyDebug] realtimeInsertReceived conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil") messageId=\(row.id.uuidString.lowercased()) elapsedSinceSendMs=nil")
+            RealtimeHealthDiagnostics.log("eventReceived table=direct_messages id=\(row.id.uuidString.lowercased()) elapsedSinceInsertMs=nil")
             DMRealtimeDiagnostics.log(
                 "phase=receiver_inbox_realtime_callback_fired messageId=\(row.id.uuidString.lowercased()) sender=\(row.sender_id.uuidString.lowercased()) conversation=\(row.conversation_id?.uuidString.lowercased() ?? "nil")"
             )
@@ -653,6 +696,8 @@ final class ChatViewModel: ObservableObject {
         let viewing = isUserViewingThisDmThread(conversationId: row.conversation_id, peerSenderId: peerId)
         let badgeBefore = unreadDirectMessageCount
 #if DEBUG
+        let applyStartedAt = CFAbsoluteTimeGetCurrent()
+        RealtimeHealthDiagnostics.log("mainActorApplyStart=direct_messages_inbox id=\(row.id.uuidString.lowercased())")
         print("[BadgeReceiveDebug] incomingDM conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil")")
         print("[BadgeReceiveDebug] activeVisibleConversationId=\(activeVisibleConversationId?.uuidString.lowercased() ?? "nil")")
         print("[BadgeReceiveDebug] isExactVisibleThread=\(viewing)")
@@ -701,6 +746,9 @@ final class ChatViewModel: ObservableObject {
         friends = next
 #if DEBUG
         print("[BadgeSyncDebug] chat list updated")
+        let inboxElapsedStart = row.conversation_id.flatMap { dmLatencyInboxEventStartByConversationID[$0] }
+        let inboxElapsed = inboxElapsedStart.map { String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - $0) * 1000) } ?? "nil"
+        print("[DMRealtimeLatencyDebug] inboxUpdated conversationId=\(row.conversation_id?.uuidString.lowercased() ?? "nil") elapsedMs=\(inboxElapsed)")
 #endif
         let totalUnread = next.reduce(0) { $0 + $1.unreadCount }
 #if DEBUG
@@ -709,6 +757,7 @@ final class ChatViewModel: ObservableObject {
         await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: viewing ? "incoming_visible_thread" : "incoming_realtime_local_increment")
 #if DEBUG
         print("[BadgeReceiveDebug] badgeAfter=\(totalUnread)")
+        RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - applyStartedAt) * 1000)) table=direct_messages_inbox id=\(row.id.uuidString.lowercased())")
 #endif
         requestBadgeRecalculation(reason: "incoming_message")
         return true
@@ -931,6 +980,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func refreshInboxSummaries() async {
+        let refreshStartedAt = CFAbsoluteTimeGetCurrent()
         guard let me = try? await directChatService.currentUserId() else {
             clearForSignOut()
             return
@@ -971,6 +1021,8 @@ final class ChatViewModel: ObservableObject {
             friends = visible
 #if DEBUG
             print("[BadgeSyncDebug] chat list updated")
+            let elapsed = String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - refreshStartedAt) * 1000)
+            print("[DMRealtimeLatencyDebug] inboxUpdated conversationId=refresh_inbox_summaries elapsedMs=\(elapsed)")
 #endif
             let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "refresh_inbox_summaries")
@@ -1032,6 +1084,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func refresh() async {
+        let fullRefreshStartedAt = CFAbsoluteTimeGetCurrent()
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -1086,6 +1139,8 @@ final class ChatViewModel: ObservableObject {
             friends = friendDisplays
 #if DEBUG
             print("[BadgeSyncDebug] chat list updated")
+            let fullRefreshElapsed = String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - fullRefreshStartedAt) * 1000)
+            print("[DMRealtimeLatencyDebug] inboxUpdated conversationId=full_refresh elapsedMs=\(fullRefreshElapsed)")
 #endif
 
             incomingRequests = inRows
@@ -1549,6 +1604,7 @@ final class ChatViewModel: ObservableObject {
 
     /// Updates DM unread state for the Chat tab **and** mirrors it to the app icon badge (foreground / local only until APNs). See ``AppIconBadgeSync``.
     private func setUnreadDirectMessageCountAndSyncAppIcon(_ newValue: Int, source: String = "unspecified") async {
+        let updateStartedAt = CFAbsoluteTimeGetCurrent()
         let clamped = max(0, newValue)
         let oldValue = unreadDirectMessageCount
         unreadDirectMessageCount = clamped
@@ -1557,6 +1613,8 @@ final class ChatViewModel: ObservableObject {
         print("[BadgeSyncDebug] unread total=\(clamped)")
         print("[BadgeSyncDebug] tab badge updated")
         print("[MainActorDebug] setUnreadDirectMessageCount actor=MainActor")
+        let elapsed = String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - updateStartedAt) * 1000)
+        print("[DMRealtimeLatencyDebug] unreadBadgeUpdated count=\(clamped) elapsedMs=\(elapsed)")
 #endif
         await AppIconBadgeSync.apply(count: unreadDirectMessageCount)
     }

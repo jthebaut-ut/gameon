@@ -12,6 +12,7 @@ struct VenueDetailView: View {
     let isFavorite: Bool
     let goingCount: Int
     var liveEnergy: FanGeoLiveEnergy? = nil
+    var livePresenceViewerUserID: UUID? = nil
     let iconForSport: (String) -> String
     /// When nil, no rating card is shown.
     var mergedRating: Double? = nil
@@ -19,6 +20,7 @@ struct VenueDetailView: View {
     var displaySport: String? = nil
     var sportsSupported: [String] = []
     var hasGamesScheduledToday: Bool = true
+    var venueEventRows: [VenueEventRow] = []
     var isBusinessConfirmed: Bool = false
     let onDirections: () -> Void
     let onCall: () -> Void
@@ -36,10 +38,19 @@ struct VenueDetailView: View {
     /// When false, fan-only controls (save, rate) are shown disabled and route taps through ``onFanFeatureBlocked``.
     var showsFanOnlyActionButtons: Bool = true
     var onFanFeatureBlocked: ((String) -> Void)? = nil
-    /// Guest Discover: hide per-game fan surfaces and show ``DiscoverGuestGameLockCard`` instead of games + buzz.
+    /// Guest Discover: hide scheduled game details and show ``DiscoverGuestGameLockCard`` instead.
     var locksScheduledGameDetailsForGuest: Bool = false
     /// Guest Discover: same fan auth presentation as other Discover CTAs.
     var onGuestGameLoginCTA: (() -> Void)? = nil
+
+    private static let sqlDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
 
     private func runFanOnlyAction(_ debugAction: String, _ handler: () -> Void) {
         if showsFanOnlyActionButtons {
@@ -77,6 +88,16 @@ struct VenueDetailView: View {
         return url
     }
 
+    private var insideVenueImageURL: URL? {
+        guard let raw = ImageDisplayURL.forDetail(
+            thumbnail: bar.menuPhotoThumbnailURL,
+            full: menuPhotoURL ?? bar.menuPhotoURL
+        ), let url = URL(string: raw) else {
+            return nil
+        }
+        return url
+    }
+
     private var venueShareText: String {
         var lines = [bar.name, bar.address]
         if !locksScheduledGameDetailsForGuest, let selectedEvent {
@@ -97,25 +118,32 @@ struct VenueDetailView: View {
             : "Get there, call, save, or share this venue"
     }
 
-    private var venueHasFanActivity: Bool {
-        selectedEvent != nil || goingCount > 0 || liveEnergy?.hasAnySignal == true
-    }
-
     private func openVenueBusinessMail() {
         guard let email = venueBusinessContactEmail, let url = VenueGameBusinessEmail.mailtoURL(for: email) else { return }
         VenueEmailActionDebug.log(bar: bar, emailActionVisible: true, openedMailto: url.absoluteString, businessClaimStatus: businessClaimStatus)
         openURL(url)
     }
 
-    private var venueFeatureItems: [(icon: String, title: String, enabled: Bool)] {
-        [
-            ("display", "\(bar.screenCount) Screens", true),
-            ("fork.knife", "Food / Drinks", bar.servesFood),
-            ("wifi", "WiFi", bar.hasWifi),
-            ("chair.lounge.fill", "Patio", bar.hasGarden),
-            ("video.fill", "Projector", bar.hasProjector),
-            ("pawprint.fill", "Pet Friendly", bar.petFriendly)
-        ]
+    private var venueFeatureItems: [VenueFeatureDisplayItem] {
+        venueFeaturesForDisplay(bar)
+    }
+
+    private func logVenueFeaturesDebug(renderedItems: [VenueFeatureDisplayItem]) {
+#if DEBUG
+        let enabledLabels = renderedItems
+            .filter(\.isEnabled)
+            .map(\.label)
+            .joined(separator: " | ")
+        let disabledLabels = renderedItems
+            .filter { !$0.isEnabled }
+            .map(\.label)
+            .joined(separator: " | ")
+        print("[VenueFeaturesDebug] venueId=\(bar.id.uuidString)")
+        print("[VenueFeaturesDebug] sourceFeatureCount=\(VenueFeatureDisplaySource.configuredFeatureCount(for: bar))")
+        print("[VenueFeaturesDebug] enabledFeatures=\(enabledLabels)")
+        print("[VenueFeaturesDebug] disabledFeatures=\(disabledLabels)")
+        print("[VenueFeaturesDebug] renderedFeatureLabels=\(renderedItems.map(\.label).joined(separator: " | "))")
+#endif
     }
 
     private var businessClaimTint: Color {
@@ -195,20 +223,19 @@ struct VenueDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: FGSpacing.xl) {
+            VStack(alignment: .leading, spacing: FGSpacing.lg) {
                 venueHeroSection
-                venueStatsSection
+                insideVenueSection
+                    .progressiveAppear(isVisible: contentRevealPhase >= 2)
+                venueFeaturesSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 2)
                 venueActionSection
-                    .progressiveAppear(isVisible: contentRevealPhase >= 2)
+                    .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 if locksScheduledGameDetailsForGuest {
                     DiscoverGuestGameLockCard {
                         onGuestGameLoginCTA?()
                     }
                     .progressiveAppear(isVisible: contentRevealPhase >= 3)
-                } else {
-                    venueFanActivitySection
-                        .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 }
                 venueBusinessClaimSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 3)
@@ -216,12 +243,6 @@ struct VenueDetailView: View {
                     venueGamesSection
                         .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 }
-                venueExperienceSection
-                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
-                venueInfoSection
-                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
-                venueFeaturesSection
-                    .progressiveAppear(isVisible: contentRevealPhase >= 4)
                 venueTagsSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 4)
             }
@@ -295,22 +316,15 @@ struct VenueDetailView: View {
             heroBackground
 
             LinearGradient(
-                colors: [Color.black.opacity(0.08), Color.black.opacity(0.58)],
+                colors: [Color.black.opacity(0.04), Color.black.opacity(0.72)],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
-            VStack(alignment: .leading, spacing: FGSpacing.lg) {
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
                 HStack(alignment: .top, spacing: FGSpacing.md) {
-                    if isBusinessConfirmed || hasDisplaySport {
-                        HStack(spacing: 6) {
-                            if isBusinessConfirmed {
-                                compactHeroBadge("Confirmed Venue", tint: FGColor.accentGreen)
-                            }
-                            if let displaySport, hasDisplaySport {
-                                compactHeroBadge(displaySport, tint: FGColor.accentBlue)
-                            }
-                        }
+                    if isBusinessConfirmed {
+                        compactHeroBadge("Confirmed Venue", tint: FGColor.accentGreen)
                         .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
                     }
 
@@ -333,52 +347,21 @@ struct VenueDetailView: View {
 
                 Spacer(minLength: 0)
 
-                VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                VStack(alignment: .leading, spacing: FGSpacing.xs) {
                     Text(bar.name)
                         .font(FGTypography.heroTitle)
                         .foregroundStyle(.white)
                         .lineLimit(2)
 
-                    Button {
-                        (onAddressTap ?? onDirections)()
-                    } label: {
-                        HStack(alignment: .top, spacing: FGSpacing.sm) {
-                            Image(systemName: "mappin.and.ellipse")
-                                .font(.body.weight(.semibold))
-                            Text(bar.address)
-                                .font(FGTypography.body)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .foregroundStyle(.white.opacity(0.92))
-                    }
-                    .buttonStyle(.plain)
-
-                    if let bizEmail = venueBusinessContactEmail {
-                        VenueGameBusinessContactEmailRow(
-                            email: bizEmail,
-                            heroOnDarkBackground: true,
-                            onWillOpenMail: { url in
-                                VenueEmailActionDebug.log(bar: bar, emailActionVisible: true, openedMailto: url.absoluteString, businessClaimStatus: businessClaimStatus)
-                            }
-                        )
-                        .padding(.top, 2)
-                    }
-
-                    HStack(spacing: FGSpacing.sm) {
-                        if !bar.distance.isEmpty {
-                            FGStatusPill(title: bar.distance, kind: .custom(tint: FGColor.accentYellow))
-                        }
-                        FGStatusPill(
-                            title: "\(bar.screenCount) screens",
-                            kind: .custom(tint: FGColor.businessGreen)
-                        )
+                    if !bar.distance.isEmpty {
+                        FGStatusPill(title: bar.distance, kind: .custom(tint: FGColor.accentYellow))
                     }
                 }
                 .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 6)
             }
             .padding(FGSpacing.lg)
         }
-        .frame(height: 238)
+        .frame(height: 248)
         .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
@@ -401,18 +384,65 @@ struct VenueDetailView: View {
     private var heroFallback: some View {
         ZStack {
             LinearGradient(
-                colors: [Color.black.opacity(0.92), FGColor.gradientEnd.opacity(0.78)],
+                colors: [
+                    Color.black.opacity(0.94),
+                    FGColor.gradientMiddle.opacity(0.74),
+                    FGColor.gradientEnd.opacity(0.84)
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
-            VStack(spacing: FGSpacing.sm) {
-                Image(systemName: heroFallbackIconName)
-                    .font(.system(size: 52, weight: .bold))
-                    .foregroundStyle(.white)
-                Text(hasGamesScheduledToday ? "Game-day ready" : "No games scheduled today")
-                    .font(FGTypography.sectionTitle)
-                    .foregroundStyle(.white)
+            Circle()
+                .fill(Color.white.opacity(0.10))
+                .frame(width: 190, height: 190)
+                .blur(radius: 26)
+                .offset(x: 112, y: -74)
+
+            Circle()
+                .fill(FGColor.accentBlue.opacity(0.16))
+                .frame(width: 168, height: 168)
+                .blur(radius: 20)
+                .offset(x: -118, y: 76)
+        }
+    }
+
+    @ViewBuilder
+    private var insideVenueSection: some View {
+        if let insideVenueImageURL {
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                FGSectionHeader(
+                    "Inside the venue",
+                    subtitle: "Menu, drinks, crowd, patio, and atmosphere"
+                )
+
+                ZStack(alignment: .bottomLeading) {
+                    DiscoverCachedRemoteImage(url: insideVenueImageURL, contentMode: .fill) {
+                        LinearGradient(
+                            colors: [FGColor.gradientStart.opacity(0.70), FGColor.gradientEnd.opacity(0.90)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.02), Color.black.opacity(0.58)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+
+                    Text("A look at the vibe before you go")
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(.white)
+                        .padding(FGSpacing.lg)
+                }
+                .frame(height: 172)
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                }
+                .floatingShadow()
             }
         }
     }
@@ -449,14 +479,6 @@ struct VenueDetailView: View {
                     tint: FGColor.accentYellow
                 )
             }
-            if let displaySport, hasDisplaySport {
-                statCard(
-                    title: displaySport,
-                    subtitle: "Sport",
-                    icon: iconForSport(displaySport),
-                    tint: FGColor.businessGreen
-                )
-            }
         }
     }
 
@@ -491,9 +513,9 @@ struct VenueDetailView: View {
 
             LazyVGrid(
                 columns: [
-                    GridItem(.adaptive(minimum: 156, maximum: 220), spacing: FGSpacing.md, alignment: .top)
+                    GridItem(.adaptive(minimum: 108, maximum: 150), spacing: FGSpacing.sm, alignment: .top)
                 ],
-                spacing: FGSpacing.md
+                spacing: FGSpacing.sm
             ) {
                 Button(action: onDirections) {
                     actionCardContent(
@@ -548,139 +570,33 @@ struct VenueDetailView: View {
                         tint: FGColor.accentYellow
                     )
                 }
+                .buttonStyle(.plain)
             }
         }
     }
 
     private func actionCardContent(title: String, subtitle: String, icon: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+        VStack(alignment: .leading, spacing: 6) {
             Image(systemName: icon)
-                .font(.title3.weight(.semibold))
+                .font(.callout.weight(.semibold))
                 .foregroundStyle(tint)
             Text(title)
-                .font(FGTypography.cardTitle)
+                .font(FGTypography.body.weight(.semibold))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
             Text(subtitle)
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
-        .padding(FGSpacing.lg)
-        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.60 : 0.92))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, FGSpacing.sm + 2)
+        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.50 : 0.86))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.30 : 0.18), lineWidth: 1)
         }
-    }
-
-    @ViewBuilder
-    private var venueFanActivitySection: some View {
-        if venueHasFanActivity {
-            FGCard {
-                FGSectionHeader(
-                    "Venue buzz",
-                    subtitle: liveEnergy?.energySubtitle
-                        ?? selectedEvent.map { "Fan activity for \($0.title)" }
-                        ?? "Current venue activity"
-                )
-
-                if let selectedEvent {
-                    HStack(spacing: FGSpacing.sm) {
-                        FGStatusPill(title: selectedEvent.sport, kind: .custom(tint: FGColor.accentBlue))
-                        Text("\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)")
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    }
-                }
-
-                if let liveEnergy {
-                    liveEnergyDetailRow(liveEnergy)
-                } else if goingCount > 0, let selectedEvent {
-                    HStack(alignment: .top, spacing: FGSpacing.md) {
-                        Image(systemName: "person.3.fill")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(FGColor.accentGreen)
-
-                        VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                            Text("\(goingCount) people interested / going")
-                                .font(FGTypography.cardTitle)
-                                .foregroundStyle(FGColor.primaryText(colorScheme))
-                            Text("Fans are rallying here for \(selectedEvent.title).")
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(FGSpacing.lg)
-                    .background(FGColor.accentGreen.opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-                } else {
-                    FGEmptyState(
-                        title: "No fan activity yet",
-                        subtitle: "Once fans start planning around this venue, activity will appear here.",
-                        systemImage: "person.3"
-                    )
-                }
-            }
-        }
-    }
-
-    private func liveEnergyDetailRow(_ energy: FanGeoLiveEnergy) -> some View {
-        VStack(alignment: .leading, spacing: FGSpacing.md) {
-            HStack(alignment: .center, spacing: FGSpacing.md) {
-                Image(systemName: energy.isLiveNow ? "dot.radiowaves.left.and.right" : "person.3.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(energy.isLiveNow ? FGColor.accentGreen : FGColor.accentBlue)
-
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                    Text(energy.energyLabel ?? "Fan energy")
-                        .font(FGTypography.cardTitle)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text(energy.energySubtitle ?? "Be the first fan there")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                }
-
-                Spacer(minLength: 0)
-            }
-
-            if energy.friendGoingCount > 0 {
-                HStack(spacing: FGSpacing.sm) {
-                    GoingAvatarStack(profiles: energy.friendProfiles)
-                    Text(energy.friendPresenceLabel ?? "\(energy.friendGoingCount) friends going")
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Spacer(minLength: 0)
-                }
-                .padding(.top, 2)
-            }
-
-            if !energy.compactChips.isEmpty {
-                FGWrappingLayout(horizontalSpacing: FGSpacing.xs, verticalSpacing: FGSpacing.xs) {
-                    ForEach(energy.compactChips, id: \.self) { chip in
-                        liveEnergyDetailChip(chip)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FGSpacing.lg)
-        .background((energy.isLiveNow ? FGColor.accentGreen : FGColor.accentBlue).opacity(0.10))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-    }
-
-    private func liveEnergyDetailChip(_ chip: String) -> some View {
-        let tint: Color = {
-            if chip.contains("LIVE NOW") { return FGColor.accentGreen }
-            if chip.contains("Crowd building") { return FGColor.accentYellow }
-            return FGColor.accentBlue
-        }()
-
-        return FGStatusPill(title: chip, kind: .custom(tint: tint))
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
     }
 
     @ViewBuilder
@@ -743,92 +659,212 @@ struct VenueDetailView: View {
     }
 
     private var venueGamesSection: some View {
-        FGCard {
+        let games = upcomingVenueGameItems
+
+        return FGCard {
             FGSectionHeader(
                 "Games showing",
-                subtitle: hasGamesScheduledToday ? "Confirmed venue lineup" : "No games scheduled today"
+                subtitle: "Today and upcoming"
             )
 
-            if !hasGamesScheduledToday {
+            if games.isEmpty {
                 FGEmptyState(
-                    title: "No games scheduled today",
-                    subtitle: "This venue is active on the map, but there are no scheduled broadcasts or venue events for the selected day.",
-                    systemImage: "calendar.badge.exclamationmark"
-                )
-            } else if bar.games.isEmpty {
-                FGEmptyState(
-                    title: "No games listed yet",
-                    subtitle: "Check back soon for confirmed watch parties and broadcasts.",
+                    title: "No upcoming games listed yet.",
+                    subtitle: "",
                     systemImage: "tv"
                 )
             } else {
-                VStack(spacing: FGSpacing.md) {
-                    ForEach(Array(bar.games.enumerated()), id: \.offset) { _, game in
-                        gameCard(game)
+                VStack(spacing: FGSpacing.sm) {
+                    ForEach(games) { game in
+                        gameRow(game)
                     }
                 }
             }
         }
     }
 
-    private func gameCard(_ game: String) -> some View {
-        let isSelectedGame = selectedEvent?.title == game
-        let selectedSport = selectedEvent?.sport ?? displaySport ?? ""
+    private var upcomingVenueGameItems: [VenueDetailGameItem] {
+        let now = Date()
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: now)
+        var seenKeys = Set<String>()
 
-        return VStack(alignment: .leading, spacing: FGSpacing.sm) {
-            HStack(alignment: .top, spacing: FGSpacing.md) {
-                Image(systemName: isSelectedGame ? iconForSport(selectedSport) : "tv.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(isSelectedGame ? FGColor.accentGreen : FGColor.accentBlue)
+        var items = venueEventRows.compactMap { row -> VenueDetailGameItem? in
+            guard venueEventRowMatchesCurrentVenue(row) else { return nil }
+            guard venueEventRowIsActive(row) else { return nil }
+            guard venueEventRowIsTodayOrUpcoming(row, now: now, todayStart: todayStart, calendar: calendar) else { return nil }
+            guard let title = trimmedNonEmpty(row.event_title) else { return nil }
 
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                    Text(game)
-                        .font(FGTypography.cardTitle)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
+            let sport = trimmedNonEmpty(row.sport) ?? displaySport ?? bar.primarySport
+            let start = venueEventScheduledStart(row)
+            let day = venueEventDay(row)
+            let key = row.id?.uuidString ?? "\(title)|\(row.event_date ?? "")|\(row.event_time ?? "")"
+            guard seenKeys.insert(key).inserted else { return nil }
 
-                    if isSelectedGame, let selectedEvent {
-                        Text("\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)")
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    } else {
-                        Text("Venue-confirmed broadcast")
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    }
+            return VenueDetailGameItem(
+                id: key,
+                title: title,
+                sport: sport,
+                dateTimeText: venueGameDateTimeText(start: start, day: day, timeText: row.event_time),
+                sortDate: start ?? day ?? Date.distantFuture,
+                status: venueGameStatus(start: start, now: now)
+            )
+        }
 
-                    if isSelectedGame, let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar) {
-                        VenueGameBusinessContactEmailRow(email: bizEmail)
-                            .padding(.top, 4)
-                            .onAppear { VenueGameBusinessEmail.logDebug(bar: bar) }
-                    }
-                }
-
-                Spacer(minLength: FGSpacing.sm)
-
-                FGStatusPill(
-                    title: isSelectedGame ? "Selected" : "Confirmed",
-                    kind: .custom(tint: isSelectedGame ? FGColor.accentGreen : FGColor.accentBlue)
+        if let selectedEvent,
+           calendar.startOfDay(for: selectedEvent.date) >= todayStart,
+           bar.games.contains(where: { $0.caseInsensitiveCompare(selectedEvent.title) == .orderedSame }) {
+            let key = "selected|\(selectedEvent.title)|\(selectedEvent.date.timeIntervalSince1970)"
+            let alreadyListed = items.contains {
+                $0.title.caseInsensitiveCompare(selectedEvent.title) == .orderedSame &&
+                    calendar.isDate($0.sortDate, inSameDayAs: selectedEvent.date)
+            }
+            if !alreadyListed, seenKeys.insert(key).inserted {
+                items.append(
+                    VenueDetailGameItem(
+                        id: key,
+                        title: selectedEvent.title,
+                        sport: selectedEvent.sport,
+                        dateTimeText: "\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)",
+                        sortDate: selectedEvent.date,
+                        status: .confirmed
+                    )
                 )
             }
+        }
 
-            if isSelectedGame, goingCount > 0 {
-                HStack(spacing: FGSpacing.sm) {
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                        .foregroundStyle(FGColor.accentBlue)
-                    Text("\(goingCount) fans interested / going")
-                        .font(FGTypography.metadata)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                }
+        return items.sorted {
+            if $0.sortDate != $1.sortDate { return $0.sortDate < $1.sortDate }
+            return $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
+        }
+    }
+
+    private func gameRow(_ game: VenueDetailGameItem) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.md) {
+            Image(systemName: iconForSport(game.sport))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                Text(game.title)
+                    .font(FGTypography.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+
+                Text(game.dateTimeText)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+
+            Spacer(minLength: FGSpacing.sm)
+
+            if let status = game.status {
+                FGStatusPill(title: status.title, kind: .custom(tint: status.tint))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(FGSpacing.lg)
+        .padding(FGSpacing.md)
         .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.60 : 0.92))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
                 .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
         }
+    }
+
+    private func venueEventRowMatchesCurrentVenue(_ row: VenueEventRow) -> Bool {
+        if row.venue_id == bar.id { return true }
+
+        if let venueName = trimmedNonEmpty(row.venue_name),
+           venueName.caseInsensitiveCompare(bar.name) == .orderedSame {
+            return true
+        }
+
+        if let rowOwner = trimmedNonEmpty(row.owner_email),
+           let barOwner = bar.ownerEmail,
+           OwnerBusinessEmail.normalized(rowOwner) == OwnerBusinessEmail.normalized(barOwner) {
+            return true
+        }
+
+        return false
+    }
+
+    private func venueEventRowIsActive(_ row: VenueEventRow) -> Bool {
+        let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return status == nil || status?.isEmpty == true || status == "active"
+    }
+
+    private func venueEventRowIsTodayOrUpcoming(
+        _ row: VenueEventRow,
+        now: Date,
+        todayStart: Date,
+        calendar: Calendar
+    ) -> Bool {
+        if let start = venueEventScheduledStart(row) {
+            let liveEnd = start.addingTimeInterval(TimeInterval(FanGeoLiveEnergyTiming.liveWindowHours * 3600))
+            return start >= now || (now >= start && now <= liveEnd)
+        }
+
+        guard let day = venueEventDay(row) else { return false }
+        return calendar.startOfDay(for: day) >= todayStart
+    }
+
+    private func venueEventScheduledStart(_ row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start
+        }
+
+        guard let day = venueEventDay(row) else { return nil }
+        guard let time = trimmedNonEmpty(row.event_time), time.lowercased() != "time tbd" else {
+            return nil
+        }
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd h:mm a"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: "\(VenueDetailView.sqlDayFormatter.string(from: day)) \(time)")
+    }
+
+    private func venueEventDay(_ row: VenueEventRow) -> Date? {
+        guard let date = trimmedNonEmpty(row.event_date) else { return nil }
+        return VenueDetailView.sqlDayFormatter.date(from: date)
+    }
+
+    private func venueGameDateTimeText(start: Date?, day: Date?, timeText: String?) -> String {
+        if let start {
+            return start.formatted(date: .abbreviated, time: .shortened)
+        }
+
+        guard let day else { return "Time TBD" }
+        let dateText = day.formatted(date: .abbreviated, time: .omitted)
+        guard let time = trimmedNonEmpty(timeText), time.lowercased() != "time tbd" else {
+            return "\(dateText) at Time TBD"
+        }
+        return "\(dateText) at \(time)"
+    }
+
+    private func venueGameStatus(start: Date?, now: Date) -> VenueDetailGameStatus? {
+        guard let start else { return .confirmed }
+
+        let liveEnd = start.addingTimeInterval(TimeInterval(FanGeoLiveEnergyTiming.liveWindowHours * 3600))
+        if now >= start && now <= liveEnd { return .live }
+
+        let secondsUntil = start.timeIntervalSince(now)
+        if secondsUntil > 0 && secondsUntil <= TimeInterval(FanGeoLiveEnergyTiming.startsSoonWindowMinutes * 60) {
+            return .startingSoon
+        }
+
+        return .confirmed
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func compactHeroBadge(_ title: String, tint: Color) -> some View {
@@ -936,12 +972,12 @@ struct VenueDetailView: View {
                 }
 
                 HStack(spacing: FGSpacing.sm) {
-                    FGStatusPill(title: "\(bar.screenCount) screens", kind: .custom(tint: FGColor.accentBlue))
+                    FGStatusPill(title: VenueFeatureDefinitions.screenLabel(count: bar.screenCount), kind: .custom(tint: FGColor.accentBlue))
                     if bar.servesFood {
-                        FGStatusPill(title: "Food + drinks", kind: .custom(tint: FGColor.accentGreen))
+                        FGStatusPill(title: VenueFeatureDefinitions.foodDrinks.label, kind: .custom(tint: FGColor.accentGreen))
                     }
                     if ImageDisplayURL.forDetail(thumbnail: nil, full: menuPhotoURL ?? bar.menuPhotoURL) != nil {
-                        FGStatusPill(title: "Menu photo", kind: .custom(tint: FGColor.accentYellow))
+                        FGStatusPill(title: "Others", kind: .custom(tint: FGColor.accentYellow))
                     }
                 }
             }
@@ -981,40 +1017,15 @@ struct VenueDetailView: View {
     }
 
     private var venueFeaturesSection: some View {
-        FGCard {
-            FGSectionHeader("Venue features", subtitle: "Amenities and comfort at a glance")
+        let items = venueFeatureItems
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: FGSpacing.sm),
-                    GridItem(.flexible(), spacing: FGSpacing.sm),
-                    GridItem(.flexible(), spacing: FGSpacing.sm)
-                ],
-                spacing: FGSpacing.sm
-            ) {
-                ForEach(venueFeatureItems.indices, id: \.self) { index in
-                    let item = venueFeatureItems[index]
-                    VStack(spacing: FGSpacing.xs) {
-                        Image(systemName: item.icon)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(item.enabled ? FGColor.accentGreen : FGColor.mutedText(colorScheme))
-                        Text(item.title)
-                            .font(FGTypography.caption)
-                            .foregroundStyle(item.enabled ? FGColor.primaryText(colorScheme) : FGColor.secondaryText(colorScheme))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.8)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 84)
-                    .padding(.horizontal, FGSpacing.xs)
-                    .background(
-                        item.enabled
-                            ? FGColor.accentGreen.opacity(0.10)
-                            : FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.92)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-                }
-            }
+        return FGCard {
+            FGSectionHeader("Venue features", subtitle: "What makes this spot easy to choose")
+
+            VenueFeatureGrid(items: items)
+        }
+        .onAppear {
+            logVenueFeaturesDebug(renderedItems: items)
         }
     }
 
@@ -1032,6 +1043,43 @@ struct VenueDetailView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+private struct VenueDetailGameItem: Identifiable {
+    let id: String
+    let title: String
+    let sport: String
+    let dateTimeText: String
+    let sortDate: Date
+    let status: VenueDetailGameStatus?
+}
+
+private enum VenueDetailGameStatus {
+    case confirmed
+    case live
+    case startingSoon
+
+    var title: String {
+        switch self {
+        case .confirmed:
+            return "Confirmed"
+        case .live:
+            return "Live"
+        case .startingSoon:
+            return "Starting soon"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .confirmed:
+            return FGColor.accentBlue
+        case .live:
+            return FGColor.dangerRed
+        case .startingSoon:
+            return FGColor.accentYellow
         }
     }
 }

@@ -51,6 +51,8 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     let hasGarden: Bool
     let hasProjector: Bool
     let petFriendly: Bool
+    /// Raw public `venues.features` text; used for configured features that do not have dedicated columns yet.
+    let rawVenueFeatures: String?
 
     // New photo URLs
     let coverPhotoURL: String?
@@ -89,6 +91,7 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         hasGarden: Bool = false,
         hasProjector: Bool = false,
         petFriendly: Bool = false,
+        rawVenueFeatures: String? = nil,
         coverPhotoURL: String? = nil,
         menuPhotoURL: String? = nil,
         coverPhotoThumbnailURL: String? = nil,
@@ -117,6 +120,7 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         self.hasGarden = hasGarden
         self.hasProjector = hasProjector
         self.petFriendly = petFriendly
+        self.rawVenueFeatures = rawVenueFeatures
         self.coverPhotoURL = coverPhotoURL
         self.menuPhotoURL = menuPhotoURL
         self.coverPhotoThumbnailURL = coverPhotoThumbnailURL

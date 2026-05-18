@@ -133,6 +133,7 @@ extension MapViewModel {
             hasGarden: bar.hasGarden,
             hasProjector: bar.hasProjector,
             petFriendly: bar.petFriendly,
+            rawVenueFeatures: bar.rawVenueFeatures,
             coverPhotoURL: bar.coverPhotoURL,
             menuPhotoURL: bar.menuPhotoURL,
             coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,

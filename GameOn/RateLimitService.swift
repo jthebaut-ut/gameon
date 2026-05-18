@@ -8,10 +8,10 @@ enum RateLimitService {
 
     /// Generic throttle (spacing + volume windows).
     static let slowDownMessage = "Slow down — please wait a moment before posting again."
+    static let fanUpdateSlowDownMessage = "Slow down a bit"
 
     /// Same text resent within the duplicate window.
     static let duplicateBlockedMessage = "Duplicate message blocked."
-    static let fanUpdateMinimumQualityMessage = "Add a little more detail before posting."
 
     // MARK: - Private chat (`DirectChatService.sendMessage`)
 
@@ -24,12 +24,13 @@ enum RateLimitService {
 
     // MARK: - Venue event comments / fan updates (`MapViewModel.addComment`)
 
-    static let venueEventCommentMinInterval: TimeInterval = 10
-    static let venueEventCommentDuplicateWindow: TimeInterval = 60
-    static let venueEventCommentMinimumMeaningfulCharacters = 3
-    private static let commentMinInterval: TimeInterval = venueEventCommentMinInterval
+    static let venueEventCommentBurstWindow: TimeInterval = 10
+    static let venueEventCommentBurstAllowance: Int = 3
+    static let venueEventCommentCooldownSeconds: TimeInterval = 1.75
+    static let venueEventCommentMinInterval: TimeInterval = venueEventCommentCooldownSeconds
+    static let venueEventCommentDuplicateWindow: TimeInterval = 15
     private static let commentWindow2m: TimeInterval = 120
-    private static let commentMaxPer2m: Int = 5
+    private static let commentMaxPer2m: Int = 36
     private static let commentDuplicateWindow: TimeInterval = venueEventCommentDuplicateWindow
 
     // MARK: - Conversation reports (`ModerationService.reportConversation`)
@@ -127,10 +128,8 @@ enum RateLimitService {
 
     /// Returns a user-facing error string, or `nil` if the post may proceed.
     static func checkVenueEventCommentSend(venueEventId: UUID, body: String, now: Date = Date()) -> String? {
-        guard fanUpdateHasMinimumContentQuality(body) else {
-            return fanUpdateMinimumQualityMessage
-        }
         let fingerprint = sendFingerprint(for: body)
+        let cleanBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
         lock.lock()
         defer { lock.unlock() }
 
@@ -143,21 +142,52 @@ enum RateLimitService {
 
         pruneCommentSendTimes(&s.sendTimes, now: now)
 
-        if let last = s.lastSendAt, now.timeIntervalSince(last) < commentMinInterval {
-            return Self.slowDownMessage
+        let burstCount = s.sendTimes.filter {
+            now.timeIntervalSince($0) <= venueEventCommentBurstWindow
+        }.count
+        let cooldownSeconds: TimeInterval
+        if let last = s.lastSendAt, burstCount >= venueEventCommentBurstAllowance {
+            cooldownSeconds = max(0, venueEventCommentCooldownSeconds - now.timeIntervalSince(last))
+        } else {
+            cooldownSeconds = 0
+        }
+
+        if cooldownSeconds > 0 {
+            logFanUpdateRateLimitDebug(
+                allowed: false,
+                burstCount: burstCount,
+                cooldownSeconds: cooldownSeconds
+            )
+            return Self.fanUpdateSlowDownMessage
         }
 
         if s.sendTimes.count >= commentMaxPer2m {
-            return Self.slowDownMessage
+            logFanUpdateRateLimitDebug(
+                allowed: false,
+                burstCount: burstCount,
+                cooldownSeconds: venueEventCommentCooldownSeconds
+            )
+            return Self.fanUpdateSlowDownMessage
         }
 
         if let fp = s.lastFingerprint,
            let at = s.lastFingerprintAt,
            fp == fingerprint,
+           cleanBody.count >= 8,
            now.timeIntervalSince(at) < commentDuplicateWindow {
+            logFanUpdateRateLimitDebug(
+                allowed: false,
+                burstCount: burstCount,
+                cooldownSeconds: 0
+            )
             return Self.duplicateBlockedMessage
         }
 
+        logFanUpdateRateLimitDebug(
+            allowed: true,
+            burstCount: burstCount + 1,
+            cooldownSeconds: 0
+        )
         return nil
     }
 
@@ -239,25 +269,6 @@ enum RateLimitService {
 
     // MARK: - Helpers
 
-    static func fanUpdateHasMinimumContentQuality(_ body: String) -> Bool {
-        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        let meaningfulCharacters = trimmed.filter { !$0.isWhitespace && !$0.isNewline }
-        guard meaningfulCharacters.count >= venueEventCommentMinimumMeaningfulCharacters else { return false }
-
-        let normalized = ModerationService.normalizeModerationText(String(meaningfulCharacters))
-        if !normalized.isEmpty {
-            let alphanumericScalars = normalized.unicodeScalars.filter {
-                CharacterSet.alphanumerics.contains($0)
-            }
-            let uniqueAlphanumericScalars = Set(alphanumericScalars)
-            if alphanumericScalars.count <= 2 { return false }
-            if uniqueAlphanumericScalars.count == 1 { return false }
-            return true
-        }
-
-        return Set(meaningfulCharacters).count > 1
-    }
-
     private static func sendFingerprint(for body: String) -> String {
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalized = ModerationService.normalizeModerationText(trimmed)
@@ -273,5 +284,17 @@ enum RateLimitService {
 
     private static func pruneCommentSendTimes(_ times: inout [Date], now: Date) {
         times.removeAll { now.timeIntervalSince($0) > commentWindow2m }
+    }
+
+    static func logFanUpdateRateLimitDebug(
+        allowed: Bool,
+        burstCount: Int,
+        cooldownSeconds: TimeInterval
+    ) {
+        #if DEBUG
+        print("[FanUpdateRateLimitDebug] allowed=\(allowed)")
+        print("[FanUpdateRateLimitDebug] burstCount=\(burstCount)")
+        print("[FanUpdateRateLimitDebug] cooldownSeconds=\(String(format: "%.2f", cooldownSeconds))")
+        #endif
     }
 }

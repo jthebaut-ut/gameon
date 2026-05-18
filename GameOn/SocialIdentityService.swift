@@ -4,6 +4,8 @@ import Supabase
 /// Resolves social-facing identities for both regular users (`user_profiles`) and business owners (`businesses`).
 struct SocialIdentityService {
     private let client: SupabaseClient
+    private static let userProfileSelectColumns =
+        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -34,13 +36,37 @@ struct SocialIdentityService {
         )
         guard !normalizedEmails.isEmpty else { return [] }
 
-        return (try? await client
+        let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
+            .select(Self.userProfileSelectColumns)
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
             .value) ?? []
+
+        let businessOwnerUserIDs = (try? await activeBusinessOwnerUserIDs(for: profiles.compactMap(\.id))) ?? []
+        return profiles.filter {
+            $0.isRegularFanProfile(excludingBusinessOwnerUserIDs: businessOwnerUserIDs)
+        }
+    }
+
+    private func activeBusinessOwnerUserIDs(for userIds: [UUID]) async throws -> Set<UUID> {
+        let ids = Array(Set(userIds))
+        guard !ids.isEmpty else { return [] }
+
+        struct Row: Decodable {
+            let owner_user_id: UUID?
+        }
+
+        let rows: [Row] = try await client
+            .from("businesses")
+            .select("owner_user_id")
+            .in("owner_user_id", values: ids.map { $0.uuidString.lowercased() })
+            .eq("admin_status", value: "active")
+            .execute()
+            .value
+
+        return Set(rows.compactMap(\.owner_user_id))
     }
 
     private func fetchIdentityMapByUserId(
@@ -52,7 +78,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
+            .select(Self.userProfileSelectColumns)
             .in("id", values: ids)
             .eq("admin_status", value: "active")
             .execute()
@@ -180,7 +206,7 @@ struct SocialIdentityService {
 
         let profiles: [UserProfileRow] = (try? await client
             .from("user_profiles")
-            .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
+            .select(Self.userProfileSelectColumns)
             .in("email", values: normalizedEmails)
             .eq("admin_status", value: "active")
             .execute()
@@ -264,7 +290,10 @@ struct SocialIdentityService {
                 username: nil,
                 avatarURL: nil,
                 avatarThumbnailURL: nil,
-                isBusinessAccount: true
+                isBusinessAccount: true,
+                liveVisibilityEnabled: true,
+                liveVisibilityMode: .allFriends,
+                selectedLiveVisibilityFriendIDs: []
             )
         }
 
@@ -289,7 +318,10 @@ struct SocialIdentityService {
             username: storedUsername.isEmpty ? nil : FanGeoHandleRules.normalizeForStorage(storedUsername),
             avatarURL: profile?.avatar_url,
             avatarThumbnailURL: profile?.avatar_thumbnail_url,
-            isBusinessAccount: profile?.isBusinessIdentity == true
+            isBusinessAccount: profile?.isBusinessIdentity == true,
+            liveVisibilityEnabled: profile?.isVisibleForLiveFriendPresence ?? true,
+            liveVisibilityMode: profile?.liveVisibilityMode ?? .allFriends,
+            selectedLiveVisibilityFriendIDs: Array(profile?.selectedLiveVisibilityFriendIDs ?? [])
         )
     }
 
@@ -305,6 +337,9 @@ struct SocialIdentityService {
         let avatarURL: String?
         let avatarThumbnailURL: String?
         let isBusinessAccount: Bool
+        let liveVisibilityEnabled: Bool
+        let liveVisibilityMode: LiveVisibilityMode
+        let selectedLiveVisibilityFriendIDs: [UUID]
 
         var preview: UserPreview {
             UserPreview(
@@ -327,7 +362,10 @@ struct SocialIdentityService {
                 avatar_url: avatarURL,
                 avatar_thumbnail_url: avatarThumbnailURL,
                 is_business_account: isBusinessAccount,
-                admin_status: "active"
+                admin_status: "active",
+                live_visibility_enabled: liveVisibilityEnabled,
+                live_visibility_mode: liveVisibilityMode.rawValue,
+                selected_live_visibility_friend_ids: selectedLiveVisibilityFriendIDs
             )
         }
     }

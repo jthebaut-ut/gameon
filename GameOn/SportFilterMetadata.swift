@@ -27,7 +27,7 @@ nonisolated enum SportFilterCatalog {
         Definition(aliases: ["golf"], emoji: "⛳", systemImage: "figure.golf", accent: Color(red: 0.18, green: 0.62, blue: 0.32)),
         Definition(aliases: ["volleyball"], emoji: "🏐", systemImage: "volleyball.fill", accent: Color(red: 0.2, green: 0.75, blue: 0.88)),
         Definition(aliases: ["ping pong", "pingpong", "table tennis", "tabletennis"], emoji: "🏓", systemImage: "figure.table.tennis", accent: Color(red: 0.55, green: 0.22, blue: 0.85)),
-        Definition(aliases: ["ufc", "mma"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18)),
+        Definition(aliases: ["ufc", "mma", "combat sports"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18)),
         Definition(aliases: ["boxing"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.78, green: 0.15, blue: 0.12)),
         Definition(aliases: ["wrestling"], emoji: "🤼", systemImage: "figure.wrestling", accent: Color(red: 0.42, green: 0.35, blue: 0.72)),
         Definition(aliases: ["formula 1", "formula1", "f1", "racing", "formula one"], emoji: "🏎\u{FE0F}", systemImage: "flag.pattern.checkered", accent: Color(red: 0.92, green: 0.2, blue: 0.22)),

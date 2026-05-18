@@ -87,6 +87,7 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
     let hasGarden: Bool
     let hasProjector: Bool
     let petFriendly: Bool
+    let rawVenueFeatures: String?
     let coverPhotoURL: String?
     let menuPhotoURL: String?
     let coverPhotoThumbnailURL: String?
@@ -117,6 +118,7 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
         hasGarden = bar.hasGarden
         hasProjector = bar.hasProjector
         petFriendly = bar.petFriendly
+        rawVenueFeatures = bar.rawVenueFeatures
         coverPhotoURL = bar.coverPhotoURL
         menuPhotoURL = bar.menuPhotoURL
         coverPhotoThumbnailURL = bar.coverPhotoThumbnailURL
@@ -148,6 +150,7 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
             hasGarden: hasGarden,
             hasProjector: hasProjector,
             petFriendly: petFriendly,
+            rawVenueFeatures: rawVenueFeatures,
             coverPhotoURL: coverPhotoURL,
             menuPhotoURL: menuPhotoURL,
             coverPhotoThumbnailURL: coverPhotoThumbnailURL,
@@ -1967,6 +1970,7 @@ extension MapViewModel {
                     hasGarden: bar.hasGarden,
                     hasProjector: bar.hasProjector,
                     petFriendly: bar.petFriendly,
+                    rawVenueFeatures: bar.rawVenueFeatures,
                     coverPhotoURL: bar.coverPhotoURL,
                     menuPhotoURL: bar.menuPhotoURL,
                     coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,
@@ -2040,6 +2044,7 @@ extension MapViewModel {
                     hasGarden: bar.hasGarden,
                     hasProjector: bar.hasProjector,
                     petFriendly: bar.petFriendly,
+                    rawVenueFeatures: bar.rawVenueFeatures,
                     coverPhotoURL: bar.coverPhotoURL,
                     menuPhotoURL: bar.menuPhotoURL,
                     coverPhotoThumbnailURL: bar.coverPhotoThumbnailURL,

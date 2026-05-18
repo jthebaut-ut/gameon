@@ -39,9 +39,58 @@ private enum VenueEventCommentsQuery {
     }
 }
 
+private enum FanChatLatencyDebugClock {
+    private static let formatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    static func localTime(_ date: Date = Date()) -> String {
+        formatter.string(from: date)
+    }
+
+    static func elapsedMs(since start: CFAbsoluteTime?) -> String {
+        guard let start else { return "nil" }
+        return String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - start) * 1000)
+    }
+}
+
 private enum FanUpdatesPrefetchTTL {
     static let comments: TimeInterval = 30
     static let vibes: TimeInterval = 20
+}
+
+private enum FanChatAppLevelRealtimeConfig {
+    static let maxTrackedEventIDs = 160
+    static let filterChunkSize = 80
+    static let resubscribeDebounceNs: UInt64 = 250_000_000
+    static let countReconcileDebounceNs: UInt64 = 900_000_000
+
+    static func chunked<T>(_ array: [T], size: Int) -> [[T]] {
+        guard size > 0 else { return [array] }
+        return stride(from: 0, to: array.count, by: size).map {
+            Array(array[$0..<Swift.min($0 + size, array.count)])
+        }
+    }
+}
+
+private struct FanChatSheetRealtimeSubscribeTimeoutError: Error {}
+
+private enum FanChatRealtimeFallbackConfig {
+    static let recoveryDelayNs: [UInt64] = [750_000_000, 2_000_000_000, 5_000_000_000]
+    static let fetchLimit = 40
+
+    static func delayMs(for delayNs: UInt64) -> Int {
+        Int(delayNs / 1_000_000)
+    }
+}
+
+private struct FanChatReceiverRefreshStats {
+    let fetchedCount: Int
+    let newRowsMerged: Int
+    let latestServerIds: [String]
+    let visibleCountAfterMerge: Int
 }
 
 extension MapViewModel {
@@ -54,6 +103,60 @@ extension MapViewModel {
         let f2 = ISO8601DateFormatter()
         f2.formatOptions = [.withInternetDateTime]
         return f2.date(from: raw)
+    }
+
+    private func fanChatDebugMilliseconds(from start: CFAbsoluteTime?, to end: CFAbsoluteTime? = nil) -> String {
+        guard let start else { return "nil" }
+        let finish = end ?? CFAbsoluteTimeGetCurrent()
+        return String(format: "%.1f", (finish - start) * 1000)
+    }
+
+    private func logFanChatEndToEnd(
+        venueEventID: UUID,
+        row: VenueEventCommentRow,
+        fallbackUsed: Bool,
+        receivedAt: Date = Date()
+    ) {
+#if DEBUG
+        guard let commentID = row.serverCommentID else { return }
+        let serverCreatedAt = parseVenueEventCommentDate(row.created_at)
+        let insertSuccess = venueEventCommentInsertSuccessTimesByServerID[commentID]
+        let sendTapStart = venueEventCommentDebugSendTapTimesByServerID[commentID]
+        let insertToRealtimeMs = fanChatDebugMilliseconds(from: insertSuccess)
+        let insertToVisibleMs = serverCreatedAt.map {
+            String(format: "%.1f", receivedAt.timeIntervalSince($0) * 1000)
+        } ?? "nil"
+        let channelName = "venue-event-comments-\(venueEventID.uuidString.lowercased())"
+        let sender = currentUserAuthId?.uuidString.lowercased() ?? row.user_email ?? "unknown"
+        print("[FanChatEndToEndDebug] eventId=\(venueEventID.uuidString.lowercased()) senderUserId=\(sender) commentId=\(commentID.uuidString.lowercased()) sendTapToInsertMs=\(fanChatDebugMilliseconds(from: sendTapStart, to: insertSuccess)) insertToRealtimeMs=\(insertToRealtimeMs) insertToOtherDeviceVisibleMs=\(insertToVisibleMs) fallbackUsed=\(fallbackUsed) subscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID)) channelName=\(channelName)")
+#endif
+    }
+
+    func debugFanChatTimingText(for comment: VenueEventCommentRow) -> String? {
+#if DEBUG
+        guard let commentID = comment.serverCommentID else { return nil }
+        let sent = parseVenueEventCommentDate(comment.created_at)
+        let received = venueEventCommentDebugReceivedDatesByServerID[commentID]
+        guard sent != nil || received != nil else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm:ss.SSS"
+        var parts: [String] = []
+        if let sent {
+            parts.append("sent \(formatter.string(from: sent))")
+        }
+        if let received {
+            parts.append("received \(formatter.string(from: received))")
+        }
+        if let sent, let received {
+            parts.append("delay \(String(format: "%.1fs", received.timeIntervalSince(sent)))")
+        }
+        if venueEventCommentDebugFallbackCommentIDs.contains(commentID) {
+            parts.append("fallback")
+        }
+        return parts.joined(separator: "  ")
+#else
+        return nil
+#endif
     }
 
     private func updatedCommentRow(_ row: VenueEventCommentRow, deliveryState: VenueEventCommentDeliveryState) -> VenueEventCommentRow {
@@ -87,13 +190,56 @@ extension MapViewModel {
     }
 
     @MainActor
+    private func updateVenueEventCommentPreviewCount(
+        for venueEventID: UUID,
+        to count: Int
+    ) {
+        let nextCount = max(count, 0)
+        venueEventCommentPreviewCounts[venueEventID] = nextCount
+        #if DEBUG
+        print("[VenueCommentRealtimeDebug] commentCountUpdated=\(nextCount) eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatLatencyDebug] previewCountUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(nextCount) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencyLastSendTimeByEventID[venueEventID]))")
+        #endif
+    }
+
+    @MainActor
+    private func applyVenueEventCommentCountDelta(
+        for venueEventID: UUID,
+        delta: Int
+    ) {
+        let visibleCount = venueEventComments[venueEventID]?.filter { !$0.isHiddenFromThread && !$0.isFailedSend }.count ?? 0
+        if let cachedCount = venueEventCommentPreviewCounts[venueEventID] {
+            updateVenueEventCommentPreviewCount(for: venueEventID, to: cachedCount + delta)
+        } else {
+            updateVenueEventCommentPreviewCount(for: venueEventID, to: visibleCount)
+        }
+    }
+
+    @MainActor
+    private func mergeFanUpdatesPreviewComment(_ row: VenueEventCommentRow, for venueEventID: UUID) {
+        guard !row.isHiddenFromThread else { return }
+        var previews = venueEventCommentPreviews[venueEventID] ?? []
+        if let serverID = row.serverCommentID,
+           let existingIndex = previews.firstIndex(where: { $0.serverCommentID == serverID }) {
+            previews[existingIndex] = row
+        } else {
+            previews.insert(row, at: 0)
+        }
+        venueEventCommentPreviews[venueEventID] = Array(previews.prefix(VenueEventCommentsPagination.previewLimit))
+        fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
+    }
+
+    @MainActor
     private func appendPendingVenueEventComment(_ row: VenueEventCommentRow, for venueEventID: UUID) {
         var list = venueEventComments[venueEventID] ?? []
         list.append(row)
         venueEventComments[venueEventID] = list
-        if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
-            venueEventCommentPreviewCounts[venueEventID] = existingCount + 1
-        }
+        applyVenueEventCommentCountDelta(for: venueEventID, delta: 1)
+        #if DEBUG
+        print("[VenueCommentRealtimeDebug] optimisticAppend tempId=\(row.id?.uuidString.lowercased() ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatLatencyDebug] optimisticAppend eventId=\(venueEventID.uuidString.lowercased()) tempId=\(row.id?.uuidString.lowercased() ?? "nil") localTime=\(FanChatLatencyDebugClock.localTime())")
+        print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: row.id.flatMap { venueEventCommentLatencySendTimesByLocalID[$0] }))")
+        #endif
     }
 
     @MainActor
@@ -109,12 +255,28 @@ extension MapViewModel {
            let existingSentIndex = list.firstIndex(where: { $0.serverCommentID == serverID }) {
             list[existingSentIndex] = row
             venueEventComments[venueEventID] = list
+            mergeFanUpdatesPreviewComment(row, for: venueEventID)
+            #if DEBUG
+            print("[VenueCommentRealtimeDebug] deduped id=\(serverID.uuidString.lowercased()) eventId=\(venueEventID.uuidString.lowercased())")
+            print("[FanChatLatencyDebug] dedupeApplied eventId=\(venueEventID.uuidString.lowercased()) commentId=\(serverID.uuidString.lowercased())")
+            print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencySendTimesByServerID[serverID]))")
+            if source == "realtime" || source == "realtime_fallback" || source == "receiver_refresh" {
+                print("[FanChatReceiverDebug] realtimeIgnored reason=alreadyVisible commentId=\(serverID.uuidString.lowercased())")
+            }
+            #endif
             return
         }
         if let preferredLocalID,
            let localIndex = list.firstIndex(where: { $0.id == preferredLocalID && $0.delivery_state != .sent }) {
             list[localIndex] = row
             venueEventComments[venueEventID] = list
+            mergeFanUpdatesPreviewComment(row, for: venueEventID)
+            #if DEBUG
+            if let serverID = row.serverCommentID {
+                print("[FanChatLatencyDebug] dedupeApplied eventId=\(venueEventID.uuidString.lowercased()) commentId=\(serverID.uuidString.lowercased())")
+            }
+            print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencySendTimesByLocalID[preferredLocalID]))")
+            #endif
             return
         }
         if let pendingIndex = matchingPendingCommentIndex(
@@ -125,15 +287,31 @@ extension MapViewModel {
         ) {
             list[pendingIndex] = row
             venueEventComments[venueEventID] = list
+            mergeFanUpdatesPreviewComment(row, for: venueEventID)
+            #if DEBUG
+            if let serverID = row.serverCommentID {
+                print("[FanChatLatencyDebug] dedupeApplied eventId=\(venueEventID.uuidString.lowercased()) commentId=\(serverID.uuidString.lowercased())")
+                print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencySendTimesByServerID[serverID]))")
+                if source == "realtime" || source == "realtime_fallback" || source == "receiver_refresh" {
+                    print("[FanChatReceiverDebug] realtimeMergeApplied commentId=\(serverID.uuidString.lowercased())")
+                }
+            } else {
+                print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=nil")
+            }
+            #endif
             return
         }
         list.append(row)
         venueEventComments[venueEventID] = list
-        if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
-            venueEventCommentPreviewCounts[venueEventID] = existingCount + 1
-        }
+        mergeFanUpdatesPreviewComment(row, for: venueEventID)
+        applyVenueEventCommentCountDelta(for: venueEventID, delta: 1)
         #if DEBUG
         print("[GameChatPerf] \(source) append event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
+        print("[FanChatLatencyDebug] uiCommentListUpdated eventId=\(venueEventID.uuidString.lowercased()) count=\(list.count) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: row.serverCommentID.flatMap { venueEventCommentLatencySendTimesByServerID[$0] }))")
+            if source == "realtime" || source == "realtime_fallback" || source == "receiver_refresh",
+               let serverID = row.serverCommentID {
+                print("[FanChatReceiverDebug] realtimeMergeApplied commentId=\(serverID.uuidString.lowercased())")
+            }
         #endif
     }
 
@@ -158,6 +336,12 @@ extension MapViewModel {
         Task { @MainActor [weak self] in
             guard let self else { return }
             do {
+                #if DEBUG
+                print("[VenueCommentRealtimeDebug] insertStarted=\(localCommentID.uuidString.lowercased()) eventId=\(venueEventID.uuidString.lowercased())")
+                let insertStartedAt = CFAbsoluteTimeGetCurrent()
+                venueEventCommentLatencyInsertStartTimesByLocalID[localCommentID] = insertStartedAt
+                print("[FanChatLatencyDebug] insertStart eventId=\(venueEventID.uuidString.lowercased()) localTime=\(FanChatLatencyDebugClock.localTime())")
+                #endif
                 let newComment = VenueEventCommentInsert(
                     venue_event_id: venueEventID,
                     user_email: commenterEmail,
@@ -176,19 +360,46 @@ extension MapViewModel {
                 #if DEBUG
                 print("[GameChatPerf] server insert completed event=\(venueEventID) local=\(localCommentID) server=\(row.id?.uuidString ?? "nil")")
                 #endif
+                #if DEBUG
+                print("[VenueCommentRealtimeDebug] insertSucceeded serverId=\(row.id?.uuidString.lowercased() ?? "nil") tempId=\(localCommentID.uuidString.lowercased()) eventId=\(venueEventID.uuidString.lowercased())")
+                if let serverID = row.serverCommentID,
+                   let sendStartedAt = venueEventCommentLatencySendTimesByLocalID[localCommentID] {
+                    venueEventCommentLatencySendTimesByServerID[serverID] = sendStartedAt
+                    venueEventCommentInsertSuccessTimesByServerID[serverID] = CFAbsoluteTimeGetCurrent()
+                    venueEventCommentDebugSendTapTimesByServerID[serverID] = sendStartedAt
+                    venueEventCommentDebugReceivedDatesByServerID[serverID] = Date()
+                }
+                print("[FanChatLatencyDebug] insertSuccess eventId=\(venueEventID.uuidString.lowercased()) serverId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencyInsertStartTimesByLocalID[localCommentID]))")
+                #endif
                 mergeIncomingVenueEventComment(row, for: venueEventID, preferredLocalID: localCommentID, source: "insert")
+                logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
+                if let serverID = row.serverCommentID {
+                    let subscriptionReady = venueEventCommentsRealtimeReadyIDs.contains(venueEventID)
+                    #if DEBUG
+                    if !subscriptionReady {
+                        print("[FanChatReadyDebug] fastFallbackScheduled delayMs=750")
+                    }
+                    #endif
+                    scheduleVenueEventCommentRecoveryBurst(
+                        venueEventID: venueEventID,
+                        expectedCommentID: serverID
+                    )
+                }
                 if let email = row.user_email {
                     await loadUserProfilesForEmails([email])
                 }
             } catch {
                 #if DEBUG
                 print("[GameChatPerf] send failed event=\(venueEventID) local=\(localCommentID) error=\(error)")
+                print("[VenueCommentRealtimeDebug] insertFailed error=\(error) tempId=\(localCommentID.uuidString.lowercased()) eventId=\(venueEventID.uuidString.lowercased())")
+                print("[FanChatLatencyDebug] insertFailure eventId=\(venueEventID.uuidString.lowercased()) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencyInsertStartTimesByLocalID[localCommentID])) error=\(error.localizedDescription)")
                 #endif
                 markVenueEventCommentDeliveryState(
                     venueEventID: venueEventID,
                     localCommentID: localCommentID,
                     state: .failed
                 )
+                applyVenueEventCommentCountDelta(for: venueEventID, delta: -1)
             }
         }
     }
@@ -209,28 +420,563 @@ extension MapViewModel {
         return Array(all)
     }
 
+    func scheduleFanChatAppLevelRealtimeForLoadedVenueEvents() {
+        fanChatAppLevelRealtimeResubscribeTask?.cancel()
+        let eventIDs = fanChatAppLevelTrackedVenueEventIDs()
+        fanChatAppLevelRealtimeResubscribeTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: FanChatAppLevelRealtimeConfig.resubscribeDebounceNs)
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled else { return }
+            await self.startFanChatAppLevelRealtimeIfNeeded(eventIDs: eventIDs)
+        }
+    }
+
+    func verifyFanChatRealtimeAfterForeground() async {
+#if DEBUG
+        RealtimeHealthDiagnostics.log("appForegroundReconnect=fan_chat")
+#endif
+        let trackedIDs = fanChatAppLevelTrackedVenueEventIDs()
+        if !trackedIDs.isEmpty {
+#if DEBUG
+            let reason = (fanChatAppLevelRealtimeTask == nil || fanChatAppLevelRealtimeChannel == nil)
+                ? "fan_chat_app_missing_channel"
+                : "fan_chat_app_foreground_resubscribe"
+            RealtimeHealthDiagnostics.log("reconnectDetected=\(reason)")
+#endif
+            await stopFanChatAppLevelRealtime()
+            await startFanChatAppLevelRealtimeIfNeeded(eventIDs: trackedIDs)
+        }
+
+        let activeSheetIDs = venueEventCommentsRealtimeActiveIDs()
+        for eventID in activeSheetIDs {
+#if DEBUG
+            let reason = venueEventCommentsRealtimeReadyIDs.contains(eventID)
+                ? "fan_chat_sheet_foreground_resubscribe"
+                : "fan_chat_sheet_not_ready"
+            RealtimeHealthDiagnostics.log("reconnectDetected=\(reason) channelName=venue-event-comments-\(eventID.uuidString.lowercased())")
+#endif
+            await stopVenueEventCommentsRealtime(for: eventID)
+            await startVenueEventCommentsRealtime(for: eventID)
+        }
+    }
+
+    private func fanChatAppLevelTrackedVenueEventIDs() -> [UUID] {
+        Array(Set(venueEventRows.compactMap(\.id)))
+            .sorted { $0.uuidString < $1.uuidString }
+            .prefix(FanChatAppLevelRealtimeConfig.maxTrackedEventIDs)
+            .map { $0 }
+    }
+
+    private func startFanChatAppLevelRealtimeIfNeeded(eventIDs: [UUID]) async {
+        let ids = Array(Set(eventIDs))
+            .sorted { $0.uuidString < $1.uuidString }
+            .prefix(FanChatAppLevelRealtimeConfig.maxTrackedEventIDs)
+            .map { $0 }
+
+        if ids == fanChatAppLevelRealtimeTrackedEventIDs,
+           fanChatAppLevelRealtimeTask != nil,
+           fanChatAppLevelRealtimeChannel != nil {
+            return
+        }
+
+        await stopFanChatAppLevelRealtime()
+        fanChatAppLevelRealtimeTrackedEventIDs = ids
+        guard !ids.isEmpty else { return }
+
+        fanChatAppLevelRealtimeTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.runFanChatAppLevelRealtimeLoop(eventIDs: ids)
+        }
+    }
+
+    private func stopFanChatAppLevelRealtime() async {
+        fanChatAppLevelRealtimeResubscribeTask?.cancel()
+        fanChatAppLevelRealtimeResubscribeTask = nil
+
+        if let task = fanChatAppLevelRealtimeTask {
+            task.cancel()
+            _ = await task.result
+            fanChatAppLevelRealtimeTask = nil
+        }
+
+        if let channel = fanChatAppLevelRealtimeChannel {
+            await supabase.removeChannel(channel)
+            fanChatAppLevelRealtimeChannel = nil
+        }
+    }
+
+    private func runFanChatAppLevelRealtimeLoop(eventIDs: [UUID]) async {
+        let ids = Array(Set(eventIDs)).sorted { $0.uuidString < $1.uuidString }
+        guard !ids.isEmpty, !Task.isCancelled else { return }
+
+        let channel = supabase.channel("venue-event-comments-app-\(UUID().uuidString.lowercased())")
+        fanChatAppLevelRealtimeChannel = channel
+        let subscribeStartedAt = CFAbsoluteTimeGetCurrent()
+
+        let streams = FanChatAppLevelRealtimeConfig.chunked(
+            ids,
+            size: FanChatAppLevelRealtimeConfig.filterChunkSize
+        ).map { chunk in
+            channel.postgresChange(
+                InsertAction.self,
+                schema: "public",
+                table: "venue_event_comments",
+                filter: RealtimePostgresFilter.in("venue_event_id", values: chunk)
+            )
+        }
+
+        do {
+            #if DEBUG
+            let idList = ids.map { $0.uuidString.lowercased() }.joined(separator: ",")
+            print("[FanChatRealtimeDelayDebug] appSubscribeStart eventIds=\(idList)")
+            print("[FanChatRealtimeDelayDebug] filterMode=app_in")
+            RealtimeHealthDiagnostics.log("channelName=\(channel.topic)")
+            RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channel.topic)")
+            #endif
+            try await channel.subscribeWithError()
+            #if DEBUG
+            print("[FanChatRealtimeFixDebug] appLevelSubscribe eventIds=\(idList)")
+            print("[FanChatRealtimeDelayDebug] appSubscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000))")
+            RealtimeHealthDiagnostics.log("subscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000)) channelName=\(channel.topic)")
+            #endif
+        } catch {
+            if fanChatAppLevelRealtimeChannel === channel {
+                fanChatAppLevelRealtimeChannel = nil
+            }
+#if DEBUG
+            RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
+#endif
+            return
+        }
+
+        let tracked = Set(ids)
+        await withTaskGroup(of: Void.self) { group in
+            for stream in streams {
+                group.addTask { [weak self] in
+                    await self?.consumeFanChatAppLevelRealtimeStream(stream, trackedEventIDs: tracked)
+                }
+            }
+        }
+
+        if fanChatAppLevelRealtimeChannel === channel {
+            fanChatAppLevelRealtimeChannel = nil
+            await supabase.removeChannel(channel)
+        }
+    }
+
+    private func consumeFanChatAppLevelRealtimeStream(
+        _ stream: AsyncStream<InsertAction>,
+        trackedEventIDs: Set<UUID>
+    ) async {
+        let decoder = JSONDecoder()
+        for await insertion in stream {
+            if Task.isCancelled { break }
+            let row: VenueEventCommentRow
+            do {
+                row = try insertion.decodeRecord(as: VenueEventCommentRow.self, decoder: decoder)
+            } catch {
+                continue
+            }
+            guard let eventID = row.venue_event_id, trackedEventIDs.contains(eventID) else { continue }
+            if let commentID = row.serverCommentID {
+                venueEventCommentRealtimeReceivedServerIDs.insert(commentID)
+                venueEventCommentDebugReceivedDatesByServerID[commentID] = Date()
+                #if DEBUG
+                print("[FanChatRealtimeDelayDebug] realtimeReceivedAfterInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments id=\(commentID.uuidString.lowercased()) elapsedSinceInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                #endif
+            }
+            applyFanChatAppLevelRealtimeInsert(row, for: eventID)
+            if let email = row.user_email {
+                await loadUserProfilesForEmails([email])
+            }
+        }
+    }
+
+    @MainActor
+    private func applyFanChatAppLevelRealtimeInsert(_ row: VenueEventCommentRow, for venueEventID: UUID) {
+        guard let commentID = row.serverCommentID else { return }
+        #if DEBUG
+        print("[FanChatRealtimeFixDebug] insertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(commentID.uuidString.lowercased())")
+        #endif
+
+        guard !row.isHiddenFromThread else { return }
+
+        let cacheWasLoaded = venueEventComments.keys.contains(venueEventID)
+        let cachedList = venueEventComments[venueEventID] ?? []
+        let alreadyInCache = cachedList.contains { $0.serverCommentID == commentID || $0.id == commentID }
+        let alreadyInPreview = (venueEventCommentPreviews[venueEventID] ?? []).contains {
+            $0.serverCommentID == commentID || $0.id == commentID
+        }
+
+        if fanChatAppLevelSeenCommentIDs.contains(commentID), !alreadyInCache, !alreadyInPreview {
+            #if DEBUG
+            print("[FanChatReceiverDebug] realtimeIgnored reason=diagnosticSeenButNotVisibleFixed commentId=\(commentID.uuidString.lowercased())")
+            #endif
+        } else if fanChatAppLevelSeenCommentIDs.contains(commentID) {
+            #if DEBUG
+            print("[FanChatRealtimeFixDebug] duplicateIgnored commentId=\(commentID.uuidString.lowercased())")
+            #endif
+            return
+        }
+        fanChatAppLevelSeenCommentIDs.insert(commentID)
+
+        if alreadyInCache || (alreadyInPreview && !cacheWasLoaded) {
+            #if DEBUG
+            print("[FanChatRealtimeFixDebug] duplicateIgnored commentId=\(commentID.uuidString.lowercased())")
+            #endif
+            scheduleFanChatCommentCountServerReconcile(for: venueEventID)
+            return
+        }
+
+        let hasPendingLocalMatch = matchingPendingCommentIndex(
+            in: cachedList,
+            venueEventID: venueEventID,
+            email: row.user_email,
+            text: row.comment
+        ) != nil
+        let shouldPatchPreviewCount = !alreadyInPreview && !alreadyInCache && !hasPendingLocalMatch
+#if DEBUG
+        let applyStartedAt = CFAbsoluteTimeGetCurrent()
+        RealtimeHealthDiagnostics.log("mainActorApplyStart=venue_event_comments id=\(commentID.uuidString.lowercased())")
+#endif
+
+        if cacheWasLoaded {
+            mergeIncomingVenueEventComment(row, for: venueEventID, source: "app_realtime")
+            #if DEBUG
+            let count = venueEventComments[venueEventID]?.filter { !$0.isHiddenFromThread && !$0.isFailedSend }.count ?? 0
+            print("[FanChatRealtimeFixDebug] cachePatched eventId=\(venueEventID.uuidString.lowercased()) count=\(count)")
+            #endif
+        } else {
+            mergeFanUpdatesPreviewComment(row, for: venueEventID)
+        }
+
+        if shouldPatchPreviewCount {
+            let nextCount = max(0, venueEventCommentPreviewCounts[venueEventID] ?? 0) + 1
+            updateVenueEventCommentPreviewCount(for: venueEventID, to: nextCount)
+            #if DEBUG
+            print("[FanChatRealtimeFixDebug] previewCountPatched eventId=\(venueEventID.uuidString.lowercased()) count=\(nextCount)")
+            #endif
+        }
+
+        scheduleFanChatCommentCountServerReconcile(for: venueEventID)
+        logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
+#if DEBUG
+        RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - applyStartedAt) * 1000)) table=venue_event_comments id=\(commentID.uuidString.lowercased())")
+#endif
+    }
+
+    private func scheduleFanChatCommentCountServerReconcile(for venueEventID: UUID) {
+        fanChatCommentCountReconcileTasks[venueEventID]?.cancel()
+        #if DEBUG
+        print("[FanChatRealtimeFixDebug] serverReconcileScheduled eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
+        fanChatCommentCountReconcileTasks[venueEventID] = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: FanChatAppLevelRealtimeConfig.countReconcileDebounceNs)
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled else { return }
+            if let exactCount = await self.loadFanUpdatesExactVisibleCommentCount(for: venueEventID) {
+                self.updateVenueEventCommentPreviewCount(for: venueEventID, to: exactCount)
+            }
+            self.fanChatCommentCountReconcileTasks[venueEventID] = nil
+        }
+    }
+
+    private func subscribeVenueEventCommentsChannelWithTimeout(
+        _ channel: RealtimeChannelV2,
+        timeoutNs: UInt64 = 15_000_000_000
+    ) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                try await Task.detached(priority: .userInitiated) {
+                    try await channel.subscribeWithError()
+                }.value
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: timeoutNs)
+                throw FanChatSheetRealtimeSubscribeTimeoutError()
+            }
+            defer { group.cancelAll() }
+            try await group.next()!
+        }
+    }
+
+    private func scheduleVenueEventCommentRecoveryBurst(
+        venueEventID: UUID,
+        expectedCommentID: UUID
+    ) {
+        venueEventCommentRealtimeFallbackTasks[expectedCommentID]?.cancel()
+        venueEventCommentRealtimeFallbackTasks[expectedCommentID] = Task { @MainActor [weak self] in
+            defer { self?.venueEventCommentRealtimeFallbackTasks[expectedCommentID] = nil }
+            for delayNs in FanChatRealtimeFallbackConfig.recoveryDelayNs {
+                do {
+                    try await Task.sleep(nanoseconds: delayNs)
+                } catch {
+                    return
+                }
+                guard let self, !Task.isCancelled else { return }
+                guard self.hasActiveVenueEventCommentsRealtimeListener(for: venueEventID) else { return }
+                guard !self.venueEventCommentRealtimeReceivedServerIDs.contains(expectedCommentID) else { return }
+
+                let delayMs = FanChatRealtimeFallbackConfig.delayMs(for: delayNs)
+                #if DEBUG
+                print("[FanChatDeliveryDebug] realtimeLateUsingFetchRecovery eventId=\(venueEventID.uuidString.lowercased())")
+                print("[FanChatDeliveryDebug] recoveryFetch delayMs=\(delayMs)")
+                #endif
+                _ = await self.fetchRecentVenueEventCommentsForRealtimeFallback(
+                    venueEventID: venueEventID,
+                    recoveryDelayMs: delayMs,
+                    mergeSource: "realtime_fallback"
+                )
+            }
+            if let self, !self.venueEventCommentRealtimeReceivedServerIDs.contains(expectedCommentID) {
+                #if DEBUG
+                print("[FanChatDeliveryDebug] realtimeStillDelayed eventId=\(venueEventID.uuidString.lowercased())")
+                #endif
+            }
+        }
+    }
+
+    func scheduleOpenVenueEventCommentsRecoveryBurst(for venueEventID: UUID) {
+        scheduleFanChatReceiverRefreshBurst(for: venueEventID, reason: "sheet_visible")
+    }
+
+    func cancelFanChatReceiverRefreshBurst(for venueEventID: UUID) {
+        fanChatReceiverRefreshBurstTasks[venueEventID]?.cancel()
+        fanChatReceiverRefreshBurstTasks[venueEventID] = nil
+    }
+
+    @discardableResult
+    func manualRefreshFanUpdatesComments(for venueEventID: UUID) async -> Bool {
+        let stats = await refreshFanUpdatesComments(
+            for: venueEventID,
+            mergeSource: "manual_refresh",
+            debugTag: "FanChatManualRefreshDebug"
+        )
+        return stats != nil
+    }
+
+    @discardableResult
+    func pullRefreshFanUpdatesComments(for venueEventID: UUID) async -> Bool {
+        let stats = await refreshFanUpdatesComments(
+            for: venueEventID,
+            mergeSource: "pull_refresh",
+            debugTag: "FanChatPullRefreshDebug"
+        )
+        return stats != nil
+    }
+
+    private func refreshFanUpdatesComments(
+        for venueEventID: UUID,
+        mergeSource: String,
+        debugTag: String
+    ) async -> FanChatReceiverRefreshStats? {
+        guard !fanChatAutoRefreshInFlightIDs.contains(venueEventID) else {
+            #if DEBUG
+            print("[\(debugTag)] skipped reason=refreshInFlight")
+            #endif
+            return nil
+        }
+
+        fanChatAutoRefreshInFlightIDs.insert(venueEventID)
+        defer { fanChatAutoRefreshInFlightIDs.remove(venueEventID) }
+
+        #if DEBUG
+        print("[\(debugTag)] started eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
+        let stats = await fetchRecentVenueEventCommentsForRealtimeFallback(
+            venueEventID: venueEventID,
+            mergeSource: mergeSource
+        )
+        await loadCurrentUserCommentReportFlags(for: venueEventID)
+        #if DEBUG
+        print("[\(debugTag)] merged count=\(stats?.newRowsMerged ?? 0) fetched=\(stats?.fetchedCount ?? 0) visible=\(stats?.visibleCountAfterMerge ?? 0)")
+        print("[\(debugTag)] finished eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
+        return stats
+    }
+
+    @discardableResult
+    func autoRefreshFanUpdatesComments(for venueEventID: UUID) async -> Bool {
+        guard !fanChatAutoRefreshInFlightIDs.contains(venueEventID) else {
+            #if DEBUG
+            print("[FanChatAutoRefreshDebug] skipped reason=refreshInFlight")
+            #endif
+            return false
+        }
+
+        fanChatAutoRefreshInFlightIDs.insert(venueEventID)
+        defer { fanChatAutoRefreshInFlightIDs.remove(venueEventID) }
+
+        let stats = await fetchRecentVenueEventCommentsForRealtimeFallback(
+            venueEventID: venueEventID,
+            mergeSource: "auto_refresh"
+        )
+        #if DEBUG
+        print("[FanChatAutoRefreshDebug] merged newRows=\(stats?.newRowsMerged ?? 0)")
+        #endif
+        return (stats?.newRowsMerged ?? 0) > 0
+    }
+
+    private func scheduleFanChatReceiverRefreshBurst(for venueEventID: UUID, reason: String) {
+        fanChatReceiverRefreshBurstTasks[venueEventID]?.cancel()
+        #if DEBUG
+        if reason == "sheet_visible" {
+            print("[FanChatReceiverDebug] sheetVisible eventId=\(venueEventID.uuidString.lowercased())")
+        }
+        print("[FanChatReceiverDebug] refreshBurstStarted eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
+        fanChatReceiverRefreshBurstTasks[venueEventID] = Task { @MainActor [weak self] in
+            var totalNewRowsMerged = 0
+            defer { self?.fanChatReceiverRefreshBurstTasks[venueEventID] = nil }
+            for tick in 0...5 {
+                if tick > 0 {
+                    do {
+                        try await Task.sleep(nanoseconds: 1_000_000_000)
+                    } catch {
+                        return
+                    }
+                }
+                guard let self, !Task.isCancelled else { return }
+                guard self.hasActiveVenueEventCommentsRealtimeListener(for: venueEventID) else { return }
+
+                #if DEBUG
+                print("[FanChatReceiverDebug] refreshTick eventId=\(venueEventID.uuidString.lowercased()) tick=\(tick)")
+                #endif
+                let stats = await self.fetchRecentVenueEventCommentsForRealtimeFallback(
+                    venueEventID: venueEventID,
+                    recoveryDelayMs: tick * 1_000,
+                    mergeSource: "receiver_refresh"
+                )
+                totalNewRowsMerged += stats?.newRowsMerged ?? 0
+                if tick == 5, totalNewRowsMerged == 0, stats?.fetchedCount == 0 {
+                    #if DEBUG
+                    print("[FanChatReceiverDebug] fetchMissingPostedComment possibleRLSOrFilterIssue=true")
+                    #endif
+                }
+            }
+        }
+    }
+
+    private func fetchRecentVenueEventCommentsForRealtimeFallback(
+        venueEventID: UUID,
+        recoveryDelayMs: Int? = nil,
+        mergeSource: String = "realtime_fallback"
+    ) async -> FanChatReceiverRefreshStats? {
+        do {
+            #if DEBUG
+            print("[FanChatReadyDebug] fallbackFetchStarted eventId=\(venueEventID.uuidString.lowercased())")
+            #endif
+            let existingCommentIDs = Set((venueEventComments[venueEventID] ?? []).compactMap(\.serverCommentID))
+            let rowsRaw: [VenueEventCommentRow] = try await supabase
+                .from("venue_event_comments")
+                .select(VenueEventCommentsPagination.selectColumns)
+                .eq("venue_event_id", value: venueEventID)
+                .or("is_moderation_hidden.is.null,is_moderation_hidden.eq.false")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .limit(FanChatRealtimeFallbackConfig.fetchLimit)
+                .execute()
+                .value
+
+            let rows = rowsRaw.filter { !$0.isHiddenFromThread }.reversed()
+            var mergedNewCount = 0
+            for row in rows {
+                if let commentID = row.serverCommentID {
+                    if !existingCommentIDs.contains(commentID) {
+                        mergedNewCount += 1
+                    }
+                    venueEventCommentDebugFallbackCommentIDs.insert(commentID)
+                    venueEventCommentDebugReceivedDatesByServerID[commentID] = Date()
+                }
+                mergeIncomingVenueEventComment(row, for: venueEventID, source: mergeSource)
+                logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: true)
+            }
+            let visibleCountAfterMerge = venueEventComments[venueEventID]?.filter {
+                !$0.isHiddenFromThread && !$0.isFailedSend
+            }.count ?? 0
+            let latestServerIds = rowsRaw.compactMap { $0.serverCommentID?.uuidString.lowercased() }
+            #if DEBUG
+            print("[FanChatReadyDebug] fallbackMerged count=\(rows.count)")
+            if recoveryDelayMs != nil {
+                print("[FanChatDeliveryDebug] recoveryMerged newCount=\(mergedNewCount)")
+            }
+            print("[FanChatReceiverDebug] fetchedCount=\(rows.count)")
+            print("[FanChatReceiverDebug] newRowsMerged=\(mergedNewCount)")
+            print("[FanChatReceiverDebug] latestServerIds=\(latestServerIds.prefix(6).joined(separator: ","))")
+            print("[FanChatReceiverDebug] visibleCountAfterMerge=\(visibleCountAfterMerge)")
+            #endif
+            if let exactCount = await loadFanUpdatesExactVisibleCommentCount(for: venueEventID) {
+                updateVenueEventCommentPreviewCount(for: venueEventID, to: exactCount)
+            }
+            return FanChatReceiverRefreshStats(
+                fetchedCount: rows.count,
+                newRowsMerged: mergedNewCount,
+                latestServerIds: latestServerIds,
+                visibleCountAfterMerge: visibleCountAfterMerge
+            )
+        } catch {
+            logVenueEventSocialLoadError("ERROR LOADING COMMENTS REALTIME FALLBACK:", loadCancelledTag: "comments_realtime_fallback", error: error)
+            return nil
+        }
+    }
+
     func startVenueEventCommentsRealtime(for venueEventID: UUID) async {
         for otherEventID in venueEventCommentsRealtimeActiveIDs(excluding: venueEventID) {
             await stopVenueEventCommentsRealtime(for: otherEventID)
         }
 
-        guard !hasActiveVenueEventCommentsRealtimeListener(for: venueEventID) else {
+        let channelName = "venue-event-comments-\(venueEventID.uuidString.lowercased())"
+        let hasTask = venueEventCommentsRealtimeTasks[venueEventID] != nil
+        let hasChannel = venueEventCommentsRealtimeChannels[venueEventID] != nil
+        let hasToken = venueEventCommentsRealtimeListenerTokens[venueEventID] != nil
+        if hasTask || hasChannel || hasToken {
+            if hasTask {
+                #if DEBUG
+                print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
+                #endif
+                return
+            }
+            let staleChannel = venueEventCommentsRealtimeChannels[venueEventID]
             #if DEBUG
-            print("[GameChatPerf] listener already active, skipping event=\(venueEventID)")
+            RealtimeHealthDiagnostics.log("reconnectDetected=fan_chat_sheet_stale_partial_channel channelName=\(channelName)")
             #endif
-            return
+            venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
+            venueEventCommentsRealtimeTasks[venueEventID] = nil
+            venueEventCommentsRealtimeChannels[venueEventID] = nil
+            venueEventCommentsRealtimeReadyIDs.remove(venueEventID)
+            venueEventCommentsRealtimeSubscribeStartedAt[venueEventID] = nil
+            if let staleChannel {
+                await supabase.removeChannel(staleChannel)
+            }
         }
 
         let listenerToken = UUID()
         venueEventCommentsRealtimeListenerTokens[venueEventID] = listenerToken
+        venueEventCommentsRealtimeReadyIDs.remove(venueEventID)
+        venueEventCommentsRealtimeSubscribeStartedAt[venueEventID] = CFAbsoluteTimeGetCurrent()
         #if DEBUG
         print("[GameChatPerf] starting listener event=\(venueEventID)")
+        print("[VenueCommentRealtimeDebug] subscribe eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatRealtimeDelayDebug] sheetSubscribeStart eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatRealtimeDelayDebug] filterMode=sheet_eq")
+        print("[FanChatReadyDebug] subscribeStart channelName=\(channelName)")
+        print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=false")
+        RealtimeHealthDiagnostics.log("channelName=\(channelName)")
+        RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channelName)")
         #endif
 
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
-            let channel = supabase.channel("venue-event-comments-\(venueEventID.uuidString.lowercased())")
+            let channel = supabase.channel(channelName)
             venueEventCommentsRealtimeChannels[venueEventID] = channel
+            var shouldRestartAfterFailure = false
             let inserts = channel.postgresChange(
                 InsertAction.self,
                 schema: "public",
@@ -239,10 +985,18 @@ extension MapViewModel {
             )
 
             do {
-                try await channel.subscribeWithError()
+                try await subscribeVenueEventCommentsChannelWithTimeout(channel)
+                venueEventCommentsRealtimeReadyIDs.insert(venueEventID)
                 #if DEBUG
                 print("[GameChatPerf] realtime subscribed event=\(venueEventID)")
+                print("[FanChatLatencyDebug] realtimeSubscribed eventId=\(venueEventID.uuidString.lowercased()) channel=\(channel.topic)")
+                print("[FanChatRealtimeDelayDebug] sheetSubscribeReady eventId=\(venueEventID.uuidString.lowercased()) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentsRealtimeSubscribeStartedAt[venueEventID]))")
+                print("[FanChatReadyDebug] subscribeReady channelName=\(channelName) elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentsRealtimeSubscribeStartedAt[venueEventID]))")
+                print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=true")
+                RealtimeHealthDiagnostics.log("subscribeReady elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentsRealtimeSubscribeStartedAt[venueEventID])) channelName=\(channel.topic)")
+                print("[RealtimeRecoveryDebug] reconnectSucceeded channelName=\(channelName)")
                 #endif
+                scheduleFanChatReceiverRefreshBurst(for: venueEventID, reason: "realtime_reconnect")
 
                 for await insertion in inserts {
                     if Task.isCancelled { break }
@@ -254,8 +1008,33 @@ extension MapViewModel {
                     }
                     #if DEBUG
                     print("[GameChatPerf] realtime received event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
+                    print("[VenueCommentRealtimeDebug] realtimeInsertReceived id=\(row.id?.uuidString.lowercased() ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
+                    print("[FanChatLatencyDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedSinceSendMs=\(FanChatLatencyDebugClock.elapsedMs(since: row.serverCommentID.flatMap { self.venueEventCommentLatencySendTimesByServerID[$0] }))")
+                    print("[FanChatReceiverDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") userId=\(row.user_email ?? "nil")")
                     #endif
+                    if row.isHiddenFromThread {
+                        #if DEBUG
+                        print("[FanChatReceiverDebug] realtimeIgnored reason=hidden commentId=\(row.id?.uuidString.lowercased() ?? "nil")")
+                        #endif
+                        continue
+                    }
+                    if let commentID = row.serverCommentID {
+                        venueEventCommentRealtimeReceivedServerIDs.insert(commentID)
+                        venueEventCommentDebugReceivedDatesByServerID[commentID] = Date()
+                        #if DEBUG
+                        print("[FanChatRealtimeDelayDebug] realtimeReceivedAfterInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                        RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments id=\(commentID.uuidString.lowercased()) elapsedSinceInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                        #endif
+                    }
+#if DEBUG
+                    let applyStartedAt = CFAbsoluteTimeGetCurrent()
+                    RealtimeHealthDiagnostics.log("mainActorApplyStart=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
+#endif
                     mergeIncomingVenueEventComment(row, for: venueEventID, source: "realtime")
+                    logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
+#if DEBUG
+                    RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - applyStartedAt) * 1000)) table=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
+#endif
                     if let email = row.user_email {
                         await loadUserProfilesForEmails([email])
                     }
@@ -264,7 +1043,27 @@ extension MapViewModel {
             } catch {
                 #if DEBUG
                 print("[GameChatPerf] realtime error event=\(venueEventID) error=\(error)")
+                RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
+                if error is FanChatSheetRealtimeSubscribeTimeoutError {
+                    print("[RealtimeRecoveryDebug] timeout channelName=\(channelName)")
+                }
+                print("[RealtimeRecoveryDebug] reconnectFailed channelName=\(channelName) error=\(error.localizedDescription)")
                 #endif
+                venueEventCommentsRealtimeReadyIDs.remove(venueEventID)
+                if venueEventCommentsRealtimeListenerTokens[venueEventID] == listenerToken {
+                    venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
+                    venueEventCommentsRealtimeTasks[venueEventID] = nil
+                    if venueEventCommentsRealtimeChannels[venueEventID] === channel {
+                        venueEventCommentsRealtimeChannels[venueEventID] = nil
+                    }
+                    venueEventCommentsRealtimeSubscribeStartedAt[venueEventID] = nil
+                    await supabase.removeChannel(channel)
+                    shouldRestartAfterFailure = true
+                    #if DEBUG
+                    print("[RealtimeRecoveryDebug] staleChannelRemoved channelName=\(channelName)")
+                    print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=false")
+                    #endif
+                }
             }
 
             if venueEventCommentsRealtimeListenerTokens[venueEventID] == listenerToken {
@@ -274,6 +1073,20 @@ extension MapViewModel {
                 }
                 venueEventCommentsRealtimeTasks[venueEventID] = nil
                 venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
+                venueEventCommentsRealtimeReadyIDs.remove(venueEventID)
+                venueEventCommentsRealtimeSubscribeStartedAt[venueEventID] = nil
+                #if DEBUG
+                print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=false")
+                #endif
+            }
+            if shouldRestartAfterFailure {
+                Task { @MainActor [weak self] in
+                    guard let self, !Task.isCancelled else { return }
+                    #if DEBUG
+                    print("[RealtimeRecoveryDebug] reconnectAttempt channelName=\(channelName) attempt=1")
+                    #endif
+                    await self.startVenueEventCommentsRealtime(for: venueEventID)
+                }
             }
         }
         venueEventCommentsRealtimeTasks[venueEventID] = task
@@ -290,6 +1103,12 @@ extension MapViewModel {
         venueEventCommentsRealtimeListenerTokens[venueEventID] = nil
         venueEventCommentsRealtimeTasks[venueEventID] = nil
         venueEventCommentsRealtimeChannels[venueEventID] = nil
+        venueEventCommentsRealtimeReadyIDs.remove(venueEventID)
+        venueEventCommentsRealtimeSubscribeStartedAt[venueEventID] = nil
+        cancelFanChatReceiverRefreshBurst(for: venueEventID)
+        #if DEBUG
+        print("[FanChatReadyDebug] readyState eventId=\(venueEventID.uuidString.lowercased()) ready=false")
+        #endif
         task?.cancel()
         if let channel {
             await supabase.removeChannel(channel)
@@ -461,7 +1280,15 @@ extension MapViewModel {
             return
         }
 
+        let inFlightKey = "\(venueEventID.uuidString)|\(vibeType)"
+        guard !venueEventVibeWriteInFlightKeys.contains(inFlightKey) else { return }
+
         let alreadySelected = myVenueEventVibes[venueEventID]?.contains(vibeType) ?? false
+        let previousCounts = venueEventVibeCounts[venueEventID] ?? [:]
+        let previousMyVibes = myVenueEventVibes[venueEventID] ?? []
+
+        venueEventVibeWriteInFlightKeys.insert(inFlightKey)
+        applyLocalVenueEventVibeState(venueEventID: venueEventID, vibeType: vibeType, isSelected: !alreadySelected)
 
         do {
             if alreadySelected {
@@ -485,11 +1312,36 @@ extension MapViewModel {
                     .execute()
             }
 
+            venueEventVibeWriteInFlightKeys.remove(inFlightKey)
             await loadVibes(for: venueEventID)
 
         } catch {
+            venueEventVibeCounts[venueEventID] = previousCounts
+            myVenueEventVibes[venueEventID] = previousMyVibes
+            venueEventVibeWriteInFlightKeys.remove(inFlightKey)
             print("ERROR TOGGLING VIBE:", error)
         }
+    }
+
+    private func applyLocalVenueEventVibeState(venueEventID: UUID, vibeType: String, isSelected: Bool) {
+        var counts = venueEventVibeCounts[venueEventID] ?? [:]
+        var myVibes = myVenueEventVibes[venueEventID] ?? []
+
+        if isSelected {
+            myVibes.insert(vibeType)
+            counts[vibeType, default: 0] += 1
+        } else {
+            myVibes.remove(vibeType)
+            let nextCount = max(0, (counts[vibeType] ?? 0) - 1)
+            if nextCount == 0 {
+                counts.removeValue(forKey: vibeType)
+            } else {
+                counts[vibeType] = nextCount
+            }
+        }
+
+        venueEventVibeCounts[venueEventID] = counts
+        myVenueEventVibes[venueEventID] = myVibes
     }
 
     /// Loads the first page of fan updates (newest first server-side, stored unsorted; views sort for display).
@@ -570,7 +1422,7 @@ extension MapViewModel {
 
         await MainActor.run {
             if let exactCount {
-                venueEventCommentPreviewCounts[venueEventID] = exactCount
+                updateVenueEventCommentPreviewCount(for: venueEventID, to: exactCount)
             }
             venueEventCommentPreviews[venueEventID] = previewRows
             fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
@@ -639,8 +1491,20 @@ extension MapViewModel {
             let rows = rowsRaw.filter { !$0.isHiddenFromThread }
 
             await MainActor.run {
-                venueEventComments[venueEventID] = rows
-                venueEventCommentPreviewCounts[venueEventID] = max(venueEventCommentPreviewCounts[venueEventID] ?? 0, rows.count)
+                let current = venueEventComments[venueEventID] ?? []
+                let serverIDs = Set(rows.compactMap(\.serverCommentID))
+                let unsentLocalRows = current.filter { comment in
+                    guard comment.delivery_state != .sent else { return false }
+                    guard let matchedServerID = comment.serverCommentID else { return true }
+                    return !serverIDs.contains(matchedServerID)
+                }
+                venueEventComments[venueEventID] = rows + unsentLocalRows
+                let cachedCount = venueEventCommentPreviewCounts[venueEventID] ?? 0
+                let visibleUnsentCount = unsentLocalRows.filter { !$0.isFailedSend && !$0.isHiddenFromThread }.count
+                updateVenueEventCommentPreviewCount(
+                    for: venueEventID,
+                    to: max(cachedCount, rows.count + visibleUnsentCount)
+                )
                 fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
             }
 
@@ -742,6 +1606,14 @@ extension MapViewModel {
         #if DEBUG
         print("[GameChatPerf] send tapped event=\(venueEventID) local=\(localCommentID) len=\(cleanText.count)")
         print("[GameChatPerf] optimistic append event=\(venueEventID) local=\(localCommentID)")
+        let sendStartedAt = CFAbsoluteTimeGetCurrent()
+        venueEventCommentLatencySendTimesByLocalID[localCommentID] = sendStartedAt
+        venueEventCommentLatencyLastSendTimeByEventID[venueEventID] = sendStartedAt
+        venueEventCommentDebugSendTapDatesByLocalID[localCommentID] = Date()
+        print("[FanChatLatencyDebug] sendTapped eventId=\(venueEventID.uuidString.lowercased()) localTime=\(FanChatLatencyDebugClock.localTime())")
+        print("[FanChatLatencyDebug] currentFlow eventId=\(venueEventID.uuidString.lowercased()) optimisticUI=yes realtime=yes polling=no manualReloadAfterInsert=no")
+        print("[FanChatRealtimeDelayDebug] sendWhileSubscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
+        print("[FanChatReadyDebug] sendWithReadyState eventId=\(venueEventID.uuidString.lowercased()) ready=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
         #endif
 
         await MainActor.run {
@@ -801,9 +1673,7 @@ extension MapViewModel {
             if let venueEventID = comment.venue_event_id {
                 await MainActor.run {
                     venueEventComments[venueEventID]?.removeAll { $0.id == id }
-                    if let existingCount = venueEventCommentPreviewCounts[venueEventID] {
-                        venueEventCommentPreviewCounts[venueEventID] = max(existingCount - 1, 0)
-                    }
+                    applyVenueEventCommentCountDelta(for: venueEventID, delta: -1)
                 }
             }
 
@@ -1120,6 +1990,7 @@ extension MapViewModel {
 
             await MainActor.run {
                 venueEventComments[venueEventID]?.removeAll { $0.id == commentId }
+                applyVenueEventCommentCountDelta(for: venueEventID, delta: -1)
             }
 
             ModerationService().notifyCommentModerationAlertBestEffort(commentId: commentId)

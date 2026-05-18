@@ -108,6 +108,7 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
+    @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var email = ""
@@ -120,6 +121,7 @@ struct SettingsScreen: View {
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
     @State private var showNotificationsSheet = false
+    @State private var showLiveSharingModeDialog = false
     @State private var showTimeZoneSheet = false
     @State private var showAppearanceSheet = false
     @State private var showResetPasswordSheet = false
@@ -139,6 +141,33 @@ struct SettingsScreen: View {
 
     private var appearancePreference: FanGeoAppearancePreference {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
+    }
+
+    private var liveVisibilityBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.currentUserLiveVisibilityEnabled },
+            set: { newValue in
+                Task { await viewModel.setLiveVisibilityEnabled(newValue) }
+            }
+        )
+    }
+
+    private var liveSharingModeSubtitle: String {
+        guard viewModel.currentUserLiveVisibilityEnabled else { return "Hidden from Friends" }
+        switch viewModel.currentUserLiveVisibilityMode {
+        case .allFriends:
+            return "Visible to All Friends"
+        case .selectedFriends:
+            return "Visible to Selected Friends"
+        }
+    }
+
+    private var isBusinessAccountForLiveSharing: Bool {
+        viewModel.currentUserIsBusinessAccount || viewModel.isVenueOwnerLoggedIn || viewModel.hasAuthenticatedVenueOwnerSession
+    }
+
+    private var canShowLiveActivitySharing: Bool {
+        viewModel.canUseFanSocialFeatures && !isBusinessAccountForLiveSharing
     }
 
     /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
@@ -425,7 +454,7 @@ struct SettingsScreen: View {
                                     Button { venueOwnerDashboardSheet = .manageVenue } label: {
                                         settingsRow(
                                             title: "Venue Details",
-                                            subtitle: "Photos, menu, amenities, and venue profile.",
+                                            subtitle: "Photos, amenities, and venue profile.",
                                             systemImage: "photo.on.rectangle.angled"
                                         )
                                     }
@@ -499,6 +528,12 @@ struct SettingsScreen: View {
 
                 Section {
                     settingsSectionCard {
+                        if canShowLiveActivitySharing {
+                            liveActivitySharingRow()
+
+                            settingsRowDivider()
+                        }
+
                         Button { showNotificationsSheet = true } label: {
                             settingsRow(title: "Notifications", subtitle: viewModel.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
                         }
@@ -508,7 +543,7 @@ struct SettingsScreen: View {
                     .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
                     .listRowBackground(Color.clear)
                 } header: {
-                    settingsSectionHeader("Social")
+                    settingsSectionHeader("Privacy & Social")
                 }
 
                 Section {
@@ -735,6 +770,71 @@ struct SettingsScreen: View {
                     }
             }
             .tint(FGColor.accentGreen)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
+        .sheet(isPresented: Binding(
+            get: { showLiveSharingModeDialog && canShowLiveActivitySharing },
+            set: { if !$0 { showLiveSharingModeDialog = false } }
+        )) {
+            LiveActivitySharingOptionsSheet(
+                isEnabled: viewModel.currentUserLiveVisibilityEnabled,
+                mode: viewModel.currentUserLiveVisibilityMode,
+                friends: chatViewModel.friends.filter { !$0.preview.isBusinessAccount },
+                selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs,
+                isSaving: viewModel.isUpdatingLiveVisibilitySetting,
+                onChooseOff: {
+                    Task {
+                        await viewModel.setLiveVisibilitySettings(
+                            enabled: false,
+                            mode: viewModel.currentUserLiveVisibilityMode,
+                            selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                        )
+                        showLiveSharingModeDialog = false
+                    }
+                },
+                onChooseAllFriends: {
+                    Task {
+                        await viewModel.setLiveVisibilitySettings(
+                            enabled: true,
+                            mode: .allFriends,
+                            selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                        )
+                        showLiveSharingModeDialog = false
+                    }
+                },
+                onChooseSelectedFriends: {
+                    Task {
+                        await chatViewModel.loadIfNeeded()
+                        await viewModel.setLiveVisibilitySettings(
+                            enabled: true,
+                            mode: .selectedFriends,
+                            selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                        )
+                    }
+                },
+                onLoadFriends: {
+                    Task { await chatViewModel.loadIfNeeded() }
+                },
+                onToggleFriend: { friendID in
+                    var selectedIDs = viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                    if selectedIDs.contains(friendID) {
+                        selectedIDs.remove(friendID)
+                    } else {
+                        selectedIDs.insert(friendID)
+                    }
+                    guard selectedIDs != viewModel.currentUserSelectedLiveVisibilityFriendIDs else { return }
+                    Task {
+                        await viewModel.setLiveVisibilitySettings(
+                            enabled: true,
+                            mode: .selectedFriends,
+                            selectedFriendIDs: selectedIDs
+                        )
+                    }
+                },
+                onClose: { showLiveSharingModeDialog = false }
+            )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
@@ -997,6 +1097,115 @@ struct SettingsScreen: View {
         .padding(.vertical, 10)
         .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func liveActivitySharingRow() -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                    Image(systemName: "person.2.wave.2.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Live Activity Sharing")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text(liveSharingModeSubtitle)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard !viewModel.isUpdatingLiveVisibilitySetting else { return }
+                showLiveSharingModeDialog = true
+            }
+
+            Spacer(minLength: 0)
+
+            if viewModel.isUpdatingLiveVisibilitySetting {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                .frame(width: 14, height: 14, alignment: .center)
+
+            Toggle("Live Activity Sharing", isOn: liveVisibilityBinding)
+                .labelsHidden()
+                .disabled(viewModel.isUpdatingLiveVisibilitySetting)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !viewModel.isUpdatingLiveVisibilitySetting else { return }
+            showLiveSharingModeDialog = true
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func settingsToggleRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        isOn: Binding<Bool>,
+        isUpdating: Bool,
+        tint: Color = FGColor.accentBlue
+    ) -> some View {
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(tint)
+            }
+            .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                    .lineLimit(2)
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isUpdating {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Toggle(title, isOn: isOn)
+                .labelsHidden()
+                .disabled(isUpdating)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+        .accessibilityElement(children: .combine)
     }
 
     /// Non-interactive settings row (no chevron) for read-only info such as venue claim status.
@@ -2964,30 +3173,137 @@ private struct FanGeoAppearanceSelectionView: View {
 private struct SettingsGameNotificationsCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("venueFavoriteTeamNearbyNotifications") private var venueFavoriteTeamNearbyNotifications = true
+    @AppStorage("venueFriendsGoingNotifications") private var venueFriendsGoingNotifications = true
+    @AppStorage("pickupGameReminderNotifications") private var pickupGameReminderNotifications = true
+    @AppStorage("pickupJoinRequestUpdateNotifications") private var pickupJoinRequestUpdateNotifications = true
+    @AppStorage("pickupPlayerJoinedNotifications") private var pickupPlayerJoinedNotifications = true
+    @AppStorage("pickupGameChangeNotifications") private var pickupGameChangeNotifications = true
+
+    private enum RepeatReminderOption: Int, CaseIterable, Identifiable {
+        case never = 0
+        case every15Minutes = 15
+        case every30Minutes = 30
+        case everyHour = 60
+
+        var id: Int { rawValue }
+
+        var title: String {
+            switch self {
+            case .never:
+                "Never"
+            case .every15Minutes:
+                "Every 15 minutes"
+            case .every30Minutes:
+                "Every 30 minutes"
+            case .everyHour:
+                "Every hour"
+            }
+        }
+
+        var minutes: Int? {
+            self == .never ? nil : rawValue
+        }
+
+        static func current(isEnabled: Bool, minutes: Int) -> RepeatReminderOption {
+            guard isEnabled else { return .never }
+            return RepeatReminderOption(rawValue: minutes) ?? .every30Minutes
+        }
+    }
 
     var body: some View {
-        FGCard {
-            FGSectionHeader(
-                "Game Notifications",
-                subtitle: "Choose when FanGeo reminds you about games you’re going to."
-            )
+        VStack(alignment: .leading, spacing: FGSpacing.lg) {
+            notificationIntro
 
-            notificationToggle(
-                title: "Notify me before games I’m going to",
-                subtitle: "Get a local reminder before kickoff.",
-                isOn: gameNotificationsEnabledBinding
-            )
+            notificationSection(
+                title: "Venue Games",
+                subtitle: "Watch parties, sports bars, and venue events.",
+                systemImage: "sportscourt.fill",
+                tint: FGColor.accentGreen
+            ) {
+                notificationToggle(
+                    title: "Game reminders",
+                    subtitle: "Kickoff reminders for venue games you mark Going.",
+                    isOn: gameNotificationsEnabledBinding
+                )
 
-            if !viewModel.notificationPermissionMessage.isEmpty {
-                Text(viewModel.notificationPermissionMessage)
-                    .font(FGTypography.caption.weight(.semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, FGSpacing.md)
+                notificationToggle(
+                    title: "Favorite team nearby",
+                    subtitle: "A nearby venue is showing one of your teams.",
+                    isOn: loggingBinding(
+                        key: "venueFavoriteTeamNearbyNotifications",
+                        title: "Favorite team nearby",
+                        value: $venueFavoriteTeamNearbyNotifications
+                    )
+                )
+
+                notificationToggle(
+                    title: "Friends going to same venue",
+                    subtitle: "Friends are planning around the same sports bar.",
+                    isOn: loggingBinding(
+                        key: "venueFriendsGoingNotifications",
+                        title: "Friends going to same venue",
+                        value: $venueFriendsGoingNotifications
+                    )
+                )
+
+                permissionMessage
             }
 
-            if viewModel.notifyBeforeGame {
-                notificationPicker(title: "Remind me before", selection: reminderMinutesBinding) {
+            notificationSection(
+                title: "Pickup Games",
+                subtitle: "Games you host, join, or request to join.",
+                systemImage: "figure.basketball",
+                tint: FGColor.accentBlue
+            ) {
+                notificationToggle(
+                    title: "Pickup game reminders",
+                    subtitle: "A local reminder before a pickup game starts.",
+                    isOn: loggingBinding(
+                        key: "pickupGameReminderNotifications",
+                        title: "Pickup game reminders",
+                        value: $pickupGameReminderNotifications
+                    )
+                )
+
+                notificationToggle(
+                    title: "Join request updates",
+                    subtitle: "Accepted, declined, or pending request changes.",
+                    isOn: loggingBinding(
+                        key: "pickupJoinRequestUpdateNotifications",
+                        title: "Join request updates",
+                        value: $pickupJoinRequestUpdateNotifications
+                    )
+                )
+
+                notificationToggle(
+                    title: "Player joined your game",
+                    subtitle: "Someone joins a pickup game you are hosting.",
+                    isOn: loggingBinding(
+                        key: "pickupPlayerJoinedNotifications",
+                        title: "Player joined your game",
+                        value: $pickupPlayerJoinedNotifications
+                    )
+                )
+
+                notificationToggle(
+                    title: "Game changes/cancellations",
+                    subtitle: "Time, location, capacity, or cancellation updates.",
+                    isOn: loggingBinding(
+                        key: "pickupGameChangeNotifications",
+                        title: "Game changes/cancellations",
+                        value: $pickupGameChangeNotifications
+                    )
+                )
+            }
+
+            notificationSection(
+                title: "Calendar & Reminders",
+                subtitle: "Timing and calendar controls for your saved games.",
+                systemImage: "calendar.badge.clock",
+                tint: FGColor.accentGreen
+            ) {
+                notificationPicker(title: "Reminder timing", selection: reminderMinutesBinding) {
                     Text("15 minutes before").tag(15)
                     Text("30 minutes before").tag(30)
                     Text("1 hour before").tag(60)
@@ -2996,38 +3312,44 @@ private struct SettingsGameNotificationsCard: View {
                     Text("1 day before").tag(1440)
                 }
 
+                repeatReminderMenuRow
+
                 notificationToggle(
-                    title: "Repeat reminder until game starts",
-                    subtitle: "Keep nudging you until the game begins.",
-                    isOn: repeatReminderBinding
+                    title: "Apple Calendar sync",
+                    subtitle: "Add games marked Going to your Apple Calendar.",
+                    isOn: calendarSyncBinding
                 )
-
-                if viewModel.repeatGameReminder {
-                    notificationPicker(title: "Repeat every", selection: repeatEveryMinutesBinding) {
-                        Text("Every 15 minutes").tag(15)
-                        Text("Every 30 minutes").tag(30)
-                        Text("Every hour").tag(60)
-                        Text("Every 2 hours").tag(120)
-                    }
-                }
             }
-
-            notificationToggle(
-                title: "Sync games I’m going to with Apple Calendar",
-                subtitle: "Games marked as Going will be added to your Apple Calendar.",
-                isOn: $viewModel.syncGoingGamesToAppleCalendar
-            )
         }
         .tint(FGColor.accentGreen)
         .task {
+            print("[NotificationSettingsDebug] removedSocialFanSection=true")
+            print("[NotificationSettingsDebug] appear notifyBeforeGame=\(viewModel.notifyBeforeGame) reminderMinutesBefore=\(viewModel.reminderMinutesBefore) repeatGameReminder=\(viewModel.repeatGameReminder) repeatEveryMinutes=\(viewModel.repeatEveryMinutes) calendarSync=\(viewModel.syncGoingGamesToAppleCalendar)")
             await viewModel.refreshGameNotificationAuthorizationState()
+            if normalizeInvalidRepeatReminderIntervalIfNeeded() {
+                await viewModel.gameReminderPreferenceDidChange()
+            }
         }
+    }
+
+    private var notificationIntro: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.xs) {
+            Text("Stay close to the action")
+                .font(FGTypography.sectionTitle)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+            Text("Important game and pickup updates stay on by default. Social nudges are optional so FanGeo does not over-notify you.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, FGSpacing.xs)
     }
 
     private var gameNotificationsEnabledBinding: Binding<Bool> {
         Binding(
             get: { viewModel.notifyBeforeGame },
             set: { enabled in
+                print("[NotificationSettingsDebug] save key=notifyBeforeGame value=\(enabled)")
                 Task { await viewModel.setGameNotificationsEnabled(enabled) }
             }
         )
@@ -3037,30 +3359,168 @@ private struct SettingsGameNotificationsCard: View {
         Binding(
             get: { viewModel.reminderMinutesBefore },
             set: { minutes in
+                print("[NotificationSettingsDebug] save key=reminderMinutesBefore value=\(minutes)")
                 viewModel.reminderMinutesBefore = minutes
                 Task { await viewModel.gameReminderPreferenceDidChange() }
             }
         )
     }
 
-    private var repeatEveryMinutesBinding: Binding<Int> {
+    private var repeatReminderOptionBinding: Binding<RepeatReminderOption> {
         Binding(
-            get: { viewModel.repeatEveryMinutes },
-            set: { minutes in
-                viewModel.repeatEveryMinutes = minutes
-                Task { await viewModel.gameReminderPreferenceDidChange() }
+            get: {
+                RepeatReminderOption.current(
+                    isEnabled: viewModel.repeatGameReminder,
+                    minutes: viewModel.repeatEveryMinutes
+                )
+            },
+            set: { option in
+                applyRepeatReminderOption(option)
             }
         )
     }
 
-    private var repeatReminderBinding: Binding<Bool> {
+    private var repeatReminderMenuRow: some View {
+        let selectedOption = repeatReminderOptionBinding.wrappedValue
+
+        return Menu {
+            ForEach(RepeatReminderOption.allCases) { option in
+                Button {
+                    repeatReminderOptionBinding.wrappedValue = option
+                } label: {
+                    if option == selectedOption {
+                        Label(option.title, systemImage: "checkmark")
+                    } else {
+                        Text(option.title)
+                    }
+                }
+            }
+        } label: {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Repeat")
+                        .font(FGTypography.body.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Additional reminders before kickoff.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: FGSpacing.sm)
+
+                HStack(spacing: 6) {
+                    Text(selectedOption.title)
+                        .font(FGTypography.body)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .tint(FGColor.accentGreen)
+    }
+
+    private func applyRepeatReminderOption(_ option: RepeatReminderOption) {
+        switch option {
+        case .never:
+            print("[NotificationSettingsDebug] save key=repeatGameReminder value=false repeatEveryMinutes=\(viewModel.repeatEveryMinutes)")
+            viewModel.repeatGameReminder = false
+        case .every15Minutes, .every30Minutes, .everyHour:
+            let minutes = option.minutes ?? 30
+            print("[NotificationSettingsDebug] save key=repeatGameReminder value=true repeatEveryMinutes=\(minutes)")
+            viewModel.repeatGameReminder = true
+            viewModel.repeatEveryMinutes = minutes
+        }
+
+        Task { await viewModel.gameReminderPreferenceDidChange() }
+    }
+
+    private func normalizeInvalidRepeatReminderIntervalIfNeeded() -> Bool {
+        guard viewModel.repeatGameReminder,
+              RepeatReminderOption(rawValue: viewModel.repeatEveryMinutes)?.minutes == nil
+        else {
+            return false
+        }
+
+        print("[NotificationSettingsDebug] normalize repeatEveryMinutes invalid=\(viewModel.repeatEveryMinutes) fallback=30")
+        viewModel.repeatEveryMinutes = RepeatReminderOption.every30Minutes.rawValue
+        return true
+    }
+
+    private var calendarSyncBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.repeatGameReminder },
+            get: { viewModel.syncGoingGamesToAppleCalendar },
             set: { enabled in
-                viewModel.repeatGameReminder = enabled
-                Task { await viewModel.gameReminderPreferenceDidChange() }
+                print("[NotificationSettingsDebug] save key=syncGoingGamesToAppleCalendar value=\(enabled)")
+                viewModel.syncGoingGamesToAppleCalendar = enabled
             }
         )
+    }
+
+    @ViewBuilder
+    private var permissionMessage: some View {
+        if !viewModel.notificationPermissionMessage.isEmpty {
+            Text(viewModel.notificationPermissionMessage)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.bottom, FGSpacing.xs)
+        }
+    }
+
+    private func loggingBinding(key: String, title: String, value: Binding<Bool>) -> Binding<Bool> {
+        Binding(
+            get: { value.wrappedValue },
+            set: { enabled in
+                print("[NotificationSettingsDebug] save key=\(key) title=\"\(title)\" value=\(enabled)")
+                value.wrappedValue = enabled
+            }
+        )
+    }
+
+    private func notificationSection<Content: View>(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        FGCard {
+            HStack(alignment: .top, spacing: FGSpacing.md) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(tint)
+                    .frame(width: 28, height: 28)
+                    .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(FGAdaptiveSurface.controlFill)
+            .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+        }
     }
 
     private func notificationToggle(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
@@ -3076,13 +3536,8 @@ private struct SettingsGameNotificationsCard: View {
             }
         }
         .toggleStyle(.switch)
-        .padding(FGSpacing.md)
-        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
     }
 
     private func notificationPicker<Content: View>(
@@ -3100,13 +3555,8 @@ private struct SettingsGameNotificationsCard: View {
                 .tint(FGColor.accentGreen)
                 .foregroundStyle(FGColor.primaryText(colorScheme))
         }
-        .padding(FGSpacing.md)
-        .background(FGAdaptiveSurface.controlFill)
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
     }
 }
 
@@ -3367,8 +3817,8 @@ private struct SettingsVenueOwnerCard: View {
                 )
 
                 VenueOwnerListingPhotoPickerCard(
-                    title: "Menu Photo",
-                    subtitle: "Food or drink menu photo",
+                    title: "Others",
+                    subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
                     pickerSelection: $signupMenuPicker,
                     remotePreviewURL: "",
                     localPreviewData: signupMenuData,
@@ -3617,6 +4067,295 @@ private struct SettingsVenueOwnerCard: View {
         .sheet(item: $venueSignupLegalDocument) { document in
             SettingsLegalDocumentSheet(document: document)
         }
+    }
+}
+
+private struct LiveActivitySharingOptionsSheet: View {
+    let isEnabled: Bool
+    let mode: LiveVisibilityMode
+    let friends: [ChatViewModel.FriendDisplay]
+    let selectedFriendIDs: Set<UUID>
+    let isSaving: Bool
+    let onChooseOff: () -> Void
+    let onChooseAllFriends: () -> Void
+    let onChooseSelectedFriends: () -> Void
+    let onLoadFriends: () -> Void
+    let onToggleFriend: (UUID) -> Void
+    let onClose: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isSelectedFriendsExpanded = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: FGSpacing.md) {
+                    Text("Choose who can see your public Live activity.")
+                        .font(.system(size: 13, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .padding(.horizontal, FGSpacing.xs)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        optionRow(
+                            title: "Off",
+                            subtitle: "Hide your Live activity from friend presence.",
+                            systemImage: "eye.slash.fill",
+                            isSelected: !isEnabled,
+                            action: onChooseOff
+                        )
+
+                        optionDivider()
+
+                        optionRow(
+                            title: "All Friends",
+                            subtitle: "All accepted friends can see when you join public activity.",
+                            systemImage: "person.2.fill",
+                            isSelected: isEnabled && mode == .allFriends,
+                            action: onChooseAllFriends
+                        )
+
+                        optionDivider()
+
+                        selectedFriendsSection()
+                    }
+                    .background {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                            RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                                .fill(SettingsPremiumChrome.cardFill(colorScheme))
+                        }
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                            .strokeBorder(SettingsPremiumChrome.cardStroke(colorScheme), lineWidth: 0.75)
+                    }
+                }
+                .padding(FGSpacing.lg)
+            }
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+            .navigationTitle("Live Activity Sharing")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close", action: onClose)
+                }
+            }
+        }
+        .tint(FGColor.accentGreen)
+        .onAppear {
+            isSelectedFriendsExpanded = isEnabled && mode == .selectedFriends
+            if isSelectedFriendsExpanded {
+                onLoadFriends()
+            }
+        }
+        .onChange(of: mode) { _, newMode in
+            guard newMode != .selectedFriends else { return }
+            withAnimation(.snappy(duration: 0.22)) {
+                isSelectedFriendsExpanded = false
+            }
+        }
+    }
+
+    private func optionDivider() -> some View {
+        Divider()
+            .overlay(SettingsPremiumChrome.divider(colorScheme))
+            .opacity(0.42)
+            .padding(.leading, 58)
+            .padding(.trailing, FGSpacing.md)
+    }
+
+    private func optionRow(
+        title: String,
+        subtitle: String,
+        systemImage: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                    Image(systemName: systemImage)
+                        .font(.system(size: 14, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.small)
+                } else if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 12)
+            .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
+
+    private func selectedFriendsSection() -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.snappy(duration: 0.24)) {
+                    isSelectedFriendsExpanded.toggle()
+                }
+                if isSelectedFriendsExpanded {
+                    onLoadFriends()
+                    onChooseSelectedFriends()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: FGSpacing.md) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .fill(SettingsPremiumChrome.iconSurface(colorScheme))
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                    .frame(width: SettingsPremiumChrome.rowIconSize, height: SettingsPremiumChrome.rowIconSize)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Selected Friends")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                        Text(selectedFriendsSubtitle)
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else if isEnabled && mode == .selectedFriends {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(FGColor.accentGreen)
+                    }
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                        .rotationEffect(.degrees(isSelectedFriendsExpanded ? 0 : -90))
+                        .frame(width: 16, height: 16)
+                        .animation(.snappy(duration: 0.22), value: isSelectedFriendsExpanded)
+                }
+                .padding(.horizontal, FGSpacing.md)
+                .padding(.vertical, 12)
+                .frame(minHeight: SettingsPremiumChrome.rowMinHeight, alignment: .center)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isSaving && !(isEnabled && mode == .selectedFriends))
+
+            if isSelectedFriendsExpanded {
+                optionDivider()
+                selectedFriendsList()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.snappy(duration: 0.24), value: isSelectedFriendsExpanded)
+    }
+
+    private var selectedFriendsSubtitle: String {
+        guard isEnabled && mode == .selectedFriends else {
+            return "Pick specific friends who can see your Live activity."
+        }
+        switch selectedFriendIDs.count {
+        case 0:
+            return "No friends selected yet."
+        case 1:
+            return "1 friend can see your Live activity."
+        default:
+            return "\(selectedFriendIDs.count) friends can see your Live activity."
+        }
+    }
+
+    @ViewBuilder
+    private func selectedFriendsList() -> some View {
+        if friends.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "person.2.slash")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                    .frame(width: 32, height: 32)
+                Text("Accepted friends will appear here.")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.vertical, 10)
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(friends) { friend in
+                    selectedFriendRow(friend)
+                    if friend.id != friends.last?.id {
+                        optionDivider()
+                    }
+                }
+            }
+        }
+    }
+
+    private func selectedFriendRow(_ friend: ChatViewModel.FriendDisplay) -> some View {
+        Button {
+            guard !isSaving else { return }
+            onToggleFriend(friend.id)
+        } label: {
+            HStack(spacing: 10) {
+                SocialAvatarRenderer.socialAvatarView(for: friend.preview, size: 34)
+                    .frame(width: 34, height: 34)
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(friend.preview.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Friend" : friend.preview.displayName)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.primaryText(colorScheme))
+                        .lineLimit(1)
+                    Text(friend.preview.publicHandleLine)
+                        .font(.system(size: 11, weight: .regular, design: .rounded))
+                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: selectedFriendIDs.contains(friend.id) ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 19, weight: selectedFriendIDs.contains(friend.id) ? .semibold : .regular))
+                    .foregroundStyle(selectedFriendIDs.contains(friend.id) ? FGColor.accentGreen : SettingsPremiumChrome.mutedText(colorScheme))
+            }
+            .padding(.leading, FGSpacing.md)
+            .padding(.trailing, FGSpacing.md)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
     }
 }
 

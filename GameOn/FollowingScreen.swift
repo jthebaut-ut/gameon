@@ -357,81 +357,30 @@ struct FollowingScreen: View {
     }
 
     private var goingModeSwitcher: some View {
-        HStack(spacing: 8) {
-            goingModeButton(.venueGames)
-            goingModeButton(.pickupGames)
-        }
-        .padding(4)
-        .background {
-            Capsule(style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground).opacity(followingColorScheme == .dark ? 0.32 : 0.64))
-        }
-        .overlay {
-            Capsule(style: .continuous)
-                .strokeBorder(FGColor.divider(followingColorScheme).opacity(0.58), lineWidth: 1)
-        }
-        .shadow(color: Color.black.opacity(followingColorScheme == .dark ? 0.18 : 0.045), radius: 9, y: 3)
-    }
-
-    private func goingModeButton(_ mode: GoingParticipationMode) -> some View {
-        let isSelected = selectedGoingMode == mode
-        let tint = mode.tint
-        return Button {
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
-                selectedGoingMode = mode
-            }
-        } label: {
-            VStack(spacing: 5) {
-                HStack(spacing: 6) {
-                    Text(mode.title)
-                        .font(.system(size: 14, weight: isSelected ? .semibold : .medium, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.84)
-                    if mode == .pickupGames, viewModel.pendingPickupGameJoinRequestCount > 0 {
-                        Circle()
-                            .fill(Color.orange.opacity(0.9))
-                            .frame(width: 6, height: 6)
-                            .accessibilityLabel("Players waiting")
-                    }
-                }
-                Capsule(style: .continuous)
-                    .fill(isSelected ? tint.opacity(0.92) : Color.clear)
-                    .frame(width: 30, height: 2)
-            }
-            .foregroundStyle(isSelected ? FGColor.primaryText(followingColorScheme) : FGColor.secondaryText(followingColorScheme))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(isSelected ? tint.opacity(followingColorScheme == .dark ? 0.14 : 0.10) : Color.clear)
-            }
-            .contentShape(Capsule(style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        GameOnSegmentedControl(
+            tabs: [
+                GameOnSegmentedTab(id: GoingParticipationMode.venueGames, title: GoingParticipationMode.venueGames.title, tint: GoingParticipationMode.venueGames.tint),
+                GameOnSegmentedTab(
+                    id: GoingParticipationMode.pickupGames,
+                    title: GoingParticipationMode.pickupGames.title,
+                    tint: GoingParticipationMode.pickupGames.tint,
+                    showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0,
+                    activityAccessibilityLabel: "Players waiting"
+                )
+            ],
+            selection: $selectedGoingMode
+        )
     }
 
     private var goingVenueTabsGroup: some View {
         goingTabbedPanel(title: "Venue Games", subtitle: "Watch parties, sports bars, saved venues, and friends watching later.") {
-            HStack(spacing: 10) {
-                goingTabButton(
-                    title: "Watching",
-                    badge: nil,
-                    isSelected: selectedGoingVenueTab == .games,
-                    tint: FGColor.accentGreen
-                ) {
-                    selectedGoingVenueTab = .games
-                }
-
-                goingTabButton(
-                    title: "Saved",
-                    badge: nil,
-                    isSelected: selectedGoingVenueTab == .saved,
-                    tint: FGColor.accentGreen
-                ) {
-                    selectedGoingVenueTab = .saved
-                }
-            }
+            GameOnSegmentedControl(
+                tabs: [
+                    GameOnSegmentedTab(id: GoingVenueTab.games, title: "Watching", tint: FGColor.accentGreen),
+                    GameOnSegmentedTab(id: GoingVenueTab.saved, title: "Saved", tint: FGColor.accentGreen)
+                ],
+                selection: $selectedGoingVenueTab
+            )
         } content: {
             Group {
                 switch selectedGoingVenueTab {
@@ -448,25 +397,13 @@ struct FollowingScreen: View {
 
     private var goingPickupTabsGroup: some View {
         goingTabbedPanel(title: "Pickup Games", subtitle: "Games you joined, games you host, requests, and player management.") {
-            HStack(spacing: 10) {
-                goingTabButton(
-                    title: "Playing",
-                    badge: pickupPlayingTabBadge,
-                    isSelected: selectedGoingPickupTab == .playing,
-                    tint: FGColor.accentGreen
-                ) {
-                    selectedGoingPickupTab = .playing
-                }
-
-                goingTabButton(
-                    title: "Hosting",
-                    badge: pickupHostingTabBadge,
-                    isSelected: selectedGoingPickupTab == .hosting,
-                    tint: Color.orange
-                ) {
-                    selectedGoingPickupTab = .hosting
-                }
-            }
+            GameOnSegmentedControl(
+                tabs: [
+                    GameOnSegmentedTab(id: GoingPickupTab.playing, title: "Playing", badge: pickupPlayingTabBadge, tint: FGColor.accentGreen),
+                    GameOnSegmentedTab(id: GoingPickupTab.hosting, title: "Hosting", badge: pickupHostingTabBadge, tint: Color.orange)
+                ],
+                selection: $selectedGoingPickupTab
+            )
         } content: {
             Group {
                 switch selectedGoingPickupTab {
@@ -530,51 +467,6 @@ struct FollowingScreen: View {
                 .strokeBorder(FGColor.divider(followingColorScheme).opacity(0.72), lineWidth: 1)
         }
         .shadow(color: Color.black.opacity(followingColorScheme == .dark ? 0.20 : 0.055), radius: 10, y: 3)
-    }
-
-    private func goingTabButton(
-        title: String,
-        badge: String?,
-        isSelected: Bool,
-        tint: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                action()
-            }
-        } label: {
-            VStack(spacing: 6) {
-                HStack(spacing: 7) {
-                    Text(title)
-                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular, design: .rounded))
-                    if let badge {
-                        Text(badge)
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundStyle(isSelected ? tint : Color.orange.opacity(0.95))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(Color.orange.opacity(followingColorScheme == .dark ? 0.18 : 0.12), in: Capsule())
-                    }
-                }
-                .foregroundStyle(isSelected ? FGColor.primaryText(followingColorScheme) : FGColor.secondaryText(followingColorScheme))
-
-                Capsule()
-                    .fill(isSelected ? tint : Color.clear)
-                    .frame(width: isSelected ? 24 : 12, height: 2)
-                    .opacity(isSelected ? 0.9 : 0)
-            }
-            .padding(.horizontal, 11)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(isSelected ? tint.opacity(followingColorScheme == .dark ? 0.11 : 0.08) : Color.clear)
-            )
-            .shadow(color: tint.opacity(isSelected ? 0.16 : 0), radius: 10, y: 0)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private func goingCategoryBlock<Content: View>(
@@ -1628,7 +1520,7 @@ struct FollowingScreen: View {
                 }
 
                 HStack(alignment: .center, spacing: 10) {
-                    GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id))
+                    GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id), viewerUserID: viewModel.currentUserAuthId)
                     Label("\(item.attendeeCount) interested / going", systemImage: "person.2.fill")
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.secondaryText(followingColorScheme))

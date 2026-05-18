@@ -27,9 +27,8 @@ struct PublicUserProfileData: Equatable {
 }
 
 enum PublicUserProfileService {
-    /// Matches working pickup/chat profile reads — no `is_business_account` (not guaranteed on all DBs).
     private static let profileSelect =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
+        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
@@ -106,7 +105,10 @@ enum PublicUserProfileService {
             avatar_url: preview.avatarURL,
             avatar_thumbnail_url: preview.avatarThumbnailURL,
             is_business_account: preview.isBusinessAccount,
-            admin_status: "active"
+            admin_status: "active",
+            live_visibility_enabled: true,
+            live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
+            selected_live_visibility_friend_ids: []
         )
     }
 

@@ -163,6 +163,59 @@ private struct MapDepthPulseRing: View {
     }
 }
 
+private struct FanChatActivityPulse: View {
+    let tint: Color
+    let isActive: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulse = false
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(tint.opacity(isActive ? 0.22 : 0), lineWidth: 2)
+                .frame(width: 18, height: 18)
+                .scaleEffect(pulse && !reduceMotion ? 1.28 : 0.92)
+                .opacity(isActive ? 1 : 0)
+                .animation(.easeInOut(duration: 1.15).repeatForever(autoreverses: true), value: pulse)
+
+            Circle()
+                .fill(tint)
+                .frame(width: 7, height: 7)
+                .shadow(color: tint.opacity(isActive ? 0.45 : 0.18), radius: isActive ? 5 : 2, y: 0)
+        }
+        .frame(width: 20, height: 20)
+        .onAppear {
+            pulse = isActive
+        }
+        .onChange(of: isActive) { _, next in
+            pulse = next
+        }
+    }
+}
+
+private struct FanChatMiniActivityStack: View {
+    let tint: Color
+    let isHot: Bool
+
+    private var colors: [Color] {
+        isHot ? [FGColor.dangerRed, FGColor.accentYellow, FGColor.accentBlue] : [tint, FGColor.accentGreen, FGColor.accentYellow]
+    }
+
+    var body: some View {
+        HStack(spacing: -5) {
+            ForEach(Array(colors.enumerated()), id: \.offset) { index, color in
+                Circle()
+                    .fill(color.opacity(index == 0 ? 0.95 : 0.78))
+                    .frame(width: 16, height: 16)
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.88), lineWidth: 1.4))
+                    .shadow(color: color.opacity(0.18), radius: 3, y: 1)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
 /// Polished locked preview for Discover when ``MapViewModel/isGuestDiscoverMode`` (same fan auth sheet as Account).
 private struct GuestDiscoverLockedPreviewCard<Preview: View>: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -263,7 +316,8 @@ struct DiscoverScreen: View {
     private let livePulseThreshold = 16
 
     private var acceptedFriendUserIDs: Set<UUID> {
-        Set(chatViewModel.friendshipChipByOtherUserId.compactMap { userID, kind in
+        guard viewModel.canUseFanSocialFeatures else { return [] }
+        return Set(chatViewModel.friendshipChipByOtherUserId.compactMap { userID, kind in
             kind == .friends ? userID : nil
         })
     }
@@ -275,7 +329,6 @@ struct DiscoverScreen: View {
 
     private enum VenuePreviewGameFilter: Int, CaseIterable, Identifiable {
         case all
-        case imGoing
         case going
 
         var id: Int { rawValue }
@@ -283,10 +336,15 @@ struct DiscoverScreen: View {
         var segmentTitle: String {
             switch self {
             case .all: return "All"
-            case .imGoing: return "I'm Going"
             case .going: return "Going"
             }
         }
+    }
+
+    private struct VenuePreviewMiniStat: Identifiable {
+        let id: String
+        let symbol: String
+        let label: String
     }
 
     var body: some View {
@@ -649,12 +707,14 @@ struct DiscoverScreen: View {
                 isFavorite: viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(selectedBar.id),
                 goingCount: viewModel.displayedGoingCount(for: selectedBar),
                 liveEnergy: liveEnergy,
+                livePresenceViewerUserID: viewModel.currentUserAuthId,
                 iconForSport: viewModel.iconForSport,
                 mergedRating: viewModel.mergedDisplayRating(for: selectedBar),
                 ratingCount: ratingCount,
                 displaySport: displaySport,
                 sportsSupported: supportedSports,
                 hasGamesScheduledToday: !selectedDayGames.isEmpty,
+                venueEventRows: viewModel.venueEventRows,
                 isBusinessConfirmed: isBusinessConfirmed,
                 onDirections: { viewModel.openDirections(to: selectedBar) },
                 onCall: { viewModel.callVenue(selectedBar) },
@@ -902,7 +962,7 @@ struct DiscoverScreen: View {
                 case .detailed: return "detailed"
                 }
             }()
-            print("[MapMarker] venue=\(bar.name) games=\(gamesToday.count)/\(bar.games.count) score=\(pin.energy) style=\(style)")
+            DebugLogGate.noisy("[MapMarker] venue=\(bar.name) games=\(gamesToday.count)/\(bar.games.count) score=\(pin.energy) style=\(style)")
         }()
 #endif
 
@@ -1003,9 +1063,9 @@ struct DiscoverScreen: View {
 
     private func logPickupMapDebug(pickupGamesCount: Int, isPickupModeActive: Bool, annotationsRendered: Int) {
 #if DEBUG
-        print("[PickupMapDebug] pickupGames count=\(pickupGamesCount)")
-        print("[PickupMapDebug] isPickupModeActive=\(isPickupModeActive)")
-        print("[PickupMapDebug] annotationsRendered=\(annotationsRendered)")
+        DebugLogGate.noisy("[PickupMapDebug] pickupGames count=\(pickupGamesCount)")
+        DebugLogGate.noisy("[PickupMapDebug] isPickupModeActive=\(isPickupModeActive)")
+        DebugLogGate.noisy("[PickupMapDebug] annotationsRendered=\(annotationsRendered)")
 #endif
     }
 
@@ -1016,10 +1076,10 @@ struct DiscoverScreen: View {
         renderedAnnotationsCount: Int
     ) {
 #if DEBUG
-        print("[MapEmptyStateDebug] mode=\(mode.rawValue)")
-        print("[MapEmptyStateDebug] pickupAnnotationsCount=\(pickupAnnotationsCount)")
-        print("[MapEmptyStateDebug] venueAnnotationsCount=\(venueAnnotationsCount)")
-        print("[MapEmptyStateDebug] renderedAnnotationsCount=\(renderedAnnotationsCount)")
+        DebugLogGate.noisy("[MapEmptyStateDebug] mode=\(mode.rawValue)")
+        DebugLogGate.noisy("[MapEmptyStateDebug] pickupAnnotationsCount=\(pickupAnnotationsCount)")
+        DebugLogGate.noisy("[MapEmptyStateDebug] venueAnnotationsCount=\(venueAnnotationsCount)")
+        DebugLogGate.noisy("[MapEmptyStateDebug] renderedAnnotationsCount=\(renderedAnnotationsCount)")
 #endif
     }
 
@@ -2314,7 +2374,12 @@ struct DiscoverScreen: View {
                             }
                             .padding(.top, 2)
 
-                            PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id))
+                            PickupOrganizerPreviewIdentityRow(
+                                viewModel: viewModel,
+                                organizerUserId: row.creator_user_id,
+                                stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id),
+                                colorScheme: colorScheme
+                            )
                                 .padding(.top, 2)
                         }
                     }
@@ -2392,6 +2457,7 @@ struct DiscoverScreen: View {
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.1 : 0.05), radius: 14, x: 0, y: 3)
         .task(id: row.id) {
             guard !guestMapsActionsToLogin else { return }
+            await viewModel.loadPickupCreatorProfilesIfNeeded(creatorUserIds: [row.creator_user_id])
             await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [row.creator_user_id])
         }
         .onAppear {
@@ -2591,10 +2657,10 @@ struct DiscoverScreen: View {
 
     private func discoverLogAdBannerDebug(availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {
 #if DEBUG
-        print("[AdBannerDebug] availableWidth=\(String(format: "%.1f", availableWidth))")
-        print("[AdBannerDebug] adaptiveBannerSize=\(String(format: "%.1fx%.1f", bannerSize.width, bannerSize.height))")
-        print("[AdBannerDebug] containerWidth=\(String(format: "%.1f", containerSize.width))")
-        print("[AdBannerDebug] containerHeight=\(String(format: "%.1f", containerSize.height))")
+        DebugLogGate.noisy("[AdBannerDebug] availableWidth=\(String(format: "%.1f", availableWidth))")
+        DebugLogGate.noisy("[AdBannerDebug] adaptiveBannerSize=\(String(format: "%.1fx%.1f", bannerSize.width, bannerSize.height))")
+        DebugLogGate.noisy("[AdBannerDebug] containerWidth=\(String(format: "%.1f", containerSize.width))")
+        DebugLogGate.noisy("[AdBannerDebug] containerHeight=\(String(format: "%.1f", containerSize.height))")
 #endif
     }
 
@@ -2752,149 +2818,121 @@ struct DiscoverScreen: View {
     /// Venue image, name, address, actions, rating, and experience — stays fixed while games scroll (sports are per game card only).
     @ViewBuilder
     private func venuePreviewCardStaticHeader(bar: BarVenue) -> some View {
-        VStack(alignment: .leading, spacing: FGSpacing.md) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                venueHeroImage(bar)
 
-                barThumbnail(bar)
+                HStack(spacing: 8) {
+                    Button {
+                        FGInteractionHaptics.softImpact()
+                        if viewModel.canFavoriteVenues {
+                            viewModel.toggleFavorite(bar)
+                        } else if viewModel.isAuthenticatedForSocialFeatures {
+                            viewModel.logBusinessUserGateBlocked(action: "favoriteVenue")
+                            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                        } else {
+                            viewModel.discoverNavigateToAccountForUserAuth = true
+                        }
+                    } label: {
+                        Image(systemName: viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id) ? "heart.fill" : "heart")
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id) ? .red : FGColor.primaryText(colorScheme))
+                            .softActiveGlow(viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id), color: .red)
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
 
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                    Button {
+                        FGInteractionHaptics.selection()
+                        withAnimation(.spring()) {
+                            viewModel.selectedBar = nil
+                            viewModel.clearDiscoverRemotePreviewHold()
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
+                }
+                .padding(10)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: FGSpacing.sm) {
                     Text(bar.name)
                         .font(FGTypography.sectionTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                        .layoutPriority(1)
 
-                    Button {
-                        viewModel.openDirections(to: bar)
-                    } label: {
-                        HStack(spacing: FGSpacing.xs) {
-                            Text(bar.address)
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.accentBlue)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-
-                            Image(systemName: "location.fill")
-                                .font(.caption)
-                                .foregroundStyle(FGColor.accentBlue)
-                        }
-                    }
-                    .buttonStyle(.plain)
-
-                    if let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar) {
-                        VenueGameBusinessContactEmailRow(email: bizEmail)
-                            .padding(.top, 2)
-                            .onAppear { VenueGameBusinessEmail.logDebug(bar: bar) }
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    FGInteractionHaptics.softImpact()
-                    if viewModel.canFavoriteVenues {
-                        viewModel.toggleFavorite(bar)
-                    } else if viewModel.isAuthenticatedForSocialFeatures {
-                        viewModel.logBusinessUserGateBlocked(action: "favoriteVenue")
-                        fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
-                    } else {
-                        viewModel.discoverNavigateToAccountForUserAuth = true
-                    }
-                } label: {
-                    Image(systemName: viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id) ? "heart.fill" : "heart")
-                        .font(.title3)
-                        .foregroundStyle(viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id) ? .red : discoverPreviewMutedIconColor)
-                        .softActiveGlow(viewModel.canFavoriteVenues && viewModel.favoriteVenueIDs.contains(bar.id), color: .red)
-                }
-                .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
-
-                Button {
-                    FGInteractionHaptics.selection()
-                    withAnimation(.spring()) {
-                        viewModel.selectedBar = nil
-                        viewModel.clearDiscoverRemotePreviewHold()
-                    }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(discoverPreviewMutedIconColor)
-                }
-                .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
-            }
-
-            HStack(spacing: FGSpacing.sm) {
-                if !bar.distance.isEmpty {
-                    FGStatusPill(title: bar.distance, kind: .custom(tint: FGColor.accentBlue))
+                    venuePreviewRatingButton(bar)
                 }
 
                 Button {
-                    if viewModel.canRateVenues {
-                        showVenueRatingSheet = true
-                    } else if viewModel.isGuestDiscoverMode {
-                        viewModel.discoverNavigateToAccountForUserAuth = true
-                    } else if viewModel.isAuthenticatedForSocialFeatures {
-                        viewModel.logBusinessUserGateBlocked(action: "rateVenue")
-                        fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
-                    }
+                    viewModel.openDirections(to: bar)
                 } label: {
-                    let rating = viewModel.mergedDisplayRating(for: bar)
-                    let reviewCount = viewModel.reviewCountDisplay(for: bar)
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .foregroundStyle(.yellow)
-                        if let rating, reviewCount > 0 {
-                            Text(String(format: "%.1f", rating))
-                                .fontWeight(.bold)
-                            Text("(\(reviewCount))")
+                    HStack(alignment: .firstTextBaseline, spacing: FGSpacing.xs) {
+                        Image(systemName: "location.fill")
+                            .font(.caption)
+                        Text(bar.address)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+
+                        if !bar.distance.isEmpty {
+                            Text("• \(bar.distance)")
                                 .foregroundStyle(discoverPreviewSecondaryTextColor)
-                                .fontWeight(.medium)
-                        } else {
-                            Text("Rate")
-                                .fontWeight(.semibold)
+                                .lineLimit(1)
                         }
                     }
-                    .font(FGTypography.metadata)
-                    .padding(.horizontal, FGSpacing.md)
-                    .padding(.vertical, FGSpacing.xs + 2)
-                    .background(discoverPreviewControlBackground)
-                    .clipShape(Capsule(style: .continuous))
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
-                    }
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.accentBlue)
                 }
                 .buttonStyle(.plain)
-
-                Spacer(minLength: 0)
-            }
-
-            if let experience = viewModel.experience(for: bar) {
-                VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                    Text(experience.atmosphere)
-                        .font(FGTypography.cardTitle)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-
-                    Text(experience.teamFanbases.joined(separator: " • "))
-                        .font(FGTypography.caption)
-                        .foregroundStyle(discoverPreviewSecondaryTextColor)
-
-                    HStack(spacing: FGSpacing.sm) {
-                        Label(
-                            experience.hasAudio ? "Game audio" : "No audio",
-                            systemImage: experience.hasAudio ? "speaker.wave.2.fill" : "speaker.slash.fill"
-                        )
-                        Label(experience.liveOccupancy, systemImage: "person.3.fill")
-                        Text(experience.coverCharge)
-                    }
-                    .font(FGTypography.metadata)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(FGColor.accentGreen)
-                    .padding(.horizontal, FGSpacing.md)
-                    .padding(.vertical, FGSpacing.sm)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(discoverPreviewAccentSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-                }
             }
         }
+    }
+
+    private func venuePreviewRatingButton(_ bar: BarVenue) -> some View {
+        Button {
+            if viewModel.canRateVenues {
+                showVenueRatingSheet = true
+            } else if viewModel.isGuestDiscoverMode {
+                viewModel.discoverNavigateToAccountForUserAuth = true
+            } else if viewModel.isAuthenticatedForSocialFeatures {
+                viewModel.logBusinessUserGateBlocked(action: "rateVenue")
+                fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            }
+        } label: {
+            let rating = viewModel.mergedDisplayRating(for: bar)
+            let reviewCount = viewModel.reviewCountDisplay(for: bar)
+            HStack(spacing: 5) {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(.yellow)
+                if let rating, reviewCount > 0 {
+                    Text(String(format: "%.1f", rating))
+                        .fontWeight(.bold)
+                } else {
+                    Text("Rate")
+                        .fontWeight(.semibold)
+                }
+            }
+            .font(FGTypography.metadata)
+            .padding(.horizontal, FGSpacing.sm)
+            .padding(.vertical, FGSpacing.xs)
+            .background(discoverPreviewControlBackground)
+            .clipShape(Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func venuePreviewCard(_ bar: BarVenue) -> some View {
@@ -2906,40 +2944,31 @@ struct DiscoverScreen: View {
         )
         let selectedVenueEvent = selectedEventForVenue(gamesToday: gamesToday)
 
-        return VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
             venuePreviewCardStaticHeader(bar: resolved)
 
             Rectangle()
                 .fill(FGColor.divider(colorScheme))
                 .frame(height: 1)
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 12) {
-                    if let selectedEvent = selectedVenueEvent {
+            if let selectedEvent = selectedVenueEvent {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 12) {
                         selectedEventSection(bar: resolved, selectedEvent: selectedEvent)
-                    } else {
-                        gamesListSection(bar: resolved, gamesToday: gamesToday)
                     }
-
-                    FGPrimaryButton(
-                        title: viewModel.isGuestDiscoverMode ? "View venue" : "Details",
-                        systemImage: viewModel.isGuestDiscoverMode ? "lock.fill" : nil
-                    ) {
-                        guard viewModel.canViewDiscoverDetails() else {
-                            viewModel.showSocialActionToast("Sign in with a FanGeo account to view venue details.")
-                            return
-                        }
-                        showVenueDetails = true
-                    }
+                    .padding(.bottom, 4)
                 }
-                .padding(.bottom, 4)
+                .frame(maxHeight: 292)
+                .clipped()
+            } else {
+                gamesListSection(bar: resolved, gamesToday: gamesToday)
             }
-            .frame(maxHeight: 218)
-            .clipped()
+
+            venuePreviewActionRow(bar: resolved)
         }
         .padding(.horizontal, FGSpacing.lg)
         .padding(.vertical, FGSpacing.md)
-        .frame(maxHeight: 374)
+        .frame(maxHeight: 512)
         .background {
             ZStack {
                 RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
@@ -2967,34 +2996,91 @@ struct DiscoverScreen: View {
                 date: viewModel.selectedDate,
                 sportFilter: viewModel.selectedSport
             )
-            for game in dayEvents.prefix(5) {
+            for game in dayEvents {
                 if let venueEventID = await viewModel.venueEventID(for: resolved, gameTitle: game.title) {
-                    viewModel.prefetchGoingProfilesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
+                    viewModel.prefetchFanUpdatesCardSocialData(for: venueEventID)
                 }
             }
         }
     }
 
     
-    private func barThumbnail(_ bar: BarVenue) -> some View {
+    private func venueHeroImage(_ bar: BarVenue) -> some View {
         Group {
             if let urlString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
                let url = URL(string: urlString) {
                 DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.gray.opacity(0.18))
+                    venueHeroPlaceholder
                 }
             } else {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.gray.opacity(0.18))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
+                venueHeroPlaceholder
             }
         }
-        .frame(width: 64, height: 64)
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .frame(maxWidth: .infinity)
+        .frame(height: 148)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(alignment: .bottomLeading) {
+            Text("Watch spot")
+                .font(FGTypography.metadata.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.black.opacity(0.58))
+                .clipShape(Capsule(style: .continuous))
+                .padding(12)
+        }
+    }
+
+    private var venueHeroPlaceholder: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.30 : 0.18),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.24 : 0.14)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                Image(systemName: "building.2.crop.circle")
+                    .font(.system(size: 40, weight: .semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.34))
+            }
+    }
+
+    private func venuePreviewActionRow(bar: BarVenue) -> some View {
+        HStack(spacing: FGSpacing.sm) {
+            Button {
+                viewModel.openDirections(to: bar)
+            } label: {
+                Label("Directions", systemImage: "location.fill")
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, FGSpacing.md)
+                    .background(discoverPreviewControlBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                            .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
+                    }
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: true))
+
+            FGPrimaryButton(
+                title: viewModel.isGuestDiscoverMode ? "View venue" : "Details",
+                systemImage: viewModel.isGuestDiscoverMode ? "lock.fill" : nil
+            ) {
+                guard viewModel.canViewDiscoverDetails() else {
+                    viewModel.showSocialActionToast("Sign in with a FanGeo account to view venue details.")
+                    return
+                }
+                showVenueDetails = true
+            }
+        }
     }
     
     private func toggleSupabaseInterest(for bar: BarVenue, selectedEvent: SportsEvent) {
@@ -3072,34 +3158,41 @@ struct DiscoverScreen: View {
 
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                FGStatusPill(title: "Game list", kind: .custom(tint: FGColor.accentBlue))
-
                 venuePreviewGameFilterPicker
 
-                if viewModel.isLoadingEvents && gamesToday.isEmpty {
-                    loadingVenueGamesView
-                } else if gamesToday.isEmpty {
-                    if bar.games.isEmpty, !viewModel.isLoadingEvents {
-                        Text("No games listed yet.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        venuePreviewNoGamesForDateView
-                    }
-                } else if filtered.isEmpty {
-                    venueGameFilterEmptyView()
-                } else {
-                    ForEach(Array(filtered.prefix(12)), id: \.id) { event in
-                        if viewModel.isGuestDiscoverMode {
-                            guestVenueGamePreviewRow(bar: bar, event: event) {
-                                showVenueDetails = true
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                        if viewModel.isLoadingEvents && gamesToday.isEmpty {
+                            loadingVenueGamesView
+                        } else if gamesToday.isEmpty {
+                            if bar.games.isEmpty, !viewModel.isLoadingEvents {
+                                Text("No games listed yet.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                venuePreviewNoGamesForDateView
                             }
+                        } else if filtered.isEmpty {
+                            venueGameFilterEmptyView()
                         } else {
-                            gameInterestRow(bar: bar, event: event)
+                            ForEach(Array(filtered.prefix(12)), id: \.id) { event in
+                                if viewModel.isGuestDiscoverMode {
+                                    guestVenueGamePreviewRow(bar: bar, event: event) {
+                                        showVenueDetails = true
+                                    }
+                                } else {
+                                    gameInterestRow(bar: bar, event: event)
+                                }
+                            }
                         }
                     }
+                    .padding(.bottom, 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxHeight: 248)
+                .clipped()
             }
+
             if viewModel.isRefreshingDiscoverEvents && !gamesToday.isEmpty {
                 ProgressView()
                     .controlSize(.small)
@@ -3119,28 +3212,36 @@ struct DiscoverScreen: View {
                         venuePreviewGameFilter = mode
                     }
                 } label: {
-                    Text(mode.segmentTitle)
-                        .font(FGTypography.metadata)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
-                        .padding(.horizontal, FGSpacing.sm + 2)
-                        .padding(.vertical, FGSpacing.xs + 2)
-                        .foregroundStyle(isOn ? Color.white : FGColor.primaryText(colorScheme))
+                    VStack(spacing: 3) {
+                        Text(mode.segmentTitle)
+                            .font(FGTypography.metadata.weight(isOn ? .bold : .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Capsule(style: .continuous)
+                            .fill(isOn ? FGColor.accentBlue : Color.clear)
+                            .frame(height: 2)
+                    }
+                        .padding(.horizontal, FGSpacing.md)
+                        .padding(.vertical, 6)
+                        .foregroundStyle(isOn ? FGColor.accentBlue : discoverPreviewSecondaryTextColor)
                         .background {
                             Capsule(style: .continuous)
                                 .fill(
                                     isOn
-                                        ? AnyShapeStyle(FGColor.brandGradient)
+                                        ? AnyShapeStyle(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.13))
                                         : AnyShapeStyle(Color.clear)
                                 )
                         }
-                        .softActiveGlow(isOn, color: FGColor.accentBlue)
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(isOn ? FGColor.accentBlue.opacity(0.36) : Color.clear, lineWidth: 1)
+                        }
                 }
                 .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
             }
         }
-        .padding(.horizontal, FGSpacing.xs)
-        .padding(.vertical, FGSpacing.xs)
+        .padding(.horizontal, 3)
+        .padding(.vertical, 3)
         .background {
             Capsule(style: .continuous)
                 .fill(discoverPreviewControlBackground)
@@ -3165,25 +3266,20 @@ struct DiscoverScreen: View {
         gamesToday: [SportsEvent],
         filter: VenuePreviewGameFilter
     ) -> [SportsEvent] {
+        let goingGames = gamesToday.filter {
+            venuePreviewCurrentUserIsGoing(bar: bar, game: $0)
+        }
+#if DEBUG
+        print("[VenuePreviewFilterDebug] selectedFilter=\(filter.segmentTitle)")
+        print("[VenuePreviewFilterDebug] allCount=\(gamesToday.count)")
+        print("[VenuePreviewFilterDebug] goingCount=\(goingGames.count)")
+#endif
         switch filter {
         case .all:
             return gamesToday
 
-        case .imGoing:
-            // Show rows with the black “I’m going” button:
-            // current user is NOT already going, but there is activity/interest.
-            return gamesToday.filter { game in
-                guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
-                guard viewModel.interestCountForVenueEvent(id) > 0 else { return false }
-                return !venuePreviewCurrentUserIsGoing(bar: bar, game: game)
-            }
-
         case .going:
-            // Show rows with the green “Going” button:
-            // current user IS already going.
-            return gamesToday.filter {
-                venuePreviewCurrentUserIsGoing(bar: bar, game: $0)
-            }
+            return goingGames
         }
     }
 
@@ -3298,7 +3394,7 @@ struct DiscoverScreen: View {
     }
 
     private func liveEnergyChipTint(_ chip: String) -> Color {
-        if chip.contains("LIVE NOW") { return FGColor.accentGreen }
+        if chip.contains("LIVE NOW") { return FGColor.dangerRed }
         if chip.contains("Crowd building") { return FGColor.accentYellow }
         return FGColor.accentBlue
     }
@@ -3310,22 +3406,24 @@ struct DiscoverScreen: View {
                 onOpenLockedDetail()
             }
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-                SportArtworkIconView(sport: event.sport, diameter: 52)
+            HStack(alignment: .center, spacing: 12) {
+                SportArtworkIconView(sport: event.sport, diameter: 42)
 
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(event.title)
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .multilineTextAlignment(.leading)
+                        .lineLimit(2)
 
-                    Text(event.sport)
+                    Text("\(event.date.formatted(date: .abbreviated, time: .omitted)) · \(viewModel.displayTime(for: event))")
                         .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.accentBlue)
+                        .foregroundStyle(discoverPreviewSecondaryTextColor)
 
                     Text("Tap to open this venue · sign in for game details")
                         .font(FGTypography.caption)
                         .foregroundStyle(discoverPreviewSecondaryTextColor)
+                        .lineLimit(1)
                 }
 
                 Spacer(minLength: 8)
@@ -3334,7 +3432,8 @@ struct DiscoverScreen: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(discoverPreviewMutedIconColor)
             }
-            .padding()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
                     .fill(discoverPreviewInnerSurface)
@@ -3355,68 +3454,34 @@ struct DiscoverScreen: View {
             viewModel.isInterestedInVenueEvent($0)
         } ?? false
 
-        let count = venueEventID.map {
-            viewModel.interestCountForVenueEvent($0)
-        } ?? 0
-
-        let score = venueEventID.map { trendingScore(for: $0, goingCount: count) } ?? count
         let energy = viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
+        let previewEnergy = venueEventID.map {
+            venuePreviewEnergy(for: $0, energy: energy)
+        }
+        let previewEnergyTint = previewEnergy.map { venueGamePreviewEnergyTint($0) } ?? FGColor.accentBlue
+        let previewEnergyBorder = previewEnergy?.isHighEnergy == true
+            ? previewEnergyTint.opacity(colorScheme == .dark ? 0.58 : 0.42)
+            : discoverPreviewControlBorder
+        let previewEnergyGlow = previewEnergy?.isHighEnergy == true
+            ? previewEnergyTint.opacity(colorScheme == .dark ? 0.22 : 0.14)
+            : Color.clear
 
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                SportArtworkIconView(sport: event.sport, diameter: 54)
+        return VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 11) {
+                SportArtworkIconView(sport: event.sport, diameter: 42)
 
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(event.title)
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text("\(event.date.formatted(date: .abbreviated, time: .omitted)) · \(viewModel.displayTime(for: event))")
                         .font(FGTypography.caption)
                         .foregroundStyle(discoverPreviewSecondaryTextColor)
-
-                    liveEnergyChips(energy)
-
-                    if let venueEventID,
-                       let topVibe = topVibeText(for: venueEventID) {
-                        Text(topVibe)
-                            .font(FGTypography.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(FGColor.accentYellow)
-                    }
-
-                    if let label = trendingLabel(for: score) {
-                        HStack(spacing: 8) {
-                            FGStatusPill(
-                                title: label,
-                                kind: .custom(tint: score >= 40 ? FGColor.gradientEnd : FGColor.accentYellow)
-                            )
-                            Text("Score \(score)")
-                                .font(FGTypography.metadata)
-                                .foregroundStyle(discoverPreviewSecondaryTextColor)
-                        }
-                    }
                 }
 
-                Spacer(minLength: 0)
-            }
-
-            HStack(alignment: .center, spacing: 10) {
-                if energy.friendGoingCount > 0 {
-                    GoingAvatarStack(profiles: energy.friendProfiles)
-                } else if let venueEventID {
-                    GoingAvatarStack(profiles: viewModel.goingProfiles(for: venueEventID))
-                }
-                Text(energy.friendPresenceLabel ?? perGameGoingLine(venueEventID: venueEventID, count: count))
-                    .font(FGTypography.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-
-            HStack {
-                Spacer(minLength: 0)
                 venuePreviewGoingButton(
                     bar: bar,
                     event: event,
@@ -3424,47 +3489,44 @@ struct DiscoverScreen: View {
                 )
             }
 
-            if let venueEventID {
-                VStack(alignment: .leading, spacing: 12) {
-                    VenueEventVibeMeterView(
-                        viewModel: viewModel,
-                        venueEventID: venueEventID
-                    )
-
-                    Rectangle()
-                        .fill(FGColor.divider(colorScheme).opacity(0.7))
-                        .frame(height: 1)
-                        .allowsHitTesting(false)
-
-                    if viewModel.isAuthenticatedForSocialFeatures {
-                        Button {
-                            presentFanUpdatesSheet(venueEventID: venueEventID)
-                        } label: {
-                            fanUpdatesRowLabel(for: venueEventID)
-                        }
-                        .buttonStyle(FanUpdatesPressButtonStyle())
-                    } else {
-                        Button {
-                            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
-                        } label: {
-                            fanUpdatesRowLabel(for: venueEventID)
-                        }
-                        .buttonStyle(FanUpdatesPressButtonStyle())
+            HStack(alignment: .center, spacing: 10) {
+                let socialProfiles = energy.socialPresenceProfiles
+                if !socialProfiles.isEmpty {
+                    GoingAvatarStack(profiles: socialProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 26)
+                } else if let venueEventID {
+                    let fallbackProfiles = viewModel.goingProfiles(for: venueEventID)
+                    if !fallbackProfiles.isEmpty {
+                        GoingAvatarStack(profiles: fallbackProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 26)
                     }
                 }
-                .padding(.top, 2)
+                Text(energy.socialPresenceLabel ?? energy.friendPresenceLabel ?? perGameGoingLine(venueEventID: venueEventID, count: energy.goingCount))
+                    .font(FGTypography.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+
+            if let venueEventID {
+                if let previewEnergy, previewEnergy.hasBadge {
+                    venueGamePreviewEnergyHeader(previewEnergy)
+                }
+                fanUpdatesEntryButton(venueEventID: venueEventID, energy: energy)
+                venuePreviewInteractionStrip(venueEventID: venueEventID)
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 13)
+        .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
                 .fill(discoverPreviewInnerSurface)
                 .overlay(
                     RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
+                        .strokeBorder(previewEnergyBorder, lineWidth: previewEnergy?.isHighEnergy == true ? 1.25 : 1)
                 )
         )
+        .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
         .task(id: venueEventID ?? event.id) {
             guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) else { return }
             viewModel.prefetchFanUpdatesCardSocialData(for: id)
@@ -3523,29 +3585,286 @@ struct DiscoverScreen: View {
     }
 
     private func presentFanUpdatesSheet(venueEventID: UUID) {
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return
+        }
         FanUpdatesTapPerf.handleTap(eventId: venueEventID) {
             fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID)
         }
     }
 
-    private func fanUpdatesRowLabel(for venueEventID: UUID) -> some View {
-        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
-        return HStack(spacing: 10) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .foregroundStyle(.blue)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Fan updates")
-                    .font(.caption.weight(.bold))
-                Text(commentCount == 0 ? "Tap to join the conversation" : "\(commentCount) updates · tap to open")
-                    .font(.caption2)
-                    .foregroundStyle(discoverPreviewSecondaryTextColor)
+    private var venuePreviewMiniStats: [VenuePreviewMiniStat] {
+        [
+            VenuePreviewMiniStat(id: "packed", symbol: "🔥", label: "On fire"),
+            VenuePreviewMiniStat(id: "seats_open", symbol: "🪑", label: "Seats"),
+            VenuePreviewMiniStat(id: "tv_visible", symbol: "📺", label: "TVs"),
+            VenuePreviewMiniStat(id: "audio_on", symbol: "🔊", label: "Sound"),
+            VenuePreviewMiniStat(id: "crowd", symbol: "👥", label: "Crowd")
+        ]
+    }
+
+    private func venuePreviewInteractionStrip(venueEventID: UUID) -> some View {
+        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
+        let selected = viewModel.myVenueEventVibes[venueEventID] ?? []
+        let _ = logVenueMiniStatsDebug(eventId: venueEventID, counts: counts)
+
+        return HStack(spacing: 8) {
+            ForEach(venuePreviewMiniStats) { stat in
+                venuePreviewMiniStatChip(
+                    stat,
+                    venueEventID: venueEventID,
+                    counts: counts,
+                    selected: selected
+                )
             }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(discoverPreviewMutedIconColor)
         }
-        .padding(.horizontal, 4)
+        .padding(.top, 1)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: venueEventID) {
+            viewModel.prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
+        }
+    }
+
+    private func venuePreviewMiniStatChip(
+        _ stat: VenuePreviewMiniStat,
+        venueEventID: UUID,
+        counts: [String: Int],
+        selected: Set<String>
+    ) -> some View {
+        let count = counts[stat.id] ?? 0
+        let isSelected = selected.contains(stat.id)
+        let tint = venuePreviewInteractionTint(for: stat.id)
+        return Button {
+            FGInteractionHaptics.softImpact()
+            guard viewModel.isAuthenticatedForSocialFeatures else {
+                viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                return
+            }
+            guard viewModel.canUseFanSocialFeatures else {
+                viewModel.logBusinessUserGateBlocked(action: "toggleVibe")
+                fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                return
+            }
+            Task {
+                await viewModel.toggleVibe(for: venueEventID, vibeType: stat.id)
+            }
+        } label: {
+            HStack(spacing: 3) {
+                Text(stat.symbol)
+                Text("\(count)")
+                    .fontWeight(.heavy)
+                    .monospacedDigit()
+            }
+                .font(FGTypography.metadata.weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .foregroundStyle(isSelected ? .white : tint)
+                .padding(.horizontal, 5)
+                .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30)
+                .background {
+                    ZStack {
+                        Capsule(style: .continuous)
+                            .fill(isSelected ? tint.opacity(0.88) : tint.opacity(colorScheme == .dark ? 0.14 : 0.08))
+                        Capsule(style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .opacity(isSelected ? 0.08 : (colorScheme == .dark ? 0.16 : 0.28))
+                    }
+                }
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(isSelected ? 0.62 : 0.20), lineWidth: 1)
+                }
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.965, hapticOnPress: false))
+        .accessibilityLabel("\(stat.label), \(count) votes")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func logVenueMiniStatsDebug(eventId: UUID, counts: [String: Int]) {
+#if DEBUG
+        print("[VenueMiniStatsDebug] eventId=\(eventId.uuidString)")
+        print("[VenueMiniStatsDebug] packed=\(counts["packed"] ?? 0)")
+        print("[VenueMiniStatsDebug] seats=\(counts["seats_open"] ?? 0)")
+        print("[VenueMiniStatsDebug] tv=\(counts["tv_visible"] ?? 0)")
+        print("[VenueMiniStatsDebug] sound=\(counts["audio_on"] ?? 0)")
+        print("[VenueMiniStatsDebug] crowd=\(counts["crowd"] ?? 0)")
+        print("[VenueMiniStatsDebug] rowRendered=true")
+#endif
+    }
+
+    private func venuePreviewInteractionTint(for type: String) -> Color {
+        switch type {
+        case "packed":
+            return FGColor.dangerRed
+        case "seats_open", "crowd":
+            return FGColor.accentGreen
+        case "tv_visible":
+            return FGColor.accentBlue
+        case "audio_on":
+            return FGColor.accentYellow
+        default:
+            return FGColor.accentBlue
+        }
+    }
+
+    private func venuePreviewEnergy(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> VenueGamePreviewEnergy {
+        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
+        let previewEnergy = VenueGamePreviewEnergy.evaluate(
+            fireCount: counts["packed"] ?? 0,
+            seatsCount: counts["seats_open"] ?? 0,
+            tvCount: counts["tv_visible"] ?? 0,
+            soundCount: counts["audio_on"] ?? 0,
+            crowdCount: counts["crowd"] ?? 0,
+            goingCount: energy.goingCount,
+            friendGoingCount: energy.friendGoingCount,
+            commentCount: energy.commentCount,
+            isLiveNow: energy.isLiveNow,
+            startsSoon: energy.startsSoon
+        )
+        logVenueEnergyDebug(eventId: venueEventID, energy: previewEnergy)
+        return previewEnergy
+    }
+
+    private func venueGamePreviewEnergyHeader(_ energy: VenueGamePreviewEnergy) -> some View {
+        let tint = venueGamePreviewEnergyTint(energy)
+
+        return HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(energy.label ?? "Quiet")
+                    .font(FGTypography.metadata.weight(.bold))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+
+                Text(energy.subtitle)
+                    .font(FGTypography.caption.weight(.medium))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            Capsule(style: .continuous)
+                .fill(tint.opacity(colorScheme == .dark ? 0.16 : 0.10))
+        }
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.32 : 0.24), lineWidth: 1)
+        }
+    }
+
+    private func venueGamePreviewEnergyTint(_ energy: VenueGamePreviewEnergy) -> Color {
+        switch energy.score {
+        case 81...:
+            return FGColor.accentBlue
+        case 51...80:
+            return FGColor.dangerRed
+        case 26...50:
+            return FGColor.accentYellow
+        case 10...25:
+            return FGColor.accentGreen
+        default:
+            return discoverPreviewSecondaryTextColor
+        }
+    }
+
+    private func logVenueEnergyDebug(eventId: UUID, energy: VenueGamePreviewEnergy) {
+#if DEBUG
+        DebugLogGate.noisy("[VenueEnergyDebug] eventId=\(eventId.uuidString.lowercased())")
+        DebugLogGate.noisy("[VenueEnergyDebug] score=\(energy.score)")
+        DebugLogGate.noisy("[VenueEnergyDebug] label=\(energy.label ?? "none")")
+        DebugLogGate.noisy("[VenueEnergyDebug] fire=\(energy.fireCount)")
+        DebugLogGate.noisy("[VenueEnergyDebug] crowd=\(energy.crowdCount)")
+        DebugLogGate.noisy("[VenueEnergyDebug] going=\(energy.goingCount)")
+        DebugLogGate.noisy("[VenueEnergyDebug] friends=\(energy.friendGoingCount)")
+        DebugLogGate.noisy("[VenueEnergyDebug] comments=\(energy.commentCount)")
+#endif
+    }
+
+    private func fanUpdatesEntryButton(venueEventID: UUID, energy: FanGeoLiveEnergy) -> some View {
+        Button {
+            FGInteractionHaptics.selection()
+            presentFanUpdatesSheet(venueEventID: venueEventID)
+        } label: {
+            fanUpdatesRowLabel(for: venueEventID, energy: energy)
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: false))
+    }
+
+    private func fanUpdatesRowLabel(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> some View {
+        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
+        let tint = FGColor.accentBlue
+        let context = fanChatContextText(commentCount: commentCount, energy: energy)
+
+        return HStack(spacing: 9) {
+            Image(systemName: "bubble.left.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+                .frame(width: 20, height: 20)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Fan Chat")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+
+                Text(context)
+                    .font(FGTypography.caption.weight(.medium))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 6)
+
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.12))
+                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .opacity(colorScheme == .dark ? 0.18 : 0.30)
+            }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(tint.opacity(0.26), lineWidth: 1)
+        }
+        .shadow(color: tint.opacity(0.08), radius: 6, y: 2)
+    }
+
+    private func fanChatContextText(commentCount: Int, energy: FanGeoLiveEnergy) -> String {
+        if energy.isLiveNow {
+            return commentCount > 0 ? "\(commentCount) chatting • fans reacting live" : "Fans reacting live"
+        }
+        if commentCount >= 8 {
+            return "\(commentCount) chatting now"
+        }
+        if commentCount > 0 {
+            return commentCount == 1 ? "1 chatting now" : "\(commentCount) chatting now"
+        }
+        if energy.goingCount > 0 {
+            return "Fans reacting live"
+        }
+        return "Start the discussion"
+    }
+
+    private func fanChatLiveBadgeText(commentCount: Int, energy: FanGeoLiveEnergy) -> String? {
+        if energy.isLiveNow { return "LIVE" }
+        if commentCount >= 8 { return "HOT" }
+        return nil
     }
     
     private func liveScoreEmoji(for score: Int) -> String {
@@ -3685,7 +4004,7 @@ struct DiscoverScreen: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background((hasLiveNow ? FGColor.accentGreen : Color.orange).opacity(0.95))
+                    .background((hasLiveNow ? FGColor.dangerRed : Color.orange).opacity(0.95))
                     .clipShape(Capsule())
             }
 
@@ -3788,6 +4107,8 @@ struct DiscoverScreen: View {
             return "🍺 Specials · \(top.value)"
         case "tv_visible":
             return "📺 TVs visible · \(top.value)"
+        case "crowd":
+            return "👥 Crowd checked · \(top.value)"
         default:
             return nil
         }

@@ -228,7 +228,7 @@ struct AddBusinessLocationRequestSheet: View {
                     FGCard {
                         FGSectionHeader(
                             "Photos",
-                            subtitle: "Main venue photo is required. Menu photo is optional."
+                            subtitle: "Main venue photo is required. Other venue images are optional."
                         )
 
                         VenueOwnerListingPhotoPickerCard(
@@ -241,8 +241,8 @@ struct AddBusinessLocationRequestSheet: View {
                         )
 
                         VenueOwnerListingPhotoPickerCard(
-                            title: "Menu Photo",
-                            subtitle: "Food or drink menu photo",
+                            title: "Others",
+                            subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
                             pickerSelection: $selectedMenuPicker,
                             remotePreviewURL: menuPickerRemotePreview,
                             localPreviewData: nil,

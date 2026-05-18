@@ -15,7 +15,7 @@ struct VenueOwnerScreensFeatureTile: View {
                 .font(.title2)
                 .foregroundStyle(FGColor.accentGreen)
 
-            Text("\(totalScreens) Screens")
+            Text(VenueFeatureDefinitions.screenLabel(count: totalScreens))
                 .font(FGTypography.caption.weight(.semibold))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(FGColor.primaryText(colorScheme))
@@ -127,13 +127,13 @@ struct AddLocationVenueFeaturesGrid: View {
 
             LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
                 VenueOwnerScreensFeatureTile(totalScreens: $screenCount, minScreens: 1, maxScreens: maxScreenCount)
-                VenueOwnerFeatureToggleTile(icon: "fork.knife", label: "Food / Drinks", isOn: $servesFood)
-                VenueOwnerFeatureToggleTile(icon: "wifi", label: "WiFi", isOn: $hasWifi)
-                VenueOwnerFeatureToggleTile(icon: "chair.lounge.fill", label: "Outdoor / Patio", isOn: $hasGarden)
-                VenueOwnerFeatureToggleTile(icon: "video.fill", label: "Projector", isOn: $hasProjector)
-                VenueOwnerFeatureToggleTile(icon: "pawprint.fill", label: "Pet Friendly", isOn: $petFriendly)
-                VenueOwnerFeatureToggleTile(icon: "car.fill", label: "Parking", isOn: $parkingAvailable)
-                VenueOwnerFeatureToggleTile(icon: "figure.2.and.child.holdinghands", label: "Family Friendly", isOn: $familyFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.foodDrinks.iconName, label: VenueFeatureDefinitions.foodDrinks.label, isOn: $servesFood)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.wifi.iconName, label: VenueFeatureDefinitions.wifi.label, isOn: $hasWifi)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.patio.iconName, label: VenueFeatureDefinitions.patio.label, isOn: $hasGarden)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.projector.iconName, label: VenueFeatureDefinitions.projector.label, isOn: $hasProjector)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.petFriendly.iconName, label: VenueFeatureDefinitions.petFriendly.label, isOn: $petFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.parkingAvailable.iconName, label: VenueFeatureDefinitions.parkingAvailable.label, isOn: $parkingAvailable)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.familyFriendly.iconName, label: VenueFeatureDefinitions.familyFriendly.label, isOn: $familyFriendly)
             }
         }
         .padding(12)

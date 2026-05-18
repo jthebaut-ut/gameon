@@ -19,6 +19,11 @@ struct WatchZoneApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(appearancePreference.colorScheme)
+                .onAppear {
+                    #if DEBUG
+                    print("[LaunchPathDebug] WatchZoneAppMounted=true")
+                    #endif
+                }
         }
     }
 
