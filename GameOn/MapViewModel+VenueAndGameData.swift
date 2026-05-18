@@ -455,6 +455,7 @@ extension MapViewModel {
         }
         venueEventRows = snap.venueEventRows
         rebuildVenueEventIDsByKey(from: snap.venueEventRows)
+        rebuildDiscoverMapRenderSnapshot(reason: "restoredDiscoverCoreSnapshot")
 
         events = snap.events
         bumpScheduleDataGeneration()
@@ -1851,6 +1852,7 @@ extension MapViewModel {
 
         events = merged
         bumpScheduleDataGeneration()
+        rebuildDiscoverMapRenderSnapshot(reason: "mergeVenueSliceIntoEvents")
     }
 
     private func scheduleDiscoverFullEnrichmentInBackground() {
@@ -2483,6 +2485,7 @@ extension MapViewModel {
 
             venueEventRows = []
             rebuildVenueEventIDsByKey(from: [])
+            rebuildDiscoverMapRenderSnapshot(reason: "phase1VenueRows")
             pruneSelectionIfNeededAfterFilterChange()
 
             if showBlockingMapSpinner {

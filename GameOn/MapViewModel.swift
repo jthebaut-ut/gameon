@@ -12,18 +12,33 @@ import Supabase
 @MainActor
 final class MapViewModel: ObservableObject {
     
-    @Published var selectedDate: Date = Calendar.current.startOfDay(for: Date())
+    @Published var selectedDate: Date = Calendar.current.startOfDay(for: Date()) {
+        didSet {
+            guard !Calendar.current.isDate(oldValue, inSameDayAs: selectedDate) else { return }
+            rebuildDiscoverMapRenderSnapshot(reason: "selectedDate")
+        }
+    }
     /// Bottom-tab Calendar only (never drives Discover map date).
     @Published var calendarTabSelectedDate: Date = Calendar.current.startOfDay(for: Date())
     @Published var calendarTabGameFilter: CalendarTabGameFilter = .venueGames
     /// Guest Discover: set when the user confirms a date from the map calendar (`Done`); blocks automatic “jump to next day with games” for that cold start / session.
     var discoverCalendarGuestUserPinnedDateThisSession: Bool = false
-    @Published var selectedSport: String = "All"
+    @Published var selectedSport: String = "All" {
+        didSet {
+            guard oldValue != selectedSport else { return }
+            rebuildDiscoverMapRenderSnapshot(reason: "selectedSport")
+        }
+    }
     @Published var selectedEvent: SportsEvent?
     @Published var selectedBar: BarVenue?
     @Published var searchText: String = ""
     /// Debounced copy of ``searchText`` for Discover map/event filtering and live venue suggestions (see ``MapViewModel+DiscoverSearch``).
-    @Published var debouncedDiscoverSearchText: String = ""
+    @Published var debouncedDiscoverSearchText: String = "" {
+        didSet {
+            guard oldValue != debouncedDiscoverSearchText else { return }
+            rebuildDiscoverMapRenderSnapshot(reason: "debouncedDiscoverSearchText")
+        }
+    }
     @Published var favoriteVenueIDs: Set<UUID> = []
     @Published var interestedVenueEventKeys: Set<String> = []
     /// Prevents overlapping save/remove writes for the same venue while keeping the UI on the optimistic state.
@@ -142,7 +157,11 @@ final class MapViewModel: ObservableObject {
     @Published var ownerVenueHasProjector: Bool = false
     @Published var ownerVenuePetFriendly: Bool = false
     @Published var venueEventInterestIDs: Set<UUID> = []
-    @Published var venueEventInterestCounts: [UUID: Int] = [:]
+    @Published var venueEventInterestCounts: [UUID: Int] = [:] {
+        didSet {
+            rebuildDiscoverMapRenderSnapshot(reason: "venueEventInterestCounts")
+        }
+    }
     let fanUpdatesStore = FanUpdatesRealtimeStore()
 
     var venueEventComments: [UUID: [VenueEventCommentRow]] {
@@ -294,12 +313,21 @@ final class MapViewModel: ObservableObject {
     /// Latest avatar-tap context for presentation debug (not shown in UI).
     @Published var publicProfilePresentationContext: String?
     @Published var eventLoadError: String?
-    @Published var bars: [BarVenue] = []
+    @Published var bars: [BarVenue] = [] {
+        didSet {
+            rebuildDiscoverMapRenderSnapshot(reason: "bars")
+        }
+    }
     @Published var isLoadingMapVenues: Bool = false
     /// True while map venues are re-fetched but existing ``bars`` should stay visible (Phase 1 perf).
     @Published var isRefreshingMapVenues: Bool = false
     @Published var calendarUsesVisibleMapRegionOnly: Bool = false
-    @Published var mapDisplayMode: DiscoverMapDisplayMode = .allSpots
+    @Published var mapDisplayMode: DiscoverMapDisplayMode = .allSpots {
+        didSet {
+            guard oldValue != mapDisplayMode else { return }
+            rebuildDiscoverMapRenderSnapshot(reason: "mapDisplayMode")
+        }
+    }
     @Published var cameraPosition: MapCameraPosition = .region(
         MKCoordinateRegion(
             center: CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508),
@@ -312,8 +340,10 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventRows: [VenueEventRow] = [] {
         didSet {
             scheduleFanChatAppLevelRealtimeForLoadedVenueEvents()
+            rebuildDiscoverMapRenderSnapshot(reason: "venueEventRows")
         }
     }
+    @Published private(set) var discoverMapRenderSnapshot = DiscoverMapRenderSnapshot.empty
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
     /// Discover calendar overlay: venue ``venue_events`` days from RPC (green dots; Venues map mode only).
@@ -580,6 +610,10 @@ final class MapViewModel: ObservableObject {
         #if DEBUG
         print("[FanUpdatesStoreMigrationDebug] RemovedMapViewModelBridge=true")
         #endif
+    }
+
+    func applyDiscoverMapRenderSnapshot(_ snapshot: DiscoverMapRenderSnapshot) {
+        discoverMapRenderSnapshot = snapshot
     }
 
     // MARK: - Discover / map venue_events fetch cache (region + sport + date window)

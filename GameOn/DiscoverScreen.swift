@@ -927,9 +927,10 @@ struct DiscoverScreen: View {
     private func venueMarkerPinPresentation(
         bar: BarVenue,
         gamesToday: [SportsEvent],
-        base: MapViewModel.MapPinDisplayMode
+        base: MapViewModel.MapPinDisplayMode,
+        energyOverride: Int? = nil
     ) -> (mode: MapViewModel.MapPinDisplayMode, energy: Int, wantsEnriched: Bool) {
-        let energy = viewModel.mapPinEnergyScore(bar: bar, gamesOnMapDay: gamesToday)
+        let energy = energyOverride ?? viewModel.mapPinEnergyScore(bar: bar, gamesOnMapDay: gamesToday)
         let gamesOnSelectedDay = gamesToday.count
         let scheduledVenueGames = bar.games.count
         let wantsEnriched = gamesOnSelectedDay >= 2 || scheduledVenueGames >= 2 || energy > 0
@@ -950,22 +951,31 @@ struct DiscoverScreen: View {
 
     @ViewBuilder
     private func singleVenueMapPinButton(bar: BarVenue) -> some View {
-        let gamesToday = viewModel.selectedDayEventsForMap(bar)
-        let goingTotal = gamesToday.reduce(0) { total, game in
+        let pinSnapshot = viewModel.discoverMapRenderSnapshot.venuePinsByID[bar.id]
+        let gamesToday = pinSnapshot?.selectedDayGames ?? viewModel.selectedDayEventsForMap(bar)
+        let goingTotal = pinSnapshot?.goingTotal ?? gamesToday.reduce(0) { total, game in
             if let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) {
                 return total + viewModel.interestCountForVenueEvent(id)
             }
             return total
         }
 
+#if DEBUG
+        let _: Void = {
+            guard pinSnapshot != nil else { return }
+            DebugLogGate.noisy("[DiscoverMapSnapshotDebug] usingPinSnapshot=true")
+        }()
+#endif
+
         let pin = venueMarkerPinPresentation(
             bar: bar,
             gamesToday: gamesToday,
-            base: viewModel.mapPinDisplayMode
+            base: viewModel.mapPinDisplayMode,
+            energyOverride: pinSnapshot?.pinEnergyScore
         )
         let effectiveMode = pin.mode
         let isSelected = viewModel.selectedBar?.id == bar.id
-        let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+        let hasLiveNow = pinSnapshot?.hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
 
 #if DEBUG
         let _: Void = {
@@ -1002,10 +1012,22 @@ struct DiscoverScreen: View {
                             simpleMapPin(bar: bar, gamesToday: gamesToday)
 
                         case .compact:
-                            compactMapPin(bar: bar, gamesToday: gamesToday, goingTotal: goingTotal)
+                            compactMapPin(
+                                bar: bar,
+                                gamesToday: gamesToday,
+                                goingTotal: goingTotal,
+                                liveScore: pin.energy,
+                                hasLiveNow: hasLiveNow
+                            )
 
                         case .detailed:
-                            detailedMapPin(bar: bar, gamesToday: gamesToday, goingTotal: goingTotal)
+                            detailedMapPin(
+                                bar: bar,
+                                gamesToday: gamesToday,
+                                goingTotal: goingTotal,
+                                liveScore: pin.energy,
+                                hasLiveNow: hasLiveNow
+                            )
                         }
                     case .noGameScheduled:
                         noGameScheduledMapPin()
@@ -1021,8 +1043,17 @@ struct DiscoverScreen: View {
 
     @ViewBuilder
     private func multiVenueClusterAnnotation(cluster: VenueCluster) -> some View {
-        let energy = viewModel.clusterVenueAnnotationEnergy(cluster: cluster)
+        let clusterSnapshot = viewModel.discoverMapRenderSnapshot.venueClustersByID[cluster.id]
+        let energy = clusterSnapshot.map {
+            (maxScore: $0.maxEnergyScore, dominantSport: $0.dominantSport)
+        } ?? viewModel.clusterVenueAnnotationEnergy(cluster: cluster)
         let displayState = clusterDisplayState(cluster)
+#if DEBUG
+        let _: Void = {
+            guard clusterSnapshot != nil else { return }
+            DebugLogGate.noisy("[DiscoverMapSnapshotDebug] usingClusterSnapshot=true")
+        }()
+#endif
         Button {
             FGInteractionHaptics.selection()
             #if DEBUG
@@ -3947,10 +3978,12 @@ struct DiscoverScreen: View {
     private func compactMapPin(
         bar: BarVenue,
         gamesToday: [SportsEvent],
-        goingTotal: Int
+        goingTotal: Int,
+        liveScore: Int? = nil,
+        hasLiveNow: Bool? = nil
     ) -> some View {
-        let liveScore = liveActivityScore(for: bar, gamesToday: gamesToday)
-        let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+        let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
+        let hasLiveNow = hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
 
         return HStack(spacing: 6) {
             Image(systemName: viewModel.iconForSport(gamesToday.first?.sport ?? bar.primarySport))
@@ -3988,21 +4021,42 @@ struct DiscoverScreen: View {
     }
 
     private func venuePinDisplayState(_ venue: BarVenue) -> VenuePinDisplayState {
-        viewModel.venueHasVisibleGameToday(venue) ? .gameScheduled : .noGameScheduled
+        if let pinSnapshot = viewModel.discoverMapRenderSnapshot.venuePinsByID[venue.id] {
+#if DEBUG
+            DebugLogGate.noisy("[DiscoverMapSnapshotDebug] usingPinSnapshot=true")
+#endif
+            return pinSnapshot.selectedDayGames.isEmpty ? .noGameScheduled : .gameScheduled
+        }
+
+        return viewModel.venueHasVisibleGameToday(venue) ? .gameScheduled : .noGameScheduled
     }
 
     private func clusterDisplayState(_ cluster: VenueCluster) -> ClusterDisplayState {
-        cluster.bars.contains { viewModel.venueHasVisibleGameToday($0) } ? .gameScheduled : .noGameScheduled
+        let snapshot = viewModel.discoverMapRenderSnapshot
+        if let clusterSnapshot = snapshot.venueClustersByID[cluster.id] {
+            let pinSnapshots = clusterSnapshot.venueIDs.compactMap { snapshot.venuePinsByID[$0] }
+            if pinSnapshots.count == clusterSnapshot.venueIDs.count {
+#if DEBUG
+                DebugLogGate.noisy("[DiscoverMapSnapshotDebug] usingClusterSnapshot=true")
+#endif
+                return pinSnapshots.contains { !$0.selectedDayGames.isEmpty } ? .gameScheduled : .noGameScheduled
+            }
+        }
+
+        return cluster.bars.contains { viewModel.venueHasVisibleGameToday($0) } ? .gameScheduled : .noGameScheduled
     }
 
     private func detailedMapPin(
         bar: BarVenue,
         gamesToday: [SportsEvent],
-        goingTotal: Int
+        goingTotal: Int,
+        liveScore: Int? = nil,
+        hasLiveNow: Bool? = nil
     ) -> some View {
         
         VStack(spacing: 4) {
-            let hasLiveNow = viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+            let hasLiveNow = hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+            let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
             HStack(spacing: -6) {
                 ForEach(gamesToday.prefix(3), id: \.id) { game in
                     Image(systemName: viewModel.iconForSport(game.sport))
@@ -4011,8 +4065,6 @@ struct DiscoverScreen: View {
                         .frame(width: 34, height: 34)
                         .background {
                             ZStack {
-                                let liveScore = liveActivityScore(for: bar, gamesToday: gamesToday)
-
                                 if hasLiveNow || liveScore >= livePulseThreshold {
                                     LivePulseView(
                                         isTrending: hasLiveNow || liveScore >= 40
@@ -4026,7 +4078,6 @@ struct DiscoverScreen: View {
                         }
                 }
             }
-            let liveScore = liveActivityScore(for: bar, gamesToday: gamesToday)
             Text(gamesToday.count == 1 ? gamesToday.first?.sport ?? bar.primarySport : "\(gamesToday.count) games")
                 .font(.caption2)
                 .fontWeight(.bold)
