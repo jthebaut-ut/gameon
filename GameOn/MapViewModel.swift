@@ -664,6 +664,7 @@ final class MapViewModel: ObservableObject {
     /// One-shot pickup calendar + map-row warmup after enrichment (not triggered by map pan).
     var discoverPickupMetadataPreloadTask: Task<Void, Never>?
     var discoverPickupMetadataPreloadCompleted = false
+    var loadVenuesRequestID: UUID?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
     var discoverSelectedDayRefreshRequestID: UUID?
     var discoverCalendarDotLoadTask: Task<Void, Never>?

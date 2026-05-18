@@ -2387,6 +2387,8 @@ extension MapViewModel {
 
     func loadVenuesFromSupabase(forceRefresh: Bool = false) async {
         let t0 = Date()
+        let requestID = UUID()
+        loadVenuesRequestID = requestID
         #if DEBUG
         print("[DiscoverPerf] map venue reload START forceRefresh=\(forceRefresh)")
         #endif
@@ -2406,12 +2408,35 @@ extension MapViewModel {
 #endif
         }
 
-        let showBlockingMapSpinner = bars.isEmpty
+        func loadVenuesRequestIsCurrent(phase: String) -> Bool {
+            guard loadVenuesRequestID == requestID else {
+                #if DEBUG
+                print("[DiscoverReloadSmoothDebug] staleRequestIgnored phase=\(phase)")
+                #endif
+                return false
+            }
+            return true
+        }
+
+        let preserveExistingRows = !bars.isEmpty || !venueEventRows.isEmpty
+        let coldStartPhase1Allowed = bars.isEmpty && venueEventRows.isEmpty
+        #if DEBUG
+        if preserveExistingRows {
+            print("[DiscoverReloadSmoothDebug] preserveExistingRows=true")
+        }
+        if coldStartPhase1Allowed {
+            print("[DiscoverReloadSmoothDebug] coldStartPhase1Allowed=true")
+        }
+        #endif
+
+        let showBlockingMapSpinner = coldStartPhase1Allowed
         isLoadingMapVenues = showBlockingMapSpinner
         isRefreshingMapVenues = !showBlockingMapSpinner
         defer {
-            isLoadingMapVenues = false
-            isRefreshingMapVenues = false
+            if loadVenuesRequestIsCurrent(phase: "finalLoadingState") {
+                isLoadingMapVenues = false
+                isRefreshingMapVenues = false
+            }
         }
 
         do {
@@ -2457,6 +2482,8 @@ extension MapViewModel {
                 venueIdSupplement: supplementVenueIds
             )
             let visibleVenueContext = augmentDiscoverVisibleVenueContextForOwnerSession(baseVisibleVenueContext)
+
+            guard loadVenuesRequestIsCurrent(phase: "phase1") else { return }
             discoverCurrentVisibleVenueRows = visibleVenueContext.venueRows
             discoverCurrentVisibleVenueIds = visibleVenueContext.venueIds
             discoverCurrentVisibleOwnerEmails = visibleVenueContext.ownerEmails
@@ -2472,25 +2499,28 @@ extension MapViewModel {
             discoverClusteredBarsCacheKey = nil
             discoverClusteredBarsCache = nil
 
-            var mergedPhase1Bars = phase1Bars
-            if let sel = selectedBar, !mergedPhase1Bars.contains(where: { $0.id == sel.id }) {
-                mergedPhase1Bars.append(sel)
-            }
+            if coldStartPhase1Allowed {
+                var mergedPhase1Bars = phase1Bars
+                if let sel = selectedBar, !mergedPhase1Bars.contains(where: { $0.id == sel.id }) {
+                    mergedPhase1Bars.append(sel)
+                }
 
-            if SampleData.includeSampleData {
-                bars = mergedPhase1Bars + SampleData.bars
-            } else {
-                bars = mergedPhase1Bars
-            }
+                if SampleData.includeSampleData {
+                    bars = mergedPhase1Bars + SampleData.bars
+                } else {
+                    bars = mergedPhase1Bars
+                }
 
-            venueEventRows = []
-            rebuildVenueEventIDsByKey(from: [])
-            rebuildDiscoverMapRenderSnapshot(reason: "phase1VenueRows")
-            pruneSelectionIfNeededAfterFilterChange()
+                venueEventRows = []
+                rebuildVenueEventIDsByKey(from: [])
+                rebuildDiscoverMapRenderSnapshot(reason: "phase1VenueRows")
+                pruneSelectionIfNeededAfterFilterChange()
 
-            if showBlockingMapSpinner {
-                isLoadingMapVenues = false
-                isRefreshingMapVenues = true
+                if showBlockingMapSpinner {
+                    guard loadVenuesRequestIsCurrent(phase: "phase1LoadingState") else { return }
+                    isLoadingMapVenues = false
+                    isRefreshingMapVenues = true
+                }
             }
 
             let phase1CompletedAt = Date()
@@ -2516,6 +2546,7 @@ extension MapViewModel {
                 DiscoverVenueLoadAssembler.buildMappedBars(venueRows: rowsCopy, fetchedVenueEventRows: eventsCopy)
             }.value
 
+            guard loadVenuesRequestIsCurrent(phase: "phase2") else { return }
             discoverClusteredBarsCacheKey = nil
             discoverClusteredBarsCache = nil
 
@@ -2539,6 +2570,7 @@ extension MapViewModel {
             preloadDiscoverCalendarDotsForVisibleVenues()
 
             #if DEBUG
+            print("[DiscoverReloadSmoothDebug] finalApply venueRows=\(fetchedVenueEventRows.count)")
             let phase2Ms = Int(Date().timeIntervalSince(phase1CompletedAt) * 1000)
             let totalMs = Int(Date().timeIntervalSince(t0) * 1000)
             print("[Phase2Perf] selected-day venue event load ms=\(phase2Ms) rows=\(fetchedVenueEventRows.count) visibleVenueIds=\(visibleVenueContext.venueIds.count)")
