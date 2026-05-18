@@ -101,6 +101,9 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             guard let banner else { return }
             if banner.rootViewController == nil {
                 banner.rootViewController = AdMobRootViewController.topViewController()
+                if banner.rootViewController == nil {
+                    AdMobDiagnostics.logMissingRootViewController(format: "banner", unitID: banner.adUnitID)
+                }
             }
             guard force || !didRequestAd else { return }
             didRequestAd = true
@@ -118,10 +121,12 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         }
 
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+            AdMobDiagnostics.logLoadSuccess(format: "banner", unitID: bannerView.adUnitID)
             onAdLoaded()
         }
 
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+            AdMobDiagnostics.logLoadFailure(format: "banner", unitID: bannerView.adUnitID, error: error)
             onAdFailed(error)
         }
     }

@@ -89,6 +89,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         private weak var hostView: CompactNativeAdHostView?
         private var adLoader: AdLoader?
         private var nativeAd: NativeAd?
+        private var currentAdUnitID: String?
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
 
@@ -104,10 +105,12 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         func loadIfNeeded(adUnitID: String, slotIndex: Int, layoutWidth: CGFloat) {
             guard adLoader == nil, nativeAd == nil else { return }
             guard let root = AdMobRootViewController.topViewController() else {
+                AdMobDiagnostics.logMissingRootViewController(format: "native", unitID: adUnitID)
                 onAdFailed(CompactNativeAdError.missingRootViewController)
                 return
             }
 
+            currentAdUnitID = adUnitID
             let loader = AdLoader(
                 adUnitID: adUnitID,
                 rootViewController: root,
@@ -126,6 +129,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             nativeAd = nil
             adLoader?.delegate = nil
             adLoader = nil
+            currentAdUnitID = nil
             hostView = nil
         }
 
@@ -133,10 +137,12 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             self.nativeAd = nativeAd
             nativeAd.delegate = self
             hostView?.populate(with: nativeAd)
+            AdMobDiagnostics.logLoadSuccess(format: "native", unitID: currentAdUnitID)
             onAdLoaded()
         }
 
         func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
+            AdMobDiagnostics.logLoadFailure(format: "native", unitID: currentAdUnitID, error: error)
             onAdFailed(error)
             teardown()
         }

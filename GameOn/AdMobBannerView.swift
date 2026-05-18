@@ -4,7 +4,7 @@ import UIKit
 
 // MARK: - Ad unit configuration (test in DEBUG, production in RELEASE)
 
-/// Central AdMob IDs for FanGeo. Replace production unit IDs before App Store release.
+/// Central AdMob IDs for FanGeo.
 enum AdMobConfiguration {
     // MARK: Test (Google sample app / units — DEBUG only)
     static let testApplicationID = "ca-app-pub-3940256099942544~1458002511"
@@ -12,11 +12,10 @@ enum AdMobConfiguration {
     /// Google-provided native test unit.
     static let testNativeAdUnitID = "ca-app-pub-3940256099942544/3986624511"
 
-    // MARK: Production — enable in AdMob-Info.plist `GADApplicationIdentifier` when going live.
+    // MARK: Production
     static let productionApplicationID = "ca-app-pub-9637364906993742~5547329973"
     static let productionBannerAdUnitID = "ca-app-pub-9637364906993742/6964124517"
-    /// ⬇️ Paste your real AdMob **Native** ad unit ID here for release builds.
-    static let productionNativeAdUnitID = "ca-app-pub-9637364906993742/0000000000"
+    static let productionNativeAdUnitID: String? = "ca-app-pub-9637364906993742/7885775201"
 
     static var usesTestAds: Bool {
         #if DEBUG
@@ -49,18 +48,56 @@ enum AdMobConfiguration {
     }
 
     static var nativeAdUnitID: String {
-        let unit = usesTestAds ? testNativeAdUnitID : productionNativeAdUnitID
+        let unit = usesTestAds ? testNativeAdUnitID : (productionNativeAdUnitID ?? testNativeAdUnitID)
         logUnitSelection(format: "native", unitID: unit)
         return unit
     }
 
+    static var nativeAdsUseTemporaryTestUnitInRelease: Bool {
+        !usesTestAds && productionNativeAdUnitID == nil
+    }
+
     private static func logUnitSelection(format: String, unitID: String) {
-#if DEBUG
-        print("[AdMobDebug] usingTestAds=\(usesTestAds)")
-        print("[AdMobDebug] adFormat=\(format)")
-        print("[AdMobDebug] productionUnitLoaded=\(!usesTestAds)")
-        _ = unitID
-#endif
+        AdMobDiagnostics.logUnitSelection(format: format, unitID: unitID)
+    }
+}
+
+enum AdMobDiagnostics {
+    static func logBootstrap() {
+        log("appIDLoadedFromPlist=\(loadedApplicationIDFromPlist() ?? "missing")")
+        log("configuredApplicationID=\(AdMobConfiguration.applicationID)")
+        log("usesTestAds=\(AdMobConfiguration.usesTestAds)")
+        log("nativeUsesTemporaryTestUnitInRelease=\(AdMobConfiguration.nativeAdsUseTemporaryTestUnitInRelease)")
+        log("nativeValidatorPopupEnabled=\(AdMobConfiguration.enableNativeAdValidatorPopup)")
+    }
+
+    static func logUnitSelection(format: String, unitID: String) {
+        log("format=\(format) unitID=\(unitID) usesTestAds=\(AdMobConfiguration.usesTestAds)")
+        if format == "native", AdMobConfiguration.nativeAdsUseTemporaryTestUnitInRelease {
+            log("nativeReleaseMode=temporary_google_test_unit awaiting_real_production_native_unit")
+        }
+    }
+
+    static func logLoadSuccess(format: String, unitID: String?) {
+        log("loadSuccess format=\(format) unitID=\(unitID ?? "unknown")")
+    }
+
+    static func logLoadFailure(format: String, unitID: String?, error: Error) {
+        let nsError = error as NSError
+        let message = nsError.localizedDescription.replacingOccurrences(of: "\n", with: " ")
+        log("loadFailure format=\(format) unitID=\(unitID ?? "unknown") domain=\(nsError.domain) code=\(nsError.code) message=\(message)")
+    }
+
+    static func logMissingRootViewController(format: String, unitID: String?) {
+        log("rootViewControllerMissing format=\(format) unitID=\(unitID ?? "unknown")")
+    }
+
+    private static func loadedApplicationIDFromPlist() -> String? {
+        Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
+    }
+
+    private static func log(_ message: String) {
+        print("[AdMobDiagnostics] \(message)")
     }
 }
 
@@ -102,12 +139,7 @@ enum GoogleMobileAdsBootstrap {
     static func startIfNeeded() {
         guard !didStart else { return }
         didStart = true
-#if DEBUG
-        print("[AdMobDebug] usingTestAds=\(AdMobConfiguration.usesTestAds)")
-        print("[AdMobDebug] productionUnitLoaded=\(!AdMobConfiguration.usesTestAds)")
-        print("[AdMobDebug] nativeValidatorPopupEnabled=\(AdMobConfiguration.enableNativeAdValidatorPopup)")
-        print("[AdMobDebug] nativeValidatorIssues=0")
-#endif
+        AdMobDiagnostics.logBootstrap()
         Task {
             _ = await MobileAds.shared.start()
         }
