@@ -4,6 +4,7 @@ struct LiveScreen: View {
     private static let liveAutoRefreshIntervalNanoseconds: UInt64 = 15_000_000_000
 
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     @ObservedObject var chatViewModel: ChatViewModel
     @Binding var selectedTab: MainTabView.AppTab
 
@@ -96,6 +97,17 @@ struct LiveScreen: View {
             }
             return tokens
         }
+    }
+
+    init(
+        viewModel: MapViewModel,
+        chatViewModel: ChatViewModel,
+        selectedTab: Binding<MainTabView.AppTab>
+    ) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
+        _chatViewModel = ObservedObject(wrappedValue: chatViewModel)
+        _selectedTab = selectedTab
     }
 
     private var acceptedFriendUserIDs: Set<UUID> {
@@ -197,6 +209,7 @@ struct LiveScreen: View {
             startingSoonCount: startingSoon.count,
             friendsGoingCount: friendsGoing.count
         )
+        let _: Void = logFanUpdatesStoreMigrationDebug()
         let _: Void = logLivePolishSnapshot(featuredLive: featuredLive, visibleSectionCount: visibleSectionCount)
 
         return ZStack {
@@ -1684,7 +1697,7 @@ struct LiveScreen: View {
 
                 let energy = viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
                 let vibeCount = venueEventID.map {
-                    viewModel.venueEventVibeCounts[$0]?.values.reduce(0, +) ?? 0
+                    fanUpdatesStore.venueEventVibeCounts[$0]?.values.reduce(0, +) ?? 0
                 } ?? 0
                 let topVibe = venueEventID.flatMap { topVibeText(for: $0) }
                 let score = liveRankingScore(energy: energy, vibeCount: vibeCount)
@@ -1880,7 +1893,7 @@ struct LiveScreen: View {
     }
 
     private func topVibeText(for venueEventID: UUID) -> String? {
-        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
+        let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
 
         guard let top = counts.max(by: { $0.value < $1.value }),
               top.value > 0 else {
@@ -1901,6 +1914,12 @@ struct LiveScreen: View {
         default:
             return nil
         }
+    }
+
+    private func logFanUpdatesStoreMigrationDebug() {
+#if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] LiveScreenVibeReadsStore=true")
+#endif
     }
 
     private func logLiveFeedSnapshot(
