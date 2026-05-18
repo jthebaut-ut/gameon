@@ -3325,8 +3325,9 @@ struct DiscoverScreen: View {
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {
         let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
+        let fanUpdatesStore = viewModel.fanUpdatesStore
 
-        let vibeCount = viewModel.venueEventVibeCounts[venueEventID]?
+        let vibeCount = fanUpdatesStore.venueEventVibeCounts[venueEventID]?
             .values
             .reduce(0, +) ?? 0
 
@@ -3624,8 +3625,10 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewInteractionStrip(venueEventID: UUID) -> some View {
-        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
-        let selected = viewModel.myVenueEventVibes[venueEventID] ?? []
+        let fanUpdatesStore = viewModel.fanUpdatesStore
+        let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
+        let selected = fanUpdatesStore.myVenueEventVibes[venueEventID] ?? []
+        let _ = logFanUpdatesStoreMigrationDebug()
         let _ = logVenueMiniStatsDebug(eventId: venueEventID, counts: counts)
 
         return HStack(spacing: 6) {
@@ -3704,6 +3707,12 @@ struct DiscoverScreen: View {
 #endif
     }
 
+    private func logFanUpdatesStoreMigrationDebug() {
+#if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] DiscoverPreviewReadsStore=true")
+#endif
+    }
+
     private func venuePreviewInteractionTint(for type: String) -> Color {
         switch type {
         case "packed":
@@ -3720,7 +3729,8 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewEnergy(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> VenueGamePreviewEnergy {
-        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
+        let fanUpdatesStore = viewModel.fanUpdatesStore
+        let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
         let previewEnergy = VenueGamePreviewEnergy.evaluate(
             fireCount: counts["packed"] ?? 0,
             seatsCount: counts["seats_open"] ?? 0,
@@ -4108,7 +4118,8 @@ struct DiscoverScreen: View {
     }
 
     private func topVibeText(for venueEventID: UUID) -> String? {
-        let counts = viewModel.venueEventVibeCounts[venueEventID] ?? [:]
+        let fanUpdatesStore = viewModel.fanUpdatesStore
+        let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
 
         guard let top = counts.max(by: { $0.value < $1.value }),
               top.value > 0 else {
