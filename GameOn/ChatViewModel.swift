@@ -156,6 +156,14 @@ final class ChatViewModel: ObservableObject {
         try? await service.currentUserId()
     }
 
+    private func ignoreCancellationIfNeeded(_ error: Error, context: String) -> Bool {
+        guard error is CancellationError else { return false }
+        #if DEBUG
+        print("[CancellationHandlingDebug] ignoredCancellation context=\(context)")
+        #endif
+        return true
+    }
+
     /// Clears social UI state when the session ends (no network).
     func clearForSignOut() {
         friends = []
@@ -1074,6 +1082,7 @@ final class ChatViewModel: ObservableObject {
             await refreshInboxSummaries()
         } catch {
             friends = snapshot
+            if ignoreCancellationIfNeeded(error, context: "inbox_delete") { return }
             inboxDeleteError = error.localizedDescription
         }
     }
@@ -1175,6 +1184,7 @@ final class ChatViewModel: ObservableObject {
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "full_refresh")
             await ensureSignedInSocialRealtimeIfNeeded()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "chat_full_refresh") { return }
             friends = []
             incomingRequests = []
             outgoingRequests = []
@@ -1210,6 +1220,7 @@ final class ChatViewModel: ObservableObject {
             await refresh()
             await awardFriendConnectedXP(friendship: friendship)
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_accept") { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -1253,6 +1264,11 @@ final class ChatViewModel: ObservableObject {
             try await service.rejectFriendRequest(requestId: item.friendship.id)
             await refreshFriendRequestListsOnly()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_reject") {
+                incomingRequests = snapshot
+                pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
+                return
+            }
             incomingRequests = snapshot
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
             errorMessage = error.localizedDescription
@@ -1272,6 +1288,11 @@ final class ChatViewModel: ObservableObject {
             print("[FriendRequest] clear completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_clear_incoming") {
+                incomingRequests = snapshot
+                pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
+                return
+            }
             print("[FriendRequest] clear failed id=\(item.id) error=\(error)")
             incomingRequests = snapshot
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
@@ -1290,6 +1311,10 @@ final class ChatViewModel: ObservableObject {
             print("[FriendRequest] clear completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_clear_outgoing") {
+                outgoingRequests = snapshot
+                return
+            }
             print("[FriendRequest] clear failed id=\(item.id) error=\(error)")
             outgoingRequests = snapshot
             errorMessage = error.localizedDescription
@@ -1315,6 +1340,11 @@ final class ChatViewModel: ObservableObject {
             print("[FriendRequest] outgoing cancel completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_cancel") {
+                outgoingRequests = snapshotOut
+                friendshipChipByOtherUserId = snapshotChips
+                return
+            }
             print("[FriendRequest] outgoing cancel failed id=\(item.id) error=\(error)")
             outgoingRequests = snapshotOut
             friendshipChipByOtherUserId = snapshotChips
@@ -1333,6 +1363,7 @@ final class ChatViewModel: ObservableObject {
             try await service.sendFriendRequest(requesterId: me, addresseeId: addresseeId)
             await refreshFriendRequestListsOnly()
         } catch {
+            if ignoreCancellationIfNeeded(error, context: "friend_request_send") { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -1576,6 +1607,12 @@ final class ChatViewModel: ObservableObject {
     func refreshFriendshipStateForCommentAuthors(userIds: [UUID]) async {
         let unique = Array(Set(userIds))
         guard !unique.isEmpty else { return }
+        if Task.isCancelled {
+            #if DEBUG
+            print("[CancellationHandlingDebug] ignoredCancellation context=comment_author_friendship_refresh")
+            #endif
+            return
+        }
         guard (try? await service.currentUserId()) != nil else { return }
         await refresh()
     }
@@ -1598,6 +1635,7 @@ final class ChatViewModel: ObservableObject {
             } else {
                 friendshipChipByOtherUserId.removeValue(forKey: addresseeId)
             }
+            if ignoreCancellationIfNeeded(error, context: "friend_request_send_from_comments") { return }
             errorMessage = error.localizedDescription
         }
     }

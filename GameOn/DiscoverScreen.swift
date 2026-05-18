@@ -345,6 +345,9 @@ struct DiscoverScreen: View {
         let id: String
         let symbol: String
         let label: String
+        let countColor: Color
+        let background: Color
+        let selectedBackground: Color
     }
 
     var body: some View {
@@ -3458,7 +3461,8 @@ struct DiscoverScreen: View {
         let previewEnergy = venueEventID.map {
             venuePreviewEnergy(for: $0, energy: energy)
         }
-        let previewEnergyTint = previewEnergy.map { venueGamePreviewEnergyTint($0) } ?? FGColor.accentBlue
+        let previewEnergyPalette = venueGamePreviewEnergyPalette(previewEnergy)
+        let previewEnergyTint = previewEnergy.map { energyAccentColor(for: $0.score) } ?? FGColor.accentBlue
         let previewEnergyBorder = previewEnergy?.isHighEnergy == true
             ? previewEnergyTint.opacity(colorScheme == .dark ? 0.58 : 0.42)
             : discoverPreviewControlBorder
@@ -3512,7 +3516,7 @@ struct DiscoverScreen: View {
                 if let previewEnergy, previewEnergy.hasBadge {
                     venueGamePreviewEnergyHeader(previewEnergy)
                 }
-                fanUpdatesEntryButton(venueEventID: venueEventID, energy: energy)
+                fanUpdatesEntryButton(venueEventID: venueEventID, energy: energy, previewEnergy: previewEnergy)
                 venuePreviewInteractionStrip(venueEventID: venueEventID)
             }
         }
@@ -3526,6 +3530,21 @@ struct DiscoverScreen: View {
                         .strokeBorder(previewEnergyBorder, lineWidth: previewEnergy?.isHighEnergy == true ? 1.25 : 1)
                 )
         )
+        .overlay(alignment: .top) {
+            if previewEnergy?.hasBadge == true {
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: previewEnergyPalette.topEdgeColors,
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 2)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 1)
+            }
+        }
         .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
         .task(id: venueEventID ?? event.id) {
             guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) else { return }
@@ -3596,11 +3615,11 @@ struct DiscoverScreen: View {
 
     private var venuePreviewMiniStats: [VenuePreviewMiniStat] {
         [
-            VenuePreviewMiniStat(id: "packed", symbol: "🔥", label: "On fire"),
-            VenuePreviewMiniStat(id: "seats_open", symbol: "🪑", label: "Seats"),
-            VenuePreviewMiniStat(id: "tv_visible", symbol: "📺", label: "TVs"),
-            VenuePreviewMiniStat(id: "audio_on", symbol: "🔊", label: "Sound"),
-            VenuePreviewMiniStat(id: "crowd", symbol: "👥", label: "Crowd")
+            VenuePreviewMiniStat(id: "packed", symbol: "🔥", label: "On fire", countColor: .red, background: Color(red: 1.00, green: 0.90, blue: 0.92), selectedBackground: .red.opacity(0.18)),
+            VenuePreviewMiniStat(id: "seats_open", symbol: "🪑", label: "Seats", countColor: .green, background: Color(red: 0.90, green: 0.97, blue: 0.91), selectedBackground: .green.opacity(0.18)),
+            VenuePreviewMiniStat(id: "tv_visible", symbol: "📺", label: "TVs", countColor: .primary, background: Color(red: 0.90, green: 0.95, blue: 1.00), selectedBackground: .blue.opacity(0.18)),
+            VenuePreviewMiniStat(id: "audio_on", symbol: "🔊", label: "Sound", countColor: .orange, background: Color(red: 1.00, green: 0.96, blue: 0.84), selectedBackground: .yellow.opacity(0.24)),
+            VenuePreviewMiniStat(id: "crowd", symbol: "👥", label: "Crowd", countColor: .blue, background: Color(red: 0.92, green: 0.93, blue: 1.00), selectedBackground: .blue.opacity(0.16))
         ]
     }
 
@@ -3609,7 +3628,7 @@ struct DiscoverScreen: View {
         let selected = viewModel.myVenueEventVibes[venueEventID] ?? []
         let _ = logVenueMiniStatsDebug(eventId: venueEventID, counts: counts)
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: 6) {
             ForEach(venuePreviewMiniStats) { stat in
                 venuePreviewMiniStatChip(
                     stat,
@@ -3635,7 +3654,6 @@ struct DiscoverScreen: View {
     ) -> some View {
         let count = counts[stat.id] ?? 0
         let isSelected = selected.contains(stat.id)
-        let tint = venuePreviewInteractionTint(for: stat.id)
         return Button {
             FGInteractionHaptics.softImpact()
             guard viewModel.isAuthenticatedForSocialFeatures else {
@@ -3651,30 +3669,21 @@ struct DiscoverScreen: View {
                 await viewModel.toggleVibe(for: venueEventID, vibeType: stat.id)
             }
         } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Text(stat.symbol)
+                    .font(.system(size: 17))
                 Text("\(count)")
-                    .fontWeight(.heavy)
+                    .font(.subheadline.weight(.bold))
                     .monospacedDigit()
+                    .foregroundStyle(stat.countColor)
             }
-                .font(FGTypography.metadata.weight(.bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
-                .foregroundStyle(isSelected ? .white : tint)
-                .padding(.horizontal, 5)
-                .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30)
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 38, maxHeight: 38)
                 .background {
-                    ZStack {
-                        Capsule(style: .continuous)
-                            .fill(isSelected ? tint.opacity(0.88) : tint.opacity(colorScheme == .dark ? 0.14 : 0.08))
-                        Capsule(style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .opacity(isSelected ? 0.08 : (colorScheme == .dark ? 0.16 : 0.28))
-                    }
-                }
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(tint.opacity(isSelected ? 0.62 : 0.20), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(isSelected ? stat.selectedBackground : stat.background)
                 }
         }
         .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.965, hapticOnPress: false))
@@ -3685,6 +3694,7 @@ struct DiscoverScreen: View {
     private func logVenueMiniStatsDebug(eventId: UUID, counts: [String: Int]) {
 #if DEBUG
         print("[VenueMiniStatsDebug] eventId=\(eventId.uuidString)")
+        print("[VenueMiniStatsDebug] counts=packed:\(counts["packed"] ?? 0),seats:\(counts["seats_open"] ?? 0),tv:\(counts["tv_visible"] ?? 0),sound:\(counts["audio_on"] ?? 0),crowd:\(counts["crowd"] ?? 0)")
         print("[VenueMiniStatsDebug] packed=\(counts["packed"] ?? 0)")
         print("[VenueMiniStatsDebug] seats=\(counts["seats_open"] ?? 0)")
         print("[VenueMiniStatsDebug] tv=\(counts["tv_visible"] ?? 0)")
@@ -3728,13 +3738,13 @@ struct DiscoverScreen: View {
     }
 
     private func venueGamePreviewEnergyHeader(_ energy: VenueGamePreviewEnergy) -> some View {
-        let tint = venueGamePreviewEnergyTint(energy)
+        let palette = venueGamePreviewEnergyPalette(energy)
 
         return HStack(alignment: .center, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(energy.label ?? "Quiet")
+                Text("\(energy.label ?? "Quiet") • \(energy.score)")
                     .font(FGTypography.metadata.weight(.bold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(palette.text)
                     .lineLimit(1)
 
                 Text(energy.subtitle)
@@ -3750,27 +3760,24 @@ struct DiscoverScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             Capsule(style: .continuous)
-                .fill(tint.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                .fill(energyGradient(for: energy.score))
         }
         .overlay {
             Capsule(style: .continuous)
-                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.32 : 0.24), lineWidth: 1)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: palette.borderColors,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 1
+                )
         }
+        .shadow(color: palette.glowColor, radius: palette.glowRadius, x: 0, y: 3)
     }
 
-    private func venueGamePreviewEnergyTint(_ energy: VenueGamePreviewEnergy) -> Color {
-        switch energy.score {
-        case 81...:
-            return FGColor.accentBlue
-        case 51...80:
-            return FGColor.dangerRed
-        case 26...50:
-            return FGColor.accentYellow
-        case 10...25:
-            return FGColor.accentGreen
-        default:
-            return discoverPreviewSecondaryTextColor
-        }
+    private func venueGamePreviewEnergyPalette(_ energy: VenueGamePreviewEnergy?) -> VenueEnergyColorPalette {
+        venueEnergyColorPalette(for: energy?.score ?? 0)
     }
 
     private func logVenueEnergyDebug(eventId: UUID, energy: VenueGamePreviewEnergy) {
@@ -3783,40 +3790,52 @@ struct DiscoverScreen: View {
         DebugLogGate.noisy("[VenueEnergyDebug] going=\(energy.goingCount)")
         DebugLogGate.noisy("[VenueEnergyDebug] friends=\(energy.friendGoingCount)")
         DebugLogGate.noisy("[VenueEnergyDebug] comments=\(energy.commentCount)")
+        let palette = venueGamePreviewEnergyPalette(energy)
+        DebugLogGate.noisy("[VenueEnergyColorDebug] score=\(energy.score)")
+        DebugLogGate.noisy("[VenueEnergyColorDebug] tier=\(palette.tier.rawValue)")
+        DebugLogGate.noisy("[VenueEnergyColorDebug] accent=\(String(describing: energyAccentColor(for: energy.score)))")
 #endif
     }
 
-    private func fanUpdatesEntryButton(venueEventID: UUID, energy: FanGeoLiveEnergy) -> some View {
+    private func fanUpdatesEntryButton(
+        venueEventID: UUID,
+        energy: FanGeoLiveEnergy,
+        previewEnergy: VenueGamePreviewEnergy?
+    ) -> some View {
         Button {
             FGInteractionHaptics.selection()
             presentFanUpdatesSheet(venueEventID: venueEventID)
         } label: {
-            fanUpdatesRowLabel(for: venueEventID, energy: energy)
+            fanUpdatesRowLabel(for: venueEventID, energy: energy, previewEnergy: previewEnergy)
         }
         .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: false))
     }
 
-    private func fanUpdatesRowLabel(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> some View {
+    private func fanUpdatesRowLabel(
+        for venueEventID: UUID,
+        energy: FanGeoLiveEnergy,
+        previewEnergy: VenueGamePreviewEnergy?
+    ) -> some View {
         let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
-        let tint = FGColor.accentBlue
+        let _ = logFanChatRowStyleDebug()
         let context = fanChatContextText(commentCount: commentCount, energy: energy)
 
         return HStack(spacing: 9) {
             Image(systemName: "bubble.left.fill")
                 .font(.system(size: 15, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(tint)
+                .foregroundStyle(Color.blue)
                 .frame(width: 20, height: 20)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("Fan Chat")
                     .font(FGTypography.metadata.weight(.semibold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 Text(context)
                     .font(FGTypography.caption.weight(.medium))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
 
@@ -3824,25 +3843,25 @@ struct DiscoverScreen: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.blue)
         }
-        .foregroundStyle(tint)
         .padding(.horizontal, 11)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            ZStack {
-                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                    .fill(tint.opacity(colorScheme == .dark ? 0.22 : 0.12))
-                RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .opacity(colorScheme == .dark ? 0.18 : 0.30)
-            }
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .fill(Color.blue.opacity(0.08))
         }
         .overlay {
             RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                .strokeBorder(tint.opacity(0.26), lineWidth: 1)
+                .strokeBorder(Color.blue.opacity(0.22), lineWidth: 1)
         }
-        .shadow(color: tint.opacity(0.08), radius: 6, y: 2)
+    }
+
+    private func logFanChatRowStyleDebug() {
+#if DEBUG
+        print("[FanChatRowStyleDebug] usingFixedBlueStyle=true")
+#endif
     }
 
     private func fanChatContextText(commentCount: Int, energy: FanGeoLiveEnergy) -> String {

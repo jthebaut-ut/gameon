@@ -31,7 +31,7 @@ struct VenueEventCommentsView: View {
     @State private var fanUpdateBurstSentAt: [Date] = []
     @State private var isManuallyRefreshingComments = false
     @State private var isAutoRefreshingComments = false
-    @State private var isPullRefreshingComments = false
+    @State private var isUserRefreshingComments = false
     @State private var isNearCommentsBottom = true
     @State private var hasUnseenNewComments = false
     @State private var lastCommentId: String?
@@ -150,7 +150,15 @@ struct VenueEventCommentsView: View {
     }
 
     private var fanUpdatesRefreshInFlight: Bool {
-        isManuallyRefreshingComments || isAutoRefreshingComments || isPullRefreshingComments
+        isManuallyRefreshingComments || isAutoRefreshingComments || isUserRefreshingComments
+    }
+
+    private var fanUpdatesInteractiveRefreshInFlight: Bool {
+        isManuallyRefreshingComments || isUserRefreshingComments
+    }
+
+    private var shouldShowFanUpdatesRefreshSpinner: Bool {
+        isUserRefreshingComments
     }
 
     private func venueCommentsAdLayoutWidth(for layoutWidth: CGFloat) -> CGFloat {
@@ -210,6 +218,8 @@ struct VenueEventCommentsView: View {
                     }
                 }
             }
+
+            fanUpdatesBottomRefreshSpinner
 
             inputBar
                 .padding(12)
@@ -373,9 +383,6 @@ struct VenueEventCommentsView: View {
             .animation(.easeOut(duration: 0.22), value: comments.count)
             .animation(.easeOut(duration: 0.22), value: showNativeAdsInFeed)
         }
-        .refreshable {
-            await pullRefreshComments()
-        }
     }
 
     private func newUpdatesJumpButton(action: @escaping () -> Void) -> some View {
@@ -475,6 +482,26 @@ struct VenueEventCommentsView: View {
         .progressiveAppear(isVisible: isLoadingInitialComments && comments.isEmpty, yOffset: 5)
     }
 
+    @ViewBuilder
+    private var fanUpdatesBottomRefreshSpinner: some View {
+        if shouldShowFanUpdatesRefreshSpinner {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.82)
+                    .tint(fanUpdatesIsDark ? primaryLabelColor : nil)
+
+                Text("Refreshing updates")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(secondaryLabelColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.vertical, 2)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Refreshing fan updates")
+        }
+    }
+
     private var fanUpdatesSkeletonCard: some View {
         FGSmoothPlaceholderBlock(height: 56, cornerRadius: 14, opacity: fanUpdatesIsDark ? 0.13 : 0.08)
             .background(cardSurfaceBackground)
@@ -549,7 +576,20 @@ struct VenueEventCommentsView: View {
 
     @MainActor
     private func runFanUpdatesAutoRefreshLoop() async {
+        enum FanUpdatesAutoRefreshValidation {
+            static let fanUpdatesAutoRefreshEnabled = true
+        }
+
+        guard FanUpdatesAutoRefreshValidation.fanUpdatesAutoRefreshEnabled else {
+            #if DEBUG
+            print("[FanChatAutoRefreshDebug] enabled=false reason=realtimeValidation")
+            print("[FanChatAutoRefreshDebug] skipped reason=disabledForValidation")
+            #endif
+            return
+        }
+
         #if DEBUG
+        print("[FanChatAutoRefreshDebug] enabled=true reason=realtimeStillFallbackUsed")
         print("[FanChatAutoRefreshDebug] started eventId=\(venueEventID.uuidString.lowercased())")
         #endif
         defer {
@@ -947,9 +987,17 @@ struct VenueEventCommentsView: View {
         Button {
             Task { await manualRefreshCommentsTapped() }
         } label: {
-            Image(systemName: "arrow.clockwise")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(secondaryLabelColor)
+            ZStack {
+                if isUserRefreshingComments {
+                    ProgressView()
+                        .scaleEffect(0.74)
+                        .tint(secondaryLabelColor)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(secondaryLabelColor)
+                }
+            }
                 .frame(width: 34, height: 34)
                 .background {
                     Circle()
@@ -959,48 +1007,65 @@ struct VenueEventCommentsView: View {
                     Circle()
                         .strokeBorder(Color.white.opacity(fanUpdatesIsDark ? 0.18 : 0.38), lineWidth: 0.75)
                 }
-                .rotationEffect(.degrees(isManuallyRefreshingComments ? 360 : 0))
-                .animation(
-                    isManuallyRefreshingComments
-                        ? .linear(duration: 0.75).repeatForever(autoreverses: false)
-                        : .easeOut(duration: 0.16),
-                    value: isManuallyRefreshingComments
-                )
                 .contentShape(Circle())
         }
         .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.94, hapticOnPress: false))
-        .disabled(fanUpdatesRefreshInFlight)
-        .opacity(fanUpdatesRefreshInFlight ? 0.62 : 1.0)
+        .disabled(fanUpdatesInteractiveRefreshInFlight)
+        .opacity(fanUpdatesInteractiveRefreshInFlight ? 0.62 : 1.0)
         .accessibilityLabel("Refresh fan updates")
     }
 
     @MainActor
     private func manualRefreshCommentsTapped() async {
-        guard !fanUpdatesRefreshInFlight else { return }
+        guard !fanUpdatesInteractiveRefreshInFlight else { return }
         #if DEBUG
+        print("[FanChatBottomRefreshDebug] tapped eventId=\(venueEventID.uuidString.lowercased())")
         print("[FanChatManualRefreshDebug] tapped eventId=\(venueEventID.uuidString.lowercased())")
         #endif
         isManuallyRefreshingComments = true
-        defer { isManuallyRefreshingComments = false }
+        showFanUpdatesRefreshSpinner(reason: "bottom")
+        defer {
+            isManuallyRefreshingComments = false
+            hideFanUpdatesRefreshSpinner()
+        }
 
         _ = await viewModel.manualRefreshFanUpdatesComments(for: venueEventID)
+        if Task.isCancelled {
+            logFanUpdatesBottomRefreshCancelledSilently()
+            return
+        }
         await loadCommentProfilesAndFriendshipChips()
+        if Task.isCancelled {
+            logFanUpdatesBottomRefreshCancelledSilently()
+            return
+        }
     }
 
     @MainActor
-    private func pullRefreshComments() async {
-        guard !fanUpdatesRefreshInFlight else {
-            #if DEBUG
-            print("[FanChatPullRefreshDebug] skipped reason=refreshInFlight")
-            #endif
-            return
-        }
+    private func showFanUpdatesRefreshSpinner(reason: String) {
+        guard !isUserRefreshingComments else { return }
+        isUserRefreshingComments = true
+        #if DEBUG
+        print("[FanChatBottomRefreshDebug] spinnerVisible=true")
+        print("[FanChatRefreshSpinnerDebug] visible=true reason=\(reason)")
+        #endif
+    }
 
-        isPullRefreshingComments = true
-        defer { isPullRefreshingComments = false }
+    @MainActor
+    private func hideFanUpdatesRefreshSpinner() {
+        guard isUserRefreshingComments else { return }
+        isUserRefreshingComments = false
+        #if DEBUG
+        print("[FanChatBottomRefreshDebug] spinnerVisible=false")
+        print("[FanChatRefreshSpinnerDebug] visible=false")
+        #endif
+    }
 
-        _ = await viewModel.pullRefreshFanUpdatesComments(for: venueEventID)
-        await loadCommentProfilesAndFriendshipChips()
+    private func logFanUpdatesBottomRefreshCancelledSilently() {
+        #if DEBUG
+        print("[CancellationHandlingDebug] ignoredCancellation context=fan_updates_bottom_refresh")
+        print("[FanChatBottomRefreshDebug] cancelledSilently eventId=\(venueEventID.uuidString.lowercased())")
+        #endif
     }
 
     private func submitFanUpdate(_ rawText: String, restoreTextOnFailure: Bool) {

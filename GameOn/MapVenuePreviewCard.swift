@@ -40,16 +40,18 @@ struct MapVenuePreviewCard: View {
 
     private var venueMiniStats: [VenueMiniStat] {
         [
-            VenueMiniStat(vibeType: "packed", icon: "🔥", label: "On fire", tint: .orange),
-            VenueMiniStat(vibeType: "seats_open", icon: "🪑", label: "Seats", tint: .green),
-            VenueMiniStat(vibeType: "tv_visible", icon: "📺", label: "TVs", tint: .blue),
-            VenueMiniStat(vibeType: "audio_on", icon: "🔊", label: "Sound", tint: .yellow),
-            VenueMiniStat(vibeType: "crowd", icon: "👥", label: "Crowd", tint: .purple)
+            VenueMiniStat(vibeType: "packed", icon: "🔥", label: "On fire", countColor: .red, background: Color(red: 1.00, green: 0.90, blue: 0.92), selectedBackground: .red.opacity(0.18)),
+            VenueMiniStat(vibeType: "seats_open", icon: "🪑", label: "Seats", countColor: .green, background: Color(red: 0.90, green: 0.97, blue: 0.91), selectedBackground: .green.opacity(0.18)),
+            VenueMiniStat(vibeType: "tv_visible", icon: "📺", label: "TVs", countColor: .primary, background: Color(red: 0.90, green: 0.95, blue: 1.00), selectedBackground: .blue.opacity(0.18)),
+            VenueMiniStat(vibeType: "audio_on", icon: "🔊", label: "Sound", countColor: .orange, background: Color(red: 1.00, green: 0.96, blue: 0.84), selectedBackground: .yellow.opacity(0.24)),
+            VenueMiniStat(vibeType: "crowd", icon: "👥", label: "Crowd", countColor: .blue, background: Color(red: 0.92, green: 0.93, blue: 1.00), selectedBackground: .blue.opacity(0.16))
         ]
     }
     
 
     var body: some View {
+        let previewEnergy = venueEventID.map { venuePreviewEnergy(for: $0) }
+        let energyPalette = venueGamePreviewEnergyPalette(previewEnergy)
         
         VStack(spacing: 14) {
             
@@ -189,11 +191,8 @@ struct MapVenuePreviewCard: View {
             )
             
             VStack(alignment: .leading, spacing: 10) {
-                if let venueEventID {
-                    let energy = venuePreviewEnergy(for: venueEventID)
-                    if energy.hasBadge {
-                        venueGamePreviewEnergyHeader(energy)
-                    }
+                if let previewEnergy, previewEnergy.hasBadge {
+                    venueGamePreviewEnergyHeader(previewEnergy)
                 }
 
                 Button {
@@ -203,7 +202,7 @@ struct MapVenuePreviewCard: View {
                         }
                     }
                 } label: {
-                    fanChatRow(venueEventID: venueEventID)
+                    fanChatRow(venueEventID: venueEventID, energy: previewEnergy)
                 }
                 .buttonStyle(FanUpdatesPressButtonStyle())
                 .disabled(venueEventID == nil)
@@ -216,15 +215,29 @@ struct MapVenuePreviewCard: View {
         .padding(.bottom, 36)
         .background(.ultraThinMaterial)
         .background(Color.white.opacity(0.94))
-        .clipShape(RoundedRectangle(cornerRadius: 32))
-        .overlay {
-            if let venueEventID {
-                let energy = venuePreviewEnergy(for: venueEventID)
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .strokeBorder(venueGamePreviewEnergyTint(energy).opacity(energy.isHighEnergy ? 0.36 : 0), lineWidth: energy.isHighEnergy ? 1.25 : 0)
+        .background(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(energyPalette.auraColor)
+                .blur(radius: 18)
+                .opacity(previewEnergy?.hasBadge == true ? 1 : 0)
+        )
+        .overlay(alignment: .top) {
+            if previewEnergy?.hasBadge == true {
+                Capsule(style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: energyPalette.topEdgeColors,
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(height: 3)
+                    .padding(.horizontal, 34)
+                    .padding(.top, 1)
             }
         }
-        .shadow(color: venueEventID.map { venuePreviewEnergy(for: $0) }.map { $0.isHighEnergy ? venueGamePreviewEnergyTint($0).opacity(0.12) : Color.clear } ?? Color.clear, radius: 10, x: 0, y: 3)
+        .clipShape(RoundedRectangle(cornerRadius: 32))
+        .shadow(color: energyPalette.glowColor, radius: energyPalette.glowRadius, x: 0, y: 5)
         .shadow(color: .black.opacity(0.15), radius: 18, x: 0, y: 8)
         .padding(.horizontal, 16)
             
@@ -315,11 +328,13 @@ struct MapVenuePreviewCard: View {
             .clipShape(Capsule(style: .continuous))
     }
 
-    private func fanChatRow(venueEventID: UUID?) -> some View {
-        HStack(alignment: .center, spacing: 10) {
+    private func fanChatRow(venueEventID: UUID?, energy: VenueGamePreviewEnergy?) -> some View {
+        let _ = logFanChatRowStyleDebug()
+
+        return HStack(alignment: .center, spacing: 10) {
             Image(systemName: "bubble.left.fill")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(FGColor.accentBlue)
+                .foregroundStyle(Color.blue)
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -336,10 +351,26 @@ struct MapVenuePreviewCard: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.blue)
         }
         .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.blue.opacity(0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.blue.opacity(0.22), lineWidth: 1)
+        }
         .contentShape(Rectangle())
+    }
+
+    private func logFanChatRowStyleDebug() {
+#if DEBUG
+        print("[FanChatRowStyleDebug] usingFixedBlueStyle=true")
+#endif
     }
 
     private func fanChatStatusText(venueEventID: UUID?) -> String {
@@ -374,12 +405,12 @@ struct MapVenuePreviewCard: View {
     }
 
     private func venueGamePreviewEnergyHeader(_ energy: VenueGamePreviewEnergy) -> some View {
-        let tint = venueGamePreviewEnergyTint(energy)
+        let palette = venueGamePreviewEnergyPalette(energy)
 
         return VStack(alignment: .leading, spacing: 2) {
-            Text(energy.label ?? "Quiet")
+            Text("\(energy.label ?? "Quiet") • \(energy.score)")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(tint)
+                .foregroundStyle(palette.text)
                 .lineLimit(1)
 
             Text(energy.subtitle)
@@ -392,27 +423,24 @@ struct MapVenuePreviewCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             Capsule(style: .continuous)
-                .fill(tint.opacity(0.10))
+                .fill(energyGradient(for: energy.score))
         }
         .overlay {
             Capsule(style: .continuous)
-                .strokeBorder(tint.opacity(0.24), lineWidth: 1)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: palette.borderColors,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 1
+                )
         }
+        .shadow(color: palette.glowColor, radius: palette.glowRadius, x: 0, y: 3)
     }
 
-    private func venueGamePreviewEnergyTint(_ energy: VenueGamePreviewEnergy) -> Color {
-        switch energy.score {
-        case 81...:
-            return FGColor.accentBlue
-        case 51...80:
-            return .orange
-        case 26...50:
-            return .yellow
-        case 10...25:
-            return .green
-        default:
-            return .secondary
-        }
+    private func venueGamePreviewEnergyPalette(_ energy: VenueGamePreviewEnergy?) -> VenueEnergyColorPalette {
+        venueEnergyColorPalette(for: energy?.score ?? 0)
     }
 
     private func venueMiniStatsRow(venueEventID: UUID) -> some View {
@@ -420,7 +448,7 @@ struct MapVenuePreviewCard: View {
         let selected = viewModel.myVenueEventVibes[venueEventID] ?? []
         let _ = logVenueMiniStatsDebug(eventId: venueEventID, counts: counts)
 
-        return HStack(spacing: 8) {
+        return HStack(spacing: 6) {
             ForEach(venueMiniStats) { stat in
                 venueMiniStatChip(stat, venueEventID: venueEventID, counts: counts, selected: selected)
             }
@@ -444,26 +472,22 @@ struct MapVenuePreviewCard: View {
                 await viewModel.toggleVibe(for: venueEventID, vibeType: stat.vibeType)
             }
         } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 Text(stat.icon)
+                    .font(.system(size: 17))
                 Text("\(count)")
-                    .fontWeight(.heavy)
+                    .font(.subheadline.weight(.bold))
                     .monospacedDigit()
+                    .foregroundStyle(stat.countColor)
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isSelected ? .white : stat.tint)
             .lineLimit(1)
-            .minimumScaleFactor(0.88)
-            .padding(.horizontal, 5)
-            .frame(maxWidth: .infinity, minHeight: 30, maxHeight: 30)
+            .minimumScaleFactor(0.82)
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity, minHeight: 38, maxHeight: 38)
             .background(
-                Capsule(style: .continuous)
-                    .fill(isSelected ? stat.tint.opacity(0.88) : stat.tint.opacity(0.10))
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(isSelected ? stat.selectedBackground : stat.background)
             )
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(stat.tint.opacity(isSelected ? 0.68 : 0.24), lineWidth: 1)
-            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(stat.label), \(count) \(count == 1 ? "vote" : "votes")")
@@ -473,6 +497,7 @@ struct MapVenuePreviewCard: View {
     private func logVenueMiniStatsDebug(eventId: UUID, counts: [String: Int]) {
 #if DEBUG
         print("[VenueMiniStatsDebug] eventId=\(eventId.uuidString)")
+        print("[VenueMiniStatsDebug] counts=packed:\(counts["packed"] ?? 0),seats:\(counts["seats_open"] ?? 0),tv:\(counts["tv_visible"] ?? 0),sound:\(counts["audio_on"] ?? 0),crowd:\(counts["crowd"] ?? 0)")
         print("[VenueMiniStatsDebug] packed=\(counts["packed"] ?? 0)")
         print("[VenueMiniStatsDebug] seats=\(counts["seats_open"] ?? 0)")
         print("[VenueMiniStatsDebug] tv=\(counts["tv_visible"] ?? 0)")
@@ -492,6 +517,10 @@ struct MapVenuePreviewCard: View {
         print("[VenueEnergyDebug] going=\(energy.goingCount)")
         print("[VenueEnergyDebug] friends=\(energy.friendGoingCount)")
         print("[VenueEnergyDebug] comments=\(energy.commentCount)")
+        let palette = venueGamePreviewEnergyPalette(energy)
+        print("[VenueEnergyColorDebug] score=\(energy.score)")
+        print("[VenueEnergyColorDebug] tier=\(palette.tier.rawValue)")
+        print("[VenueEnergyColorDebug] accent=\(String(describing: energyAccentColor(for: energy.score)))")
 #endif
     }
 }
@@ -509,7 +538,10 @@ private struct VenueMiniStat: Identifiable {
     let vibeType: String
     let icon: String
     let label: String
-    let tint: Color
+    let countColor: Color
+    let background: Color
+    let selectedBackground: Color
 
     var id: String { vibeType }
 }
+

@@ -719,6 +719,27 @@ private final class DirectChatPresenter: ObservableObject {
 #endif
     }
 
+    func pullRefreshCurrentThread() async {
+        guard !isManuallyRefreshingMessages else {
+#if DEBUG
+            print("[DMChatPullRefreshDebug] skipped reason=refreshInFlight")
+#endif
+            return
+        }
+        guard let cid = conversationId else { return }
+        let tid = cid.uuidString.lowercased()
+#if DEBUG
+        print("[DMChatPullRefreshDebug] nativeSpinnerStarted conversationId=\(tid)")
+#endif
+        defer {
+#if DEBUG
+            print("[DMChatPullRefreshDebug] nativeSpinnerFinished conversationId=\(tid)")
+#endif
+        }
+
+        await manualRefreshCurrentThread()
+    }
+
     private static func messageTimelineSort(_ a: DirectMessageRow, _ b: DirectMessageRow) -> Bool {
         let da = DirectChatTimeGrouping.parseDate(a.created_at) ?? .distantPast
         let db = DirectChatTimeGrouping.parseDate(b.created_at) ?? .distantPast
@@ -2100,7 +2121,13 @@ struct DirectChatView: View {
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
+            .refreshable {
+                await presenter.pullRefreshCurrentThread()
+            }
             .onAppear {
+#if DEBUG
+                print("[DMChatPullRefreshDebug] nativeRefreshableAttached=true")
+#endif
                 scrollChatToBottomAfterLayout(proxy: proxy, nanoseconds: 100_000_000)
             }
             .onChange(of: presenter.lastMessageId) { oldId, newId in

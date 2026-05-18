@@ -8,6 +8,7 @@ private func logVenueEventSocialLoadError(_ prefix: String, loadCancelledTag: St
     if error is CancellationError {
 #if DEBUG
         print("[LoadCancelled] \(loadCancelledTag)")
+        print("[CancellationHandlingDebug] ignoredCancellation context=\(loadCancelledTag)")
 #endif
         return
     }
@@ -777,6 +778,11 @@ extension MapViewModel {
         mergeSource: String,
         debugTag: String
     ) async -> FanChatReceiverRefreshStats? {
+        if Task.isCancelled {
+            logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
+            return nil
+        }
+
         guard !fanChatAutoRefreshInFlightIDs.contains(venueEventID) else {
             #if DEBUG
             print("[\(debugTag)] skipped reason=refreshInFlight")
@@ -794,12 +800,29 @@ extension MapViewModel {
             venueEventID: venueEventID,
             mergeSource: mergeSource
         )
+        if Task.isCancelled {
+            logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
+            return nil
+        }
         await loadCurrentUserCommentReportFlags(for: venueEventID)
+        if Task.isCancelled {
+            logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
+            return nil
+        }
         #if DEBUG
         print("[\(debugTag)] merged count=\(stats?.newRowsMerged ?? 0) fetched=\(stats?.fetchedCount ?? 0) visible=\(stats?.visibleCountAfterMerge ?? 0)")
         print("[\(debugTag)] finished eventId=\(venueEventID.uuidString.lowercased())")
         #endif
         return stats
+    }
+
+    private func logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: String, venueEventID: UUID) {
+        #if DEBUG
+        print("[CancellationHandlingDebug] ignoredCancellation context=\(debugTag)")
+        if debugTag == "FanChatPullRefreshDebug" {
+            print("[FanChatPullRefreshDebug] cancelledSilently eventId=\(venueEventID.uuidString.lowercased())")
+        }
+        #endif
     }
 
     @discardableResult
@@ -922,6 +945,11 @@ extension MapViewModel {
                 visibleCountAfterMerge: visibleCountAfterMerge
             )
         } catch {
+            if error is CancellationError, mergeSource == "pull_refresh" {
+                #if DEBUG
+                print("[FanChatPullRefreshDebug] cancelledSilently eventId=\(venueEventID.uuidString.lowercased())")
+                #endif
+            }
             logVenueEventSocialLoadError("ERROR LOADING COMMENTS REALTIME FALLBACK:", loadCancelledTag: "comments_realtime_fallback", error: error)
             return nil
         }

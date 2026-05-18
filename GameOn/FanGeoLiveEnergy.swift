@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct FanGeoLiveEnergy {
     let isLiveNow: Bool
@@ -153,6 +154,134 @@ struct VenueGamePreviewEnergy {
         if score >= 26 { return "Live updates active" }
         if score >= 10 { return "Crowd building" }
         return "Quiet for now"
+    }
+}
+
+enum VenueEnergyTier: String {
+    case quiet = "Low Activity"
+    case activeFanZone = "Active Fan Zone"
+    case liveEnergy = "Live Energy"
+    case packedCrowd = "Packed Crowd"
+    case trendingNow = "Trending Now"
+
+    static func tier(for score: Int) -> VenueEnergyTier {
+        switch score {
+        case 81...:
+            return .trendingNow
+        case 51...80:
+            return .packedCrowd
+        case 26...50:
+            return .liveEnergy
+        case 10...25:
+            return .activeFanZone
+        default:
+            return .quiet
+        }
+    }
+}
+
+struct VenueEnergyColorPalette {
+    let tier: VenueEnergyTier
+    let accent: Color
+    let text: Color
+    let backgroundColors: [Color]
+    let borderColors: [Color]
+    let fanChatBorderColors: [Color]
+    let topEdgeColors: [Color]
+    let auraColor: Color
+    let glowColor: Color
+    let glowRadius: CGFloat
+}
+
+func energyAccentColor(for score: Int) -> Color {
+    venueEnergyColorPalette(for: score).accent
+}
+
+func energyGradient(for score: Int) -> LinearGradient {
+    let palette = venueEnergyColorPalette(for: score)
+    return LinearGradient(
+        colors: palette.backgroundColors,
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+}
+
+func venueEnergyColorPalette(for score: Int) -> VenueEnergyColorPalette {
+    switch score {
+    case 81...:
+        let red = Color(red: 0.95, green: 0.22, blue: 0.18)
+        let orange = Color(red: 1.00, green: 0.47, blue: 0.18)
+        let pink = Color(red: 0.95, green: 0.24, blue: 0.48)
+        return VenueEnergyColorPalette(
+            tier: .trendingNow,
+            accent: orange,
+            text: red,
+            backgroundColors: [red.opacity(0.18), orange.opacity(0.16), pink.opacity(0.14)],
+            borderColors: [red.opacity(0.50), orange.opacity(0.44), pink.opacity(0.38)],
+            fanChatBorderColors: [red.opacity(0.28), orange.opacity(0.24), pink.opacity(0.22)],
+            topEdgeColors: [red.opacity(0.60), orange.opacity(0.50), pink.opacity(0.44)],
+            auraColor: orange.opacity(0.10),
+            glowColor: orange.opacity(0.24),
+            glowRadius: 14
+        )
+    case 51...80:
+        let orange = Color(red: 0.96, green: 0.45, blue: 0.12)
+        let amber = Color(red: 1.00, green: 0.67, blue: 0.24)
+        return VenueEnergyColorPalette(
+            tier: .packedCrowd,
+            accent: orange,
+            text: orange,
+            backgroundColors: [orange.opacity(0.16), amber.opacity(0.12)],
+            borderColors: [orange.opacity(0.46), amber.opacity(0.34)],
+            fanChatBorderColors: [orange.opacity(0.25), amber.opacity(0.18)],
+            topEdgeColors: [orange.opacity(0.50), amber.opacity(0.36)],
+            auraColor: orange.opacity(0.08),
+            glowColor: orange.opacity(0.18),
+            glowRadius: 11
+        )
+    case 26...50:
+        let blue = Color(red: 0.08, green: 0.44, blue: 0.92)
+        let cyan = Color(red: 0.17, green: 0.72, blue: 0.90)
+        return VenueEnergyColorPalette(
+            tier: .liveEnergy,
+            accent: blue,
+            text: blue,
+            backgroundColors: [blue.opacity(0.13), cyan.opacity(0.11)],
+            borderColors: [blue.opacity(0.36), cyan.opacity(0.30)],
+            fanChatBorderColors: [blue.opacity(0.21), cyan.opacity(0.18)],
+            topEdgeColors: [blue.opacity(0.38), cyan.opacity(0.28)],
+            auraColor: cyan.opacity(0.06),
+            glowColor: cyan.opacity(0.14),
+            glowRadius: 8
+        )
+    case 10...25:
+        let blue = Color(red: 0.16, green: 0.46, blue: 0.86)
+        let green = Color(red: 0.12, green: 0.62, blue: 0.42)
+        return VenueEnergyColorPalette(
+            tier: .activeFanZone,
+            accent: green,
+            text: green,
+            backgroundColors: [blue.opacity(0.09), green.opacity(0.11)],
+            borderColors: [blue.opacity(0.24), green.opacity(0.28)],
+            fanChatBorderColors: [blue.opacity(0.14), green.opacity(0.16)],
+            topEdgeColors: [blue.opacity(0.22), green.opacity(0.22)],
+            auraColor: green.opacity(0.04),
+            glowColor: green.opacity(0.08),
+            glowRadius: 5
+        )
+    default:
+        return VenueEnergyColorPalette(
+            tier: .quiet,
+            accent: .secondary,
+            text: .secondary,
+            backgroundColors: [.secondary.opacity(0.07), .secondary.opacity(0.05)],
+            borderColors: [.secondary.opacity(0.16), .secondary.opacity(0.10)],
+            fanChatBorderColors: [.secondary.opacity(0.10), .secondary.opacity(0.08)],
+            topEdgeColors: [.secondary.opacity(0.12), .secondary.opacity(0.08)],
+            auraColor: .clear,
+            glowColor: .clear,
+            glowRadius: 0
+        )
     }
 }
 
