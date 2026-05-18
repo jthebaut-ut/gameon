@@ -674,7 +674,12 @@ extension MapViewModel {
 
         markPickupDiscoverMapDataDirtyForNextRefresh()
         if discoverMapContentMode == .venues {
-            loadGamesFromSupabase()
+            let requestID = beginDiscoverDateChange(to: selectedDate)
+            #if DEBUG
+            print("[DiscoverNarrowRefreshDebug] sportChangedUsingSelectedDayRefresh=true")
+            print("[DiscoverNarrowRefreshDebug] skippedBroadLoadGames=true")
+            #endif
+            scheduleDiscoverSelectedDayRefresh(requestID: requestID)
         }
         Task {
             if discoverMapContentMode == .pickupGames {
