@@ -144,7 +144,6 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventInterestIDs: Set<UUID> = []
     @Published var venueEventInterestCounts: [UUID: Int] = [:]
     let fanUpdatesStore = FanUpdatesRealtimeStore()
-    private var fanUpdatesStoreCancellable: AnyCancellable?
 
     var venueEventComments: [UUID: [VenueEventCommentRow]] {
         get { fanUpdatesStore.venueEventComments }
@@ -578,11 +577,9 @@ final class MapViewModel: ObservableObject {
     let repeatMinuteOptions = [15, 30, 60, 120]
 
     init() {
-        fanUpdatesStoreCancellable = fanUpdatesStore.objectWillChange.sink { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.objectWillChange.send()
-            }
-        }
+        #if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] RemovedMapViewModelBridge=true")
+        #endif
     }
 
     // MARK: - Discover / map venue_events fetch cache (region + sport + date window)

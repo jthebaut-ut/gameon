@@ -4,6 +4,7 @@ import CoreLocation
 /// Unified Account-tab “Profile & Identity” card: compact profile, reputation, and favorite teams in one surface.
 struct ProfileIdentityCard: View {
     @ObservedObject var viewModel: MapViewModel
+    @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     @Binding var showProfileScreen: Bool
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
@@ -11,6 +12,12 @@ struct ProfileIdentityCard: View {
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @State private var showFavoriteTeamsPicker = false
     @State private var showHandleSetup = false
+
+    init(viewModel: MapViewModel, showProfileScreen: Binding<Bool>) {
+        _viewModel = ObservedObject(wrappedValue: viewModel)
+        _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
+        _showProfileScreen = showProfileScreen
+    }
 
     private var selectedTeams: [FavoriteTeam] {
         FavoriteTeamsStore.resolvedTeams(from: favoriteTeamIDsRaw)
@@ -69,11 +76,11 @@ struct ProfileIdentityCard: View {
     }
 
     private var locallyLoadedCommentCount: Int {
-        viewModel.venueEventComments.values.reduce(0) { $0 + $1.count }
+        fanUpdatesStore.venueEventComments.values.reduce(0) { $0 + $1.count }
     }
 
     private var locallyLoadedReactionCount: Int {
-        viewModel.venueEventVibeCounts.values.reduce(0) { total, counts in
+        fanUpdatesStore.venueEventVibeCounts.values.reduce(0) { total, counts in
             total + counts.values.reduce(0, +)
         }
     }
@@ -82,7 +89,15 @@ struct ProfileIdentityCard: View {
         max(viewModel.favoriteVenueIDs.count, viewModel.followingTabSavedVenues.count)
     }
 
+    private func logFanUpdatesStoreMigrationDebug() {
+#if DEBUG
+        print("[FanUpdatesStoreMigrationDebug] ProfileIdentityReadsStore=true")
+#endif
+    }
+
     var body: some View {
+        let _: Void = logFanUpdatesStoreMigrationDebug()
+
         VStack(alignment: .leading, spacing: 0) {
             if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
                 handlePromptBanner
