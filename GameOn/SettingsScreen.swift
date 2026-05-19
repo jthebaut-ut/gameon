@@ -166,6 +166,15 @@ struct SettingsScreen: View {
         )
     }
 
+    private var profileDiscoverabilityBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.currentUserDiscoverableByFans },
+            set: { newValue in
+                Task { await viewModel.setProfileDiscoverableByFans(newValue) }
+            }
+        )
+    }
+
     private var liveSharingModeSubtitle: String {
         guard viewModel.currentUserLiveVisibilityEnabled else { return "Hidden from Friends" }
         switch viewModel.currentUserLiveVisibilityMode {
@@ -1000,6 +1009,17 @@ struct SettingsScreen: View {
         if canShowLiveActivitySharing {
             Section {
                 settingsSectionCard {
+                    settingsToggleRow(
+                        title: "Allow other fans to discover me",
+                        subtitle: "Lets FanGeo suggest your profile to other fans with shared teams, venues, or games.",
+                        systemImage: "person.crop.circle.badge.checkmark",
+                        isOn: profileDiscoverabilityBinding,
+                        isUpdating: viewModel.isUpdatingProfileDiscoverabilitySetting,
+                        tint: FGColor.accentBlue
+                    )
+
+                    settingsRowDivider()
+
                     Button {
                         profileSettingsPath.append(ProfileSettingsRoute.liveActivitySharing)
                     } label: {

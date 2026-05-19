@@ -111,6 +111,8 @@ struct PublicProfilePickupOrganizerCard: View {
     let creatorUserId: UUID
     let stats: PickupCreatorPublicRatingStats?
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private var resolved: PickupCreatorPublicRatingStats {
         stats ?? PickupCreatorPublicRatingStats(avgRating: 0, ratingCount: 0)
     }
@@ -120,10 +122,10 @@ struct PublicProfilePickupOrganizerCard: View {
     }
 
     private var ratingAccent: Color {
-        if !isRated { return Color.white.opacity(0.55) }
+        if !isRated { return FGColor.secondaryText(colorScheme) }
         if resolved.avgRating >= 4.5 { return FGColor.accentGreen }
         if resolved.avgRating >= 4.0 { return FGColor.accentGreen.opacity(0.88) }
-        return Color.white.opacity(0.78)
+        return FGColor.secondaryText(colorScheme)
     }
 
     var body: some View {
@@ -131,29 +133,31 @@ struct PublicProfilePickupOrganizerCard: View {
             HStack(alignment: .center, spacing: 8) {
                 Image(systemName: "person.3.fill")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FGColor.accentBlue.opacity(0.9))
+                    .foregroundStyle(FGColor.accentBlue)
                 Text("Pickup Organizer")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.88))
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .textCase(.uppercase)
+                    .tracking(0.7)
                 Spacer(minLength: 0)
                 if let tier = resolved.publicProfileOrganizerTierLabel {
                     Text(tier)
                         .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(isRated ? FGColor.accentGreen : Color.white.opacity(0.6))
+                        .foregroundStyle(isRated ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background {
                             Capsule(style: .continuous)
                                 .fill(
                                     isRated
-                                        ? FGColor.accentGreen.opacity(0.18)
-                                        : Color.white.opacity(0.08)
+                                        ? FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11)
+                                        : Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72)
                                 )
                         }
                         .overlay {
                             Capsule(style: .continuous)
                                 .strokeBorder(
-                                    isRated ? FGColor.accentGreen.opacity(0.45) : Color.white.opacity(0.12),
+                                    isRated ? FGColor.accentGreen.opacity(0.28) : FGColor.divider(colorScheme),
                                     lineWidth: 1
                                 )
                         }
@@ -173,26 +177,40 @@ struct PublicProfilePickupOrganizerCard: View {
 
             Text(resolved.publicProfileOrganizerTrustCopy)
                 .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.52))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-                .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.black.opacity(0.32))
-                }
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.065 : 0.96),
+                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.07 : 0.06),
+                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.055)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
         }
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(
-                    isRated ? FGColor.accentGreen.opacity(0.22) : Color.white.opacity(0.1),
-                    lineWidth: 1
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.10 : 0.82),
+                            isRated ? FGColor.accentGreen.opacity(0.16) : FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.14)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.75
                 )
         }
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 12, y: 7)
         .onAppear {
             PickupOrganizerReputationDebug.log(creatorUserId: creatorUserId, stats: stats)
         }

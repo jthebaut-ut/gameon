@@ -564,6 +564,7 @@ struct UserProfileRow: Decodable {
     let live_visibility_enabled: Bool?
     let live_visibility_mode: String?
     let selected_live_visibility_friend_ids: [UUID]?
+    let discoverable_by_fans: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -578,6 +579,7 @@ struct UserProfileRow: Decodable {
         case live_visibility_enabled
         case live_visibility_mode
         case selected_live_visibility_friend_ids
+        case discoverable_by_fans
     }
 
     init(
@@ -592,7 +594,8 @@ struct UserProfileRow: Decodable {
         admin_status: String? = nil,
         live_visibility_enabled: Bool? = nil,
         live_visibility_mode: String? = nil,
-        selected_live_visibility_friend_ids: [UUID]? = nil
+        selected_live_visibility_friend_ids: [UUID]? = nil,
+        discoverable_by_fans: Bool? = nil
     ) {
         self.id = id
         self.email = email
@@ -606,6 +609,7 @@ struct UserProfileRow: Decodable {
         self.live_visibility_enabled = live_visibility_enabled
         self.live_visibility_mode = live_visibility_mode
         self.selected_live_visibility_friend_ids = selected_live_visibility_friend_ids
+        self.discoverable_by_fans = discoverable_by_fans
     }
 
     init(from decoder: Decoder) throws {
@@ -621,6 +625,7 @@ struct UserProfileRow: Decodable {
         admin_status = try c.decodeIfPresent(String.self, forKey: .admin_status)
         live_visibility_enabled = try c.decodeIfPresent(Bool.self, forKey: .live_visibility_enabled)
         live_visibility_mode = try c.decodeIfPresent(String.self, forKey: .live_visibility_mode)
+        discoverable_by_fans = try c.decodeIfPresent(Bool.self, forKey: .discoverable_by_fans)
 
         if let ids = try? c.decodeIfPresent([UUID].self, forKey: .selected_live_visibility_friend_ids) {
             selected_live_visibility_friend_ids = ids
@@ -648,6 +653,10 @@ struct UserProfileRow: Decodable {
 
     var liveVisibilityEnabled: Bool {
         live_visibility_enabled ?? true
+    }
+
+    var discoverableByFans: Bool {
+        discoverable_by_fans ?? true
     }
 
     var liveVisibilityMode: LiveVisibilityMode {
@@ -687,6 +696,7 @@ struct UserProfileInsert: Encodable {
     let live_visibility_enabled: Bool
     let live_visibility_mode: String
     let selected_live_visibility_friend_ids: [String]
+    let discoverable_by_fans: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -699,6 +709,7 @@ struct UserProfileInsert: Encodable {
         case live_visibility_enabled
         case live_visibility_mode
         case selected_live_visibility_friend_ids
+        case discoverable_by_fans
     }
 
     func encode(to encoder: Encoder) throws {
@@ -717,6 +728,7 @@ struct UserProfileInsert: Encodable {
         try c.encode(live_visibility_enabled, forKey: .live_visibility_enabled)
         try c.encode(live_visibility_mode, forKey: .live_visibility_mode)
         try c.encode(selected_live_visibility_friend_ids, forKey: .selected_live_visibility_friend_ids)
+        try c.encode(discoverable_by_fans, forKey: .discoverable_by_fans)
     }
 }
 
@@ -732,6 +744,7 @@ struct UserProfileBootstrapInsert: Encodable {
     let live_visibility_enabled: Bool
     let live_visibility_mode: String
     let selected_live_visibility_friend_ids: [String]
+    let discoverable_by_fans: Bool
 }
 
 struct UserLiveVisibilityPatch: Encodable {
@@ -742,6 +755,10 @@ struct UserLiveVisibilityPatch: Encodable {
 
 struct UserLiveVisibilityEnabledPatch: Encodable {
     let live_visibility_enabled: Bool
+}
+
+struct UserProfileDiscoverabilityPatch: Encodable {
+    let discoverable_by_fans: Bool
 }
 
 struct FavoriteVenueRow: Decodable {

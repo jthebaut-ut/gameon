@@ -139,6 +139,7 @@ extension MapViewModel {
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
+        currentUserDiscoverableByFans = true
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
         await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
@@ -182,6 +183,7 @@ extension MapViewModel {
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
+        currentUserDiscoverableByFans = true
         isAdminLoggedIn = false
         currentUserAuthId = session.user.id
 
@@ -201,6 +203,7 @@ extension MapViewModel {
         UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityEnabled")
         UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityMode")
         UserDefaults.standard.removeObject(forKey: "cachedUserSelectedLiveVisibilityFriendIDs")
+        UserDefaults.standard.removeObject(forKey: "cachedUserDiscoverableByFans")
     }
 
     /// Clears authenticated/private session caches that must never survive logout, session loss, or account switching.
@@ -217,7 +220,9 @@ extension MapViewModel {
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
+        currentUserDiscoverableByFans = true
         isUpdatingLiveVisibilitySetting = false
+        isUpdatingProfileDiscoverabilitySetting = false
         currentUserAuthId = nil
 
         favoriteVenueIDs = []
@@ -375,7 +380,7 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans"
 
     private static let userProfileIdentitySelectColumns =
         "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url"
@@ -538,7 +543,8 @@ extension MapViewModel {
             avatar_thumbnail_url: nil,
             live_visibility_enabled: true,
             live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
-            selected_live_visibility_friend_ids: []
+            selected_live_visibility_friend_ids: [],
+            discoverable_by_fans: true
         )
 
         do {
@@ -857,6 +863,7 @@ extension MapViewModel {
             currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
             currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
             currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
+            currentUserDiscoverableByFans = UserDefaults.standard.object(forKey: "cachedUserDiscoverableByFans") as? Bool ?? true
             currentUserEmail = sessionEmail
             isLoggedIn = !sessionEmail.isEmpty
             isVenueOwnerLoggedIn = false
@@ -970,6 +977,7 @@ extension MapViewModel {
                     currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
                     currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
                     currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
+                    currentUserDiscoverableByFans = UserDefaults.standard.object(forKey: "cachedUserDiscoverableByFans") as? Bool ?? true
                     currentUserAuthId = session.user.id
                     clearVenueOwnerOwnedBusinessCaches()
                     ownerVenueDatabaseId = nil
@@ -1153,9 +1161,13 @@ extension MapViewModel {
                         currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
                         currentUserLiveVisibilityMode = profile.liveVisibilityMode
                         currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
+                        currentUserDiscoverableByFans = profile.discoverableByFans
                         currentUserAuthId = authId
                         cacheCurrentUserProfileLocally()
                     }
+#if DEBUG
+                    print("[ProfileDiscoverabilityDebug] loaded=\(profile.discoverableByFans)")
+#endif
 
                     print("USER PROFILE LOADED")
                 } else {
@@ -1205,8 +1217,12 @@ extension MapViewModel {
                     currentUserLiveVisibilityEnabled = profile.isVisibleForLiveFriendPresence
                     currentUserLiveVisibilityMode = profile.liveVisibilityMode
                     currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
+                    currentUserDiscoverableByFans = profile.discoverableByFans
                     cacheCurrentUserProfileLocally()
                 }
+#if DEBUG
+                print("[ProfileDiscoverabilityDebug] loaded=\(profile.discoverableByFans)")
+#endif
 
                 print("USER PROFILE LOADED")
             } else {
@@ -1464,12 +1480,13 @@ extension MapViewModel {
                 live_visibility_mode: currentUserLiveVisibilityMode.rawValue,
                 selected_live_visibility_friend_ids: currentUserSelectedLiveVisibilityFriendIDs
                     .sorted { $0.uuidString < $1.uuidString }
-                    .map { $0.uuidString.lowercased() }
+                    .map { $0.uuidString.lowercased() },
+                discoverable_by_fans: currentUserDiscoverableByFans
             )
 
 #if DEBUG
             print(
-                "[ProfilePersistenceDebug] profileUpsertPayload=id=\(authId.uuidString.lowercased()), email=\(emailForRow), displayNameEmpty=\(finalDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), usernameEmpty=\((finalUsernameToSave ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), bioLength=\(finalBioToSave?.count ?? 0), avatarEmpty=\(finalAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), live_visibility_enabled=\(currentUserLiveVisibilityEnabled), live_visibility_mode=\(currentUserLiveVisibilityMode.rawValue), selectedFriendCount=\(currentUserSelectedLiveVisibilityFriendIDs.count)"
+                "[ProfilePersistenceDebug] profileUpsertPayload=id=\(authId.uuidString.lowercased()), email=\(emailForRow), displayNameEmpty=\(finalDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), usernameEmpty=\((finalUsernameToSave ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), bioLength=\(finalBioToSave?.count ?? 0), avatarEmpty=\(finalAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), live_visibility_enabled=\(currentUserLiveVisibilityEnabled), live_visibility_mode=\(currentUserLiveVisibilityMode.rawValue), selectedFriendCount=\(currentUserSelectedLiveVisibilityFriendIDs.count), discoverable_by_fans=\(currentUserDiscoverableByFans)"
             )
             if preventedBlankProfileOverwrite {
                 print("[ProfilePersistenceDebug] preventedBlankProfileOverwrite=true")
@@ -1517,6 +1534,68 @@ extension MapViewModel {
             mode: currentUserLiveVisibilityMode,
             selectedFriendIDs: currentUserSelectedLiveVisibilityFriendIDs
         )
+    }
+
+    func setProfileDiscoverableByFans(_ discoverable: Bool) async {
+        guard canUseFanSocialFeatures else {
+            await MainActor.run {
+                socialActionToastText = "Profile discoverability is available for fan accounts only."
+                socialActionToastIsError = true
+            }
+            return
+        }
+
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            await MainActor.run {
+                socialActionToastText = "Sign in to update profile discoverability."
+                socialActionToastIsError = true
+            }
+            return
+        }
+
+        let previous = await MainActor.run { currentUserDiscoverableByFans }
+        guard previous != discoverable else {
+#if DEBUG
+            print("[ProfileDiscoverabilityDebug] saved=\(discoverable) skipped=true")
+#endif
+            return
+        }
+
+        await MainActor.run {
+            currentUserDiscoverableByFans = discoverable
+            isUpdatingProfileDiscoverabilitySetting = true
+            cacheCurrentUserProfileLocally()
+        }
+
+        do {
+            try await supabase
+                .from("user_profiles")
+                .update(UserProfileDiscoverabilityPatch(discoverable_by_fans: discoverable))
+                .eq("id", value: session.user.id.uuidString.lowercased())
+                .execute()
+
+#if DEBUG
+            print("[ProfileDiscoverabilityDebug] saved=\(discoverable)")
+#endif
+
+            await MainActor.run {
+                isUpdatingProfileDiscoverabilitySetting = false
+            }
+        } catch {
+#if DEBUG
+            Self.logPostgrestError("[ProfileDiscoverabilityDebug] save failed", error)
+#endif
+            await MainActor.run {
+                currentUserDiscoverableByFans = previous
+                isUpdatingProfileDiscoverabilitySetting = false
+                cacheCurrentUserProfileLocally()
+                socialActionToastText = "Couldn’t update profile discoverability. Please try again."
+                socialActionToastIsError = true
+            }
+        }
     }
 
     func setLiveVisibilityMode(_ mode: LiveVisibilityMode) async {
@@ -1715,7 +1794,8 @@ extension MapViewModel {
                 admin_status: row.admin_status,
                 live_visibility_enabled: enabled,
                 live_visibility_mode: mode.rawValue,
-                selected_live_visibility_friend_ids: selectedFriendIDs
+                selected_live_visibility_friend_ids: selectedFriendIDs,
+                discoverable_by_fans: row.discoverable_by_fans
             )
         }
 
@@ -1872,6 +1952,7 @@ extension MapViewModel {
         UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
         UserDefaults.standard.set(currentUserLiveVisibilityEnabled, forKey: "cachedUserLiveVisibilityEnabled")
         UserDefaults.standard.set(currentUserLiveVisibilityMode.rawValue, forKey: "cachedUserLiveVisibilityMode")
+        UserDefaults.standard.set(currentUserDiscoverableByFans, forKey: "cachedUserDiscoverableByFans")
         UserDefaults.standard.set(
             currentUserSelectedLiveVisibilityFriendIDs.map { $0.uuidString.lowercased() }.sorted(),
             forKey: "cachedUserSelectedLiveVisibilityFriendIDs"

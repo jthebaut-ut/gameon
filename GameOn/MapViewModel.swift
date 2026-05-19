@@ -367,7 +367,9 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserLiveVisibilityEnabled: Bool = true
     @Published var currentUserLiveVisibilityMode: LiveVisibilityMode = .allFriends
     @Published var currentUserSelectedLiveVisibilityFriendIDs: Set<UUID> = []
+    @Published var currentUserDiscoverableByFans: Bool = true
     @Published var isUpdatingLiveVisibilitySetting: Bool = false
+    @Published var isUpdatingProfileDiscoverabilitySetting: Bool = false
     /// Bumped after avatar profile save (and related clears) so UI uses a new `?v=` display URL while stored URLs stay canonical.
     @Published var currentUserAvatarDisplayRefreshToken: UUID = UUID()
     var authenticatedBusinessDisplayNameForSocialFeatures: String {

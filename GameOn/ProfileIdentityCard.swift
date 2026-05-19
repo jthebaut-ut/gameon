@@ -29,11 +29,17 @@ struct ProfileIdentityCard: View {
     @State private var isLoadingIncomingProps = false
     @State private var incomingPropsMessage: String?
     @State private var showFanPropsHighlightsSheet = false
+    @State private var suggestedFans: [FriendSuggestionProfile] = []
+    @State private var isLoadingSuggestedFans = false
+    @State private var suggestedFansMessage: String?
+    @State private var sendingSuggestedFanRequestIds: Set<UUID> = []
 
     private static let bioCharacterLimit = 160
     private static let incomingPropsHighlightsLimit = 24
+    private static let suggestedFansLimit = 12
 
     private let profilePropsService = ProfilePropsService()
+    private let friendSuggestionsService = FriendSuggestionsService()
 
     private enum IdentityField: Hashable {
         case displayName
@@ -130,6 +136,10 @@ struct ProfileIdentityCard: View {
         viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
     }
 
+    private var canShowSuggestedFans: Bool {
+        viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
+    }
+
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
@@ -142,6 +152,11 @@ struct ProfileIdentityCard: View {
 
             if canShowOwnerFanPropsHighlights {
                 fanPropsHighlightsSection
+                    .padding(.horizontal, 16)
+            }
+
+            if canShowSuggestedFans {
+                suggestedFansSection
                     .padding(.horizontal, 16)
             }
 
@@ -192,6 +207,7 @@ struct ProfileIdentityCard: View {
         }
         .task(id: viewModel.currentUserAuthId) {
             await loadIncomingPropsHighlights()
+            await loadSuggestedFans()
         }
         .onChange(of: selectedAvatarItem) { _, item in
             guard let item else { return }
@@ -467,6 +483,78 @@ struct ProfileIdentityCard: View {
                 incomingPropsMessage = "Couldn't load Fan Props"
                 isLoadingIncomingProps = false
             }
+        }
+    }
+
+    // MARK: - Suggested fans
+
+    private var suggestedFansSection: some View {
+        ProfileSuggestedFansSection(
+            suggestions: suggestedFans,
+            isLoading: isLoadingSuggestedFans,
+            message: suggestedFansMessage,
+            sendingRequestIds: sendingSuggestedFanRequestIds,
+            chipKind: { chatViewModel.chipKind(forOtherUserId: $0) },
+            onAdd: { suggestion in
+                Task { await addSuggestedFan(suggestion) }
+            }
+        )
+    }
+
+    private func loadSuggestedFans() async {
+        guard canShowSuggestedFans else {
+            await MainActor.run {
+                suggestedFans = []
+                suggestedFansMessage = nil
+                isLoadingSuggestedFans = false
+                sendingSuggestedFanRequestIds = []
+            }
+            return
+        }
+
+#if DEBUG
+        print("[SuggestedFansUI] load start")
+#endif
+        await MainActor.run {
+            isLoadingSuggestedFans = true
+            suggestedFansMessage = nil
+        }
+
+        do {
+            let suggestions = try await friendSuggestionsService.fetchSuggestions(limit: Self.suggestedFansLimit)
+            await MainActor.run {
+                suggestedFans = suggestions
+                suggestedFansMessage = nil
+                isLoadingSuggestedFans = false
+            }
+#if DEBUG
+            print("[SuggestedFansUI] load success count=\(suggestions.count)")
+#endif
+        } catch {
+            await MainActor.run {
+                suggestedFans = []
+                suggestedFansMessage = "More fan matches coming soon"
+                isLoadingSuggestedFans = false
+            }
+#if DEBUG
+            print("[SuggestedFansUI] load failed error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func addSuggestedFan(_ suggestion: FriendSuggestionProfile) async {
+        guard canShowSuggestedFans else { return }
+        guard !sendingSuggestedFanRequestIds.contains(suggestion.userID) else { return }
+
+#if DEBUG
+        print("[SuggestedFansUI] add tapped user_id=\(suggestion.userID.uuidString.lowercased())")
+#endif
+        await MainActor.run {
+            _ = sendingSuggestedFanRequestIds.insert(suggestion.userID)
+        }
+        await chatViewModel.sendFriendRequest(to: suggestion.userID)
+        await MainActor.run {
+            _ = sendingSuggestedFanRequestIds.remove(suggestion.userID)
         }
     }
 
@@ -1210,6 +1298,362 @@ struct ProfileIdentityCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Add favorite team")
     }
+}
+
+private struct ProfileSuggestedFansSection: View {
+    let suggestions: [FriendSuggestionProfile]
+    let isLoading: Bool
+    let message: String?
+    let sendingRequestIds: Set<UUID>
+    let chipKind: (UUID) -> ChatViewModel.FriendshipChipKind
+    let onAdd: (FriendSuggestionProfile) -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+
+            if isLoading && suggestions.isEmpty {
+                loadingRow
+            } else if suggestions.isEmpty {
+                emptyState
+            } else {
+                suggestionsRow
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Suggested Fans")
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .textCase(.uppercase)
+                .tracking(0.7)
+
+            Text("Fans near you with shared teams, venues, or pickup games")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+        }
+    }
+
+    private var loadingRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(0..<3, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
+                        .frame(width: 148, height: 172)
+                        .redacted(reason: .placeholder)
+                }
+            }
+            .padding(.vertical, 1)
+        }
+        .accessibilityLabel("Loading suggested fans")
+    }
+
+    private var emptyState: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(FGColor.accentGreen.opacity(0.78))
+
+            Text(message?.isEmpty == false ? message! : "More fan matches coming soon")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.78))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.04), lineWidth: 0.75)
+                }
+        }
+        .accessibilityLabel("More fan matches coming soon")
+    }
+
+    private var suggestionsRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(suggestions) { suggestion in
+                    suggestionCard(suggestion)
+                }
+            }
+            .padding(.vertical, 1)
+        }
+    }
+
+    private func suggestionCard(_ suggestion: FriendSuggestionProfile) -> some View {
+        VStack(spacing: 11) {
+            PublicProfileAvatarTap(userId: suggestion.userID, context: "profile_suggested_fans") {
+                VStack(spacing: 8) {
+                    avatar(for: suggestion)
+
+                    VStack(spacing: 3) {
+                        Text(displayName(for: suggestion))
+                            .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+
+                        if let handle = handleText(for: suggestion) {
+                            Text(handle)
+                                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .lineLimit(1)
+                        }
+
+                        reasonPill(for: suggestion)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+            }
+            .simultaneousGesture(
+                TapGesture().onEnded {
+#if DEBUG
+                    print("[SuggestedFansUI] tapped user_id=\(suggestion.userID.uuidString.lowercased())")
+#endif
+                }
+            )
+
+            addButton(for: suggestion)
+        }
+        .padding(12)
+        .frame(width: 154, height: 178, alignment: .top)
+        .background(cardBackground)
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 12, y: 7)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func avatar(for suggestion: FriendSuggestionProfile) -> some View {
+        UserAvatarView(
+            avatarThumbnailURL: suggestion.avatarThumbnailURL,
+            avatarURL: suggestion.avatarURL ?? "",
+            avatarDisplayRefreshToken: UUID(),
+            displayName: displayName(for: suggestion),
+            email: "",
+            size: 58,
+            fallbackStyle: .lightOnWhiteChrome,
+            imagePlaceholderTint: FGColor.accentBlue
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            FGColor.accentBlue.opacity(0.78),
+                            FGColor.accentGreen.opacity(0.72)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 2
+                )
+        }
+        .padding(2)
+        .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96)))
+    }
+
+    private func reasonPill(for suggestion: FriendSuggestionProfile) -> some View {
+        Text(safeReasonLabel(for: suggestion))
+            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+            .foregroundStyle(FGColor.accentGreen)
+            .lineLimit(1)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background {
+                Capsule()
+                    .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
+            }
+    }
+
+    private func addButton(for suggestion: FriendSuggestionProfile) -> some View {
+        let kind = chipKind(suggestion.userID)
+        let isSending = sendingRequestIds.contains(suggestion.userID)
+        let state = buttonState(for: kind, isSending: isSending)
+
+        return Button {
+            onAdd(suggestion)
+        } label: {
+            HStack(spacing: 5) {
+                if isSending {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(state.foreground)
+                } else if let systemImage = state.systemImage {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 9.5, weight: .bold))
+                }
+
+                Text(state.title)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+            }
+            .foregroundStyle(state.foreground)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 7)
+            .background {
+                Capsule()
+                    .fill(state.fill)
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(state.stroke, lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(!state.isEnabled)
+        .opacity(state.isEnabled ? 1 : 0.88)
+        .accessibilityLabel(state.title)
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(colorScheme == .dark ? 0.065 : 0.96),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.07 : 0.06),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.055)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.10 : 0.82),
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.14)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.75
+                    )
+            }
+    }
+
+    private func displayName(for suggestion: FriendSuggestionProfile) -> String {
+        let trimmed = (suggestion.displayName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Fan" : trimmed
+    }
+
+    private func handleText(for suggestion: FriendSuggestionProfile) -> String? {
+        let trimmed = (suggestion.handle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed.hasPrefix("@") ? trimmed : "@\(trimmed)"
+    }
+
+    private func safeReasonLabel(for suggestion: FriendSuggestionProfile) -> String {
+        let allowedLabels: Set<String> = [
+            "Same team",
+            "Shared venue",
+            "Pickup player",
+            "Local fan",
+            "Sports match"
+        ]
+        if let reasonLabel = suggestion.reasonLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
+           allowedLabels.contains(reasonLabel) {
+            return reasonLabel
+        }
+
+        let normalizedType = (suggestion.reasonType ?? "")
+            .lowercased()
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+
+        switch normalizedType {
+        case "same_team", "shared_team", "team", "favorite_team", "favorite_teams":
+            return "Same team"
+        case "shared_venue", "venue", "event", "shared_event", "event_interest":
+            return "Shared venue"
+        case "pickup", "pickup_game", "shared_pickup", "pickup_player":
+            return "Pickup player"
+        case "local", "local_fan", "nearby":
+            return "Local fan"
+        case "sports_match", "match", "sports":
+            return "Sports match"
+        default:
+            if suggestion.sharedFavoriteTeamsCount > 0 { return "Same team" }
+            if suggestion.sharedEventInterestCount > 0 { return "Shared venue" }
+            if suggestion.sharedPickupGameCount > 0 { return "Pickup player" }
+            return suggestion.score > 0 ? "Sports match" : "Local fan"
+        }
+    }
+
+    private func buttonState(
+        for kind: ChatViewModel.FriendshipChipKind,
+        isSending: Bool
+    ) -> SuggestedFanButtonState {
+        if isSending {
+            return SuggestedFanButtonState(
+                title: "Adding",
+                systemImage: nil,
+                isEnabled: false,
+                foreground: FGColor.accentBlue,
+                fill: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                stroke: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.24 : 0.28)
+            )
+        }
+
+        switch kind {
+        case .addFriend, .declinedOutgoing:
+            return SuggestedFanButtonState(
+                title: "Add",
+                systemImage: "person.badge.plus",
+                isEnabled: true,
+                foreground: .white,
+                fill: FGColor.accentBlue,
+                stroke: FGColor.accentBlue.opacity(0.18)
+            )
+        case .pendingOutgoing:
+            return SuggestedFanButtonState(
+                title: "Requested",
+                systemImage: "clock.fill",
+                isEnabled: false,
+                foreground: FGColor.secondaryText(colorScheme),
+                fill: Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72),
+                stroke: Color.black.opacity(colorScheme == .dark ? 0.0 : 0.05)
+            )
+        case .pendingIncoming:
+            return SuggestedFanButtonState(
+                title: "In Chat",
+                systemImage: "tray.full.fill",
+                isEnabled: false,
+                foreground: FGColor.secondaryText(colorScheme),
+                fill: Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72),
+                stroke: Color.black.opacity(colorScheme == .dark ? 0.0 : 0.05)
+            )
+        case .friends:
+            return SuggestedFanButtonState(
+                title: "Friends",
+                systemImage: "checkmark",
+                isEnabled: false,
+                foreground: FGColor.accentGreen,
+                fill: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11),
+                stroke: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.18)
+            )
+        }
+    }
+}
+
+private struct SuggestedFanButtonState {
+    let title: String
+    let systemImage: String?
+    let isEnabled: Bool
+    let foreground: Color
+    let fill: Color
+    let stroke: Color
 }
 
 private extension View {
