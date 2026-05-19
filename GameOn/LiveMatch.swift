@@ -34,10 +34,6 @@ nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
         }
     }
 
-    var artworkSportKey: String {
-        displayLabel
-    }
-
     static func normalize(_ rawSport: String?) -> LiveSportVisualType {
         let key = normalizedKey(rawSport)
         switch key {

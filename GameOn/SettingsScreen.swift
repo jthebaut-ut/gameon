@@ -123,7 +123,7 @@ struct SettingsScreen: View {
     @ObservedObject private var notificationSettingsStore: NotificationSettingsStore
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
-    /// False while Account tab is preserved off-screen (avoids Fan Props / Suggested Fans network on launch).
+    /// False while Account tab is preserved off-screen (avoids Pokes / Suggested Fans network on launch).
     var isAccountTabSelected: Bool = true
 
     init(viewModel: MapViewModel, isAccountTabSelected: Bool = true) {

@@ -233,6 +233,9 @@ private final class DirectChatPresenter: ObservableObject {
     /// Last INSERT delivered on the Realtime stream for this thread (poll fallback uses this).
     private var lastRealtimeStreamInsertAt: Date = .distantPast
     private var activeRealtimeThreadConversationId: UUID?
+    /// True while ``runRealtimeSubscription()`` from the view `.task` is running (prevents duplicate foreground loops).
+    private var threadRealtimeSubscriptionLoopActive = false
+    private static let foregroundQuietRefreshThreshold: TimeInterval = 12
     private let directMessageReconnectDelaysNs: [UInt64] = [
         0,
         1_000_000_000,
@@ -268,7 +271,7 @@ private final class DirectChatPresenter: ObservableObject {
             String(format: "%.1f", receivedAt.timeIntervalSince($0) * 1000)
         } ?? "nil"
         let channelName = "direct-messages-\(conversationId.uuidString.lowercased())"
-        print("[DMEndToEndDebug] conversationId=\(conversationId.uuidString.lowercased()) senderUserId=\(row.sender_id.uuidString.lowercased()) messageId=\(row.id.uuidString.lowercased()) sendTapToInsertMs=\(dmDebugMilliseconds(from: sendTapStart, to: insertSuccess)) insertToRealtimeMs=\(insertToRealtimeMs) insertToOtherDeviceVisibleMs=\(insertToVisibleMs) fallbackUsed=\(fallbackUsed) subscriptionReady=\(messagesRealtimeChannel != nil && activeRealtimeThreadConversationId == conversationId) channelName=\(channelName)")
+        DebugLogGate.debug("[DMEndToEndDebug] conversationId=\(conversationId.uuidString.lowercased()) senderUserId=\(row.sender_id.uuidString.lowercased()) messageId=\(row.id.uuidString.lowercased()) sendTapToInsertMs=\(dmDebugMilliseconds(from: sendTapStart, to: insertSuccess)) insertToRealtimeMs=\(insertToRealtimeMs) insertToOtherDeviceVisibleMs=\(insertToVisibleMs) fallbackUsed=\(fallbackUsed) subscriptionReady=\(messagesRealtimeChannel != nil && activeRealtimeThreadConversationId == conversationId) channelName=\(channelName)")
 #endif
     }
 
@@ -612,6 +615,8 @@ private final class DirectChatPresenter: ObservableObject {
     /// Typing indicator / broadcast is intentionally disabled until DM realtime is proven stable.
     func runRealtimeSubscription() async {
         guard loadError == nil, let cid = conversationId, let me = currentUserId else { return }
+        threadRealtimeSubscriptionLoopActive = true
+        defer { threadRealtimeSubscriptionLoopActive = false }
         var attempt = 0
 
         while !Task.isCancelled, conversationId == cid {
@@ -772,28 +777,41 @@ private final class DirectChatPresenter: ObservableObject {
     }
 
     func verifyRealtimeAfterForeground() async {
-        guard loadError == nil, conversationId != nil else { return }
-#if DEBUG
-        RealtimeHealthDiagnostics.log("appForegroundReconnect=direct_thread")
-#endif
-        if messagesRealtimeChannel != nil || establishingRealtimeChannel != nil {
-#if DEBUG
-            RealtimeHealthDiagnostics.log("reconnectDetected=direct_thread_foreground_resubscribe")
-#endif
-            await tearDownRealtimeChannelIfNeeded()
-            await runRealtimeSubscription()
+        guard loadError == nil, let cid = conversationId else { return }
+        DebugLogGate.debug("[DMRealtimeStability] foreground verify start")
+
+        guard chatViewModel?.canMarkActiveDirectThreadRead(
+            conversationId: cid,
+            reason: "foreground_verify"
+        ) == true else {
+            DebugLogGate.debug("[DMRealtimeStability] skipped offscreen")
             return
         }
-        if messagesRealtimeChannel == nil, establishingRealtimeChannel == nil {
-#if DEBUG
-            RealtimeHealthDiagnostics.log("reconnectDetected=direct_thread_missing_channel")
-#endif
-            await runRealtimeSubscription()
+
+        if messagesRealtimeChannel != nil {
+            DebugLogGate.debug("[DMRealtimeStability] healthy channel preserved")
+            if Date().timeIntervalSince(lastRealtimeStreamInsertAt) >= Self.foregroundQuietRefreshThreshold {
+                DebugLogGate.debug("[DMRealtimeStability] quiet refresh only")
+                await refreshMessagesForCurrentThread(reason: "foregroundQuiet")
+            }
             return
         }
-        if Date().timeIntervalSince(lastRealtimeStreamInsertAt) >= 2 {
-            await refreshMessagesForCurrentThread(reason: "foreground_quiet_short")
+
+        if establishingRealtimeChannel != nil {
+            DebugLogGate.debug("[DMRealtimeStability] healthy channel preserved")
+            return
         }
+
+        if threadRealtimeSubscriptionLoopActive {
+            if Date().timeIntervalSince(lastRealtimeStreamInsertAt) >= Self.foregroundQuietRefreshThreshold {
+                DebugLogGate.debug("[DMRealtimeStability] quiet refresh only")
+                await refreshMessagesForCurrentThread(reason: "foregroundQuiet")
+            }
+            return
+        }
+
+        DebugLogGate.debug("[DMRealtimeStability] reconnect allowed reason=noChannel")
+        await runRealtimeSubscription()
     }
 
     @discardableResult

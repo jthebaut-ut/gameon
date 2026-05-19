@@ -1311,13 +1311,13 @@ final class ChatViewModel: ObservableObject {
     /// Clears a **declined** incoming request from the receiver’s list (soft-dismiss on server).
     func clearIncomingDeclinedRequest(_ item: IncomingRequestDisplay) async {
         guard item.friendship.isDeclinedStatus else { return }
-        print("[FriendRequest] clear requested id=\(item.id)")
+        DebugLogGate.debug("[FriendRequest] clear requested id=\(item.id)")
         let snapshot = incomingRequests
         incomingRequests.removeAll { $0.id == item.id }
         pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
         do {
             try await service.clearFriendRequestView(requestId: item.id)
-            print("[FriendRequest] clear completed id=\(item.id)")
+            DebugLogGate.debug("[FriendRequest] clear completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
             if ignoreCancellationIfNeeded(error, context: "friend_request_clear_incoming") {
@@ -1325,7 +1325,7 @@ final class ChatViewModel: ObservableObject {
                 pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
                 return
             }
-            print("[FriendRequest] clear failed id=\(item.id) error=\(error)")
+            DebugLogGate.debug("[FriendRequest] clear failed id=\(item.id) error=\(error)")
             incomingRequests = snapshot
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
             errorMessage = error.localizedDescription
@@ -1335,19 +1335,19 @@ final class ChatViewModel: ObservableObject {
     /// Clears a **declined** outgoing request from the sender’s list (soft-dismiss on server).
     func clearOutgoingDeclinedRequest(_ item: OutgoingRequestDisplay) async {
         guard item.friendship.isDeclinedStatus else { return }
-        print("[FriendRequest] clear requested id=\(item.id)")
+        DebugLogGate.debug("[FriendRequest] clear requested id=\(item.id)")
         let snapshot = outgoingRequests
         outgoingRequests.removeAll { $0.id == item.id }
         do {
             try await service.clearFriendRequestView(requestId: item.id)
-            print("[FriendRequest] clear completed id=\(item.id)")
+            DebugLogGate.debug("[FriendRequest] clear completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
             if ignoreCancellationIfNeeded(error, context: "friend_request_clear_outgoing") {
                 outgoingRequests = snapshot
                 return
             }
-            print("[FriendRequest] clear failed id=\(item.id) error=\(error)")
+            DebugLogGate.debug("[FriendRequest] clear failed id=\(item.id) error=\(error)")
             outgoingRequests = snapshot
             errorMessage = error.localizedDescription
         }
@@ -1355,7 +1355,7 @@ final class ChatViewModel: ObservableObject {
 
     func cancel(_ item: OutgoingRequestDisplay) async {
         guard item.friendship.isPendingStatus else { return }
-        print("[FriendRequest] outgoing cancel requested id=\(item.id)")
+        DebugLogGate.debug("[FriendRequest] outgoing cancel requested id=\(item.id)")
         let snapshotOut = outgoingRequests
         let snapshotChips = friendshipChipByOtherUserId
 
@@ -1369,7 +1369,7 @@ final class ChatViewModel: ObservableObject {
 
         do {
             try await service.cancelFriendRequest(requestId: item.friendship.id)
-            print("[FriendRequest] outgoing cancel completed id=\(item.id)")
+            DebugLogGate.debug("[FriendRequest] outgoing cancel completed id=\(item.id)")
             await refreshFriendRequestListsOnly()
         } catch {
             if ignoreCancellationIfNeeded(error, context: "friend_request_cancel") {
@@ -1377,7 +1377,7 @@ final class ChatViewModel: ObservableObject {
                 friendshipChipByOtherUserId = snapshotChips
                 return
             }
-            print("[FriendRequest] outgoing cancel failed id=\(item.id) error=\(error)")
+            DebugLogGate.debug("[FriendRequest] outgoing cancel failed id=\(item.id) error=\(error)")
             outgoingRequests = snapshotOut
             friendshipChipByOtherUserId = snapshotChips
             errorMessage = error.localizedDescription
@@ -1624,10 +1624,10 @@ final class ChatViewModel: ObservableObject {
         let inOutgoing = outgoingRequests.contains {
             $0.addressee.id == targetUserId || $0.friendship.addressee_id == targetUserId
         }
-        print("[FriendRequestVisibilityDebug] lookupResult=\(lookupResult)")
-        print("[FriendRequestVisibilityDebug] existingStatus=\(status) target=\(targetUserId.uuidString) me=\(me.uuidString)")
-        print("[FriendRequestVisibilityDebug] appearsInFriends=\(inFriends)")
-        print("[FriendRequestVisibilityDebug] appearsInRequests=\(inIncoming || inOutgoing) incoming=\(inIncoming) outgoing=\(inOutgoing)")
+        DebugLogGate.debug("[FriendRequestVisibilityDebug] lookupResult=\(lookupResult)")
+        DebugLogGate.debug("[FriendRequestVisibilityDebug] existingStatus=\(status) target=\(targetUserId.uuidString) me=\(me.uuidString)")
+        DebugLogGate.debug("[FriendRequestVisibilityDebug] appearsInFriends=\(inFriends)")
+        DebugLogGate.debug("[FriendRequestVisibilityDebug] appearsInRequests=\(inIncoming || inOutgoing) incoming=\(inIncoming) outgoing=\(inOutgoing)")
 #endif
     }
 
@@ -1777,7 +1777,7 @@ final class ChatViewModel: ObservableObject {
         } else {
             avatarSource = "generic_person_fallback"
         }
-        print(
+        DebugLogGate.debug(
             "[ChatRowDebug] displayName=\(preview.displayName) email=\(preview.email ?? "nil") isBusinessIdentity=\(preview.isBusinessIdentity) avatarSource=\(avatarSource)"
         )
 #endif

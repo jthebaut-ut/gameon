@@ -140,7 +140,7 @@ extension MapViewModel {
         } ?? "nil"
         let channelName = "venue-event-comments-\(venueEventID.uuidString.lowercased())"
         let sender = currentUserAuthId?.uuidString.lowercased() ?? row.user_email ?? "unknown"
-        print("[FanChatEndToEndDebug] eventId=\(venueEventID.uuidString.lowercased()) senderUserId=\(sender) commentId=\(commentID.uuidString.lowercased()) sendTapToInsertMs=\(fanChatDebugMilliseconds(from: sendTapStart, to: insertSuccess)) insertToRealtimeMs=\(insertToRealtimeMs) insertToOtherDeviceVisibleMs=\(insertToVisibleMs) fallbackUsed=\(fallbackUsed) subscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID)) channelName=\(channelName)")
+        DebugLogGate.debug("[FanChatEndToEndDebug] eventId=\(venueEventID.uuidString.lowercased()) senderUserId=\(sender) commentId=\(commentID.uuidString.lowercased()) sendTapToInsertMs=\(fanChatDebugMilliseconds(from: sendTapStart, to: insertSuccess)) insertToRealtimeMs=\(insertToRealtimeMs) insertToOtherDeviceVisibleMs=\(insertToVisibleMs) fallbackUsed=\(fallbackUsed) subscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID)) channelName=\(channelName)")
 #endif
     }
 
@@ -392,7 +392,7 @@ extension MapViewModel {
                     venueEventCommentDebugSendTapTimesByServerID[serverID] = sendStartedAt
                     venueEventCommentDebugReceivedDatesByServerID[serverID] = Date()
                 }
-                print("[FanChatLatencyDebug] insertSuccess eventId=\(venueEventID.uuidString.lowercased()) serverId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencyInsertStartTimesByLocalID[localCommentID]))")
+                DebugLogGate.debug("[FanChatLatencyDebug] insertSuccess eventId=\(venueEventID.uuidString.lowercased()) serverId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentLatencyInsertStartTimesByLocalID[localCommentID]))")
                 #endif
                 mergeIncomingVenueEventComment(row, for: venueEventID, preferredLocalID: localCommentID, source: "insert")
                 logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
@@ -444,8 +444,24 @@ extension MapViewModel {
     }
 
     func scheduleFanChatAppLevelRealtimeForLoadedVenueEvents() {
-        fanChatAppLevelRealtimeResubscribeTask?.cancel()
         let eventIDs = fanChatAppLevelTrackedVenueEventIDs()
+        if eventIDs == fanChatAppLevelLastScheduleRequestedEventIDs {
+#if DEBUG
+            print("[PerfPhase1] fanChatRealtimeSkipped reason=sameTrackedIDs")
+#endif
+            return
+        }
+        if eventIDs == fanChatAppLevelRealtimeTrackedEventIDs,
+           fanChatAppLevelRealtimeTask != nil,
+           fanChatAppLevelRealtimeChannel != nil {
+            fanChatAppLevelLastScheduleRequestedEventIDs = eventIDs
+#if DEBUG
+            print("[PerfPhase1] fanChatRealtimeSkipped reason=sameTrackedIDs")
+#endif
+            return
+        }
+        fanChatAppLevelLastScheduleRequestedEventIDs = eventIDs
+        fanChatAppLevelRealtimeResubscribeTask?.cancel()
         fanChatAppLevelRealtimeResubscribeTask = Task { @MainActor [weak self] in
             do {
                 try await Task.sleep(nanoseconds: FanChatAppLevelRealtimeConfig.resubscribeDebounceNs)
@@ -1542,7 +1558,7 @@ extension MapViewModel {
                 fanUpdatesVibePrefetchedAt[venueEventID] = Date()
             }
 
-            print("LOADED VIBES:", counts)
+            DebugLogGate.debug("LOADED VIBES: \(counts)")
 
         } catch {
             logVenueEventSocialLoadError("ERROR LOADING VIBES:", loadCancelledTag: "vibes", error: error)
@@ -1559,7 +1575,7 @@ extension MapViewModel {
             ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
         guard OwnerBusinessEmail.isValidStrict(email) else {
-            print("LOGIN REQUIRED TO VOTE VIBE")
+            DebugLogGate.debug("LOGIN REQUIRED TO VOTE VIBE")
             return
         }
 
@@ -1864,7 +1880,7 @@ extension MapViewModel {
             return BusinessFanGateCopy.commentsViewOnlyForBusiness
         }
         guard let commenterEmail = await strictNormalizedSessionEmailForSocialTables() else {
-            print("LOGIN REQUIRED TO COMMENT")
+            DebugLogGate.debug("LOGIN REQUIRED TO COMMENT")
             return "Sign in to post an update."
         }
 
@@ -1897,8 +1913,8 @@ extension MapViewModel {
         venueEventCommentDebugSendTapDatesByLocalID[localCommentID] = Date()
         print("[FanChatLatencyDebug] sendTapped eventId=\(venueEventID.uuidString.lowercased()) localTime=\(FanChatLatencyDebugClock.localTime())")
         print("[FanChatLatencyDebug] currentFlow eventId=\(venueEventID.uuidString.lowercased()) optimisticUI=yes realtime=yes polling=no manualReloadAfterInsert=no")
-        print("[FanChatRealtimeDelayDebug] sendWhileSubscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
-        print("[FanChatReadyDebug] sendWithReadyState eventId=\(venueEventID.uuidString.lowercased()) ready=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
+        DebugLogGate.debug("[FanChatRealtimeDelayDebug] sendWhileSubscriptionReady=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
+        DebugLogGate.debug("[FanChatReadyDebug] sendWithReadyState eventId=\(venueEventID.uuidString.lowercased()) ready=\(venueEventCommentsRealtimeReadyIDs.contains(venueEventID))")
         #endif
 
         await MainActor.run {
@@ -1962,7 +1978,7 @@ extension MapViewModel {
                 }
             }
 
-            print("COMMENT DELETED")
+            DebugLogGate.debug("COMMENT DELETED")
 
         } catch {
             print("ERROR DELETING COMMENT:", error)
@@ -2022,7 +2038,7 @@ extension MapViewModel {
 
             await buildReportedCommentDisplays(from: reports)
 
-            print("LOADED MY VENUE REPORTS:", reports.count)
+            DebugLogGate.debug("LOADED MY VENUE REPORTS: \(reports.count)")
 
         } catch {
             print("ERROR LOADING MY VENUE REPORTS:", error)
@@ -2132,7 +2148,7 @@ extension MapViewModel {
 
             await buildReportedCommentDisplays(from: reports)
 
-            print("LOADED COMMENT REPORTS:", reports.count)
+            DebugLogGate.debug("LOADED COMMENT REPORTS: \(reports.count)")
 
         } catch {
             print("ERROR LOADING COMMENT REPORTS:", error)
@@ -2144,7 +2160,7 @@ extension MapViewModel {
     func reportComment(_ comment: VenueEventCommentRow, reason: String = "reported") async -> Bool {
         guard let commentID = comment.serverCommentID,
               let venueEventID = comment.venue_event_id else {
-            print("NO VALID COMMENT OR EVENT ID")
+            DebugLogGate.debug("NO VALID COMMENT OR EVENT ID")
             return false
         }
 
@@ -2153,11 +2169,11 @@ extension MapViewModel {
             let reporterEmail = session.user.email ?? ""
 
             guard !reporterEmail.isEmpty else {
-                print("NO AUTH SESSION EMAIL")
+                DebugLogGate.debug("NO AUTH SESSION EMAIL")
                 return false
             }
 
-            print("REPORTER EMAIL FROM SESSION:", reporterEmail)
+            DebugLogGate.debug("REPORTER EMAIL FROM SESSION: \(reporterEmail)")
 
             let report = CommentReportInsert(
                 comment_id: commentID,
@@ -2171,7 +2187,7 @@ extension MapViewModel {
                 .insert(report)
                 .execute()
 
-            print("COMMENT REPORTED")
+            DebugLogGate.debug("COMMENT REPORTED")
 
             markCommentReportedLocally(commentID: commentID)
 
@@ -2293,7 +2309,7 @@ extension MapViewModel {
 
     func deleteReportedComment(_ report: ReportedCommentDisplay) async {
         guard let commentID = report.commentID else {
-            print("NO COMMENT ID TO DELETE")
+            DebugLogGate.debug("NO COMMENT ID TO DELETE")
             return
         }
 
@@ -2315,7 +2331,7 @@ extension MapViewModel {
                 reportedCommentDisplays.removeAll { $0.commentID == commentID }
             }
 
-            print("REPORTED COMMENT AND REPORTS DELETED")
+            DebugLogGate.debug("REPORTED COMMENT AND REPORTS DELETED")
 
         } catch {
             print("ERROR DELETING REPORTED COMMENT:", error)
@@ -2324,7 +2340,7 @@ extension MapViewModel {
 
     func dismissCommentReport(_ report: ReportedCommentDisplay) async {
         guard let commentID = report.commentID else {
-            print("NO COMMENT ID TO DISMISS REPORT")
+            DebugLogGate.debug("NO COMMENT ID TO DISMISS REPORT")
             return
         }
 
@@ -2340,7 +2356,7 @@ extension MapViewModel {
                 reportedCommentDisplays.removeAll { $0.commentID == commentID }
             }
 
-            print("COMMENT REPORT DISMISSED")
+            DebugLogGate.debug("COMMENT REPORT DISMISSED")
 
         } catch {
             print("ERROR DISMISSING COMMENT REPORT:", error)

@@ -372,13 +372,17 @@ struct ProfileIdentityCard: View {
                     HStack(spacing: 5) {
                         Text("Pokes")
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                            .foregroundStyle(
+                                viewModel.hasUnseenPokes
+                                    ? FGColor.primaryText(colorScheme).opacity(0.88)
+                                    : FGColor.mutedText(colorScheme)
+                            )
                             .textCase(.uppercase)
                             .tracking(0.7)
 
                         Image(systemName: "hand.wave.fill")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(FGColor.accentBlue)
+                            .pokesUnseenWaveIconEmphasis(isActive: viewModel.hasUnseenPokes)
 
                         if viewModel.hasUnseenPokes {
                             Text("New")
@@ -386,9 +390,24 @@ struct ProfileIdentityCard: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(Capsule(style: .continuous).fill(FGColor.accentBlue))
+                                .background {
+                                    Capsule(style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [
+                                                    FGColor.accentBlue,
+                                                    Color(red: 0.22, green: 0.48, blue: 0.96),
+                                                    Color(red: 1, green: 0.46, blue: 0.16)
+                                                ],
+                                                startPoint: .leading,
+                                                endPoint: .trailing
+                                            )
+                                        )
+                                }
+                                .pokesUnseenNewPillEmphasis(isActive: true)
                         }
                     }
+                    .pokesUnseenTitleRowEmphasis(isActive: viewModel.hasUnseenPokes)
 
                     Text(pokesHighlightsCopy)
                         .font(.system(size: 12, weight: .bold, design: .rounded))
@@ -419,6 +438,7 @@ struct ProfileIdentityCard: View {
             .background {
                 pokesHighlightsCardBackground
             }
+            .pokesUnseenHighlightsEmphasis(isActive: viewModel.hasUnseenPokes)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(pokesHighlightsAccessibilityLabel)
@@ -646,6 +666,12 @@ struct ProfileIdentityCard: View {
         await loadIncomingPokes(ignoreCache: true)
     }
 
+    /// Clears tab/avatar/card unseen state after the Pokes card has loaded on Account (not on tab select alone).
+    private func acknowledgePokesCardAfterSuccessfulLoad() {
+        guard isAccountTabActive, viewModel.hasUnseenPokes else { return }
+        viewModel.acknowledgeIncomingPokes(reason: "pokesCardLoaded")
+    }
+
     private func loadIncomingPokes(ignoreCache: Bool = false) async {
         guard canShowOwnerPokesHighlights, let authId = viewModel.currentUserAuthId else {
             await MainActor.run {
@@ -661,6 +687,7 @@ struct ProfileIdentityCard: View {
            !incomingPokes.isEmpty,
            let loadedAt = ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId],
            Date().timeIntervalSince(loadedAt) < ProfilePhase1PersonalizationCache.ttlSeconds {
+            acknowledgePokesCardAfterSuccessfulLoad()
             return
         }
 
@@ -682,6 +709,7 @@ struct ProfileIdentityCard: View {
                 isLoadingIncomingPokes = false
                 ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId] = Date()
                 viewModel.applyIncomingPokesFetch(items)
+                acknowledgePokesCardAfterSuccessfulLoad()
             }
             DebugLogGate.debug("[PokesUI] incoming load count=\(items.count) total=\(summary.totalPokes)")
         } catch {

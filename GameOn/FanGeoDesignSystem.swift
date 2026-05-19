@@ -682,6 +682,224 @@ struct FGInlineLogo: View {
     }
 }
 
+enum PokesUnseenEmphasis {
+    static let ambientPeriod: TimeInterval = 3.0
+
+    private static let warmAccent = Color(red: 1, green: 0.52, blue: 0.20)
+    private static let warmAccentDeep = Color(red: 0.95, green: 0.30, blue: 0.12)
+
+    /// Slow ambient pulse (~3s); 0…1 via sine.
+    static func pulse(at date: Date, period: TimeInterval = ambientPeriod) -> CGFloat {
+        let t = date.timeIntervalSinceReferenceDate
+        return CGFloat(0.5 + 0.5 * sin(t * 2 * .pi / period))
+    }
+
+    /// 0…1 light-sweep position across the card (~3s loop).
+    static func sweep(at date: Date, period: TimeInterval = ambientPeriod) -> CGFloat {
+        let t = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period
+        return CGFloat(t)
+    }
+
+    static func warmAccentColor(opacity: Double) -> Color {
+        warmAccent.opacity(opacity)
+    }
+
+    static func warmAccentDeepColor(opacity: Double) -> Color {
+        warmAccentDeep.opacity(opacity)
+    }
+}
+
+/// Breathing warm glow, light sweep, and border for the profile Pokes highlights card.
+struct PokesUnseenHighlightsEmphasisModifier: ViewModifier {
+    let isActive: Bool
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var wasActive = false
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isActive)) { timeline in
+            let pulse = isActive ? PokesUnseenEmphasis.pulse(at: timeline.date) : 0
+            let sweep = isActive ? PokesUnseenEmphasis.sweep(at: timeline.date) : 0
+            content
+                .shadow(
+                    color: PokesUnseenEmphasis.warmAccentColor(
+                        opacity: isActive
+                            ? (colorScheme == .dark ? 0.14 + 0.22 * pulse : 0.10 + 0.16 * pulse)
+                            : 0
+                    ),
+                    radius: isActive ? 8 + 5 * pulse : 0,
+                    y: isActive ? 2 : 0
+                )
+                .background {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        PokesUnseenEmphasis.warmAccentColor(
+                                            opacity: colorScheme == .dark ? 0.16 + 0.14 * pulse : 0.11 + 0.12 * pulse
+                                        ),
+                                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 + 0.06 * pulse : 0.06 + 0.05 * pulse),
+                                        Color.clear
+                                    ],
+                                    center: .center,
+                                    startRadius: 6,
+                                    endRadius: 130
+                                )
+                            )
+                            .padding(-8)
+                            .blur(radius: 10)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .overlay {
+                    if isActive {
+                        GeometryReader { proxy in
+                            let sweepX = -0.35 + 1.7 * sweep
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.white.opacity(colorScheme == .dark ? 0.06 : 0.14),
+                                    PokesUnseenEmphasis.warmAccentColor(opacity: colorScheme == .dark ? 0.10 : 0.08),
+                                    Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10),
+                                    Color.clear
+                                ],
+                                startPoint: UnitPoint(x: sweepX - 0.22, y: 0),
+                                endPoint: UnitPoint(x: sweepX + 0.22, y: 1)
+                            )
+                            .frame(width: proxy.size.width, height: proxy.size.height)
+                            .blendMode(.overlay)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .allowsHitTesting(false)
+                    }
+                }
+                .overlay {
+                    if isActive {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        PokesUnseenEmphasis.warmAccentColor(opacity: 0.38 + 0.32 * pulse),
+                                        FGColor.accentBlue.opacity(0.18 + 0.14 * pulse),
+                                        PokesUnseenEmphasis.warmAccentDeepColor(opacity: 0.28 + 0.24 * pulse)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.05 + 0.65 * pulse
+                            )
+                            .allowsHitTesting(false)
+                    }
+                }
+        }
+        .onAppear {
+            wasActive = isActive
+            DebugLogGate.debug("[PokesCardAnimation] active=\(isActive)")
+        }
+        .onChange(of: isActive) { _, active in
+            DebugLogGate.debug("[PokesCardAnimation] active=\(active)")
+            if wasActive, !active {
+                DebugLogGate.debug("[PokesCardAnimation] acknowledged stopAnimation")
+            }
+            wasActive = active
+        }
+    }
+}
+
+/// Subtle emphasis on the Pokes title row (label + wave icon).
+struct PokesUnseenTitleRowEmphasisModifier: ViewModifier {
+    let isActive: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isActive)) { timeline in
+            let pulse = isActive ? PokesUnseenEmphasis.pulse(at: timeline.date) : 0
+            content
+                .shadow(
+                    color: PokesUnseenEmphasis.warmAccentColor(opacity: isActive ? 0.10 + 0.14 * pulse : 0),
+                    radius: isActive ? 3 + 2 * pulse : 0
+                )
+                .opacity(isActive ? 0.92 + 0.08 * pulse : 1)
+        }
+    }
+}
+
+/// Soft shimmer on the wave icon while unseen pokes are present.
+struct PokesUnseenWaveIconEmphasisModifier: ViewModifier {
+    let isActive: Bool
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isActive)) { timeline in
+            let pulse = isActive ? PokesUnseenEmphasis.pulse(at: timeline.date) : 0
+            content
+                .foregroundStyle(
+                    isActive
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    FGColor.accentBlue,
+                                    PokesUnseenEmphasis.warmAccentColor(opacity: 0.85 + 0.15 * pulse)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        : AnyShapeStyle(FGColor.accentBlue)
+                )
+                .shadow(
+                    color: PokesUnseenEmphasis.warmAccentColor(opacity: isActive ? 0.22 + 0.28 * pulse : 0),
+                    radius: isActive ? 3 + 3 * pulse : 0
+                )
+                .overlay {
+                    if isActive {
+                        Circle()
+                            .fill(PokesUnseenEmphasis.warmAccentColor(opacity: 0.12 + 0.18 * pulse))
+                            .frame(width: 15, height: 15)
+                            .blur(radius: 4)
+                            .allowsHitTesting(false)
+                    }
+                }
+        }
+    }
+}
+
+/// Gentle emphasis on the "New" pill while unseen pokes are present.
+struct PokesUnseenNewPillEmphasisModifier: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isActive)) { timeline in
+            let pulse = isActive ? PokesUnseenEmphasis.pulse(at: timeline.date) : 0
+            content
+                .opacity(isActive ? 0.88 + 0.12 * pulse : 1)
+                .shadow(
+                    color: PokesUnseenEmphasis.warmAccentColor(opacity: isActive ? 0.20 + 0.22 * pulse : 0),
+                    radius: isActive ? 4 + 2 * pulse : 0,
+                    y: 0.5
+                )
+        }
+    }
+}
+
+extension View {
+    func pokesUnseenHighlightsEmphasis(isActive: Bool) -> some View {
+        modifier(PokesUnseenHighlightsEmphasisModifier(isActive: isActive))
+    }
+
+    func pokesUnseenTitleRowEmphasis(isActive: Bool) -> some View {
+        modifier(PokesUnseenTitleRowEmphasisModifier(isActive: isActive))
+    }
+
+    func pokesUnseenWaveIconEmphasis(isActive: Bool) -> some View {
+        modifier(PokesUnseenWaveIconEmphasisModifier(isActive: isActive))
+    }
+
+    func pokesUnseenNewPillEmphasis(isActive: Bool) -> some View {
+        modifier(PokesUnseenNewPillEmphasisModifier(isActive: isActive))
+    }
+}
+
 /// Subtle unseen-pokes glow dot for profile avatars (no count, no motion).
 struct PokesUnseenAvatarBadge: View {
     enum Style {

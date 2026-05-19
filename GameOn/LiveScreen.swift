@@ -239,6 +239,9 @@ struct LiveScreen: View {
                 .refreshable {
                     await MainActor.run {
                         refreshLiveMatches(forceRefresh: true)
+#if DEBUG
+                        print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=pullToRefresh")
+#endif
                     }
                 }
             }
@@ -1193,13 +1196,19 @@ struct LiveScreen: View {
     private func startLiveAutoRefresh(immediatelyRefresh: Bool) {
         if liveAutoRefreshTask != nil {
             if immediatelyRefresh {
-                return
+                refreshLiveMatches(forceRefresh: true)
+#if DEBUG
+                print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=immediateWhileTimerRunning")
+#endif
             }
-            stopLiveAutoRefresh()
+            return
         }
 
         if immediatelyRefresh {
             refreshLiveMatches(forceRefresh: true)
+#if DEBUG
+            print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=initialActivation")
+#endif
         }
 
         liveAutoRefreshTask = Task { @MainActor in
@@ -1217,7 +1226,10 @@ struct LiveScreen: View {
                 }
                 guard !viewModel.isLoadingLiveMatches else { continue }
 
-                refreshLiveMatches(forceRefresh: true)
+                refreshLiveMatches(forceRefresh: false)
+#if DEBUG
+                print("[PerfPhase1] liveAutoRefresh forceRefresh=false reason=timer")
+#endif
             }
         }
     }

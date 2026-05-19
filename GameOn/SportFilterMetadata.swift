@@ -126,6 +126,46 @@ nonisolated enum SportFilterCatalog {
     }
 }
 
+// MARK: - Live tab sport visuals
+
+extension LiveSportVisualType {
+    /// Canonical ``SportFilterCatalog`` lookup key for icons, accents, and Live filter chips.
+    var sportFilterCatalogKey: String {
+        switch self {
+        case .soccer:
+            return "Soccer"
+        case .basketball:
+            return "Basketball"
+        case .hockey:
+            return "Hockey"
+        case .baseball:
+            return "Baseball"
+        case .nfl:
+            return "Football"
+        case .tennis:
+            return "Tennis"
+        case .golf:
+            return "Golf"
+        case .formula1:
+            return "Formula 1"
+        case .other:
+            return "Sports"
+        }
+    }
+
+    var filterChipLabel: String {
+        sportFilterCatalogKey
+    }
+
+    var catalogVisual: SportFilterCatalog.ChipVisual {
+        SportFilterCatalog.resolve(sportFilterCatalogKey)
+    }
+
+    var catalogAccent: Color {
+        catalogVisual.accent
+    }
+}
+
 /// Horizontal filter chip (Discover + Calendar).
 struct SportFilterChip: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -135,77 +175,93 @@ struct SportFilterChip: View {
     var displayTitle: String? = nil
     let isSelected: Bool
     var isCompact = false
+    /// When true, always uses SF Symbols (Live tab parity with premium cards).
+    var preferSystemSymbol = false
     let action: () -> Void
 
     private var visual: SportFilterCatalog.ChipVisual {
         SportFilterCatalog.resolve(sport)
     }
 
+    private var showsSystemSymbol: Bool {
+        preferSystemSymbol || sport == "All" || visual.emoji.isEmpty
+    }
+
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .center, spacing: 5) {
-                if sport == "All" {
-                    Image(systemName: visual.systemImage)
-                        .font(.system(size: isCompact ? 14 : 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(isSelected ? Color.white : visual.accent)
-                } else if !visual.emoji.isEmpty {
-                    Text(visual.emoji)
-                        .font(.system(size: isCompact ? 15 : 16))
-                        .baselineOffset(-0.35)
-                        .shadow(color: .black.opacity(0.03), radius: 0.5, x: 0, y: 0.5)
-                } else {
-                    Image(systemName: visual.systemImage)
-                        .font(.system(size: isCompact ? 14 : 15, weight: .semibold, design: .rounded))
-                        .foregroundStyle(visual.accent)
-                }
+            HStack(alignment: .center, spacing: 6) {
+                chipIcon
 
                 Text(displayTitle ?? sport)
                     .font(.system(size: isCompact ? 13 : 14, weight: .semibold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
-            .padding(.horizontal, isCompact ? (sport == "All" ? 9 : 10) : (sport == "All" ? 10 : 11))
-            .frame(height: isCompact ? 33 : 35, alignment: .center)
+            .padding(.horizontal, isCompact ? (sport == "All" ? 10 : 11) : (sport == "All" ? 11 : 12))
+            .padding(.vertical, isCompact ? 0 : 1)
+            .frame(height: isCompact ? 34 : 36, alignment: .center)
             .foregroundStyle(isSelected ? Color.white : FGColor.primaryText(colorScheme))
             .background {
                 Group {
                     if isSelected {
-                        Capsule()
+                        Capsule(style: .continuous)
                             .fill(
                                 LinearGradient(
-                                    colors: [visual.accent.opacity(0.96), visual.accent.opacity(0.78)],
+                                    colors: [visual.accent.opacity(0.98), visual.accent.opacity(0.76)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.14))
+                                    .blendMode(.overlay)
+                            }
                     } else {
                         ZStack {
-                            Capsule()
-                                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.92 : 0.98))
-                            Capsule()
-                                .fill(visual.accent.opacity(colorScheme == .dark ? 0.08 : 0.055))
+                            Capsule(style: .continuous)
+                                .fill(.ultraThinMaterial)
+                            Capsule(style: .continuous)
+                                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.72))
+                            Capsule(style: .continuous)
+                                .fill(visual.accent.opacity(colorScheme == .dark ? 0.10 : 0.065))
                         }
                     }
                 }
             }
             .overlay(
-                Capsule()
+                Capsule(style: .continuous)
                     .strokeBorder(
-                        isSelected ? Color.white.opacity(0.18) : visual.accent.opacity(colorScheme == .dark ? 0.24 : 0.18),
-                        lineWidth: isSelected ? 0.95 : 0.85
+                        isSelected ? Color.white.opacity(0.22) : visual.accent.opacity(colorScheme == .dark ? 0.26 : 0.20),
+                        lineWidth: isSelected ? 1 : 0.9
                     )
             )
-            .contentShape(Capsule())
+            .contentShape(Capsule(style: .continuous))
             .shadow(
-                color: isSelected ? visual.accent.opacity(0.18) : .black.opacity(colorScheme == .dark ? 0.12 : 0.045),
-                radius: isCompact ? (isSelected ? 8 : 4) : (isSelected ? 10 : 5),
+                color: isSelected ? visual.accent.opacity(colorScheme == .dark ? 0.34 : 0.22) : .black.opacity(colorScheme == .dark ? 0.14 : 0.05),
+                radius: isCompact ? (isSelected ? 10 : 5) : (isSelected ? 12 : 6),
                 x: 0,
-                y: isCompact ? (isSelected ? 3 : 1.5) : (isSelected ? 4 : 2)
+                y: isCompact ? (isSelected ? 4 : 2) : (isSelected ? 5 : 2.5)
             )
-            .animation(.spring(response: 0.24, dampingFraction: 0.82), value: isSelected)
+            .animation(.spring(response: 0.28, dampingFraction: 0.84), value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(displayTitle ?? sport)
+    }
+
+    @ViewBuilder
+    private var chipIcon: some View {
+        if showsSystemSymbol {
+            Image(systemName: visual.systemImage)
+                .font(.system(size: isCompact ? 14 : 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(isSelected ? Color.white : visual.accent)
+                .shadow(color: isSelected ? visual.accent.opacity(0.35) : .clear, radius: isSelected ? 4 : 0)
+        } else {
+            Text(visual.emoji)
+                .font(.system(size: isCompact ? 15 : 16))
+                .baselineOffset(-0.35)
+                .shadow(color: .black.opacity(0.03), radius: 0.5, x: 0, y: 0.5)
+        }
     }
 }
 
@@ -216,6 +272,8 @@ struct SportArtworkIconView: View {
     let sport: String
     /// Outer diameter; venue preview rows typically use 56–64pt.
     var diameter: CGFloat = 60
+    /// When true, always uses SF Symbols (Live tab cards).
+    var preferSystemSymbol = false
 
     private var visual: SportFilterCatalog.ChipVisual {
         SportFilterCatalog.resolve(sport)
@@ -223,6 +281,10 @@ struct SportArtworkIconView: View {
 
     private var isAllChip: Bool {
         sport.trimmingCharacters(in: .whitespacesAndNewlines).caseInsensitiveCompare("All") == .orderedSame
+    }
+
+    private var showsSystemSymbol: Bool {
+        preferSystemSymbol || isAllChip || visual.emoji.isEmpty
     }
 
     var body: some View {
@@ -240,19 +302,15 @@ struct SportArtworkIconView: View {
                         .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
                 )
 
-            if isAllChip {
+            if showsSystemSymbol {
                 Image(systemName: visual.systemImage)
                     .font(.system(size: diameter * 0.36, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
-            } else if !visual.emoji.isEmpty {
+            } else {
                 Text(visual.emoji)
                     .font(.system(size: diameter * 0.5))
                     .baselineOffset(-diameter * 0.02)
                     .shadow(color: .black.opacity(0.12), radius: 1, x: 0, y: 1)
-            } else {
-                Image(systemName: visual.systemImage)
-                    .font(.system(size: diameter * 0.36, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
             }
         }
         .frame(width: diameter, height: diameter)

@@ -15,7 +15,7 @@ enum DiscoverVenueLoadAssembler {
     nonisolated private static func isDiscoverVisibleVenueEvent(_ ev: VenueEventRow) -> Bool {
         let st = ev.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if let st, !st.isEmpty, st != "active" { return false }
-        return true
+        return VenueGameExpiration.isActiveOnDiscoverSurfaces(row: ev)
     }
 
     nonisolated private static func resolvedPrimarySport(from sports: Set<String>) -> String {

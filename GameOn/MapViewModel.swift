@@ -576,6 +576,11 @@ final class MapViewModel: ObservableObject {
     @Published var hasUnreadPickupActivity: Bool = false
     /// Count of pickup games with unread activity (segment badge + tab hint).
     @Published var pickupActivityCount: Int = 0
+    /// Account-tab badge when incoming pokes are newer than last acknowledgment.
+    @Published var hasUnseenPokes: Bool = false
+    @Published var unseenPokesCount: Int = 0
+    /// Latest incoming poke timestamp from the most recent fetch (badge + acknowledgment).
+    var latestTrackedIncomingPokeAt: Date?
     /// Last successful Following pickup join-list reload (Games to Play).
     @Published var lastJoinStatusRefreshAt: Date?
     /// Latest join request status string per pickup game id after the last reload (`pending`, `approved`, …).

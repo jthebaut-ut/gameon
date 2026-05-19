@@ -282,9 +282,6 @@ struct MainTabView: View {
             case .account:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
-                if viewModel.canReceiveProfilePokes {
-                    viewModel.acknowledgeIncomingPokes(reason: "accountTabSelected")
-                }
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Automatic removal: `remove_after_at` is always `game_start_at` + this many hours (DB trigger + app payloads).
-enum PickupGameAutoRemoval {
+nonisolated enum PickupGameAutoRemoval {
     static let hoursAfterGameStart: Int = 12
 }
 
@@ -718,24 +718,6 @@ enum PickupGameStartedStateDebug {
 }
 
 enum PickupGameModels {
-    private static let isoParser: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
-    private static let isoParserNoFrac: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f
-    }()
-
-    private static let isoEncoder: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return f
-    }()
-
     private static let moneyFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .currency
@@ -744,17 +726,16 @@ enum PickupGameModels {
         return f
     }()
 
-    static func parseSupabaseTimestamptz(_ raw: String) -> Date? {
-        if let d = isoParser.date(from: raw) { return d }
-        return isoParserNoFrac.date(from: raw)
+    nonisolated static func parseSupabaseTimestamptz(_ raw: String) -> Date? {
+        SupabaseTimestampParsing.parseTimestamptz(raw)
     }
 
-    static func encodeSupabaseTimestamptz(_ date: Date) -> String {
-        isoEncoder.string(from: date)
+    nonisolated static func encodeSupabaseTimestamptz(_ date: Date) -> String {
+        SupabaseTimestampParsing.encodeTimestamptz(date)
     }
 
     /// Encoded `remove_after_at` for `pickup_games`: `game_start_at` + fixed pickup retention (12h).
-    static func encodedPickupRemoveAfterAt(forEncodedGameStart gameStartISO: String) -> String {
+    nonisolated static func encodedPickupRemoveAfterAt(forEncodedGameStart gameStartISO: String) -> String {
         let start = parseSupabaseTimestamptz(gameStartISO) ?? Date(timeIntervalSince1970: 0)
         let end = start.addingTimeInterval(Double(PickupGameAutoRemoval.hoursAfterGameStart) * 3600)
         return encodeSupabaseTimestamptz(end)

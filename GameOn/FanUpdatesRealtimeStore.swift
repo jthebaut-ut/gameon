@@ -25,6 +25,7 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var fanChatAppLevelRealtimeTask: Task<Void, Never>?
     var fanChatAppLevelRealtimeChannel: RealtimeChannelV2?
     var fanChatAppLevelRealtimeTrackedEventIDs: [UUID] = []
+    var fanChatAppLevelLastScheduleRequestedEventIDs: [UUID] = []
     var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>?
     var fanChatAppLevelSeenCommentIDs: Set<UUID> = []
     var fanChatCommentCountReconcileTasks: [UUID: Task<Void, Never>] = [:]
@@ -46,6 +47,6 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var venueEventCommentLatencyInsertStartTimesByLocalID: [UUID: CFAbsoluteTime] = [:]
 
     init() {
-        print("[FanUpdatesRealtimeStoreDebug] initialized")
+        DebugLogGate.debug("[FanUpdatesRealtimeStoreDebug] initialized")
     }
 }

@@ -134,6 +134,108 @@ nonisolated enum VenueOwnerGameDataRetentionHours {
     }
 }
 
+/// Business venue game retention (`venue_events.cleanup_delay_hours` + generated `purge_after_at`).
+/// Global cleanup: `purge_expired_venue_events()` hard-deletes the row and cascades interests/comments/vibes.
+nonisolated enum VenueGameExpiration {
+    /// How expired rows leave the system when the purge job runs (not a soft archive on `venue_events`).
+    static let globalCleanupMode = "hard_delete_via_purge_expired_venue_events"
+
+    static func purgeAfterDate(for row: VenueEventRow, now: Date = Date()) -> Date? {
+        if let raw = row.purge_after_at?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty,
+           let parsed = SupabaseTimestampParsing.parseTimestamptz(raw) {
+            return parsed
+        }
+        guard let start = scheduledStartDate(for: row) else { return nil }
+        let hours = normalizedCleanupDelayHours(row.cleanup_delay_hours)
+        return Calendar.current.date(byAdding: .hour, value: hours, to: start)
+    }
+
+    static func scheduledStartDate(for row: VenueEventRow) -> Date? {
+        if let raw = row.scheduled_start_at?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty,
+           let parsed = SupabaseTimestampParsing.parseTimestamptz(raw) {
+            return parsed
+        }
+        return legacyStartFromEventDateTime(row: row)
+    }
+
+    /// True when `now` is at or past the business-selected clear window (`purge_after_at`).
+    static func isPastBusinessClearWindow(row: VenueEventRow, now: Date = Date()) -> Bool {
+        guard let purge = purgeAfterDate(for: row, now: now) else { return false }
+        return now >= purge
+    }
+
+    /// Map, Discover, Calendar venue slices, and Live venue rows — hidden after the clear window (until purge RPC runs).
+    static func isActiveOnDiscoverSurfaces(row: VenueEventRow, now: Date = Date()) -> Bool {
+        !isPastBusinessClearWindow(row: row, now: now)
+    }
+
+    /// Going tab → Watching: show greyed “Ended” cards after the clear window.
+    static func isWatchingCompleted(row: VenueEventRow, now: Date = Date()) -> Bool {
+        isPastBusinessClearWindow(row: row, now: now)
+    }
+
+#if DEBUG
+    static func logAuditOncePerEvaluation(row: VenueEventRow, eventID: UUID?) {
+        let fieldSummary: String = {
+            var parts: [String] = []
+            if row.scheduled_start_at != nil { parts.append("scheduled_start_at") }
+            if row.cleanup_delay_hours != nil { parts.append("cleanup_delay_hours") }
+            if row.purge_after_at != nil { parts.append("purge_after_at") }
+            if parts.isEmpty { parts.append("event_date+event_time_fallback") }
+            return parts.joined(separator: "+")
+        }()
+        print("[VenueGameExpirationAudit] field=\(fieldSummary)")
+        print("[VenueGameExpirationAudit] cleanupMode=\(globalCleanupMode)")
+        if let eventID {
+            print("[VenueGameExpirationAudit] event_id=\(eventID.uuidString.lowercased()) purge_after=\(purgeAfterDate(for: row)?.description ?? "nil") completed=\(isWatchingCompleted(row: row))")
+        }
+    }
+#endif
+
+    private static func normalizedCleanupDelayHours(_ raw: Int?) -> Int {
+        guard let raw, VenueOwnerGameDataRetentionHours.allPersistedValues.contains(raw) else {
+            return VenueOwnerGameDataRetentionHours.defaultPickerHours
+        }
+        return raw
+    }
+
+    private static func legacyStartFromEventDateTime(row: VenueEventRow) -> Date? {
+        guard let dateRaw = row.event_date?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !dateRaw.isEmpty else {
+            return nil
+        }
+        let dayFormatter = DateFormatter()
+        dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dayFormatter.timeZone = TimeZone.current
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+        guard let day = dayFormatter.date(from: String(dateRaw.prefix(10))) else { return nil }
+
+        let timeRaw = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !timeRaw.isEmpty, timeRaw.lowercased() != "time tbd" else {
+            return Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: day)
+        }
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        timeFormatter.timeZone = TimeZone.current
+        for format in ["h:mm a", "HH:mm", "h:mm"] {
+            timeFormatter.dateFormat = format
+            if let timeOnly = timeFormatter.date(from: timeRaw) {
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: timeOnly)
+                return Calendar.current.date(
+                    bySettingHour: parts.hour ?? 12,
+                    minute: parts.minute ?? 0,
+                    second: 0,
+                    of: day
+                )
+            }
+        }
+        return Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: day)
+    }
+}
+
 /// Row from `public.businesses` (multi-venue owner Phase B1).
 struct BusinessRow: Decodable, Equatable, Identifiable {
     let id: UUID

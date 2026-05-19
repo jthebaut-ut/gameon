@@ -224,6 +224,7 @@ extension MapViewModel {
         isUpdatingLiveVisibilitySetting = false
         isUpdatingProfileDiscoverabilitySetting = false
         currentUserAuthId = nil
+        clearUnseenPokesBadgeState()
 
         favoriteVenueIDs = []
         interestedVenueEventKeys = []

@@ -164,7 +164,8 @@ struct ModerationService {
 
     /// Edge function derives reporter from JWT (`auth.getUser()`); do not send client `reporter_user_id`.
     private nonisolated struct NotifyModerationReportPayload: Encodable {
-        let report_id: UUID?
+        /// Lowercase UUID string so the Edge Function can load `conversation_reports` reliably.
+        let report_id: String?
         let report_type: String
         let reported_user_id: UUID
         let category: String
@@ -199,7 +200,8 @@ struct ModerationService {
         return f
     }()
 
-    /// Fire-and-forget admin email via Edge Function; must run only after the report row is stored.
+    /// Admin email via Edge Function; must run only after the report row is stored.
+    /// Conversation reports await delivery so the email can load the inserted row by `report_id`.
     private func notifyModerationReportBestEffort(
         reportId: UUID? = nil,
         reportType: String,
@@ -211,13 +213,15 @@ struct ModerationService {
         messageTextSnapshot: String? = nil,
         reviewWindowStart: String? = nil,
         reviewWindowEnd: String? = nil,
-        conversationMessageSnapshot: [PrivateConversationReportMessageSnapshot]? = nil
-    ) {
+        conversationMessageSnapshot: [PrivateConversationReportMessageSnapshot]? = nil,
+        awaitDelivery: Bool = false
+    ) async {
         let createdAt = Self.moderationReportNotifyISO.string(from: Date())
         let detailsCopy = details
         let categoryRaw = category.rawValue
+        let reportIdString = reportId.map { $0.uuidString.lowercased() }
         let payload = NotifyModerationReportPayload(
-            report_id: reportId,
+            report_id: reportIdString,
             report_type: reportType,
             reported_user_id: reportedUserId,
             category: categoryRaw,
@@ -231,9 +235,12 @@ struct ModerationService {
             conversation_message_snapshot: conversationMessageSnapshot
         )
         guard let bodyData = try? JSONEncoder().encode(payload) else { return }
-        Task { [supabase, bodyData] in
+
+        let invoke: () async -> Void = { [supabase, bodyData, reportType, reportIdString] in
 #if DEBUG
-            print("Moderation: notify-moderation-report fire-and-forget started (type=\(reportType))")
+            print(
+                "Moderation: notify-moderation-report started type=\(reportType) report_id=\(reportIdString ?? "nil") await=\(awaitDelivery)"
+            )
 #endif
             do {
                 let response: NotifyModerationReportResponse = try await supabase.functions.invoke(
@@ -257,6 +264,12 @@ struct ModerationService {
                 print("Moderation: notify-moderation-report email notify failed:", error)
 #endif
             }
+        }
+
+        if awaitDelivery {
+            await invoke()
+        } else {
+            Task { await invoke() }
         }
     }
 
@@ -356,12 +369,14 @@ struct ModerationService {
             .from("user_reports")
             .insert(row)
             .execute()
-        notifyModerationReportBestEffort(
-            reportType: "user",
-            reportedUserId: reportedUserId,
-            category: category,
-            details: row.details
-        )
+        Task {
+            await notifyModerationReportBestEffort(
+                reportType: "user",
+                reportedUserId: reportedUserId,
+                category: category,
+                details: row.details
+            )
+        }
     }
 
     /// Max length for optional conversation report details (client + server aligned).
@@ -526,7 +541,7 @@ struct ModerationService {
         print("[DMReport] conversation report submitted conversation=\(conversationId.uuidString)")
 #endif
 
-        notifyModerationReportBestEffort(
+        await notifyModerationReportBestEffort(
             reportId: inserted.id,
             reportType: "conversation",
             reportedUserId: otherUserId,
@@ -535,7 +550,8 @@ struct ModerationService {
             conversationId: conversationId,
             reviewWindowStart: reviewWindowStartISO,
             reviewWindowEnd: reviewWindowEndISO,
-            conversationMessageSnapshot: messageSnapshot
+            conversationMessageSnapshot: messageSnapshot,
+            awaitDelivery: true
         )
 
 #if DEBUG
@@ -566,16 +582,18 @@ struct ModerationService {
             .from("message_reports")
             .insert(row)
             .execute()
-        notifyModerationReportBestEffort(
-            reportType: "message",
-            reportedUserId: reportedUserId,
-            category: category,
-            details: row.details,
-            conversationId: conversationId,
-            messageId: messageId,
-            messageTextSnapshot: messageTextSnapshot,
-            conversationMessageSnapshot: nil
-        )
+        Task {
+            await notifyModerationReportBestEffort(
+                reportType: "message",
+                reportedUserId: reportedUserId,
+                category: category,
+                details: row.details,
+                conversationId: conversationId,
+                messageId: messageId,
+                messageTextSnapshot: messageTextSnapshot,
+                conversationMessageSnapshot: nil
+            )
+        }
         await incrementMessageReportCountBestEffort(messageId: messageId)
     }
 

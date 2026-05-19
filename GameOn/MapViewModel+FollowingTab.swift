@@ -13,9 +13,26 @@ extension MapViewModel {
         "id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)"
 
     private static let venueEventSelectColumnsFollowing =
-        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,scheduled_start_at"
+        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,scheduled_start_at,cleanup_delay_hours,purge_after_at"
 
     private static let interestChunkSize = 90
+    private static let followingTabGlobalRefreshFreshnessInterval: TimeInterval = 60
+
+    /// Skips ``refreshFollowingTabDataGlobally()`` when a global refresh completed recently (launch dedupe).
+    func refreshFollowingTabDataGloballyUnlessFresh() async {
+        if shouldSkipFollowingTabGlobalRefresh() {
+#if DEBUG
+            print("[PerfPhase1] followingRefreshSkipped reason=fresh")
+#endif
+            return
+        }
+        await refreshFollowingTabDataGlobally()
+    }
+
+    func shouldSkipFollowingTabGlobalRefresh() -> Bool {
+        guard let last = lastFollowingTabGlobalRefreshAt else { return false }
+        return Date().timeIntervalSince(last) < Self.followingTabGlobalRefreshFreshnessInterval
+    }
 
     /// Clears only venue-game plan rows and interest-derived Following state. Does **not** remove saved venues or pickup join cards.
     func clearFollowingTabVenueGamePlanCachesOnly() {
@@ -40,6 +57,7 @@ extension MapViewModel {
         pickupGamesFollowingTabCache.removeAll()
         pickupJoinRequestLatestByPickupGameIdForFan.removeAll()
         resetPickupFollowingActivityStateForCacheClear()
+        lastFollowingTabGlobalRefreshAt = nil
     }
 
     func clearFollowingInterestedOnlyDefaults() {
@@ -197,6 +215,8 @@ extension MapViewModel {
             await loadMyPickupGamesForSettings()
             await refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
         }
+
+        lastFollowingTabGlobalRefreshAt = Date()
     }
 
     // MARK: - Private helpers

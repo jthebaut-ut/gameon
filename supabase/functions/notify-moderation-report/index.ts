@@ -82,6 +82,20 @@ function truncateSnapshot(s: string): string {
   return `${t.slice(0, MAX_SNAPSHOT_LEN)}… [truncated]`
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function normalizeReportId(raw: string | null | undefined): string {
+  return (raw ?? "").trim().toLowerCase()
+}
+
+function normalizeReportType(raw: string | null | undefined): ReportType | null {
+  const t = (raw ?? "").trim().toLowerCase()
+  if (t === "user" || t === "conversation" || t === "message") return t
+  return null
+}
+
 function parseTimestampMs(value: string | null | undefined): number | null {
   if (!value?.trim()) return null
   const ms = Date.parse(value.trim())
@@ -214,7 +228,6 @@ async function loadConversationReportSnapshot(
     )
     .eq("id", reportId)
     .eq("reporter_user_id", reporterUserId)
-    .eq("admin_review_consent_granted", true)
     .maybeSingle()
 
   if (error) {
@@ -222,6 +235,19 @@ async function loadConversationReportSnapshot(
     return null
   }
   return data as ConversationReportRow | null
+}
+
+async function loadConversationReportSnapshotWithRetry(
+  admin: ReturnType<typeof createClient>,
+  reportId: string,
+  reporterUserId: string,
+): Promise<ConversationReportRow | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const row = await loadConversationReportSnapshot(admin, reportId, reporterUserId)
+    if (row) return row
+    if (attempt === 0) await sleep(350)
+  }
+  return null
 }
 
 Deno.serve(async (req) => {
@@ -273,8 +299,8 @@ Deno.serve(async (req) => {
     })
   }
 
-  const validTypes: ReportType[] = ["user", "conversation", "message"]
-  if (!payload.report_type || !validTypes.includes(payload.report_type)) {
+  const reportType = normalizeReportType(payload.report_type)
+  if (!reportType) {
     return new Response(JSON.stringify({ error: "invalid_report_type" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
@@ -288,7 +314,7 @@ Deno.serve(async (req) => {
     })
   }
 
-  if (payload.report_type === "conversation") {
+  if (reportType === "conversation") {
     const cid = payload.conversation_id?.trim()
     if (!cid) {
       return new Response(JSON.stringify({ error: "conversation_id_required" }), {
@@ -296,7 +322,7 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json" },
       })
     }
-    if (!payload.report_id?.trim()) {
+    if (!normalizeReportId(payload.report_id)) {
       return new Response(JSON.stringify({ error: "report_id_required" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -304,7 +330,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  if (payload.report_type === "message") {
+  if (reportType === "message") {
     const mid = payload.message_id?.trim()
     if (!mid) {
       return new Response(JSON.stringify({ error: "message_id_required" }), {
@@ -333,7 +359,7 @@ Deno.serve(async (req) => {
   const detailsLine = detailsRaw.length > 0 ? detailsRaw : "—"
 
   let snapshotSection = ""
-  if (payload.report_type === "message") {
+  if (reportType === "message") {
     const snap = truncateSnapshot((payload.message_text_snapshot ?? "").trim())
     const snapDisplay = snap.length > 0 ? snap : "(empty message)"
     snapshotSection = `<p style="margin:8px 0"><strong>Message text (snapshot):</strong><br/><span style="white-space:pre-wrap">${escapeHtml(snapDisplay)}</span></p>`
@@ -343,8 +369,9 @@ Deno.serve(async (req) => {
     ? `<p style="margin:8px 0"><strong>Conversation ID:</strong> ${escapeHtml(payload.conversation_id!.trim())}</p>`
     : ""
 
-  const reportIdLine = payload.report_id?.trim()
-    ? `<p style="margin:8px 0"><strong>Report ID:</strong> ${escapeHtml(payload.report_id!.trim())}</p>`
+  const reportIdNormalized = normalizeReportId(payload.report_id)
+  const reportIdLine = reportIdNormalized
+    ? `<p style="margin:8px 0"><strong>Report ID:</strong> ${escapeHtml(reportIdNormalized)}</p>`
     : ""
 
   const msgLine = payload.message_id?.trim()
@@ -355,39 +382,61 @@ Deno.serve(async (req) => {
   let windowEnd = (payload.review_window_end ?? "").trim()
   let conversationContextSection = ""
 
-  if (payload.report_type === "conversation") {
-    const reportId = payload.report_id!.trim()
+  if (reportType === "conversation") {
+    const reportId = reportIdNormalized
     let snapshotMessages: ConversationMessageSnapshot[] = []
     let reporterUserId = user.id
     let reportedUserId = payload.reported_user_id.trim()
+    const payloadSnapshot = filterSnapshotToReviewWindow(
+      normalizeSnapshotMessages(payload.conversation_message_snapshot),
+      windowStart,
+      windowEnd,
+    )
+
+    console.log(`[PrivateReportEmail] report_id=${reportId || "(missing)"}`)
+    console.log(`[PrivateReportEmail] report_type=${reportType}`)
+    console.log(`[PrivateReportEmail] payload_snapshot_count=${payloadSnapshot.length}`)
 
     const admin = serviceRoleKey ? createClient(supabaseUrl, serviceRoleKey) : null
 
-    if (admin) {
-      const reportRow = await loadConversationReportSnapshot(admin, reportId, user.id)
+    if (admin && reportId) {
+      const reportRow = await loadConversationReportSnapshotWithRetry(admin, reportId, user.id)
       if (reportRow) {
         windowStart = (reportRow.review_window_start ?? windowStart).trim()
         windowEnd = (reportRow.review_window_end ?? windowEnd).trim()
-        reporterUserId = reportRow.reporter_user_id
-        reportedUserId = reportRow.reported_user_id
-        const rawSnapshot = normalizeSnapshotMessages(reportRow.message_snapshot)
-        snapshotMessages = filterSnapshotToReviewWindow(rawSnapshot, windowStart, windowEnd)
-        console.log(
-          `[PrivateReportEmail] report_id=${reportId} snapshot_total=${rawSnapshot.length} snapshot_in_window=${snapshotMessages.length}`,
-        )
+        if (reportRow.admin_review_consent_granted !== true) {
+          console.error(
+            `[PrivateReportEmail] consent_not_granted report_id=${reportId} — using payload snapshot only`,
+          )
+          snapshotMessages = payloadSnapshot
+        } else {
+          reporterUserId = reportRow.reporter_user_id
+          reportedUserId = reportRow.reported_user_id
+          const rawSnapshot = normalizeSnapshotMessages(reportRow.message_snapshot)
+          const dbInWindow = filterSnapshotToReviewWindow(rawSnapshot, windowStart, windowEnd)
+          snapshotMessages = dbInWindow.length > 0 ? dbInWindow : payloadSnapshot
+          if (dbInWindow.length === 0 && payloadSnapshot.length > 0) {
+            console.log(
+              `[PrivateReportEmail] db_snapshot_empty_using_payload report_id=${reportId}`,
+            )
+          }
+        }
       } else {
         console.error(
-          `notify-moderation-report: missing conversation_reports row report_id=${reportId} reporter=${user.id}`,
+          `notify-moderation-report: missing conversation_reports row report_id=${reportId} reporter=${user.id} — using payload snapshot`,
         )
+        snapshotMessages = payloadSnapshot
       }
     } else {
-      console.error("notify-moderation-report: SUPABASE_SERVICE_ROLE_KEY unset — cannot load message_snapshot from DB")
-      snapshotMessages = filterSnapshotToReviewWindow(
-        normalizeSnapshotMessages(payload.conversation_message_snapshot),
-        windowStart,
-        windowEnd,
-      )
+      if (!serviceRoleKey) {
+        console.error("notify-moderation-report: SUPABASE_SERVICE_ROLE_KEY unset — using payload snapshot only")
+      }
+      snapshotMessages = payloadSnapshot
     }
+
+    console.log(`[PrivateReportEmail] snapshot_count=${snapshotMessages.length}`)
+    console.log(`[PrivateReportEmail] window_start=${windowStart || "(empty)"}`)
+    console.log(`[PrivateReportEmail] window_end=${windowEnd || "(empty)"}`)
 
     const nameIds = [
       reporterUserId,
@@ -418,13 +467,21 @@ Deno.serve(async (req) => {
       `<p style="margin:0;font-size:13px;white-space:pre-wrap;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0;font-family:ui-monospace,monospace">${
         escapeHtml(bounded)
       }</p>`
+
+    console.log(
+      `[PrivateReportEmail] email_includes_conversation_section=true snapshot_rendered=${snapshotMessages.length > 0}`,
+    )
+  } else {
+    console.log(
+      `[PrivateReportEmail] email_includes_conversation_section=false reason=report_type_${reportType}`,
+    )
   }
 
   const reviewWindowSection = ""
 
   const adminReviewBaseUrl = Deno.env.get("ADMIN_REPORT_REVIEW_BASE_URL")?.trim() ?? ""
-  const reportReviewLink = adminReviewBaseUrl && payload.report_id?.trim()
-    ? `${adminReviewBaseUrl.replace(/\/+$/, "")}/${encodeURIComponent(payload.report_id.trim())}`
+  const reportReviewLink = adminReviewBaseUrl && reportIdNormalized
+    ? `${adminReviewBaseUrl.replace(/\/+$/, "")}/${encodeURIComponent(reportIdNormalized)}`
     : ""
   const reportReviewLinkLine = reportReviewLink
     ? `<p style="margin:8px 0"><strong>Admin review:</strong> <a href="${escapeHtml(reportReviewLink)}">${escapeHtml(reportReviewLink)}</a></p>`
@@ -437,22 +494,22 @@ Deno.serve(async (req) => {
   <p style="margin:10px 0;font-size:15px">A user submitted a report that needs manual review.</p>
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0"/>
   <table style="font-size:14px;border-collapse:collapse;width:100%">
-    <tr><td style="padding:6px 0;vertical-align:top;width:160px"><strong>Report type</strong></td><td style="padding:6px 0">${escapeHtml(payload.report_type)}</td></tr>
+    <tr><td style="padding:6px 0;vertical-align:top;width:160px"><strong>Report type</strong></td><td style="padding:6px 0">${escapeHtml(reportType)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Category</strong></td><td style="padding:6px 0">${escapeHtml(payload.category.trim())}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Created at</strong></td><td style="padding:6px 0">${escapeHtml(createdAt)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Reporter user ID</strong></td><td style="padding:6px 0">${escapeHtml(user.id)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Reporter email</strong></td><td style="padding:6px 0">${escapeHtml(reporterEmailLine)}</td></tr>
     <tr><td style="padding:6px 0;vertical-align:top"><strong>Reported user ID</strong></td><td style="padding:6px 0">${escapeHtml(payload.reported_user_id.trim())}</td></tr>
   </table>
-  <p style="margin:14px 0 8px;font-size:14px"><strong>Details</strong></p>
-  <p style="margin:0;font-size:14px;white-space:pre-wrap;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0">${escapeHtml(detailsLine)}</p>
   ${reportIdLine}
   ${convLine}
   ${msgLine}
+  ${conversationContextSection}
+  <p style="margin:14px 0 8px;font-size:14px"><strong>Details</strong></p>
+  <p style="margin:0;font-size:14px;white-space:pre-wrap;background:#f8fafc;padding:12px 14px;border-radius:10px;border:1px solid #e2e8f0">${escapeHtml(detailsLine)}</p>
   ${reviewWindowSection}
   ${reportReviewLinkLine}
   ${snapshotSection}
-  ${conversationContextSection}
   <p style="margin-top:22px;font-size:12px;color:#64748b">This message was generated by the FanGeo moderation notification service.</p>
 </body>
 </html>`
@@ -466,7 +523,7 @@ Deno.serve(async (req) => {
     body: JSON.stringify({
       from: resendFrom,
       to: [adminTo],
-      subject: `FanGeo moderation report — ${payload.report_type}`,
+      subject: `FanGeo moderation report — ${reportType}`,
       html,
     }),
   })

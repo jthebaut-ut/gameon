@@ -284,7 +284,7 @@ private nonisolated struct LiveMatchRow: Decodable {
             let homeTeam = Self.clean(home_team),
             let awayTeam = Self.clean(away_team),
             let startRaw = Self.clean(start_time),
-            let start = Self.parseSupabaseTimestamp(startRaw)
+            let start = SupabaseTimestampParsing.parseTimestamptz(startRaw)
         else { return nil }
 
         let rawSport = Self.clean(sport)
@@ -327,18 +327,4 @@ private nonisolated struct LiveMatchRow: Decodable {
         }
     }
 
-    private nonisolated static func parseSupabaseTimestamp(_ raw: String) -> Date? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: trimmed) { return date }
-
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        if let date = plain.date(from: trimmed) { return date }
-
-        return nil
-    }
 }
