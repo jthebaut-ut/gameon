@@ -17,8 +17,13 @@ struct PublicUserProfilePreviewView: View {
     @State private var propsSummary: ProfilePropsSummary?
     @State private var isPropsActionInFlight = false
     @State private var propsActionError: String?
+    @State private var pokeSummary: ProfilePokeSummary?
+    @State private var isPokeInFlight = false
+    @State private var pokeActionError: String?
+    @State private var pokeJustSucceeded = false
 
     private let profilePropsService = ProfilePropsService()
+    private let profilePokesService = ProfilePokesService()
 
     var body: some View {
         NavigationStack {
@@ -53,6 +58,7 @@ struct PublicUserProfilePreviewView: View {
         .task(id: userId) {
             await loadProfile()
             await loadPropsSummary(for: userId)
+            await loadPokeSummary(for: userId)
         }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
             refreshFriendButtonState()
@@ -70,6 +76,7 @@ struct PublicUserProfilePreviewView: View {
 #endif
             }
         fanPropsSection(data)
+        pokeSection(data)
         reputationCard(data.reputation)
         favoriteTeamsCard(data.favoriteTeams)
         PublicProfilePickupOrganizerCard(creatorUserId: data.userId, stats: data.organizerStats)
@@ -82,6 +89,12 @@ struct PublicUserProfilePreviewView: View {
         }
         if let propsActionError, !propsActionError.isEmpty {
             Text(propsActionError)
+                .font(.caption)
+                .foregroundStyle(.red.opacity(0.9))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        if let pokeActionError, !pokeActionError.isEmpty {
+            Text(pokeActionError)
                 .font(.caption)
                 .foregroundStyle(.red.opacity(0.9))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -333,6 +346,105 @@ struct PublicUserProfilePreviewView: View {
         guard let propsSummary else { return "Fan Props loading" }
         guard propsSummary.count > 0 else { return "No Fan Props yet" }
         return propsSummary.count == 1 ? "1 Fan Prop" : "\(propsSummary.count) Fan Props"
+    }
+
+    @ViewBuilder
+    private func pokeSection(_ data: PublicUserProfileData) -> some View {
+        if canShowPropsControls(for: data.userId) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Pokes")
+                        .sectionHeaderStyle(colorScheme: colorScheme)
+                    Text(pokeCountText)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle((pokeSummary?.totalPokes ?? 0) == 0 ? FGColor.mutedText(colorScheme) : FGColor.secondaryText(colorScheme))
+                    if let cooldown = pokeCooldownHintText {
+                        Text(cooldown)
+                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    Task { await sendPoke(to: data.userId) }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: pokeButtonIcon)
+                            .font(.system(size: 11, weight: .bold))
+                        Text(pokeButtonTitle)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(pokeButtonForeground)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(pokeButtonBackground)
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(pokeButtonBorder, lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isPokeActionDisabled)
+                .opacity(isPokeActionDisabled ? 0.65 : 1)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackground)
+        }
+    }
+
+    private var pokeCountText: String {
+        guard let pokeSummary else { return "Pokes loading" }
+        guard pokeSummary.totalPokes > 0 else { return "No pokes yet" }
+        return pokeSummary.totalPokes == 1 ? "1 poke" : "\(pokeSummary.totalPokes) pokes"
+    }
+
+    private var pokeCooldownHintText: String? {
+        guard pokeJustSucceeded == false else { return nil }
+        guard let pokeSummary, !pokeSummary.viewerCanPokeNow else { return nil }
+        return Self.cooldownMessage(until: pokeSummary.viewerCooldownEndsAt)
+    }
+
+    private var pokeButtonTitle: String {
+        if pokeJustSucceeded { return "Poked!" }
+        if let pokeSummary, pokeSummary.viewerCanPokeNow { return "Poke" }
+        if pokeSummary != nil { return "Poke again soon" }
+        return "Poke"
+    }
+
+    private var pokeButtonIcon: String {
+        pokeJustSucceeded ? "checkmark" : "hand.wave.fill"
+    }
+
+    private var pokeButtonForeground: Color {
+        if pokeJustSucceeded { return FGColor.accentGreen }
+        if pokeSummary?.viewerCanPokeNow == true { return .white }
+        return FGColor.accentBlue
+    }
+
+    private var pokeButtonBackground: Color {
+        if pokeJustSucceeded {
+            return FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11)
+        }
+        if pokeSummary?.viewerCanPokeNow == true {
+            return FGColor.accentBlue
+        }
+        return FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10)
+    }
+
+    private var pokeButtonBorder: Color {
+        if pokeJustSucceeded { return FGColor.accentGreen.opacity(0.28) }
+        return FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.18)
+    }
+
+    private var isPokeActionDisabled: Bool {
+        isPokeInFlight || pokeSummary == nil || (pokeJustSucceeded == false && pokeSummary?.viewerCanPokeNow == false)
     }
 
     @ViewBuilder
@@ -591,6 +703,8 @@ struct PublicUserProfilePreviewView: View {
             } else {
                 try await profilePropsService.giveProps(to: targetUserId, source: "public_profile")
             }
+            ProfilePhase1PersonalizationCache.invalidateIncomingProps(for: targetUserId)
+            await loadPropsSummary(for: targetUserId)
             await MainActor.run {
                 isPropsActionInFlight = false
             }
@@ -606,6 +720,90 @@ struct PublicUserProfilePreviewView: View {
     private func canShowPropsControls(for targetUserId: UUID) -> Bool {
         guard let currentUserId = viewModel.currentUserAuthId else { return false }
         return currentUserId != targetUserId
+    }
+
+    private func loadPokeSummary(for targetUserId: UUID) async {
+        guard canShowPropsControls(for: targetUserId) else {
+            await MainActor.run {
+                pokeSummary = nil
+                pokeActionError = nil
+                pokeJustSucceeded = false
+            }
+            return
+        }
+
+        do {
+            let summary = try await profilePokesService.fetchPokeSummary(targetUserId: targetUserId)
+            await MainActor.run {
+                pokeSummary = summary
+                pokeActionError = nil
+            }
+        } catch {
+            await MainActor.run {
+                pokeSummary = nil
+                pokeActionError = "Couldn't load Pokes. Try again later."
+            }
+        }
+    }
+
+    private func sendPoke(to targetUserId: UUID) async {
+        guard canShowPropsControls(for: targetUserId), !isPokeInFlight else { return }
+        DebugLogGate.debug("[PokesUI] public poke tapped target=\(targetUserId.uuidString.lowercased())")
+
+        await MainActor.run {
+            isPokeInFlight = true
+            pokeActionError = nil
+            pokeJustSucceeded = false
+        }
+
+        do {
+            _ = try await profilePokesService.pokeProfile(targetUserId: targetUserId)
+            DebugLogGate.debug("[PokesUI] poke success")
+            await loadPokeSummary(for: targetUserId)
+            await MainActor.run {
+                pokeJustSucceeded = true
+                isPokeInFlight = false
+            }
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            await MainActor.run {
+                pokeJustSucceeded = false
+            }
+            await loadPokeSummary(for: targetUserId)
+        } catch let error as ProfilePokesServiceError {
+            switch error {
+            case .onCooldown(let until):
+                DebugLogGate.debug("[PokesUI] poke cooldown until=\(until ?? "unknown")")
+                await MainActor.run {
+                    pokeActionError = Self.cooldownMessage(until: until)
+                    isPokeInFlight = false
+                }
+            default:
+                await MainActor.run {
+                    pokeActionError = error.localizedDescription
+                    isPokeInFlight = false
+                }
+            }
+            await loadPokeSummary(for: targetUserId)
+        } catch {
+            await MainActor.run {
+                pokeActionError = "Couldn't send poke. Try again."
+                isPokeInFlight = false
+            }
+            await loadPokeSummary(for: targetUserId)
+        }
+    }
+
+    private static func cooldownMessage(until raw: String?) -> String {
+        guard let raw,
+              let end = SupabaseTimestampParsing.parseTimestamptz(raw),
+              end > Date() else {
+            return "You can poke again soon"
+        }
+        let minutes = max(1, Int(ceil(end.timeIntervalSinceNow / 60)))
+        if minutes < 60 {
+            return "You can poke again in \(minutes)m"
+        }
+        return "You can poke again soon"
     }
 
     private func refreshFriendButtonState() {

@@ -5,20 +5,28 @@ import PhotosUI
 import SwiftUI
 
 @MainActor
-private enum ProfilePhase1PersonalizationCache {
+enum ProfilePhase1PersonalizationCache {
     static let ttlSeconds: TimeInterval = 600
 
     static var incomingPropsLoadedAtByAuthId: [UUID: Date] = [:]
+    static var incomingPokesLoadedAtByAuthId: [UUID: Date] = [:]
     static var suggestedFansLoadedAtByAuthId: [UUID: Date] = [:]
 
     static func clear(for authId: UUID?) {
         guard let authId else {
             incomingPropsLoadedAtByAuthId.removeAll()
+            incomingPokesLoadedAtByAuthId.removeAll()
             suggestedFansLoadedAtByAuthId.removeAll()
             return
         }
         incomingPropsLoadedAtByAuthId.removeValue(forKey: authId)
+        incomingPokesLoadedAtByAuthId.removeValue(forKey: authId)
         suggestedFansLoadedAtByAuthId.removeValue(forKey: authId)
+    }
+
+    static func invalidateIncomingProps(for authId: UUID) {
+        incomingPropsLoadedAtByAuthId.removeValue(forKey: authId)
+        DebugLogGate.debug("[FanPropsDebug] cacheInvalidated key=incomingProps user=\(authId.uuidString.lowercased())")
     }
 }
 
@@ -63,6 +71,7 @@ struct ProfileIdentityCard: View {
     var isAccountTabActive: Bool = true
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focusedIdentityField: IdentityField?
 
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
@@ -85,6 +94,13 @@ struct ProfileIdentityCard: View {
     @State private var showFanPropsHighlightsSheet = false
     @State private var showClearFanPropsConfirm = false
     @State private var isClearingFanPropsHistory = false
+    @State private var incomingPokes: [ProfilePokeIncomingItem] = []
+    @State private var incomingPokeTotalCount = 0
+    @State private var isLoadingIncomingPokes = false
+    @State private var incomingPokesMessage: String?
+    @State private var showPokesHistorySheet = false
+    @State private var hasUnseenPokes = false
+    @State private var latestPokeAtBeforeRefresh: Date?
     @State private var suggestedFans: [FriendSuggestionProfile] = []
     @State private var isLoadingSuggestedFans = false
     @State private var suggestedFansMessage: String?
@@ -92,9 +108,18 @@ struct ProfileIdentityCard: View {
 
     private static let bioCharacterLimit = 160
     private static let incomingPropsHighlightsLimit = 24
+    private static let incomingPokesHighlightsLimit = 50
     private static let suggestedFansLimit = 12
+    /// Slow refresh while Account stays visible (not 1s polling).
+    private static let incomingPropsLiveRefreshIntervalSeconds = 15
+    private static let incomingPropsLiveRefreshIntervalNs: UInt64 =
+        UInt64(incomingPropsLiveRefreshIntervalSeconds) * 1_000_000_000
+    private static let incomingPokesLiveRefreshIntervalSeconds = 20
+    private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
+        UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
 
     private let profilePropsService = ProfilePropsService()
+    private let profilePokesService = ProfilePokesService()
     private let friendSuggestionsService = FriendSuggestionsService()
 
     private enum IdentityField: Hashable {
@@ -112,6 +137,21 @@ struct ProfileIdentityCard: View {
     private var profilePersonalizationLoadToken: String {
         let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
         return "\(auth)|active=\(isAccountTabActive)"
+    }
+
+    private var fanPropsLiveRefreshLoopToken: String {
+        let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
+        return "\(auth)|live=\(isAccountTabActive)"
+    }
+
+    private var pokesLiveRefreshLoopToken: String {
+        let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
+        return "\(auth)|pokesLive=\(isAccountTabActive)"
+    }
+
+    private var pokesAcknowledgedAtStorageKey: String {
+        let auth = viewModel.currentUserAuthId?.uuidString.lowercased() ?? "anonymous"
+        return "profilePokesLastAcknowledgedAt.\(auth)"
     }
 
     private var selectedTeams: [FavoriteTeam] {
@@ -198,6 +238,10 @@ struct ProfileIdentityCard: View {
         viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
     }
 
+    private var canShowOwnerPokesHighlights: Bool {
+        viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
+    }
+
     private var canShowSuggestedFans: Bool {
         viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
     }
@@ -214,6 +258,11 @@ struct ProfileIdentityCard: View {
 
             if canShowOwnerFanPropsHighlights {
                 fanPropsHighlightsSection
+                    .padding(.horizontal, 16)
+            }
+
+            if canShowOwnerPokesHighlights {
+                pokesHighlightsSection
                     .padding(.horizontal, 16)
             }
 
@@ -264,13 +313,25 @@ struct ProfileIdentityCard: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $showPokesHistorySheet) {
+            pokesHistorySheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .onChange(of: showFanPropsHighlightsSheet) { _, isPresented in
             if isPresented {
                 print("[FanPropsHistory] open sheet")
             }
         }
+        .onChange(of: showPokesHistorySheet) { _, isPresented in
+            if isPresented {
+                DebugLogGate.debug("[PokesUI] history opened")
+                acknowledgeIncomingPokes()
+            }
+        }
         .task(id: profilePersonalizationLoadToken) {
             guard isAccountTabActive else {
+                DebugLogGate.debug("[FanPropsLiveRefresh] skipped reason=accountHidden")
 #if DEBUG
                 print("[PerfPhase1C] profileLoadDeferred reason=accountTabHidden")
 #endif
@@ -279,8 +340,43 @@ struct ProfileIdentityCard: View {
 #if DEBUG
             print("[PerfPhase1C] profileLoadStarted reason=accountTabVisible")
 #endif
-            await loadIncomingPropsHighlights()
+            await refreshIncomingPropsLive(reason: "accountVisible")
+            await refreshIncomingPokesLive(reason: "accountVisible")
             await loadSuggestedFans()
+        }
+        .task(id: fanPropsLiveRefreshLoopToken) {
+            guard isAccountTabActive else {
+                DebugLogGate.debug("[FanPropsLiveRefresh] skipped reason=accountHidden")
+                return
+            }
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: Self.incomingPropsLiveRefreshIntervalNs)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, isAccountTabActive else { return }
+                await refreshIncomingPropsLive(reason: "slowInterval")
+            }
+        }
+        .task(id: pokesLiveRefreshLoopToken) {
+            guard isAccountTabActive else { return }
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: Self.incomingPokesLiveRefreshIntervalNs)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, isAccountTabActive else { return }
+                await refreshIncomingPokesLive(reason: "slowInterval")
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, isAccountTabActive else { return }
+            Task {
+                await refreshIncomingPropsLive(reason: "foreground")
+                await refreshIncomingPokesLive(reason: "foreground")
+            }
         }
         .onChange(of: selectedAvatarItem) { _, item in
             guard let item else { return }
@@ -379,37 +475,41 @@ struct ProfileIdentityCard: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.07 : 0.96),
-                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.09),
-                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.05 : 0.055)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [
-                                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.16),
-                                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.78)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.75
-                            )
-                    }
+                fanPropsHighlightsCardBackground
             }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(fanPropsHighlightsAccessibilityLabel)
         .accessibilityHint("Opens Fan Props history")
+    }
+
+    private var fanPropsHighlightsCardBackground: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(colorScheme == .dark ? 0.07 : 0.96),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.09),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.05 : 0.055)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.16),
+                                Color.white.opacity(colorScheme == .dark ? 0.06 : 0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.75
+                    )
+            }
     }
 
     private var fanPropsAvatarStack: some View {
@@ -519,16 +619,29 @@ struct ProfileIdentityCard: View {
                     Button("Done") { showFanPropsHighlightsSheet = false }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    if !incomingPropsFans.isEmpty {
-                        Button("Clear All", role: .destructive) {
-                            showClearFanPropsConfirm = true
+                    HStack(spacing: 14) {
+                        Button {
+                            Task { await forceRefreshIncomingPropsHighlights() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
                         }
-                        .disabled(isClearingFanPropsHistory)
+                        .disabled(isLoadingIncomingProps)
+                        .accessibilityLabel("Refresh Fan Props")
+
+                        if !incomingPropsFans.isEmpty {
+                            Button("Clear All", role: .destructive) {
+                                showClearFanPropsConfirm = true
+                            }
+                            .disabled(isClearingFanPropsHistory)
+                        }
                     }
                 }
             }
             .task {
-                await loadIncomingPropsHighlights(ignoreCache: true)
+                await forceRefreshIncomingPropsHighlights()
+            }
+            .refreshable {
+                await forceRefreshIncomingPropsHighlights()
             }
             .confirmationDialog(
                 "Clear Fan Props history?",
@@ -611,6 +724,31 @@ struct ProfileIdentityCard: View {
         }
     }
 
+    private func forceRefreshIncomingPropsHighlights() async {
+        DebugLogGate.debug("[FanPropsDebug] forceRefresh tapped")
+        await refreshIncomingPropsLive(reason: "manual")
+    }
+
+    /// Account-visible / foreground / slow-interval refresh: bypass TTL, keep Suggested Fans cache separate.
+    private func refreshIncomingPropsLive(reason: String) async {
+        guard isAccountTabActive else {
+            DebugLogGate.debug("[FanPropsLiveRefresh] skipped reason=accountHidden")
+            return
+        }
+        guard canShowOwnerFanPropsHighlights else { return }
+        if reason == "slowInterval" {
+            DebugLogGate.debug(
+                "[FanPropsLiveRefresh] slowInterval refresh interval=\(Self.incomingPropsLiveRefreshIntervalSeconds)s"
+            )
+        } else {
+            DebugLogGate.debug("[FanPropsLiveRefresh] \(reason) refresh")
+        }
+        if let authId = viewModel.currentUserAuthId {
+            ProfilePhase1PersonalizationCache.invalidateIncomingProps(for: authId)
+        }
+        await loadIncomingPropsHighlights(ignoreCache: true)
+    }
+
     private func loadIncomingPropsHighlights(ignoreCache: Bool = false) async {
         guard canShowOwnerFanPropsHighlights else {
             await MainActor.run {
@@ -623,6 +761,7 @@ struct ProfileIdentityCard: View {
 
         if let authId = viewModel.currentUserAuthId,
            !ignoreCache,
+           !incomingPropsFans.isEmpty,
            let loadedAt = ProfilePhase1PersonalizationCache.incomingPropsLoadedAtByAuthId[authId],
            Date().timeIntervalSince(loadedAt) < ProfilePhase1PersonalizationCache.ttlSeconds {
 #if DEBUG
@@ -653,8 +792,377 @@ struct ProfileIdentityCard: View {
                 incomingPropsMessage = "Couldn't load Fan Props"
                 isLoadingIncomingProps = false
             }
+            DebugLogGate.debug("[FanPropsDebug] fetchIncoming failed error=\(message) step=profile_identity_card")
+            DebugLogGate.debug("[FanPropsDebug] fetchIncoming rawError=\(String(describing: error))")
             print("[FanPropsHistory] load failed error=\(message)")
         }
+    }
+
+    // MARK: - Pokes highlights
+
+    private var pokesHighlightsSection: some View {
+        Button {
+            showPokesHistorySheet = true
+        } label: {
+            HStack(spacing: 11) {
+                pokesAvatarStack
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text("Pokes")
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                            .textCase(.uppercase)
+                            .tracking(0.7)
+
+                        Image(systemName: "hand.wave.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(FGColor.accentBlue)
+
+                        if hasUnseenPokes {
+                            Text("New")
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule(style: .continuous).fill(FGColor.accentBlue))
+                        }
+                    }
+
+                    Text(pokesHighlightsCopy)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(incomingPokeTotalCount == 0 ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+
+                    Text(pokesHighlightsSubcopy)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                if isLoadingIncomingPokes {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(FGColor.accentBlue)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.72))
+                }
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                pokesHighlightsCardBackground
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(pokesHighlightsAccessibilityLabel)
+        .accessibilityHint("Opens Pokes history")
+    }
+
+    private var pokesHighlightsCardBackground: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(colorScheme == .dark ? 0.07 : 0.96),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.09),
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.04 : 0.045)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.16),
+                                Color.white.opacity(colorScheme == .dark ? 0.06 : 0.78)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.75
+                    )
+            }
+    }
+
+    private var pokesAvatarStack: some View {
+        ZStack {
+            if uniqueRecentPokersForAvatars.isEmpty {
+                Circle()
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                    .frame(width: 42, height: 42)
+                    .overlay {
+                        Image(systemName: "hand.wave.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.9), lineWidth: 1)
+                    }
+            } else {
+                let visiblePokers = Array(uniqueRecentPokersForAvatars.prefix(4))
+                ZStack(alignment: .leading) {
+                    ForEach(Array(visiblePokers.enumerated()), id: \.element.id) { index, poke in
+                        pokesAvatar(poke)
+                            .offset(x: CGFloat(index) * 18)
+                            .zIndex(Double(visiblePokers.count - index))
+                    }
+                }
+                .frame(width: CGFloat(visiblePokers.count - 1) * 18 + 34, height: 36, alignment: .leading)
+            }
+        }
+        .frame(width: 88, alignment: .leading)
+    }
+
+    private var uniqueRecentPokersForAvatars: [ProfilePokeIncomingItem] {
+        var seen = Set<UUID>()
+        var ordered: [ProfilePokeIncomingItem] = []
+        for poke in incomingPokes {
+            if seen.insert(poke.pokerUserId).inserted {
+                ordered.append(poke)
+            }
+        }
+        return ordered
+    }
+
+    private func pokesAvatar(_ poke: ProfilePokeIncomingItem) -> some View {
+        UserAvatarView(
+            avatarThumbnailURL: poke.pokerAvatarThumbnailURL,
+            avatarURL: poke.pokerAvatarURL ?? "",
+            avatarDisplayRefreshToken: ProfileAvatarRefreshToken.stable(
+                userId: poke.pokerUserId,
+                thumbnailURL: poke.pokerAvatarThumbnailURL,
+                avatarURL: poke.pokerAvatarURL,
+                versionSuffix: poke.createdAt ?? ""
+            ),
+            displayName: poke.pokerDisplayName,
+            email: "",
+            size: 34,
+            fallbackStyle: .lightOnWhiteChrome,
+            imagePlaceholderTint: FGColor.accentBlue
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(Color(.secondarySystemGroupedBackground), lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 4, y: 2)
+    }
+
+    private var pokesHighlightsCopy: String {
+        if isLoadingIncomingPokes && incomingPokes.isEmpty {
+            return "Loading Pokes..."
+        }
+        guard incomingPokeTotalCount > 0 else { return "No pokes yet" }
+        return incomingPokeTotalCount == 1 ? "1 poke" : "\(incomingPokeTotalCount) pokes"
+    }
+
+    private var pokesHighlightsSubcopy: String {
+        if let incomingPokesMessage, !incomingPokesMessage.isEmpty {
+            return incomingPokesMessage
+        }
+        if hasUnseenPokes {
+            return "New pokes since you last checked"
+        }
+        return incomingPokeTotalCount == 0
+            ? "Fans can poke you from your public profile"
+            : "Most recent pokes first"
+    }
+
+    private var pokesHighlightsAccessibilityLabel: String {
+        incomingPokeTotalCount == 0 ? "Pokes, no pokes yet" : "Pokes, \(pokesHighlightsCopy)"
+    }
+
+    private var pokesHistorySheet: some View {
+        NavigationStack {
+            Group {
+                if isLoadingIncomingPokes && incomingPokes.isEmpty {
+                    ProgressView("Loading Pokes…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if incomingPokes.isEmpty {
+                    ContentUnavailableView(
+                        "No pokes yet",
+                        systemImage: "hand.wave.fill",
+                        description: Text("When fans poke you, they'll show up here.")
+                    )
+                } else {
+                    List(incomingPokes) { poke in
+                        Button {
+                            viewModel.presentPublicProfile(
+                                userId: poke.pokerUserId,
+                                context: "pokes_history",
+                                activeSheet: "Pokes"
+                            )
+                        } label: {
+                            pokesHistoryRow(poke)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Pokes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showPokesHistorySheet = false }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        Task { await forceRefreshIncomingPokes() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(isLoadingIncomingPokes)
+                    .accessibilityLabel("Refresh Pokes")
+                }
+            }
+            .task {
+                await forceRefreshIncomingPokes()
+            }
+            .refreshable {
+                await forceRefreshIncomingPokes()
+            }
+        }
+    }
+
+    private func pokesHistoryRow(_ poke: ProfilePokeIncomingItem) -> some View {
+        HStack(spacing: 12) {
+            UserAvatarView(
+                avatarThumbnailURL: poke.pokerAvatarThumbnailURL,
+                avatarURL: poke.pokerAvatarURL ?? "",
+                avatarDisplayRefreshToken: ProfileAvatarRefreshToken.stable(
+                    userId: poke.pokerUserId,
+                    thumbnailURL: poke.pokerAvatarThumbnailURL,
+                    avatarURL: poke.pokerAvatarURL,
+                    versionSuffix: poke.createdAt ?? ""
+                ),
+                displayName: poke.pokerDisplayName,
+                email: "",
+                size: 42,
+                fallbackStyle: .lightOnWhiteChrome
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(poke.pokerDisplayName)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+
+                if !poke.publicHandleLine.isEmpty {
+                    Text(poke.publicHandleLine)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(poke.relativePokedLabel)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .lineLimit(1)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    private func forceRefreshIncomingPokes() async {
+        await refreshIncomingPokesLive(reason: "manual")
+    }
+
+    private func refreshIncomingPokesLive(reason: String) async {
+        guard isAccountTabActive else { return }
+        await loadIncomingPokes(ignoreCache: true, markNewOnGrowth: reason != "manual")
+    }
+
+    private func loadIncomingPokes(ignoreCache: Bool = false, markNewOnGrowth: Bool = true) async {
+        guard canShowOwnerPokesHighlights, let authId = viewModel.currentUserAuthId else {
+            await MainActor.run {
+                incomingPokes = []
+                incomingPokeTotalCount = 0
+                incomingPokesMessage = nil
+                isLoadingIncomingPokes = false
+                hasUnseenPokes = false
+            }
+            return
+        }
+
+        if !ignoreCache,
+           !incomingPokes.isEmpty,
+           let loadedAt = ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId],
+           Date().timeIntervalSince(loadedAt) < ProfilePhase1PersonalizationCache.ttlSeconds {
+            return
+        }
+
+        await MainActor.run {
+            isLoadingIncomingPokes = true
+            incomingPokesMessage = nil
+        }
+
+        do {
+            async let itemsTask = profilePokesService.fetchMyIncomingPokes(limit: Self.incomingPokesHighlightsLimit)
+            async let summaryTask = profilePokesService.fetchPokeSummary(targetUserId: authId)
+            let items = try await itemsTask
+            let summary = try await summaryTask
+            let newLatest = Self.latestPokeDate(from: items)
+
+            await MainActor.run {
+                if markNewOnGrowth,
+                   !showPokesHistorySheet,
+                   let newLatest,
+                   let previous = latestPokeAtBeforeRefresh,
+                   newLatest > previous {
+                    hasUnseenPokes = true
+                }
+                incomingPokes = items
+                incomingPokeTotalCount = summary.totalPokes
+                incomingPokesMessage = nil
+                isLoadingIncomingPokes = false
+                latestPokeAtBeforeRefresh = newLatest
+                ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId] = Date()
+                reconcileUnseenPokesState()
+            }
+            DebugLogGate.debug("[PokesUI] incoming load count=\(items.count) total=\(summary.totalPokes)")
+        } catch {
+            let message = error.localizedDescription
+            await MainActor.run {
+                incomingPokes = []
+                incomingPokeTotalCount = 0
+                incomingPokesMessage = "Couldn't load Pokes"
+                isLoadingIncomingPokes = false
+            }
+        }
+    }
+
+    private func reconcileUnseenPokesState() {
+        guard let latest = Self.latestPokeDate(from: incomingPokes) else {
+            hasUnseenPokes = false
+            return
+        }
+        let acknowledgedAt = UserDefaults.standard.object(forKey: pokesAcknowledgedAtStorageKey) as? Date ?? .distantPast
+        if latest > acknowledgedAt {
+            hasUnseenPokes = true
+        }
+    }
+
+    private func acknowledgeIncomingPokes() {
+        let stamp = Self.latestPokeDate(from: incomingPokes) ?? Date()
+        UserDefaults.standard.set(stamp, forKey: pokesAcknowledgedAtStorageKey)
+        hasUnseenPokes = false
+    }
+
+    private static func latestPokeDate(from items: [ProfilePokeIncomingItem]) -> Date? {
+        items.compactMap { FanPropsRelativeTime.parse($0.createdAt) }.max()
     }
 
     // MARK: - Suggested fans
