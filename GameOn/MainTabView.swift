@@ -21,10 +21,14 @@ struct MainTabView: View {
     @State private var discoverCalendarOverlayPresented = false
     /// Sticky lazy mount: Discover at launch; other tabs insert on first selection and stay mounted.
     @State private var mountedTabs: Set<AppTab> = [.discover]
+    @State private var didStartChatSocialRealtime = false
+    @State private var chatSocialRealtimeDeferTask: Task<Void, Never>?
+    @State private var foregroundDeferredBatchTask: Task<Void, Never>?
 
-    private static let pokesBadgeRefreshIntervalSeconds = 22
-    private static let pokesBadgeRefreshIntervalNs: UInt64 =
-        UInt64(pokesBadgeRefreshIntervalSeconds) * 1_000_000_000
+    private static let pokesBadgePollIntervalUnseenSeconds = 22
+    private static let pokesBadgePollIntervalIdleSeconds = 105
+    private static let chatSocialRealtimeGracePeriodSeconds: TimeInterval = 9
+    private static let foregroundDeferredBatchDelayNs: UInt64 = 1_750_000_000
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -172,6 +176,10 @@ struct MainTabView: View {
             logBottomTabStructure()
             updateDirectChatReadStateVisibility()
             showBlockingFanIdentitySetup = viewModel.needsBlockingFanIdentitySetup
+            scheduleDeferredChatSocialRealtimeStartupIfNeeded()
+            if selectedTab == .chat, viewModel.isAuthenticatedForSocialFeatures {
+                Task { await startChatSocialRealtimeIfNeeded(reason: "launchVisibleChatTab") }
+            }
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
@@ -197,15 +205,23 @@ struct MainTabView: View {
 
             if viewModel.isAuthenticatedForSocialFeatures {
                 await chatViewModel.loadIfNeeded()
-                await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+                DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=fallbackBootstrapLoadOnly")
+                scheduleDeferredChatSocialRealtimeStartupIfNeeded()
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()
                 }
             }
         }
-        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+        .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, authenticated in
             updateDirectChatReadStateVisibility()
+            if !authenticated {
+                didStartChatSocialRealtime = false
+                chatSocialRealtimeDeferTask?.cancel()
+                chatSocialRealtimeDeferTask = nil
+            } else {
+                scheduleDeferredChatSocialRealtimeStartupIfNeeded()
+            }
             Task { await syncChatAuthState() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, _ in
@@ -246,43 +262,7 @@ struct MainTabView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
-            Task {
-                let hasSession = await viewModel.hasValidSession()
-                if !hasSession {
-                    await MainActor.run {
-                        viewModel.clearAuthenticatedSessionCaches()
-                        viewModel.clearVenueOwnerDraftState()
-                        viewModel.isLoggedIn = false
-                        viewModel.isVenueOwnerLoggedIn = false
-                        viewModel.venueOwnerMode = false
-                        viewModel.isAdminLoggedIn = false
-                        viewModel.clearPersistedAccountMode()
-                        chatViewModel.clearForSignOut()
-                    }
-                    return
-                }
-                if viewModel.hasAuthenticatedVenueOwnerSession {
-                    await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-                    viewModel.checkVenueApprovalStatus()
-                }
-                if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
-                    await viewModel.enforceFanSingleSessionOnForeground()
-                    await viewModel.startFanSingleSessionRealtimeIfNeeded()
-                    await viewModel.refreshUnseenPokesBadgeIfNeeded()
-                }
-                guard viewModel.isAuthenticatedForSocialFeatures else { return }
-                await viewModel.checkCurrentUserAdminStatus()
-                chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
-                await viewModel.verifyFanChatRealtimeAfterForeground()
-                await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
-                if viewModel.canFanUsePickupGamesUI {
-                    if AppTab(rawValue: selectedTabStorage) == .calendar {
-                        await viewModel.refreshCalendarTabPickupSources()
-                    } else {
-                        await viewModel.loadMyPickupGameJoinRequestsForFollowing()
-                    }
-                }
-            }
+            Task { await handleAppBecameActive() }
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
             guard go else { return }
@@ -312,6 +292,7 @@ struct MainTabView: View {
             case .chat:
                 updateDirectChatReadStateVisibility()
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
+                Task { await startChatSocialRealtimeIfNeeded(reason: "chatTabSelected") }
                 chatViewModel.requestBadgeRecalculation(reason: "chat_tab_selected", includeInboxSummaries: true)
             default:
                 privateChatUnlockedForCurrentSelection = false
@@ -320,20 +301,7 @@ struct MainTabView: View {
             }
         }
         .task(id: pokesBadgeRefreshLoopToken) {
-            guard viewModel.canReceiveProfilePokes else {
-                viewModel.clearUnseenPokesBadgeState()
-                return
-            }
-            await viewModel.refreshUnseenPokesBadgeIfNeeded()
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(nanoseconds: Self.pokesBadgeRefreshIntervalNs)
-                } catch {
-                    return
-                }
-                guard !Task.isCancelled, viewModel.canReceiveProfilePokes else { return }
-                await viewModel.refreshUnseenPokesBadgeIfNeeded()
-            }
+            await runPokesBadgeRefreshLoop()
         }
         .environmentObject(chatViewModel)
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
@@ -879,7 +847,186 @@ struct MainTabView: View {
 
     private var pokesBadgeRefreshLoopToken: String {
         let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
-        return "\(auth)|pokesBadge=\(viewModel.canReceiveProfilePokes)"
+        return "\(auth)|pokes=\(viewModel.canReceiveProfilePokes)|unseen=\(viewModel.hasUnseenPokes)"
+    }
+
+    private func pokesBadgePollIntervalSeconds() -> Int {
+        viewModel.hasUnseenPokes
+            ? Self.pokesBadgePollIntervalUnseenSeconds
+            : Self.pokesBadgePollIntervalIdleSeconds
+    }
+
+    private func runPokesBadgeRefreshLoop() async {
+        guard viewModel.canReceiveProfilePokes else {
+            viewModel.clearUnseenPokesBadgeState()
+            return
+        }
+
+        while !Task.isCancelled {
+            guard viewModel.canReceiveProfilePokes else {
+                viewModel.clearUnseenPokesBadgeState()
+                return
+            }
+
+            if scenePhase != .active {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                continue
+            }
+
+            let intervalSeconds = pokesBadgePollIntervalSeconds()
+            DebugLogGate.debug("[PerfPhase2D] pokesBadgePoll interval=\(intervalSeconds)")
+            await viewModel.refreshUnseenPokesBadgeIfNeeded()
+
+            do {
+                try await Task.sleep(nanoseconds: UInt64(intervalSeconds) * 1_000_000_000)
+            } catch {
+                return
+            }
+        }
+    }
+
+    private var hasOpenVenueEventCommentsSheet: Bool {
+        !viewModel.venueEventCommentsRealtimeTasks.isEmpty
+            || !viewModel.venueEventCommentsRealtimeChannels.isEmpty
+            || !viewModel.venueEventCommentsRealtimeListenerTokens.isEmpty
+    }
+
+    private func scheduleDeferredChatSocialRealtimeStartupIfNeeded() {
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        guard !didStartChatSocialRealtime else { return }
+        chatSocialRealtimeDeferTask?.cancel()
+        DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=gracePeriodScheduled")
+        chatSocialRealtimeDeferTask = Task {
+            do {
+                try await Task.sleep(
+                    nanoseconds: UInt64(Self.chatSocialRealtimeGracePeriodSeconds * 1_000_000_000)
+                )
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            await startChatSocialRealtimeIfNeeded(reason: "bootstrapGracePeriod")
+        }
+    }
+
+    private func startChatSocialRealtimeIfNeeded(reason: String) async {
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        guard !didStartChatSocialRealtime else { return }
+        didStartChatSocialRealtime = true
+        chatSocialRealtimeDeferTask?.cancel()
+        chatSocialRealtimeDeferTask = nil
+        DebugLogGate.debug("[PerfPhase2D] chatRealtimeStarted reason=\(reason)")
+        await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+    }
+
+    private func handleAppBecameActive() async {
+        DebugLogGate.debug("[PerfPhase2D] foregroundBatch criticalStart")
+
+        let hasSession = await viewModel.hasValidSession()
+        if !hasSession {
+            await MainActor.run {
+                viewModel.clearAuthenticatedSessionCaches()
+                viewModel.clearVenueOwnerDraftState()
+                viewModel.isLoggedIn = false
+                viewModel.isVenueOwnerLoggedIn = false
+                viewModel.venueOwnerMode = false
+                viewModel.isAdminLoggedIn = false
+                viewModel.clearPersistedAccountMode()
+                chatViewModel.clearForSignOut()
+                didStartChatSocialRealtime = false
+                chatSocialRealtimeDeferTask?.cancel()
+                chatSocialRealtimeDeferTask = nil
+            }
+            return
+        }
+
+        if viewModel.hasAuthenticatedVenueOwnerSession {
+            await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            viewModel.checkVenueApprovalStatus()
+        }
+
+        if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
+            await viewModel.enforceFanSingleSessionOnForeground()
+            await viewModel.startFanSingleSessionRealtimeIfNeeded()
+        }
+
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+        await viewModel.checkCurrentUserAdminStatus()
+
+        let currentTab = AppTab(rawValue: selectedTabStorage) ?? .discover
+
+        if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
+            await viewModel.refreshUnseenPokesBadgeIfNeeded()
+        }
+
+        if currentTab == .chat {
+            let hadChatRealtime = didStartChatSocialRealtime
+            await startChatSocialRealtimeIfNeeded(reason: "foregroundVisibleChatTab")
+            if hadChatRealtime {
+                chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
+            }
+        }
+
+        if hasOpenVenueEventCommentsSheet {
+            await viewModel.verifyFanChatRealtimeAfterForeground()
+        }
+
+        if viewModel.canFanUsePickupGamesUI {
+            if currentTab == .calendar {
+                await viewModel.refreshCalendarTabPickupSources()
+            } else if currentTab == .following {
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+            }
+        }
+
+        foregroundDeferredBatchTask?.cancel()
+        foregroundDeferredBatchTask = Task {
+            await runForegroundDeferredBatch(visibleTab: currentTab)
+        }
+    }
+
+    private func runForegroundDeferredBatch(visibleTab: AppTab) async {
+        DebugLogGate.debug("[PerfPhase2D] foregroundBatch deferredStart")
+        do {
+            try await Task.sleep(nanoseconds: Self.foregroundDeferredBatchDelayNs)
+        } catch {
+            return
+        }
+        guard !Task.isCancelled else { return }
+
+        if visibleTab != .chat {
+            if viewModel.isAuthenticatedForSocialFeatures {
+                if didStartChatSocialRealtime {
+                    chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
+                } else {
+                    await startChatSocialRealtimeIfNeeded(reason: "foregroundDeferred")
+                }
+            } else {
+                DebugLogGate.debug("[PerfPhase2D] foregroundBatch skipped reason=chatSocialNotAuthenticated")
+            }
+        } else {
+            DebugLogGate.debug("[PerfPhase2D] foregroundBatch skipped reason=chatSocialVisibleTabHandled")
+        }
+
+        if !hasOpenVenueEventCommentsSheet {
+            await viewModel.verifyFanChatRealtimeAfterForeground()
+        } else {
+            DebugLogGate.debug("[PerfPhase2D] foregroundBatch skipped reason=fanChatVerifySheetOpen")
+        }
+
+        guard viewModel.canFanUsePickupGamesUI else { return }
+
+        if visibleTab != .calendar {
+            await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
+        } else {
+            DebugLogGate.debug("[PerfPhase2D] foregroundBatch skipped reason=pickupCalendarVisibleTabHandled")
+        }
+
+        if visibleTab != .following {
+            await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+        } else {
+            DebugLogGate.debug("[PerfPhase2D] foregroundBatch skipped reason=pickupFollowingVisibleTabHandled")
+        }
     }
 
     /// Avatar only; pickup participation activity now belongs in Going.

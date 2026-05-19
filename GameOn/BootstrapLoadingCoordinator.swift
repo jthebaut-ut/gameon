@@ -75,7 +75,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
             }
             if shouldLoadChat {
                 await chatViewModel.loadIfNeeded()
-                await chatViewModel.ensureSignedInSocialRealtimeIfNeeded()
+                DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=bootstrapLoadOnly")
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()
