@@ -261,13 +261,32 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
         }
     }
 
+    private static func normalizedGameTitle(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func venueEventTitlesMatch(_ storedTitle: String?, _ gameTitle: String) -> Bool {
+        let lhs = normalizedGameTitle(storedTitle ?? "")
+        let rhs = normalizedGameTitle(gameTitle)
+        guard !lhs.isEmpty, !rhs.isEmpty else { return false }
+        return lhs.caseInsensitiveCompare(rhs) == .orderedSame
+    }
+
     private static func cachedVenueEventID(
         for bar: BarVenue,
         gameTitle: String,
         input: DiscoverMapSnapshotDetachedInput
     ) -> UUID? {
-        let primary = "\(bar.id.uuidString)-\(gameTitle)"
+        let trimmed = normalizedGameTitle(gameTitle)
+        guard !trimmed.isEmpty else { return nil }
+        let primary = "\(bar.id.uuidString)-\(trimmed)"
         if let id = input.venueEventIDsByKey[primary] {
+            return id
+        }
+        if let id = input.venueEventIDsByKey["\(bar.id.uuidString)-\(gameTitle)"] {
+            return id
+        }
+        if let id = input.venueEventIDsByKey["\(bar.name)-\(trimmed)"] {
             return id
         }
         return input.venueEventIDsByKey["\(bar.name)-\(gameTitle)"]
@@ -279,9 +298,11 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
         input: DiscoverMapSnapshotDetachedInput
     ) -> VenueEventRow? {
         input.venueEventRows.first { row in
-            guard row.event_title == gameTitle else { return false }
+            guard venueEventTitlesMatch(row.event_title, gameTitle) else { return false }
             if let venueID = row.venue_id, venueID == bar.id { return true }
-            if row.venue_name == bar.name { return true }
+            let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !venueName.isEmpty, venueName.caseInsensitiveCompare(barName) == .orderedSame { return true }
             if let owner = row.owner_email,
                let barOwner = bar.ownerEmail,
                OwnerBusinessEmail.normalized(owner) == OwnerBusinessEmail.normalized(barOwner) {

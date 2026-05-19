@@ -327,6 +327,8 @@ struct FriendsTabView: View {
             }
         case .nativeAd:
             CompactNativeAdCard(
+                placement: "chat.inboxFeed",
+                hostTabRaw: "chat",
                 slotIndex: ChatInboxAdPlacement.nativeAdSlotIndex,
                 layoutWidth: max(280, layoutWidth)
             )

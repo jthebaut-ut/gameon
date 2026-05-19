@@ -62,45 +62,6 @@ enum AdMobConfiguration {
     }
 }
 
-enum AdMobDiagnostics {
-    static func logBootstrap() {
-        log("appIDLoadedFromPlist=\(loadedApplicationIDFromPlist() ?? "missing")")
-        log("configuredApplicationID=\(AdMobConfiguration.applicationID)")
-        log("usesTestAds=\(AdMobConfiguration.usesTestAds)")
-        log("nativeUsesTemporaryTestUnitInRelease=\(AdMobConfiguration.nativeAdsUseTemporaryTestUnitInRelease)")
-        log("nativeValidatorPopupEnabled=\(AdMobConfiguration.enableNativeAdValidatorPopup)")
-    }
-
-    static func logUnitSelection(format: String, unitID: String) {
-        log("format=\(format) unitID=\(unitID) usesTestAds=\(AdMobConfiguration.usesTestAds)")
-        if format == "native", AdMobConfiguration.nativeAdsUseTemporaryTestUnitInRelease {
-            log("nativeReleaseMode=temporary_google_test_unit awaiting_real_production_native_unit")
-        }
-    }
-
-    static func logLoadSuccess(format: String, unitID: String?) {
-        log("loadSuccess format=\(format) unitID=\(unitID ?? "unknown")")
-    }
-
-    static func logLoadFailure(format: String, unitID: String?, error: Error) {
-        let nsError = error as NSError
-        let message = nsError.localizedDescription.replacingOccurrences(of: "\n", with: " ")
-        log("loadFailure format=\(format) unitID=\(unitID ?? "unknown") domain=\(nsError.domain) code=\(nsError.code) message=\(message)")
-    }
-
-    static func logMissingRootViewController(format: String, unitID: String?) {
-        log("rootViewControllerMissing format=\(format) unitID=\(unitID ?? "unknown")")
-    }
-
-    private static func loadedApplicationIDFromPlist() -> String? {
-        Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
-    }
-
-    private static func log(_ message: String) {
-        print("[AdMobDiagnostics] \(message)")
-    }
-}
-
 /// Backward-compatible name used by older call sites.
 enum AdMobTestConfiguration {
     static var testBannerAdUnitID: String { AdMobConfiguration.testBannerAdUnitID }
@@ -142,6 +103,7 @@ enum GoogleMobileAdsBootstrap {
         AdMobDiagnostics.logBootstrap()
         Task {
             _ = await MobileAds.shared.start()
+            AdDebugDiagnostics.logSDKStartCompleted()
         }
     }
 }

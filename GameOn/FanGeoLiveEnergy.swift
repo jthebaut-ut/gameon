@@ -44,10 +44,6 @@ struct FanGeoLiveEnergy {
             chips.append(goingCount == 1 ? "👥 1 fan" : "👥 \(goingCount) fans")
         }
 
-        if commentCount > 0 {
-            chips.append(commentCount == 1 ? "💬 1 chatting" : "💬 \(commentCount) chatting")
-        }
-
         return Array(chips.prefix(4))
     }
 }
@@ -142,9 +138,6 @@ struct VenueGamePreviewEnergy {
         }
         if friendGoingCount > 0 {
             parts.append(friendGoingCount == 1 ? "1 friend there" : "\(friendGoingCount) friends there")
-        }
-        if commentCount > 0 {
-            parts.append(commentCount == 1 ? "1 chatting" : "\(commentCount) chatting")
         }
         if !parts.isEmpty {
             return parts.prefix(3).joined(separator: " • ")

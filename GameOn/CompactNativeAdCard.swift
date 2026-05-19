@@ -6,10 +6,28 @@ import UIKit
 
 /// Compact in-feed native ad for venue comment threads (AdMob native format).
 struct CompactNativeAdCard: View {
+    let placement: String
+    let hostTabRaw: String
     let slotIndex: Int
     let layoutWidth: CGFloat
     var onAdLoaded: (() -> Void)? = nil
     var onAdFailed: ((Error) -> Void)? = nil
+
+    init(
+        placement: String,
+        hostTabRaw: String,
+        slotIndex: Int,
+        layoutWidth: CGFloat,
+        onAdLoaded: (() -> Void)? = nil,
+        onAdFailed: ((Error) -> Void)? = nil
+    ) {
+        self.placement = placement
+        self.hostTabRaw = hostTabRaw
+        self.slotIndex = slotIndex
+        self.layoutWidth = layoutWidth
+        self.onAdLoaded = onAdLoaded
+        self.onAdFailed = onAdFailed
+    }
 
     @State private var adLoaded = false
     @State private var adFailed = false
@@ -18,6 +36,8 @@ struct CompactNativeAdCard: View {
         Group {
             if !adFailed {
                 CompactNativeAdRepresentable(
+                    placement: placement,
+                    hostTabRaw: hostTabRaw,
                     adUnitID: AdMobConfiguration.nativeAdUnitID,
                     slotIndex: slotIndex,
                     layoutWidth: layoutWidth,
@@ -45,6 +65,22 @@ struct CompactNativeAdCard: View {
                 .frame(height: adLoaded ? CompactNativeAdHostView.preferredHeight : 0)
                 .opacity(adLoaded ? 1 : 0)
                 .allowsHitTesting(adLoaded)
+                .onAppear {
+                    AdDebugDiagnostics.logEvent(
+                        event: "swiftUIHostAppear",
+                        format: "native",
+                        placement: placement,
+                        fields: [
+                            "slotIndex": "\(slotIndex)",
+                            "layoutWidth": String(format: "%.1f", layoutWidth),
+                            "zeroLayoutWidth": "\(layoutWidth <= 0)",
+                            "hostTab": hostTabRaw,
+                            "hostTabOffscreenPreserved": "\(AdDebugContext.isTabOffscreenPreserved(tabRaw: hostTabRaw))",
+                            "adLoaded": "\(adLoaded)",
+                            "nativeOpacityUntilLoad": "0"
+                        ]
+                    )
+                }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Sponsored advertisement")
             }
@@ -55,6 +91,8 @@ struct CompactNativeAdCard: View {
 // MARK: - UIKit native ad host
 
 private struct CompactNativeAdRepresentable: UIViewRepresentable {
+    let placement: String
+    let hostTabRaw: String
     let adUnitID: String
     let slotIndex: Int
     let layoutWidth: CGFloat
@@ -62,12 +100,29 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
     let onAdFailed: (Error) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAdLoaded: onAdLoaded, onAdFailed: onAdFailed)
+        Coordinator(
+            placement: placement,
+            hostTabRaw: hostTabRaw,
+            onAdLoaded: onAdLoaded,
+            onAdFailed: onAdFailed
+        )
     }
 
     func makeUIView(context: Context) -> CompactNativeAdHostView {
         let view = CompactNativeAdHostView(frame: .zero)
         context.coordinator.attach(hostView: view)
+        AdDebugDiagnostics.logViewSnapshot(
+            phase: "makeUIView",
+            format: "native",
+            placement: placement,
+            unitID: adUnitID,
+            view: view,
+            adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+            slotSize: nil,
+            layoutWidth: layoutWidth,
+            hostTabRaw: hostTabRaw,
+            extra: ["slotIndex": "\(slotIndex)"]
+        )
         context.coordinator.loadIfNeeded(
             adUnitID: adUnitID,
             slotIndex: slotIndex,
@@ -78,6 +133,18 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
     func updateUIView(_ uiView: CompactNativeAdHostView, context: Context) {
         context.coordinator.attach(hostView: uiView)
+        AdDebugDiagnostics.logViewSnapshot(
+            phase: "updateUIView",
+            format: "native",
+            placement: placement,
+            unitID: adUnitID,
+            view: uiView,
+            adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+            slotSize: nil,
+            layoutWidth: layoutWidth,
+            hostTabRaw: hostTabRaw,
+            extra: ["slotIndex": "\(slotIndex)"]
+        )
     }
 
     static func dismantleUIView(_ uiView: CompactNativeAdHostView, coordinator: Coordinator) {
@@ -86,14 +153,24 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, NativeAdLoaderDelegate {
+        let placement: String
+        let hostTabRaw: String
         private weak var hostView: CompactNativeAdHostView?
         private var adLoader: AdLoader?
         private var nativeAd: NativeAd?
         private var currentAdUnitID: String?
+        private var requestStartedAt: Date?
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
 
-        init(onAdLoaded: @escaping () -> Void, onAdFailed: @escaping (Error) -> Void) {
+        init(
+            placement: String,
+            hostTabRaw: String,
+            onAdLoaded: @escaping () -> Void,
+            onAdFailed: @escaping (Error) -> Void
+        ) {
+            self.placement = placement
+            self.hostTabRaw = hostTabRaw
             self.onAdLoaded = onAdLoaded
             self.onAdFailed = onAdFailed
         }
@@ -104,13 +181,45 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
         func loadIfNeeded(adUnitID: String, slotIndex: Int, layoutWidth: CGFloat) {
             guard adLoader == nil, nativeAd == nil else { return }
+
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "preRequest",
+                format: "native",
+                placement: placement,
+                unitID: adUnitID,
+                view: hostView,
+                adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+                slotSize: nil,
+                layoutWidth: layoutWidth,
+                hostTabRaw: hostTabRaw,
+                extra: [
+                    "slotIndex": "\(slotIndex)",
+                    "swiftUINativeHiddenUntilLoad": "true"
+                ]
+            )
+
             guard let root = AdMobRootViewController.topViewController() else {
-                AdMobDiagnostics.logMissingRootViewController(format: "native", unitID: adUnitID)
+                AdDebugDiagnostics.logMissingRootViewController(
+                    format: "native",
+                    placement: placement,
+                    unitID: adUnitID
+                )
                 onAdFailed(CompactNativeAdError.missingRootViewController)
                 return
             }
 
             currentAdUnitID = adUnitID
+            requestStartedAt = Date()
+            AdDebugDiagnostics.logRequestStart(
+                format: "native",
+                placement: placement,
+                unitID: adUnitID,
+                adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+                slotSize: nil,
+                layoutWidth: layoutWidth,
+                extra: ["slotIndex": "\(slotIndex)", "rootVC": String(describing: type(of: root))]
+            )
+
             let loader = AdLoader(
                 adUnitID: adUnitID,
                 rootViewController: root,
@@ -120,8 +229,6 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             loader.delegate = self
             adLoader = loader
             loader.load(Request())
-            _ = slotIndex
-            _ = layoutWidth
         }
 
         func teardown() {
@@ -137,19 +244,64 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             self.nativeAd = nativeAd
             nativeAd.delegate = self
             hostView?.populate(with: nativeAd)
-            AdMobDiagnostics.logLoadSuccess(format: "native", unitID: currentAdUnitID)
+            let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            AdDebugDiagnostics.logResponseSuccess(
+                format: "native",
+                placement: placement,
+                unitID: currentAdUnitID,
+                elapsedMs: elapsed,
+                adSize: CGSize(width: CompactNativeAdHostView.preferredHeight, height: CompactNativeAdHostView.preferredHeight)
+            )
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "didReceiveAd",
+                format: "native",
+                placement: placement,
+                unitID: currentAdUnitID,
+                view: hostView,
+                adSize: CGSize(width: CompactNativeAdHostView.preferredHeight, height: CompactNativeAdHostView.preferredHeight),
+                slotSize: nil,
+                layoutWidth: nil,
+                hostTabRaw: hostTabRaw
+            )
             onAdLoaded()
         }
 
         func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
-            AdMobDiagnostics.logLoadFailure(format: "native", unitID: currentAdUnitID, error: error)
+            let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            AdDebugDiagnostics.logResponseFailure(
+                format: "native",
+                placement: placement,
+                unitID: currentAdUnitID,
+                error: error,
+                elapsedMs: elapsed
+            )
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "didFailToReceiveAd",
+                format: "native",
+                placement: placement,
+                unitID: currentAdUnitID,
+                view: hostView,
+                adSize: nil,
+                slotSize: nil,
+                layoutWidth: nil,
+                hostTabRaw: hostTabRaw
+            )
             onAdFailed(error)
             teardown()
         }
     }
 }
 
-extension CompactNativeAdRepresentable.Coordinator: NativeAdDelegate {}
+extension CompactNativeAdRepresentable.Coordinator: NativeAdDelegate {
+    func nativeAdDidRecordImpression(_ nativeAd: NativeAd) {
+        AdDebugDiagnostics.logEvent(
+            event: "impressionRecorded",
+            format: "native",
+            placement: placement,
+            fields: ["unitID": currentAdUnitID ?? "unknown"]
+        )
+    }
+}
 
 private enum CompactNativeAdError: LocalizedError {
     case missingRootViewController

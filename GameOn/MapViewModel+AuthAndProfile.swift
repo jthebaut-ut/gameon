@@ -230,6 +230,8 @@ extension MapViewModel {
         interestedVenueEventKeys = []
         favoriteVenueWriteInFlightIDs = []
         venueEventInterestWriteInFlightIDs = []
+        recentlyConfirmedVenueEventGoingAt = [:]
+        recentlyConfirmedVenueEventNotGoingAt = [:]
         venueEventInterestIDs = []
         venueEventInterestCounts = [:]
         socialActionToastDismissTask?.cancel()

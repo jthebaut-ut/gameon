@@ -92,7 +92,8 @@ struct ProfileIdentityCard: View {
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
-    private static let suggestedFansLimit = 12
+    private static let suggestedFansDisplayLimit = 10
+    private static let suggestedFansFetchLimit = 30
     private static let incomingPokesLiveRefreshIntervalSeconds = 20
     private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
         UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
@@ -724,15 +725,22 @@ struct ProfileIdentityCard: View {
 
     // MARK: - Suggested fans
 
+    private var displayedSuggestedFans: [FriendSuggestionProfile] {
+        Array(suggestedFans.prefix(Self.suggestedFansDisplayLimit))
+    }
+
     private var suggestedFansSection: some View {
         ProfileSuggestedFansSection(
-            suggestions: suggestedFans,
+            suggestions: displayedSuggestedFans,
             isLoading: isLoadingSuggestedFans,
             message: suggestedFansMessage,
             sendingRequestIds: sendingSuggestedFanRequestIds,
             chipKind: { chatViewModel.chipKind(forOtherUserId: $0) },
             onAdd: { suggestion in
                 Task { await addSuggestedFan(suggestion) }
+            },
+            onDismiss: { suggestion in
+                Task { await dismissSuggestedFan(suggestion) }
             }
         )
     }
@@ -767,7 +775,9 @@ struct ProfileIdentityCard: View {
         }
 
         do {
-            let suggestions = try await friendSuggestionsService.fetchSuggestions(limit: Self.suggestedFansLimit)
+            let suggestions = try await friendSuggestionsService.fetchSuggestions(
+                limit: Self.suggestedFansFetchLimit
+            )
             await MainActor.run {
                 suggestedFans = suggestions
                 suggestedFansMessage = nil
@@ -804,6 +814,28 @@ struct ProfileIdentityCard: View {
         await chatViewModel.sendFriendRequest(to: suggestion.userID)
         await MainActor.run {
             _ = sendingSuggestedFanRequestIds.remove(suggestion.userID)
+        }
+    }
+
+    @MainActor
+    private func dismissSuggestedFan(_ suggestion: FriendSuggestionProfile) async {
+        guard canShowSuggestedFans else { return }
+        let dismissedId = suggestion.userID
+        let visibleBefore = displayedSuggestedFans.map(\.userID)
+
+        suggestedFans.removeAll { $0.userID == dismissedId }
+        sendingSuggestedFanRequestIds.remove(dismissedId)
+
+        print("[SuggestedFans] dismissed user=\(dismissedId.uuidString.lowercased())")
+
+        if let replacementId = displayedSuggestedFans.map(\.userID).first(where: { !visibleBefore.contains($0) }) {
+            print("[SuggestedFans] replacement loaded user=\(replacementId.uuidString.lowercased())")
+        }
+
+        do {
+            try await friendSuggestionsService.dismissSuggestion(dismissedUserId: dismissedId)
+        } catch {
+            DebugLogGate.debug("[SuggestedFans] dismiss persist failed user=\(dismissedId.uuidString.lowercased()) error=\(error.localizedDescription)")
         }
     }
 
@@ -1580,6 +1612,7 @@ private struct ProfileSuggestedFansSection: View {
     let sendingRequestIds: Set<UUID>
     let chipKind: (UUID) -> ChatViewModel.FriendshipChipKind
     let onAdd: (FriendSuggestionProfile) -> Void
+    let onDismiss: (FriendSuggestionProfile) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -1702,8 +1735,33 @@ private struct ProfileSuggestedFansSection: View {
         .padding(12)
         .frame(width: 154, height: 178, alignment: .top)
         .background(cardBackground)
+        .overlay(alignment: .topTrailing) {
+            dismissButton(for: suggestion)
+        }
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 12, y: 7)
         .accessibilityElement(children: .combine)
+    }
+
+    private func dismissButton(for suggestion: FriendSuggestionProfile) -> some View {
+        Button {
+            onDismiss(suggestion)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(width: 22, height: 22)
+                .background {
+                    Circle()
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.92))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.06), lineWidth: 0.75)
+                        }
+                }
+        }
+        .buttonStyle(.plain)
+        .padding(6)
+        .accessibilityLabel("Remove suggestion")
     }
 
     private func avatar(for suggestion: FriendSuggestionProfile) -> some View {
@@ -1833,11 +1891,13 @@ private struct ProfileSuggestedFansSection: View {
 
     private func safeReasonLabel(for suggestion: FriendSuggestionProfile) -> String {
         let allowedLabels: Set<String> = [
+            "Same pickup game",
+            "Same watch party",
             "Same team",
-            "Shared venue",
-            "Pickup player",
-            "Local fan",
-            "Sports match"
+            "Same venue",
+            "Mutual friends",
+            "Active fan",
+            "High reputation"
         ]
         if let reasonLabel = suggestion.reasonLabel?.trimmingCharacters(in: .whitespacesAndNewlines),
            allowedLabels.contains(reasonLabel) {
@@ -1850,21 +1910,25 @@ private struct ProfileSuggestedFansSection: View {
             .replacingOccurrences(of: " ", with: "_")
 
         switch normalizedType {
+        case "pickup_game", "pickup", "shared_pickup", "pickup_player":
+            return "Same pickup game"
+        case "venue_event", "watch_party", "shared_event", "event_interest", "event":
+            return "Same watch party"
         case "same_team", "shared_team", "team", "favorite_team", "favorite_teams":
             return "Same team"
-        case "shared_venue", "venue", "event", "shared_event", "event_interest":
-            return "Shared venue"
-        case "pickup", "pickup_game", "shared_pickup", "pickup_player":
-            return "Pickup player"
-        case "local", "local_fan", "nearby":
-            return "Local fan"
-        case "sports_match", "match", "sports":
-            return "Sports match"
+        case "favorite_venue", "shared_venue", "venue":
+            return "Same venue"
+        case "mutual_friends", "mutual_friend":
+            return "Mutual friends"
+        case "recent_activity", "active_fan", "activity":
+            return "Active fan"
+        case "reputation", "fan_level", "high_reputation":
+            return "High reputation"
         default:
+            if suggestion.sharedPickupGameCount > 0 { return "Same pickup game" }
+            if suggestion.sharedEventInterestCount > 0 { return "Same watch party" }
             if suggestion.sharedFavoriteTeamsCount > 0 { return "Same team" }
-            if suggestion.sharedEventInterestCount > 0 { return "Shared venue" }
-            if suggestion.sharedPickupGameCount > 0 { return "Pickup player" }
-            return suggestion.score > 0 ? "Sports match" : "Local fan"
+            return suggestion.score >= 400 ? "High reputation" : "Active fan"
         }
     }
 

@@ -128,8 +128,11 @@ final class FriendSuggestionsService {
         self.client = client
     }
 
+    static let defaultFetchPoolLimit = 30
+    static let defaultDisplayLimit = 10
+
     func fetchSuggestions(
-        limit: Int = 20,
+        limit: Int = defaultFetchPoolLimit,
         radiusMiles: Double = 45,
         centerLat: Double? = nil,
         centerLng: Double? = nil
@@ -174,5 +177,20 @@ final class FriendSuggestionsService {
             #endif
             throw error
         }
+    }
+
+    func dismissSuggestion(dismissedUserId: UUID) async throws {
+        let session = try await client.auth.session
+        let viewerId = session.user.id
+
+        struct Row: Encodable {
+            let user_id: UUID
+            let dismissed_user_id: UUID
+        }
+
+        try await client
+            .from("suggested_fan_dismissals")
+            .upsert(Row(user_id: viewerId, dismissed_user_id: dismissedUserId), onConflict: "user_id,dismissed_user_id")
+            .execute()
     }
 }

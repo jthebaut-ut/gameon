@@ -4,6 +4,33 @@ import Foundation
 /// CPU-only assembly for Discover venue pins (keeps heavy grouping off the ``MapViewModel`` actor when used from a detached task).
 enum DiscoverVenueLoadAssembler {
 
+    /// Trimmed title used for venue-event id keys and Going lookups (must match ``MapViewModel`` normalization).
+    nonisolated static func normalizedVenueGameTitle(_ raw: String?) -> String {
+        raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    /// Registers primary + legacy lookup keys for a venue event row (trimmed and raw titles).
+    nonisolated static func registerVenueEventIDKeys(
+        into idsByKey: inout [String: UUID],
+        row: VenueEventRow
+    ) {
+        guard let id = row.id, let title = row.event_title else { return }
+        let trimmed = normalizedVenueGameTitle(title)
+        guard !trimmed.isEmpty else { return }
+        if let venueId = row.venue_id {
+            idsByKey["\(venueId.uuidString)-\(trimmed)"] = id
+            if trimmed != title {
+                idsByKey["\(venueId.uuidString)-\(title)"] = id
+            }
+        }
+        if let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines), !venueName.isEmpty {
+            idsByKey["\(venueName)-\(trimmed)"] = id
+            if trimmed != title {
+                idsByKey["\(venueName)-\(title)"] = id
+            }
+        }
+    }
+
     nonisolated private static func normalizedSport(_ raw: String?) -> String? {
         guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
             return nil
@@ -90,13 +117,7 @@ enum DiscoverVenueLoadAssembler {
 
         var idsByKey: [String: UUID] = [:]
         for row in fetchedVenueEventRows where isDiscoverVisibleVenueEvent(row) {
-            guard let id = row.id, let title = row.event_title else { continue }
-            if let venueId = row.venue_id {
-                idsByKey["\(venueId.uuidString)-\(title)"] = id
-            }
-            if let venueName = row.venue_name {
-                idsByKey["\(venueName)-\(title)"] = id
-            }
+            registerVenueEventIDKeys(into: &idsByKey, row: row)
         }
 
         let mappedBars: [BarVenue] = venueRows.compactMap { row -> BarVenue? in

@@ -105,7 +105,17 @@ extension MapViewModel {
 
             let serverEventIDs = Set(interestRows.compactMap(\.venue_event_id))
 
-            let userMemberVenueEventIDs = serverEventIDs.union(localInterestedOnly)
+            let mergedServerEventIDs = await MainActor.run { () -> Set<UUID> in
+                pruneVenueEventInterestLocalReconcileGuards()
+                let preserveGoing = activeRecentlyConfirmedVenueEventGoingIDs()
+                    .union(venueEventInterestWriteInFlightIDs)
+                let preserveNotGoing = activeRecentlyConfirmedVenueEventNotGoingIDs()
+                return serverEventIDs
+                    .union(preserveGoing)
+                    .subtracting(preserveNotGoing)
+            }
+
+            let userMemberVenueEventIDs = mergedServerEventIDs.union(localInterestedOnly)
 
             var eventRowsByID: [UUID: VenueEventRow] = [:]
             let membershipArray = Array(userMemberVenueEventIDs)
@@ -160,7 +170,7 @@ extension MapViewModel {
                 }
             }
 
-            let localInterestedOnlyIDs = localInterestedOnly.subtracting(serverEventIDs)
+            let localInterestedOnlyIDs = localInterestedOnly.subtracting(mergedServerEventIDs)
 
             var goingItems: [FollowingGoingDisplayItem] = []
             goingItems.reserveCapacity(eventRowsByID.count)
@@ -173,7 +183,7 @@ extension MapViewModel {
                     barsById: barsById,
                     savedBars: savedBars
                 )
-                let userHasServerInterestRow = serverEventIDs.contains(id)
+                let userHasServerInterestRow = mergedServerEventIDs.contains(id)
                 let attendeeCount = totals[id] ?? 0
                 goingItems.append(
                     FollowingGoingDisplayItem(
@@ -188,13 +198,13 @@ extension MapViewModel {
             }
 
             let favoriteVenuesCount = followingTabSavedVenues.count
-            let userGoingVenueEventsCount = serverEventIDs.count
-            let userInterestedVenueEventsCount = localInterestedOnly.subtracting(serverEventIDs).count
+            let userGoingVenueEventsCount = mergedServerEventIDs.count
+            let userInterestedVenueEventsCount = localInterestedOnly.subtracting(mergedServerEventIDs).count
             let finalFollowingItemsCount = goingItems.count
 
             followingTabGoingItems = goingItems
             followingTabGoingInterestCounts = totals
-            followingTabUserVenueEventInterestIDs = serverEventIDs
+            followingTabUserVenueEventInterestIDs = mergedServerEventIDs
             await reconcileGameRemindersAfterFollowingRefresh()
 
 #if DEBUG

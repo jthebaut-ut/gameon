@@ -307,7 +307,8 @@ struct DiscoverScreen: View {
     /// Bumps when returning to foreground so map user-dot visibility refreshes after Settings changes.
     @State private var discoverMapLocationAuthVersion = 0
     @State private var discoverLocationHint: String?
-    @State private var showMapDisplayModePopup = false
+    @State private var mapDisplayModeHintText: String?
+    @State private var mapDisplayModeHintTask: Task<Void, Never>?
     @State private var discoverTopAdLoadFailed = false
     @State private var showDiscoverSportMoreSheet = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
@@ -440,17 +441,6 @@ struct DiscoverScreen: View {
             ZStack(alignment: .top) {
                 mapLayer
 
-                if showMapDisplayModePopup,
-                   viewModel.discoverMapContentMode == .venues {
-                    Color.black.opacity(0.001)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
-                                showMapDisplayModePopup = false
-                            }
-                        }
-                }
-
             }
             .overlay(alignment: .top) {
                 discoverFixedTopOverlay
@@ -467,15 +457,6 @@ struct DiscoverScreen: View {
                     discoverMapDatePickerOverlay
                 }
             }
-        .overlay(alignment: .topTrailing) {
-            if showMapDisplayModePopup,
-               viewModel.discoverMapContentMode == .venues {
-                discoverMapDisplayModePopup
-                    .padding(.top, 160)
-                    .padding(.trailing, 20)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing)))
-            }
-        }
         .onAppear {
             discoverLogLayoutDebug(layoutWidth: layoutWidth)
         }
@@ -548,7 +529,8 @@ struct DiscoverScreen: View {
         }
         .onChange(of: viewModel.discoverMapContentMode) { oldMode, newMode in
             if newMode != .venues {
-                showMapDisplayModePopup = false
+                mapDisplayModeHintTask?.cancel()
+                mapDisplayModeHintText = nil
             }
             if newMode == .pickupGames {
                 viewModel.onDiscoverMapBecamePickupGamesFromUserToggle()
@@ -1279,7 +1261,8 @@ struct DiscoverScreen: View {
             discoverSportsFilterGlassCard
             HStack(spacing: 10) {
                 discoverWeatherPill
-                discoverWeatherRowLayersButton
+                Spacer(minLength: 0)
+                discoverMapDisplayModeToggleCluster
             }
 
             if showDiscoverVisibleSearchEmptyHint {
@@ -1758,35 +1741,116 @@ struct DiscoverScreen: View {
     }
 
     @ViewBuilder
-    private var discoverWeatherRowLayersButton: some View {
+    private var discoverMapDisplayModeToggleCluster: some View {
         if viewModel.discoverMapContentMode == .venues {
-            Button {
-                dismissDiscoverSearchKeyboard()
-                withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
-                    showMapDisplayModePopup.toggle()
-                }
-            } label: {
-                Image(systemName: "square.3.layers.3d.top.filled")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(showMapDisplayModePopup ? Color.white : FGColor.secondaryText(colorScheme))
-                    .frame(width: 36, height: 36)
-                    .background {
-                        if showMapDisplayModePopup {
-                            Circle()
-                                .fill(FGColor.brandGradient)
-                        } else {
-                            Circle()
+            HStack(spacing: 8) {
+                if let mapDisplayModeHintText {
+                    Text(mapDisplayModeHintText)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background {
+                            Capsule(style: .continuous)
                                 .fill(.ultraThinMaterial)
                                 .overlay {
-                                    Circle()
-                                        .fill(Color.white.opacity(colorScheme == .dark ? 0.36 : 0.42))
+                                    Capsule(style: .continuous)
+                                        .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.50))
                                 }
                         }
-                    }
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.11 : 0.08), radius: 5, y: 1.5)
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(
+                                    colorScheme == .dark ? Color.white.opacity(0.18) : FGColor.divider(colorScheme),
+                                    lineWidth: 1
+                                )
+                        }
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.14 : 0.08), radius: 6, y: 2)
+                        .transition(.opacity.combined(with: .move(edge: .trailing).combined(with: .scale(scale: 0.94))))
+                }
+
+                discoverMapDisplayModeToggleButton
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Map display mode")
+            .animation(.spring(response: 0.28, dampingFraction: 0.86), value: mapDisplayModeHintText)
+            .animation(.spring(response: 0.28, dampingFraction: 0.86), value: viewModel.mapDisplayMode)
+        }
+    }
+
+    private var discoverMapDisplayModeToggleButton: some View {
+        let isGamesOnly = viewModel.mapDisplayMode == .gamesOnly
+        let iconName = isGamesOnly ? "sportscourt.fill" : "mappin.and.ellipse"
+
+        return Button {
+            cycleDiscoverMapDisplayMode()
+        } label: {
+            Image(systemName: iconName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isGamesOnly ? Color.white : FGColor.secondaryText(colorScheme))
+                .frame(width: 36, height: 36)
+                .background {
+                    if isGamesOnly {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [FGColor.accentBlue, FGColor.accentGreen.opacity(0.92)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    } else {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .overlay {
+                                Circle()
+                                    .fill(Color.white.opacity(colorScheme == .dark ? 0.36 : 0.42))
+                            }
+                    }
+                }
+                .overlay {
+                    Circle()
+                        .strokeBorder(
+                            isGamesOnly
+                                ? Color.white.opacity(colorScheme == .dark ? 0.22 : 0.30)
+                                : (colorScheme == .dark ? Color.white.opacity(0.14) : FGColor.divider(colorScheme)),
+                            lineWidth: 1
+                        )
+                }
+                .shadow(
+                    color: isGamesOnly
+                        ? FGColor.accentBlue.opacity(colorScheme == .dark ? 0.28 : 0.18)
+                        : Color.black.opacity(colorScheme == .dark ? 0.11 : 0.08),
+                    radius: isGamesOnly ? 6 : 5,
+                    y: 1.5
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(viewModel.mapDisplayMode.title)
+        .accessibilityHint("Double tap to switch map display mode")
+    }
+
+    private func cycleDiscoverMapDisplayMode() {
+        dismissDiscoverSearchKeyboard()
+        FGInteractionHaptics.softImpact()
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            viewModel.mapDisplayMode = viewModel.mapDisplayMode.toggled
+        }
+        showMapDisplayModeHint(viewModel.mapDisplayMode.title)
+    }
+
+    private func showMapDisplayModeHint(_ text: String) {
+        mapDisplayModeHintTask?.cancel()
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            mapDisplayModeHintText = text
+        }
+        mapDisplayModeHintTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.22)) {
+                    mapDisplayModeHintText = nil
+                }
+            }
         }
     }
 
@@ -1923,69 +1987,6 @@ struct DiscoverScreen: View {
             .shadow(color: FGColor.gradientEnd.opacity(0.12), radius: 2, y: 1)
         }
         .buttonStyle(.plain)
-    }
-
-    private var discoverMapDisplayModePopup: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(DiscoverMapDisplayMode.allCases, id: \.rawValue) { mode in
-                let isOn = viewModel.mapDisplayMode == mode
-                Button {
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        viewModel.mapDisplayMode = mode
-                        showMapDisplayModePopup = false
-                    }
-                } label: {
-                    HStack(spacing: FGSpacing.sm) {
-                        Image(systemName: isOn ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(isOn ? FGColor.accentBlue : (colorScheme == .dark ? Color.white.opacity(0.76) : FGColor.mutedText(colorScheme)))
-                        Text(mode.title)
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, FGSpacing.md)
-                    .padding(.vertical, FGSpacing.sm + 1)
-                    .frame(minWidth: 168, alignment: .leading)
-                    .background {
-                        RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                            .fill(isOn ? FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10) : Color.clear)
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(6)
-        .background {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .fill(
-                            colorScheme == .dark
-                                ? Color.black.opacity(0.34)
-                                : FGColor.background(colorScheme).opacity(0.76)
-                        )
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.10 : 0.18),
-                                    Color.white.opacity(0.02)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.22) : FGColor.divider(colorScheme), lineWidth: 1)
-        }
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 16, y: 8)
     }
 
     private func dismissDiscoverSearchKeyboard() {
@@ -2665,6 +2666,7 @@ struct DiscoverScreen: View {
                     .allowsHitTesting(false)
             } else {
                 AdaptiveBannerView(
+                    placement: "discover.bottomStrip",
                     adUnitID: AdMobConfiguration.bannerAdUnitID,
                     layoutWidth: availableWidth,
                     onAdFailed: { _ in
@@ -2710,12 +2712,20 @@ struct DiscoverScreen: View {
     }
 
     private func discoverLogAdBannerDebug(availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {
-#if DEBUG
-        DebugLogGate.noisy("[AdBannerDebug] availableWidth=\(String(format: "%.1f", availableWidth))")
-        DebugLogGate.noisy("[AdBannerDebug] adaptiveBannerSize=\(String(format: "%.1fx%.1f", bannerSize.width, bannerSize.height))")
-        DebugLogGate.noisy("[AdBannerDebug] containerWidth=\(String(format: "%.1f", containerSize.width))")
-        DebugLogGate.noisy("[AdBannerDebug] containerHeight=\(String(format: "%.1f", containerSize.height))")
-#endif
+        AdDebugDiagnostics.logEvent(
+            event: "discoverStripLayout",
+            format: "banner",
+            placement: "discover.bottomStrip",
+            fields: [
+                "availableWidth": String(format: "%.1f", availableWidth),
+                "adaptiveBannerW": String(format: "%.1f", bannerSize.width),
+                "adaptiveBannerH": String(format: "%.1f", bannerSize.height),
+                "containerW": String(format: "%.1f", containerSize.width),
+                "containerH": String(format: "%.1f", containerSize.height),
+                "zeroAvailableWidth": "\(availableWidth <= 0)",
+                "iPad": "\(UIDevice.current.userInterfaceIdiom == .pad)"
+            ]
+        )
     }
 
     private func discoverMapStatusBanner(text: String, isLoading: Bool) -> some View {
@@ -3137,62 +3147,6 @@ struct DiscoverScreen: View {
         }
     }
     
-    private func toggleSupabaseInterest(for bar: BarVenue, selectedEvent: SportsEvent) {
-        _ = _Concurrency.Task<Void, Never> {
-            if let venueEventID = await viewModel.venueEventID(
-                for: bar,
-                gameTitle: selectedEvent.title
-            ) {
-                let wasInterested = await MainActor.run {
-                    viewModel.isInterestedInVenueEvent(venueEventID)
-                }
-
-                await MainActor.run {
-                    if wasInterested {
-                        viewModel.removeInterested(in: bar, gameTitle: selectedEvent.title)
-                    } else {
-                        viewModel.markInterested(in: bar, gameTitle: selectedEvent.title)
-                    }
-                }
-
-                let ok: Bool
-                if wasInterested {
-                    ok = await viewModel.removeInterestInVenueEvent(venueEventID: venueEventID)
-                } else {
-                    ok = await viewModel.markInterestedInVenueEvent(venueEventID: venueEventID)
-                }
-
-                if !ok {
-                    let sessionEmail = await viewModel.strictNormalizedSessionEmailForSocialTables()
-                    await MainActor.run {
-                        if wasInterested {
-                            viewModel.markInterested(in: bar, gameTitle: selectedEvent.title)
-                        } else {
-                            viewModel.removeInterested(in: bar, gameTitle: selectedEvent.title)
-                        }
-                        let fanGeoMessage =
-                            "Please log in with a FanGeo account to mark yourself as going."
-                        if wasInterested {
-                            viewModel.showSocialActionToast("Couldn't update your game plan.")
-                        } else if sessionEmail == nil || !viewModel.canMarkGoing {
-                            viewModel.showSocialActionToast(fanGeoMessage)
-                        } else {
-                            viewModel.showSocialActionToast("Couldn't update your game plan.")
-                        }
-                    }
-                    return
-                }
-
-                if !wasInterested {
-                    await viewModel.addGameToCalendar(
-                        title: selectedEvent.title,
-                        date: selectedEvent.date,
-                        location: bar.address
-                    )
-                }
-            }
-        }
-    }
     
     private func selectedEventSection(bar: BarVenue, selectedEvent: SportsEvent) -> some View {
         VStack(alignment: .leading, spacing: FGSpacing.sm) {
@@ -3308,11 +3262,13 @@ struct DiscoverScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Same as ``gameInterestRow`` `alreadyInterested` (local key or ``isInterestedInVenueEvent``).
+    /// Local optimistic key and/or server-backed venue_event_interests row.
     private func venuePreviewCurrentUserIsGoing(bar: BarVenue, game: SportsEvent) -> Bool {
-        if viewModel.isInterested(in: bar, gameTitle: game.title) { return true }
-        guard let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) else { return false }
-        return viewModel.isInterestedInVenueEvent(id)
+        viewModel.userIsGoingToVenueGame(
+            bar: bar,
+            gameTitle: game.title,
+            venueEventID: viewModel.cachedVenueEventID(for: bar, gameTitle: game.title)
+        )
     }
 
     private func gamesFilteredForVenuePreview(
@@ -3501,12 +3457,14 @@ struct DiscoverScreen: View {
     }
 
     private func gameInterestRow(bar: BarVenue, event: SportsEvent) -> some View {
-        let gameTitle = event.title
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
 
-        let alreadyInterested = venueEventID.map {
-            viewModel.isInterestedInVenueEvent($0)
-        } ?? false
+        let alreadyInterested = viewModel.userIsGoingToVenueGame(
+            bar: bar,
+            gameTitle: gameTitle,
+            venueEventID: venueEventID
+        )
 
         let energy = viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
         let previewEnergy = venueEventID.map {
@@ -3540,6 +3498,7 @@ struct DiscoverScreen: View {
                 venuePreviewGoingButton(
                     bar: bar,
                     event: event,
+                    venueEventID: venueEventID,
                     alreadyInterested: alreadyInterested
                 )
             }
@@ -3564,10 +3523,10 @@ struct DiscoverScreen: View {
             }
 
             if let venueEventID {
-                if let previewEnergy, previewEnergy.hasBadge {
-                    venueGamePreviewEnergyHeader(previewEnergy)
-                }
-                fanUpdatesEntryButton(venueEventID: venueEventID, energy: energy, previewEnergy: previewEnergy)
+                venueGameCardSocialActionRow(
+                    venueEventID: venueEventID,
+                    previewEnergy: previewEnergy
+                )
                 venuePreviewInteractionStrip(venueEventID: venueEventID)
             }
         }
@@ -3598,7 +3557,7 @@ struct DiscoverScreen: View {
         }
         .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
         .task(id: venueEventID ?? event.id) {
-            guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle) else { return }
+            guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle, on: event.date) else { return }
             viewModel.prefetchFanUpdatesCardSocialData(for: id)
         }
     }
@@ -3606,10 +3565,12 @@ struct DiscoverScreen: View {
     private func venuePreviewGoingButton(
         bar: BarVenue,
         event: SportsEvent,
+        venueEventID: UUID?,
         alreadyInterested: Bool
     ) -> some View {
         let requiresLogin = !viewModel.isAuthenticatedForSocialFeatures
         let isBlocked = viewModel.isAuthenticatedForSocialFeatures && !viewModel.canMarkGoing
+        let isPending = venueEventID.map { viewModel.isVenueEventInterestMutationInFlight($0) } ?? false
         let title = requiresLogin ? "Log in" : "Going"
         let tint = isBlocked ? Color.secondary : (alreadyInterested ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
         let fill = isBlocked
@@ -3618,19 +3579,26 @@ struct DiscoverScreen: View {
 
         return Button {
             FGInteractionHaptics.softImpact()
-            if requiresLogin {
-                viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
-                return
-            }
-            guard viewModel.canMarkGoing else {
-                viewModel.logBusinessUserGateBlocked(action: "markGoing")
-                fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
-                return
-            }
-            toggleSupabaseInterest(for: bar, selectedEvent: event)
+            viewModel.toggleVenueGameGoingFromUI(
+                bar: bar,
+                gameTitle: event.title,
+                eventDate: event.date,
+                knownVenueEventID: venueEventID,
+                source: "discoverVenueGameCard",
+                onRequiresLogin: {
+                    viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                onBusinessBlocked: {
+                    viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                    fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                }
+            )
         } label: {
             HStack(spacing: 5) {
-                if !requiresLogin {
+                if isPending {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else if !requiresLogin {
                     Image(systemName: alreadyInterested ? "checkmark.circle.fill" : "checkmark")
                         .font(.caption.weight(.bold))
                 }
@@ -3639,8 +3607,8 @@ struct DiscoverScreen: View {
                     .lineLimit(1)
             }
             .foregroundStyle(tint)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
             .background {
                 Capsule(style: .continuous)
                     .fill(fill)
@@ -3650,8 +3618,127 @@ struct DiscoverScreen: View {
                     .strokeBorder(tint.opacity(isBlocked ? 0.18 : 0.26), lineWidth: 1)
             }
             .fixedSize(horizontal: true, vertical: false)
+            .contentShape(Capsule(style: .continuous))
         }
-        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
+        .buttonStyle(.plain)
+        .disabled(isPending)
+        .opacity(isPending ? 0.72 : 1)
+    }
+
+    private func venueGameCardSocialActionRow(
+        venueEventID: UUID,
+        previewEnergy: VenueGamePreviewEnergy?
+    ) -> some View {
+        let source = "discoverVenueGameCard"
+        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
+        let _ = logFanChatEntryUXRendered(source: source, eventId: venueEventID, count: commentCount)
+
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 10) {
+                if let previewEnergy, previewEnergy.hasBadge {
+                    venueGamePreviewEnergyCompactBadge(previewEnergy)
+                }
+
+                Spacer(minLength: 8)
+
+                venueGameFanChatActionButton(
+                    venueEventID: venueEventID,
+                    source: source,
+                    commentCount: commentCount
+                )
+            }
+
+            if commentCount == 0 {
+                Text("Join the game conversation")
+                    .font(FGTypography.caption.weight(.medium))
+                    .foregroundStyle(discoverPreviewSecondaryTextColor)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private func venueGamePreviewEnergyCompactBadge(_ energy: VenueGamePreviewEnergy) -> some View {
+        let palette = venueGamePreviewEnergyPalette(energy)
+
+        return Text(energy.label ?? "Active")
+            .font(FGTypography.metadata.weight(.bold))
+            .foregroundStyle(palette.text)
+            .lineLimit(1)
+            .padding(.horizontal, 11)
+            .frame(minHeight: 44)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(energyGradient(for: energy.score))
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: palette.borderColors,
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func venueGameFanChatActionButton(
+        venueEventID: UUID,
+        source: String,
+        commentCount: Int
+    ) -> some View {
+        let title = commentCount > 0 ? "Fan Chat · \(commentCount)" : "Fan Chat"
+        let tint = FGColor.accentBlue
+        let fill = tint.opacity(colorScheme == .dark ? 0.20 : 0.12)
+
+        return Button {
+            print(
+                "[FanChatEntryUX] tapped source=\(source) eventId=\(venueEventID.uuidString.lowercased())"
+            )
+            FGInteractionHaptics.selection()
+            presentFanUpdatesSheet(venueEventID: venueEventID)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                Text(title)
+                    .font(FGTypography.metadata.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(fill)
+                    }
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(colorScheme == .dark ? 0.34 : 0.26), lineWidth: 1)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            commentCount > 0
+                ? "Open Fan Chat, \(commentCount) comments"
+                : "Open Fan Chat"
+        )
+    }
+
+    private func logFanChatEntryUXRendered(source: String, eventId: UUID, count: Int) {
+        print(
+            "[FanChatEntryUX] rendered source=\(source) eventId=\(eventId.uuidString.lowercased()) count=\(count)"
+        )
     }
 
     private func presentFanUpdatesSheet(venueEventID: UUID) {
@@ -3856,95 +3943,6 @@ struct DiscoverScreen: View {
 #endif
     }
 
-    private func fanUpdatesEntryButton(
-        venueEventID: UUID,
-        energy: FanGeoLiveEnergy,
-        previewEnergy: VenueGamePreviewEnergy?
-    ) -> some View {
-        Button {
-            FGInteractionHaptics.selection()
-            presentFanUpdatesSheet(venueEventID: venueEventID)
-        } label: {
-            fanUpdatesRowLabel(for: venueEventID, energy: energy, previewEnergy: previewEnergy)
-        }
-        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: false))
-    }
-
-    private func fanUpdatesRowLabel(
-        for venueEventID: UUID,
-        energy: FanGeoLiveEnergy,
-        previewEnergy: VenueGamePreviewEnergy?
-    ) -> some View {
-        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
-        let _ = logFanChatRowStyleDebug()
-        let context = fanChatContextText(commentCount: commentCount, energy: energy)
-
-        return HStack(spacing: 9) {
-            Image(systemName: "bubble.left.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.blue)
-                .frame(width: 20, height: 20)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Fan Chat")
-                    .font(FGTypography.metadata.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-
-                Text(context)
-                    .font(FGTypography.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 6)
-
-            Image(systemName: "chevron.right")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(Color.blue)
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                .fill(Color.blue.opacity(0.08))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                .strokeBorder(Color.blue.opacity(0.22), lineWidth: 1)
-        }
-    }
-
-    private func logFanChatRowStyleDebug() {
-#if DEBUG
-        print("[FanChatRowStyleDebug] usingFixedBlueStyle=true")
-#endif
-    }
-
-    private func fanChatContextText(commentCount: Int, energy: FanGeoLiveEnergy) -> String {
-        if energy.isLiveNow {
-            return commentCount > 0 ? "\(commentCount) chatting • fans reacting live" : "Fans reacting live"
-        }
-        if commentCount >= 8 {
-            return "\(commentCount) chatting now"
-        }
-        if commentCount > 0 {
-            return commentCount == 1 ? "1 chatting now" : "\(commentCount) chatting now"
-        }
-        if energy.goingCount > 0 {
-            return "Fans reacting live"
-        }
-        return "Start the discussion"
-    }
-
-    private func fanChatLiveBadgeText(commentCount: Int, energy: FanGeoLiveEnergy) -> String? {
-        if energy.isLiveNow { return "LIVE" }
-        if commentCount >= 8 { return "HOT" }
-        return nil
-    }
-    
     private func liveScoreEmoji(for score: Int) -> String {
         if score >= 40 {
             return "👑"

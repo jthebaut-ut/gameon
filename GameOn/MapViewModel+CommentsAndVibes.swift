@@ -884,9 +884,8 @@ extension MapViewModel {
             venueEventID: venueEventID,
             mergeSource: "auto_refresh"
         )
-        if (stats?.newRowsMerged ?? 0) > 0 {
-            await loadCommentLikes(for: venueEventID)
-        }
+        // Refresh like counts for all visible sheet comments every tick (not only when new rows merge).
+        await loadCommentLikes(for: venueEventID)
         #if DEBUG
         print("[FanChatAutoRefreshDebug] merged newRows=\(stats?.newRowsMerged ?? 0)")
         #endif
@@ -1291,9 +1290,8 @@ extension MapViewModel {
         }
         let uniqueIDs = Array(Set(ids)).sorted { $0.uuidString < $1.uuidString }
 
-        #if DEBUG
-        print("[FanCommentLikes] load start commentCount=\(uniqueIDs.count)")
-        #endif
+        print("[FanChatLikesDebug] refreshStart eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatLikesDebug] commentCount=\(uniqueIDs.count)")
 
         guard !uniqueIDs.isEmpty else {
             await MainActor.run {
@@ -1303,9 +1301,8 @@ extension MapViewModel {
                     likedIDs: []
                 )
             }
-            #if DEBUG
-            print("[FanCommentLikes] load success liked=0")
-            #endif
+            print("[FanChatLikesDebug] likesLoaded count=0")
+            print("[FanChatLikesDebug] likedByViewer count=0")
             return
         }
 
@@ -1313,6 +1310,7 @@ extension MapViewModel {
         do {
             userID = try await supabase.auth.session.user.id
         } catch {
+            print("[FanChatLikesDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
             await MainActor.run {
                 applyVenueEventCommentLikeMetadata(
                     venueEventID: venueEventID,
@@ -1320,9 +1318,8 @@ extension MapViewModel {
                     likedIDs: []
                 )
             }
-            #if DEBUG
-            print("[FanCommentLikes] load success liked=0")
-            #endif
+            print("[FanChatLikesDebug] likesLoaded count=0")
+            print("[FanChatLikesDebug] likedByViewer count=0")
             return
         }
 
@@ -1347,6 +1344,7 @@ extension MapViewModel {
                 }
             }
 
+            let totalLikes = counts.values.reduce(0, +)
             await MainActor.run {
                 applyVenueEventCommentLikeMetadata(
                     venueEventID: venueEventID,
@@ -1355,10 +1353,10 @@ extension MapViewModel {
                 )
             }
 
-            #if DEBUG
-            print("[FanCommentLikes] load success liked=\(likedIDs.count)")
-            #endif
+            print("[FanChatLikesDebug] likesLoaded count=\(totalLikes)")
+            print("[FanChatLikesDebug] likedByViewer count=\(likedIDs.count)")
         } catch {
+            print("[FanChatLikesDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
             logVenueEventSocialLoadError(
                 "ERROR LOADING FAN COMMENT LIKES:",
                 loadCancelledTag: "fan_comment_likes",
@@ -1375,6 +1373,10 @@ extension MapViewModel {
     ) {
         let visibleIDs = Set(venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? [])
         for id in visibleIDs {
+            if venueEventCommentLikeWriteInFlightIDs.contains(id) {
+                print("[FanChatLikesDebug] optimisticPreserved commentId=\(id.uuidString.lowercased())")
+                continue
+            }
             venueEventCommentLikeCountsByID[id] = counts[id] ?? 0
             if likedIDs.contains(id) {
                 venueEventCommentIDsLikedByCurrentUser.insert(id)
@@ -1386,6 +1388,12 @@ extension MapViewModel {
         guard let rows = venueEventComments[venueEventID] else { return }
         venueEventComments[venueEventID] = rows.map { row in
             guard let commentID = row.serverCommentID else { return row }
+            if venueEventCommentLikeWriteInFlightIDs.contains(commentID) {
+                return row.withLikeMetadata(
+                    likeCount: venueEventCommentLikeCountsByID[commentID] ?? row.likeCount,
+                    isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+                )
+            }
             return row.withLikeMetadata(
                 likeCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
                 isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)

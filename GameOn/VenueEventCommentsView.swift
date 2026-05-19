@@ -636,7 +636,12 @@ struct VenueEventCommentsView: View {
             commentRow(comment)
                 .id(commentScrollID(for: comment))
         case .nativeAd(let slotIndex):
-            CompactNativeAdCard(slotIndex: slotIndex, layoutWidth: venueCommentsAdLayoutWidth(for: layoutWidth))
+            CompactNativeAdCard(
+                placement: "venue.commentsFeed",
+                hostTabRaw: "discover",
+                slotIndex: slotIndex,
+                layoutWidth: venueCommentsAdLayoutWidth(for: layoutWidth)
+            )
         }
     }
 
@@ -810,12 +815,15 @@ struct VenueEventCommentsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                Text(comment.comment ?? "")
-                    .font(.subheadline)
-                    .foregroundStyle(primaryLabelColor)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 10) {
+                    Text(comment.comment ?? "")
+                        .font(.subheadline)
+                        .foregroundStyle(primaryLabelColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                commentLikeControl(for: comment)
+                    commentLikeControl(for: comment)
+                }
 
             }
         }
@@ -828,13 +836,24 @@ struct VenueEventCommentsView: View {
         )
     }
 
+    private func commentLikeHeartPresentation(isLiked: Bool, likeCount: Int) -> (symbol: String, color: Color) {
+        if isLiked {
+            return ("heart.fill", Color.red.opacity(0.92))
+        }
+        if likeCount >= 1 {
+            return ("heart", Color.red.opacity(0.92))
+        }
+        let neutral = fanUpdatesIsDark ? Color.white.opacity(0.55) : Color.primary.opacity(0.38)
+        return ("heart", neutral)
+    }
+
     @ViewBuilder
     private func commentLikeControl(for comment: VenueEventCommentRow) -> some View {
         if let commentID = comment.serverCommentID {
             let canToggleLike = viewModel.isAuthenticatedForSocialFeatures && viewModel.canUseFanSocialFeatures
             let isLiked = comment.isLikedByCurrentUser
             let likeCount = comment.likeCount
-            let likeColor = isLiked ? Color.red.opacity(0.9) : mutedLabelColor
+            let heart = commentLikeHeartPresentation(isLiked: isLiked, likeCount: likeCount)
 
             Button {
                 guard canToggleLike else { return }
@@ -842,23 +861,21 @@ struct VenueEventCommentsView: View {
                 Task { await viewModel.toggleCommentLike(commentId: commentID) }
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: isLiked ? "heart.fill" : "heart")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(likeColor)
+                    Image(systemName: heart.symbol)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(heart.color)
 
                     if likeCount > 0 {
                         Text("\(likeCount)")
                             .font(.caption2.weight(.semibold))
-                            .foregroundStyle(likeColor)
+                            .foregroundStyle(Color.red.opacity(0.92))
                             .contentTransition(.numericText())
                     }
                 }
-                .padding(.top, 2)
-                .padding(.vertical, 3)
-                .padding(.horizontal, 2)
+                .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.9, hapticOnPress: false))
+            .buttonStyle(.plain)
             .disabled(!canToggleLike)
             .opacity(canToggleLike || likeCount > 0 ? 1 : 0.72)
             .animation(.easeOut(duration: 0.16), value: isLiked)

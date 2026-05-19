@@ -899,6 +899,26 @@ extension MapViewModel {
         }
     }
 
+    /// Launch/account warm path: populate calendar dot caches without requiring Calendar tab selection.
+    func warmPreloadCalendarCaches(reason: String) {
+        let month = calendarTabSelectedDate
+        loadVenueGameCalendarDotsForDiscover(
+            around: month,
+            reason: "\(reason)_venue",
+            logIfOpeningBeforeReady: false
+        )
+        loadPickupGameCalendarDotsForDiscover(
+            around: month,
+            reason: "\(reason)_pickup",
+            logIfOpeningBeforeReady: false
+        )
+    }
+
+    /// Launch warm path: pickup calendar dots + selected-day map rows (no-op when already preloaded).
+    func warmPreloadPickupDiscoverMetadataIfNeeded() {
+        beginDiscoverPickupMetadataBackgroundPreloadIfNeeded()
+    }
+
     /// Bottom-tab Calendar: warm **both** venue and pickup dot caches for `month` without mutating ``discoverMapContentMode``.
     func loadCalendarTabCalendarDotsAroundMonth(_ month: Date, reason: String) {
         guard isCalendarTabSelected else {
@@ -1826,13 +1846,7 @@ extension MapViewModel {
     private func rebuildVenueEventIDsByKey(from rows: [VenueEventRow]) {
         var idsByKey: [String: UUID] = [:]
         for row in rows {
-            guard let id = row.id, let title = row.event_title else { continue }
-            if let venueId = row.venue_id {
-                idsByKey["\(venueId.uuidString)-\(title)"] = id
-            }
-            if let venueName = row.venue_name {
-                idsByKey["\(venueName)-\(title)"] = id
-            }
+            DiscoverVenueLoadAssembler.registerVenueEventIDKeys(into: &idsByKey, row: row)
         }
         venueEventIDsByKey = idsByKey
     }

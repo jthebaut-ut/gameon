@@ -156,6 +156,7 @@ struct MainTabView: View {
             dmInAppNotificationBannerLayer
         }
         .onAppear {
+            AdDebugContext.setVisibleTab(selectedTabStorage)
             mountedTabs.insert(.discover)
             let restoredTab = selectedTab
             mountTab(restoredTab, reason: "mainTabOnAppear")
@@ -180,6 +181,12 @@ struct MainTabView: View {
             if selectedTab == .chat, viewModel.isAuthenticatedForSocialFeatures {
                 Task { await startChatSocialRealtimeIfNeeded(reason: "launchVisibleChatTab") }
             }
+
+            LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
+                viewModel: viewModel,
+                chatViewModel: chatViewModel,
+                accountTabVisible: selectedTab == .account
+            )
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.88), value: chatViewModel.hidesFloatingTabBarForDirectChat)
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
@@ -187,31 +194,23 @@ struct MainTabView: View {
             viewModel.switchToAccountForVenueClaim = false
             selectTab(.account, reason: "switchToAccountForVenueClaim")
         }
-        // Startup core refresh: map/calendar data should not wait on profile, favorites, or social enrichment.
+        // Splash timeout fallback: finish critical path only; warm preload handles the rest.
         .task {
             guard performsInitialBootstrap else { return }
-            await viewModel.renderCachedDiscoverCore()
-
-            await viewModel.prepareInitialDiscoverRegionAndPreload()
-
-            await viewModel.bootstrapAuthSessionOnly()
-
-            Task {
-                await viewModel.refreshDiscoverCoreInBackground()
-            }
-            Task {
-                await viewModel.refreshUserPersonalizationInBackground()
-            }
-
-            if viewModel.isAuthenticatedForSocialFeatures {
-                await chatViewModel.loadIfNeeded()
-                DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=fallbackBootstrapLoadOnly")
-                scheduleDeferredChatSocialRealtimeStartupIfNeeded()
+            if LaunchBootstrapState.didCompleteCriticalBootstrap {
+                print("[LaunchPerf] duplicateSkipped reason=fallbackCriticalAlreadyCompleted")
             } else {
-                await MainActor.run {
-                    chatViewModel.clearForSignOut()
-                }
+                await BootstrapLoadingCoordinator.performCriticalBootstrap(
+                    viewModel: viewModel,
+                    chatViewModel: chatViewModel
+                )
             }
+            LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
+                viewModel: viewModel,
+                chatViewModel: chatViewModel,
+                accountTabVisible: selectedTab == .account
+            )
+            scheduleDeferredChatSocialRealtimeStartupIfNeeded()
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, authenticated in
             updateDirectChatReadStateVisibility()
@@ -272,11 +271,22 @@ struct MainTabView: View {
             viewModel.discoverNavigateToAccountForUserAuth = false
         }
         .onChange(of: selectedTabStorage) { _, newRaw in
+            AdDebugContext.setVisibleTab(newRaw)
 #if DEBUG
             print("[LiveTabDebug] selectedTab=\(newRaw)")
 #endif
             guard let tab = AppTab(rawValue: newRaw) else { return }
             mountTab(tab, reason: "selectedTabStorage")
+            AdDebugDiagnostics.logEvent(
+                event: "lazyTabMountState",
+                format: "context",
+                placement: "mainTabs",
+                fields: [
+                    "selectedTab": newRaw,
+                    "mountedTabs": mountedTabs.map(\.rawValue).sorted().joined(separator: ","),
+                    "discoverPreservedOffscreen": "\(newRaw != AppTab.discover.rawValue && mountedTabs.contains(.discover))"
+                ]
+            )
             viewModel.isCalendarTabSelected = tab == .calendar
             switch tab {
             case .account:

@@ -456,6 +456,13 @@ enum DiscoverMapDisplayMode: String, CaseIterable, Equatable {
             return "Games Only"
         }
     }
+
+    var toggled: DiscoverMapDisplayMode {
+        switch self {
+        case .allSpots: return .gamesOnly
+        case .gamesOnly: return .allSpots
+        }
+    }
 }
 
 /// Full-field payload for Settings → Add location → ``venue_claims`` (no public ``venues`` row until admin approval).
@@ -592,6 +599,11 @@ enum VenueOwnershipClaimStatus: Equatable {
 struct VenueEventInterestInsert: Encodable {
     let venue_event_id: UUID
     let user_email: String
+
+    init(venue_event_id: UUID, user_email: String) {
+        self.venue_event_id = venue_event_id
+        self.user_email = user_email
+    }
 
     enum CodingKeys: String, CodingKey {
         case venue_event_id

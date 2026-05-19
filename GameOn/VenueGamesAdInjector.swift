@@ -73,6 +73,8 @@ struct SponsoredVenueCardView: View {
 
             if !nativeAdFailed {
                 CompactNativeAdCard(
+                    placement: "venue.gamesFeed",
+                    hostTabRaw: "discover",
                     slotIndex: slotIndex,
                     layoutWidth: 0,
                     onAdLoaded: {

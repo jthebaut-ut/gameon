@@ -19,6 +19,7 @@ struct MapVenuePreviewCard: View {
     
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
     @State private var fanFeatureBlockedMessage: String?
+    @Environment(\.colorScheme) private var colorScheme
     private var visibleLivePresenceProfiles: [UserProfileRow] {
         profiles.filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
     }
@@ -150,39 +151,6 @@ struct MapVenuePreviewCard: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack {
-                    Spacer(minLength: 0)
-
-                    Button {
-                        if viewModel.canMarkGoing {
-                            onGoing()
-                        } else if viewModel.isAuthenticatedForSocialFeatures {
-                            viewModel.logBusinessUserGateBlocked(action: "markGoing")
-                            fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
-                        } else {
-                            onGoing()
-                        }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "checkmark")
-                                .font(.caption.weight(.bold))
-                            Text("Going")
-                                .font(.caption.weight(.bold))
-                        }
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.08))
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .strokeBorder(Color.black.opacity(0.16), lineWidth: 1)
-                        }
-                        .clipShape(Capsule(style: .continuous))
-                        .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .opacity(viewModel.canMarkGoing || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
-                }
             }
             .padding(14)
             .background(
@@ -195,17 +163,7 @@ struct MapVenuePreviewCard: View {
                     venueGamePreviewEnergyHeader(previewEnergy)
                 }
 
-                Button {
-                    if let venueEventID {
-                        FanUpdatesTapPerf.handleTap(eventId: venueEventID) {
-                            fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID)
-                        }
-                    }
-                } label: {
-                    fanChatRow(venueEventID: venueEventID, energy: previewEnergy)
-                }
-                .buttonStyle(FanUpdatesPressButtonStyle())
-                .disabled(venueEventID == nil)
+                mapVenuePreviewGameActionRow(venueEventID: venueEventID)
 
                 if let venueEventID {
                     venueMiniStatsRow(venueEventID: venueEventID)
@@ -328,61 +286,128 @@ struct MapVenuePreviewCard: View {
             .clipShape(Capsule(style: .continuous))
     }
 
-    private func fanChatRow(venueEventID: UUID?, energy: VenueGamePreviewEnergy?) -> some View {
-        let _ = logFanChatRowStyleDebug()
+    @ViewBuilder
+    private func mapVenuePreviewGameActionRow(venueEventID: UUID?) -> some View {
+        let source = "mapVenuePreviewCard"
+        let commentCount = venueEventID.map { viewModel.fanUpdatesDisplayCommentCount(for: $0) } ?? 0
+        if let venueEventID {
+            let _ = logFanChatEntryUXRendered(source: source, eventId: venueEventID, count: commentCount)
+        }
 
-        return HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "bubble.left.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.blue)
-                .frame(width: 20)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Button {
+                    if let venueEventID {
+                        print("[GoingButtonDebug] tap eventId=\(venueEventID.uuidString.lowercased())")
+                    } else {
+                        print("[GoingButtonDebug] tap eventId=nil venue=\(bar.name)")
+                    }
+                    if viewModel.canMarkGoing {
+                        onGoing()
+                    } else if viewModel.isAuthenticatedForSocialFeatures {
+                        print("[GoingButtonDebug] blocked reason=businessAccount")
+                        viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                        fanFeatureBlockedMessage = BusinessFanGateCopy.actionTapBlocked
+                    } else {
+                        onGoing()
+                    }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "checkmark")
+                            .font(.caption.weight(.bold))
+                        Text("Going")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 44)
+                    .background(Color.black.opacity(0.08))
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.black.opacity(0.16), lineWidth: 1)
+                    }
+                    .clipShape(Capsule(style: .continuous))
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+                .buttonStyle(.plain)
+                .opacity(viewModel.canMarkGoing || !viewModel.isAuthenticatedForSocialFeatures ? 1 : 0.45)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Fan Chat")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
+                if let venueEventID {
+                    mapVenueFanChatActionButton(
+                        venueEventID: venueEventID,
+                        source: source,
+                        commentCount: commentCount
+                    )
+                }
 
-                Text(fanChatStatusText(venueEventID: venueEventID))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
             }
 
-            Spacer(minLength: 0)
-
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.blue)
+            if commentCount == 0, venueEventID != nil {
+                Text("Join the game conversation")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
-        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.blue.opacity(0.08))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.blue.opacity(0.22), lineWidth: 1)
-        }
-        .contentShape(Rectangle())
     }
 
-    private func logFanChatRowStyleDebug() {
-#if DEBUG
-        print("[FanChatRowStyleDebug] usingFixedBlueStyle=true")
-#endif
+    private func mapVenueFanChatActionButton(
+        venueEventID: UUID,
+        source: String,
+        commentCount: Int
+    ) -> some View {
+        let title = commentCount > 0 ? "Fan Chat · \(commentCount)" : "Fan Chat"
+        let tint = FGColor.accentBlue
+        let fill = tint.opacity(colorScheme == .dark ? 0.20 : 0.12)
+
+        return Button {
+            print(
+                "[FanChatEntryUX] tapped source=\(source) eventId=\(venueEventID.uuidString.lowercased())"
+            )
+            FanUpdatesTapPerf.handleTap(eventId: venueEventID) {
+                fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 44)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(fill)
+                    }
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(colorScheme == .dark ? 0.34 : 0.26), lineWidth: 1)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(
+            commentCount > 0
+                ? "Open Fan Chat, \(commentCount) comments"
+                : "Open Fan Chat"
+        )
     }
 
-    private func fanChatStatusText(venueEventID: UUID?) -> String {
-        guard let venueEventID else { return "0 new comments" }
-        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
-        if commentCount >= 8 {
-            return "\(commentCount) chatting now"
-        }
-        if commentCount > 0 {
-            return commentCount == 1 ? "1 chatting now" : "\(commentCount) chatting now"
-        }
-        return "Fans reacting live"
+    private func logFanChatEntryUXRendered(source: String, eventId: UUID, count: Int) {
+        print(
+            "[FanChatEntryUX] rendered source=\(source) eventId=\(eventId.uuidString.lowercased()) count=\(count)"
+        )
     }
 
     private func venuePreviewEnergy(for venueEventID: UUID) -> VenueGamePreviewEnergy {

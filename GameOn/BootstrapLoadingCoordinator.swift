@@ -10,7 +10,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
 
     private var didStart = false
     private let minimumVisibleSeconds: TimeInterval = 1.15
-    private let maximumWaitSeconds: TimeInterval = 5.5
+    private let maximumWaitSeconds: TimeInterval = 3.8
 
     func beginIfNeeded(
         viewModel: MapViewModel,
@@ -21,7 +21,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
 
         let startedAt = Date()
         let bootstrapTask = Task {
-            await Self.performBootstrap(
+            await Self.performCriticalBootstrap(
                 viewModel: viewModel,
                 chatViewModel: chatViewModel
             )
@@ -40,6 +40,8 @@ final class BootstrapLoadingCoordinator: ObservableObject {
 
         if completedInTime {
             shouldUseMainTabFallbackBootstrap = false
+            LaunchBootstrapState.markCriticalBootstrapCompleted()
+            scheduleWarmPreload(viewModel: viewModel, chatViewModel: chatViewModel)
         } else {
             bootstrapError = "Opening FanGeo while the rest finishes loading."
             bootstrapTask.cancel()
@@ -51,39 +53,55 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         }
     }
 
-    private static func performBootstrap(
+    /// Critical launch path only — must stay fast enough for splash dismiss.
+    static func performCriticalBootstrap(
         viewModel: MapViewModel,
         chatViewModel: ChatViewModel
     ) async {
+        let criticalStart = Date()
+        print("[LaunchPerf] criticalStart")
+
         await viewModel.renderCachedDiscoverCore()
 
         await viewModel.prepareInitialDiscoverRegionAndPreload()
 
         await viewModel.bootstrapAuthSessionOnly()
 
-        async let discoverCore: Void = {
+        if LaunchBootstrapState.markLaunchDiscoverCoreRefreshStarted() {
             await viewModel.refreshDiscoverCoreInBackground()
-        }()
+        } else {
+            print("[LaunchPerf] duplicateSkipped reason=launchDiscoverCoreRefresh")
+        }
 
-        async let personalization: Void = {
-            await viewModel.refreshUserPersonalizationInBackground()
-        }()
-
-        async let chatBootstrap: Void = {
-            let shouldLoadChat = await MainActor.run {
-                viewModel.isAuthenticatedForSocialFeatures
+        let shouldLoadChatBadge = await MainActor.run {
+            viewModel.isAuthenticatedForSocialFeatures
+        }
+        if shouldLoadChatBadge {
+            await chatViewModel.refreshUnreadDirectMessageCount()
+        } else {
+            await MainActor.run {
+                chatViewModel.clearForSignOut()
             }
-            if shouldLoadChat {
-                await chatViewModel.loadIfNeeded()
-                DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=bootstrapLoadOnly")
-            } else {
-                await MainActor.run {
-                    chatViewModel.clearForSignOut()
-                }
-            }
-        }()
+        }
 
-        _ = await (discoverCore, personalization, chatBootstrap)
+        LaunchBootstrapState.markCriticalBootstrapCompleted()
+
+        let criticalMs = Int(Date().timeIntervalSince(criticalStart) * 1000)
+        print("[LaunchPerf] criticalEnd ms=\(criticalMs)")
+    }
+
+    private func scheduleWarmPreload(
+        viewModel: MapViewModel,
+        chatViewModel: ChatViewModel
+    ) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
+                viewModel: viewModel,
+                chatViewModel: chatViewModel,
+                accountTabVisible: false
+            )
+        }
     }
 
     private func waitForCompletion(

@@ -7,6 +7,378 @@ private enum FanUpdatesGoingProfilesPrefetchTTL {
 
 extension MapViewModel {
 
+    private func normalizedVenueGameTitle(_ raw: String?) -> String {
+        raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private func venueEventTitlesMatch(_ storedTitle: String?, _ gameTitle: String) -> Bool {
+        let lhs = normalizedVenueGameTitle(storedTitle)
+        let rhs = normalizedVenueGameTitle(gameTitle)
+        guard !lhs.isEmpty, !rhs.isEmpty else { return false }
+        return lhs.caseInsensitiveCompare(rhs) == .orderedSame
+    }
+
+    private func venueEventRow(_ row: VenueEventRow, matches bar: BarVenue) -> Bool {
+        if let vid = row.venue_id, vid == bar.id { return true }
+        let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueName = normalizedVenueGameTitle(row.venue_name)
+        if !venueName.isEmpty,
+           venueName.caseInsensitiveCompare(barName) == .orderedSame {
+            return true
+        }
+        if let o = row.owner_email, let bo = bar.ownerEmail,
+           OwnerBusinessEmail.normalized(o) == OwnerBusinessEmail.normalized(bo) {
+            return true
+        }
+        return false
+    }
+
+    private func cacheDiscoveredVenueEventID(
+        _ id: UUID,
+        bar: BarVenue,
+        gameTitle: String,
+        rowTitle: String?
+    ) {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        guard !trimmed.isEmpty else { return }
+        venueEventIDsByKey[venueEventLookupKeyPrimary(for: bar, gameTitle: trimmed)] = id
+        venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: trimmed)] = id
+        let canonical = normalizedVenueGameTitle(rowTitle)
+        if !canonical.isEmpty, canonical != trimmed {
+            venueEventIDsByKey[venueEventLookupKeyPrimary(for: bar, gameTitle: canonical)] = id
+            venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: canonical)] = id
+        }
+    }
+
+    /// Discover venue-game cards: local optimistic key and/or server-backed interest rows.
+    @MainActor
+    func userIsGoingToVenueGame(bar: BarVenue, gameTitle: String, venueEventID: UUID?) -> Bool {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        if isInterested(in: bar, gameTitle: trimmed) { return true }
+        guard let venueEventID else { return false }
+        if isRecentlyConfirmedVenueEventNotGoing(venueEventID) { return false }
+        if isInterestedInVenueEvent(venueEventID) { return true }
+        if venueEventInterestWriteInFlightIDs.contains(venueEventID) { return true }
+        if isRecentlyConfirmedVenueEventGoing(venueEventID) { return true }
+        return false
+    }
+
+    func normalizedVenueEventWireId(_ venueEventID: UUID) -> String {
+        venueEventID.uuidString.lowercased()
+    }
+
+    func isVenueEventInterestMutationInFlight(_ venueEventID: UUID) -> Bool {
+        venueEventInterestWriteInFlightIDs.contains(venueEventID)
+    }
+
+    @MainActor
+    func pruneVenueEventInterestLocalReconcileGuards(now: Date = Date()) {
+        let ttl = venueEventInterestLocalReconcileTTL
+        recentlyConfirmedVenueEventGoingAt = recentlyConfirmedVenueEventGoingAt.filter {
+            now.timeIntervalSince($0.value) < ttl
+        }
+        recentlyConfirmedVenueEventNotGoingAt = recentlyConfirmedVenueEventNotGoingAt.filter {
+            now.timeIntervalSince($0.value) < ttl
+        }
+    }
+
+    @MainActor
+    func recordRecentlyConfirmedVenueEventInterest(venueEventID: UUID, isGoing: Bool, now: Date = Date()) {
+        pruneVenueEventInterestLocalReconcileGuards(now: now)
+        if isGoing {
+            recentlyConfirmedVenueEventGoingAt[venueEventID] = now
+            recentlyConfirmedVenueEventNotGoingAt.removeValue(forKey: venueEventID)
+        } else {
+            recentlyConfirmedVenueEventNotGoingAt[venueEventID] = now
+            recentlyConfirmedVenueEventGoingAt.removeValue(forKey: venueEventID)
+        }
+    }
+
+    @MainActor
+    func activeRecentlyConfirmedVenueEventGoingIDs(now: Date = Date()) -> Set<UUID> {
+        pruneVenueEventInterestLocalReconcileGuards(now: now)
+        return Set(recentlyConfirmedVenueEventGoingAt.keys)
+    }
+
+    @MainActor
+    func activeRecentlyConfirmedVenueEventNotGoingIDs(now: Date = Date()) -> Set<UUID> {
+        pruneVenueEventInterestLocalReconcileGuards(now: now)
+        return Set(recentlyConfirmedVenueEventNotGoingAt.keys)
+    }
+
+    @MainActor
+    func isRecentlyConfirmedVenueEventGoing(_ venueEventID: UUID, now: Date = Date()) -> Bool {
+        pruneVenueEventInterestLocalReconcileGuards(now: now)
+        return recentlyConfirmedVenueEventGoingAt[venueEventID] != nil
+    }
+
+    @MainActor
+    func isRecentlyConfirmedVenueEventNotGoing(_ venueEventID: UUID, now: Date = Date()) -> Bool {
+        pruneVenueEventInterestLocalReconcileGuards(now: now)
+        return recentlyConfirmedVenueEventNotGoingAt[venueEventID] != nil
+    }
+
+    /// Immediate optimistic Going toggle from Discover venue cards; Supabase runs after first paint.
+    @MainActor
+    func toggleVenueGameGoingFromUI(
+        bar: BarVenue,
+        gameTitle: String,
+        eventDate: Date,
+        knownVenueEventID: UUID?,
+        source: String,
+        onRequiresLogin: () -> Void,
+        onBusinessBlocked: () -> Void
+    ) {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        let eventIdRaw = knownVenueEventID.map { normalizedVenueEventWireId($0) } ?? "nil"
+        print(
+            "[GoingButtonDebug] tap source=\(source) eventIdRaw=\(eventIdRaw) venueId=\(bar.id.uuidString.lowercased()) title=\(trimmed)"
+        )
+
+        guard isAuthenticatedForSocialFeatures else {
+            print("[GoingButtonDebug] blocked reason=noAuthUser")
+            onRequiresLogin()
+            return
+        }
+        guard currentUserAuthId != nil else {
+            print("[GoingButtonDebug] blocked reason=noAuthUser")
+            onRequiresLogin()
+            return
+        }
+        guard canMarkGoing else {
+            print("[GoingButtonDebug] blocked reason=businessUser")
+            onBusinessBlocked()
+            return
+        }
+
+        let resolvedCacheID = knownVenueEventID ?? cachedVenueEventID(for: bar, gameTitle: trimmed)
+        if let resolvedCacheID,
+           let row = venueEventRows.first(where: { $0.id == resolvedCacheID }),
+           !VenueGameExpiration.isActiveOnDiscoverSurfaces(row: row) {
+            print("[GoingButtonDebug] blocked reason=expiredEvent eventId=\(normalizedVenueEventWireId(resolvedCacheID))")
+            showSocialActionToast("This game has ended.")
+            return
+        }
+
+        if let resolvedCacheID, venueEventInterestWriteInFlightIDs.contains(resolvedCacheID) {
+            print("[GoingButtonDebug] blocked reason=pending eventId=\(normalizedVenueEventWireId(resolvedCacheID))")
+            return
+        }
+
+        let wasGoing: Bool
+        if let resolvedCacheID {
+            wasGoing = userIsGoingToVenueGame(bar: bar, gameTitle: trimmed, venueEventID: resolvedCacheID)
+        } else {
+            wasGoing = isInterested(in: bar, gameTitle: trimmed)
+        }
+        let targetGoing = !wasGoing
+
+        let rollbackSnapshot = VenueGameGoingRollbackSnapshot(
+            interestIDs: venueEventInterestIDs,
+            interestCounts: venueEventInterestCounts,
+            followingInterestIDs: followingTabUserVenueEventInterestIDs,
+            followingInterestCounts: followingTabGoingInterestCounts,
+            followingItems: followingTabGoingItems
+        )
+
+        applyOptimisticVenueGameGoingUI(
+            bar: bar,
+            gameTitle: trimmed,
+            venueEventID: resolvedCacheID,
+            isGoing: targetGoing
+        )
+
+        Task {
+            await completeVenueGameGoingToggle(
+                bar: bar,
+                gameTitle: trimmed,
+                eventDate: eventDate,
+                cachedVenueEventID: resolvedCacheID,
+                targetGoing: targetGoing,
+                source: source,
+                rollbackSnapshot: rollbackSnapshot
+            )
+        }
+    }
+
+    private struct VenueGameGoingRollbackSnapshot {
+        let interestIDs: Set<UUID>
+        let interestCounts: [UUID: Int]
+        let followingInterestIDs: Set<UUID>
+        let followingInterestCounts: [UUID: Int]
+        let followingItems: [FollowingGoingDisplayItem]
+    }
+
+    @MainActor
+    private func applyOptimisticVenueGameGoingUI(
+        bar: BarVenue,
+        gameTitle: String,
+        venueEventID: UUID?,
+        isGoing: Bool
+    ) {
+        if isGoing {
+            markInterested(in: bar, gameTitle: gameTitle)
+        } else {
+            removeInterested(in: bar, gameTitle: gameTitle)
+        }
+        if let venueEventID {
+            venueEventInterestWriteInFlightIDs.insert(venueEventID)
+            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isGoing)
+            print(
+                "[GoingButtonDebug] optimisticUpdate eventId=\(normalizedVenueEventWireId(venueEventID)) going=\(isGoing)"
+            )
+        } else {
+            print("[GoingButtonDebug] optimisticUpdate eventId=nil going=\(isGoing)")
+        }
+    }
+
+    @MainActor
+    private func rollbackOptimisticVenueGameGoingUI(
+        bar: BarVenue,
+        gameTitle: String,
+        venueEventID: UUID?,
+        restoreGoing: Bool,
+        previousInterestIDs: Set<UUID>,
+        previousInterestCounts: [UUID: Int],
+        previousFollowingInterestIDs: Set<UUID>,
+        previousFollowingInterestCounts: [UUID: Int],
+        previousFollowingItems: [FollowingGoingDisplayItem]
+    ) {
+        if let venueEventID {
+            venueEventInterestWriteInFlightIDs.remove(venueEventID)
+        }
+        venueEventInterestIDs = previousInterestIDs
+        venueEventInterestCounts = previousInterestCounts
+        followingTabUserVenueEventInterestIDs = previousFollowingInterestIDs
+        followingTabGoingInterestCounts = previousFollowingInterestCounts
+        followingTabGoingItems = previousFollowingItems
+        if restoreGoing {
+            markInterested(in: bar, gameTitle: gameTitle)
+        } else {
+            removeInterested(in: bar, gameTitle: gameTitle)
+        }
+        if let venueEventID {
+            reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
+        }
+    }
+
+    private func completeVenueGameGoingToggle(
+        bar: BarVenue,
+        gameTitle: String,
+        eventDate: Date,
+        cachedVenueEventID: UUID?,
+        targetGoing: Bool,
+        source: String,
+        rollbackSnapshot: VenueGameGoingRollbackSnapshot
+    ) async {
+        guard let interestEmail = await resolvedInterestMutationEmail() else {
+            print("[GoingButtonDebug] blocked reason=noEmail source=\(source)")
+            await MainActor.run {
+                rollbackOptimisticVenueGameGoingUI(
+                    bar: bar,
+                    gameTitle: gameTitle,
+                    venueEventID: cachedVenueEventID,
+                    restoreGoing: !targetGoing,
+                    previousInterestIDs: rollbackSnapshot.interestIDs,
+                    previousInterestCounts: rollbackSnapshot.interestCounts,
+                    previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
+                    previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
+                    previousFollowingItems: rollbackSnapshot.followingItems
+                )
+                showSocialActionToast("Please log in with a FanGeo account to mark yourself as going.")
+            }
+            return
+        }
+
+        guard let wireEventID = await venueEventID(for: bar, gameTitle: gameTitle, on: eventDate) ?? cachedVenueEventID else {
+            print("[GoingButtonDebug] blocked reason=noEventId source=\(source) title=\(gameTitle)")
+            await MainActor.run {
+                rollbackOptimisticVenueGameGoingUI(
+                    bar: bar,
+                    gameTitle: gameTitle,
+                    venueEventID: cachedVenueEventID,
+                    restoreGoing: !targetGoing,
+                    previousInterestIDs: rollbackSnapshot.interestIDs,
+                    previousInterestCounts: rollbackSnapshot.interestCounts,
+                    previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
+                    previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
+                    previousFollowingItems: rollbackSnapshot.followingItems
+                )
+                showSocialActionToast("Couldn't find this game yet. Try again in a moment.")
+            }
+            return
+        }
+
+        if cachedVenueEventID != wireEventID {
+            await MainActor.run {
+                if targetGoing {
+                    if let cachedVenueEventID {
+                        venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+                        venueEventInterestIDs.remove(cachedVenueEventID)
+                    }
+                    venueEventInterestWriteInFlightIDs.insert(wireEventID)
+                    applyLocalVenueEventInterestState(venueEventID: wireEventID, isInterested: true)
+                } else if let cachedVenueEventID, cachedVenueEventID != wireEventID {
+                    applyLocalVenueEventInterestState(venueEventID: cachedVenueEventID, isInterested: false)
+                }
+                print(
+                    "[GoingButtonDebug] normalizedEventId=\(normalizedVenueEventWireId(wireEventID)) source=resolvedMismatch cached=\(cachedVenueEventID?.uuidString.lowercased() ?? "nil")"
+                )
+            }
+        }
+
+        let ok = await setVenueEventInterest(
+            venueEventID: wireEventID,
+            isInterested: targetGoing,
+            refreshFollowing: false,
+            applyOptimistic: false,
+            manageWriteInFlight: false
+        )
+
+        if !ok {
+            await MainActor.run {
+                venueEventInterestWriteInFlightIDs.remove(wireEventID)
+                if let cachedVenueEventID, cachedVenueEventID != wireEventID {
+                    venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+                }
+            }
+            await MainActor.run {
+                rollbackOptimisticVenueGameGoingUI(
+                    bar: bar,
+                    gameTitle: gameTitle,
+                    venueEventID: wireEventID,
+                    restoreGoing: !targetGoing,
+                    previousInterestIDs: rollbackSnapshot.interestIDs,
+                    previousInterestCounts: rollbackSnapshot.interestCounts,
+                    previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
+                    previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
+                    previousFollowingItems: rollbackSnapshot.followingItems
+                )
+                showSocialActionToast("Couldn't update your game plan.")
+            }
+            return
+        }
+
+        await MainActor.run {
+            venueEventInterestWriteInFlightIDs.remove(wireEventID)
+            if let cachedVenueEventID, cachedVenueEventID != wireEventID {
+                venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+            }
+        }
+
+        scheduleDeferredVisibleVenueEventInterestsReload()
+
+        if targetGoing {
+            await addGameToCalendar(
+                title: gameTitle,
+                date: eventDate,
+                location: bar.address
+            )
+        }
+
+        _ = interestEmail
+    }
+
     /// Same normalized **Supabase Auth session** email as ``strictNormalizedSessionEmailForSocialTables`` (writes + Following reloads). Do not substitute profile/owner UI emails.
     private func resolvedInterestMutationEmail() async -> String? {
         await strictNormalizedSessionEmailForSocialTables()
@@ -40,13 +412,17 @@ extension MapViewModel {
         let localOnly = MapViewModel.followingInterestedOnlyVenueEventIDsFromUserDefaults()
         let hasServer = venueEventInterestIDs.contains(venueEventID)
             || followingTabUserVenueEventInterestIDs.contains(venueEventID)
-        let keep = hasServer || localOnly.contains(venueEventID)
+        let keep = hasServer
+            || localOnly.contains(venueEventID)
+            || venueEventInterestWriteInFlightIDs.contains(venueEventID)
+            || isRecentlyConfirmedVenueEventGoing(venueEventID)
 
         if let (bar, title) = snapshot {
             let key = venueEventInterestKey(for: bar, gameTitle: title)
             if keep {
                 interestedVenueEventKeys.insert(key)
-            } else {
+            } else if !venueEventInterestWriteInFlightIDs.contains(venueEventID),
+                      !isRecentlyConfirmedVenueEventGoing(venueEventID) {
                 interestedVenueEventKeys.remove(key)
             }
         }
@@ -87,126 +463,217 @@ extension MapViewModel {
         reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
     }
 
+    private func discoverSQLDateString(for day: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.string(from: day)
+    }
+
+    private func goingButtonDebugAuthContext() async -> (userId: String, email: String) {
+        let userId = await MainActor.run {
+            currentUserAuthId?.uuidString.lowercased() ?? "nil"
+        }
+        let email = await resolvedInterestMutationEmail() ?? "nil"
+        return (userId, email)
+    }
+
+    private func logGoingButtonInsertPayload(
+        _ interest: VenueEventInterestInsert,
+        venueEventID: UUID
+    ) {
+        print(
+            "[GoingButtonDebug] insertPayload=venue_event_id:\(normalizedVenueEventWireId(venueEventID)) user_email:\(interest.user_email) eventId=\(venueEventID.uuidString.lowercased())"
+        )
+    }
+
+    private func logGoingButtonSupabaseError(_ error: Error, venueEventID: UUID) {
+        if let pe = error as? PostgrestError {
+            print(
+                "[GoingButtonDebug] supabaseError code=\(pe.code ?? "") message=\(pe.message) details=\(pe.detail ?? "") hint=\(pe.hint ?? "") eventId=\(venueEventID.uuidString.lowercased())"
+            )
+        } else {
+            print(
+                "[GoingButtonDebug] supabaseError code= message=\(error.localizedDescription) details= hint= eventId=\(venueEventID.uuidString.lowercased())"
+            )
+        }
+    }
+
+    private func isVenueEventInterestDuplicateError(_ error: Error) -> Bool {
+        if let pe = error as? PostgrestError, pe.code == "23505" {
+            return true
+        }
+        let message = error.localizedDescription.lowercased()
+        return message.contains("duplicate key") || message.contains("23505")
+    }
+
+    private func scheduleDeferredVisibleVenueEventInterestsReload() {
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await self.loadVisibleVenueEventInterests(preserveLocalOptimistic: true)
+        }
+    }
+
     @discardableResult
     func setVenueEventInterest(
         venueEventID: UUID,
         isInterested: Bool,
-        refreshFollowing: Bool = true
+        refreshFollowing: Bool = true,
+        applyOptimistic: Bool = true,
+        manageWriteInFlight: Bool = true
     ) async -> Bool {
-        guard !venueEventInterestWriteInFlightIDs.contains(venueEventID) else { return true }
+        let normalizedEventId = normalizedVenueEventWireId(venueEventID)
+        if manageWriteInFlight, venueEventInterestWriteInFlightIDs.contains(venueEventID) {
+            print("[GoingButtonDebug] blocked reason=pending eventId=\(normalizedEventId)")
+            return false
+        }
         guard canMarkGoing else {
             logBusinessUserGateBlocked(action: "markGoing")
+            print("[GoingButtonDebug] blocked reason=businessUser eventId=\(normalizedEventId)")
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return false
         }
 
+        let auth = await goingButtonDebugAuthContext()
         guard let interestEmail = await resolvedInterestMutationEmail() else {
+            print(
+                "[GoingButtonDebug] blocked reason=noEmail eventId=\(normalizedEventId) auth userId=\(auth.userId) email=\(auth.email)"
+            )
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return false
         }
 
-        let previousInterestIDs = venueEventInterestIDs
-        let previousInterestCounts = venueEventInterestCounts
-        let previousFollowingInterestIDs = followingTabUserVenueEventInterestIDs
-        let previousFollowingInterestCounts = followingTabGoingInterestCounts
-        let previousFollowingItems = followingTabGoingItems
-        let wasAlreadyInterested = venueEventInterestIDs.contains(venueEventID)
-            || followingTabUserVenueEventInterestIDs.contains(venueEventID)
-
-        await MainActor.run {
-            venueEventInterestWriteInFlightIDs.insert(venueEventID)
-            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+        let snapshot = await MainActor.run { () -> (
+            previousInterestIDs: Set<UUID>,
+            previousInterestCounts: [UUID: Int],
+            previousFollowingInterestIDs: Set<UUID>,
+            previousFollowingInterestCounts: [UUID: Int],
+            previousFollowingItems: [FollowingGoingDisplayItem],
+            wasAlreadyInterested: Bool
+        ) in
+            (
+                venueEventInterestIDs,
+                venueEventInterestCounts,
+                followingTabUserVenueEventInterestIDs,
+                followingTabGoingInterestCounts,
+                followingTabGoingItems,
+                venueEventInterestIDs.contains(venueEventID)
+                    || followingTabUserVenueEventInterestIDs.contains(venueEventID)
+            )
         }
 
+        if applyOptimistic {
+            await MainActor.run {
+                if manageWriteInFlight {
+                    venueEventInterestWriteInFlightIDs.insert(venueEventID)
+                }
+                applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+                print(
+                    "[GoingButtonDebug] optimisticUpdate eventId=\(normalizedEventId) going=\(isInterested)"
+                )
+            }
+        }
+
+        let writeAction = isInterested ? "insert" : "delete"
         do {
+            print("[GoingButtonDebug] interestEmailWrite=\(interestEmail)")
+            print("[GoingButtonDebug] interestEmailRead=\(interestEmail)")
             if isInterested {
+                print("[GoingButtonDebug] insertStart eventId=\(normalizedEventId)")
                 let interest = VenueEventInterestInsert(
                     venue_event_id: venueEventID,
                     user_email: interestEmail
                 )
+                logGoingButtonInsertPayload(interest, venueEventID: venueEventID)
+                // Plain insert only — upsert triggers RLS UPDATE on conflict and can roll back Going UI.
                 try await supabase
                     .from("venue_event_interests")
-                    .upsert(
-                        interest,
-                        onConflict: "user_email,venue_event_id"
-                    )
+                    .insert(interest)
                     .execute()
+                print("[GoingButtonDebug] insertSuccess eventId=\(normalizedEventId)")
             } else {
+                print("[GoingButtonDebug] deleteStart eventId=\(normalizedEventId)")
+                print(
+                    "[GoingButtonDebug] payload=action:delete venue_event_id:\(normalizedEventId) user_email:\(interestEmail) eventId=\(normalizedEventId)"
+                )
                 try await supabase
                     .from("venue_event_interests")
                     .delete()
-                    .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
+                    .eq("venue_event_id", value: normalizedEventId)
                     .eq("user_email", value: interestEmail)
                     .execute()
+                print("[GoingButtonDebug] deleteSuccess eventId=\(normalizedEventId)")
             }
-
-            _ = await MainActor.run {
-                venueEventInterestWriteInFlightIDs.remove(venueEventID)
-            }
-
-            if refreshFollowing {
+        } catch {
+            if isInterested, isVenueEventInterestDuplicateError(error) {
+                print("[GoingButtonDebug] duplicateTreatedAsSuccess eventId=\(normalizedEventId)")
+                print("[GoingButtonDebug] insertSuccess eventId=\(normalizedEventId)")
+            } else {
+                await MainActor.run {
+                    venueEventInterestIDs = snapshot.previousInterestIDs
+                    venueEventInterestCounts = snapshot.previousInterestCounts
+                    followingTabUserVenueEventInterestIDs = snapshot.previousFollowingInterestIDs
+                    followingTabGoingInterestCounts = snapshot.previousFollowingInterestCounts
+                    followingTabGoingItems = snapshot.previousFollowingItems
+                    if manageWriteInFlight {
+                        venueEventInterestWriteInFlightIDs.remove(venueEventID)
+                    }
+                }
 #if DEBUG
                 if hasAuthenticatedVenueOwnerSession {
+                    print("[FollowingState] business attendance save failed")
+                }
+#endif
+                logGoingButtonSupabaseError(error, venueEventID: venueEventID)
+                print(
+                    "[GoingButtonDebug] rollback eventId=\(normalizedEventId) reason=supabaseFailure"
+                )
+                print("ERROR SETTING INTEREST:", error)
+                return false
+            }
+        }
+
+        await MainActor.run {
+            recordRecentlyConfirmedVenueEventInterest(venueEventID: venueEventID, isGoing: isInterested)
+            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+            if manageWriteInFlight {
+                venueEventInterestWriteInFlightIDs.remove(venueEventID)
+            }
+        }
+
+        if refreshFollowing {
+            Task { @MainActor in
+#if DEBUG
+                if self.hasAuthenticatedVenueOwnerSession {
                     print("[FollowingState] business attendance change event=\(venueEventID.uuidString)")
                 }
 #endif
-                await refreshFollowingTabDataGlobally()
-                await loadGoingUserProfiles(for: venueEventID)
-                refreshFollowingInterestDerivedSnapshotsForUI()
-#if DEBUG
-                if hasAuthenticatedVenueOwnerSession {
-                    print("[FollowingState] following recomputed after discover attendance")
-                }
-#endif
+                await self.refreshFollowingTabDataGlobally()
+                await self.loadGoingUserProfiles(for: venueEventID)
+                self.refreshFollowingInterestDerivedSnapshotsForUI()
             }
+        } else {
+            scheduleDeferredVisibleVenueEventInterestsReload()
+        }
 
-            if isInterested {
-                await loadVisibleVenueEventInterests()
-            }
-
-            if isInterested, !wasAlreadyInterested, let uid = await MainActor.run(body: { currentUserAuthId }) {
-                await awardFanXP(
+        if isInterested, !snapshot.wasAlreadyInterested, let uid = await MainActor.run(body: { currentUserAuthId }) {
+            Task {
+                await self.awardFanXP(
                     userId: uid,
                     amount: 5,
                     source: FanXPSource.venueEventInterest,
                     sourceId: venueEventID
                 )
             }
-
-            if isInterested {
-                await scheduleGameReminderIfPossible(venueEventID: venueEventID)
-            } else {
-                await cancelGameReminder(venueEventID: venueEventID)
-            }
-
-            return true
-        } catch {
-            let message = error.localizedDescription.lowercased()
-            if isInterested, message.contains("duplicate key") || message.contains("23505") {
-                await MainActor.run {
-                    venueEventInterestWriteInFlightIDs.remove(venueEventID)
-                    applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: true)
-                }
-                await loadVisibleVenueEventInterests()
-                return true
-            }
-
-            await MainActor.run {
-                venueEventInterestIDs = previousInterestIDs
-                venueEventInterestCounts = previousInterestCounts
-                followingTabUserVenueEventInterestIDs = previousFollowingInterestIDs
-                followingTabGoingInterestCounts = previousFollowingInterestCounts
-                followingTabGoingItems = previousFollowingItems
-                venueEventInterestWriteInFlightIDs.remove(venueEventID)
-            }
-#if DEBUG
-            if hasAuthenticatedVenueOwnerSession {
-                print("[FollowingState] business attendance save failed")
-            }
-#endif
-            print("ERROR SETTING INTEREST:", error)
-            return false
         }
+
+        if isInterested {
+            await scheduleGameReminderIfPossible(venueEventID: venueEventID)
+        } else {
+            await cancelGameReminder(venueEventID: venueEventID)
+        }
+
+        return true
     }
 
     @discardableResult
@@ -246,11 +713,18 @@ extension MapViewModel {
     }
 
     func cachedVenueEventID(for bar: BarVenue, gameTitle: String) -> UUID? {
-        let primary = venueEventLookupKeyPrimary(for: bar, gameTitle: gameTitle)
-        if let id = venueEventIDsByKey[primary] {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        guard !trimmed.isEmpty else { return nil }
+        let primary = venueEventLookupKeyPrimary(for: bar, gameTitle: trimmed)
+        if let id = venueEventIDsByKey[primary] ?? venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: trimmed)] {
             return id
         }
-        return venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: gameTitle)]
+        if let row = venueEventRows.first(where: { venueEventRow($0, matches: bar) && venueEventTitlesMatch($0.event_title, trimmed) }),
+           let id = row.id {
+            cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
+            return id
+        }
+        return nil
     }
 
     func interestedPlans() -> [(bar: BarVenue, gameTitle: String, date: String, time: String, count: Int)] {
@@ -406,7 +880,7 @@ extension MapViewModel {
     }
 
     func venueEventInterestKey(for bar: BarVenue, gameTitle: String) -> String {
-        "\(bar.id.uuidString)-\(gameTitle)"
+        "\(bar.id.uuidString)-\(normalizedVenueGameTitle(gameTitle))"
     }
 
     func isInterested(in bar: BarVenue, gameTitle: String) -> Bool {
@@ -459,56 +933,66 @@ extension MapViewModel {
 
     func isInterestedInVenueEvent(_ venueEventID: UUID) -> Bool {
         venueEventInterestIDs.contains(venueEventID)
+            || followingTabUserVenueEventInterestIDs.contains(venueEventID)
     }
 
     func interestCountForVenueEvent(_ venueEventID: UUID) -> Int {
         venueEventInterestCounts[venueEventID] ?? 0
     }
 
-    func venueEventID(for bar: BarVenue, gameTitle: String) async -> UUID? {
-        let keyPrimary = venueEventLookupKeyPrimary(for: bar, gameTitle: gameTitle)
-        let keyLegacy = venueEventLookupKey(for: bar, gameTitle: gameTitle)
-        if let cached = venueEventIDsByKey[keyPrimary] ?? venueEventIDsByKey[keyLegacy] {
-            return cached
+    func venueEventID(for bar: BarVenue, gameTitle: String, on eventDay: Date? = nil) async -> UUID? {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        guard !trimmed.isEmpty else { return nil }
+
+        let day = eventDay ?? selectedDate
+        let selectedDaySQL = discoverSQLDateString(for: day)
+
+        if let cached = cachedVenueEventID(for: bar, gameTitle: trimmed) {
+            if let row = venueEventRows.first(where: { $0.id == cached }),
+               let rowDate = row.event_date,
+               rowDate == selectedDaySQL {
+                print("[GoingButtonDebug] normalizedEventId=\(cached.uuidString.lowercased()) source=cache")
+                return cached
+            }
+            if !venueEventRows.contains(where: { $0.id == cached }) {
+                print("[GoingButtonDebug] normalizedEventId=\(cached.uuidString.lowercased()) source=cache")
+                return cached
+            }
         }
 
         if let row = venueEventRows.first(where: { row in
-            guard row.event_title == gameTitle else { return false }
-            if let vid = row.venue_id, vid == bar.id { return true }
-            if row.venue_name == bar.name { return true }
-            if let o = row.owner_email, let bo = bar.ownerEmail,
-               OwnerBusinessEmail.normalized(o) == OwnerBusinessEmail.normalized(bo) { return true }
-            return false
-        }), let id = row.id {
-            venueEventIDsByKey[keyPrimary] = id
-            venueEventIDsByKey[keyLegacy] = id
+            guard venueEventRow(row, matches: bar), venueEventTitlesMatch(row.event_title, trimmed) else { return false }
+            guard let rowDate = row.event_date else { return true }
+            return rowDate == selectedDaySQL
+        }),
+           let id = row.id {
+            cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
+            print("[GoingButtonDebug] normalizedEventId=\(id.uuidString.lowercased()) source=inMemoryRows")
             return id
         }
 
         do {
-            let q = supabase
+            let rowsByVenueId: [VenueEventRow] = try await supabase
                 .from("venue_events")
-                .select("id,venue_id,owner_email,venue_name,event_title")
-                .eq("event_title", value: gameTitle)
+                .select("id,venue_id,owner_email,venue_name,event_title,event_date")
                 .eq("admin_status", value: "active")
                 .eq("venue_id", value: bar.id)
-
-            let rowsByVenueId: [VenueEventRow] = try await q
-                .limit(1)
+                .eq("event_date", value: selectedDaySQL)
                 .execute()
                 .value
 
-            if let id = rowsByVenueId.first?.id {
-                venueEventIDsByKey[keyPrimary] = id
-                venueEventIDsByKey[keyLegacy] = id
+            if let row = rowsByVenueId.first(where: { venueEventTitlesMatch($0.event_title, trimmed) }),
+               let id = row.id {
+                cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
+                print("[GoingButtonDebug] normalizedEventId=\(id.uuidString.lowercased()) source=networkVenueId")
                 return id
             }
 
             var qLegacy = supabase
                 .from("venue_events")
-                .select("id,venue_id,owner_email,venue_name,event_title")
-                .eq("event_title", value: gameTitle)
+                .select("id,venue_id,owner_email,venue_name,event_title,event_date")
                 .eq("admin_status", value: "active")
+                .eq("event_date", value: selectedDaySQL)
                 .is("venue_id", value: nil)
 
             let ownerNorm = OwnerBusinessEmail.normalized(bar.ownerEmail ?? "")
@@ -519,23 +1003,29 @@ extension MapViewModel {
             }
 
             let rows: [VenueEventRow] = try await qLegacy
-                .limit(1)
                 .execute()
                 .value
 
-            #if DEBUG
-            print("[DiscoverPerf] venueEventID network lookup title=\(gameTitle) rows=\(rows.count)")
-            #endif
-
-            if let id = rows.first?.id {
-                venueEventIDsByKey[keyPrimary] = id
-                venueEventIDsByKey[keyLegacy] = id
+            if let row = rows.first(where: { venueEventTitlesMatch($0.event_title, trimmed) }),
+               let id = row.id {
+                cacheDiscoveredVenueEventID(id, bar: bar, gameTitle: trimmed, rowTitle: row.event_title)
+                print("[GoingButtonDebug] normalizedEventId=\(id.uuidString.lowercased()) source=networkLegacy")
+                #if DEBUG
+                print("[DiscoverPerf] venueEventID legacy lookup title=\(trimmed) matched=\(row.event_title ?? "")")
+                #endif
                 return id
             }
 
+            print(
+                "[GoingButtonDebug] blocked reason=venueEventLookupFailed title=\(trimmed) venueId=\(bar.id.uuidString.lowercased()) selectedDay=\(selectedDaySQL) networkRows=\(rowsByVenueId.count + rows.count)"
+            )
+            #if DEBUG
+            print("[DiscoverPerf] venueEventID network lookup title=\(trimmed) rows=\(rows.count)")
+            #endif
             return nil
 
         } catch {
+            print("[GoingButtonDebug] blocked reason=venueEventLookupFailed title=\(trimmed) error=\(error.localizedDescription)")
             #if DEBUG
             print("ERROR FINDING VENUE EVENT ID:", error)
             #endif
@@ -543,8 +1033,8 @@ extension MapViewModel {
         }
     }
 
-    func loadVisibleVenueEventInterests() async {
-        let visibleEventIDs = venueEventRows.compactMap { $0.id }
+    func loadVisibleVenueEventInterests(preserveLocalOptimistic: Bool = true) async {
+        let visibleEventIDs = await MainActor.run { venueEventRows.compactMap(\.id) }
 
         guard !visibleEventIDs.isEmpty else {
             return
@@ -553,6 +1043,12 @@ extension MapViewModel {
         let t0 = Date()
         /// Must match ``strictNormalizedSessionEmailForSocialTables`` / inserts to `venue_event_interests` (not `currentUserEmail`, which may diverge after profile load).
         let sessionInterestEmail = await strictNormalizedSessionEmailForSocialTables()
+        let interestEmailRead = sessionInterestEmail ?? "nil"
+        print("[GoingButtonDebug] interestEmailRead=\(interestEmailRead)")
+
+        let previousInterestIDs = await MainActor.run { venueEventInterestIDs }
+        let previousInterestCounts = await MainActor.run { venueEventInterestCounts }
+
         let selectCols = "venue_event_id,user_email"
         let chunkSize = 90
 
@@ -580,16 +1076,75 @@ extension MapViewModel {
                     guard let eventID = row.venue_event_id else { continue }
                     counts[eventID, default: 0] += 1
                     if let sessionInterestEmail,
-                       OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(sessionInterestEmail)),
-                       OwnerBusinessEmail.normalized(row.user_email ?? "") == OwnerBusinessEmail.normalized(sessionInterestEmail) {
-                        myInterests.insert(eventID)
+                       OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(sessionInterestEmail)) {
+                        let rowEmail = row.user_email ?? ""
+                        let normalizedRowEmail = OwnerBusinessEmail.normalized(rowEmail)
+                        let normalizedSessionEmail = OwnerBusinessEmail.normalized(sessionInterestEmail)
+                        if normalizedRowEmail == normalizedSessionEmail {
+                            print(
+                                "[GoingButtonDebug] rowEmail=\(rowEmail) eventId=\(normalizedVenueEventWireId(eventID))"
+                            )
+                            myInterests.insert(eventID)
+                        }
                     }
                 }
             }
 
+            let serverMineSummary = myInterests.map { normalizedVenueEventWireId($0) }.sorted().joined(separator: ",")
+            print("[GoingButtonDebug] reconcileStart serverMine=\(serverMineSummary.isEmpty ? "[]" : serverMineSummary)")
+
             await MainActor.run {
-                venueEventInterestCounts = counts
-                venueEventInterestIDs = myInterests
+                var mergedIDs = myInterests
+                var mergedCounts = counts
+
+                if preserveLocalOptimistic {
+                    pruneVenueEventInterestLocalReconcileGuards()
+                    let preserveInFlight = venueEventInterestWriteInFlightIDs
+                    let preserveConfirmedGoing = activeRecentlyConfirmedVenueEventGoingIDs()
+                    let preserveConfirmedNotGoing = activeRecentlyConfirmedVenueEventNotGoingIDs()
+
+                    for eventID in preserveInFlight.union(preserveConfirmedGoing) {
+                        if preserveConfirmedNotGoing.contains(eventID) { continue }
+                        if !myInterests.contains(eventID) {
+                            print(
+                                "[GoingButtonDebug] flipPrevented eventId=\(normalizedVenueEventWireId(eventID))"
+                            )
+                        }
+                        if preserveInFlight.contains(eventID), !myInterests.contains(eventID) {
+                            print(
+                                "[GoingButtonDebug] preserveOptimistic eventId=\(normalizedVenueEventWireId(eventID))"
+                            )
+                        }
+                        if preserveConfirmedGoing.contains(eventID), !myInterests.contains(eventID) {
+                            print(
+                                "[GoingButtonDebug] preserveConfirmed eventId=\(normalizedVenueEventWireId(eventID))"
+                            )
+                        }
+                        mergedIDs.insert(eventID)
+                        let prior = previousInterestCounts[eventID] ?? venueEventInterestCounts[eventID] ?? 0
+                        let serverCount = counts[eventID] ?? 0
+                        mergedCounts[eventID] = max(serverCount, prior, 1)
+                    }
+
+                    for eventID in preserveConfirmedNotGoing {
+                        mergedIDs.remove(eventID)
+                    }
+
+                    for eventID in mergedIDs where preserveInFlight.contains(eventID) || preserveConfirmedGoing.contains(eventID) {
+                        let prior = previousInterestCounts[eventID] ?? venueEventInterestCounts[eventID] ?? 0
+                        if (mergedCounts[eventID] ?? 0) < prior {
+                            mergedCounts[eventID] = prior
+                        }
+                    }
+                }
+
+                let appliedMineSummary = mergedIDs.map { normalizedVenueEventWireId($0) }.sorted().joined(separator: ",")
+                print(
+                    "[GoingButtonDebug] reconcileApplied myInterests=\(appliedMineSummary.isEmpty ? "[]" : appliedMineSummary)"
+                )
+
+                venueEventInterestCounts = mergedCounts
+                venueEventInterestIDs = mergedIDs
             }
 
             #if DEBUG

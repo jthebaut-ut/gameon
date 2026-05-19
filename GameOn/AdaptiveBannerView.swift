@@ -5,14 +5,21 @@ import GoogleMobileAds
 // MARK: - UIViewRepresentable
 
 private struct AdaptiveBannerRepresentable: UIViewRepresentable {
+    let placement: String
     let adUnitID: String
     let adSize: AdSize
     let slotSize: CGSize
+    let layoutWidth: CGFloat
     let onAdLoaded: () -> Void
     let onAdFailed: (Error) -> Void
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAdLoaded: onAdLoaded, onAdFailed: onAdFailed)
+        Coordinator(
+            placement: placement,
+            layoutWidth: layoutWidth,
+            onAdLoaded: onAdLoaded,
+            onAdFailed: onAdFailed
+        )
     }
 
     func makeUIView(context: Context) -> UIView {
@@ -26,39 +33,80 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         banner.translatesAutoresizingMaskIntoConstraints = false
 
         container.addSubview(banner)
-        context.coordinator.attach(banner, in: container, adSize: adSize, slotSize: slotSize)
-        context.coordinator.loadBannerIfNeeded(force: true)
+        context.coordinator.attach(banner, in: container, adSize: adSize, slotSize: slotSize, adUnitID: adUnitID)
+
+        AdDebugDiagnostics.logViewSnapshot(
+            phase: "makeUIView",
+            format: "banner",
+            placement: placement,
+            unitID: adUnitID,
+            view: container,
+            adSize: adSize.size,
+            slotSize: slotSize,
+            layoutWidth: layoutWidth,
+            hostTabRaw: "discover"
+        )
+
+        context.coordinator.loadBannerIfNeeded(force: true, reason: "makeUIView")
 
         return container
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        context.coordinator.update(adSize: adSize, slotSize: slotSize, adUnitID: adUnitID)
+        context.coordinator.update(
+            adSize: adSize,
+            slotSize: slotSize,
+            adUnitID: adUnitID,
+            container: uiView
+        )
     }
 
     static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
+        AdDebugDiagnostics.logViewSnapshot(
+            phase: "dismantle",
+            format: "banner",
+            placement: coordinator.placement,
+            unitID: coordinator.lastAdUnitID,
+            view: uiView,
+            adSize: coordinator.currentAdSize,
+            slotSize: coordinator.currentSlotSize,
+            layoutWidth: coordinator.layoutWidth,
+            hostTabRaw: "discover"
+        )
         coordinator.detach()
     }
 
     final class Coordinator: NSObject, BannerViewDelegate {
+        let placement: String
+        let layoutWidth: CGFloat
         private weak var banner: BannerView?
         private weak var container: UIView?
         private var widthConstraint: NSLayoutConstraint?
         private var heightConstraint: NSLayoutConstraint?
-        private var currentAdSize: CGSize?
-        private var currentSlotSize: CGSize?
+        private(set) var currentAdSize: CGSize?
+        private(set) var currentSlotSize: CGSize?
+        private(set) var lastAdUnitID: String?
         private var didRequestAd = false
+        private var requestStartedAt: Date?
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
 
-        init(onAdLoaded: @escaping () -> Void, onAdFailed: @escaping (Error) -> Void) {
+        init(
+            placement: String,
+            layoutWidth: CGFloat,
+            onAdLoaded: @escaping () -> Void,
+            onAdFailed: @escaping (Error) -> Void
+        ) {
+            self.placement = placement
+            self.layoutWidth = layoutWidth
             self.onAdLoaded = onAdLoaded
             self.onAdFailed = onAdFailed
         }
 
-        func attach(_ banner: BannerView, in container: UIView, adSize: AdSize, slotSize: CGSize) {
+        func attach(_ banner: BannerView, in container: UIView, adSize: AdSize, slotSize: CGSize, adUnitID: String) {
             self.banner = banner
             self.container = container
+            lastAdUnitID = adUnitID
             currentAdSize = adSize.size
             currentSlotSize = slotSize
 
@@ -75,11 +123,19 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             ])
         }
 
-        func update(adSize: AdSize, slotSize: CGSize, adUnitID: String) {
+        func update(adSize: AdSize, slotSize: CGSize, adUnitID: String, container: UIView) {
             guard let banner else { return }
+            lastAdUnitID = adUnitID
+
             if banner.adUnitID != adUnitID {
                 banner.adUnitID = adUnitID
                 didRequestAd = false
+                AdDebugDiagnostics.logEvent(
+                    event: "unitIDChanged",
+                    format: "banner",
+                    placement: placement,
+                    fields: ["unitID": adUnitID]
+                )
             }
 
             let nextSize = adSize.size
@@ -89,24 +145,82 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 banner.adSize = adSize
                 widthConstraint?.constant = slotSize.width
                 heightConstraint?.constant = slotSize.height
-                container?.setNeedsLayout()
-                loadBannerIfNeeded(force: true)
+                container.setNeedsLayout()
+                container.layoutIfNeeded()
+
+                AdDebugDiagnostics.logViewSnapshot(
+                    phase: "updateUIView.resize",
+                    format: "banner",
+                    placement: placement,
+                    unitID: adUnitID,
+                    view: container,
+                    adSize: nextSize,
+                    slotSize: slotSize,
+                    layoutWidth: layoutWidth,
+                    hostTabRaw: "discover",
+                    extra: ["iPadInlineAdaptive": "\(UIDevice.current.userInterfaceIdiom == .pad)"]
+                )
+
+                loadBannerIfNeeded(force: true, reason: "adSizeOrSlotChanged")
                 return
             }
 
-            loadBannerIfNeeded(force: false)
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "updateUIView",
+                format: "banner",
+                placement: placement,
+                unitID: adUnitID,
+                view: container,
+                adSize: nextSize,
+                slotSize: slotSize,
+                layoutWidth: layoutWidth,
+                hostTabRaw: "discover"
+            )
+            loadBannerIfNeeded(force: false, reason: "updateUIView")
         }
 
-        func loadBannerIfNeeded(force: Bool) {
+        func loadBannerIfNeeded(force: Bool, reason: String) {
             guard let banner else { return }
+
             if banner.rootViewController == nil {
                 banner.rootViewController = AdMobRootViewController.topViewController()
                 if banner.rootViewController == nil {
-                    AdMobDiagnostics.logMissingRootViewController(format: "banner", unitID: banner.adUnitID)
+                    AdDebugDiagnostics.logMissingRootViewController(
+                        format: "banner",
+                        placement: placement,
+                        unitID: banner.adUnitID
+                    )
                 }
             }
+
             guard force || !didRequestAd else { return }
+
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "preRequest.\(reason)",
+                format: "banner",
+                placement: placement,
+                unitID: banner.adUnitID,
+                view: container,
+                adSize: currentAdSize,
+                slotSize: currentSlotSize,
+                layoutWidth: layoutWidth,
+                hostTabRaw: "discover",
+                extra: ["force": "\(force)", "didRequestAd": "\(didRequestAd)"]
+            )
+
             didRequestAd = true
+            requestStartedAt = Date()
+
+            AdDebugDiagnostics.logRequestStart(
+                format: "banner",
+                placement: placement,
+                unitID: banner.adUnitID ?? "unknown",
+                adSize: currentAdSize,
+                slotSize: currentSlotSize,
+                layoutWidth: layoutWidth,
+                extra: ["reason": reason, "loadTrigger": reason]
+            )
+
             banner.load(Request())
         }
 
@@ -118,16 +232,64 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             container = nil
             widthConstraint = nil
             heightConstraint = nil
+            didRequestAd = false
+            requestStartedAt = nil
         }
 
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
-            AdMobDiagnostics.logLoadSuccess(format: "banner", unitID: bannerView.adUnitID)
+            let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            AdDebugDiagnostics.logResponseSuccess(
+                format: "banner",
+                placement: placement,
+                unitID: bannerView.adUnitID,
+                elapsedMs: elapsed,
+                adSize: bannerView.adSize.size,
+                slotSize: currentSlotSize
+            )
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "didReceiveAd",
+                format: "banner",
+                placement: placement,
+                unitID: bannerView.adUnitID,
+                view: container,
+                adSize: bannerView.adSize.size,
+                slotSize: currentSlotSize,
+                layoutWidth: layoutWidth,
+                hostTabRaw: "discover"
+            )
             onAdLoaded()
         }
 
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
-            AdMobDiagnostics.logLoadFailure(format: "banner", unitID: bannerView.adUnitID, error: error)
+            let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            AdDebugDiagnostics.logResponseFailure(
+                format: "banner",
+                placement: placement,
+                unitID: bannerView.adUnitID,
+                error: error,
+                elapsedMs: elapsed
+            )
+            AdDebugDiagnostics.logViewSnapshot(
+                phase: "didFailToReceiveAd",
+                format: "banner",
+                placement: placement,
+                unitID: bannerView.adUnitID,
+                view: container,
+                adSize: bannerView.adSize.size,
+                slotSize: currentSlotSize,
+                layoutWidth: layoutWidth,
+                hostTabRaw: "discover"
+            )
             onAdFailed(error)
+        }
+
+        func bannerViewDidRecordImpression(_ bannerView: BannerView) {
+            AdDebugDiagnostics.logEvent(
+                event: "impressionRecorded",
+                format: "banner",
+                placement: placement,
+                fields: ["unitID": bannerView.adUnitID ?? "unknown"]
+            )
         }
     }
 }
@@ -158,11 +320,26 @@ enum AdaptiveBannerLayout {
 
 /// Anchored adaptive AdMob banner sized to the exact parent slot.
 struct AdaptiveBannerView: View {
+    let placement: String
     let adUnitID: String
     /// Final visible width available to the banner after parent screen margins.
     let layoutWidth: CGFloat
     var onAdLoaded: () -> Void = {}
     var onAdFailed: (Error) -> Void = { _ in }
+
+    init(
+        placement: String = "discover.bottomStrip",
+        adUnitID: String,
+        layoutWidth: CGFloat,
+        onAdLoaded: @escaping () -> Void = {},
+        onAdFailed: @escaping (Error) -> Void = { _ in }
+    ) {
+        self.placement = placement
+        self.adUnitID = adUnitID
+        self.layoutWidth = layoutWidth
+        self.onAdLoaded = onAdLoaded
+        self.onAdFailed = onAdFailed
+    }
 
     private var bannerSlotWidth: CGFloat {
         max(1, floor(layoutWidth))
@@ -174,13 +351,35 @@ struct AdaptiveBannerView: View {
 
     var body: some View {
         let slotSize = CGSize(width: bannerSlotWidth, height: adSize.size.height)
-        AdaptiveBannerRepresentable(
-            adUnitID: adUnitID,
-            adSize: adSize,
-            slotSize: slotSize,
-            onAdLoaded: onAdLoaded,
-            onAdFailed: onAdFailed
-        )
+        GeometryReader { geo in
+            AdaptiveBannerRepresentable(
+                placement: placement,
+                adUnitID: adUnitID,
+                adSize: adSize,
+                slotSize: slotSize,
+                layoutWidth: layoutWidth,
+                onAdLoaded: onAdLoaded,
+                onAdFailed: onAdFailed
+            )
+            .onAppear {
+                AdDebugDiagnostics.logSwiftUILayout(
+                    format: "banner",
+                    placement: placement,
+                    proposedLayoutWidth: layoutWidth,
+                    measuredWidth: geo.size.width,
+                    measuredHeight: geo.size.height
+                )
+            }
+            .onChange(of: geo.size.width) { _, measuredW in
+                AdDebugDiagnostics.logSwiftUILayout(
+                    format: "banner",
+                    placement: placement,
+                    proposedLayoutWidth: layoutWidth,
+                    measuredWidth: measuredW,
+                    measuredHeight: geo.size.height
+                )
+            }
+        }
         .frame(width: slotSize.width, height: slotSize.height)
         .clipped()
         .accessibilityElement(children: .contain)

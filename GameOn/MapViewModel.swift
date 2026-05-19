@@ -44,7 +44,12 @@ final class MapViewModel: ObservableObject {
     /// Prevents overlapping save/remove writes for the same venue while keeping the UI on the optimistic state.
     var favoriteVenueWriteInFlightIDs: Set<UUID> = []
     /// Prevents overlapping going/interested writes for the same event while keeping the UI on the optimistic state.
-    var venueEventInterestWriteInFlightIDs: Set<UUID> = []
+    @Published var venueEventInterestWriteInFlightIDs: Set<UUID> = []
+    /// Short-lived local Going confirmations so Supabase reloads cannot flash the UI back to not-going.
+    var recentlyConfirmedVenueEventGoingAt: [UUID: Date] = [:]
+    /// Short-lived local not-going confirmations so reloads cannot re-add a deleted row before read replicas catch up.
+    var recentlyConfirmedVenueEventNotGoingAt: [UUID: Date] = [:]
+    let venueEventInterestLocalReconcileTTL: TimeInterval = 15
     @Published var selectedTimeZone: TimeZoneOption = .mountain
     @Published var isLoggedIn: Bool = false
     @Published var currentUserEmail: String = ""
