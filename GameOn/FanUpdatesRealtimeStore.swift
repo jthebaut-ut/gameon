@@ -10,6 +10,8 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     @Published var myVenueEventVibes: [UUID: Set<String>] = [:]
     @Published var venueEventCommentPreviewCounts: [UUID: Int] = [:]
     @Published var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] = [:]
+    @Published var venueEventCommentLikeCountsByID: [UUID: Int] = [:]
+    @Published var venueEventCommentIDsLikedByCurrentUser: Set<UUID> = []
 
     var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] = [:]
     var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
@@ -31,6 +33,7 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var fanUpdatesCommentPrefetchedAt: [UUID: Date] = [:]
     var fanUpdatesVibePrefetchedAt: [UUID: Date] = [:]
     var venueEventVibeWriteInFlightKeys: Set<String> = []
+    var venueEventCommentLikeWriteInFlightIDs: Set<UUID> = []
 
     var venueEventCommentInsertSuccessTimesByServerID: [UUID: CFAbsoluteTime] = [:]
     var venueEventCommentDebugSendTapDatesByLocalID: [UUID: Date] = [:]

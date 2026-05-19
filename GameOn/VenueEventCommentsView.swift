@@ -815,6 +815,8 @@ struct VenueEventCommentsView: View {
                     .foregroundStyle(primaryLabelColor)
                     .fixedSize(horizontal: false, vertical: true)
 
+                commentLikeControl(for: comment)
+
             }
         }
         .padding(12)
@@ -824,6 +826,47 @@ struct VenueEventCommentsView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(cardBorderColor, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func commentLikeControl(for comment: VenueEventCommentRow) -> some View {
+        if let commentID = comment.serverCommentID {
+            let canToggleLike = viewModel.isAuthenticatedForSocialFeatures && viewModel.canUseFanSocialFeatures
+            let isLiked = comment.isLikedByCurrentUser
+            let likeCount = comment.likeCount
+            let likeColor = isLiked ? Color.red.opacity(0.9) : mutedLabelColor
+
+            Button {
+                guard canToggleLike else { return }
+                FGInteractionHaptics.selection()
+                Task { await viewModel.toggleCommentLike(commentId: commentID) }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: isLiked ? "heart.fill" : "heart")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(likeColor)
+
+                    if likeCount > 0 {
+                        Text("\(likeCount)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(likeColor)
+                            .contentTransition(.numericText())
+                    }
+                }
+                .padding(.top, 2)
+                .padding(.vertical, 3)
+                .padding(.horizontal, 2)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.9, hapticOnPress: false))
+            .disabled(!canToggleLike)
+            .opacity(canToggleLike || likeCount > 0 ? 1 : 0.72)
+            .animation(.easeOut(duration: 0.16), value: isLiked)
+            .animation(.easeOut(duration: 0.16), value: likeCount)
+            .accessibilityLabel(isLiked ? "Unlike fan update" : "Like fan update")
+            .accessibilityValue(likeCount == 1 ? "1 like" : "\(likeCount) likes")
+            .accessibilityHint(canToggleLike ? "Toggles your like on this update" : "Sign in as a fan to like updates")
+        }
     }
 
     @ViewBuilder

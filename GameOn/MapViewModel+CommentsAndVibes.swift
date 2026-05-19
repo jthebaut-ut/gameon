@@ -26,6 +26,17 @@ private enum CurrentUserCommentReportFlags {
     static let inQueryChunk = 80
 }
 
+private enum FanCommentLikesBatchLoad {
+    static let inQueryChunk = 100
+
+    static func chunked<T>(_ array: [T], size: Int) -> [[T]] {
+        guard size > 0 else { return [array] }
+        return stride(from: 0, to: array.count, by: size).map {
+            Array(array[$0..<Swift.min($0 + size, array.count)])
+        }
+    }
+}
+
 private enum VenueEventCommentsQuery {
     static func isoTimestamp(_ date: Date) -> String {
         let f = ISO8601DateFormatter()
@@ -168,7 +179,17 @@ extension MapViewModel {
             comment: row.comment,
             created_at: row.created_at,
             is_moderation_hidden: row.is_moderation_hidden,
-            delivery_state: deliveryState
+            delivery_state: deliveryState,
+            likeCount: row.likeCount,
+            isLikedByCurrentUser: row.isLikedByCurrentUser
+        )
+    }
+
+    private func venueEventCommentRowWithCurrentLikeMetadata(_ row: VenueEventCommentRow) -> VenueEventCommentRow {
+        guard let commentID = row.serverCommentID else { return row }
+        return row.withLikeMetadata(
+            likeCount: venueEventCommentLikeCountsByID[commentID] ?? row.likeCount,
+            isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
         )
     }
 
@@ -250,6 +271,7 @@ extension MapViewModel {
         preferredLocalID: UUID? = nil,
         source: String
     ) {
+        let row = venueEventCommentRowWithCurrentLikeMetadata(row)
         guard !row.isHiddenFromThread else { return }
         var list = venueEventComments[venueEventID] ?? []
         if let serverID = row.serverCommentID,
@@ -809,6 +831,11 @@ extension MapViewModel {
             logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
             return nil
         }
+        await loadCommentLikes(for: venueEventID)
+        if Task.isCancelled {
+            logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
+            return nil
+        }
         #if DEBUG
         print("[\(debugTag)] merged count=\(stats?.newRowsMerged ?? 0) fetched=\(stats?.fetchedCount ?? 0) visible=\(stats?.visibleCountAfterMerge ?? 0)")
         print("[\(debugTag)] finished eventId=\(venueEventID.uuidString.lowercased())")
@@ -841,6 +868,9 @@ extension MapViewModel {
             venueEventID: venueEventID,
             mergeSource: "auto_refresh"
         )
+        if (stats?.newRowsMerged ?? 0) > 0 {
+            await loadCommentLikes(for: venueEventID)
+        }
         #if DEBUG
         print("[FanChatAutoRefreshDebug] merged newRows=\(stats?.newRowsMerged ?? 0)")
         #endif
@@ -1238,7 +1268,232 @@ extension MapViewModel {
         }
     }
 
+    /// Batch-loads like counts and current-user liked state for visible fan update comments.
+    func loadCommentLikes(for venueEventID: UUID) async {
+        let ids = await MainActor.run {
+            venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? []
+        }
+        let uniqueIDs = Array(Set(ids)).sorted { $0.uuidString < $1.uuidString }
+
+        #if DEBUG
+        print("[FanCommentLikes] load start commentCount=\(uniqueIDs.count)")
+        #endif
+
+        guard !uniqueIDs.isEmpty else {
+            await MainActor.run {
+                applyVenueEventCommentLikeMetadata(
+                    venueEventID: venueEventID,
+                    counts: [:],
+                    likedIDs: []
+                )
+            }
+            #if DEBUG
+            print("[FanCommentLikes] load success liked=0")
+            #endif
+            return
+        }
+
+        let userID: UUID
+        do {
+            userID = try await supabase.auth.session.user.id
+        } catch {
+            await MainActor.run {
+                applyVenueEventCommentLikeMetadata(
+                    venueEventID: venueEventID,
+                    counts: [:],
+                    likedIDs: []
+                )
+            }
+            #if DEBUG
+            print("[FanCommentLikes] load success liked=0")
+            #endif
+            return
+        }
+
+        var counts: [UUID: Int] = [:]
+        var likedIDs: Set<UUID> = []
+
+        do {
+            for chunk in FanCommentLikesBatchLoad.chunked(uniqueIDs, size: FanCommentLikesBatchLoad.inQueryChunk) {
+                let rows: [VenueEventCommentLikeRow] = try await supabase
+                    .from("venue_event_comment_likes")
+                    .select("comment_id,user_id")
+                    .in("comment_id", values: chunk)
+                    .execute()
+                    .value
+
+                for row in rows {
+                    guard let commentID = row.comment_id else { continue }
+                    counts[commentID, default: 0] += 1
+                    if row.user_id == userID {
+                        likedIDs.insert(commentID)
+                    }
+                }
+            }
+
+            await MainActor.run {
+                applyVenueEventCommentLikeMetadata(
+                    venueEventID: venueEventID,
+                    counts: counts,
+                    likedIDs: likedIDs
+                )
+            }
+
+            #if DEBUG
+            print("[FanCommentLikes] load success liked=\(likedIDs.count)")
+            #endif
+        } catch {
+            logVenueEventSocialLoadError(
+                "ERROR LOADING FAN COMMENT LIKES:",
+                loadCancelledTag: "fan_comment_likes",
+                error: error
+            )
+        }
+    }
+
+    @MainActor
+    private func applyVenueEventCommentLikeMetadata(
+        venueEventID: UUID,
+        counts: [UUID: Int],
+        likedIDs: Set<UUID>
+    ) {
+        let visibleIDs = Set(venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? [])
+        for id in visibleIDs {
+            venueEventCommentLikeCountsByID[id] = counts[id] ?? 0
+            if likedIDs.contains(id) {
+                venueEventCommentIDsLikedByCurrentUser.insert(id)
+            } else {
+                venueEventCommentIDsLikedByCurrentUser.remove(id)
+            }
+        }
+
+        guard let rows = venueEventComments[venueEventID] else { return }
+        venueEventComments[venueEventID] = rows.map { row in
+            guard let commentID = row.serverCommentID else { return row }
+            return row.withLikeMetadata(
+                likeCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
+                isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+            )
+        }
+    }
+
+    @MainActor
+    private func applyLocalVenueEventCommentLikeState(commentID: UUID, isLiked: Bool) {
+        let currentCount = venueEventCommentLikeCountsByID[commentID] ?? 0
+        venueEventCommentLikeCountsByID[commentID] = isLiked ? currentCount + 1 : max(0, currentCount - 1)
+        if isLiked {
+            venueEventCommentIDsLikedByCurrentUser.insert(commentID)
+        } else {
+            venueEventCommentIDsLikedByCurrentUser.remove(commentID)
+        }
+
+        for venueEventID in venueEventComments.keys {
+            guard let rows = venueEventComments[venueEventID],
+                  rows.contains(where: { $0.serverCommentID == commentID }) else { continue }
+            venueEventComments[venueEventID] = rows.map { row in
+                guard row.serverCommentID == commentID else { return row }
+                return row.withLikeMetadata(
+                    likeCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
+                    isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+                )
+            }
+        }
+    }
+
+    /// Inserts or deletes the signed-in user's like row for a fan update comment.
+    func toggleCommentLike(commentId: UUID) async {
+        #if DEBUG
+        print("[FanCommentLikes] toggle start comment_id=\(commentId.uuidString.lowercased())")
+        #endif
+
+        guard canUseFanSocialFeatures else {
+            logBusinessUserGateBlocked(action: "toggleCommentLike")
+            return
+        }
+
+        let userID: UUID
+        do {
+            userID = try await supabase.auth.session.user.id
+        } catch {
+            #if DEBUG
+            print("[FanCommentLikes] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
+            #endif
+            return
+        }
+
+        guard !venueEventCommentLikeWriteInFlightIDs.contains(commentId) else { return }
+
+        let wasLiked = venueEventCommentIDsLikedByCurrentUser.contains(commentId)
+        let previousCount = venueEventCommentLikeCountsByID[commentId] ?? 0
+        let previousLikedIDs = venueEventCommentIDsLikedByCurrentUser
+        let previousRows = venueEventComments
+
+        venueEventCommentLikeWriteInFlightIDs.insert(commentId)
+        applyLocalVenueEventCommentLikeState(commentID: commentId, isLiked: !wasLiked)
+
+        do {
+            if wasLiked {
+                try await supabase
+                    .from("venue_event_comment_likes")
+                    .delete()
+                    .eq("comment_id", value: commentId.uuidString)
+                    .eq("user_id", value: userID.uuidString)
+                    .execute()
+            } else {
+                let insert = VenueEventCommentLikeInsert(
+                    comment_id: commentId,
+                    user_id: userID
+                )
+
+                try await supabase
+                    .from("venue_event_comment_likes")
+                    .insert(insert)
+                    .execute()
+            }
+
+            venueEventCommentLikeWriteInFlightIDs.remove(commentId)
+
+            #if DEBUG
+            print("[FanCommentLikes] toggle success comment_id=\(commentId.uuidString.lowercased()) liked=\(!wasLiked)")
+            #endif
+        } catch {
+            if !wasLiked, Self.isCommentLikeUniqueViolation(error) {
+                venueEventCommentLikeWriteInFlightIDs.remove(commentId)
+                #if DEBUG
+                print("[FanCommentLikes] toggle success comment_id=\(commentId.uuidString.lowercased()) liked=true")
+                #endif
+                return
+            }
+
+            venueEventCommentLikeCountsByID[commentId] = previousCount
+            venueEventCommentIDsLikedByCurrentUser = previousLikedIDs
+            venueEventComments = previousRows
+            venueEventCommentLikeWriteInFlightIDs.remove(commentId)
+
+            #if DEBUG
+            print("[FanCommentLikes] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
+            #endif
+        }
+    }
+
     private static func isCommentReportUniqueViolation(_ error: Error) -> Bool {
+        if let pe = error as? PostgrestError, pe.code == "23505" {
+            return true
+        }
+        let blob = "\(error.localizedDescription) \(String(describing: error))".lowercased()
+        if blob.contains("23505") || blob.contains("duplicate key") || blob.contains("unique constraint") {
+            return true
+        }
+        if let pe = error as? PostgrestError {
+            let detail = "\(pe.message) \(pe.detail ?? "") \(pe.hint ?? "")".lowercased()
+            if detail.contains("duplicate") || detail.contains("unique") || detail.contains("23505") {
+                return true
+            }
+        }
+        return false
+    }
+
+    private static func isCommentLikeUniqueViolation(_ error: Error) -> Bool {
         if let pe = error as? PostgrestError, pe.code == "23505" {
             return true
         }
@@ -1537,6 +1792,7 @@ extension MapViewModel {
             }
 
             await loadCurrentUserCommentReportFlags(for: venueEventID)
+            await loadCommentLikes(for: venueEventID)
 
             let hasMore = rowsRaw.count >= VenueEventCommentsPagination.initialLimit
             #if DEBUG
@@ -1584,6 +1840,7 @@ extension MapViewModel {
             }
 
             await loadCurrentUserCommentReportFlags(for: venueEventID)
+            await loadCommentLikes(for: venueEventID)
 
             let hasMore = rowsRaw.count >= VenueEventCommentsPagination.pageLimit
             #if DEBUG

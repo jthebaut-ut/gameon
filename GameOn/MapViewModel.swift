@@ -263,6 +263,18 @@ final class MapViewModel: ObservableObject {
         get { fanUpdatesStore.venueEventVibeWriteInFlightKeys }
         set { fanUpdatesStore.venueEventVibeWriteInFlightKeys = newValue }
     }
+    var venueEventCommentLikeCountsByID: [UUID: Int] {
+        get { fanUpdatesStore.venueEventCommentLikeCountsByID }
+        set { fanUpdatesStore.venueEventCommentLikeCountsByID = newValue }
+    }
+    var venueEventCommentIDsLikedByCurrentUser: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentIDsLikedByCurrentUser }
+        set { fanUpdatesStore.venueEventCommentIDsLikedByCurrentUser = newValue }
+    }
+    var venueEventCommentLikeWriteInFlightIDs: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentLikeWriteInFlightIDs }
+        set { fanUpdatesStore.venueEventCommentLikeWriteInFlightIDs = newValue }
+    }
     
     let notificationSettingsStore = NotificationSettingsStore()
 

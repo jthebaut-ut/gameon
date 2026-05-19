@@ -838,6 +838,8 @@ struct VenueEventCommentRow: Decodable, Identifiable {
     /// When true, row is kept for audit but hidden from fan threads (see ``ModerationService/hiddenAfterReportsThreshold``).
     let is_moderation_hidden: Bool?
     let delivery_state: VenueEventCommentDeliveryState
+    let likeCount: Int
+    let isLikedByCurrentUser: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -855,7 +857,9 @@ struct VenueEventCommentRow: Decodable, Identifiable {
         comment: String?,
         created_at: String?,
         is_moderation_hidden: Bool?,
-        delivery_state: VenueEventCommentDeliveryState = .sent
+        delivery_state: VenueEventCommentDeliveryState = .sent,
+        likeCount: Int = 0,
+        isLikedByCurrentUser: Bool = false
     ) {
         self.id = id
         self.venue_event_id = venue_event_id
@@ -864,6 +868,8 @@ struct VenueEventCommentRow: Decodable, Identifiable {
         self.created_at = created_at
         self.is_moderation_hidden = is_moderation_hidden
         self.delivery_state = delivery_state
+        self.likeCount = likeCount
+        self.isLikedByCurrentUser = isLikedByCurrentUser
     }
 
     init(from decoder: Decoder) throws {
@@ -875,6 +881,8 @@ struct VenueEventCommentRow: Decodable, Identifiable {
         created_at = try container.decodeIfPresent(String.self, forKey: .created_at)
         is_moderation_hidden = try container.decodeIfPresent(Bool.self, forKey: .is_moderation_hidden)
         delivery_state = .sent
+        likeCount = 0
+        isLikedByCurrentUser = false
     }
 
     var isHiddenFromThread: Bool {
@@ -892,12 +900,36 @@ struct VenueEventCommentRow: Decodable, Identifiable {
     var serverCommentID: UUID? {
         delivery_state == .sent ? id : nil
     }
+
+    func withLikeMetadata(likeCount: Int, isLikedByCurrentUser: Bool) -> VenueEventCommentRow {
+        VenueEventCommentRow(
+            id: id,
+            venue_event_id: venue_event_id,
+            user_email: user_email,
+            comment: comment,
+            created_at: created_at,
+            is_moderation_hidden: is_moderation_hidden,
+            delivery_state: delivery_state,
+            likeCount: likeCount,
+            isLikedByCurrentUser: isLikedByCurrentUser
+        )
+    }
 }
 
 struct VenueEventCommentInsert: Encodable {
     let venue_event_id: UUID
     let user_email: String
     let comment: String
+}
+
+struct VenueEventCommentLikeRow: Decodable {
+    let comment_id: UUID?
+    let user_id: UUID?
+}
+
+struct VenueEventCommentLikeInsert: Encodable {
+    let comment_id: UUID
+    let user_id: UUID
 }
 
 struct CommentReportInsert: Encodable {
