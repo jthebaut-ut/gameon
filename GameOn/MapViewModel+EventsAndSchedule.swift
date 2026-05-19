@@ -123,7 +123,14 @@ extension MapViewModel {
         return calendarDotRecomputeCacheKeyString(regionVenueGameTitles: regionTitles)
     }
 
-    func recomputeCalendarDotDates() {
+    /// Legacy client-side dot set (DEBUG shadow only); skipped while Calendar tab is hidden unless `force`.
+    func recomputeCalendarDotDates(force: Bool = false) {
+        guard force || isCalendarTabSelected else {
+#if DEBUG
+            print("[PerfPhase1D] deferredCalendarWork reason=recomputeCalendarDotDates")
+#endif
+            return
+        }
         let regionVenueGameTitles = calendarUsesVisibleMapRegionOnly ? venueGameTitleAllowlistForCalendarDotsWhenRegionOnly() : nil
         let key = calendarDotRecomputeCacheKeyString(regionVenueGameTitles: regionVenueGameTitles)
         if key == lastCalendarDotRecomputeKey {
@@ -212,6 +219,9 @@ extension MapViewModel {
 
     /// Bottom-tab Calendar: reset to today, refresh dots + schedule loads (does not mutate Discover ``selectedDate``).
     func noteCalendarTabBecameActive() {
+#if DEBUG
+        print("[PerfPhase1D] calendarWorkActivated")
+#endif
         let cal = Calendar.current
         calendarTabSelectedDate = cal.startOfDay(for: Date())
         calendarEventsListCache.removeAll()

@@ -500,6 +500,7 @@ extension MapViewModel {
     func refreshDiscoverCoreInBackground(forceVenueRefresh: Bool = false) async {
         let t0 = Date()
         #if DEBUG
+        print("[PerfPhase1D] discoverCriticalPathPreserved=true")
         print("[Perf] Discover startup begin forceVenueRefresh=\(forceVenueRefresh)")
         #endif
         await loadVenuesFromSupabase(forceRefresh: forceVenueRefresh)
@@ -900,6 +901,12 @@ extension MapViewModel {
 
     /// Bottom-tab Calendar: warm **both** venue and pickup dot caches for `month` without mutating ``discoverMapContentMode``.
     func loadCalendarTabCalendarDotsAroundMonth(_ month: Date, reason: String) {
+        guard isCalendarTabSelected else {
+#if DEBUG
+            print("[PerfPhase1D] deferredCalendarWork reason=loadCalendarTabCalendarDotsAroundMonth:\(reason)")
+#endif
+            return
+        }
         loadVenueGameCalendarDotsForDiscover(around: month, reason: reason + "_calTabVenue", logIfOpeningBeforeReady: false)
         loadPickupGameCalendarDotsForDiscover(around: month, reason: reason + "_calTabPickup", logIfOpeningBeforeReady: false)
     }
@@ -1865,9 +1872,17 @@ extension MapViewModel {
             #if DEBUG
             print("[Perf] Phase 3 enrichment started")
             #endif
-            await self.awaitLoadGamesCoalescedUntilIdle()
-            guard !Task.isCancelled else { return }
             await self.refreshSocialEnrichmentInBackground()
+            guard !Task.isCancelled else { return }
+
+            if self.isCalendarTabSelected {
+                await self.awaitLoadGamesCoalescedUntilIdle()
+            } else {
+#if DEBUG
+                print("[PerfPhase1D] deferredCalendarWork reason=performLoadGamesFromSupabase")
+#endif
+            }
+            guard !Task.isCancelled else { return }
 
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -1876,7 +1891,13 @@ extension MapViewModel {
             #endif
 
             guard !Task.isCancelled else { return }
-            self.beginDiscoverPickupMetadataBackgroundPreloadIfNeeded()
+            if self.isCalendarTabSelected || self.discoverMapContentMode == .pickupGames {
+                self.beginDiscoverPickupMetadataBackgroundPreloadIfNeeded()
+            } else {
+#if DEBUG
+                print("[PerfPhase1D] deferredCalendarWork reason=beginDiscoverPickupMetadataBackgroundPreload")
+#endif
+            }
         }
     }
 
@@ -2572,7 +2593,9 @@ extension MapViewModel {
             await reconcileGameRemindersForLoadedVenueEvents()
             pruneSelectionIfNeededAfterFilterChange()
             persistDiscoverCoreSnapshot()
-            preloadDiscoverCalendarDotsForVisibleVenues()
+#if DEBUG
+            print("[PerfPhase1D] deferredCalendarWork reason=phase1_preload")
+#endif
 
             #if DEBUG
             print("[DiscoverReloadSmoothDebug] finalApply venueRows=\(fetchedVenueEventRows.count)")

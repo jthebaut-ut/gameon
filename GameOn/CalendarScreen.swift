@@ -6,6 +6,8 @@ struct CalendarScreen: View {
 
     @ObservedObject var viewModel: MapViewModel
     @Binding var selectedTab: MainTabView.AppTab
+    /// False while Calendar is preserved off-screen (defers tab-only pickup refresh at launch).
+    var isCalendarTabSelected: Bool = false
     @Environment(\.colorScheme) private var calendarColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showDatePicker = false
@@ -154,22 +156,25 @@ struct CalendarScreen: View {
             }
         }
         .onChange(of: viewModel.calendarUsesVisibleMapRegionOnly) { _, _ in
+            guard isCalendarTabSelected else { return }
             viewModel.calendarEventsListCache.removeAll()
-            viewModel.recomputeCalendarDotDates()
+            viewModel.recomputeCalendarDotDates(force: true)
             viewModel.loadCalendarTabCalendarDotsAroundMonth(
                 viewModel.calendarTabSelectedDate,
                 reason: "calendar_tab_region_mode_change"
             )
         }
         .onChange(of: viewModel.selectedSport) { _, _ in
+            guard isCalendarTabSelected else { return }
             viewModel.calendarEventsListCache.removeAll()
-            viewModel.recomputeCalendarDotDates()
+            viewModel.recomputeCalendarDotDates(force: true)
             viewModel.loadCalendarTabCalendarDotsAroundMonth(
                 viewModel.calendarTabSelectedDate,
                 reason: "calendar_tab_sport_change"
             )
         }
         .onChange(of: viewModel.calendarTabGameFilter) { _, _ in
+            guard isCalendarTabSelected else { return }
             viewModel.calendarEventsListCache.removeAll()
             viewModel.loadCalendarTabCalendarDotsAroundMonth(
                 viewModel.calendarTabSelectedDate,
@@ -187,6 +192,20 @@ struct CalendarScreen: View {
         }
         .onAppear {
             normalizeCalendarGameFilter()
+            guard isCalendarTabSelected else {
+#if DEBUG
+                print("[PerfPhase1D] deferredCalendarWork reason=calendarScreenOnAppearPickupRefresh")
+#endif
+                return
+            }
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            Task {
+                await viewModel.refreshCalendarTabPickupSources()
+            }
+        }
+        .onChange(of: isCalendarTabSelected) { _, active in
+            guard active else { return }
+            normalizeCalendarGameFilter()
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
@@ -194,12 +213,14 @@ struct CalendarScreen: View {
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
+            guard isCalendarTabSelected else { return }
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
             }
         }
         .onChange(of: viewModel.calendarTabSelectedDate) { _, _ in
+            guard isCalendarTabSelected else { return }
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()

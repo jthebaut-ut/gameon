@@ -98,7 +98,8 @@ struct MainTabView: View {
             preservedRoot(tab: .calendar) {
                 CalendarScreen(
                     viewModel: viewModel,
-                    selectedTab: selectedTabBinding
+                    selectedTab: selectedTabBinding,
+                    isCalendarTabSelected: selectedTab == .calendar
                 )
             }
 
@@ -142,6 +143,7 @@ struct MainTabView: View {
             dmInAppNotificationBannerLayer
         }
         .onAppear {
+            viewModel.isCalendarTabSelected = selectedTab == .calendar
             if !Self.hasForcedDiscoverTabThisProcess {
                 Self.hasForcedDiscoverTabThisProcess = true
                 selectedTabStorage = AppTab.discover.rawValue
@@ -280,6 +282,7 @@ struct MainTabView: View {
 #if DEBUG
             print("[LiveTabDebug] selectedTab=\(newRaw)")
 #endif
+            viewModel.isCalendarTabSelected = AppTab(rawValue: newRaw) == .calendar
             switch AppTab(rawValue: newRaw) {
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false

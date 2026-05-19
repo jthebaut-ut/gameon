@@ -528,7 +528,6 @@ struct DiscoverScreen: View {
                 if viewModel.discoverMapContentMode == .pickupGames {
                     Task {
                         await viewModel.refreshPickupGamesForDiscoverMap(force: true)
-                        viewModel.recomputeCalendarDotDates()
                     }
                 }
             }
@@ -539,12 +538,6 @@ struct DiscoverScreen: View {
         .onChange(of: viewModel.searchText) { _, _ in
             viewModel.pruneSelectionIfNeededAfterFilterChange()
             viewModel.scheduleDiscoverSearchDebounce()
-        }
-        .onChange(of: viewModel.calendarUsesVisibleMapRegionOnly) { _, _ in
-            viewModel.recomputeCalendarDotDates()
-        }
-        .onChange(of: viewModel.selectedSport) { _, _ in
-            viewModel.recomputeCalendarDotDates()
         }
         .onChange(of: viewModel.mapDisplayMode) { _, _ in
             guard let selectedBar = viewModel.selectedBar else { return }

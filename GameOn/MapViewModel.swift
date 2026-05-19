@@ -358,6 +358,8 @@ final class MapViewModel: ObservableObject {
     @Published private(set) var discoverMapRenderSnapshot = DiscoverMapRenderSnapshot.empty
     /// Monotonic fence for detached Discover map snapshot builds; only the latest request may publish.
     var discoverMapRenderSnapshotGeneration: UInt64 = 0
+    /// Bottom-tab Calendar selected (updated by ``MainTabView``); gates calendar-only preload/enrichment while tab is preserved off-screen.
+    var isCalendarTabSelected = false
     /// When true, ``scheduleDiscoverMapRenderSnapshotRebuild(reason:)`` is a no-op until a single ``flushDiscoverMapRenderSnapshotRebuild(reason:)``.
     var suppressDiscoverSnapshotRebuilds = false
     var discoverSnapshotRebuildCoalesceTask: Task<Void, Never>?
