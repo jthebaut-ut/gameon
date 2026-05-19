@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 
 struct LiveScreen: View {
@@ -17,6 +18,12 @@ struct LiveScreen: View {
     @State private var liveIndicatorPulse = false
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
+    @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
+
+    private struct LiveWatchSpotsPresentation: Identifiable {
+        let id: String
+        let items: [LiveFeedItem]
+    }
 
     private struct LiveFeedItem: Identifiable {
         let id: String
@@ -127,6 +134,9 @@ struct LiveScreen: View {
                 if let bar = viewModel.selectedBar {
                     VenueUserRatingSheet(viewModel: viewModel, bar: bar)
                 }
+            }
+            .sheet(item: $liveWatchSpotsPresentation) { presentation in
+                liveWatchSpotsSheet(items: presentation.items)
             }
             .alert(
                 "FanGeo",
@@ -810,10 +820,212 @@ struct LiveScreen: View {
             .joined(separator: " ")
     }
 
+    private func liveFindVenuesDedupedRelatedItems(_ items: [LiveFeedItem]) -> [LiveFeedItem] {
+        var seenBarIDs: Set<UUID> = []
+        return items.filter { item in
+            guard !seenBarIDs.contains(item.bar.id) else { return false }
+            seenBarIDs.insert(item.bar.id)
+            return true
+        }
+    }
+
+    private func liveFindVenuesSortedRelatedItems(_ items: [LiveFeedItem]) -> (items: [LiveFeedItem], sortedByDistance: Bool) {
+        let deduped = liveFindVenuesDedupedRelatedItems(items)
+        guard let userCoordinate = viewModel.currentUserLocation,
+              CLLocationCoordinate2DIsValid(userCoordinate) else {
+            return (deduped, false)
+        }
+        let userLocation = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
+        let sorted = deduped.sorted { lhs, rhs in
+            let lhsMeters = liveFindVenuesDistanceMeters(from: userLocation, to: lhs.bar.coordinate)
+            let rhsMeters = liveFindVenuesDistanceMeters(from: userLocation, to: rhs.bar.coordinate)
+            switch (lhsMeters, rhsMeters) {
+            case let (l?, r?):
+                if l == r { return lhs.bar.name.localizedCaseInsensitiveCompare(rhs.bar.name) == .orderedAscending }
+                return l < r
+            case (_?, nil):
+                return true
+            case (nil, _?):
+                return false
+            case (nil, nil):
+                return lhs.bar.name.localizedCaseInsensitiveCompare(rhs.bar.name) == .orderedAscending
+            }
+        }
+        return (sorted, true)
+    }
+
+    private func liveFindVenuesDistanceMeters(from userLocation: CLLocation, to coordinate: CLLocationCoordinate2D) -> Double? {
+        guard CLLocationCoordinate2DIsValid(coordinate) else { return nil }
+        return userLocation.distance(from: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude))
+    }
+
+    private func liveFindVenuesDistanceText(for bar: BarVenue) -> String? {
+        let trimmed = bar.distance.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        guard let userCoordinate = viewModel.currentUserLocation,
+              CLLocationCoordinate2DIsValid(userCoordinate) else { return nil }
+        let userLocation = CLLocation(latitude: userCoordinate.latitude, longitude: userCoordinate.longitude)
+        guard let meters = liveFindVenuesDistanceMeters(from: userLocation, to: bar.coordinate) else { return nil }
+        let miles = meters / 1609.34
+        guard miles >= 0.05 else { return nil }
+        if miles < 10 { return String(format: "%.1f mi", miles) }
+        return String(format: "%.0f mi", miles)
+    }
+
+    private func liveFindVenuesFallbackButtonTitle(for sportType: LiveSportVisualType) -> String {
+        switch sportType {
+        case .soccer:
+            return "Find Soccer Bars"
+        case .basketball:
+            return "Find Basketball Bars"
+        case .hockey:
+            return "Find Hockey Bars"
+        case .baseball:
+            return "Find Baseball Bars"
+        case .nfl:
+            return "Find Football Bars"
+        case .tennis:
+            return "Find Tennis Bars"
+        case .golf:
+            return "Find Golf Bars"
+        case .formula1, .other:
+            return "Open Map"
+        }
+    }
+
+    private func liveFindVenuesDiscoverSportFilter(for sportType: LiveSportVisualType) -> String? {
+        switch sportType {
+        case .soccer:
+            return "Soccer"
+        case .basketball:
+            return "NBA"
+        case .hockey:
+            return "NHL"
+        case .baseball:
+            return "Baseball"
+        case .nfl:
+            return "NFL"
+        case .tennis:
+            return "Tennis"
+        case .golf:
+            return "Golf"
+        case .formula1, .other:
+            return nil
+        }
+    }
+
+    private func liveFindVenuesTapped(match: LiveMatch, relatedItems: [LiveFeedItem]) {
+        let sorted = liveFindVenuesSortedRelatedItems(relatedItems)
+#if DEBUG
+        print("[LiveFindVenues] tapped match=\(match.id)")
+        print("[LiveFindVenues] related_count=\(sorted.items.count)")
+        print("[LiveFindVenues] sorted_by_distance=\(sorted.sortedByDistance)")
+#endif
+        if sorted.items.isEmpty {
+            liveFindVenuesOpenDiscoverFallback(sportType: match.liveSportVisualType)
+        } else {
+            liveWatchSpotsPresentation = LiveWatchSpotsPresentation(id: match.id, items: sorted.items)
+        }
+    }
+
+    private func liveFindVenuesOpenDiscoverFallback(sportType: LiveSportVisualType) {
+        let sportFilter = liveFindVenuesDiscoverSportFilter(for: sportType)
+#if DEBUG
+        print("[LiveFindVenues] fallback_sport_filter=\(sportFilter ?? "nil")")
+#endif
+        viewModel.discoverMapContentMode = .venues
+        if let sportFilter {
+            viewModel.sportChanged(to: sportFilter)
+        }
+        selectedTab = .discover
+    }
+
+    private func liveFindVenuesOpenVenue(_ item: LiveFeedItem) {
+#if DEBUG
+        print("[LiveFindVenues] opened_venue=\(item.bar.id.uuidString.lowercased()) name=\(item.bar.name)")
+#endif
+        liveWatchSpotsPresentation = nil
+        openLiveItem(item)
+    }
+
+    @ViewBuilder
+    private func liveWatchSpotsSheet(items: [LiveFeedItem]) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        Button {
+                            liveFindVenuesOpenVenue(item)
+                        } label: {
+                            liveWatchSpotsRow(item)
+                        }
+                        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+            }
+            .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+            .navigationTitle("Watch spots for this game")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        liveWatchSpotsPresentation = nil
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func liveWatchSpotsRow(_ item: LiveFeedItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            SportArtworkIconView(sport: item.event.sport, diameter: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.bar.name)
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+
+                if !item.bar.address.isEmpty {
+                    Text(item.bar.address)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                }
+
+                Text(item.event.title)
+                    .font(FGTypography.metadata)
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            if let distance = liveFindVenuesDistanceText(for: item.bar) {
+                Text(distance)
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(liveCardSurface(cornerRadius: 18, highlighted: false))
+    }
+
     private func liveMatchCard(_ match: LiveMatch, relatedItems: [LiveFeedItem]) -> some View {
         let sportType = match.liveSportVisualType
         let accent = sportType.catalogAccent
         let catalogSportKey = sportType.sportFilterCatalogKey
+        let watchSpotItems = liveFindVenuesSortedRelatedItems(relatedItems).items
+        let hasWatchSpots = !watchSpotItems.isEmpty
+        let findVenuesButtonTitle = hasWatchSpots
+            ? "Find Venues"
+            : liveFindVenuesFallbackButtonTitle(for: sportType)
         let socialProfiles = liveMergedSocialProfiles(from: relatedItems)
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
@@ -880,9 +1092,9 @@ struct LiveScreen: View {
                 Spacer(minLength: 8)
 
                 Button {
-                    selectedTab = .discover
+                    liveFindVenuesTapped(match: match, relatedItems: relatedItems)
                 } label: {
-                    Text("Find Venues")
+                    Text(findVenuesButtonTitle)
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(accent)
                         .padding(.horizontal, 9)
