@@ -215,6 +215,7 @@ extension MapViewModel {
         currentUserBio = ""
         currentUserIsBusinessAccount = false
         currentUserFanXP = .rookie
+        currentUserFanIdentityPreferences = .empty
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserLiveVisibilityEnabled = true
@@ -1108,6 +1109,7 @@ extension MapViewModel {
 
         await ensureUserProfileExists()
         await loadUserProfile()
+        await loadFanIdentityPreferencesFromProfile()
         await refreshProfileXP()
         await loadFavoriteVenuesFromSupabase()
         await loadFavoriteTeamsFromSupabase()

@@ -324,6 +324,7 @@ final class MapViewModel: ObservableObject {
         set { notificationSettingsStore.notificationPermissionMessage = newValue }
     }
     @Published var currentUserFanXP: FanXPState = .rookie
+    @Published var currentUserFanIdentityPreferences: FanIdentityPreferences = .empty
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
     /// When set, ``PublicProfileOverlayWindowPresenter`` shows ``PublicUserProfilePreviewView`` in a top-level UIWindow (not a SwiftUI sheet).
     @Published var publicProfileSheetUserId: UUID?

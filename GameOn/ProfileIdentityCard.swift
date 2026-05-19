@@ -70,6 +70,7 @@ struct ProfileIdentityCard: View {
     @State private var showFavoriteTeamsPicker = false
     @State private var showHandleSetup = false
     @State private var showIdentityEditor = false
+    @State private var showFanIdentityEditor = false
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var editedDisplayName = ""
     @State private var editedUsername = ""
@@ -233,6 +234,9 @@ struct ProfileIdentityCard: View {
 
             favoriteTeamsSection
                 .padding(.horizontal, 16)
+
+            openToPreviewSection
+                .padding(.horizontal, 16)
                 .padding(.bottom, 16)
         }
         .background(cardShellBackground)
@@ -255,6 +259,14 @@ struct ProfileIdentityCard: View {
             identityEditorSheet
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showFanIdentityEditor) {
+            FanIdentityPreferencesEditorView(viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .task {
+            await viewModel.loadFanIdentityPreferencesFromProfile()
         }
         .sheet(isPresented: $showFavoriteTeamsPicker) {
             FavoriteTeamsPickerSheet(
@@ -1380,6 +1392,56 @@ struct ProfileIdentityCard: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Open To preview
+
+    private var openToPreviewSection: some View {
+        let prefs = viewModel.currentUserFanIdentityPreferences
+        let previewItems = FanOpenToCatalog.publicDisplayItems(from: prefs.resolvedOpenToItemIDs)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Open To")
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .textCase(.uppercase)
+                        .tracking(0.7)
+                    Text(previewItems.isEmpty ? "Tell fans what you're up for" : "What you're open to")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                }
+                Spacer(minLength: 0)
+                Button {
+                    showFanIdentityEditor = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("Edit Fan Identity")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(FGColor.accentBlue)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background {
+                        Capsule()
+                            .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            if previewItems.isEmpty {
+                Text("Add sports, watch parties, or meetups you're open to.")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .padding(.vertical, 4)
+            } else {
+                PublicProfileOpenToChipGrid(items: previewItems)
+            }
+        }
     }
 
     // MARK: - Favorite teams

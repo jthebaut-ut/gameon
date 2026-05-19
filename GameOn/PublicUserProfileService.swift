@@ -10,7 +10,7 @@ enum PublicProfileFriendButtonState: Equatable {
 }
 
 /// Loaded public-safe profile payload (no email shown in UI).
-struct PublicUserProfileData: Equatable {
+struct PublicUserProfileData {
     let userId: UUID
     let displayName: String
     /// @handle line; may use temporary email-prefix fallback when username unset (email never shown).
@@ -36,6 +36,29 @@ struct PublicUserProfileData: Equatable {
     let pickupHostedCount: Int
     let pickupJoinedCount: Int
     let socialHighlightLabels: [String]
+    let personalityTags: [String]
+    let sharedTeamNames: [String]
+}
+
+/// Compact venue chip for public profile cards (city only — no coordinates).
+struct PublicProfileVenueCard: Equatable, Identifiable {
+    let venueId: UUID?
+    let venueName: String
+    let cityLabel: String
+    let thumbnailURL: String?
+
+    var id: String {
+        venueId?.uuidString.lowercased() ?? "\(venueName)-\(cityLabel)"
+    }
+}
+
+/// Mutual friend avatar for stacked display.
+struct PublicProfileMutualFanAvatar: Equatable, Identifiable {
+    let userId: UUID
+    let displayName: String
+    let avatarURL: String?
+
+    var id: UUID { userId }
 }
 
 enum PublicUserProfileService {
@@ -113,6 +136,8 @@ enum PublicUserProfileService {
         let pickup_joined_count: Int?
         let mutual_fan_avatars: [MutualFanRow]?
         let venue_cards: [VenueCardRow]?
+        let fan_identity_preferences: FanIdentityPreferences?
+        let shared_team_ids: [String]?
 
         struct MutualFanRow: Decodable {
             let user_id: UUID?
@@ -124,6 +149,7 @@ enum PublicUserProfileService {
             let venue_id: UUID?
             let venue_name: String?
             let city_label: String?
+            let thumbnail_url: String?
         }
     }
 
@@ -182,8 +208,12 @@ enum PublicUserProfileService {
         let venueCount = max(0, rpc.venue_count ?? 0)
         let pickupHosted = max(0, rpc.pickup_hosted_count ?? 0)
         let pickupJoined = max(0, rpc.pickup_joined_count ?? 0)
+        let preferences = rpc.fan_identity_preferences ?? .empty
+        let sharedTeamNames = FavoriteTeamsStore.resolvedTeams(fromIDs: rpc.shared_team_ids ?? [])
+            .map { ($0.shortCode?.isEmpty == false) ? $0.shortCode! : $0.name }
+        let personalityLabels = Self.personalityLabels(from: preferences.personalityTags)
 
-        var built = buildProfileData(
+        let built = buildProfileData(
             userId: userId,
             row: row,
             fanXP: FanXPState.rookie,
@@ -194,6 +224,7 @@ enum PublicUserProfileService {
             isPubliclyVisible: true,
             memberSinceLabel: PublicProfileMemberSinceFormatter.label(from: rpc.member_since),
             openToItems: PublicProfileOpenToBuilder.items(
+                preferences: preferences,
                 favoriteTeams: favoriteTeams,
                 venueCount: venueCount,
                 pickupHostedCount: pickupHosted,
@@ -211,45 +242,21 @@ enum PublicUserProfileService {
             },
             sharedTeamsCount: max(0, rpc.shared_teams_count ?? 0),
             venueCount: venueCount,
-            venueCards: (rpc.venue_cards ?? []).map { card in
-                PublicProfileVenueCard(
+            venueCards: (rpc.venue_cards ?? []).compactMap { card in
+                let name = (card.venue_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return nil }
+                let thumb = ImageDisplayURL.canonicalStorageURLString(card.thumbnail_url)
+                return PublicProfileVenueCard(
                     venueId: card.venue_id,
-                    venueName: (card.venue_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
-                    cityLabel: (card.city_label ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    venueName: name,
+                    cityLabel: (card.city_label ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                    thumbnailURL: thumb.isEmpty ? nil : thumb
                 )
             },
             pickupHostedCount: pickupHosted,
-            pickupJoinedCount: pickupJoined
-        )
-
-        built = PublicUserProfileData(
-            userId: built.userId,
-            displayName: built.displayName,
-            publicHandleLine: built.publicHandleLine,
-            bio: built.bio,
-            avatarURL: built.avatarURL,
-            avatarThumbnailURL: built.avatarThumbnailURL,
-            reputation: built.reputation,
-            organizerStats: built.organizerStats,
-            favoriteTeams: built.favoriteTeams,
-            isBusinessAccount: built.isBusinessAccount,
-            hasResolvedIdentity: built.hasResolvedIdentity,
-            isPubliclyVisible: true,
-            memberSinceLabel: built.memberSinceLabel,
-            openToItems: built.openToItems,
-            mutualFansCount: built.mutualFansCount,
-            mutualFanAvatars: built.mutualFanAvatars,
-            sharedTeamsCount: built.sharedTeamsCount,
-            venueCount: built.venueCount,
-            venueCards: built.venueCards.filter { !$0.venueName.isEmpty },
-            pickupHostedCount: built.pickupHostedCount,
-            pickupJoinedCount: built.pickupJoinedCount,
-            socialHighlightLabels: socialHighlights(
-                venueCount: venueCount,
-                pickupHosted: pickupHosted,
-                pickupJoined: pickupJoined,
-                sharedTeams: built.sharedTeamsCount
-            )
+            pickupJoinedCount: pickupJoined,
+            personalityTags: personalityLabels,
+            sharedTeamNames: sharedTeamNames
         )
 
 #if DEBUG
@@ -284,8 +291,16 @@ enum PublicUserProfileService {
             venueCards: [],
             pickupHostedCount: 0,
             pickupJoinedCount: 0,
-            socialHighlightLabels: []
+            socialHighlightLabels: [],
+            personalityTags: [],
+            sharedTeamNames: []
         )
+    }
+
+    private static func personalityLabels(from rawTags: [String]) -> [String] {
+        rawTags.compactMap { token in
+            FanPersonalityTag(rawValue: token)?.label
+        }
     }
 
     // MARK: - Legacy fallback
@@ -330,6 +345,7 @@ enum PublicUserProfileService {
             isPubliclyVisible: true,
             memberSinceLabel: nil,
             openToItems: PublicProfileOpenToBuilder.items(
+                preferences: .empty,
                 favoriteTeams: favoriteTeams,
                 venueCount: venueCount,
                 pickupHostedCount: pickupHosted,
@@ -341,37 +357,9 @@ enum PublicUserProfileService {
             venueCount: venueCount,
             venueCards: [],
             pickupHostedCount: pickupHosted,
-            pickupJoinedCount: pickupJoined
-        )
-
-        built = PublicUserProfileData(
-            userId: built.userId,
-            displayName: built.displayName,
-            publicHandleLine: built.publicHandleLine,
-            bio: built.bio,
-            avatarURL: built.avatarURL,
-            avatarThumbnailURL: built.avatarThumbnailURL,
-            reputation: built.reputation,
-            organizerStats: built.organizerStats,
-            favoriteTeams: built.favoriteTeams,
-            isBusinessAccount: built.isBusinessAccount,
-            hasResolvedIdentity: built.hasResolvedIdentity,
-            isPubliclyVisible: true,
-            memberSinceLabel: built.memberSinceLabel,
-            openToItems: built.openToItems,
-            mutualFansCount: built.mutualFansCount,
-            mutualFanAvatars: built.mutualFanAvatars,
-            sharedTeamsCount: built.sharedTeamsCount,
-            venueCount: built.venueCount,
-            venueCards: built.venueCards,
-            pickupHostedCount: built.pickupHostedCount,
-            pickupJoinedCount: built.pickupJoinedCount,
-            socialHighlightLabels: socialHighlights(
-                venueCount: venueCount,
-                pickupHosted: pickupHosted,
-                pickupJoined: pickupJoined,
-                sharedTeams: 0
-            )
+            pickupJoinedCount: pickupJoined,
+            personalityTags: [],
+            sharedTeamNames: []
         )
 
         return built
@@ -485,7 +473,9 @@ enum PublicUserProfileService {
         venueCount: Int,
         venueCards: [PublicProfileVenueCard],
         pickupHostedCount: Int,
-        pickupJoinedCount: Int
+        pickupJoinedCount: Int,
+        personalityTags: [String],
+        sharedTeamNames: [String]
     ) -> PublicUserProfileData {
         let emailNorm = OwnerBusinessEmail.normalized(row?.email ?? "")
         let display = (row?.display_name ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -553,7 +543,9 @@ enum PublicUserProfileService {
                 pickupHosted: pickupHostedCount,
                 pickupJoined: pickupJoinedCount,
                 sharedTeams: sharedTeamsCount
-            )
+            ),
+            personalityTags: personalityTags,
+            sharedTeamNames: sharedTeamNames
         )
     }
 

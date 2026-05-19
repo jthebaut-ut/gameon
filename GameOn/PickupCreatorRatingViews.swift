@@ -110,6 +110,7 @@ struct PickupOrganizerPreviewIdentityRow: View {
 struct PublicProfilePickupOrganizerCard: View {
     let creatorUserId: UUID
     let stats: PickupCreatorPublicRatingStats?
+    var compact: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -129,67 +130,66 @@ struct PublicProfilePickupOrganizerCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: "person.3.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FGColor.accentBlue)
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "person.3.fill")
+                .font(.system(size: compact ? 14 : 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: compact ? 34 : 40, height: compact ? 34 : 40)
+                .background {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [FGColor.accentBlue, FGColor.accentGreen.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+
+            VStack(alignment: .leading, spacing: compact ? 2 : 4) {
                 Text("Pickup Organizer")
-                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
                     .foregroundStyle(FGColor.mutedText(colorScheme))
                     .textCase(.uppercase)
-                    .tracking(0.7)
-                Spacer(minLength: 0)
-                if let tier = resolved.publicProfileOrganizerTierLabel {
-                    Text(tier)
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(isRated ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background {
-                            Capsule(style: .continuous)
-                                .fill(
-                                    isRated
-                                        ? FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11)
-                                        : Color.white.opacity(colorScheme == .dark ? 0.07 : 0.72)
-                                )
-                        }
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .strokeBorder(
-                                    isRated ? FGColor.accentGreen.opacity(0.28) : FGColor.divider(colorScheme),
-                                    lineWidth: 1
-                                )
-                        }
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(ratingAccent)
+                    Text(resolved.pickupOrganizerDetailRatingLine)
+                        .font(.system(size: compact ? 13 : 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(ratingAccent)
+                        .lineLimit(1)
+                }
+                if !compact {
+                    Text(resolved.publicProfileOrganizerTrustCopy)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .lineLimit(2)
                 }
             }
-
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ratingAccent)
-                Text(resolved.pickupOrganizerDetailRatingLine)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(ratingAccent)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            if let tier = resolved.publicProfileOrganizerTierLabel {
+                Text(tier)
+                    .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                    .foregroundStyle(isRated ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.10))
+                    }
             }
-
-            Text(resolved.publicProfileOrganizerTrustCopy)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(14)
+        .padding(compact ? 10 : 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: compact ? 16 : 12, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(colorScheme == .dark ? 0.065 : 0.96),
-                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.07 : 0.06),
-                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.055)
+                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.08),
+                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.94),
+                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.08 : 0.05)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

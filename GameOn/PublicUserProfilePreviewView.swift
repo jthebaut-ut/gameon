@@ -21,15 +21,10 @@ struct PublicUserProfilePreviewView: View {
 
     private let profilePokesService = ProfilePokesService()
 
-    private let gridColumns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     if isLoading, profile == nil {
                         loadingSkeleton
                     } else if let profile {
@@ -46,8 +41,8 @@ struct PublicUserProfilePreviewView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.top, 6)
+                .padding(.bottom, 28)
             }
             .background(sheetBackground.ignoresSafeArea())
             .navigationTitle("Fan Profile")
@@ -67,34 +62,89 @@ struct PublicUserProfilePreviewView: View {
         }
     }
 
-    // MARK: - Content
+    // MARK: - Editorial layout
 
     @ViewBuilder
     private func profileContent(_ data: PublicUserProfileData) -> some View {
-        identityHeaderCard(data)
+        PublicProfileEditorialHero(data: data)
             .onAppear {
 #if DEBUG
-                print("[PublicProfileModernUI] rendered user_id=\(data.userId.uuidString.lowercased())")
+                print("[PublicProfileEditorialUI] rendered user_id=\(data.userId.uuidString.lowercased())")
 #endif
             }
 
-        LazyVGrid(columns: gridColumns, spacing: 12) {
-            openToCard(data)
-            mutualFansCard(data)
-            venuesVisitedCard(data)
-            if data.sharedTeamsCount > 0 {
-                sharedTeamsCard(data)
-            }
+        if friendButtonState != .hidden || canShowPokeControls(for: data.userId) {
+            PublicProfileSocialActionBar(
+                friendState: friendButtonState,
+                showsPoke: canShowPokeControls(for: data.userId),
+                isFriendActionInFlight: isFriendActionInFlight,
+                pokeTitle: pokeButtonTitle,
+                pokeIcon: pokeButtonIcon,
+                pokeForeground: pokeButtonForeground,
+                pokeBackground: pokeButtonBackground,
+                pokeBorder: pokeButtonBorder,
+                isPokeDisabled: isPokeActionDisabled,
+                isPokeInFlight: isPokeInFlight,
+                onFriendAction: { Task { await performFriendAction(data) } },
+                onPoke: { Task { await sendPoke(to: data.userId) } }
+            )
         }
 
-        if !data.socialHighlightLabels.isEmpty {
-            socialHighlightsCard(data)
+        if let gameday = PublicProfileContentBuilder.gamedayStatus(from: data, colorScheme: colorScheme) {
+            PublicProfileGamedayStatusCard(status: gameday)
         }
 
-        PublicProfilePickupOrganizerCard(creatorUserId: data.userId, stats: data.organizerStats)
+        if let homeVenue = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
+            PublicProfileHomeCrowdCard(
+                venue: homeVenue,
+                mutualFansCount: data.mutualFansCount,
+                mutualAvatars: data.mutualFanAvatars,
+                memberSinceLabel: data.memberSinceLabel
+            )
+        }
 
-        pokeSection(data)
-        friendActionSection(data)
+        if !data.personalityTags.isEmpty {
+            PublicProfilePersonalityCard(tags: data.personalityTags)
+        }
+
+        if !data.editorialOpenToItems.isEmpty {
+            PublicProfileOpenToEditorialCard(items: data.editorialOpenToItems)
+        }
+
+        if let moment = PublicProfileContentBuilder.sportsMoment(from: data) {
+            PublicProfileSportsMomentCard(moment: moment)
+        }
+
+        let extraVenues = PublicProfileContentBuilder.venuesExcludingHomeCrowd(from: data)
+        if !extraVenues.isEmpty || data.venueCount > 1 {
+            PublicProfileVenuesVisitedCard(
+                venues: extraVenues.isEmpty ? data.venueCards : extraVenues,
+                totalCount: data.venueCount
+            )
+        }
+
+        let activity = PublicProfileContentBuilder.activityTimeline(from: data)
+        if !activity.isEmpty {
+            PublicProfileRecentActivityCard(rows: activity)
+        }
+
+        if data.mutualFansCount > 0 || data.sharedTeamsCount > 0 {
+            PublicProfileMutualFansEditorialCard(
+                count: data.mutualFansCount,
+                avatars: data.mutualFanAvatars,
+                sharedTeamNames: data.sharedTeamNames,
+                sharedTeamsCount: data.sharedTeamsCount,
+                favoriteTeams: data.favoriteTeams
+            )
+        }
+
+        if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {
+            PublicProfilePickupOrganizerCard(
+                creatorUserId: data.userId,
+                stats: data.organizerStats,
+                compact: true
+            )
+        }
 
         if let friendActionError, !friendActionError.isEmpty {
             inlineError(friendActionError)
@@ -104,309 +154,15 @@ struct PublicUserProfilePreviewView: View {
         }
     }
 
-    private func identityHeaderCard(_ data: PublicUserProfileData) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 14) {
-                UserAvatarView(
-                    avatarThumbnailURL: data.avatarThumbnailURL,
-                    avatarURL: data.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
-                    displayName: data.displayName,
-                    email: "",
-                    size: 84,
-                    fallbackStyle: .lightOnWhiteChrome,
-                    imagePlaceholderTint: FGColor.accentBlue
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [FGColor.accentBlue, FGColor.accentGreen],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2.5
-                        )
-                )
-                .shadow(color: FGColor.accentBlue.opacity(0.14), radius: 10, y: 4)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(data.displayName)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
-
-                    Text(data.publicHandleLine)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-
-                    reputationPill(data.reputation)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if !data.favoriteTeams.isEmpty {
-                favoriteTeamsRow(data.favoriteTeams)
-            }
-
-            if let bio = data.bio, !bio.isEmpty {
-                Text(bio)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.88))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let memberSince = data.memberSinceLabel {
-                Text(memberSince)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            }
-        }
-        .publicProfileGlassCard()
-    }
-
-    private func reputationPill(_ reputation: FanReputationProfile) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "sparkles")
-                .font(.system(size: 9, weight: .bold))
-            Text("Fan Reputation · \(reputation.title)")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-        }
-        .foregroundStyle(FGColor.accentGreen)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(
-            Capsule(style: .continuous)
-                .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.10))
-        )
-        .accessibilityLabel("Fan reputation, \(reputation.title)")
-    }
-
-    private func favoriteTeamsRow(_ teams: [FavoriteTeam]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(teams.prefix(8)) { team in
-                    FavoriteTeamLogoBadge(team: team, diameter: 34)
-                }
-            }
-        }
-    }
-
-    private func openToCard(_ data: PublicUserProfileData) -> some View {
-        PublicProfileSectionCard(
-            title: "Open To",
-            accent: FGColor.accentBlue,
-            colorScheme: colorScheme
-        ) {
-            if data.openToItems.isEmpty {
-                Text("Still building their fan interests")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(data.openToItems.prefix(4)) { item in
-                        HStack(spacing: 8) {
-                            Image(systemName: item.systemImage)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(FGColor.accentBlue)
-                                .frame(width: 22)
-                            Text(item.title)
-                                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundStyle(FGColor.primaryText(colorScheme))
-                                .lineLimit(2)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func mutualFansCard(_ data: PublicUserProfileData) -> some View {
-        PublicProfileSectionCard(
-            title: "Mutual Fans",
-            accent: Color(red: 0.58, green: 0.36, blue: 0.92),
-            colorScheme: colorScheme
-        ) {
-            if data.mutualFansCount == 0 {
-                Text("No mutual fans yet")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("\(data.mutualFansCount) mutual fans")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-
-                    if !data.mutualFanAvatars.isEmpty {
-                        mutualAvatarStack(data.mutualFanAvatars)
-                    }
-                }
-            }
-        }
-    }
-
-    private func mutualAvatarStack(_ avatars: [PublicProfileMutualFanAvatar]) -> some View {
-        HStack(spacing: -10) {
-            ForEach(avatars.prefix(4)) { fan in
-                UserAvatarView(
-                    avatarThumbnailURL: fan.avatarURL,
-                    avatarURL: fan.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
-                    displayName: fan.displayName,
-                    email: "",
-                    size: 32,
-                    fallbackStyle: .lightOnWhiteChrome,
-                    imagePlaceholderTint: FGColor.accentBlue
-                )
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
-            }
-            if avatars.count > 4 {
-                Text("+\(avatars.count - 4)")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .padding(.leading, 6)
-            }
-        }
-    }
-
-    private func venuesVisitedCard(_ data: PublicUserProfileData) -> some View {
-        PublicProfileSectionCard(
-            title: data.venueCount > 0 ? "Venues Visited" : "Favorite Venues",
-            accent: Color(red: 0.58, green: 0.36, blue: 0.92),
-            colorScheme: colorScheme
-        ) {
-            if data.venueCount == 0, data.venueCards.isEmpty {
-                Text("No favorite venues yet")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            } else {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(data.venueCount == 1 ? "1 venue" : "\(data.venueCount) venues")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-
-                    ForEach(data.venueCards.prefix(3)) { venue in
-                        HStack(spacing: 8) {
-                            Image(systemName: "building.2.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(FGColor.accentBlue)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(venue.venueName)
-                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                                    .lineLimit(1)
-                                if !venue.cityLabel.isEmpty {
-                                    Text(venue.cityLabel)
-                                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                                        .foregroundStyle(FGColor.mutedText(colorScheme))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func sharedTeamsCard(_ data: PublicUserProfileData) -> some View {
-        PublicProfileSectionCard(
-            title: "Shared Teams",
-            accent: FGColor.accentGreen,
-            colorScheme: colorScheme
-        ) {
-            Text(data.sharedTeamsCount == 1 ? "1 team in common" : "\(data.sharedTeamsCount) teams in common")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-        }
-    }
-
-    private func socialHighlightsCard(_ data: PublicUserProfileData) -> some View {
-        PublicProfileSectionCard(
-            title: "Fan Activity",
-            accent: FGColor.accentGreen,
-            colorScheme: colorScheme,
-            fullWidth: true
-        ) {
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(data.socialHighlightLabels, id: \.self) { label in
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(FGColor.accentGreen)
-                        Text(label)
-                            .font(.system(size: 12, weight: .medium, design: .rounded))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    }
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func pokeSection(_ data: PublicUserProfileData) -> some View {
-        if canShowPokeControls(for: data.userId) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Pokes")
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
-                        .textCase(.uppercase)
-                        .tracking(0.7)
-                    Text(pokeCountText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle((pokeSummary?.totalPokes ?? 0) == 0 ? FGColor.mutedText(colorScheme) : FGColor.secondaryText(colorScheme))
-                    if let cooldown = pokeCooldownHintText {
-                        Text(cooldown)
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
-                            .lineLimit(1)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    Task { await sendPoke(to: data.userId) }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: pokeButtonIcon)
-                            .font(.system(size: 11, weight: .bold))
-                        Text(pokeButtonTitle)
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                    }
-                    .foregroundStyle(pokeButtonForeground)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Capsule(style: .continuous).fill(pokeButtonBackground))
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(pokeButtonBorder, lineWidth: 1)
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isPokeActionDisabled)
-                .opacity(isPokeActionDisabled ? 0.65 : 1)
-            }
-            .publicProfileGlassCard()
-        }
-    }
-
-    @ViewBuilder
-    private func friendActionSection(_ data: PublicUserProfileData) -> some View {
+    @MainActor
+    private func performFriendAction(_ data: PublicUserProfileData) async {
         switch friendButtonState {
-        case .hidden:
-            EmptyView()
         case .messageFriend:
-            primaryFriendButton(title: "Message friend", systemImage: "message.fill") {
-                Task { await messageFriend(data) }
-            }
+            await messageFriend(data)
         case .requestFriendship:
-            primaryFriendButton(title: "Request friendship", systemImage: "person.badge.plus") {
-                Task { await requestFriendship(userId: data.userId) }
-            }
-        case .friendshipRequested:
-            primaryFriendButton(title: "Friendship requested", systemImage: "clock.fill", disabled: true) {}
+            await requestFriendship(userId: data.userId)
+        case .hidden, .friendshipRequested:
+            break
         }
     }
 
@@ -423,27 +179,15 @@ struct PublicUserProfilePreviewView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(24)
-        .publicProfileGlassCard()
+        .publicProfileEditorialCard()
     }
 
     // MARK: - Poke UI helpers
 
-    private var pokeCountText: String {
-        guard let pokeSummary else { return "Pokes loading" }
-        guard pokeSummary.totalPokes > 0 else { return "No pokes yet" }
-        return pokeSummary.totalPokes == 1 ? "1 poke" : "\(pokeSummary.totalPokes) pokes"
-    }
-
-    private var pokeCooldownHintText: String? {
-        guard pokeJustSucceeded == false else { return nil }
-        guard let pokeSummary, !pokeSummary.viewerCanPokeNow else { return nil }
-        return Self.cooldownMessage(until: pokeSummary.viewerCooldownEndsAt)
-    }
-
     private var pokeButtonTitle: String {
         if pokeJustSucceeded { return "Poked!" }
         if let pokeSummary, pokeSummary.viewerCanPokeNow { return "Poke" }
-        if pokeSummary != nil { return "Poke again soon" }
+        if pokeSummary != nil { return "Soon" }
         return "Poke"
     }
 
@@ -478,32 +222,6 @@ struct PublicUserProfilePreviewView: View {
 
     // MARK: - Shared chrome
 
-    private func primaryFriendButton(
-        title: String,
-        systemImage: String,
-        disabled: Bool = false,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(disabled ? FGColor.accentGreen.opacity(0.35) : FGColor.accentGreen)
-            )
-            .shadow(color: FGColor.accentGreen.opacity(disabled ? 0 : 0.18), radius: 12, y: 6)
-        }
-        .buttonStyle(.plain)
-        .disabled(disabled || isFriendActionInFlight)
-    }
-
     private func inlineError(_ text: String) -> some View {
         Text(text)
             .font(.caption)
@@ -513,19 +231,19 @@ struct PublicUserProfilePreviewView: View {
 
     private var loadingSkeleton: some View {
         VStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.72))
-                .frame(height: 180)
+                .frame(height: 200)
                 .redacted(reason: .placeholder)
-            LazyVGrid(columns: gridColumns, spacing: 12) {
-                ForEach(0..<4, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
-                        .frame(height: 120)
-                        .redacted(reason: .placeholder)
-                }
-            }
-            ProgressView().tint(FGColor.accentGreen).padding(.top, 8)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                .frame(height: 88)
+                .redacted(reason: .placeholder)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                .frame(height: 140)
+                .redacted(reason: .placeholder)
+            ProgressView().tint(FGColor.accentGreen).padding(.top, 4)
         }
     }
 
@@ -551,9 +269,9 @@ struct PublicUserProfilePreviewView: View {
             Color(.systemGroupedBackground)
             LinearGradient(
                 colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.02 : 0.96),
-                    Color(red: 0.94, green: 0.98, blue: 1.0).opacity(colorScheme == .dark ? 0.04 : 0.74),
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.035 : 0.055)
+                    Color(red: 0.97, green: 0.99, blue: 1.0).opacity(colorScheme == .dark ? 0.04 : 0.98),
+                    Color(red: 0.93, green: 0.97, blue: 0.99).opacity(colorScheme == .dark ? 0.06 : 0.88),
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.04 : 0.06)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -732,36 +450,6 @@ struct PublicUserProfilePreviewView: View {
                 isFriendActionInFlight = false
             }
         }
-    }
-}
-
-// MARK: - Card chrome
-
-private struct PublicProfileSectionCard<Content: View>: View {
-    let title: String
-    let accent: Color
-    let colorScheme: ColorScheme
-    var fullWidth: Bool = false
-    @ViewBuilder let content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundStyle(accent.opacity(0.92))
-                .textCase(.uppercase)
-                .tracking(0.7)
-            content()
-        }
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
-        .publicProfileGlassCard()
-        .gridCellColumns(fullWidth ? 2 : 1)
-    }
-}
-
-private extension View {
-    func publicProfileGlassCard() -> some View {
-        fanGeoGlassCard(cornerRadius: 22)
     }
 }
 
