@@ -236,6 +236,56 @@ private struct FGFloatingStyleModifier: ViewModifier {
     }
 }
 
+private struct FGGlassCardModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .padding(FGSpacing.lg)
+            .background {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.black.opacity(colorScheme == .dark ? 0.28 : 0))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.39))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(colorScheme == .dark ? 0.09 : 0.19),
+                                        Color.white.opacity(0.02)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                    }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(
+                        colorScheme == .dark
+                            ? Color.white.opacity(0.19)
+                            : FGColor.divider(colorScheme),
+                        lineWidth: colorScheme == .dark ? 1 : 0.75
+                    )
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.072),
+                radius: 5,
+                y: 2
+            )
+    }
+}
+
 private struct FGTitleStyleModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     var color: Color?
@@ -304,6 +354,10 @@ extension View {
 
     func fanGeoFloatingStyle() -> some View {
         modifier(FGFloatingStyleModifier())
+    }
+
+    func fanGeoGlassCard(cornerRadius: CGFloat = FGRadius.card) -> some View {
+        modifier(FGGlassCardModifier(cornerRadius: cornerRadius))
     }
 
     func fanGeoTitleStyle(color: Color? = nil) -> some View {

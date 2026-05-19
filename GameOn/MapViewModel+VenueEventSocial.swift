@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 import Supabase
 
@@ -223,7 +224,11 @@ extension MapViewModel {
         }
         if let venueEventID {
             venueEventInterestWriteInFlightIDs.insert(venueEventID)
-            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isGoing)
+            applyLocalVenueEventInterestState(
+                venueEventID: venueEventID,
+                isInterested: isGoing,
+                discoverBar: bar
+            )
             print(
                 "[GoingButtonDebug] optimisticUpdate eventId=\(normalizedVenueEventWireId(venueEventID)) going=\(isGoing)"
             )
@@ -246,6 +251,9 @@ extension MapViewModel {
     ) {
         if let venueEventID {
             venueEventInterestWriteInFlightIDs.remove(venueEventID)
+            print(
+                "[GoingTabSyncDebug] rollback eventId=\(normalizedVenueEventWireId(venueEventID))"
+            )
         }
         venueEventInterestIDs = previousInterestIDs
         venueEventInterestCounts = previousInterestCounts
@@ -317,9 +325,17 @@ extension MapViewModel {
                         venueEventInterestIDs.remove(cachedVenueEventID)
                     }
                     venueEventInterestWriteInFlightIDs.insert(wireEventID)
-                    applyLocalVenueEventInterestState(venueEventID: wireEventID, isInterested: true)
+                    applyLocalVenueEventInterestState(
+                        venueEventID: wireEventID,
+                        isInterested: true,
+                        discoverBar: bar
+                    )
                 } else if let cachedVenueEventID, cachedVenueEventID != wireEventID {
-                    applyLocalVenueEventInterestState(venueEventID: cachedVenueEventID, isInterested: false)
+                    applyLocalVenueEventInterestState(
+                        venueEventID: cachedVenueEventID,
+                        isInterested: false,
+                        discoverBar: bar
+                    )
                 }
                 print(
                     "[GoingButtonDebug] normalizedEventId=\(normalizedVenueEventWireId(wireEventID)) source=resolvedMismatch cached=\(cachedVenueEventID?.uuidString.lowercased() ?? "nil")"
@@ -367,6 +383,7 @@ extension MapViewModel {
         }
 
         scheduleDeferredVisibleVenueEventInterestsReload()
+        scheduleDeferredFollowingTabGoingReconcile(venueEventID: wireEventID)
 
         if targetGoing {
             await addGameToCalendar(
@@ -407,7 +424,10 @@ extension MapViewModel {
 
     /// Keeps ``followingTabGoingItems`` / Discover ``interestedVenueEventKeys`` aligned after a local interest mutation (including Interested-only rows from UserDefaults).
     @MainActor
-    private func reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: UUID) {
+    private func reconcileFollowingGoingDisplayAfterInterestMutation(
+        venueEventID: UUID,
+        discoverBar: BarVenue? = nil
+    ) {
         let snapshot = barAndTitleForDiscoverInterestKey(venueEventID: venueEventID)
         let localOnly = MapViewModel.followingInterestedOnlyVenueEventIDsFromUserDefaults()
         let hasServer = venueEventInterestIDs.contains(venueEventID)
@@ -425,24 +445,156 @@ extension MapViewModel {
                       !isRecentlyConfirmedVenueEventGoing(venueEventID) {
                 interestedVenueEventKeys.remove(key)
             }
+        } else if let discoverBar, keep {
+            let title = discoverBar.games.first ?? ""
+            if !title.isEmpty {
+                interestedVenueEventKeys.insert(venueEventInterestKey(for: discoverBar, gameTitle: title))
+            }
         }
 
-        if followingTabGoingInterestCounts[venueEventID] != nil || followingTabGoingItems.contains(where: { $0.id == venueEventID }) {
-            followingTabGoingInterestCounts[venueEventID] = venueEventInterestCounts[venueEventID] ?? 0
-        }
-
-        if !keep {
-            followingTabGoingItems.removeAll { $0.id == venueEventID }
-            goingProfilesByVenueEventID.removeValue(forKey: venueEventID)
-#if DEBUG
-            print("[FollowingState] removed not-going event from list id=\(venueEventID.uuidString)")
-#endif
-            return
+        if keep {
+            optimisticAddFollowingTabGoingItem(venueEventID: venueEventID, discoverBar: discoverBar ?? snapshot?.0)
+        } else {
+            optimisticRemoveFollowingTabGoingItem(venueEventID: venueEventID)
         }
     }
 
     @MainActor
-    private func applyLocalVenueEventInterestState(venueEventID: UUID, isInterested: Bool) {
+    private func optimisticAddFollowingTabGoingItem(venueEventID: UUID, discoverBar: BarVenue?) {
+        let wireId = normalizedVenueEventWireId(venueEventID)
+        guard let row = venueEventRows.first(where: { $0.id == venueEventID }) else {
+            print("[GoingTabSyncDebug] optimisticAdd skipped missingRow eventId=\(wireId)")
+            return
+        }
+
+        let attendeeCount = max(venueEventInterestCounts[venueEventID] ?? 0, 1)
+        followingTabGoingInterestCounts[venueEventID] = attendeeCount
+
+        if let index = followingTabGoingItems.firstIndex(where: { $0.id == venueEventID }) {
+            let existing = followingTabGoingItems[index]
+            followingTabGoingItems[index] = FollowingGoingDisplayItem(
+                id: venueEventID,
+                venueEvent: row,
+                bar: discoverBar ?? existing.bar,
+                attendeeCount: attendeeCount,
+                isServerGoing: true,
+                isInterestedOnlyLocal: false
+            )
+            print("[GoingTabSyncDebug] optimisticAdd eventId=\(wireId) updatedExisting=true")
+            refreshFollowingInterestDerivedSnapshotsForUI()
+            return
+        }
+
+        let bar = resolveBarForOptimisticFollowingTabItem(row: row, preferredBar: discoverBar)
+        let item = FollowingGoingDisplayItem(
+            id: venueEventID,
+            venueEvent: row,
+            bar: bar,
+            attendeeCount: attendeeCount,
+            isServerGoing: true,
+            isInterestedOnlyLocal: false
+        )
+        var items = followingTabGoingItems
+        items.append(item)
+        items.sort { $0.id.uuidString < $1.id.uuidString }
+        followingTabGoingItems = items
+        print("[GoingTabSyncDebug] optimisticAdd eventId=\(wireId) count=\(followingTabGoingItems.count)")
+        refreshFollowingInterestDerivedSnapshotsForUI()
+    }
+
+    @MainActor
+    private func optimisticRemoveFollowingTabGoingItem(venueEventID: UUID) {
+        let wireId = normalizedVenueEventWireId(venueEventID)
+        let hadItem = followingTabGoingItems.contains { $0.id == venueEventID }
+        followingTabGoingItems.removeAll { $0.id == venueEventID }
+        goingProfilesByVenueEventID.removeValue(forKey: venueEventID)
+        if venueEventInterestCounts[venueEventID] != nil {
+            venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 0), 0)
+            followingTabGoingInterestCounts[venueEventID] = venueEventInterestCounts[venueEventID]
+        } else {
+            followingTabGoingInterestCounts.removeValue(forKey: venueEventID)
+        }
+        if hadItem {
+            print("[GoingTabSyncDebug] optimisticRemove eventId=\(wireId) count=\(followingTabGoingItems.count)")
+            refreshFollowingInterestDerivedSnapshotsForUI()
+        }
+    }
+
+    @MainActor
+    private func resolveBarForOptimisticFollowingTabItem(row: VenueEventRow, preferredBar: BarVenue?) -> BarVenue {
+        if let preferredBar { return preferredBar }
+        if let vid = row.venue_id, let bar = bars.first(where: { $0.id == vid }) {
+            return bar
+        }
+        let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !venueName.isEmpty, let bar = bars.first(where: { $0.name == venueName }) {
+            return bar
+        }
+        if let item = followingTabGoingItems.first(where: { $0.id == row.id }) {
+            return item.bar
+        }
+        return placeholderBarForFollowingGoingList(row: row)
+    }
+
+    @MainActor
+    private func placeholderBarForFollowingGoingList(row: VenueEventRow) -> BarVenue {
+        let trimmedName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let name = trimmedName.isEmpty ? "Venue" : trimmedName
+        let title = row.event_title ?? ""
+        let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return BarVenue(
+            id: row.venue_id ?? UUID(),
+            name: name,
+            address: "Address unavailable",
+            phone: "",
+            primarySport: sport,
+            distance: "",
+            rating: 0,
+            tags: [],
+            games: title.isEmpty ? [] : [title],
+            coordinate: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+            goingCounts: [:],
+            screenCount: 1,
+            servesFood: false,
+            hasWifi: false,
+            hasGarden: false,
+            hasProjector: false,
+            petFriendly: false,
+            coverPhotoURL: nil,
+            menuPhotoURL: nil,
+            coverPhotoThumbnailURL: nil,
+            menuPhotoThumbnailURL: nil,
+            ownerEmail: row.owner_email,
+            businessId: nil,
+            adminStatus: row.admin_status,
+            venueOwnerEmailRaw: row.owner_email,
+            businessOwnerEmailRaw: nil,
+            contactEmailRaw: nil
+        )
+    }
+
+    private func scheduleDeferredFollowingTabGoingReconcile(venueEventID: UUID) {
+        let wireId = normalizedVenueEventWireId(venueEventID)
+        print("[GoingTabSyncDebug] reconcileScheduled eventId=\(wireId)")
+        followingTabGoingReconcileTask?.cancel()
+        followingTabGoingReconcileTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            await self.refreshFollowingTabDataGlobally()
+            await MainActor.run {
+                print(
+                    "[GoingTabSyncDebug] reconcileApplied count=\(self.followingTabGoingItems.count) eventId=\(wireId)"
+                )
+            }
+        }
+    }
+
+    @MainActor
+    private func applyLocalVenueEventInterestState(
+        venueEventID: UUID,
+        isInterested: Bool,
+        discoverBar: BarVenue? = nil
+    ) {
         let inDiscover = venueEventInterestIDs.contains(venueEventID)
         let inFollowingTab = followingTabUserVenueEventInterestIDs.contains(venueEventID)
         let wasInterested = inDiscover || inFollowingTab
@@ -460,7 +612,10 @@ extension MapViewModel {
             followingTabUserVenueEventInterestIDs.remove(venueEventID)
         }
 
-        reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
+        reconcileFollowingGoingDisplayAfterInterestMutation(
+            venueEventID: venueEventID,
+            discoverBar: discoverBar
+        )
     }
 
     private func discoverSQLDateString(for day: Date) -> String {
@@ -648,12 +803,13 @@ extension MapViewModel {
                     print("[FollowingState] business attendance change event=\(venueEventID.uuidString)")
                 }
 #endif
-                await self.refreshFollowingTabDataGlobally()
                 await self.loadGoingUserProfiles(for: venueEventID)
                 self.refreshFollowingInterestDerivedSnapshotsForUI()
             }
+            scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
         } else {
             scheduleDeferredVisibleVenueEventInterestsReload()
+            scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
         }
 
         if isInterested, !snapshot.wasAlreadyInterested, let uid = await MainActor.run(body: { currentUserAuthId }) {

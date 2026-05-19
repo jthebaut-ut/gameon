@@ -17,13 +17,22 @@ struct FanGeoIdentitySetupView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var displayNameDraft = ""
     @State private var handleDraft = ""
+    @State private var bioDraft = ""
+    @State private var favoriteTeamIDs: Set<String> = []
+    @State private var showFavoriteTeamsPicker = false
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isSaving = false
     @State private var isUploadingAvatar = false
     @State private var errorMessage = ""
+    @State private var displayNameError = ""
     @State private var handleStatusMessage = ""
     @State private var handleStatusIsPositive = false
+    @State private var handleIsConfirmedAvailable = false
     @State private var availabilityTask: Task<Void, Never>?
+
+    private static let defaultFanBio = "I am a FanGeo Fan."
+    private static let displayNameMaxLength = 40
+    private static let bioCharacterLimit = 160
 
     var body: some View {
         let avatarSnapshot = IdentityAvatarSnapshot(
@@ -41,6 +50,8 @@ struct FanGeoIdentitySetupView: View {
                     if mode == .complete {
                         avatarSection(snapshot: avatarSnapshot)
                         displayNameSection
+                        bioSection
+                        favoriteTeamsSection
                     }
 
                     handleSection
@@ -54,7 +65,7 @@ struct FanGeoIdentitySetupView: View {
                     Button {
                         Task { await saveIdentity() }
                     } label: {
-                        Text(isSaving ? "Saving…" : "Continue")
+                        Text(primaryButtonTitle)
                             .font(FGTypography.cardTitle)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, FGSpacing.md)
@@ -66,7 +77,7 @@ struct FanGeoIdentitySetupView: View {
                 .padding(FGSpacing.lg)
             }
             .fanGeoScreenBackground()
-            .navigationTitle(mode == .complete ? "Create your FanGeo identity" : "Choose your @handle")
+            .navigationTitle(mode == .complete ? "Create your fan profile" : "Choose your @handle")
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled(mode == .complete)
             .onAppear {
@@ -78,25 +89,41 @@ struct FanGeoIdentitySetupView: View {
                 guard let item else { return }
                 Task { await replaceAvatar(with: item) }
             }
-            .onChange(of: handleDraft) { _, _ in
+            .onChange(of: handleDraft) { _, newValue in
+                handleDraft = FanGeoHandleRules.normalizeForStorage(newValue)
                 scheduleHandleAvailabilityCheck()
+            }
+            .onChange(of: displayNameDraft) { _, _ in
+                refreshDisplayNameValidation(markTouched: false)
+            }
+            .sheet(isPresented: $showFavoriteTeamsPicker) {
+                FavoriteTeamsPickerSheet(selectedIDs: $favoriteTeamIDs)
             }
         }
     }
 
+    private var primaryButtonTitle: String {
+        if isSaving { return "Saving…" }
+        return mode == .complete ? "Start using FanGeo" : "Continue"
+    }
+
     private var headerCopy: some View {
         VStack(alignment: .leading, spacing: FGSpacing.sm) {
-            Text(mode == .complete
-                ? "Pick how fans will see you across FanGeo."
-                : "Set a unique @handle for friend search and your public profile.")
-                .font(FGTypography.body)
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
+            if mode == .complete {
+                Text("Pick a name and handle so other fans can recognize you.")
+                    .font(FGTypography.body)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            } else {
+                Text("Set a unique @handle for friend search and your public profile.")
+                    .font(FGTypography.body)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
         }
     }
 
     private func avatarSection(snapshot: IdentityAvatarSnapshot) -> some View {
-        FGCard {
-            FGSectionHeader("Profile photo", subtitle: "Optional — add or change anytime.")
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            FGSectionHeader("Profile photo", subtitle: "Optional")
             IdentitySetupAvatarPickerRow(
                 snapshot: snapshot,
                 displayName: displayNameDraft,
@@ -105,25 +132,82 @@ struct FanGeoIdentitySetupView: View {
                 selectedAvatarItem: $selectedAvatarItem
             )
         }
+        .fanGeoGlassCard()
     }
 
     private var displayNameSection: some View {
-        FGCard {
-            FGSectionHeader("Display name", subtitle: "Required — your public friendly name.")
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            FGSectionHeader("Display name", subtitle: "Required")
             TextField("Display name", text: $displayNameDraft)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .font(FGTypography.body)
-                .padding(.horizontal, FGSpacing.md)
-                .padding(.vertical, FGSpacing.sm + 2)
-                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
-                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .fanGeoInputFieldStyle()
+                .onChange(of: displayNameDraft) { _, newValue in
+                    if newValue.count > Self.displayNameMaxLength {
+                        displayNameDraft = String(newValue.prefix(Self.displayNameMaxLength))
+                    }
+                }
+
+            if !displayNameError.isEmpty {
+                Text(displayNameError)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(.red)
+            }
         }
+        .fanGeoGlassCard()
+    }
+
+    private var bioSection: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            FGSectionHeader("Bio", subtitle: "Optional")
+            TextField("Tell fans about yourself", text: $bioDraft, axis: .vertical)
+                .lineLimit(3...5)
+                .font(FGTypography.body)
+                .fanGeoInputFieldStyle()
+                .onChange(of: bioDraft) { _, newValue in
+                    if newValue.count > Self.bioCharacterLimit {
+                        bioDraft = String(newValue.prefix(Self.bioCharacterLimit))
+                    }
+                }
+        }
+        .fanGeoGlassCard()
+    }
+
+    private var favoriteTeamsSection: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            FGSectionHeader("Favorite teams", subtitle: "Optional")
+            HStack {
+                if selectedFavoriteTeams.isEmpty {
+                    Text("Add teams you follow")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                } else {
+                    Text(selectedFavoriteTeams.map(\.name).joined(separator: ", "))
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+                Button("Add") {
+                    showFavoriteTeamsPicker = true
+                }
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
+            }
+        }
+        .fanGeoGlassCard()
+    }
+
+    private var selectedFavoriteTeams: [FavoriteTeam] {
+        favoriteTeamIDs
+            .compactMap { FavoriteTeamCatalog.team(id: $0) }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private var handleSection: some View {
-        FGCard {
-            FGSectionHeader("@handle", subtitle: "Required — 3–20 characters; letters, numbers, _ or .")
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            FGSectionHeader("@handle", subtitle: "Required — 3–24 characters; letters, numbers, _ or .")
             HStack(spacing: 4) {
                 Text("@")
                     .font(FGTypography.body.weight(.semibold))
@@ -133,27 +217,52 @@ struct FanGeoIdentitySetupView: View {
                     .autocorrectionDisabled()
                     .font(FGTypography.body)
             }
-            .padding(.horizontal, FGSpacing.md)
-            .padding(.vertical, FGSpacing.sm + 2)
-            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
-            .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+            .fanGeoInputFieldStyle()
 
             if !handleStatusMessage.isEmpty {
                 Text(handleStatusMessage)
                     .font(FGTypography.caption)
-                    .foregroundStyle(handleStatusIsPositive ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                    .foregroundStyle(
+                        handleStatusIsPositive
+                            ? FGColor.accentGreen
+                            : (handleIsConfirmedAvailable ? FGColor.secondaryText(colorScheme) : .red)
+                    )
             }
         }
+        .fanGeoGlassCard()
     }
 
     private var canSubmit: Bool {
-        let handleOK = FanGeoHandleRules.validate(handleDraft) == nil
+        let handleOK = FanGeoHandleRules.validate(handleDraft) == nil && handleIsConfirmedAvailable
         switch mode {
         case .complete:
-            return !displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && handleOK
+            let trimmedName = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !trimmedName.isEmpty
+                && trimmedName.count <= Self.displayNameMaxLength
+                && handleOK
         case .handleOnly:
             return handleOK
         }
+    }
+
+    @MainActor
+    private func refreshDisplayNameValidation(markTouched: Bool) {
+        let trimmed = displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            if markTouched || !displayNameError.isEmpty {
+                displayNameError = "Display name is required."
+                if markTouched {
+                    print("[SignupProfileDebug] validationError field=displayName")
+                }
+            }
+            return
+        }
+        if trimmed.count > Self.displayNameMaxLength {
+            displayNameError = "Display name is too long."
+            print("[SignupProfileDebug] validationError field=displayName")
+            return
+        }
+        displayNameError = ""
     }
 
     @MainActor
@@ -161,24 +270,31 @@ struct FanGeoIdentitySetupView: View {
         availabilityTask?.cancel()
         handleStatusMessage = ""
         handleStatusIsPositive = false
+        handleIsConfirmedAvailable = false
 
         let raw = handleDraft
         if let issue = FanGeoHandleRules.validate(raw) {
             handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            print("[SignupProfileDebug] validationError field=handle")
             return
         }
 
+        let stored = FanGeoHandleRules.normalizeForStorage(raw)
         availabilityTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
             guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
             guard !Task.isCancelled else { return }
+            print("[SignupProfileDebug] handleCheck username=\(stored) available=\(available)")
             if available {
                 handleStatusMessage = "Handle available."
                 handleStatusIsPositive = true
+                handleIsConfirmedAvailable = true
             } else {
                 handleStatusMessage = "That handle is already taken."
                 handleStatusIsPositive = false
+                handleIsConfirmedAvailable = false
+                print("[SignupProfileDebug] validationError field=handle")
             }
         }
     }
@@ -186,38 +302,75 @@ struct FanGeoIdentitySetupView: View {
     @MainActor
     private func saveIdentity() async {
         errorMessage = ""
-        isSaving = true
-        defer { isSaving = false }
+        refreshDisplayNameValidation(markTouched: true)
 
         let name = mode == .complete
             ? displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
             : viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if mode == .complete, name.isEmpty {
-            errorMessage = "Display name is required."
+            displayNameError = "Display name is required."
+            print("[SignupProfileDebug] validationError field=displayName")
+            return
+        }
+
+        if mode == .complete, name.count > Self.displayNameMaxLength {
+            displayNameError = "Display name is too long."
+            print("[SignupProfileDebug] validationError field=displayName")
             return
         }
 
         if ModerationService.containsProfanity(name) {
             errorMessage = ModerationService.profanityRejectionUserMessage()
+            print("[SignupProfileDebug] validationError field=displayName")
             return
         }
 
         if let issue = FanGeoHandleRules.validate(handleDraft) {
             errorMessage = FanGeoHandleRules.validationMessage(for: issue)
+            print("[SignupProfileDebug] validationError field=handle")
             return
         }
+
+        let storedHandle = FanGeoHandleRules.normalizeForStorage(handleDraft)
+        guard let available = await viewModel.checkUsernameAvailable(handleDraft) else {
+            errorMessage = "Could not verify whether this handle is available. Please try again."
+            return
+        }
+        print("[SignupProfileDebug] handleCheck username=\(storedHandle) available=\(available)")
+        guard available else {
+            handleStatusMessage = "That handle is already taken."
+            handleStatusIsPositive = false
+            handleIsConfirmedAvailable = false
+            print("[SignupProfileDebug] validationError field=handle")
+            return
+        }
+
+        let bioTrimmed = bioDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bioToSave = bioTrimmed.isEmpty ? Self.defaultFanBio : bioTrimmed
+
+        print("[SignupProfileDebug] profileSaveStarted")
+        isSaving = true
+        defer { isSaving = false }
 
         if let err = await viewModel.saveUserProfile(
             displayName: name,
             avatarURL: viewModel.currentUserAvatarURL,
             avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
-            username: handleDraft
+            username: handleDraft,
+            bio: bioToSave
         ) {
             errorMessage = err
             return
         }
 
+        if mode == .complete, !favoriteTeamIDs.isEmpty {
+            let sortedIDs = favoriteTeamIDs.sorted()
+            FavoriteTeamsStore.writeToAppStorage(sortedIDs)
+            _ = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sortedIDs)
+        }
+
+        print("[SignupProfileDebug] profileSaveSuccess")
         onFinished()
     }
 

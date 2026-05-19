@@ -2138,6 +2138,39 @@ private struct SettingsUserAuthSheet: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        Group {
+            if showRegisterMode {
+                FanSignupView(
+                    viewModel: viewModel,
+                    prefilledEmail: email,
+                    onSwitchToSignIn: {
+                        showRegisterMode = false
+                        viewModel.authErrorMessage = ""
+                    },
+                    onDismissAfterSuccess: { dismiss() }
+                )
+            } else {
+                fanSignInScrollContent
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+        }
+        .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Close") { dismiss() }
+            }
+        }
+        .onChange(of: viewModel.isLoggedIn) { wasLoggedIn, isLoggedIn in
+            // Dismiss only after a successful fan sign-in while the sheet is open (not if already logged in on appear).
+            if !wasLoggedIn && isLoggedIn, !showRegisterMode {
+                dismiss()
+            }
+        }
+    }
+
+    private var fanSignInScrollContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: FGSpacing.lg) {
                 VStack(alignment: .leading, spacing: FGSpacing.sm) {
@@ -2150,11 +2183,11 @@ private struct SettingsUserAuthSheet: View {
                 }
                 .padding(.top, 2)
 
-                SettingsAccountCard(
+                SettingsFanLoginCard(
                     viewModel: viewModel,
                     email: $email,
                     password: $password,
-                    showRegisterMode: $showRegisterMode
+                    onCreateAccount: { showRegisterMode = true }
                 )
 
                 SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
@@ -2163,21 +2196,6 @@ private struct SettingsUserAuthSheet: View {
             .padding(.bottom, FGSpacing.md)
         }
         .scrollIndicators(.hidden)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-        }
-        .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
-        .toolbar {
-            ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { dismiss() }
-            }
-        }
-        .onChange(of: viewModel.isLoggedIn) { wasLoggedIn, isLoggedIn in
-            // Dismiss only after a successful fan sign-in while the sheet is open (not if already logged in on appear).
-            if !wasLoggedIn && isLoggedIn {
-                dismiss()
-            }
-        }
     }
 }
 
@@ -2786,14 +2804,16 @@ private struct SettingsUserSection: View {
                 SettingsSavedGamesCard()
             }
 
-            SettingsAccountCard(
+            SettingsFanLoginCard(
                 viewModel: viewModel,
                 email: $email,
                 password: $password,
-                showRegisterMode: $showRegisterMode
+                onCreateAccount: { showRegisterMode = true }
             )
 
-            SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+            if !showRegisterMode {
+                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+            }
 
             if viewModel.isLoggedIn {
                 SettingsPrivateChatDeviceAuthCard()
@@ -2977,22 +2997,19 @@ private struct SettingsFanAccountSecurityCard: View {
     }
 }
 
-private struct SettingsAccountCard: View {
+/// Fan sign-in only (registration uses ``FanSignupView``).
+private struct SettingsFanLoginCard: View {
     @ObservedObject var viewModel: MapViewModel
     @Binding var email: String
     @Binding var password: String
-    @Binding var showRegisterMode: Bool
-    @State private var fanSignupPoliciesAccepted = false
-    @State private var fanSignupLegalDocument: SettingsLegalDocumentKind?
+    var onCreateAccount: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         FGCard {
             FGSectionHeader(
-                showRegisterMode ? "Create your fan account" : "Fan account access",
-                subtitle: showRegisterMode
-                    ? "Join FanGeo to save venues, chat, and sync your activity."
-                    : "Sign in to sync your profile and activity."
+                "Fan account access",
+                subtitle: "Sign in to sync your profile and activity."
             )
 
             if viewModel.isLoggedIn {
@@ -3035,83 +3052,9 @@ private struct SettingsAccountCard: View {
                 SecureField("Password", text: $password)
                     .fanGeoInputFieldStyle()
 
-                if showRegisterMode {
-                    VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                        SettingsSheetSectionLabel(
-                            title: "Guidelines",
-                            subtitle: "Accept the FanGeo terms before creating your account."
-                        )
-
-                        HStack(alignment: .top, spacing: 10) {
-                        Button {
-                            fanSignupPoliciesAccepted.toggle()
-                        } label: {
-                            Image(systemName: fanSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
-                                .font(.title3)
-                                .foregroundStyle(fanSignupPoliciesAccepted ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
-                        .accessibilityAddTraits(fanSignupPoliciesAccepted ? .isSelected : [])
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack(spacing: 0) {
-                                Text("I agree to the ")
-                                Button {
-                                    fanSignupLegalDocument = .termsOfService
-                                } label: {
-                                    Text("Terms of Service")
-                                        .underline()
-                                }
-                                .buttonStyle(.plain)
-                                Text(", ")
-                                Button {
-                                    fanSignupLegalDocument = .privacyPolicy
-                                } label: {
-                                    Text("Privacy Policy")
-                                        .underline()
-                                }
-                                .buttonStyle(.plain)
-                                Text(", and ")
-                                Button {
-                                    fanSignupLegalDocument = .communityGuidelines
-                                } label: {
-                                    Text("Community Guidelines")
-                                        .underline()
-                                }
-                                .buttonStyle(.plain)
-                                Text(".")
-                            }
-                            .font(.footnote)
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .tint(FGColor.accentBlue)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    }
-                    .padding(FGSpacing.md)
-                    .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
-                    .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                            .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-                    }
-                }
-
-                FGPrimaryButton(
-                    title: showRegisterMode ? "Create Account" : "Login",
-                    isDisabled: showRegisterMode && !fanSignupPoliciesAccepted
-                ) {
+                FGPrimaryButton(title: "Login") {
                     Task {
-                        if showRegisterMode {
-                            await viewModel.registerUser(
-                                email: email,
-                                password: password,
-                                recordFanGuidelinesAcceptance: fanSignupPoliciesAccepted
-                            )
-                        } else {
-                            await viewModel.loginUser(email: email, password: password)
-                        }
+                        await viewModel.loginUser(email: email, password: password)
                         await MainActor.run {
                             password = ""
                         }
@@ -3127,24 +3070,13 @@ private struct SettingsAccountCard: View {
                     )
                 }
 
-                Button {
-                    showRegisterMode.toggle()
-                } label: {
-                    Text(showRegisterMode ? "Already have an account? Login" : "New user? Register")
+                Button(action: onCreateAccount) {
+                    Text("New user? Create account")
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.accentBlue)
                 }
                 .buttonStyle(.plain)
             }
-        }
-        .onChange(of: showRegisterMode) { _, isRegister in
-            password = ""
-            if !isRegister {
-                fanSignupPoliciesAccepted = false
-            }
-        }
-        .sheet(item: $fanSignupLegalDocument) { document in
-            SettingsLegalDocumentSheet(document: document)
         }
     }
 }

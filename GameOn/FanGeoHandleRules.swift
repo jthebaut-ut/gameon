@@ -3,7 +3,7 @@ import Foundation
 /// Validation and display helpers for public FanGeo @handles (stored without `@`, lowercase).
 enum FanGeoHandleRules {
     static let minLength = 3
-    static let maxLength = 20
+    static let maxLength = 24
 
     enum ValidationIssue: Equatable {
         case tooShortOrLong
@@ -34,7 +34,7 @@ enum FanGeoHandleRules {
     static func validationMessage(for issue: ValidationIssue) -> String {
         switch issue {
         case .tooShortOrLong:
-            return "Handle must be 3–20 characters."
+            return "Handle must be 3–24 characters."
         case .invalidCharacters:
             return "Use only letters, numbers, underscores, or periods."
         }

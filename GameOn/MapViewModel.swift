@@ -563,6 +563,8 @@ final class MapViewModel: ObservableObject {
     @Published var followingTabSavedVenues: [BarVenue] = []
     /// Last successful ``refreshFollowingTabDataGlobally()`` completion (not published — avoids tab body churn).
     var lastFollowingTabGlobalRefreshAt: Date?
+    /// Debounced Following Going-list reconcile after Discover card toggles (not published).
+    var followingTabGoingReconcileTask: Task<Void, Never>?
     /// Games the user is going / interested in, loaded from Supabase + venue rows, independent of ``venueEventRows``.
     @Published var followingTabGoingItems: [FollowingGoingDisplayItem] = []
     /// Going / interest counts for ``followingTabGoingItems`` ids only (does not depend on map-visible interest fetch).
