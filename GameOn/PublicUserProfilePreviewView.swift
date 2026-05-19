@@ -14,15 +14,11 @@ struct PublicUserProfilePreviewView: View {
     @State private var friendButtonState: PublicProfileFriendButtonState = .hidden
     @State private var isFriendActionInFlight = false
     @State private var friendActionError: String?
-    @State private var propsSummary: ProfilePropsSummary?
-    @State private var isPropsActionInFlight = false
-    @State private var propsActionError: String?
     @State private var pokeSummary: ProfilePokeSummary?
     @State private var isPokeInFlight = false
     @State private var pokeActionError: String?
     @State private var pokeJustSucceeded = false
 
-    private let profilePropsService = ProfilePropsService()
     private let profilePokesService = ProfilePokesService()
 
     var body: some View {
@@ -57,8 +53,11 @@ struct PublicUserProfilePreviewView: View {
         }
         .task(id: userId) {
             await loadProfile()
-            await loadPropsSummary(for: userId)
             await loadPokeSummary(for: userId)
+        }
+        .onAppear {
+            DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
+            DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
         }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
             refreshFriendButtonState()
@@ -75,7 +74,6 @@ struct PublicUserProfilePreviewView: View {
                 print("[PublicProfileModernUI] rendered user_id=\(data.userId.uuidString.lowercased())")
 #endif
             }
-        fanPropsSection(data)
         pokeSection(data)
         reputationCard(data.reputation)
         favoriteTeamsCard(data.favoriteTeams)
@@ -83,12 +81,6 @@ struct PublicUserProfilePreviewView: View {
         friendActionSection(data)
         if let friendActionError, !friendActionError.isEmpty {
             Text(friendActionError)
-                .font(.caption)
-                .foregroundStyle(.red.opacity(0.9))
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        if let propsActionError, !propsActionError.isEmpty {
-            Text(propsActionError)
                 .font(.caption)
                 .foregroundStyle(.red.opacity(0.9))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -295,62 +287,8 @@ struct PublicUserProfilePreviewView: View {
     }
 
     @ViewBuilder
-    private func fanPropsSection(_ data: PublicUserProfileData) -> some View {
-        if canShowPropsControls(for: data.userId) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Fan Props")
-                        .sectionHeaderStyle(colorScheme: colorScheme)
-                    Text(propsCountText)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle((propsSummary?.count ?? 0) == 0 ? FGColor.mutedText(colorScheme) : FGColor.secondaryText(colorScheme))
-                }
-
-                Spacer(minLength: 8)
-
-                Button {
-                    Task { await toggleProps(for: data.userId) }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: propsSummary?.likedByCurrentUser == true ? "sparkles" : "plus")
-                            .font(.system(size: 11, weight: .bold))
-                        Text(propsSummary?.likedByCurrentUser == true ? "Props Given" : "Give Props")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                    }
-                    .foregroundStyle(propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen : .white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11) : FGColor.accentGreen)
-                    )
-                    .overlay {
-                        Capsule(style: .continuous)
-                            .strokeBorder(
-                                propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen.opacity(0.28) : FGColor.accentGreen.opacity(0.18),
-                                lineWidth: 1
-                            )
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isPropsActionInFlight || propsSummary == nil)
-                .opacity(isPropsActionInFlight || propsSummary == nil ? 0.65 : 1)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(cardBackground)
-        }
-    }
-
-    private var propsCountText: String {
-        guard let propsSummary else { return "Fan Props loading" }
-        guard propsSummary.count > 0 else { return "No Fan Props yet" }
-        return propsSummary.count == 1 ? "1 Fan Prop" : "\(propsSummary.count) Fan Props"
-    }
-
-    @ViewBuilder
     private func pokeSection(_ data: PublicUserProfileData) -> some View {
-        if canShowPropsControls(for: data.userId) {
+        if canShowPokeControls(for: data.userId) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Pokes")
@@ -617,8 +555,9 @@ struct PublicUserProfilePreviewView: View {
         await MainActor.run {
             isLoading = true
             friendActionError = nil
-            propsSummary = nil
-            propsActionError = nil
+            pokeSummary = nil
+            pokeActionError = nil
+            pokeJustSucceeded = false
         }
 
         await chatViewModel.loadIfNeeded()
@@ -656,74 +595,13 @@ struct PublicUserProfilePreviewView: View {
         }
     }
 
-    private func loadPropsSummary(for targetUserId: UUID) async {
-        guard canShowPropsControls(for: targetUserId) else {
-            await MainActor.run {
-                propsSummary = nil
-                propsActionError = nil
-            }
-            return
-        }
-
-        do {
-            let summary = try await profilePropsService.fetchSummary(for: targetUserId)
-            await MainActor.run {
-                propsSummary = summary
-                propsActionError = nil
-            }
-        } catch {
-            await MainActor.run {
-                propsSummary = nil
-                propsActionError = "Couldn't load Fan Props. Try again later."
-            }
-        }
-    }
-
-    private func toggleProps(for targetUserId: UUID) async {
-        guard canShowPropsControls(for: targetUserId), !isPropsActionInFlight else { return }
-
-        let previousSummary = propsSummary
-        let hadGivenProps = previousSummary?.likedByCurrentUser == true
-        let previousCount = previousSummary?.count ?? 0
-        let optimisticCount = hadGivenProps ? max(0, previousCount - 1) : previousCount + 1
-
-        await MainActor.run {
-            isPropsActionInFlight = true
-            propsActionError = nil
-            propsSummary = ProfilePropsSummary(
-                userID: targetUserId,
-                count: optimisticCount,
-                likedByCurrentUser: !hadGivenProps
-            )
-        }
-
-        do {
-            if hadGivenProps {
-                try await profilePropsService.removeProps(from: targetUserId)
-            } else {
-                try await profilePropsService.giveProps(to: targetUserId, source: "public_profile")
-            }
-            ProfilePhase1PersonalizationCache.invalidateIncomingProps(for: targetUserId)
-            await loadPropsSummary(for: targetUserId)
-            await MainActor.run {
-                isPropsActionInFlight = false
-            }
-        } catch {
-            await MainActor.run {
-                propsSummary = previousSummary
-                propsActionError = "Couldn't update Fan Props. Try again."
-                isPropsActionInFlight = false
-            }
-        }
-    }
-
-    private func canShowPropsControls(for targetUserId: UUID) -> Bool {
+    private func canShowPokeControls(for targetUserId: UUID) -> Bool {
         guard let currentUserId = viewModel.currentUserAuthId else { return false }
         return currentUserId != targetUserId
     }
 
     private func loadPokeSummary(for targetUserId: UUID) async {
-        guard canShowPropsControls(for: targetUserId) else {
+        guard canShowPokeControls(for: targetUserId) else {
             await MainActor.run {
                 pokeSummary = nil
                 pokeActionError = nil
@@ -747,7 +625,7 @@ struct PublicUserProfilePreviewView: View {
     }
 
     private func sendPoke(to targetUserId: UUID) async {
-        guard canShowPropsControls(for: targetUserId), !isPokeInFlight else { return }
+        guard canShowPokeControls(for: targetUserId), !isPokeInFlight else { return }
         DebugLogGate.debug("[PokesUI] public poke tapped target=\(targetUserId.uuidString.lowercased())")
 
         await MainActor.run {
@@ -772,7 +650,7 @@ struct PublicUserProfilePreviewView: View {
         } catch let error as ProfilePokesServiceError {
             switch error {
             case .onCooldown(let until):
-                DebugLogGate.debug("[PokesUI] poke cooldown until=\(until ?? "unknown")")
+                DebugLogGate.debug("[PokesUI] poke cooldown interval=5m until=\(until ?? "unknown")")
                 await MainActor.run {
                     pokeActionError = Self.cooldownMessage(until: until)
                     isPokeInFlight = false

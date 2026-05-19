@@ -681,3 +681,80 @@ struct FGInlineLogo: View {
             .accessibilityHidden(true)
     }
 }
+
+/// Subtle unseen-pokes glow dot for profile avatars (no count, no motion).
+struct PokesUnseenAvatarBadge: View {
+    enum Style {
+        case tab
+        case profileHero
+
+        var dotSize: CGFloat {
+            switch self {
+            case .tab: return 9
+            case .profileHero: return 11
+            }
+        }
+
+        var glowSize: CGFloat {
+            switch self {
+            case .tab: return 14
+            case .profileHero: return 18
+            }
+        }
+    }
+
+    let style: Style
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color(red: 1, green: 0.44, blue: 0.12).opacity(colorScheme == .dark ? 0.50 : 0.38),
+                            Color.clear
+                        ],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: style.glowSize / 2
+                    )
+                )
+                .frame(width: style.glowSize, height: style.glowSize)
+
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 1, green: 0.52, blue: 0.20),
+                            Color(red: 0.97, green: 0.26, blue: 0.11),
+                            Color(red: 0.90, green: 0.17, blue: 0.09)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: style.dotSize, height: style.dotSize)
+                .overlay {
+                    Circle()
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.94),
+                                    Color.white.opacity(colorScheme == .dark ? 0.50 : 0.72)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.15
+                        )
+                }
+                .shadow(
+                    color: Color(red: 1, green: 0.34, blue: 0.08).opacity(colorScheme == .dark ? 0.42 : 0.30),
+                    radius: 3,
+                    y: 0.5
+                )
+        }
+        .accessibilityHidden(true)
+    }
+}

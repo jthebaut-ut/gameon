@@ -129,7 +129,7 @@ final class ProfilePokesService {
         return session.user.id
     }
 
-    /// Sends a poke via ``poke_profile`` (15-minute cooldown per pair).
+    /// Sends a poke via ``poke_profile`` (5-minute cooldown per pair).
     func pokeProfile(targetUserId: UUID) async throws -> ProfilePokeActionResult {
         let target = targetUserId.uuidString.lowercased()
         DebugLogGate.debug("[PokesDebug] poke start target=\(target)")
@@ -170,10 +170,10 @@ final class ProfilePokesService {
         if let pokeId = result.pokeId {
             DebugLogGate.debug("[PokesDebug] poke success id=\(pokeId.uuidString.lowercased())")
         } else if let until = result.viewerCooldownEndsAt {
-            DebugLogGate.debug("[PokesDebug] poke cooldown until=\(until)")
+            DebugLogGate.debug("[PokesDebug] poke cooldown interval=5m until=\(until)")
             throw ProfilePokesServiceError.onCooldown(until: until)
         } else {
-            DebugLogGate.debug("[PokesDebug] poke cooldown until=unknown")
+            DebugLogGate.debug("[PokesDebug] poke cooldown interval=5m until=unknown")
             throw ProfilePokesServiceError.onCooldown(until: nil)
         }
 

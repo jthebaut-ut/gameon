@@ -22,6 +22,10 @@ struct MainTabView: View {
     /// Sticky lazy mount: Discover at launch; other tabs insert on first selection and stay mounted.
     @State private var mountedTabs: Set<AppTab> = [.discover]
 
+    private static let pokesBadgeRefreshIntervalSeconds = 22
+    private static let pokesBadgeRefreshIntervalNs: UInt64 =
+        UInt64(pokesBadgeRefreshIntervalSeconds) * 1_000_000_000
+
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
     }
@@ -264,6 +268,7 @@ struct MainTabView: View {
                 if viewModel.isLoggedIn, !viewModel.isVenueOwnerLoggedIn {
                     await viewModel.enforceFanSingleSessionOnForeground()
                     await viewModel.startFanSingleSessionRealtimeIfNeeded()
+                    await viewModel.refreshUnseenPokesBadgeIfNeeded()
                 }
                 guard viewModel.isAuthenticatedForSocialFeatures else { return }
                 await viewModel.checkCurrentUserAdminStatus()
@@ -294,6 +299,12 @@ struct MainTabView: View {
             mountTab(tab, reason: "selectedTabStorage")
             viewModel.isCalendarTabSelected = tab == .calendar
             switch tab {
+            case .account:
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
+                if viewModel.canReceiveProfilePokes {
+                    viewModel.acknowledgeIncomingPokes(reason: "accountTabSelected")
+                }
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
@@ -306,6 +317,22 @@ struct MainTabView: View {
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
                 return
+            }
+        }
+        .task(id: pokesBadgeRefreshLoopToken) {
+            guard viewModel.canReceiveProfilePokes else {
+                viewModel.clearUnseenPokesBadgeState()
+                return
+            }
+            await viewModel.refreshUnseenPokesBadgeIfNeeded()
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: Self.pokesBadgeRefreshIntervalNs)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, viewModel.canReceiveProfilePokes else { return }
+                await viewModel.refreshUnseenPokesBadgeIfNeeded()
             }
         }
         .environmentObject(chatViewModel)
@@ -850,12 +877,35 @@ struct MainTabView: View {
         return "Login"
     }
 
+    private var pokesBadgeRefreshLoopToken: String {
+        let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
+        return "\(auth)|pokesBadge=\(viewModel.canReceiveProfilePokes)"
+    }
+
     /// Avatar only; pickup participation activity now belongs in Going.
     private var accountTabAvatar: some View {
-        accountTabAvatarCircleOnly
-            .frame(width: 44, height: 44)
-            .clipShape(Circle())
-            .frame(width: 52, height: 52)
+        ZStack(alignment: .topTrailing) {
+            accountTabAvatarCircleOnly
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+
+            if accountTabPokesBadgeVisible {
+                PokesUnseenAvatarBadge(style: .tab)
+                    .offset(x: 0, y: -2)
+            }
+        }
+        .frame(width: 52, height: 52)
+        .accessibilityLabel(accountTabPokesBadgeVisible ? "Account, new Pokes" : accountTabTitle)
+        .onAppear {
+            DebugLogGate.debug("[PokesBadgeUI] accountBadge visible=\(accountTabPokesBadgeVisible)")
+        }
+        .onChange(of: accountTabPokesBadgeVisible) { _, visible in
+            DebugLogGate.debug("[PokesBadgeUI] accountBadge visible=\(visible)")
+        }
+    }
+
+    private var accountTabPokesBadgeVisible: Bool {
+        viewModel.canReceiveProfilePokes && viewModel.hasUnseenPokes
     }
 
     private var accountTabAvatarCircleOnly: some View {
