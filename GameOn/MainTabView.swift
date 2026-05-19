@@ -123,7 +123,10 @@ struct MainTabView: View {
             }
 
             preservedRoot(tab: .account) {
-                SettingsScreen(viewModel: viewModel)
+                SettingsScreen(
+                    viewModel: viewModel,
+                    isAccountTabSelected: selectedTab == .account
+                )
             }
 
             if !chatViewModel.hidesFloatingTabBarForDirectChat {

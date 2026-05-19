@@ -123,8 +123,11 @@ struct SettingsScreen: View {
     @ObservedObject private var notificationSettingsStore: NotificationSettingsStore
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+    /// False while Account tab is preserved off-screen (avoids Fan Props / Suggested Fans network on launch).
+    var isAccountTabSelected: Bool = true
 
-    init(viewModel: MapViewModel) {
+    init(viewModel: MapViewModel, isAccountTabSelected: Bool = true) {
+        self.isAccountTabSelected = isAccountTabSelected
         self._viewModel = ObservedObject(wrappedValue: viewModel)
         self._notificationSettingsStore = ObservedObject(wrappedValue: viewModel.notificationSettingsStore)
     }
@@ -214,7 +217,10 @@ struct SettingsScreen: View {
             List {
                 Section {
                     if viewModel.isLoggedIn {
-                        ProfileIdentityCard(viewModel: viewModel)
+                        ProfileIdentityCard(
+                            viewModel: viewModel,
+                            isAccountTabActive: isAccountTabSelected
+                        )
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
                     } else if viewModel.isVenueOwnerLoggedIn {
