@@ -14,6 +14,11 @@ struct PublicUserProfilePreviewView: View {
     @State private var friendButtonState: PublicProfileFriendButtonState = .hidden
     @State private var isFriendActionInFlight = false
     @State private var friendActionError: String?
+    @State private var propsSummary: ProfilePropsSummary?
+    @State private var isPropsActionInFlight = false
+    @State private var propsActionError: String?
+
+    private let profilePropsService = ProfilePropsService()
 
     var body: some View {
         NavigationStack {
@@ -47,6 +52,7 @@ struct PublicUserProfilePreviewView: View {
         }
         .task(id: userId) {
             await loadProfile()
+            await loadPropsSummary(for: userId)
         }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
             refreshFriendButtonState()
@@ -58,12 +64,19 @@ struct PublicUserProfilePreviewView: View {
     @ViewBuilder
     private func profileContent(_ data: PublicUserProfileData) -> some View {
         heroCard(data)
+        fanPropsSection(data)
         reputationCard(data.reputation)
         favoriteTeamsCard(data.favoriteTeams)
         PublicProfilePickupOrganizerCard(creatorUserId: data.userId, stats: data.organizerStats)
         friendActionSection(data)
         if let friendActionError, !friendActionError.isEmpty {
             Text(friendActionError)
+                .font(.caption)
+                .foregroundStyle(.red.opacity(0.9))
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        if let propsActionError, !propsActionError.isEmpty {
+            Text(propsActionError)
                 .font(.caption)
                 .foregroundStyle(.red.opacity(0.9))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -234,6 +247,61 @@ struct PublicUserProfilePreviewView: View {
     }
 
     @ViewBuilder
+    private func fanPropsSection(_ data: PublicUserProfileData) -> some View {
+        if canShowPropsControls(for: data.userId) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Fan Props")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.82))
+                    Text(propsCountText)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle((propsSummary?.count ?? 0) == 0 ? .white.opacity(0.42) : .white.opacity(0.64))
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    Task { await toggleProps(for: data.userId) }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: propsSummary?.likedByCurrentUser == true ? "sparkles" : "plus")
+                            .font(.system(size: 11, weight: .bold))
+                        Text(propsSummary?.likedByCurrentUser == true ? "Props Given" : "Give Props")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen : .white.opacity(0.88))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen.opacity(0.14) : .white.opacity(0.07))
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(
+                                propsSummary?.likedByCurrentUser == true ? FGColor.accentGreen.opacity(0.5) : .white.opacity(0.12),
+                                lineWidth: 1
+                            )
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(isPropsActionInFlight || propsSummary == nil)
+                .opacity(isPropsActionInFlight || propsSummary == nil ? 0.65 : 1)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackground)
+        }
+    }
+
+    private var propsCountText: String {
+        guard let propsSummary else { return "Fan Props loading" }
+        guard propsSummary.count > 0 else { return "No Fan Props yet" }
+        return propsSummary.count == 1 ? "1 Fan Prop" : "\(propsSummary.count) Fan Props"
+    }
+
+    @ViewBuilder
     private func friendActionSection(_ data: PublicUserProfileData) -> some View {
         switch friendButtonState {
         case .hidden:
@@ -348,6 +416,8 @@ struct PublicUserProfilePreviewView: View {
         await MainActor.run {
             isLoading = true
             friendActionError = nil
+            propsSummary = nil
+            propsActionError = nil
         }
 
         await chatViewModel.loadIfNeeded()
@@ -383,6 +453,70 @@ struct PublicUserProfilePreviewView: View {
                 : "Limited profile — identity still loading. Tap Retry."
             friendButtonState = friendState
         }
+    }
+
+    private func loadPropsSummary(for targetUserId: UUID) async {
+        guard canShowPropsControls(for: targetUserId) else {
+            await MainActor.run {
+                propsSummary = nil
+                propsActionError = nil
+            }
+            return
+        }
+
+        do {
+            let summary = try await profilePropsService.fetchSummary(for: targetUserId)
+            await MainActor.run {
+                propsSummary = summary
+                propsActionError = nil
+            }
+        } catch {
+            await MainActor.run {
+                propsSummary = nil
+                propsActionError = "Couldn't load Fan Props. Try again later."
+            }
+        }
+    }
+
+    private func toggleProps(for targetUserId: UUID) async {
+        guard canShowPropsControls(for: targetUserId), !isPropsActionInFlight else { return }
+
+        let previousSummary = propsSummary
+        let hadGivenProps = previousSummary?.likedByCurrentUser == true
+        let previousCount = previousSummary?.count ?? 0
+        let optimisticCount = hadGivenProps ? max(0, previousCount - 1) : previousCount + 1
+
+        await MainActor.run {
+            isPropsActionInFlight = true
+            propsActionError = nil
+            propsSummary = ProfilePropsSummary(
+                userID: targetUserId,
+                count: optimisticCount,
+                likedByCurrentUser: !hadGivenProps
+            )
+        }
+
+        do {
+            if hadGivenProps {
+                try await profilePropsService.removeProps(from: targetUserId)
+            } else {
+                try await profilePropsService.giveProps(to: targetUserId, source: "public_profile")
+            }
+            await MainActor.run {
+                isPropsActionInFlight = false
+            }
+        } catch {
+            await MainActor.run {
+                propsSummary = previousSummary
+                propsActionError = "Couldn't update Fan Props. Try again."
+                isPropsActionInFlight = false
+            }
+        }
+    }
+
+    private func canShowPropsControls(for targetUserId: UUID) -> Bool {
+        guard let currentUserId = viewModel.currentUserAuthId else { return false }
+        return currentUserId != targetUserId
     }
 
     private func refreshFriendButtonState() {

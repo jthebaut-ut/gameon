@@ -25,8 +25,15 @@ struct ProfileIdentityCard: View {
     @State private var availabilityTask: Task<Void, Never>?
     @State private var isSavingIdentity = false
     @State private var isUploadingAvatar = false
+    @State private var incomingPropsFans: [ProfilePropUserPreview] = []
+    @State private var isLoadingIncomingProps = false
+    @State private var incomingPropsMessage: String?
+    @State private var showFanPropsHighlightsSheet = false
 
     private static let bioCharacterLimit = 160
+    private static let incomingPropsHighlightsLimit = 24
+
+    private let profilePropsService = ProfilePropsService()
 
     private enum IdentityField: Hashable {
         case displayName
@@ -119,6 +126,10 @@ struct ProfileIdentityCard: View {
 #endif
     }
 
+    private var canShowOwnerFanPropsHighlights: Bool {
+        viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
+    }
+
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
@@ -130,6 +141,15 @@ struct ProfileIdentityCard: View {
             heroBlock
 
             integratedDivider
+
+            if canShowOwnerFanPropsHighlights {
+                fanPropsHighlightsSection
+                    .padding(.horizontal, 13)
+                    .padding(.top, 8)
+
+                integratedDivider
+                    .padding(.top, 10)
+            }
 
             fanReputationSection
                 .padding(.horizontal, 13)
@@ -175,6 +195,14 @@ struct ProfileIdentityCard: View {
                     }
                 )
             )
+        }
+        .sheet(isPresented: $showFanPropsHighlightsSheet) {
+            fanPropsHighlightsSheet
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .task(id: viewModel.currentUserAuthId) {
+            await loadIncomingPropsHighlights()
         }
         .onChange(of: selectedAvatarItem) { _, item in
             guard let item else { return }
@@ -238,6 +266,234 @@ struct ProfileIdentityCard: View {
             )
             .frame(height: 1)
             .padding(.horizontal, 14)
+    }
+
+    // MARK: - Fan Props highlights
+
+    private var fanPropsHighlightsSection: some View {
+        Button {
+            guard !incomingPropsFans.isEmpty else { return }
+            showFanPropsHighlightsSheet = true
+        } label: {
+            HStack(spacing: 11) {
+                fanPropsAvatarStack
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text("Fan Props")
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.60))
+                            .textCase(.uppercase)
+                            .tracking(0.7)
+
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(FGColor.accentGreen.opacity(0.72))
+                    }
+
+                    Text(fanPropsHighlightsCopy)
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(incomingPropsFans.isEmpty ? 0.54 : 0.88))
+                        .lineLimit(1)
+
+                    Text(fanPropsHighlightsSubcopy)
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.38))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                if isLoadingIncomingProps {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(FGColor.accentGreen)
+                } else if !incomingPropsFans.isEmpty {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.white.opacity(0.28))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.08),
+                                Color.white.opacity(colorScheme == .dark ? 0.026 : 0.052)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        FGColor.accentGreen.opacity(0.20),
+                                        Color.white.opacity(0.055)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.75
+                            )
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(incomingPropsFans.isEmpty)
+        .accessibilityLabel(fanPropsHighlightsAccessibilityLabel)
+    }
+
+    private var fanPropsAvatarStack: some View {
+        ZStack {
+            if incomingPropsFans.isEmpty {
+                Circle()
+                    .fill(Color.white.opacity(0.045))
+                    .frame(width: 42, height: 42)
+                    .overlay {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.38))
+                    }
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+                    }
+            } else {
+                let visibleFans = Array(incomingPropsFans.prefix(4))
+                ZStack(alignment: .leading) {
+                    ForEach(Array(visibleFans.enumerated()), id: \.element.id) { index, fan in
+                        fanPropsAvatar(fan)
+                            .offset(x: CGFloat(index) * 18)
+                            .zIndex(Double(visibleFans.count - index))
+                    }
+                }
+                .frame(width: CGFloat(visibleFans.count - 1) * 18 + 34, height: 36, alignment: .leading)
+            }
+        }
+        .frame(width: 88, alignment: .leading)
+    }
+
+    private func fanPropsAvatar(_ fan: ProfilePropUserPreview) -> some View {
+        UserAvatarView(
+            avatarThumbnailURL: fan.avatarThumbnailURL,
+            avatarURL: fan.avatarURL ?? "",
+            avatarDisplayRefreshToken: UUID(),
+            displayName: fan.displayName,
+            email: "",
+            size: 34,
+            fallbackStyle: .darkCardTranslucent,
+            imagePlaceholderTint: .white.opacity(0.72)
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(Color(red: 0.035, green: 0.045, blue: 0.052), lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(0.22), radius: 4, y: 2)
+    }
+
+    private var fanPropsHighlightsCopy: String {
+        if isLoadingIncomingProps && incomingPropsFans.isEmpty {
+            return "Loading Fan Props..."
+        }
+        guard !incomingPropsFans.isEmpty else { return "No Fan Props yet" }
+        return incomingPropsFans.count == 1 ? "1 fan giving you props" : "\(incomingPropsFans.count) fans giving you props"
+    }
+
+    private var fanPropsHighlightsSubcopy: String {
+        if let incomingPropsMessage, !incomingPropsMessage.isEmpty {
+            return incomingPropsMessage
+        }
+        return incomingPropsFans.isEmpty ? "Fans can show love from your public profile" : "Recent fans who showed love"
+    }
+
+    private var fanPropsHighlightsAccessibilityLabel: String {
+        incomingPropsFans.isEmpty ? "Fan Props, no Fan Props yet" : "Fan Props, \(fanPropsHighlightsCopy)"
+    }
+
+    private var fanPropsHighlightsSheet: some View {
+        NavigationStack {
+            List {
+                if incomingPropsFans.isEmpty {
+                    Text("No Fan Props yet")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                } else {
+                    ForEach(incomingPropsFans) { fan in
+                        HStack(spacing: 10) {
+                            UserAvatarView(
+                                avatarThumbnailURL: fan.avatarThumbnailURL,
+                                avatarURL: fan.avatarURL ?? "",
+                                avatarDisplayRefreshToken: UUID(),
+                                displayName: fan.displayName,
+                                email: "",
+                                size: 38,
+                                fallbackStyle: .lightOnWhiteChrome
+                            )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fan.displayName)
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                                    .lineLimit(1)
+
+                                if !fan.publicHandleLine.isEmpty {
+                                    Text(fan.publicHandleLine)
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                        .lineLimit(1)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle("Fan Props")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { showFanPropsHighlightsSheet = false }
+                }
+            }
+        }
+    }
+
+    private func loadIncomingPropsHighlights() async {
+        guard canShowOwnerFanPropsHighlights else {
+            await MainActor.run {
+                incomingPropsFans = []
+                incomingPropsMessage = nil
+                isLoadingIncomingProps = false
+            }
+            return
+        }
+
+        await MainActor.run {
+            isLoadingIncomingProps = true
+            incomingPropsMessage = nil
+        }
+
+        do {
+            let fans = try await profilePropsService.fetchMyIncomingProps(limit: Self.incomingPropsHighlightsLimit)
+            await MainActor.run {
+                incomingPropsFans = fans
+                incomingPropsMessage = nil
+                isLoadingIncomingProps = false
+            }
+        } catch {
+            await MainActor.run {
+                incomingPropsFans = []
+                incomingPropsMessage = "Couldn't load Fan Props"
+                isLoadingIncomingProps = false
+            }
+        }
     }
 
     // MARK: - Handle prompt
