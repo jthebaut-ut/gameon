@@ -1,5 +1,11 @@
+// Manual test: curl -X POST "$SUPABASE_URL/functions/v1/sync-live-matches" \
+//   -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "Content-Type: application/json"
+// Deploy: supabase functions deploy sync-live-matches
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
+const THESPORTSDB_V2_BASE = "https://www.thesportsdb.com/api/v2/json"
 
 type MatchStatus = "LIVE" | "HT" | "FT" | "SCHEDULED"
 
@@ -27,8 +33,6 @@ type LiveMatchUpsert = {
 }
 
 type SyncCounts = {
-  apiFootballRaw: number
-  apiFootballNormalized: number
   sportsDBRaw: number
   sportsDBNormalized: number
   windowFiltered: number
@@ -56,8 +60,6 @@ serve(async (req) => {
   try {
     const matchWindow = currentMatchWindow()
     const counts: SyncCounts = {
-      apiFootballRaw: 0,
-      apiFootballNormalized: 0,
       sportsDBRaw: 0,
       sportsDBNormalized: 0,
       windowFiltered: 0,
@@ -100,110 +102,92 @@ async function fetchNormalizedMatches(
   matchWindow: MatchWindow,
   counts: SyncCounts,
 ): Promise<{ source: string; matches: LiveMatchUpsert[] }> {
-  const apiFootballKey = Deno.env.get("API_FOOTBALL_KEY") ?? Deno.env.get("API_FOOTBALL_API_KEY")
-  if (apiFootballKey) {
-    debugLog(`api_football_key=${redactedSecretDescription(apiFootballKey)}`)
+  const sportsDBKey = Deno.env.get("THESPORTSDB_API_KEY")?.trim()
+  if (sportsDBKey) {
+    const { available, matches: v2Matches } = await fetchTheSportsDBPremiumV2Matches(sportsDBKey, counts)
+    if (available) {
+      providerLog("using=TheSportsDBV2")
+      const batched = normalizeMatchBatch(v2Matches, matchWindow, counts)
+      providerLog(`totalNormalized=${batched.length}`)
+      return { source: "thesportsdb", matches: batched }
+    }
+  } else {
+    premiumLog("skipped reason=THESPORTSDB_API_KEY missing")
+  }
+
+  providerLog("fallback=TheSportsDBV1")
+  const v1Matches = await fetchTheSportsDBV1Matches(matchWindow, counts)
+  providerLog(`totalNormalized=${v1Matches.length}`)
+  return { source: "thesportsdb", matches: v1Matches }
+}
+
+async function fetchTheSportsDBPremiumV2Matches(
+  apiKey: string,
+  counts: SyncCounts,
+): Promise<{ available: boolean; matches: LiveMatchUpsert[] }> {
+  const allMatches: LiveMatchUpsert[] = []
+  let anySportSucceeded = false
+
+  for (const sport of configuredSportsDBV2LivescoreSports()) {
+    premiumLog(`fetch start sport=${sport}`)
+    const url = `${THESPORTSDB_V2_BASE}/livescore/${encodeURIComponent(sport)}`
     try {
-      const apiFootballMatches = await fetchApiFootballMatches(apiFootballKey, matchWindow, counts)
-      if (apiFootballMatches.length > 0) {
-        debugLog(`final_count=${apiFootballMatches.length}`)
-        return { source: "api-football", matches: apiFootballMatches }
+      const response = await fetch(url, {
+        headers: { "X-API-KEY": apiKey },
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+      const rows = Array.isArray(data?.livescore) ? data.livescore : []
+      anySportSucceeded = true
+      counts.sportsDBRaw += rows.length
+      premiumLog(`fetch success sport=${sport} count=${rows.length}`)
+
+      for (const row of rows) {
+        const normalized = normalizeSportsDBV2Livescore(row)
+        if (normalized) allMatches.push(normalized)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      debugLog(`api_football_error=${message}`)
+      premiumLog(`fetch failed sport=${sport} error=${message}`)
     }
-  } else {
-    debugLog("api_football_key=missing")
   }
 
-  const sportsDBMatches = await fetchTheSportsDBMatches(matchWindow, counts)
-  debugLog(`final_count=${sportsDBMatches.length}`)
-  return { source: "thesportsdb", matches: sportsDBMatches }
+  counts.sportsDBNormalized += allMatches.length
+  premiumLog(`normalized count=${allMatches.length}`)
+  return { available: anySportSucceeded, matches: allMatches }
 }
 
-async function fetchApiFootballMatches(
-  apiKey: string,
-  matchWindow: MatchWindow,
-  counts: SyncCounts,
-): Promise<LiveMatchUpsert[]> {
-  const [liveMatches, upcomingMatches] = await Promise.all([
-    fetchApiFootballFixtureURL(
-      "https://v3.football.api-sports.io/fixtures?live=all",
-      apiKey,
-      counts,
-    ),
-    fetchApiFootballFixtureURL(
-      apiFootballUpcomingURL(matchWindow),
-      apiKey,
-      counts,
-    ),
-  ])
+function normalizeSportsDBV2Livescore(event: Record<string, unknown>): LiveMatchUpsert | null {
+  const externalId = String(event?.idEvent ?? "")
+  const home = String(event?.strHomeTeam ?? "")
+  const away = String(event?.strAwayTeam ?? "")
+  const timestamp = combinedSportsDBStart(event?.dateEvent, event?.strEventTime)
+  if (!externalId || !home || !away || !timestamp) return null
 
-  return normalizeMatchBatch([...liveMatches, ...upcomingMatches], matchWindow, counts)
-}
+  const rawStatus = event?.strStatus ?? event?.strProgress
+  const minute = numberOrNull(event?.strProgress) ?? minuteFromProgress(event?.strProgress)
 
-async function fetchApiFootballFixtureURL(
-  url: string,
-  apiKey: string,
-  counts: SyncCounts,
-): Promise<LiveMatchUpsert[]> {
-  debugLog(`request_url=${url}`)
-  debugLog(`request_headers=${JSON.stringify({ "x-apisports-key": redactedSecretDescription(apiKey) })}`)
-
-  const response = await fetch(url, {
-    headers: {
-      "x-apisports-key": apiKey,
-    },
-  })
-  debugLog(`response_status=${response.status}`)
-
-  const raw = await response.text()
-  debugLog(`raw_response=${rawPreview(raw)}`)
-
-  if (!response.ok) {
-    throw new Error(`API-Football live fixtures failed: ${response.status}`)
+  return {
+    id: `thesportsdb:${externalId}`,
+    source: "thesportsdb",
+    external_id: externalId,
+    sport: normalizeSportsDBSport(event?.strSport),
+    home_team: home,
+    away_team: away,
+    score_home: numberOrZero(event?.intHomeScore),
+    score_away: numberOrZero(event?.intAwayScore),
+    match_status: normalizeSportsDBStatus(rawStatus),
+    minute,
+    league: String(event?.strLeague ?? "Sports"),
+    start_time: timestamp,
+    payload: event,
   }
-
-  const data = JSON.parse(raw)
-  const fixtures = Array.isArray(data?.response) ? data.response : []
-  counts.apiFootballRaw += fixtures.length
-  debugLog(`raw_count=${fixtures.length}`)
-
-  const normalized = fixtures.flatMap((item: unknown): LiveMatchUpsert[] => {
-    const record = item as Record<string, any>
-    const fixture = record?.fixture
-    const teams = record?.teams
-    const goals = record?.goals
-    const league = record?.league
-    const externalId = String(fixture?.id ?? "")
-    const startTime = String(fixture?.date ?? "")
-    const home = String(teams?.home?.name ?? "")
-    const away = String(teams?.away?.name ?? "")
-    if (!externalId || !startTime || !home || !away) return []
-
-    return [{
-      id: `api-football:${externalId}`,
-      source: "api-football",
-      external_id: externalId,
-      sport: "Soccer",
-      home_team: home,
-      away_team: away,
-      score_home: numberOrZero(goals?.home),
-      score_away: numberOrZero(goals?.away),
-      match_status: normalizeApiFootballStatus(fixture?.status?.short),
-      minute: numberOrNull(fixture?.status?.elapsed),
-      league: String(league?.name ?? "Soccer"),
-      start_time: startTime,
-      payload: record,
-    }]
-  })
-  counts.apiFootballNormalized += normalized.length
-  debugLog(`filtered_count=${normalized.length}`)
-  return normalized
 }
 
-async function fetchTheSportsDBMatches(
+async function fetchTheSportsDBV1Matches(
   matchWindow: MatchWindow,
   counts: SyncCounts,
 ): Promise<LiveMatchUpsert[]> {
@@ -342,15 +326,14 @@ function currentMatchWindow(now = new Date()): MatchWindow {
   }
 }
 
-function apiFootballUpcomingURL(matchWindow: MatchWindow): string {
-  const limit = boundedIntegerEnv("API_FOOTBALL_UPCOMING_LIMIT", 100, 1, 200)
-  const params = new URLSearchParams({
-    next: String(limit),
-  })
-  const timezone = Deno.env.get("API_FOOTBALL_TIMEZONE")?.trim()
-  if (timezone) params.set("timezone", timezone)
-  debugLog(`api_football_upcoming_window=${dateOnly(matchWindow.start)}..${dateOnly(matchWindow.end)}`)
-  return `https://v3.football.api-sports.io/fixtures?${params.toString()}`
+function configuredSportsDBV2LivescoreSports(): string[] {
+  return envList("THESPORTSDB_V2_SPORTS", [
+    "soccer",
+    "basketball",
+    "american_football",
+    "baseball",
+    "ice_hockey",
+  ])
 }
 
 function configuredSportsDBLiveLeagues(): string[] {
@@ -367,34 +350,18 @@ function envList(name: string, fallback: string[]): string[] {
   return values && values.length > 0 ? values : fallback
 }
 
-function boundedIntegerEnv(name: string, fallback: number, min: number, max: number): number {
-  const parsed = Number(Deno.env.get(name))
-  if (!Number.isFinite(parsed)) return fallback
-  return Math.max(min, Math.min(max, Math.trunc(parsed)))
-}
-
 function isWithinMatchWindow(rawStart: string, matchWindow: MatchWindow): boolean {
   const start = new Date(rawStart)
   return Number.isFinite(start.getTime()) && start >= matchWindow.start && start <= matchWindow.end
-}
-
-function dateOnly(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
-
-function normalizeApiFootballStatus(raw: unknown): MatchStatus {
-  const status = String(raw ?? "").toUpperCase()
-  if (["1H", "2H", "ET", "BT", "P", "LIVE"].includes(status)) return "LIVE"
-  if (status === "HT") return "HT"
-  if (["FT", "AET", "PEN"].includes(status)) return "FT"
-  return "SCHEDULED"
 }
 
 function normalizeSportsDBStatus(raw: unknown): MatchStatus {
   const status = String(raw ?? "").trim().toUpperCase()
   if (status.includes("HALF") || status === "HT") return "HT"
   if (status.includes("FT") || status.includes("FINAL") || status.includes("FINISHED")) return "FT"
+  if (["1H", "2H", "ET", "BT", "P", "OT", "Q1", "Q2", "Q3", "Q4", "LIVE"].includes(status)) return "LIVE"
   if (status.includes("LIVE") || status.includes("'") || status.includes("Q") || status.includes("PERIOD")) return "LIVE"
+  if (status === "NS" || status.includes("SCHED")) return "SCHEDULED"
   return "SCHEDULED"
 }
 
@@ -426,6 +393,14 @@ function numberOrZero(value: unknown): number {
 function numberOrNull(value: unknown): number | null {
   const number = Number(value)
   return Number.isFinite(number) ? number : null
+}
+
+function premiumLog(message: string): void {
+  console.log(`[TheSportsDBPremium] ${message}`)
+}
+
+function providerLog(message: string): void {
+  console.log(`[LiveSportsProvider] ${message}`)
 }
 
 function debugLog(message: string): void {

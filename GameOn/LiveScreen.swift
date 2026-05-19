@@ -29,44 +29,6 @@ struct LiveScreen: View {
         let topVibeText: String?
     }
 
-    private enum FeaturedLiveType: String {
-        case liveGame
-        case eventStartingSoon
-        case crowdBuilding
-        case friendsGoing
-        case fansChatting
-        case pickupNeedsPlayers
-        case empty
-    }
-
-    private enum FeaturedLiveSource {
-        case liveMatch(LiveMatch)
-        case liveItem(LiveFeedItem)
-        case pickupGame(PickupGameRow)
-        case empty
-    }
-
-    private struct FeaturedLive {
-        let type: FeaturedLiveType
-        let title: String
-        let subtitle: String
-        let tokens: [String]
-        let score: Int
-        let source: FeaturedLiveSource
-        let eventID: UUID?
-        let venueID: UUID?
-        let venuePhotoURL: String?
-        let socialProfiles: [UserProfileRow]
-        let rawGoingProfilesCount: Int
-
-        var liveItem: LiveFeedItem? {
-            if case .liveItem(let item) = source {
-                return item
-            }
-            return nil
-        }
-    }
-
     fileprivate struct FavoriteTeamLiveItem: Identifiable {
         let id: String
         let team: FavoriteTeam
@@ -202,11 +164,6 @@ struct LiveScreen: View {
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
         let crowdBuilding = Array(rankedItems.filter { $0.energy.goingCount >= 8 && !$0.energy.isLiveNow }.prefix(6))
         let fansChatting = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.commentCount > 0 }.prefix(6)) : []
-        let featuredLive = featuredLiveCard(
-            rankedItems: rankedItems,
-            matches: displayedLiveMatches,
-            pickupGames: pickupGamesForLiveToday()
-        )
         let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
         let visibleSectionCount = visibleLiveSectionCount(
             matches: displayedLiveMatches,
@@ -220,56 +177,69 @@ struct LiveScreen: View {
             friendsGoingCount: friendsGoing.count
         )
         let _: Void = logFanUpdatesStoreMigrationDebug()
-        let _: Void = logLivePolishSnapshot(featuredLive: featuredLive, visibleSectionCount: visibleSectionCount)
+        let _: Void = logLivePolishSnapshot(visibleSectionCount: visibleSectionCount)
 
         return ZStack {
             liveBackground
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 28) {
-                    liveHeroHeader(totalCount: rankedItems.count)
+            ScrollViewReader { scrollProxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 22) {
+                        liveHeroHeader(totalCount: rankedItems.count)
 
-                    liveSummaryChips(
-                        liveNowCount: liveSummaryLiveNowCount(
-                            matches: displayedLiveMatches,
-                            venuesAndPickup: venuesAndPickupToday
-                        ),
-                        todayCount: venuesAndPickupToday.count,
-                        friendsCount: friendsGoing.count,
-                        showFriendsChip: showPersonalLiveSections
-                    )
-
-                    liveFeaturedCard(featuredLive)
-                    if showPersonalLiveSections {
-                        FavoriteTeamsLiveSection(
-                            items: favoriteTeamItems,
-                            hasFavoriteTeams: !favoriteTeams.isEmpty,
-                            onWatchNearby: { _ in
-                                selectedTab = .discover
+                        liveSummaryChips(
+                            liveNowCount: liveSummaryLiveNowCount(
+                                matches: displayedLiveMatches,
+                                venuesAndPickup: venuesAndPickupToday
+                            ),
+                            todayCount: venuesAndPickupToday.count,
+                            friendsCount: friendsGoing.count,
+                            showFriendsChip: showPersonalLiveSections,
+                            scrollToSection: { section in
+                                scrollToLiveSection(section, proxy: scrollProxy)
                             }
                         )
+
+                        if showPersonalLiveSections {
+                            FavoriteTeamsLiveSection(
+                                items: favoriteTeamItems,
+                                hasFavoriteTeams: !favoriteTeams.isEmpty,
+                                onWatchNearby: { _ in
+                                    selectedTab = .discover
+                                }
+                            )
+                        }
+                        liveGamesSection(matches: displayedLiveMatches, rankedItems: rankedItems)
+                            .id(LiveScrollSection.liveGames.rawValue)
+                        liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
+                            .id(LiveScrollSection.today.rawValue)
+                        if showPersonalLiveSections {
+                            liveFriendsSection(items: friendsGoing)
+                                .id(LiveScrollSection.friends.rawValue)
+                        }
+                        liveCrowdBuildingSection(items: crowdBuilding)
+                        if showPersonalLiveSections {
+                            liveFansChattingSection(items: fansChatting)
+                        }
                     }
-                    liveGamesSection(matches: displayedLiveMatches, rankedItems: rankedItems)
-                    liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
-                    if showPersonalLiveSections {
-                        liveFriendsSection(items: friendsGoing)
-                    }
-                    liveCrowdBuildingSection(items: crowdBuilding)
-                    if showPersonalLiveSections {
-                        liveFansChattingSection(items: fansChatting)
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 76)
+                    .padding(.bottom, 112)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 76)
-                .padding(.bottom, 112)
-            }
-            .refreshable {
-                await MainActor.run {
-                    refreshLiveMatches(forceRefresh: true)
+                .refreshable {
+                    await MainActor.run {
+                        refreshLiveMatches(forceRefresh: true)
+                    }
                 }
             }
         }
         .ignoresSafeArea()
+    }
+
+    private func scrollToLiveSection(_ section: LiveScrollSection, proxy: ScrollViewProxy) {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.86)) {
+            proxy.scrollTo(section.rawValue, anchor: .top)
+        }
     }
 
     private var liveBackground: some View {
@@ -337,14 +307,32 @@ struct LiveScreen: View {
         liveNowCount: Int,
         todayCount: Int,
         friendsCount: Int,
-        showFriendsChip: Bool
+        showFriendsChip: Bool,
+        scrollToSection: @escaping (LiveScrollSection) -> Void
     ) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
-                liveSummaryChip(title: "Live now", count: liveNowCount, accent: FGColor.dangerRed, icon: "dot.radiowaves.left.and.right")
-                liveSummaryChip(title: "Today", count: todayCount, accent: FGColor.accentGreen, icon: "calendar")
+                Button {
+                    scrollToSection(.liveGames)
+                } label: {
+                    liveSummaryChip(title: "Live now", count: liveNowCount, accent: FGColor.dangerRed, icon: "dot.radiowaves.left.and.right")
+                }
+                .buttonStyle(LiveSummaryChipButtonStyle())
+
+                Button {
+                    scrollToSection(.today)
+                } label: {
+                    liveSummaryChip(title: "Today", count: todayCount, accent: FGColor.accentGreen, icon: "calendar")
+                }
+                .buttonStyle(LiveSummaryChipButtonStyle())
+
                 if showFriendsChip {
-                    liveSummaryChip(title: "Friends", count: friendsCount, accent: FGColor.accentBlue, icon: "person.2.fill")
+                    Button {
+                        scrollToSection(.friends)
+                    } label: {
+                        liveSummaryChip(title: "Friends", count: friendsCount, accent: FGColor.accentBlue, icon: "person.2.fill")
+                    }
+                    .buttonStyle(LiveSummaryChipButtonStyle())
                 }
             }
             .padding(.horizontal, 1)
@@ -378,6 +366,15 @@ struct LiveScreen: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(accent.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 1)
         }
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint("Scrolls to the \(title) section")
+    }
+
+    private enum LiveScrollSection: String {
+        case liveGames = "live-games-section"
+        case today = "today-section"
+        case friends = "friends-section"
     }
 
     private enum LivePanelKind {
@@ -420,152 +417,6 @@ struct LiveScreen: View {
         func panelStroke(colorScheme: ColorScheme) -> Color {
             accentColor(colorScheme: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.14)
         }
-    }
-
-    private func liveFeaturedCard(_ featured: FeaturedLive) -> some View {
-        liveFeaturedCardContent(featured, item: featured.liveItem)
-            .contentShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-            .onTapGesture {
-                openFeaturedLive(featured)
-            }
-            .task(id: featured.eventID) {
-                guard let id = featured.eventID else { return }
-                await MainActor.run {
-                    viewModel.prefetchFanUpdatesCardSocialData(for: id)
-                }
-            }
-        .onAppear {
-            liveIndicatorPulse = true
-        }
-    }
-
-    private func liveFeaturedCardContent(_ featured: FeaturedLive, item: LiveFeedItem?) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .center, spacing: 10) {
-                featuredLiveBadge(featured.type)
-                Spacer(minLength: 8)
-                if featured.type != .empty {
-                    liveDot
-                }
-                featuredVenuePhoto(featured)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(featured.title)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(featured.subtitle)
-                    .font(FGTypography.body)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if !featured.tokens.isEmpty {
-                FGWrappingLayout(horizontalSpacing: 7, verticalSpacing: 7) {
-                    ForEach(featured.tokens, id: \.self) { token in
-                        liveToken(token)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if featuredShouldShowSocialLine(featured, item: item) {
-                liveSocialPresenceLine(featured, item: item)
-            }
-
-            liveFeaturedActions(featured)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(liveFeaturedSurface(isActive: featured.type != .empty))
-        .overlay(alignment: .topTrailing) {
-            if featured.type != .empty {
-                Circle()
-                    .fill(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.09))
-                    .frame(width: 118, height: 118)
-                    .blur(radius: 28)
-                    .offset(x: 34, y: -42)
-                    .opacity(liveIndicatorPulse ? 0.88 : 0.48)
-                    .animation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true), value: liveIndicatorPulse)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-    }
-
-    private func featuredLiveBadge(_ type: FeaturedLiveType) -> some View {
-        Text(type == .empty ? "FEATURED LIVE" : "FEATURED LIVE")
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .tracking(0.5)
-            .foregroundStyle(type == .empty ? FGColor.secondaryText(colorScheme) : FGColor.dangerRed)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                Capsule(style: .continuous)
-                    .fill((type == .empty ? Color.primary : FGColor.dangerRed).opacity(colorScheme == .dark ? 0.13 : 0.08))
-            )
-    }
-
-    @ViewBuilder
-    private func featuredVenuePhoto(_ featured: FeaturedLive) -> some View {
-        if let raw = featured.venuePhotoURL, let url = URL(string: raw) {
-            DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08))
-                    .overlay {
-                        Image(systemName: "building.2.fill")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    }
-            }
-            .frame(width: 58, height: 58)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.58), lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 10, y: 5)
-        }
-    }
-
-    private func featuredShouldShowSocialLine(_ featured: FeaturedLive, item: LiveFeedItem?) -> Bool {
-        canShowPersonalLiveSections
-            && (!featured.socialProfiles.isEmpty || (item?.energy.goingCount ?? 0) > 0 || (item?.energy.friendGoingCount ?? 0) > 0)
-    }
-
-    private func liveSocialPresenceLine(_ featured: FeaturedLive, item: LiveFeedItem?) -> some View {
-        let profiles = featured.socialProfiles
-        return HStack(spacing: 8) {
-            if !profiles.isEmpty {
-                GoingAvatarStack(profiles: profiles, viewerUserID: viewModel.currentUserAuthId)
-            }
-
-            Text(featuredSocialPresenceText(featured, item: item))
-                .font(FGTypography.caption.weight(.semibold))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    private func featuredSocialPresenceText(_ featured: FeaturedLive, item: LiveFeedItem?) -> String {
-        guard let item else {
-            let count = featured.socialProfiles.count
-            return count == 1 ? "1 fan going" : "\(count) fans going"
-        }
-        if let label = item.energy.socialPresenceLabel {
-            return label
-        }
-        if let label = item.energy.friendPresenceLabel, item.energy.friendGoingCount > 0 {
-            return label
-        }
-        if item.energy.goingCount > 0 {
-            return item.energy.goingCount == 1 ? "1 fan going" : "\(item.energy.goingCount) fans going"
-        }
-        return liveSocialPresenceText(item)
     }
 
     private func liveSocialPresenceText(_ item: LiveFeedItem) -> String {
@@ -642,68 +493,6 @@ struct LiveScreen: View {
         return energy.energyLabel == nil ? nil : "Venue activity signal"
     }
 
-    private func liveFeaturedActions(_ featured: FeaturedLive) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                selectedTab = .discover
-            } label: {
-                liveFeaturedActionLabel("Open Map", systemImage: "map.fill", filled: true)
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                selectedTab = .calendar
-            } label: {
-                liveFeaturedActionLabel("View Calendar", systemImage: "calendar", filled: false)
-            }
-            .buttonStyle(.plain)
-
-            if viewModel.canFanUsePickupGamesUI {
-                Button {
-                    viewModel.calendarTabGameFilter = .pickupGames
-                    selectedTab = .calendar
-                } label: {
-                    liveFeaturedActionLabel("Host Pickup Game", systemImage: "figure.run", filled: false)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .labelStyle(.titleAndIcon)
-    }
-
-    private func liveFeaturedActionLabel(_ title: String, systemImage: String, filled: Bool) -> some View {
-        Label(title, systemImage: systemImage)
-            .font(.caption.weight(.bold))
-            .foregroundStyle(filled ? Color.white : FGColor.primaryText(colorScheme))
-            .lineLimit(1)
-            .minimumScaleFactor(0.82)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(filled ? FGColor.accentGreen : Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07))
-            )
-    }
-
-    private func liveFeaturedSurface(isActive: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 30, style: .continuous)
-            .fill(colorScheme == .dark ? Color.white.opacity(0.11) : Color.white.opacity(0.84))
-            .overlay {
-                RoundedRectangle(cornerRadius: 30, style: .continuous)
-                    .strokeBorder(
-                        FGColor.dangerRed.opacity(isActive ? (colorScheme == .dark ? 0.30 : 0.20) : 0.14),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 24, y: 14)
-            .shadow(
-                color: FGColor.dangerRed.opacity(isActive ? (liveIndicatorPulse ? 0.14 : 0.07) : 0),
-                radius: isActive ? (liveIndicatorPulse ? 30 : 18) : 0,
-                y: 0
-            )
-            .animation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true), value: liveIndicatorPulse)
-    }
-
     private func liveGamesSection(matches: [LiveMatch], rankedItems: [LiveFeedItem]) -> some View {
         livePanelSection(
             kind: .liveGames,
@@ -719,7 +508,7 @@ struct LiveScreen: View {
                 liveSectionEmptyState(
                     liveGamesSportFilter == nil
                         ? "No live pro games right now"
-                        : "No live \(liveSportFilterLabel(liveGamesSportFilter!)) games right now"
+                        : "No live \(liveGamesSportFilter!.filterChipLabel) games right now"
                 )
             } else {
                 VStack(spacing: 10) {
@@ -727,22 +516,33 @@ struct LiveScreen: View {
                         liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
                     }
                 }
+                .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
             }
         }
     }
 
     private var liveGamesSportFilterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                liveGamesSportFilterChip(title: "All", selected: liveGamesSportFilter == nil) {
-                    liveGamesSportFilter = nil
+            HStack(spacing: 10) {
+                SportFilterChip(
+                    sport: "All",
+                    isSelected: liveGamesSportFilter == nil,
+                    preferSystemSymbol: true
+                ) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                        liveGamesSportFilter = nil
+                    }
                 }
                 ForEach(liveGamesSportFilterOptions, id: \.self) { sport in
-                    liveGamesSportFilterChip(
-                        title: liveSportFilterLabel(sport),
-                        selected: liveGamesSportFilter == sport
+                    SportFilterChip(
+                        sport: sport.sportFilterCatalogKey,
+                        displayTitle: sport.filterChipLabel,
+                        isSelected: liveGamesSportFilter == sport,
+                        preferSystemSymbol: true
                     ) {
-                        liveGamesSportFilter = sport
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                            liveGamesSportFilter = sport
+                        }
                     }
                 }
             }
@@ -750,44 +550,7 @@ struct LiveScreen: View {
             .padding(.vertical, 2)
         }
         .scrollClipDisabled()
-    }
-
-    private func liveGamesSportFilterChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(selected ? Color.white : FGColor.primaryText(colorScheme))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(selected ? FGColor.accentGreen : Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07))
-                )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func liveSportFilterLabel(_ sport: LiveSportVisualType) -> String {
-        switch sport {
-        case .nfl:
-            return "Football"
-        case .soccer:
-            return "Soccer"
-        case .basketball:
-            return "Basketball"
-        case .baseball:
-            return "Baseball"
-        case .hockey:
-            return "Hockey"
-        case .tennis:
-            return "Tennis"
-        case .golf:
-            return "Golf"
-        case .formula1:
-            return "Formula 1"
-        case .other:
-            return "Other"
-        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveGamesSportFilter)
     }
 
     private var favoriteTeams: [FavoriteTeam] {
@@ -1049,15 +812,15 @@ struct LiveScreen: View {
 
     private func liveMatchCard(_ match: LiveMatch, relatedItems: [LiveFeedItem]) -> some View {
         let sportType = match.liveSportVisualType
-        let accent = liveSportAccent(sportType)
-        let artworkSportKey = sportType.artworkSportKey
+        let accent = sportType.catalogAccent
+        let catalogSportKey = sportType.sportFilterCatalogKey
         let socialProfiles = liveMergedSocialProfiles(from: relatedItems)
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
                     Circle()
                         .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.13))
-                    SportArtworkIconView(sport: artworkSportKey, diameter: 42)
+                    SportArtworkIconView(sport: catalogSportKey, diameter: 42, preferSystemSymbol: true)
                 }
                 .frame(width: 52, height: 52)
 
@@ -1065,7 +828,7 @@ struct LiveScreen: View {
                     HStack(spacing: 7) {
                         liveStatusPill(match, accent: accent)
 
-                        Text(sportType.displayLabel)
+                        Text(sportType.filterChipLabel)
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(accent)
                             .padding(.horizontal, 7)
@@ -1143,8 +906,8 @@ struct LiveScreen: View {
         }
         .onAppear {
 #if DEBUG
-            let visual = SportFilterCatalog.resolve(artworkSportKey)
-            print("[LiveSportIconMapping] id=\(match.id) normalized=\(match.sport) artworkKey=\(artworkSportKey) systemImage=\(visual.systemImage) label=\(sportType.displayLabel)")
+            let visual = sportType.catalogVisual
+            print("[LiveSportIconMapping] id=\(match.id) normalized=\(match.sport) catalogKey=\(catalogSportKey) systemImage=\(visual.systemImage) label=\(sportType.filterChipLabel)")
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
         }
@@ -1182,29 +945,6 @@ struct LiveScreen: View {
             guard match.matchStatus.isHappeningNow else { return }
             liveIndicatorPulse = true
             logLiveBadgeDebug()
-        }
-    }
-
-    private func liveSportAccent(_ sportType: LiveSportVisualType) -> Color {
-        switch sportType {
-        case .soccer:
-            return Color(red: 0.05, green: 0.55, blue: 0.28)
-        case .basketball:
-            return Color(red: 0.95, green: 0.45, blue: 0.12)
-        case .hockey:
-            return Color(red: 0.12, green: 0.45, blue: 0.92)
-        case .baseball:
-            return Color(red: 0.85, green: 0.15, blue: 0.18)
-        case .nfl:
-            return Color(red: 0.45, green: 0.32, blue: 0.18)
-        case .tennis:
-            return Color(red: 0.78, green: 0.68, blue: 0.06)
-        case .golf:
-            return Color(red: 0.18, green: 0.62, blue: 0.32)
-        case .formula1:
-            return Color(red: 0.92, green: 0.2, blue: 0.22)
-        case .other:
-            return FGColor.accentGreen
         }
     }
 
@@ -1993,164 +1733,6 @@ struct LiveScreen: View {
         }.prefix(4))
     }
 
-    private func featuredLiveCard(
-        rankedItems: [LiveFeedItem],
-        matches: [LiveMatch],
-        pickupGames: [PickupGameRow]
-    ) -> FeaturedLive {
-        var candidates: [FeaturedLive] = []
-
-        if let item = rankedItems.first {
-            candidates.append(featuredLive(for: item))
-        }
-
-        if let match = matches.first {
-            candidates.append(featuredLive(for: match))
-        }
-
-        if canShowPersonalLiveSections, let pickup = strongestPickupGameNeedingPlayers(pickupGames) {
-            candidates.append(featuredLive(for: pickup))
-        }
-
-        return candidates.sorted { $0.score > $1.score }.first ?? emptyFeaturedLive
-    }
-
-    private func featuredLive(for item: LiveFeedItem) -> FeaturedLive {
-        let type = featuredType(for: item)
-        let venueLine = "\(item.bar.name) · \(viewModel.displayTime(for: item.event))"
-        let subtitleDetail = featuredLiveSubtitleDetail(for: item)
-        let subtitle = [venueLine, subtitleDetail]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-        let visibleProfiles = featuredVisibleProfiles(for: item)
-        return FeaturedLive(
-            type: type,
-            title: item.event.title,
-            subtitle: subtitle,
-            tokens: liveEnergyTokens(for: item),
-            score: item.score,
-            source: .liveItem(item),
-            eventID: item.venueEventID,
-            venueID: item.bar.id,
-            venuePhotoURL: featuredVenuePhotoURL(for: item.bar),
-            socialProfiles: visibleProfiles,
-            rawGoingProfilesCount: item.venueEventID.flatMap { viewModel.goingProfilesByVenueEventID[$0]?.count } ?? 0
-        )
-    }
-
-    private func featuredLive(for match: LiveMatch) -> FeaturedLive {
-        let sportType = match.liveSportVisualType
-        return FeaturedLive(
-            type: .liveGame,
-            title: "\(match.awayTeam) at \(match.homeTeam)",
-            subtitle: "\(sportType.displayLabel) is live now. Open the map to find the room with energy.",
-            tokens: ["LIVE NOW"],
-            score: 9_500,
-            source: .liveMatch(match),
-            eventID: nil,
-            venueID: nil,
-            venuePhotoURL: nil,
-            socialProfiles: [],
-            rawGoingProfilesCount: 0
-        )
-    }
-
-    private func featuredLive(for pickup: PickupGameRow) -> FeaturedLive {
-        let start = PickupGameModels.parseSupabaseTimestamptz(pickup.game_start_at)
-        let timeText = start.map { $0.formatted(date: .omitted, time: .shortened) } ?? "soon"
-        let openSlots = pickup.pickupOpenSlotsRemaining
-        let playerText = openSlots == 1 ? "1 spot open" : "\(openSlots) spots open"
-        return FeaturedLive(
-            type: .pickupNeedsPlayers,
-            title: pickup.title,
-            subtitle: "\(pickup.sport) pickup at \(timeText). \(playerText) for fans nearby.",
-            tokens: ["Need Players"],
-            score: 3_200 + (pickup.approvedJoinCount * 140) + (openSlots <= 2 ? 500 : 0),
-            source: .pickupGame(pickup),
-            eventID: nil,
-            venueID: nil,
-            venuePhotoURL: nil,
-            socialProfiles: [],
-            rawGoingProfilesCount: 0
-        )
-    }
-
-    private var emptyFeaturedLive: FeaturedLive {
-        FeaturedLive(
-            type: .empty,
-            title: "Nothing major nearby yet.",
-            subtitle: isBusinessLiveAudienceUser
-                ? "Live games and nearby venue activity will appear here."
-                : "As fans start going, chatting, and reacting, Live will light up.",
-            tokens: [],
-            score: 0,
-            source: .empty,
-            eventID: nil,
-            venueID: nil,
-            venuePhotoURL: nil,
-            socialProfiles: [],
-            rawGoingProfilesCount: 0
-        )
-    }
-
-    private func featuredLiveSubtitleDetail(for item: LiveFeedItem) -> String? {
-        if item.energy.isLiveNow {
-            return "Watch party active"
-        }
-        if item.energy.startsSoon, let minutes = item.energy.minutesUntilStart {
-            return "Starts in \(minutes) min"
-        }
-        if canShowPersonalLiveSections && item.energy.commentCount > 0 {
-            return item.energy.commentCount == 1 ? "1 fan chatting" : "\(item.energy.commentCount) fans chatting"
-        }
-        if item.vibeCount > 0, let venueEventID = item.venueEventID {
-            return topVibeText(for: venueEventID)
-        }
-        return nil
-    }
-
-    private func featuredVisibleProfiles(for item: LiveFeedItem) -> [UserProfileRow] {
-        guard canShowPersonalLiveSections else { return [] }
-        if !item.energy.socialPresenceProfiles.isEmpty {
-            return item.energy.socialPresenceProfiles
-        }
-        guard let venueEventID = item.venueEventID else { return [] }
-        return viewModel.goingProfiles(for: venueEventID)
-    }
-
-    private func featuredVenuePhotoURL(for bar: BarVenue) -> String? {
-        ImageDisplayURL.forList(
-            thumbnail: bar.coverPhotoThumbnailURL ?? bar.menuPhotoThumbnailURL,
-            full: bar.coverPhotoURL ?? bar.menuPhotoURL
-        )
-    }
-
-    private func featuredType(for item: LiveFeedItem) -> FeaturedLiveType {
-        if item.energy.isLiveNow { return .liveGame }
-        if canShowPersonalLiveSections && item.energy.friendGoingCount > 0 { return .friendsGoing }
-        if canShowPersonalLiveSections && item.energy.commentCount > 0 { return .fansChatting }
-        if item.energy.goingCount >= 8 { return .crowdBuilding }
-        if item.energy.startsSoon { return .eventStartingSoon }
-        return .crowdBuilding
-    }
-
-    private func strongestPickupGameNeedingPlayers(_ pickupGames: [PickupGameRow]) -> PickupGameRow? {
-        pickupGames
-            .filter { !$0.isPickupFullForDiscover && !$0.hasPickupGameStarted() && $0.pickupOpenSlotsRemaining > 0 }
-            .sorted { lhs, rhs in
-                let lhsScore = lhs.approvedJoinCount * 140 + (lhs.pickupOpenSlotsRemaining <= 2 ? 500 : 0)
-                let rhsScore = rhs.approvedJoinCount * 140 + (rhs.pickupOpenSlotsRemaining <= 2 ? 500 : 0)
-                if lhsScore == rhsScore {
-                    let lhsStart = PickupGameModels.parseSupabaseTimestamptz(lhs.game_start_at) ?? .distantFuture
-                    let rhsStart = PickupGameModels.parseSupabaseTimestamptz(rhs.game_start_at) ?? .distantFuture
-                    return lhsStart < rhsStart
-                }
-                return lhsScore > rhsScore
-            }
-            .first
-    }
-
     private func liveRankedItems(for day: Date) -> [LiveFeedItem] {
         let venues = viewModel.mapVisibleBars.isEmpty ? viewModel.bars : viewModel.mapVisibleBars
         let cal = Calendar.current
@@ -2227,21 +1809,6 @@ struct LiveScreen: View {
             viewModel.selectedBar = item.bar
             viewModel.selectedEvent = item.event
             showVenueDetails = true
-        }
-    }
-
-    private func openFeaturedLive(_ featured: FeaturedLive) {
-        switch featured.source {
-        case .liveItem(let item):
-            openLiveItem(item)
-        case .liveMatch:
-            selectedTab = .discover
-        case .pickupGame:
-            viewModel.discoverMapContentMode = .pickupGames
-            viewModel.calendarTabGameFilter = .pickupGames
-            selectedTab = .discover
-        case .empty:
-            break
         }
     }
 
@@ -2425,19 +1992,9 @@ struct LiveScreen: View {
         ].filter { $0 }.count
     }
 
-    private func logLivePolishSnapshot(featuredLive: FeaturedLive, visibleSectionCount: Int) {
+    private func logLivePolishSnapshot(visibleSectionCount: Int) {
 #if DEBUG
-        print("[LivePolishDebug] featuredLiveType=\(featuredLive.type.rawValue)")
-        print("[LivePolishDebug] featuredLiveTitle=\(featuredLive.title)")
         print("[LivePolishDebug] visibleSectionCount=\(visibleSectionCount)")
-        print("[LivePolishDebug] emptyStateMode=\(featuredLive.type == .empty ? "featured" : "quietSections")")
-        print("[LivePolishDebug] energyTokens=\(featuredLive.tokens.joined(separator: "|"))")
-        print("[LiveFeaturedDebug] featuredEventId=\(featuredLive.eventID?.uuidString.lowercased() ?? "nil")")
-        print("[LiveFeaturedDebug] featuredVenueId=\(featuredLive.venueID?.uuidString.lowercased() ?? "nil")")
-        print("[LiveFeaturedDebug] rawGoingProfilesCount=\(featuredLive.rawGoingProfilesCount)")
-        print("[LiveFeaturedDebug] visibleGoingProfilesCount=\(featuredLive.socialProfiles.count)")
-        print("[LiveFeaturedDebug] avatarUrls=\(featuredLive.socialProfiles.compactMap { ImageDisplayURL.forList(thumbnail: $0.avatar_thumbnail_url, full: $0.avatar_url) })")
-        print("[LiveFeaturedDebug] venuePhotoUrl=\(featuredLive.venuePhotoURL ?? "nil")")
 #endif
     }
 
@@ -2481,15 +2038,32 @@ private struct FavoriteTeamsLiveSection: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
+    private var headerAccent: Color {
+        Color(red: 0.96, green: 0.78, blue: 0.18)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Your Teams Live")
-                    .font(FGTypography.sectionTitle)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text("Favorite teams with live, nearby, and social momentum.")
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(headerAccent.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(headerAccent)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Your Teams Live")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Favorite teams with live, nearby, and social momentum.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
             }
 
             if items.isEmpty {
@@ -2676,5 +2250,14 @@ private struct FavoriteTeamLiveCard: View {
                     .strokeBorder(item.team.badgeColor.opacity(colorScheme == .dark ? 0.32 : 0.20), lineWidth: 1)
             }
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07), radius: 16, y: 8)
+    }
+}
+
+private struct LiveSummaryChipButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(.easeInOut(duration: 0.14), value: configuration.isPressed)
     }
 }
