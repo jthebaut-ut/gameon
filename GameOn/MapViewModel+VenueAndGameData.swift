@@ -455,7 +455,7 @@ extension MapViewModel {
         }
         venueEventRows = snap.venueEventRows
         rebuildVenueEventIDsByKey(from: snap.venueEventRows)
-        rebuildDiscoverMapRenderSnapshot(reason: "restoredDiscoverCoreSnapshot")
+        flushDiscoverMapRenderSnapshotRebuild(reason: "restoredDiscoverCoreSnapshot")
 
         events = snap.events
         bumpScheduleDataGeneration()
@@ -1491,7 +1491,7 @@ extension MapViewModel {
 
         let t0 = Date()
         var byID: [UUID: VenueEventRow] = [:]
-        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,admin_status,scheduled_start_at"
+        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,admin_status,scheduled_start_at,cleanup_delay_hours,purge_after_at"
         let chunkSize = 80
 
         func mergeRows(_ rows: [VenueEventRow]) {
@@ -1852,7 +1852,7 @@ extension MapViewModel {
 
         events = merged
         bumpScheduleDataGeneration()
-        rebuildDiscoverMapRenderSnapshot(reason: "mergeVenueSliceIntoEvents")
+        scheduleDiscoverMapRenderSnapshotRebuild(reason: "mergeVenueSliceIntoEvents")
     }
 
     private func scheduleDiscoverFullEnrichmentInBackground() {
@@ -2440,6 +2440,12 @@ extension MapViewModel {
         }
 
         do {
+            suppressDiscoverSnapshotRebuilds = true
+            defer {
+                suppressDiscoverSnapshotRebuilds = false
+                flushDiscoverMapRenderSnapshotRebuild(reason: "loadVenuesFromSupabase")
+            }
+
             let phase1Query = discoverFastPinQueryBounds()
             let venueRowsRaw = try await fetchVenueRowsUsingViewportCache(
                 requestedBounds: boundsWindow(from: phase1Query.bounds),
@@ -2513,7 +2519,6 @@ extension MapViewModel {
 
                 venueEventRows = []
                 rebuildVenueEventIDsByKey(from: [])
-                rebuildDiscoverMapRenderSnapshot(reason: "phase1VenueRows")
                 pruneSelectionIfNeededAfterFilterChange()
 
                 if showBlockingMapSpinner {

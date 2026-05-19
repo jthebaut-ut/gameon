@@ -323,7 +323,68 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
 }
 
 extension MapViewModel {
+    /// Coalesces rapid snapshot invalidations (e.g. bars + venueEventRows during venue load) into one detached build.
+    func scheduleDiscoverMapRenderSnapshotRebuild(reason: String) {
+        if suppressDiscoverSnapshotRebuilds {
+#if DEBUG
+            print("[PerfPhase1B] snapshotRebuildSuppressed reason=\(reason)")
+#endif
+            return
+        }
+
+        if discoverSnapshotRebuildCoalesceTask != nil {
+#if DEBUG
+            print("[PerfPhase1B] snapshotRebuildCoalesced reason=\(reason)")
+#endif
+        }
+
+        discoverSnapshotPendingRebuildReason = reason
+        discoverSnapshotRebuildCoalesceTask?.cancel()
+        discoverSnapshotRebuildCoalesceTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                try await Task.sleep(nanoseconds: self.discoverSnapshotRebuildCoalesceNanoseconds)
+            } catch {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            let flushReason = self.discoverSnapshotPendingRebuildReason ?? reason
+            self.discoverSnapshotPendingRebuildReason = nil
+            self.discoverSnapshotRebuildCoalesceTask = nil
+#if DEBUG
+            print("[PerfPhase1B] snapshotRebuildFlushed reason=\(flushReason)")
+#endif
+            self.performDiscoverMapRenderSnapshotRebuild(reason: flushReason)
+        }
+    }
+
+    /// Runs a snapshot build immediately (cancels any pending coalesced rebuild).
+    func flushDiscoverMapRenderSnapshotRebuild(reason: String) {
+        discoverSnapshotRebuildCoalesceTask?.cancel()
+        discoverSnapshotRebuildCoalesceTask = nil
+        discoverSnapshotPendingRebuildReason = nil
+#if DEBUG
+        print("[PerfPhase1B] snapshotRebuildFlushed reason=\(reason)")
+#endif
+        performDiscoverMapRenderSnapshotRebuild(reason: reason)
+    }
+
     func rebuildDiscoverMapRenderSnapshot(reason: String) {
+        scheduleDiscoverMapRenderSnapshotRebuild(reason: reason)
+    }
+
+    /// `VenueCluster` list derived from the latest published map snapshot (empty when snapshot not ready).
+    func discoverMapRenderSnapshotVenueClustersForMap() -> [VenueCluster] {
+        let items = Array(discoverMapRenderSnapshot.venueClustersByID.values)
+        guard !items.isEmpty else { return [] }
+        return items
+            .map { item in
+                VenueCluster(id: item.id, bars: item.bars, coordinate: item.coordinate)
+            }
+            .sorted { $0.id < $1.id }
+    }
+
+    private func performDiscoverMapRenderSnapshotRebuild(reason: String) {
         let buildStart = Date()
         discoverMapRenderSnapshotGeneration &+= 1
         let generation = discoverMapRenderSnapshotGeneration

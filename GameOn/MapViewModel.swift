@@ -15,7 +15,7 @@ final class MapViewModel: ObservableObject {
     @Published var selectedDate: Date = Calendar.current.startOfDay(for: Date()) {
         didSet {
             guard !Calendar.current.isDate(oldValue, inSameDayAs: selectedDate) else { return }
-            rebuildDiscoverMapRenderSnapshot(reason: "selectedDate")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "selectedDate")
         }
     }
     /// Bottom-tab Calendar only (never drives Discover map date).
@@ -26,7 +26,7 @@ final class MapViewModel: ObservableObject {
     @Published var selectedSport: String = "All" {
         didSet {
             guard oldValue != selectedSport else { return }
-            rebuildDiscoverMapRenderSnapshot(reason: "selectedSport")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "selectedSport")
         }
     }
     @Published var selectedEvent: SportsEvent?
@@ -36,7 +36,7 @@ final class MapViewModel: ObservableObject {
     @Published var debouncedDiscoverSearchText: String = "" {
         didSet {
             guard oldValue != debouncedDiscoverSearchText else { return }
-            rebuildDiscoverMapRenderSnapshot(reason: "debouncedDiscoverSearchText")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "debouncedDiscoverSearchText")
         }
     }
     @Published var favoriteVenueIDs: Set<UUID> = []
@@ -159,7 +159,7 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventInterestIDs: Set<UUID> = []
     @Published var venueEventInterestCounts: [UUID: Int] = [:] {
         didSet {
-            rebuildDiscoverMapRenderSnapshot(reason: "venueEventInterestCounts")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventInterestCounts")
         }
     }
     let fanUpdatesStore = FanUpdatesRealtimeStore()
@@ -327,7 +327,7 @@ final class MapViewModel: ObservableObject {
     @Published var eventLoadError: String?
     @Published var bars: [BarVenue] = [] {
         didSet {
-            rebuildDiscoverMapRenderSnapshot(reason: "bars")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "bars")
         }
     }
     @Published var isLoadingMapVenues: Bool = false
@@ -337,7 +337,7 @@ final class MapViewModel: ObservableObject {
     @Published var mapDisplayMode: DiscoverMapDisplayMode = .allSpots {
         didSet {
             guard oldValue != mapDisplayMode else { return }
-            rebuildDiscoverMapRenderSnapshot(reason: "mapDisplayMode")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "mapDisplayMode")
         }
     }
     @Published var cameraPosition: MapCameraPosition = .region(
@@ -352,12 +352,17 @@ final class MapViewModel: ObservableObject {
     @Published var venueEventRows: [VenueEventRow] = [] {
         didSet {
             scheduleFanChatAppLevelRealtimeForLoadedVenueEvents()
-            rebuildDiscoverMapRenderSnapshot(reason: "venueEventRows")
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventRows")
         }
     }
     @Published private(set) var discoverMapRenderSnapshot = DiscoverMapRenderSnapshot.empty
     /// Monotonic fence for detached Discover map snapshot builds; only the latest request may publish.
     var discoverMapRenderSnapshotGeneration: UInt64 = 0
+    /// When true, ``scheduleDiscoverMapRenderSnapshotRebuild(reason:)`` is a no-op until a single ``flushDiscoverMapRenderSnapshotRebuild(reason:)``.
+    var suppressDiscoverSnapshotRebuilds = false
+    var discoverSnapshotRebuildCoalesceTask: Task<Void, Never>?
+    var discoverSnapshotPendingRebuildReason: String?
+    let discoverSnapshotRebuildCoalesceNanoseconds: UInt64 = 100_000_000
     /// Start-of-day keys for calendar green dots (region + sport aware via ``eventsForCalendarDots``).
     @Published var calendarDotDates: Set<Date> = []
     /// Discover calendar overlay: venue ``venue_events`` days from RPC (green dots; Venues map mode only).
@@ -476,6 +481,10 @@ final class MapViewModel: ObservableObject {
         get { fanUpdatesStore.fanChatAppLevelRealtimeTrackedEventIDs }
         set { fanUpdatesStore.fanChatAppLevelRealtimeTrackedEventIDs = newValue }
     }
+    var fanChatAppLevelLastScheduleRequestedEventIDs: [UUID] {
+        get { fanUpdatesStore.fanChatAppLevelLastScheduleRequestedEventIDs }
+        set { fanUpdatesStore.fanChatAppLevelLastScheduleRequestedEventIDs = newValue }
+    }
     var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>? {
         get { fanUpdatesStore.fanChatAppLevelRealtimeResubscribeTask }
         set { fanUpdatesStore.fanChatAppLevelRealtimeResubscribeTask = newValue }
@@ -545,6 +554,8 @@ final class MapViewModel: ObservableObject {
 
     /// Saved venues resolved from `favorite_venues` + `venues` by id (not filtered through ``bars``).
     @Published var followingTabSavedVenues: [BarVenue] = []
+    /// Last successful ``refreshFollowingTabDataGlobally()`` completion (not published — avoids tab body churn).
+    var lastFollowingTabGlobalRefreshAt: Date?
     /// Games the user is going / interested in, loaded from Supabase + venue rows, independent of ``venueEventRows``.
     @Published var followingTabGoingItems: [FollowingGoingDisplayItem] = []
     /// Going / interest counts for ``followingTabGoingItems`` ids only (does not depend on map-visible interest fetch).

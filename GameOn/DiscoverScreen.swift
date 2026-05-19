@@ -1108,7 +1108,18 @@ struct DiscoverScreen: View {
     }
 
     private var discoverVenueClustersForMap: [VenueCluster] {
-        viewModel.clusteredBars()
+        let snapshotClusters = viewModel.discoverMapRenderSnapshotVenueClustersForMap()
+        if !snapshotClusters.isEmpty {
+#if DEBUG
+            DebugLogGate.noisy("[PerfPhase1B] mapUsingSnapshotClusters count=\(snapshotClusters.count)")
+#endif
+            return snapshotClusters
+        }
+        let fallback = viewModel.clusteredBars()
+#if DEBUG
+        DebugLogGate.noisy("[PerfPhase1B] mapUsingFallbackClusters count=\(fallback.count)")
+#endif
+        return fallback
     }
 
     private func logPickupMapDebug(pickupGamesCount: Int, isPickupModeActive: Bool, annotationsRendered: Int) {
