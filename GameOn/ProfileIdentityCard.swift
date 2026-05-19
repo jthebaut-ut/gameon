@@ -133,44 +133,33 @@ struct ProfileIdentityCard: View {
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 14) {
             if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
                 handlePromptBanner
             }
 
             heroBlock
 
-            integratedDivider
-
             if canShowOwnerFanPropsHighlights {
                 fanPropsHighlightsSection
-                    .padding(.horizontal, 13)
-                    .padding(.top, 8)
-
-                integratedDivider
-                    .padding(.top, 10)
+                    .padding(.horizontal, 16)
             }
 
             fanReputationSection
-                .padding(.horizontal, 13)
-                .padding(.top, 8)
-
-            integratedDivider
-                .padding(.top, 10)
+                .padding(.horizontal, 16)
 
             favoriteTeamsSection
-                .padding(.horizontal, 13)
-                .padding(.top, 8)
-                .padding(.bottom, 11)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
         }
         .background(cardShellBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(cardBorder)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 12, y: 7)
-        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.025 : 0.018), radius: 10, y: 2)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07), radius: 22, y: 12)
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.055), radius: 18, y: 3)
         .onAppear {
 #if DEBUG
-            print("[ProfileIdentityCardDebug] layout=compact_social_identity_card")
+            print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
 #endif
             FanReputationEngine.log(reputation)
         }
@@ -223,11 +212,12 @@ struct ProfileIdentityCard: View {
 
     private var cardShellBackground: some View {
         ZStack {
-            Color(red: 0.035, green: 0.045, blue: 0.052)
+            Color(.secondarySystemGroupedBackground)
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.04),
-                    Color(red: 0.025, green: 0.032, blue: 0.045).opacity(0.88)
+                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96),
+                    Color(red: 0.94, green: 0.98, blue: 1.0).opacity(colorScheme == .dark ? 0.05 : 0.72),
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.035 : 0.055)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -236,36 +226,19 @@ struct ProfileIdentityCard: View {
     }
 
     private var cardBorder: some View {
-        RoundedRectangle(cornerRadius: 19, style: .continuous)
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
             .strokeBorder(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(colorScheme == .dark ? 0.08 : 0.16),
-                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.04),
-                        Color.white.opacity(colorScheme == .dark ? 0.035 : 0.08)
+                        Color.white.opacity(colorScheme == .dark ? 0.10 : 0.92),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.12),
+                        Color.black.opacity(colorScheme == .dark ? 0.02 : 0.055)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
                 lineWidth: 0.75
             )
-    }
-
-    private var integratedDivider: some View {
-        Rectangle()
-            .fill(
-                LinearGradient(
-                    colors: [
-                        Color.white.opacity(0.02),
-                        Color.white.opacity(colorScheme == .dark ? 0.055 : 0.09),
-                        Color.white.opacity(0.02)
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .frame(height: 1)
-            .padding(.horizontal, 14)
     }
 
     // MARK: - Fan Props highlights
@@ -282,23 +255,23 @@ struct ProfileIdentityCard: View {
                     HStack(spacing: 5) {
                         Text("Fan Props")
                             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.60))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
                             .textCase(.uppercase)
                             .tracking(0.7)
 
                         Image(systemName: "sparkles")
                             .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(FGColor.accentGreen.opacity(0.72))
+                            .foregroundStyle(FGColor.accentGreen)
                     }
 
                     Text(fanPropsHighlightsCopy)
                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(incomingPropsFans.isEmpty ? 0.54 : 0.88))
+                        .foregroundStyle(incomingPropsFans.isEmpty ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme))
                         .lineLimit(1)
 
                     Text(fanPropsHighlightsSubcopy)
                         .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.38))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
                         .lineLimit(1)
                 }
 
@@ -311,31 +284,32 @@ struct ProfileIdentityCard: View {
                 } else if !incomingPropsFans.isEmpty {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.28))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.72))
                 }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.08),
-                                Color.white.opacity(colorScheme == .dark ? 0.026 : 0.052)
+                                Color.white.opacity(colorScheme == .dark ? 0.07 : 0.96),
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.09),
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.05 : 0.055)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .overlay {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
                             .strokeBorder(
                                 LinearGradient(
                                     colors: [
-                                        FGColor.accentGreen.opacity(0.20),
-                                        Color.white.opacity(0.055)
+                                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.16),
+                                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.78)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -354,16 +328,16 @@ struct ProfileIdentityCard: View {
         ZStack {
             if incomingPropsFans.isEmpty {
                 Circle()
-                    .fill(Color.white.opacity(0.045))
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
                     .frame(width: 42, height: 42)
                     .overlay {
                         Image(systemName: "person.2.fill")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.38))
+                            .foregroundStyle(FGColor.accentBlue)
                     }
                     .overlay {
                         Circle()
-                            .strokeBorder(Color.white.opacity(0.07), lineWidth: 1)
+                            .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.9), lineWidth: 1)
                     }
             } else {
                 let visibleFans = Array(incomingPropsFans.prefix(4))
@@ -388,14 +362,14 @@ struct ProfileIdentityCard: View {
             displayName: fan.displayName,
             email: "",
             size: 34,
-            fallbackStyle: .darkCardTranslucent,
-            imagePlaceholderTint: .white.opacity(0.72)
+            fallbackStyle: .lightOnWhiteChrome,
+            imagePlaceholderTint: FGColor.accentBlue
         )
         .overlay {
             Circle()
-                .strokeBorder(Color(red: 0.035, green: 0.045, blue: 0.052), lineWidth: 2)
+                .strokeBorder(Color(.secondarySystemGroupedBackground), lineWidth: 2)
         }
-        .shadow(color: .black.opacity(0.22), radius: 4, y: 2)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 4, y: 2)
     }
 
     private var fanPropsHighlightsCopy: String {
@@ -403,7 +377,7 @@ struct ProfileIdentityCard: View {
             return "Loading Fan Props..."
         }
         guard !incomingPropsFans.isEmpty else { return "No Fan Props yet" }
-        return incomingPropsFans.count == 1 ? "1 fan giving you props" : "\(incomingPropsFans.count) fans giving you props"
+        return incomingPropsFans.count == 1 ? "1 fan gave you props" : "\(incomingPropsFans.count) fans gave you props"
     }
 
     private var fanPropsHighlightsSubcopy: String {
@@ -508,48 +482,37 @@ struct ProfileIdentityCard: View {
                     .foregroundStyle(FGColor.accentGreen)
                 Text("Choose your @handle for friend search")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.88))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(FGColor.accentGreen.opacity(0.12))
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.top, 12)
     }
 
     // MARK: - Hero (compact header + stats)
 
     private var heroBlock: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 16) {
             headerRow
-                .padding(.horizontal, 13)
-                .padding(.top, 13)
-                .padding(.bottom, 9)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
 
             statsRow
-                .padding(.horizontal, 13)
-                .padding(.bottom, 10)
+                .padding(.horizontal, 16)
         }
-        .background { MatteIdentityHeaderBackground() }
-        .clipShape(
-            UnevenRoundedRectangle(
-                topLeadingRadius: 19,
-                bottomLeadingRadius: 0,
-                bottomTrailingRadius: 0,
-                topTrailingRadius: 19,
-                style: .continuous
-            )
-        )
     }
 
     private var headerRow: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 15) {
             PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
                 avatarStack
             }
@@ -557,20 +520,28 @@ struct ProfileIdentityCard: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Update profile photo")
 
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 9) {
                 Button {
                     presentIdentityEditor(focusedField: .displayName)
                 } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(displayName)
-                            .font(.system(size: 23, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 6) {
+                            Text(displayName)
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.72)
+
+                            if reputation.privileges.isVerifiedOrganizer {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(FGColor.accentBlue)
+                            }
+                        }
 
                         Text(handleLine)
                             .font(.system(size: 12.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.62))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
                     }
                     .contentShape(Rectangle())
@@ -582,8 +553,8 @@ struct ProfileIdentityCard: View {
                     presentIdentityEditor(focusedField: .bio)
                 } label: {
                     Text(bioLine.isEmpty ? "Add a short bio so fans know your vibe." : bioLine)
-                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                        .foregroundStyle(bioLine.isEmpty ? .white.opacity(0.36) : .white.opacity(0.74))
+                        .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(bioLine.isEmpty ? FGColor.mutedText(colorScheme) : FGColor.primaryText(colorScheme).opacity(0.82))
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -592,28 +563,36 @@ struct ProfileIdentityCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(bioLine.isEmpty ? "Add bio" : "Edit bio")
 
-                HStack(spacing: 8) {
-                    Text(reputation.title.uppercased())
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.accentGreen.opacity(0.78))
-                        .tracking(0.6)
-                        .lineLimit(1)
+                HStack(spacing: 7) {
+                    reputationPill
 
                     if !identityMessage.isEmpty {
                         Text(identityMessage)
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
-                            .foregroundStyle(identityMessage.contains("updated") || identityMessage == "Saved." ? FGColor.accentGreen.opacity(0.88) : .white.opacity(0.62))
+                            .foregroundStyle(identityMessage.contains("updated") || identityMessage == "Saved." ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
                     }
                 }
             }
 
-            Spacer(minLength: 6)
-
-            compactHeaderButton(title: "Edit", systemImage: "pencil") {
-                presentIdentityEditor(focusedField: .displayName)
-            }
+            Spacer(minLength: 0)
         }
+    }
+
+    private var reputationPill: some View {
+        HStack(spacing: 5) {
+            Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill")
+                .font(.system(size: 9.5, weight: .bold))
+            Text(reputation.title.uppercased())
+                .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                .tracking(0.55)
+                .lineLimit(1)
+        }
+        .foregroundStyle(FGColor.accentGreen)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
+        .clipShape(Capsule())
     }
 
     private var avatarStack: some View {
@@ -624,19 +603,32 @@ struct ProfileIdentityCard: View {
                 avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
                 displayName: displayName,
                 email: viewModel.currentUserEmail,
-                size: 78,
-                fallbackStyle: .darkCardTranslucent,
-                imagePlaceholderTint: .white
+                size: 94,
+                fallbackStyle: .lightOnWhiteChrome,
+                imagePlaceholderTint: FGColor.accentBlue
             )
             .overlay {
                 Circle()
-                    .strokeBorder(Color.white.opacity(0.28), lineWidth: 1.2)
+                    .strokeBorder(
+                        AngularGradient(
+                            colors: [
+                                FGColor.accentBlue,
+                                FGColor.accentGreen,
+                                Color(red: 0.98, green: 0.67, blue: 0.33),
+                                FGColor.accentBlue
+                            ],
+                            center: .center
+                        ),
+                        lineWidth: 3
+                    )
             }
-            .shadow(color: .black.opacity(0.28), radius: 7, y: 4)
+            .padding(3)
+            .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96)))
+            .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.16), radius: 12, y: 5)
 
             Circle()
-                .fill(Color(red: 0.04, green: 0.055, blue: 0.06))
-                .frame(width: 24, height: 24)
+                .fill(Color(.secondarySystemGroupedBackground))
+                .frame(width: 27, height: 27)
                 .overlay {
                     if isUploadingAvatar {
                         ProgressView()
@@ -645,45 +637,15 @@ struct ProfileIdentityCard: View {
                     } else {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FGColor.accentGreen.opacity(0.9))
+                            .foregroundStyle(FGColor.accentGreen)
                     }
                 }
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.95), lineWidth: 1.5)
                 }
                 .offset(x: 2, y: 2)
         }
-    }
-
-    private func compactHeaderButton(
-        title: String,
-        systemImage: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.56))
-                Text(title)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.66))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background {
-                Capsule()
-                    .fill(Color.white.opacity(0.04))
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.045), lineWidth: 0.75)
-                    }
-            }
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Inline identity editing
@@ -973,20 +935,21 @@ struct ProfileIdentityCard: View {
             statCell(value: friendsValue, label: "Friends")
         }
         .padding(.horizontal, 4)
-        .padding(.vertical, 6)
+        .padding(.vertical, 9)
         .background {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(Color.white.opacity(0.026))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.055 : 0.92))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.035), lineWidth: 0.75)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.045), lineWidth: 0.75)
                 }
         }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.08 : 0.035), radius: 10, y: 5)
     }
 
     private var statDivider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.04))
+            .fill(Color.black.opacity(colorScheme == .dark ? 0.14 : 0.06))
             .frame(width: 1)
             .padding(.vertical, 3)
     }
@@ -1014,12 +977,12 @@ struct ProfileIdentityCard: View {
     private func statCell(value: String, label: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.72))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
 
             Text(label)
-                .font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.38))
+                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -1033,50 +996,50 @@ struct ProfileIdentityCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Reputation")
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.58))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
                 .textCase(.uppercase)
                 .tracking(0.7)
 
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "person.2.fill")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(FGColor.accentGreen.opacity(0.82))
+                    .foregroundStyle(FGColor.accentGreen)
                     .frame(width: 24, height: 24)
                     .background {
                         Circle()
-                    .fill(Color.white.opacity(0.034))
+                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
                     }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(reputation.title.uppercased())
                         .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.88))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
                         .tracking(0.6)
 
                     Text(reputation.subtitle)
                         .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.66))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
 
                     Text(reputation.contextLine)
                         .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
 
                     Text(reputation.whyEarnedText)
                         .font(.system(size: 10, weight: .regular, design: .rounded))
-                        .foregroundStyle(.white.opacity(colorScheme == .dark ? 0.36 : 0.48))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.86))
                         .lineLimit(1)
                 }
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 9)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
             .background {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.026 : 0.048))
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.82))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.038), lineWidth: 0.75)
+                        RoundedRectangle(cornerRadius: 19, style: .continuous)
+                            .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.04), lineWidth: 0.75)
                     }
             }
         }
@@ -1090,12 +1053,12 @@ struct ProfileIdentityCard: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Favorite Teams")
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.60))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
                         .textCase(.uppercase)
                         .tracking(0.7)
                     Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Show off your fan colors")
                         .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.34))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
                 }
                 Spacer(minLength: 0)
                 Button {
@@ -1107,79 +1070,86 @@ struct ProfileIdentityCard: View {
                         Text(selectedTeams.isEmpty ? "Add Teams" : "Edit Teams")
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(.white.opacity(0.58))
+                    .foregroundStyle(FGColor.accentBlue)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
                     .background {
                         Capsule()
-                            .fill(Color.white.opacity(0.045))
+                            .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
                     }
                 }
                 .buttonStyle(.plain)
             }
 
             if selectedTeams.isEmpty {
-                addTeamsRow
+                addTeamSocialCard
             } else {
-                favoriteTeamsBadgeRow
-                addTeamsRow
-                    .padding(.top, 4)
+                favoriteTeamsCardRow
             }
         }
     }
 
-    private var favoriteTeamsBadgeRow: some View {
+    private var favoriteTeamsCardRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(alignment: .top, spacing: 10) {
                 ForEach(selectedTeams) { team in
-                    teamBadgeColumn(team: team)
+                    favoriteTeamSocialCard(team: team)
                 }
+
+                addTeamSocialCard
             }
             .padding(.vertical, 1)
         }
     }
 
-    private func teamBadgeColumn(team: FavoriteTeam) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            PremiumTeamIdentityOrb(team: team, diameter: 42)
+    private func favoriteTeamSocialCard(team: FavoriteTeam) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                PremiumTeamIdentityOrb(team: team, diameter: 62)
+                Spacer(minLength: 0)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Color.white.opacity(0.86))
+            }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(team.name)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.86))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .lineLimit(2)
                     .truncationMode(.tail)
                     .minimumScaleFactor(0.75)
 
                 Text(team.sport.chipTitle)
-                    .font(.system(size: 9, weight: .semibold, design: .rounded))
-                    .foregroundStyle(team.badgeColor.opacity(0.78))
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.78))
                     .lineLimit(1)
             }
+
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
-        .frame(width: 106, alignment: .topLeading)
-        .frame(minHeight: 116, alignment: .topLeading)
+        .padding(14)
+        .frame(width: 174, height: 148, alignment: .topLeading)
         .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
-                            team.badgeColor.opacity(colorScheme == .dark ? 0.16 : 0.12),
-                            Color.white.opacity(colorScheme == .dark ? 0.034 : 0.06)
+                            team.badgeColor.opacity(0.96),
+                            FGColor.accentBlue.opacity(0.84),
+                            Color(red: 0.09, green: 0.12, blue: 0.18).opacity(0.92)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    team.badgeColor.opacity(0.32),
-                                    Color.white.opacity(0.075)
+                                    Color.white.opacity(0.34),
+                                    Color.white.opacity(0.08)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -1188,52 +1158,57 @@ struct ProfileIdentityCard: View {
                         )
                 }
         }
-        .shadow(color: team.badgeColor.opacity(0.08), radius: 9, y: 4)
+        .shadow(color: team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.16), radius: 14, y: 8)
     }
 
-    private var addTeamsRow: some View {
+    private var addTeamSocialCard: some View {
         Button {
             showFavoriteTeamsPicker = true
         } label: {
-            HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 14) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.045))
-                        .frame(width: 24, height: 24)
+                        .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.11))
+                        .frame(width: 58, height: 58)
                     Image(systemName: "plus")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.56))
+                        .font(.system(size: 21, weight: .bold))
+                        .foregroundStyle(FGColor.accentBlue)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(selectedTeams.isEmpty ? "Add your teams" : "Manage your teams")
+                    Text("Add Team")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Build your fan profile")
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.64))
-                    Text("Reputation, venues, and fan matches")
-                        .font(.system(size: 9, weight: .regular, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.3))
-                        .lineLimit(1)
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
                 }
 
                 Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.24))
             }
-            .padding(.horizontal, 9)
-            .padding(.vertical, 7)
+            .padding(14)
+            .frame(width: 148, height: 148, alignment: .topLeading)
             .background {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.025 : 0.045))
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.9))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                                        Color.black.opacity(colorScheme == .dark ? 0.0 : 0.05)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
                     }
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(selectedTeams.isEmpty ? "Add favorite teams" : "Manage favorite teams")
+        .accessibilityLabel("Add favorite team")
     }
 }
 
@@ -1258,88 +1233,19 @@ private struct PremiumTeamIdentityOrb: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(team.badgeColor.opacity(0.18))
+                .fill(Color.white.opacity(0.18))
                 .frame(width: diameter, height: diameter)
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.11), lineWidth: 1)
+                        .strokeBorder(Color.white.opacity(0.34), lineWidth: 1)
                 }
 
             Text(team.initials)
                 .font(.system(size: max(10, diameter * 0.34), weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.86))
+                .foregroundStyle(.white)
         }
         .frame(width: diameter, height: diameter)
         .accessibilityLabel("\(team.name), \(team.sport.chipTitle)")
     }
 }
 
-// MARK: - Matte profile background
-
-private struct MatteIdentityHeaderBackground: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                matteBase
-                subtleTexture(in: geo.size)
-            }
-        }
-        .clipped()
-    }
-
-    private var matteBase: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.045, green: 0.055, blue: 0.06),
-                    Color(red: 0.025, green: 0.032, blue: 0.045)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            RadialGradient(
-                colors: [
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.12 : 0.08),
-                    Color.clear
-                ],
-                center: .init(x: 0.18, y: 0.02),
-                startRadius: 2,
-                endRadius: 145
-            )
-
-            RadialGradient(
-                colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.08),
-                    Color.clear
-                ],
-                center: .init(x: 0.82, y: 0.0),
-                startRadius: 1,
-                endRadius: 110
-            )
-        }
-    }
-
-    private func subtleTexture(in size: CGSize) -> some View {
-        Canvas { context, canvasSize in
-            let light = Color.white.opacity(colorScheme == .dark ? 0.018 : 0.014)
-            let glow = FGColor.accentGreen.opacity(0.035)
-            for index in 0..<10 {
-                let x = CGFloat(index * 43).truncatingRemainder(dividingBy: max(canvasSize.width, 1))
-                let y = CGFloat((index * 19) + 9).truncatingRemainder(dividingBy: max(canvasSize.height, 1))
-                context.fill(Path(ellipseIn: CGRect(x: x, y: y, width: 1, height: 1)), with: .color(light))
-            }
-            for index in 0..<3 {
-                let y = CGFloat(index) * 18 + 10
-                var path = Path()
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: canvasSize.width, y: y + 12))
-                context.stroke(path, with: .color(glow), lineWidth: 0.7)
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        .allowsHitTesting(false)
-    }
-}
