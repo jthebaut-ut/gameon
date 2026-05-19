@@ -16,6 +16,7 @@ struct LiveScreen: View {
     @State private var fanFeatureGateAlertMessage: String?
     @State private var liveIndicatorPulse = false
     @State private var liveAutoRefreshTask: Task<Void, Never>?
+    @State private var liveGamesSportFilter: LiveSportVisualType?
 
     private struct LiveFeedItem: Identifiable {
         let id: String
@@ -125,8 +126,20 @@ struct LiveScreen: View {
         viewModel.canUseFanSocialFeatures
     }
 
+    private var liveCalendarToday: Date {
+        Calendar.current.startOfDay(for: Date())
+    }
+
     private var displayedLiveMatches: [LiveMatch] {
-        viewModel.liveTabLiveMatchesDisplayed(searchQuery: "")
+        viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: liveGamesSportFilter, calendarDay: liveCalendarToday)
+    }
+
+    private var liveGamesSportFilterOptions: [LiveSportVisualType] {
+        let present = Set(
+            viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: nil, calendarDay: liveCalendarToday)
+                .map(\.liveSportVisualType)
+        )
+        return LiveSportVisualType.allCases.filter { present.contains($0) }
     }
 
     private var shouldAutoRefreshLiveMatches: Bool {
@@ -184,29 +197,26 @@ struct LiveScreen: View {
 
     private var liveFeedLayer: some View {
         let showPersonalLiveSections = canShowPersonalLiveSections
-        let rankedItems = liveRankedItems
-        let happeningNow = Array(rankedItems.filter { $0.energy.isLiveNow }.prefix(8))
-        let startingSoon = Array(rankedItems.filter { !$0.energy.isLiveNow && $0.energy.startsSoon }.prefix(6))
+        let rankedItems = liveRankedItems(for: liveCalendarToday)
+        let venuesAndPickupToday = venuesAndPickupTodayRows(from: rankedItems)
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
         let crowdBuilding = Array(rankedItems.filter { $0.energy.goingCount >= 8 && !$0.energy.isLiveNow }.prefix(6))
         let fansChatting = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.commentCount > 0 }.prefix(6)) : []
         let featuredLive = featuredLiveCard(
             rankedItems: rankedItems,
             matches: displayedLiveMatches,
-            pickupGames: viewModel.pickupGamesForDiscoverMap
+            pickupGames: pickupGamesForLiveToday()
         )
         let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
         let visibleSectionCount = visibleLiveSectionCount(
             matches: displayedLiveMatches,
-            happeningNow: happeningNow,
-            startingSoon: startingSoon,
+            venuesAndPickupToday: venuesAndPickupToday,
             friendsGoing: friendsGoing,
             crowdBuilding: crowdBuilding,
             fansChatting: fansChatting
         )
         let _: Void = logLiveFeedSnapshot(
-            happeningNowCount: happeningNow.count,
-            startingSoonCount: startingSoon.count,
+            venuesAndPickupTodayCount: venuesAndPickupToday.count,
             friendsGoingCount: friendsGoing.count
         )
         let _: Void = logFanUpdatesStoreMigrationDebug()
@@ -230,8 +240,7 @@ struct LiveScreen: View {
                         )
                     }
                     liveGamesSection(matches: displayedLiveMatches, rankedItems: rankedItems)
-                    liveHappeningNowSection(items: happeningNow)
-                    liveStartingSoonSection(items: startingSoon)
+                    liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
                     if showPersonalLiveSections {
                         liveFriendsSection(items: friendsGoing)
                     }
@@ -598,11 +607,21 @@ struct LiveScreen: View {
     }
 
     private func liveGamesSection(matches: [LiveMatch], rankedItems: [LiveFeedItem]) -> some View {
-        liveSection(title: "Live Games", subtitle: "Games happening now") {
+        liveSection(
+            title: "Live Games",
+            subtitle: "Professional scores from today's sports feed"
+        ) {
+            if !liveGamesSportFilterOptions.isEmpty {
+                liveGamesSportFilterBar
+            }
             if viewModel.isLoadingLiveMatches && matches.isEmpty {
                 liveGamesLoadingCard
             } else if matches.isEmpty {
-                liveQuietEmptyLine("No live games nearby yet.")
+                liveQuietEmptyLine(
+                    liveGamesSportFilter == nil
+                        ? "No live pro games on today’s feed yet."
+                        : "No live \(liveSportFilterLabel(liveGamesSportFilter!)) games today."
+                )
             } else {
                 VStack(spacing: 10) {
                     ForEach(matches) { match in
@@ -610,6 +629,65 @@ struct LiveScreen: View {
                     }
                 }
             }
+        }
+    }
+
+    private var liveGamesSportFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                liveGamesSportFilterChip(title: "All", selected: liveGamesSportFilter == nil) {
+                    liveGamesSportFilter = nil
+                }
+                ForEach(liveGamesSportFilterOptions, id: \.self) { sport in
+                    liveGamesSportFilterChip(
+                        title: liveSportFilterLabel(sport),
+                        selected: liveGamesSportFilter == sport
+                    ) {
+                        liveGamesSportFilter = sport
+                    }
+                }
+            }
+            .padding(.horizontal, 1)
+            .padding(.vertical, 2)
+        }
+        .scrollClipDisabled()
+    }
+
+    private func liveGamesSportFilterChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(selected ? Color.white : FGColor.primaryText(colorScheme))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(selected ? FGColor.accentGreen : Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func liveSportFilterLabel(_ sport: LiveSportVisualType) -> String {
+        switch sport {
+        case .nfl:
+            return "Football"
+        case .soccer:
+            return "Soccer"
+        case .basketball:
+            return "Basketball"
+        case .baseball:
+            return "Baseball"
+        case .hockey:
+            return "Hockey"
+        case .tennis:
+            return "Tennis"
+        case .golf:
+            return "Golf"
+        case .formula1:
+            return "Formula 1"
+        case .other:
+            return "Other"
         }
     }
 
@@ -853,7 +931,7 @@ struct LiveScreen: View {
                 Text("No live games right now.")
                     .font(FGTypography.cardTitle)
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text("Check Starting Soon or open the map to find watch spots.")
+                Text("Check Venues & Pickup Games Today or open the map to find watch spots.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
@@ -1021,10 +1099,15 @@ struct LiveScreen: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(liveCardSurface(cornerRadius: 22, highlighted: true))
+        .background(liveCardSurface(cornerRadius: 22, highlighted: match.matchStatus.isHappeningNow))
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.46 : 0.28), lineWidth: 1)
+            if match.matchStatus.isHappeningNow {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1)
+            } else {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(accent.opacity(colorScheme == .dark ? 0.46 : 0.28), lineWidth: 1)
+            }
         }
         .onAppear {
 #if DEBUG
@@ -1164,37 +1247,203 @@ struct LiveScreen: View {
         viewModel.refreshLiveMatchesForLiveTab(forceRefresh: forceRefresh)
     }
 
-    private func liveHappeningNowSection(items: [LiveFeedItem]) -> some View {
-        liveSection(title: "Happening Now", subtitle: "The strongest live energy first") {
-            if items.isEmpty {
-                liveQuietEmptyLine("Nothing live nearby yet.")
+    private enum LiveVenuesPickupRow: Identifiable {
+        case venue(LiveFeedItem)
+        case pickup(PickupGameRow)
+
+        var id: String {
+            switch self {
+            case .venue(let item):
+                return "venue-\(item.id)"
+            case .pickup(let row):
+                return "pickup-\(row.id.uuidString)"
+            }
+        }
+
+        var isLiveNow: Bool {
+            switch self {
+            case .venue(let item):
+                return item.energy.isLiveNow
+            case .pickup(let row):
+                return row.hasPickupGameStarted()
+            }
+        }
+
+    }
+
+    private func liveVenuesAndPickupTodaySection(rows: [LiveVenuesPickupRow]) -> some View {
+        liveSection(
+            title: "Venues & Pickup Games Today",
+            subtitle: "Nearby watch parties, pickup runs, and your plans for today"
+        ) {
+            if rows.isEmpty {
+                liveQuietEmptyLine("No venue or pickup activity nearby today yet.")
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 14) {
-                        ForEach(items) { item in
-                            liveHappeningCard(item)
+                VStack(spacing: 10) {
+                    ForEach(rows) { row in
+                        switch row {
+                        case .venue(let item):
+                            liveVenuesPickupVenueRow(item)
+                        case .pickup(let pickup):
+                            liveVenuesPickupPickupRow(pickup)
                         }
                     }
-                    .padding(.horizontal, 1)
-                    .padding(.vertical, 2)
                 }
-                .scrollClipDisabled()
             }
         }
     }
 
-    private func liveStartingSoonSection(items: [LiveFeedItem]) -> some View {
-        liveSection(title: "Starting Soon", subtitle: "Quick decisions before kickoff") {
-            if items.isEmpty {
-                liveQuietEmptyLine("No nearby starts in the next hour.")
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        liveStartingSoonRow(item)
-                    }
-                }
-            }
+    private func venuesAndPickupTodayRows(from rankedItems: [LiveFeedItem]) -> [LiveVenuesPickupRow] {
+        var rows: [LiveVenuesPickupRow] = []
+        var seenVenueKeys: Set<String> = []
+
+        for item in rankedItems {
+            guard venuesAndPickupVenueQualifies(item) else { continue }
+            guard !seenVenueKeys.contains(item.id) else { continue }
+            seenVenueKeys.insert(item.id)
+            rows.append(.venue(item))
         }
+
+        for pickup in pickupGamesForLiveToday() {
+            rows.append(.pickup(pickup))
+        }
+
+        return rows
+            .sorted { lhs, rhs in
+                let l = venuesAndPickupSortScore(lhs)
+                let r = venuesAndPickupSortScore(rhs)
+                if l == r { return lhs.id < rhs.id }
+                return l > r
+            }
+            .prefix(16)
+            .map { $0 }
+    }
+
+    private func venuesAndPickupSortScore(_ row: LiveVenuesPickupRow) -> Int {
+        switch row {
+        case .venue(let item):
+            return item.score
+                + (item.energy.isLiveNow ? 20_000 : 0)
+                + (item.energy.startsSoon ? 5_000 : 0)
+        case .pickup(let pickup):
+            let userBoost = isPickupUserRelevant(pickup) ? 8_000 : 0
+            let liveBoost = pickup.hasPickupGameStarted() ? 20_000 : 0
+            return userBoost + liveBoost + pickup.approvedJoinCount * 140
+        }
+    }
+
+    private func venuesAndPickupVenueQualifies(_ item: LiveFeedItem) -> Bool {
+        if item.energy.isLiveNow || item.energy.startsSoon { return true }
+        if item.energy.goingCount > 0 { return true }
+        if canShowPersonalLiveSections && item.energy.friendGoingCount > 0 { return true }
+        if canShowPersonalLiveSections && item.energy.commentCount > 0 { return true }
+        if item.vibeCount > 0 { return true }
+        return false
+    }
+
+    private func pickupGamesForLiveToday() -> [PickupGameRow] {
+        let cal = Calendar.current
+        return viewModel.pickupGamesForDiscoverMap.filter { row in
+            guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return false }
+            return cal.isDate(start, inSameDayAs: liveCalendarToday)
+        }
+    }
+
+    private func isPickupUserRelevant(_ row: PickupGameRow) -> Bool {
+        guard let me = viewModel.currentUserAuthId else { return false }
+        if row.creator_user_id == me { return true }
+        if viewModel.myPickupGamesForSettings.contains(where: { $0.id == row.id }) { return true }
+        if viewModel.myPickupGameJoinRequestCards.contains(where: { $0.pickupGameId == row.id }) { return true }
+        return false
+    }
+
+    private func liveVenuesPickupVenueRow(_ item: LiveFeedItem) -> some View {
+        Button {
+            openLiveItem(item)
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                SportArtworkIconView(sport: item.event.sport, diameter: 42)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        if item.energy.isLiveNow {
+                            livePillBadge
+                        } else if item.energy.startsSoon, let minutes = item.energy.minutesUntilStart {
+                            Text("Starts in \(minutes) min")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(FGColor.accentGreen)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    Text(item.event.title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text(item.bar.name)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                    liveInlineTokens(item)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(liveCardSurface(cornerRadius: 20, highlighted: item.energy.isLiveNow))
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
+    }
+
+    private func liveVenuesPickupPickupRow(_ row: PickupGameRow) -> some View {
+        let isLive = row.hasPickupGameStarted()
+        return Button {
+            viewModel.discoverMapContentMode = .pickupGames
+            viewModel.calendarTabGameFilter = .pickupGames
+            selectedTab = .discover
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                SportArtworkIconView(sport: row.sport, diameter: 42)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        if isLive {
+                            livePillBadge
+                        }
+                        if isPickupUserRelevant(row) {
+                            Text(userPickupRelevanceLabel(row))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(FGColor.accentBlue)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    Text(row.title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text("\(row.sport) pickup · \(pickupStartDisplay(for: row))")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                    Text(row.lookingForPlayersLine)
+                        .font(FGTypography.metadata.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .background(liveCardSurface(cornerRadius: 20, highlighted: isLive))
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
+    }
+
+    private func userPickupRelevanceLabel(_ row: PickupGameRow) -> String {
+        guard let me = viewModel.currentUserAuthId else { return "Your game" }
+        if row.creator_user_id == me { return "You host" }
+        if viewModel.myPickupGamesForSettings.contains(where: { $0.id == row.id }) { return "You host" }
+        if viewModel.myPickupGameJoinRequestCards.contains(where: { $0.pickupGameId == row.id }) { return "You joined" }
+        return "Your game"
+    }
+
+    private func pickupStartDisplay(for row: PickupGameRow) -> String {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return "Today" }
+        return start.formatted(date: .omitted, time: .shortened)
     }
 
     private func liveFriendsSection(items: [LiveFeedItem]) -> some View {
@@ -1402,7 +1651,7 @@ struct LiveScreen: View {
 
     private func liveCardSurface(cornerRadius: CGFloat, highlighted: Bool) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(colorScheme == .dark ? Color.white.opacity(highlighted ? 0.105 : 0.075) : Color.white.opacity(0.78))
+            .fill(liveCardFill(highlighted: highlighted))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(
@@ -1416,26 +1665,41 @@ struct LiveScreen: View {
             .shadow(color: FGColor.dangerRed.opacity(highlighted ? (colorScheme == .dark ? 0.12 : 0.06) : 0), radius: 22, y: 0)
     }
 
-    private var liveDot: some View {
-        HStack(spacing: 6) {
+    private func liveCardFill(highlighted: Bool) -> Color {
+        if highlighted {
+            return colorScheme == .dark
+                ? Color(red: 0.20, green: 0.07, blue: 0.07).opacity(0.42)
+                : Color(red: 1.0, green: 0.96, blue: 0.96)
+        }
+        return colorScheme == .dark ? Color.white.opacity(0.075) : Color.white.opacity(0.78)
+    }
+
+    private var livePillBadge: some View {
+        HStack(spacing: 5) {
             Circle()
                 .fill(FGColor.dangerRed)
-                .frame(width: 7, height: 7)
-                .shadow(color: FGColor.dangerRed.opacity(0.65), radius: 5)
-                .scaleEffect(liveIndicatorPulse ? 1.35 : 0.92)
-                .opacity(liveIndicatorPulse ? 0.62 : 1.0)
+                .frame(width: 6, height: 6)
+                .scaleEffect(liveIndicatorPulse ? 1.25 : 0.92)
+                .opacity(liveIndicatorPulse ? 0.7 : 1.0)
                 .animation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true), value: liveIndicatorPulse)
-            Text("LIVE NOW")
+            Text("LIVE")
                 .font(.system(size: 10, weight: .bold, design: .rounded))
         }
         .foregroundStyle(FGColor.dangerRed)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
         .background(Capsule(style: .continuous).fill(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10)))
         .overlay {
             Capsule(style: .continuous)
                 .strokeBorder(FGColor.dangerRed.opacity(0.24), lineWidth: 1)
         }
+        .onAppear {
+            liveIndicatorPulse = true
+        }
+    }
+
+    private var liveDot: some View {
+        livePillBadge
         .onAppear {
             logLiveBadgeDebug()
         }
@@ -1683,13 +1947,17 @@ struct LiveScreen: View {
             .first
     }
 
-    private var liveRankedItems: [LiveFeedItem] {
+    private func liveRankedItems(for day: Date) -> [LiveFeedItem] {
         let venues = viewModel.mapVisibleBars.isEmpty ? viewModel.bars : viewModel.mapVisibleBars
+        let cal = Calendar.current
         var seen: Set<String> = []
         var items: [LiveFeedItem] = []
 
         for bar in venues {
-            for event in viewModel.selectedDayEventsForMap(bar) {
+            let dayEvents = viewModel.events.filter { event in
+                cal.isDate(event.date, inSameDayAs: day) && bar.games.contains(event.title)
+            }
+            for event in dayEvents {
                 let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: event.title)
                 let key = "\(bar.id.uuidString)-\(venueEventID?.uuidString ?? event.id.uuidString)"
                 guard !seen.contains(key) else { continue }
@@ -1923,29 +2191,25 @@ struct LiveScreen: View {
     }
 
     private func logLiveFeedSnapshot(
-        happeningNowCount: Int,
-        startingSoonCount: Int,
+        venuesAndPickupTodayCount: Int,
         friendsGoingCount: Int
     ) {
 #if DEBUG
-        print("[LiveTabDebug] happeningNowCount=\(happeningNowCount)")
-        print("[LiveTabDebug] startingSoonCount=\(startingSoonCount)")
+        print("[LiveTabDebug] venuesAndPickupTodayCount=\(venuesAndPickupTodayCount)")
         print("[LiveTabDebug] friendsGoingCount=\(friendsGoingCount)")
 #endif
     }
 
     private func visibleLiveSectionCount(
         matches: [LiveMatch],
-        happeningNow: [LiveFeedItem],
-        startingSoon: [LiveFeedItem],
+        venuesAndPickupToday: [LiveVenuesPickupRow],
         friendsGoing: [LiveFeedItem],
         crowdBuilding: [LiveFeedItem],
         fansChatting: [LiveFeedItem]
     ) -> Int {
         [
             !matches.isEmpty,
-            !happeningNow.isEmpty,
-            !startingSoon.isEmpty,
+            !venuesAndPickupToday.isEmpty,
             !friendsGoing.isEmpty,
             !crowdBuilding.isEmpty,
             !fansChatting.isEmpty

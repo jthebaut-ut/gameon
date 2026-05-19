@@ -40,18 +40,38 @@ extension MapViewModel {
         }
     }
 
-    func liveTabLiveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
-        liveMatchesDisplayed(searchQuery: searchQuery)
+    func liveTabLiveMatchesDisplayed(
+        searchQuery: String,
+        sportFilter: LiveSportVisualType? = nil,
+        calendarDay: Date = Calendar.current.startOfDay(for: Date())
+    ) -> [LiveMatch] {
+        liveMatchesDisplayed(
+            searchQuery: searchQuery,
+            sportFilter: sportFilter,
+            calendarDay: calendarDay,
+            statuses: [.live, .halfTime]
+        )
     }
 
     func calendarLiveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
-        liveMatchesDisplayed(searchQuery: searchQuery)
+        liveMatchesDisplayed(searchQuery: searchQuery, statuses: [.live, .halfTime])
     }
 
-    private func liveMatchesDisplayed(searchQuery: String) -> [LiveMatch] {
+    private func liveMatchesDisplayed(
+        searchQuery: String,
+        sportFilter: LiveSportVisualType? = nil,
+        calendarDay: Date? = nil,
+        statuses: Set<MatchStatus> = [.live, .halfTime]
+    ) -> [LiveMatch] {
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cal = Calendar.current
         return liveMatches
-            .filter { $0.matchStatus == .live || $0.matchStatus == .halfTime }
+            .filter { statuses.contains($0.matchStatus) }
+            .filter { match in
+                guard let calendarDay else { return true }
+                return cal.isDate(match.startTime, inSameDayAs: calendarDay)
+            }
+            .filter { sportFilter == nil || $0.liveSportVisualType == sportFilter }
             .filter { query.isEmpty || Self.liveMatch($0, matchesSearchQuery: query) }
             .sorted { lhs, rhs in
                 if lhs.league != rhs.league {
