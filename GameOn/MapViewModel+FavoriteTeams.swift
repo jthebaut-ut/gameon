@@ -32,14 +32,15 @@ extension MapViewModel {
     }
 
     /// Pushes catalog team IDs to Supabase (full replace). Local AppStorage should already be updated by the UI.
-    func syncFavoriteTeamsToSupabase(teamIDs: [String]) async {
+    @discardableResult
+    func syncFavoriteTeamsToSupabase(teamIDs: [String]) async -> Bool {
         guard let uid = await MainActor.run(body: { currentUserAuthId }) else {
 #if DEBUG
             print("[FavoriteTeamsSyncDebug] sync_skipped reason=no_auth_user")
 #endif
-            return
+            return false
         }
 
-        _ = await FavoriteTeamsSyncService.replaceTeamIDs(userId: uid, teamIDs: teamIDs)
+        return await FavoriteTeamsSyncService.replaceTeamIDs(userId: uid, teamIDs: teamIDs)
     }
 }

@@ -588,8 +588,8 @@ struct ProfileIdentityCard: View {
     private var heroBlock: some View {
         VStack(alignment: .leading, spacing: 16) {
             headerRow
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
 
             statsRow
                 .padding(.horizontal, 16)
@@ -597,7 +597,7 @@ struct ProfileIdentityCard: View {
     }
 
     private var headerRow: some View {
-        HStack(alignment: .top, spacing: 15) {
+        HStack(alignment: .top, spacing: 18) {
             PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
                 avatarStack
             }
@@ -605,11 +605,11 @@ struct ProfileIdentityCard: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Update profile photo")
 
-            VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 12) {
                 Button {
                     presentIdentityEditor(focusedField: .displayName)
                 } label: {
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
                             Text(displayName)
                                 .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -638,10 +638,12 @@ struct ProfileIdentityCard: View {
                     presentIdentityEditor(focusedField: .bio)
                 } label: {
                     Text(bioLine.isEmpty ? "Add a short bio so fans know your vibe." : bioLine)
-                        .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
                         .foregroundStyle(bioLine.isEmpty ? FGColor.mutedText(colorScheme) : FGColor.primaryText(colorScheme).opacity(0.82))
-                        .lineLimit(3)
+                        .lineLimit(2)
+                        .lineSpacing(2)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
                 }
@@ -658,9 +660,9 @@ struct ProfileIdentityCard: View {
                             .lineLimit(1)
                     }
                 }
+                .padding(.top, 1)
             }
-
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -1134,12 +1136,14 @@ struct ProfileIdentityCard: View {
 
     private func favoriteTeamSocialCard(team: FavoriteTeam) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
+            HStack(alignment: .top, spacing: 8) {
                 PremiumTeamIdentityOrb(team: team, diameter: 62)
                 Spacer(minLength: 0)
                 Image(systemName: "star.fill")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Color.white.opacity(0.86))
+
+                removeFavoriteTeamButton(team: team)
             }
 
             VStack(alignment: .leading, spacing: 1) {
@@ -1189,6 +1193,60 @@ struct ProfileIdentityCard: View {
                 }
         }
         .shadow(color: team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.16), radius: 14, y: 8)
+    }
+
+    private func removeFavoriteTeamButton(team: FavoriteTeam) -> some View {
+        Button {
+            removeFavoriteTeam(team)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 8.5, weight: .bold))
+                .foregroundStyle(Color.white.opacity(0.88))
+                .frame(width: 24, height: 24)
+                .background {
+                    Circle()
+                        .fill(Color.black.opacity(0.22))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.75)
+                        }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Remove \(team.name) from favorite teams")
+    }
+
+    private func removeFavoriteTeam(_ team: FavoriteTeam) {
+#if DEBUG
+        print("[FavoriteTeamsProfile] remove tapped team_id=\(team.id)")
+#endif
+        let previousIDs = FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw)
+        let nextIDs = previousIDs.filter { $0 != team.id }
+        guard nextIDs.count != previousIDs.count else { return }
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(nextIDs)
+        }
+
+        Task {
+            let didSync = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: nextIDs)
+            if didSync {
+#if DEBUG
+                print("[FavoriteTeamsProfile] remove success team_id=\(team.id)")
+#endif
+                return
+            }
+
+            await MainActor.run {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(previousIDs)
+                }
+            }
+#if DEBUG
+            print("[FavoriteTeamsProfile] remove failed team_id=\(team.id) error=sync_failed")
+#endif
+        }
     }
 
     private var addTeamSocialCard: some View {
