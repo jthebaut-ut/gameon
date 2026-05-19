@@ -33,6 +33,12 @@ struct FollowingScreen: View {
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
+    /// Nil while Going tab is not selected so lazy mount does not trigger global refresh at launch.
+    private var followingTabTaskIdentity: String? {
+        guard isFollowingTabSelected else { return nil }
+        return viewModel.currentUserAuthId?.uuidString ?? "signedOut"
+    }
+
     var body: some View {
         ZStack {
             Color.clear
@@ -54,10 +60,12 @@ struct FollowingScreen: View {
                 didHandleInitialAutoRefresh = true
                 return
             }
+            guard isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
             Task { await reloadFollowingDataForCurrentUser() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newId in
+            guard isFollowingTabSelected else { return }
             if newId != nil {
                 Task { await reloadFollowingDataForCurrentUser() }
             } else {
@@ -65,9 +73,10 @@ struct FollowingScreen: View {
                 interestedOnlyEncoded = ""
             }
         }
-        .task(id: viewModel.currentUserAuthId) {
+        .task(id: followingTabTaskIdentity) {
+            guard isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
-            await viewModel.refreshFollowingTabDataGlobally()
+            await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
             await viewModel.loadMyPickupGameJoinRequestsForFollowing()
         }
         .sheet(item: $pickupDetailNav, onDismiss: {
@@ -353,7 +362,28 @@ struct FollowingScreen: View {
     }
 
     private var goingVenueGameItems: [FollowingGoingDisplayItem] {
-        viewModel.followingTabGoingItems.filter(\.isServerGoing)
+        viewModel.followingTabGoingItems
+            .filter(\.isServerGoing)
+            .sorted { lhs, rhs in
+                let lhsExpired = watchingVenueGameIsCompleted(lhs)
+                let rhsExpired = watchingVenueGameIsCompleted(rhs)
+                if lhsExpired != rhsExpired { return !lhsExpired }
+                let lhsDate = lhs.venueEvent.event_date ?? ""
+                let rhsDate = rhs.venueEvent.event_date ?? ""
+                if lhsDate != rhsDate { return lhsDate > rhsDate }
+                return lhs.venueEvent.event_time ?? "" > rhs.venueEvent.event_time ?? ""
+            }
+    }
+
+    private func watchingVenueGameIsCompleted(_ item: FollowingGoingDisplayItem) -> Bool {
+        let completed = VenueGameExpiration.isWatchingCompleted(row: item.venueEvent)
+#if DEBUG
+        if completed {
+            VenueGameExpiration.logAuditOncePerEvaluation(row: item.venueEvent, eventID: item.id)
+            print("[WatchingExpiredVenueGame] detected event_id=\(item.id.uuidString.lowercased())")
+        }
+#endif
+        return completed
     }
 
     private var goingModeSwitcher: some View {
@@ -706,7 +736,7 @@ struct FollowingScreen: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(goingVenueGameItems) { item in
-                        goingPlanCard(item)
+                        goingPlanCard(item, isCompleted: watchingVenueGameIsCompleted(item))
                     }
                 }
             }
@@ -1450,34 +1480,41 @@ struct FollowingScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func goingPlanCard(_ item: FollowingGoingDisplayItem) -> some View {
+    private func goingPlanCard(_ item: FollowingGoingDisplayItem, isCompleted: Bool) -> some View {
         let title = item.venueEvent.event_title ?? "Event"
         let bar = item.bar
         let sportRaw = item.venueEvent.sport ?? bar.primarySport
         let datePart = item.venueEvent.event_date ?? ""
         let timePart = item.venueEvent.event_time ?? ""
         let dateTimeLine = [datePart, timePart].filter { !$0.isEmpty }.joined(separator: " · ")
+        let primaryText = isCompleted ? FGColor.mutedText(followingColorScheme) : FGColor.primaryText(followingColorScheme)
+        let secondaryText = isCompleted ? FGColor.mutedText(followingColorScheme) : FGColor.secondaryText(followingColorScheme)
 
         return HStack(alignment: .top, spacing: 12) {
             followingVenueLeadingVisual(bar: bar, sportRaw: sportRaw)
+                .opacity(isCompleted ? 0.55 : 1)
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 10) {
                     Text(title)
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                        .foregroundStyle(primaryText)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 8)
 
-                    attendanceMenu(item: item)
+                    if isCompleted {
+                        watchingCompletedPill
+                    } else {
+                        attendanceMenu(item: item)
+                    }
                 }
 
                 if !dateTimeLine.isEmpty {
                     Label(dateTimeLine, systemImage: "calendar")
                         .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                        .foregroundStyle(secondaryText)
                         .labelStyle(.titleAndIcon)
                 }
 
@@ -1490,12 +1527,13 @@ struct FollowingScreen: View {
                 } label: {
                     Label(bar.name, systemImage: "mappin.and.ellipse")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                        .foregroundStyle(primaryText)
                         .labelStyle(.titleAndIcon)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+                .disabled(isCompleted)
                 .accessibilityLabel("Open \(bar.name) on map")
 
                 Button {
@@ -1503,14 +1541,15 @@ struct FollowingScreen: View {
                 } label: {
                     Text(bar.address)
                         .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.accentBlue)
+                        .foregroundStyle(isCompleted ? secondaryText : FGColor.accentBlue)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+                .disabled(isCompleted)
                 .accessibilityLabel("Directions to \(bar.name)")
 
-                if let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar) {
+                if let bizEmail = VenueGameBusinessEmail.resolvedDisplayEmail(for: bar), !isCompleted {
                     VenueGameBusinessContactEmailRow(
                         email: bizEmail,
                         secondaryForeground: FGColor.secondaryText(followingColorScheme)
@@ -1519,12 +1558,31 @@ struct FollowingScreen: View {
                     .onAppear { VenueGameBusinessEmail.logDebug(bar: bar) }
                 }
 
-                HStack(alignment: .center, spacing: 10) {
-                    GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id), viewerUserID: viewModel.currentUserAuthId)
-                    Label("\(item.attendeeCount) interested / going", systemImage: "person.2.fill")
-                        .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
-                        .labelStyle(.titleAndIcon)
+                if isCompleted {
+                    Button {
+                        Task { await clearWatchingVenueGame(item) }
+                    } label: {
+                        Label("Clear", systemImage: "xmark.circle")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color.primary.opacity(followingColorScheme == .dark ? 0.14 : 0.07))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear completed game from Watching")
+                } else {
+                    HStack(alignment: .center, spacing: 10) {
+                        GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id), viewerUserID: viewModel.currentUserAuthId)
+                        Label("\(item.attendeeCount) interested / going", systemImage: "person.2.fill")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(secondaryText)
+                            .labelStyle(.titleAndIcon)
+                    }
                 }
             }
         }
@@ -1532,13 +1590,71 @@ struct FollowingScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(
+                    isCompleted
+                        ? Color.primary.opacity(followingColorScheme == .dark ? 0.10 : 0.05)
+                        : Color.clear
+                )
+        }
+        .background {
+            if !isCompleted {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(
+                    isCompleted
+                        ? FGColor.divider(followingColorScheme).opacity(0.85)
+                        : Color.clear,
+                    lineWidth: 1
+                )
+        }
+        .opacity(isCompleted ? 0.88 : 1)
         .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
         .task(id: item.id) {
-            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            guard viewModel.isAuthenticatedForSocialFeatures, !isCompleted else { return }
             await viewModel.loadGoingUserProfiles(for: item.id)
+        }
+    }
+
+    private var watchingCompletedPill: some View {
+        Text("Ended")
+            .font(.caption.weight(.bold))
+            .foregroundStyle(FGColor.mutedText(followingColorScheme))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.primary.opacity(followingColorScheme == .dark ? 0.16 : 0.08))
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.divider(followingColorScheme), lineWidth: 1)
+            }
+            .accessibilityLabel("Game ended")
+    }
+
+    @MainActor
+    private func clearWatchingVenueGame(_ item: FollowingGoingDisplayItem) async {
+        guard viewModel.isAuthenticatedForSocialFeatures else { return }
+#if DEBUG
+        print("[WatchingExpiredVenueGame] clear tapped event_id=\(item.id.uuidString.lowercased())")
+#endif
+        setInterestedOnlyLocally(item.id, false)
+        let ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+        if ok {
+#if DEBUG
+            print("[WatchingExpiredVenueGame] clear success event_id=\(item.id.uuidString.lowercased())")
+#endif
+            viewModel.showSocialActionToast("Removed from Watching.")
+        } else {
+#if DEBUG
+            print("[WatchingExpiredVenueGame] clear failed event_id=\(item.id.uuidString.lowercased()) error=removeInterestInVenueEvent")
+#endif
+            viewModel.showSocialActionToast("Couldn't clear this game. Try again.")
         }
     }
 

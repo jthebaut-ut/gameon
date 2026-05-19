@@ -19,6 +19,8 @@ struct MainTabView: View {
     @State private var showBlockingFanIdentitySetup = false
     @State private var privateChatUnlockedForCurrentSelection = false
     @State private var discoverCalendarOverlayPresented = false
+    /// Sticky lazy mount: Discover at launch; other tabs insert on first selection and stay mounted.
+    @State private var mountedTabs: Set<AppTab> = [.discover]
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -27,11 +29,14 @@ struct MainTabView: View {
     private var selectedTabBinding: Binding<AppTab> {
         Binding(
             get: { AppTab(rawValue: selectedTabStorage) ?? .discover },
-            set: { newTab in selectedTabStorage = newTab.rawValue }
+            set: { newTab in
+                mountTab(newTab, reason: "selectedTabBinding")
+                selectedTabStorage = newTab.rawValue
+            }
         )
     }
 
-    enum AppTab: String {
+    enum AppTab: String, CaseIterable {
         case discover
         case live
         case calendar
@@ -79,7 +84,7 @@ struct MainTabView: View {
 
     private var tabShellWithLifecycleModifiers: some View {
         ZStack {
-            preservedRoot(tab: .discover) {
+            lazyPreservedRoot(tab: .discover) {
                 DiscoverScreen(
                     viewModel: viewModel,
                     chatViewModel: chatViewModel,
@@ -87,7 +92,7 @@ struct MainTabView: View {
                 )
             }
 
-            preservedRoot(tab: .live) {
+            lazyPreservedRoot(tab: .live) {
                 LiveScreen(
                     viewModel: viewModel,
                     chatViewModel: chatViewModel,
@@ -95,7 +100,7 @@ struct MainTabView: View {
                 )
             }
 
-            preservedRoot(tab: .calendar) {
+            lazyPreservedRoot(tab: .calendar) {
                 CalendarScreen(
                     viewModel: viewModel,
                     selectedTab: selectedTabBinding,
@@ -103,7 +108,7 @@ struct MainTabView: View {
                 )
             }
 
-            preservedRoot(tab: .following) {
+            lazyPreservedRoot(tab: .following) {
                 FollowingScreen(
                     viewModel: viewModel,
                     suppressInitialAutoRefresh: true,
@@ -111,7 +116,7 @@ struct MainTabView: View {
                 )
             }
 
-            preservedRoot(tab: .chat) {
+            lazyPreservedRoot(tab: .chat) {
                 FriendsTabView(
                     mapViewModel: viewModel,
                     viewModel: chatViewModel,
@@ -123,7 +128,7 @@ struct MainTabView: View {
                 )
             }
 
-            preservedRoot(tab: .account) {
+            lazyPreservedRoot(tab: .account) {
                 SettingsScreen(
                     viewModel: viewModel,
                     isAccountTabSelected: selectedTab == .account
@@ -143,10 +148,19 @@ struct MainTabView: View {
             dmInAppNotificationBannerLayer
         }
         .onAppear {
+            mountedTabs.insert(.discover)
+            let restoredTab = selectedTab
+            mountTab(restoredTab, reason: "mainTabOnAppear")
+#if DEBUG
+            print("[PerfLazyTab] restoredSelected tab=\(restoredTab.rawValue)")
+            for tab in AppTab.allCases where !mountedTabs.contains(tab) {
+                print("[PerfLazyTab] deferred tab=\(tab.rawValue)")
+            }
+#endif
             viewModel.isCalendarTabSelected = selectedTab == .calendar
             if !Self.hasForcedDiscoverTabThisProcess {
                 Self.hasForcedDiscoverTabThisProcess = true
-                selectedTabStorage = AppTab.discover.rawValue
+                selectTab(.discover, animated: false, reason: "startupForceDiscover")
 #if DEBUG
                 print("[StartupDiscover] selectedTab=\(AppTab.discover.rawValue)")
 #endif
@@ -159,9 +173,7 @@ struct MainTabView: View {
         .onChange(of: viewModel.switchToAccountForVenueClaim) { _, shouldSwitch in
             guard shouldSwitch else { return }
             viewModel.switchToAccountForVenueClaim = false
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.account.rawValue
-            }
+            selectTab(.account, reason: "switchToAccountForVenueClaim")
         }
         // Startup core refresh: map/calendar data should not wait on profile, favorites, or social enrichment.
         .task {
@@ -224,9 +236,7 @@ struct MainTabView: View {
                 Task { await selectChatTabAfterDeviceAuth() }
             } else {
                 privateChatUnlockedForCurrentSelection = true
-                withAnimation(.spring(response: 0.38, dampingFraction: 0.88)) {
-                    selectedTabStorage = AppTab.chat.rawValue
-                }
+                selectTab(.chat, reason: "pendingDmOpenPreview")
                 updateDirectChatReadStateVisibility()
             }
         }
@@ -271,9 +281,7 @@ struct MainTabView: View {
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
             guard go else { return }
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.account.rawValue
-            }
+            selectTab(.account, reason: "discoverNavigateToAccountForUserAuth")
             privateChatUnlockedForCurrentSelection = false
             updateDirectChatReadStateVisibility()
             viewModel.discoverNavigateToAccountForUserAuth = false
@@ -282,8 +290,10 @@ struct MainTabView: View {
 #if DEBUG
             print("[LiveTabDebug] selectedTab=\(newRaw)")
 #endif
-            viewModel.isCalendarTabSelected = AppTab(rawValue: newRaw) == .calendar
-            switch AppTab(rawValue: newRaw) {
+            guard let tab = AppTab(rawValue: newRaw) else { return }
+            mountTab(tab, reason: "selectedTabStorage")
+            viewModel.isCalendarTabSelected = tab == .calendar
+            switch tab {
             case .calendar:
                 privateChatUnlockedForCurrentSelection = false
                 updateDirectChatReadStateVisibility()
@@ -301,15 +311,33 @@ struct MainTabView: View {
         .environmentObject(chatViewModel)
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
             guard id != nil else { return }
+            selectTab(.discover, reason: "pendingFollowingMapVenueID")
+        }
+    }
+
+    private func mountTab(_ tab: AppTab, reason: String) {
+        if mountedTabs.contains(tab) { return }
+        mountedTabs.insert(tab)
+#if DEBUG
+        print("[PerfLazyTab] mounted tab=\(tab.rawValue) reason=\(reason)")
+#endif
+    }
+
+    private func selectTab(_ tab: AppTab, animated: Bool = true, reason: String = "userSelection") {
+        mountTab(tab, reason: reason)
+        if animated {
             withAnimation(.spring()) {
-                selectedTabStorage = AppTab.discover.rawValue
+                selectedTabStorage = tab.rawValue
             }
+        } else {
+            selectedTabStorage = tab.rawValue
         }
     }
 
     /// Scene restore: if the saved tab is Chat, require local auth or bounce away from private messages.
     private func enforcePrivateChatGateOnLaunchIfNeeded() async {
         guard selectedTab == .chat else { return }
+        mountTab(.chat, reason: "enforcePrivateChatGateOnLaunch")
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
         guard requireDeviceAuthForPrivateChat else { return }
 
@@ -323,9 +351,7 @@ struct MainTabView: View {
         }
 
         await MainActor.run {
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.discover.rawValue
-            }
+            selectTab(.discover, reason: "privateChatGateDenied")
             privateChatUnlockedForCurrentSelection = false
             updateDirectChatReadStateVisibility()
             switch outcome {
@@ -346,9 +372,7 @@ struct MainTabView: View {
         if !viewModel.isAuthenticatedForSocialFeatures {
             await MainActor.run {
                 privateChatUnlockedForCurrentSelection = true
-                withAnimation(.spring()) {
-                    selectedTabStorage = AppTab.chat.rawValue
-                }
+                selectTab(.chat, reason: "selectChatTabAfterDeviceAuth")
                 updateDirectChatReadStateVisibility()
             }
             return
@@ -357,9 +381,7 @@ struct MainTabView: View {
         guard requireDeviceAuthForPrivateChat else {
             await MainActor.run {
                 privateChatUnlockedForCurrentSelection = true
-                withAnimation(.spring()) {
-                    selectedTabStorage = AppTab.chat.rawValue
-                }
+                selectTab(.chat, reason: "selectChatTabAfterDeviceAuth")
                 updateDirectChatReadStateVisibility()
             }
             return
@@ -370,9 +392,7 @@ struct MainTabView: View {
             switch outcome {
             case .granted:
                 privateChatUnlockedForCurrentSelection = true
-                withAnimation(.spring()) {
-                    selectedTabStorage = AppTab.chat.rawValue
-                }
+                selectTab(.chat, reason: "selectChatTabAfterDeviceAuth")
                 updateDirectChatReadStateVisibility()
             case .authenticationFailed:
                 privateChatUnlockedForCurrentSelection = false
@@ -504,9 +524,7 @@ struct MainTabView: View {
 
                 Button {
                     FGInteractionHaptics.selection()
-                    withAnimation(.spring()) {
-                        selectedTabStorage = AppTab.account.rawValue
-                    }
+                    selectTab(.account, reason: "accountTabButton")
                 } label: {
                     accountTabAvatar
                 }
@@ -533,6 +551,21 @@ struct MainTabView: View {
         }
         .allowsHitTesting(true)
         .zIndex(2)
+    }
+
+    /// Lazy sticky mount: unmounted tabs render nothing; mounted tabs use off-screen preservation when inactive.
+    @ViewBuilder
+    private func lazyPreservedRoot<Content: View>(
+        tab: AppTab,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if mountedTabs.contains(tab) {
+            preservedRoot(tab: tab, content: content)
+        } else {
+            Color.clear
+                .frame(width: 0, height: 0)
+                .accessibilityHidden(true)
+        }
     }
 
     // Renders a tab’s root off-screen when inactive so SwiftUI state is preserved without receiving touches.
@@ -704,9 +737,7 @@ struct MainTabView: View {
     private func calendarTabButton() -> some View {
         return Button {
             FGInteractionHaptics.selection()
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.calendar.rawValue
-            }
+            selectTab(.calendar, reason: "calendarTabButton")
         } label: {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 5) {
@@ -733,9 +764,7 @@ struct MainTabView: View {
     private func followingTabButton() -> some View {
         Button {
             FGInteractionHaptics.selection()
-            withAnimation(.spring()) {
-                selectedTabStorage = AppTab.following.rawValue
-            }
+            selectTab(.following, reason: "followingTabButton")
         } label: {
             ZStack(alignment: .topTrailing) {
                 HStack(spacing: 5) {
@@ -776,9 +805,7 @@ struct MainTabView: View {
     private func tabButton(_ tab: AppTab, title: String, icon: String, glow: Color = FGColor.accentBlue) -> some View {
         Button {
             FGInteractionHaptics.selection()
-            withAnimation(.spring()) {
-                selectedTabStorage = tab.rawValue
-            }
+            selectTab(tab, reason: "tabButton")
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: icon)
