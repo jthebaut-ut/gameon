@@ -141,6 +141,26 @@ final class DirectChatService {
         return rows
     }
 
+    /// Fetches only the user-selected moderation review window for a private conversation report.
+    func fetchMessagesForReportSnapshot(conversationId: UUID, from start: Date, to end: Date) async throws -> [DirectMessageRow] {
+        do {
+            return try await fetchMessagesForReportSnapshotWithIsDeletedFilter(
+                conversationId: conversationId,
+                from: start,
+                to: end
+            )
+        } catch {
+            if Self.shouldFallbackToLegacyDirectMessagesQuery(error) {
+                return try await fetchMessagesForReportSnapshotDeletedAtOnly(
+                    conversationId: conversationId,
+                    from: start,
+                    to: end
+                )
+            }
+            throw error
+        }
+    }
+
     func sendMessage(
         conversationId: UUID,
         senderId: UUID,
@@ -411,6 +431,45 @@ final class DirectChatService {
             .order("created_at", ascending: true)
             .order("id", ascending: true)
             .limit(limit)
+            .execute()
+            .value
+        return rows
+    }
+
+    private func fetchMessagesForReportSnapshotWithIsDeletedFilter(
+        conversationId: UUID,
+        from start: Date,
+        to end: Date
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .or("is_deleted.is.null,is_deleted.eq.false")
+            .gte("created_at", value: Self.isoTimestamp(start))
+            .lte("created_at", value: Self.isoTimestamp(end))
+            .order("created_at", ascending: true)
+            .order("id", ascending: true)
+            .execute()
+            .value
+        return rows
+    }
+
+    private func fetchMessagesForReportSnapshotDeletedAtOnly(
+        conversationId: UUID,
+        from start: Date,
+        to end: Date
+    ) async throws -> [DirectMessageRow] {
+        let rows: [DirectMessageRow] = try await client
+            .from("direct_messages")
+            .select(Self.directMessageListColumns)
+            .eq("conversation_id", value: conversationId)
+            .is("deleted_at", value: nil)
+            .gte("created_at", value: Self.isoTimestamp(start))
+            .lte("created_at", value: Self.isoTimestamp(end))
+            .order("created_at", ascending: true)
+            .order("id", ascending: true)
             .execute()
             .value
         return rows

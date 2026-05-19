@@ -1266,10 +1266,14 @@ struct DirectChatView: View {
     @State private var reportDetails: String = ""
     @State private var isSubmittingReport = false
     @State private var reportSheetError: String?
+    @State private var reportReviewWindowStart: Date = Date().addingTimeInterval(-86_400)
+    @State private var reportReviewWindowEnd: Date = Date()
+    @State private var reportReviewConsentChecked = false
 
     private static let reportSubmittedBannerText = "Report submitted. FanGeo moderation will review it."
     private static let duplicateConversationReportBannerText =
         "You already reported this conversation. FanGeo moderation will review it."
+    private static let conversationReportMaxReviewWindow: TimeInterval = 7 * 24 * 60 * 60
 
     private static func isPositiveReportBanner(_ text: String) -> Bool {
         text == reportSubmittedBannerText || text == duplicateConversationReportBannerText
@@ -1510,15 +1514,36 @@ struct DirectChatView: View {
                 reportDetails = ""
                 reportSheetError = nil
                 isSubmittingReport = false
+                reportReviewConsentChecked = false
+                if case .conversation? = newValue {
+                    resetConversationReportConsentWindow()
+                    #if DEBUG
+                    print("[PrivateReportConsent] opened conversation_id=\(presenter.conversationId?.uuidString ?? "nil")")
+                    print("[PrivateReportConsent] window_start=\(Self.reportDebugISO.string(from: reportReviewWindowStart))")
+                    print("[PrivateReportConsent] window_end=\(Self.reportDebugISO.string(from: reportReviewWindowEnd))")
+                    #endif
+                }
             } else {
                 reportSheetError = nil
                 isSubmittingReport = false
+                reportReviewConsentChecked = false
             }
         }
         .onChange(of: reportCategory) { _, _ in
             if reportSheet != nil {
                 reportSheetError = nil
             }
+        }
+        .onChange(of: reportReviewWindowStart) { _, _ in
+            logConversationReportWindowChangeIfNeeded()
+        }
+        .onChange(of: reportReviewWindowEnd) { _, _ in
+            logConversationReportWindowChangeIfNeeded()
+        }
+        .onChange(of: reportReviewConsentChecked) { _, checked in
+            #if DEBUG
+            print("[PrivateReportConsent] consent_checked=\(checked)")
+            #endif
         }
     }
 
@@ -1691,6 +1716,46 @@ struct DirectChatView: View {
                     }
                 }
 
+                if case .conversation = kind {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Report this private conversation?")
+                                .font(.headline)
+                            Text("Private messages are only shared with FanGeo safety admins when you report them. By continuing, you allow admins to review the selected portion of this conversation so they can investigate your report.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        DatePicker(
+                            "From",
+                            selection: $reportReviewWindowStart,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .disabled(isSubmittingReport)
+                        DatePicker(
+                            "To",
+                            selection: $reportReviewWindowEnd,
+                            in: ...Date(),
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .disabled(isSubmittingReport)
+                        Toggle(
+                            "I understand that FanGeo safety admins may review messages in this selected time window.",
+                            isOn: $reportReviewConsentChecked
+                        )
+                        .disabled(isSubmittingReport)
+                    } footer: {
+                        if let validationError = conversationReportWindowValidationError() {
+                            Text(validationError)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        } else {
+                            Text("Admins will receive only messages in this selected time window.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
                 if isSubmittingReport {
                     Section {
                         HStack(spacing: 10) {
@@ -1730,13 +1795,19 @@ struct DirectChatView: View {
                         Button("Submit") {
                             Task { await submitDirectChatReport(kind: kind) }
                         }
-                        .disabled(reportCategory == nil)
+                        .disabled(isReportSubmitDisabled(for: kind))
                     }
                 }
             }
             .interactiveDismissDisabled(isSubmittingReport)
         }
     }
+
+    private static let reportDebugISO: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
 
     private func reportNavigationTitle(for kind: DirectChatReportSheetKind) -> String {
         switch kind {
@@ -1746,30 +1817,61 @@ struct DirectChatView: View {
         }
     }
 
-    /// Last messages for admin email only (not stored on `conversation_reports`).
-    private func buildConversationRecentContextForModerationEmail() -> String? {
-        guard let me = chatViewModel.currentUserAuthId else { return nil }
-        let maxMessages = 10
-        let tail = Array(presenter.messages.suffix(maxMessages))
-        guard !tail.isEmpty else { return nil }
-        var lines: [String] = []
-        for m in tail {
-            let label: String
-            if m.sender_id == presenter.friend.id {
-                label = "\(presenter.friend.displayName) (\(presenter.friend.id.uuidString))"
-            } else if m.sender_id == me {
-                label = "Reporter (\(me.uuidString))"
-            } else {
-                label = "User \(m.sender_id.uuidString)"
+    private func resetConversationReportConsentWindow() {
+        let now = Date()
+        let latestMessage = presenter.messages
+            .compactMap { row -> (DirectMessageRow, Date)? in
+                guard let date = DirectChatTimeGrouping.parseDate(row.created_at) else { return nil }
+                return (row, date)
             }
-            let ts = m.created_at ?? "—"
-            let singleLine = m.body
-                .replacingOccurrences(of: "\r\n", with: " ")
-                .replacingOccurrences(of: "\n", with: " ")
-                .replacingOccurrences(of: "\r", with: " ")
-            lines.append("[\(ts)] \(label): \(singleLine)")
+            .max { $0.1 < $1.1 }
+        let anchor = min(latestMessage?.1 ?? now, now)
+        reportReviewWindowEnd = anchor
+        reportReviewWindowStart = anchor.addingTimeInterval(-24 * 60 * 60)
+    }
+
+    private func reportedMessageIdForConversationReport(
+        from snapshotRows: [DirectMessageRow],
+        reportedUserId: UUID
+    ) -> UUID? {
+        snapshotRows
+            .compactMap { row -> (UUID, Date)? in
+                guard row.sender_id == reportedUserId,
+                      let date = DirectChatTimeGrouping.parseDate(row.created_at) else { return nil }
+                return (row.id, date)
+            }
+            .max { $0.1 < $1.1 }?
+            .0
+    }
+
+    private func conversationReportWindowValidationError() -> String? {
+        if reportReviewWindowStart > reportReviewWindowEnd {
+            return "Choose a start time before the end time."
         }
-        return lines.joined(separator: "\n")
+        if reportReviewWindowEnd > Date() {
+            return "The review window can’t end in the future."
+        }
+        if reportReviewWindowEnd.timeIntervalSince(reportReviewWindowStart) > Self.conversationReportMaxReviewWindow {
+            return "Choose a review window of 7 days or less."
+        }
+        return nil
+    }
+
+    private func isReportSubmitDisabled(for kind: DirectChatReportSheetKind) -> Bool {
+        guard reportCategory != nil else { return true }
+        guard case .conversation = kind else { return false }
+        return !reportReviewConsentChecked || conversationReportWindowValidationError() != nil
+    }
+
+    private func logConversationReportWindowChangeIfNeeded() {
+        guard case .conversation? = reportSheet else { return }
+        #if DEBUG
+        print("[PrivateReportConsent] window_start=\(Self.reportDebugISO.string(from: reportReviewWindowStart))")
+        print("[PrivateReportConsent] window_end=\(Self.reportDebugISO.string(from: reportReviewWindowEnd))")
+        if let reason = conversationReportWindowValidationError() {
+            print("[PrivateReportConsent] invalid_window reason=\(reason)")
+        }
+        #endif
     }
 
     private func submitDirectChatReport(kind: DirectChatReportSheetKind) async {
@@ -1815,6 +1917,23 @@ struct DirectChatView: View {
                     }
                     return
                 }
+                if let validationError = conversationReportWindowValidationError() {
+#if DEBUG
+                    print("[PrivateReportConsent] invalid_window reason=\(validationError)")
+#endif
+                    await MainActor.run {
+                        isSubmittingReport = false
+                        reportSheetError = validationError
+                    }
+                    return
+                }
+                guard reportReviewConsentChecked else {
+                    await MainActor.run {
+                        isSubmittingReport = false
+                        reportSheetError = "Please confirm admin review consent before submitting."
+                    }
+                    return
+                }
                 if let cooldownMessage = RateLimitService.checkConversationReportSubmit(
                     reporterId: reporterId,
                     conversationId: cid
@@ -1826,18 +1945,40 @@ struct DirectChatView: View {
                     return
                 }
 
-                let recentContext = buildConversationRecentContextForModerationEmail()
+                let snapshotRows = try await DirectChatService().fetchMessagesForReportSnapshot(
+                    conversationId: cid,
+                    from: reportReviewWindowStart,
+                    to: reportReviewWindowEnd
+                )
+                let messageSnapshot = snapshotRows.map {
+                    PrivateConversationReportMessageSnapshot(
+                        id: $0.id,
+                        conversation_id: $0.conversation_id,
+                        sender_id: $0.sender_id,
+                        body: $0.body,
+                        created_at: $0.created_at
+                    )
+                }
+                let reportedMessageId = reportedMessageIdForConversationReport(
+                    from: snapshotRows,
+                    reportedUserId: presenter.friend.id
+                )
 #if DEBUG
-                let ctxCount = presenter.messages.suffix(10).count
-                print("[DMReport] recent context count=\(ctxCount)")
+                print("[PrivateReportConsent] window_start=\(Self.reportDebugISO.string(from: reportReviewWindowStart))")
+                print("[PrivateReportConsent] window_end=\(Self.reportDebugISO.string(from: reportReviewWindowEnd))")
+                print("[DMReport] review snapshot count=\(messageSnapshot.count)")
+                print("[DMReport] selected reported_message_id=\(reportedMessageId?.uuidString ?? "nil") reported_user_id=\(presenter.friend.id.uuidString)")
 #endif
 
-                try await moderation.reportConversation(
+                _ = try await moderation.reportConversation(
                     conversationId: cid,
                     otherUserId: presenter.friend.id,
                     category: category,
                     details: detailsOpt,
-                    recentContextForModerationEmail: recentContext
+                    reviewWindowStart: reportReviewWindowStart,
+                    reviewWindowEnd: reportReviewWindowEnd,
+                    reportedMessageId: reportedMessageId,
+                    messageSnapshot: messageSnapshot
                 )
                 RateLimitService.recordConversationReportSubmit(reporterId: reporterId, conversationId: cid)
             case .message(let row):

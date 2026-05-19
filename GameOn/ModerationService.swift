@@ -4,7 +4,7 @@ import Supabase
 // MARK: - Report categories (stored as plain strings in `user_reports` / `conversation_reports` / `message_reports`)
 // TODO: Align copy with in-app Community Guidelines / Terms of Service links when available.
 
-/// Thrown only from ``ModerationService/reportConversation(conversationId:otherUserId:category:details:recentContextForModerationEmail:)`` for client-safe handling.
+/// Thrown only from private conversation report submission for client-safe handling.
 enum ModerationConversationReportError: LocalizedError, Equatable {
     case duplicateOpenReport
     case detailsTooLong(max: Int)
@@ -40,6 +40,14 @@ enum ModerationReportCategory: String, CaseIterable, Identifiable {
         case .other: return "Other"
         }
     }
+}
+
+nonisolated struct PrivateConversationReportMessageSnapshot: Codable, Hashable {
+    let id: UUID
+    let conversation_id: UUID?
+    let sender_id: UUID
+    let body: String
+    let created_at: String?
 }
 
 /// Lightweight moderation helpers used by Chat surfaces.
@@ -112,6 +120,28 @@ struct ModerationService {
         let category: String
         let details: String?
         let status: String
+        let review_window_start: String
+        let review_window_end: String
+        let admin_review_consent_granted: Bool
+        let admin_review_consent_granted_at: String
+        let reported_message_id: UUID?
+        let message_snapshot: [PrivateConversationReportMessageSnapshot]
+    }
+
+    private nonisolated struct ConversationReportInsertResponse: Decodable {
+        let id: UUID
+    }
+
+    private nonisolated struct DirectConversationReportDebugRow: Decodable {
+        let id: UUID
+        let user_a_id: UUID?
+        let user_b_id: UUID?
+    }
+
+    private nonisolated struct DirectMessageReportDebugRow: Decodable {
+        let id: UUID
+        let conversation_id: UUID?
+        let sender_id: UUID?
     }
 
     private nonisolated struct MessageReportInsert: Encodable {
@@ -134,6 +164,7 @@ struct ModerationService {
 
     /// Edge function derives reporter from JWT (`auth.getUser()`); do not send client `reporter_user_id`.
     private nonisolated struct NotifyModerationReportPayload: Encodable {
+        let report_id: UUID?
         let report_type: String
         let reported_user_id: UUID
         let category: String
@@ -142,8 +173,9 @@ struct ModerationService {
         let conversation_id: UUID?
         let message_id: UUID?
         let message_text_snapshot: String?
-        /// Admin email only: recent DM lines for conversation reports (not stored in `conversation_reports`).
-        let conversation_recent_context: String?
+        let review_window_start: String?
+        let review_window_end: String?
+        let conversation_message_snapshot: [PrivateConversationReportMessageSnapshot]?
     }
 
     private nonisolated struct NotifyModerationReportResponse: Decodable {
@@ -169,6 +201,7 @@ struct ModerationService {
 
     /// Fire-and-forget admin email via Edge Function; must run only after the report row is stored.
     private func notifyModerationReportBestEffort(
+        reportId: UUID? = nil,
         reportType: String,
         reportedUserId: UUID,
         category: ModerationReportCategory,
@@ -176,13 +209,15 @@ struct ModerationService {
         conversationId: UUID? = nil,
         messageId: UUID? = nil,
         messageTextSnapshot: String? = nil,
-        conversationRecentContext: String? = nil
+        reviewWindowStart: String? = nil,
+        reviewWindowEnd: String? = nil,
+        conversationMessageSnapshot: [PrivateConversationReportMessageSnapshot]? = nil
     ) {
         let createdAt = Self.moderationReportNotifyISO.string(from: Date())
         let detailsCopy = details
         let categoryRaw = category.rawValue
-        let contextCopy = conversationRecentContext
         let payload = NotifyModerationReportPayload(
+            report_id: reportId,
             report_type: reportType,
             reported_user_id: reportedUserId,
             category: categoryRaw,
@@ -191,7 +226,9 @@ struct ModerationService {
             conversation_id: conversationId,
             message_id: messageId,
             message_text_snapshot: messageTextSnapshot,
-            conversation_recent_context: contextCopy
+            review_window_start: reviewWindowStart,
+            review_window_end: reviewWindowEnd,
+            conversation_message_snapshot: conversationMessageSnapshot
         )
         guard let bodyData = try? JSONEncoder().encode(payload) else { return }
         Task { [supabase, bodyData] in
@@ -323,8 +360,7 @@ struct ModerationService {
             reportType: "user",
             reportedUserId: reportedUserId,
             category: category,
-            details: row.details,
-            conversationRecentContext: nil
+            details: row.details
         )
     }
 
@@ -348,6 +384,79 @@ struct ModerationService {
         return false
     }
 
+#if DEBUG
+    private static func logPostgrestError(_ error: Error, context: String) {
+        print("[DMReport] \(context) error_type=\(type(of: error)) localized=\(error.localizedDescription)")
+        if let pe = error as? PostgrestError {
+            print(
+                "[DMReport] \(context) postgrest code=\(pe.code ?? "nil") message=\(pe.message) detail=\(pe.detail ?? "nil") hint=\(pe.hint ?? "nil")"
+            )
+        } else {
+            print("[DMReport] \(context) raw_error=\(String(describing: error))")
+        }
+    }
+
+    private func logConversationReportInsertDebug(
+        row: ConversationReportInsert,
+        messageSnapshotCount: Int
+    ) async {
+        print("[DMReport] conversation_reports insert payload")
+        print("[DMReport] conversation_id=\(row.conversation_id.uuidString)")
+        print("[DMReport] reporter_user_id=\(row.reporter_user_id.uuidString)")
+        print("[DMReport] reported_user_id=\(row.reported_user_id.uuidString)")
+        print("[DMReport] reported_message_id=\(row.reported_message_id?.uuidString ?? "nil")")
+        print("[DMReport] review_window_start=\(row.review_window_start)")
+        print("[DMReport] review_window_end=\(row.review_window_end)")
+        print("[DMReport] message_snapshot_count=\(messageSnapshotCount)")
+
+        do {
+            let conversationRows: [DirectConversationReportDebugRow] = try await supabase
+                .from("direct_conversations")
+                .select("id,user_a_id,user_b_id")
+                .eq("id", value: row.conversation_id)
+                .limit(1)
+                .execute()
+                .value
+            if let conversation = conversationRows.first {
+                let reporterParticipates =
+                    conversation.user_a_id == row.reporter_user_id || conversation.user_b_id == row.reporter_user_id
+                let reportedIsOther =
+                    (conversation.user_a_id == row.reporter_user_id && conversation.user_b_id == row.reported_user_id)
+                    || (conversation.user_b_id == row.reporter_user_id && conversation.user_a_id == row.reported_user_id)
+                print(
+                    "[DMReport] direct_conversations debug id=\(conversation.id.uuidString) reporter_participates=\(reporterParticipates) reported_is_other_participant=\(reportedIsOther)"
+                )
+            } else {
+                print("[DMReport] direct_conversations debug no visible row for conversation_id=\(row.conversation_id.uuidString)")
+            }
+        } catch {
+            Self.logPostgrestError(error, context: "direct_conversations_debug")
+        }
+
+        guard let reportedMessageId = row.reported_message_id else { return }
+        do {
+            let messageRows: [DirectMessageReportDebugRow] = try await supabase
+                .from("direct_messages")
+                .select("id,conversation_id,sender_id")
+                .eq("id", value: reportedMessageId)
+                .limit(1)
+                .execute()
+                .value
+            if let message = messageRows.first {
+                let sameConversation = message.conversation_id == row.conversation_id
+                let senderMatchesReported = message.sender_id == row.reported_user_id
+                print(
+                    "[DMReport] reported_message debug id=\(message.id.uuidString) same_conversation=\(sameConversation) sender_matches_reported_user=\(senderMatchesReported)"
+                )
+            } else {
+                print("[DMReport] reported_message debug no visible row for reported_message_id=\(reportedMessageId.uuidString)")
+            }
+        } catch {
+            Self.logPostgrestError(error, context: "reported_message_debug")
+        }
+    }
+#endif
+
     /// Normalizes optional report details: empty → `nil`, enforces length and profanity (empty allowed).
     private static func normalizedConversationReportDetails(_ raw: String?) throws -> String? {
         let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -366,24 +475,46 @@ struct ModerationService {
         otherUserId: UUID,
         category: ModerationReportCategory,
         details: String?,
-        recentContextForModerationEmail: String?
-    ) async throws {
+        reviewWindowStart: Date,
+        reviewWindowEnd: Date,
+        reportedMessageId: UUID?,
+        messageSnapshot: [PrivateConversationReportMessageSnapshot]
+    ) async throws -> UUID {
         let me = try await currentUserId()
         let normalizedDetails = try Self.normalizedConversationReportDetails(details)
+        let consentGrantedAt = Self.moderationReportNotifyISO.string(from: Date())
+        let reviewWindowStartISO = Self.moderationReportNotifyISO.string(from: reviewWindowStart)
+        let reviewWindowEndISO = Self.moderationReportNotifyISO.string(from: reviewWindowEnd)
         let row = ConversationReportInsert(
             reporter_user_id: me,
             reported_user_id: otherUserId,
             conversation_id: conversationId,
             category: category.rawValue,
             details: normalizedDetails,
-            status: "open"
+            status: "open",
+            review_window_start: reviewWindowStartISO,
+            review_window_end: reviewWindowEndISO,
+            admin_review_consent_granted: true,
+            admin_review_consent_granted_at: consentGrantedAt,
+            reported_message_id: reportedMessageId,
+            message_snapshot: messageSnapshot
         )
+#if DEBUG
+        await logConversationReportInsertDebug(row: row, messageSnapshotCount: messageSnapshot.count)
+#endif
+        let inserted: ConversationReportInsertResponse
         do {
-            _ = try await supabase
+            inserted = try await supabase
                 .from("conversation_reports")
                 .insert(row)
+                .select("id")
+                .single()
                 .execute()
+                .value
         } catch {
+#if DEBUG
+            Self.logPostgrestError(error, context: "conversation_reports_insert")
+#endif
             if Self.isPostgresUniqueViolation(error) {
                 throw ModerationConversationReportError.duplicateOpenReport
             }
@@ -391,30 +522,26 @@ struct ModerationService {
         }
 
 #if DEBUG
+        print("[PrivateReportConsent] submit report_id=\(inserted.id.uuidString)")
         print("[DMReport] conversation report submitted conversation=\(conversationId.uuidString)")
 #endif
 
-        let boundedContext: String? = {
-            guard let raw = recentContextForModerationEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !raw.isEmpty else { return nil }
-            if raw.count > 14_000 {
-                return String(raw.prefix(14_000)) + "\n… [truncated]"
-            }
-            return raw
-        }()
-
         notifyModerationReportBestEffort(
+            reportId: inserted.id,
             reportType: "conversation",
             reportedUserId: otherUserId,
             category: category,
             details: row.details,
             conversationId: conversationId,
-            conversationRecentContext: boundedContext
+            reviewWindowStart: reviewWindowStartISO,
+            reviewWindowEnd: reviewWindowEndISO,
+            conversationMessageSnapshot: messageSnapshot
         )
 
 #if DEBUG
         print("[DMReport] moderation email queued conversation=\(conversationId.uuidString)")
 #endif
+        return inserted.id
     }
 
     func reportMessage(
@@ -447,7 +574,7 @@ struct ModerationService {
             conversationId: conversationId,
             messageId: messageId,
             messageTextSnapshot: messageTextSnapshot,
-            conversationRecentContext: nil
+            conversationMessageSnapshot: nil
         )
         await incrementMessageReportCountBestEffort(messageId: messageId)
     }
