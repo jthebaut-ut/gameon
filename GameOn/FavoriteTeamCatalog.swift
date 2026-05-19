@@ -390,30 +390,30 @@ enum FavoriteTeamCatalog {
     // MARK: Soccer (54)
 
     private static let soccer: [FavoriteTeam] = [
-        team("soccer-juventus", "Juventus", .soccer, "Serie A", "soccerball", 0.18, 0.18, 0.18, region: "Europe", kind: .team, shortCode: "JUV"),
+        team("soccer-juventus", "Juventus", .soccer, "Serie A", "soccerball", 0.18, 0.18, 0.18, region: "Europe", kind: .team, shortCode: "JUV", aliases: ["Juventus FC"]),
         team("soccer-milan", "AC Milan", .soccer, "Serie A", "soccerball", 0.78, 0.12, 0.14, region: "Europe", kind: .team, shortCode: "ACM", aliases: ["Milan"]),
         team("soccer-inter", "Inter Milan", .soccer, "Serie A", "soccerball", 0.12, 0.42, 0.72, region: "Europe", kind: .team, shortCode: "INT", aliases: ["Inter"]),
         team("soccer-napoli", "Napoli", .soccer, "Serie A", "soccerball", 0.12, 0.42, 0.82, region: "Europe", kind: .team, shortCode: "NAP"),
         team("soccer-roma", "Roma", .soccer, "Serie A", "soccerball", 0.72, 0.18, 0.18, region: "Europe", kind: .team, shortCode: "ROM"),
-        team("soccer-real-madrid", "Real Madrid", .soccer, "La Liga", "soccerball", 0.95, 0.82, 0.22, region: "Europe", kind: .team, shortCode: "RMA"),
-        team("soccer-barcelona", "Barcelona", .soccer, "La Liga", "soccerball", 0.72, 0.12, 0.28, region: "Europe", kind: .team, shortCode: "BAR"),
+        team("soccer-real-madrid", "Real Madrid", .soccer, "La Liga", "soccerball", 0.95, 0.82, 0.22, region: "Europe", kind: .team, shortCode: "RMA", aliases: ["Real Madrid CF"]),
+        team("soccer-barcelona", "Barcelona", .soccer, "La Liga", "soccerball", 0.72, 0.12, 0.28, region: "Europe", kind: .team, shortCode: "BAR", aliases: ["FC Barcelona", "Barça"]),
         team("soccer-atletico-madrid", "Atlético Madrid", .soccer, "La Liga", "soccerball", 0.78, 0.12, 0.18, region: "Europe", kind: .team, shortCode: "ATM", aliases: ["Atletico Madrid"]),
         team("soccer-man-utd", "Manchester United", .soccer, "Premier League", "soccerball", 0.78, 0.12, 0.16, region: "Europe", kind: .team, shortCode: "MUN", aliases: ["Man United", "Man Utd"]),
         team("soccer-man-city", "Manchester City", .soccer, "Premier League", "soccerball", 0.32, 0.66, 0.88, region: "Europe", kind: .team, shortCode: "MCI", aliases: ["Man City"]),
         team("soccer-liverpool", "Liverpool", .soccer, "Premier League", "soccerball", 0.78, 0.14, 0.18, region: "Europe", kind: .team, shortCode: "LIV"),
         team("soccer-chelsea", "Chelsea", .soccer, "Premier League", "soccerball", 0.12, 0.35, 0.72, region: "Europe", kind: .team, shortCode: "CHE"),
-        team("soccer-arsenal", "Arsenal", .soccer, "Premier League", "soccerball", 0.78, 0.12, 0.14, region: "Europe", kind: .team, shortCode: "ARS"),
+        team("soccer-arsenal", "Arsenal", .soccer, "Premier League", "soccerball", 0.78, 0.12, 0.14, region: "Europe", kind: .team, shortCode: "ARS", aliases: ["Arsenal FC"]),
         team("soccer-tottenham", "Tottenham", .soccer, "Premier League", "soccerball", 0.12, 0.22, 0.52, region: "Europe", kind: .team, shortCode: "TOT", aliases: ["Spurs"]),
-        team("soccer-bayern", "Bayern Munich", .soccer, "Bundesliga", "soccerball", 0.78, 0.12, 0.22, region: "Europe", kind: .team, shortCode: "BAY"),
+        team("soccer-bayern", "Bayern Munich", .soccer, "Bundesliga", "soccerball", 0.78, 0.12, 0.22, region: "Europe", kind: .team, shortCode: "BAY", aliases: ["Bayern München", "FC Bayern Munich", "FC Bayern"]),
         team("soccer-dortmund", "Borussia Dortmund", .soccer, "Bundesliga", "soccerball", 0.92, 0.72, 0.12, region: "Europe", kind: .team, shortCode: "BVB", aliases: ["Dortmund"]),
-        team("soccer-psg", "Paris Saint-Germain", .soccer, "Ligue 1", "soccerball", 0.12, 0.22, 0.48, region: "Europe", kind: .team, shortCode: "PSG", aliases: ["PSG", "Paris Saint Germain"]),
+        team("soccer-psg", "Paris Saint-Germain", .soccer, "Ligue 1", "soccerball", 0.12, 0.22, 0.48, region: "Europe", kind: .team, shortCode: "PSG", aliases: ["PSG", "Paris SG", "Paris Saint Germain", "Paris Saint-Germain FC"]),
         team("soccer-marseille", "Marseille", .soccer, "Ligue 1", "soccerball", 0.12, 0.52, 0.76, region: "Europe", kind: .team, shortCode: "OM"),
         team("soccer-benfica", "Benfica", .soccer, "Primeira Liga", "soccerball", 0.78, 0.12, 0.16, region: "Europe", kind: .team, shortCode: "BEN"),
         team("soccer-porto", "Porto", .soccer, "Primeira Liga", "soccerball", 0.12, 0.32, 0.72, region: "Europe", kind: .team, shortCode: "POR"),
         team("soccer-ajax", "Ajax", .soccer, "Eredivisie", "soccerball", 0.78, 0.12, 0.16, region: "Europe", kind: .team, shortCode: "AJX"),
         team("soccer-lafc", "LAFC", .soccer, "MLS", "soccerball", 0.16, 0.16, 0.16, region: "North America", kind: .team, shortCode: "LAFC", aliases: ["Los Angeles FC"]),
         team("soccer-galaxy", "LA Galaxy", .soccer, "MLS", "soccerball", 0.12, 0.32, 0.62, region: "North America", kind: .team, shortCode: "LAG"),
-        team("soccer-inter-miami", "Inter Miami", .soccer, "MLS", "soccerball", 0.92, 0.42, 0.62, region: "North America", kind: .team, shortCode: "MIA"),
+        team("soccer-inter-miami", "Inter Miami", .soccer, "MLS", "soccerball", 0.92, 0.42, 0.62, region: "North America", kind: .team, shortCode: "MIA", aliases: ["Inter Miami CF", "Club Internacional de Fútbol Miami"]),
         team("soccer-nycfc", "New York City FC", .soccer, "MLS", "soccerball", 0.12, 0.48, 0.82, region: "North America", kind: .team, shortCode: "NYC", aliases: ["NYCFC"]),
         team("soccer-atlanta", "Atlanta United", .soccer, "MLS", "soccerball", 0.78, 0.18, 0.22, region: "North America", kind: .team, shortCode: "ATL"),
         team("soccer-seattle", "Seattle Sounders", .soccer, "MLS", "soccerball", 0.12, 0.52, 0.28, region: "North America", kind: .team, shortCode: "SEA"),
@@ -424,9 +424,9 @@ enum FavoriteTeamCatalog {
         team("soccer-tigres", "Tigres", .soccer, "Liga MX", "soccerball", 0.92, 0.72, 0.12, region: "North America", kind: .team, shortCode: "TIG"),
         team("soccer-monterrey", "Monterrey", .soccer, "Liga MX", "soccerball", 0.12, 0.32, 0.62, region: "North America", kind: .team, shortCode: "MTY"),
         team("soccer-pumas", "Pumas", .soccer, "Liga MX", "soccerball", 0.12, 0.22, 0.52, region: "North America", kind: .team, shortCode: "PUM"),
-        team("soccer-france", "France", .soccer, "National Team", "soccerball", 0.12, 0.28, 0.68, region: "National Teams", kind: .nationalTeam, shortCode: "FRA"),
-        team("soccer-usa", "United States", .soccer, "National Team", "soccerball", 0.12, 0.32, 0.72, region: "National Teams", kind: .nationalTeam, shortCode: "USA", aliases: ["USA", "USMNT", "USWNT", "United States of America"]),
-        team("soccer-mexico", "Mexico", .soccer, "National Team", "soccerball", 0.12, 0.52, 0.28, region: "National Teams", kind: .nationalTeam, shortCode: "MEX"),
+        team("soccer-france", "France", .soccer, "National Team", "soccerball", 0.12, 0.28, 0.68, region: "National Teams", kind: .nationalTeam, shortCode: "FRA", aliases: ["France National Team", "French National Team"]),
+        team("soccer-usa", "United States", .soccer, "National Team", "soccerball", 0.12, 0.32, 0.72, region: "National Teams", kind: .nationalTeam, shortCode: "USA", aliases: ["USA", "USMNT", "USWNT", "United States of America", "United States National Team"]),
+        team("soccer-mexico", "Mexico", .soccer, "National Team", "soccerball", 0.12, 0.52, 0.28, region: "National Teams", kind: .nationalTeam, shortCode: "MEX", aliases: ["Mexico National Team", "Mexican National Team"]),
         team("soccer-canada", "Canada", .soccer, "National Team", "soccerball", 0.78, 0.12, 0.16, region: "National Teams", kind: .nationalTeam, shortCode: "CAN"),
         team("soccer-argentina", "Argentina", .soccer, "National Team", "soccerball", 0.32, 0.64, 0.88, region: "National Teams", kind: .nationalTeam, shortCode: "ARG"),
         team("soccer-brazil", "Brazil", .soccer, "National Team", "soccerball", 0.12, 0.52, 0.28, region: "National Teams", kind: .nationalTeam, shortCode: "BRA"),
@@ -647,6 +647,107 @@ enum FavoriteTeamCatalog {
             badgeGreen: g,
             badgeBlue: b
         )
+    }
+}
+
+// MARK: - Live tab team matching
+
+enum FavoriteTeamLiveMatcher {
+    private static let genericTokens: Set<String> = [
+        "club",
+        "city",
+        "football",
+        "basketball",
+        "hockey",
+        "racing",
+        "sport",
+        "sports",
+        "college",
+        "united",
+        "real",
+        "inter",
+        "atletico",
+        "athletic",
+        "sporting",
+        "national",
+        "team"
+    ]
+
+    /// Normalized aliases for matching live feed home/away names (catalog entries only).
+    static func matchAliases(for team: FavoriteTeam) -> [String] {
+        var unique: [String] = []
+        func add(_ raw: String) {
+            let normalized = normalizedSearchText(raw)
+            guard !normalized.isEmpty, !unique.contains(normalized) else { return }
+            unique.append(normalized)
+        }
+
+        add(team.name)
+        if let shortCode = team.shortCode {
+            add(shortCode)
+        }
+        for alias in team.searchAliases {
+            add(alias)
+        }
+
+        return unique.sorted { $0.count > $1.count }
+    }
+
+    static func matchesLiveMatch(_ team: FavoriteTeam, homeTeam: String, awayTeam: String) -> Bool {
+        let participants = [homeTeam, awayTeam]
+        return matchAliases(for: team).contains { alias in
+            participants.contains { matchesAlias(alias, inParticipantName: $0) }
+        }
+    }
+
+    static func matchesVenueEventTitle(_ team: FavoriteTeam, title: String) -> Bool {
+        let normalizedTitle = normalizedSearchText(title)
+        guard !normalizedTitle.isEmpty else { return false }
+        return matchAliases(for: team).contains { alias in
+            matchesAlias(alias, inParticipantName: normalizedTitle)
+        }
+    }
+
+    private static func matchesAlias(_ alias: String, inParticipantName participant: String) -> Bool {
+        let normalizedParticipant = normalizedSearchText(participant)
+        guard !normalizedParticipant.isEmpty else { return false }
+
+        if alias.count <= 2 { return false }
+        if genericTokens.contains(alias) { return false }
+
+        if normalizedParticipant == alias {
+            return true
+        }
+
+        if alias.contains(" ") {
+            return containsPhrase(alias, in: normalizedParticipant)
+        }
+
+        if alias.count <= 4 {
+            return normalizedParticipant
+                .split(separator: " ")
+                .map(String.init)
+                .contains(alias)
+        }
+
+        return containsPhrase(alias, in: normalizedParticipant)
+    }
+
+    private static func containsPhrase(_ phrase: String, in text: String) -> Bool {
+        guard !phrase.isEmpty else { return false }
+        if text == phrase { return true }
+        if text.hasPrefix("\(phrase) ") { return true }
+        if text.hasSuffix(" \(phrase)") { return true }
+        return text.contains(" \(phrase) ")
+    }
+
+    private static func normalizedSearchText(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 }
 

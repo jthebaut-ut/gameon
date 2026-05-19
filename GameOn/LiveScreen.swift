@@ -226,8 +226,18 @@ struct LiveScreen: View {
             liveBackground
 
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 28) {
                     liveHeroHeader(totalCount: rankedItems.count)
+
+                    liveSummaryChips(
+                        liveNowCount: liveSummaryLiveNowCount(
+                            matches: displayedLiveMatches,
+                            venuesAndPickup: venuesAndPickupToday
+                        ),
+                        todayCount: venuesAndPickupToday.count,
+                        friendsCount: friendsGoing.count,
+                        showFriendsChip: showPersonalLiveSections
+                    )
 
                     liveFeaturedCard(featuredLive)
                     if showPersonalLiveSections {
@@ -244,15 +254,9 @@ struct LiveScreen: View {
                     if showPersonalLiveSections {
                         liveFriendsSection(items: friendsGoing)
                     }
-                    if !crowdBuilding.isEmpty {
-                        liveCompactSection(
-                            title: "Crowd Building",
-                            subtitle: isBusinessLiveAudienceUser ? "Events building venue activity" : "Events gaining fan momentum",
-                            items: crowdBuilding
-                        )
-                    }
-                    if !fansChatting.isEmpty {
-                        liveCompactSection(title: "Fans Chatting", subtitle: "Where the conversation is active", items: fansChatting)
+                    liveCrowdBuildingSection(items: crowdBuilding)
+                    if showPersonalLiveSections {
+                        liveFansChattingSection(items: fansChatting)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -300,7 +304,7 @@ struct LiveScreen: View {
     }
 
     private func liveHeroHeader(totalCount: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Live")
                 .font(.system(size: 36, weight: .bold, design: .rounded))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
@@ -315,13 +319,107 @@ struct LiveScreen: View {
 
     private func liveHeroSubtitle(totalCount: Int) -> String {
         if isBusinessLiveAudienceUser {
-            return totalCount > 0
-                ? "Operational live signals for games and venues around you."
-                : "Live games and nearby venue activity will appear here."
+            return "Scores, venues, and fan activity — organized for a quick scan."
         }
         return totalCount > 0
-            ? "What feels alive in sports around you right now."
-            : "Live updates appear as fans go, chat, and react."
+            ? "Tap a section below to jump in."
+            : "Your live feed fills in as games and fans get active."
+    }
+
+    private func liveSummaryLiveNowCount(
+        matches: [LiveMatch],
+        venuesAndPickup: [LiveVenuesPickupRow]
+    ) -> Int {
+        matches.count + venuesAndPickup.filter(\.isLiveNow).count
+    }
+
+    private func liveSummaryChips(
+        liveNowCount: Int,
+        todayCount: Int,
+        friendsCount: Int,
+        showFriendsChip: Bool
+    ) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                liveSummaryChip(title: "Live now", count: liveNowCount, accent: FGColor.dangerRed, icon: "dot.radiowaves.left.and.right")
+                liveSummaryChip(title: "Today", count: todayCount, accent: FGColor.accentGreen, icon: "calendar")
+                if showFriendsChip {
+                    liveSummaryChip(title: "Friends", count: friendsCount, accent: FGColor.accentBlue, icon: "person.2.fill")
+                }
+            }
+            .padding(.horizontal, 1)
+            .padding(.vertical, 2)
+        }
+        .scrollClipDisabled()
+    }
+
+    private func liveSummaryChip(title: String, count: Int, accent: Color, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(accent)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Text("\(count)")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .monospacedDigit()
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(accent.opacity(colorScheme == .dark ? 0.14 : 0.09))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(accent.opacity(colorScheme == .dark ? 0.28 : 0.18), lineWidth: 1)
+        }
+    }
+
+    private enum LivePanelKind {
+        case liveGames
+        case venuesPickup
+        case friendsGoing
+        case crowdBuilding
+        case fansChatting
+
+        var icon: String {
+            switch self {
+            case .liveGames: return "sportscourt.fill"
+            case .venuesPickup: return "mappin.and.ellipse"
+            case .friendsGoing: return "person.2.fill"
+            case .crowdBuilding: return "flame.fill"
+            case .fansChatting: return "bubble.left.and.bubble.right.fill"
+            }
+        }
+
+        func accentColor(colorScheme: ColorScheme) -> Color {
+            switch self {
+            case .liveGames:
+                return FGColor.dangerRed
+            case .venuesPickup:
+                return FGColor.accentGreen
+            case .friendsGoing:
+                return FGColor.accentBlue
+            case .crowdBuilding:
+                return Color(red: 0.95, green: 0.52, blue: 0.14)
+            case .fansChatting:
+                return Color(red: 0.22, green: 0.62, blue: 0.78)
+            }
+        }
+
+        func panelFill(colorScheme: ColorScheme) -> Color {
+            let accent = accentColor(colorScheme: colorScheme)
+            return accent.opacity(colorScheme == .dark ? 0.10 : 0.07)
+        }
+
+        func panelStroke(colorScheme: ColorScheme) -> Color {
+            accentColor(colorScheme: colorScheme).opacity(colorScheme == .dark ? 0.22 : 0.14)
+        }
     }
 
     private func liveFeaturedCard(_ featured: FeaturedLive) -> some View {
@@ -607,9 +705,10 @@ struct LiveScreen: View {
     }
 
     private func liveGamesSection(matches: [LiveMatch], rankedItems: [LiveFeedItem]) -> some View {
-        liveSection(
+        livePanelSection(
+            kind: .liveGames,
             title: "Live Games",
-            subtitle: "Professional scores from today's sports feed"
+            subtitle: "Pro scores on TV right now"
         ) {
             if !liveGamesSportFilterOptions.isEmpty {
                 liveGamesSportFilterBar
@@ -617,10 +716,10 @@ struct LiveScreen: View {
             if viewModel.isLoadingLiveMatches && matches.isEmpty {
                 liveGamesLoadingCard
             } else if matches.isEmpty {
-                liveQuietEmptyLine(
+                liveSectionEmptyState(
                     liveGamesSportFilter == nil
-                        ? "No live pro games on today’s feed yet."
-                        : "No live \(liveSportFilterLabel(liveGamesSportFilter!)) games today."
+                        ? "No live pro games right now"
+                        : "No live \(liveSportFilterLabel(liveGamesSportFilter!)) games right now"
                 )
             } else {
                 VStack(spacing: 10) {
@@ -838,78 +937,11 @@ struct LiveScreen: View {
     }
 
     private func favoriteTeamMatches(_ team: FavoriteTeam, in match: LiveMatch) -> Bool {
-        favoriteTeamMatches(
-            team,
-            values: [
-                match.homeTeam,
-                match.awayTeam,
-                match.league,
-                match.sport,
-                match.liveSportVisualType.displayLabel
-            ]
-        )
+        FavoriteTeamLiveMatcher.matchesLiveMatch(team, homeTeam: match.homeTeam, awayTeam: match.awayTeam)
     }
 
     private func favoriteTeamMatches(_ team: FavoriteTeam, in event: SportsEvent) -> Bool {
-        favoriteTeamMatches(
-            team,
-            values: [
-                event.title,
-                event.league,
-                event.sport,
-                event.country
-            ]
-        )
-    }
-
-    private func favoriteTeamMatches(_ team: FavoriteTeam, values: [String]) -> Bool {
-        let context = normalizedFavoriteTeamSearchText(values.joined(separator: " "))
-        guard !context.isEmpty else { return false }
-        let paddedContext = " \(context) "
-        return favoriteTeamSearchAliases(for: team).contains { alias in
-            paddedContext.contains(" \(alias) ")
-        }
-    }
-
-    private func favoriteTeamSearchAliases(for team: FavoriteTeam) -> [String] {
-        let normalizedName = normalizedFavoriteTeamSearchText(team.name)
-        let tokens = normalizedName
-            .split(separator: " ")
-            .map(String.init)
-            .filter { token in
-                token.count >= 4 && !favoriteTeamGenericTokens.contains(token)
-            }
-        var aliases = [normalizedName]
-        aliases.append(contentsOf: tokens)
-        return aliases.reduce(into: [String]()) { unique, alias in
-            if !alias.isEmpty && !unique.contains(alias) {
-                unique.append(alias)
-            }
-        }
-    }
-
-    private var favoriteTeamGenericTokens: Set<String> {
-        [
-            "college",
-            "football",
-            "basketball",
-            "hockey",
-            "racing",
-            "united",
-            "city",
-            "club",
-            "sport",
-            "sports"
-        ]
-    }
-
-    private func normalizedFavoriteTeamSearchText(_ raw: String) -> String {
-        raw
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
+        FavoriteTeamLiveMatcher.matchesVenueEventTitle(team, title: event.title)
     }
 
     private var liveGamesLoadingCard: some View {
@@ -1272,24 +1304,100 @@ struct LiveScreen: View {
     }
 
     private func liveVenuesAndPickupTodaySection(rows: [LiveVenuesPickupRow]) -> some View {
-        liveSection(
+        livePanelSection(
+            kind: .venuesPickup,
             title: "Venues & Pickup Games Today",
-            subtitle: "Nearby watch parties, pickup runs, and your plans for today"
+            subtitle: "Watch parties, pickup runs, and plans near you"
         ) {
             if rows.isEmpty {
-                liveQuietEmptyLine("No venue or pickup activity nearby today yet.")
+                liveSectionEmptyState("No venues or pickup games today")
             } else {
-                VStack(spacing: 10) {
-                    ForEach(rows) { row in
-                        switch row {
-                        case .venue(let item):
-                            liveVenuesPickupVenueRow(item)
-                        case .pickup(let pickup):
-                            liveVenuesPickupPickupRow(pickup)
+                let liveRows = rows.filter(\.isLiveNow)
+                let otherRows = rows.filter { !$0.isLiveNow }
+                VStack(alignment: .leading, spacing: 12) {
+                    if !liveRows.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(alignment: .top, spacing: 12) {
+                                ForEach(liveRows) { row in
+                                    liveVenuesPickupCompactCard(row)
+                                        .frame(width: 272)
+                                }
+                            }
+                            .padding(.horizontal, 1)
+                            .padding(.vertical, 2)
+                        }
+                        .scrollClipDisabled()
+                    }
+                    if !otherRows.isEmpty {
+                        VStack(spacing: 10) {
+                            ForEach(otherRows) { row in
+                                switch row {
+                                case .venue(let item):
+                                    liveVenuesPickupVenueRow(item)
+                                case .pickup(let pickup):
+                                    liveVenuesPickupPickupRow(pickup)
+                                }
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func liveVenuesPickupCompactCard(_ row: LiveVenuesPickupRow) -> some View {
+        switch row {
+        case .venue(let item):
+            Button {
+                openLiveItem(item)
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        SportArtworkIconView(sport: item.event.sport, diameter: 36)
+                        Spacer(minLength: 0)
+                        livePillBadge
+                    }
+                    Text(item.event.title)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text(item.bar.name)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(liveCardSurface(cornerRadius: 18, highlighted: true))
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
+        case .pickup(let pickup):
+            Button {
+                viewModel.discoverMapContentMode = .pickupGames
+                viewModel.calendarTabGameFilter = .pickupGames
+                selectedTab = .discover
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        SportArtworkIconView(sport: pickup.sport, diameter: 36)
+                        Spacer(minLength: 0)
+                        livePillBadge
+                    }
+                    Text(pickup.title)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text("\(pickup.sport) pickup · \(pickupStartDisplay(for: pickup))")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(liveCardSurface(cornerRadius: 18, highlighted: true))
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
         }
     }
 
@@ -1447,23 +1555,37 @@ struct LiveScreen: View {
     }
 
     private func liveFriendsSection(items: [LiveFeedItem]) -> some View {
-        liveSection(title: "Friends Going", subtitle: "Privacy-safe friend presence") {
+        livePanelSection(
+            kind: .friendsGoing,
+            title: "Friends Going",
+            subtitle: "Where people you know are headed"
+        ) {
             if items.isEmpty {
-                liveQuietEmptyLine("No friends are visible on live plans yet.")
+                liveSectionEmptyState("Friends' plans will appear here")
             } else {
-                VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        liveFriendRow(item)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(items) { item in
+                            liveFriendCompactCard(item)
+                                .frame(width: 260)
+                        }
                     }
+                    .padding(.horizontal, 1)
+                    .padding(.vertical, 2)
                 }
+                .scrollClipDisabled()
             }
         }
     }
 
-    private func liveCompactSection(title: String, subtitle: String, items: [LiveFeedItem]) -> some View {
-        liveSection(title: title, subtitle: subtitle) {
+    private func liveCrowdBuildingSection(items: [LiveFeedItem]) -> some View {
+        livePanelSection(
+            kind: .crowdBuilding,
+            title: "Crowd Building",
+            subtitle: isBusinessLiveAudienceUser ? "Venues gaining momentum" : "Games fans are piling into"
+        ) {
             if items.isEmpty {
-                liveQuietEmptyLine("Live updates appear as fans go, chat, and react.")
+                liveSectionEmptyState("Crowd momentum shows up here")
             } else {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
@@ -1474,24 +1596,106 @@ struct LiveScreen: View {
         }
     }
 
-    private func liveSection<Content: View>(
+    private func liveFansChattingSection(items: [LiveFeedItem]) -> some View {
+        livePanelSection(
+            kind: .fansChatting,
+            title: "Fans Chatting",
+            subtitle: "Active threads at venues"
+        ) {
+            if items.isEmpty {
+                liveSectionEmptyState("Chat activity shows up here")
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        liveSignalRow(item)
+                    }
+                }
+            }
+        }
+    }
+
+    private func livePanelSection<Content: View>(
+        kind: LivePanelKind,
         title: String,
         subtitle: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(FGTypography.sectionTitle)
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(subtitle)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+        let accent = kind.accentColor(colorScheme: colorScheme)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(accent.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: kind.icon)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(accent)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
             }
 
-            content()
+            VStack(alignment: .leading, spacing: 12) {
+                content()
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(kind.panelFill(colorScheme: colorScheme))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(kind.panelStroke(colorScheme: colorScheme), lineWidth: 1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func liveSectionEmptyState(_ message: String) -> some View {
+        Text(message)
+            .font(FGTypography.caption)
+            .foregroundStyle(FGColor.mutedText(colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 6)
+    }
+
+    private func liveFriendCompactCard(_ item: LiveFeedItem) -> some View {
+        Button {
+            openLiveItem(item)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                GoingAvatarStack(
+                    profiles: item.energy.socialPresenceProfiles,
+                    viewerUserID: viewModel.currentUserAuthId,
+                    diameter: 32
+                )
+                Text(item.energy.socialPresenceLabel ?? item.energy.friendPresenceLabel ?? "Friends going")
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                Text("\(item.event.title) · \(item.bar.name)")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(2)
+                if item.energy.isLiveNow {
+                    livePillBadge
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(liveCardSurface(cornerRadius: 18, highlighted: item.energy.isLiveNow))
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
     }
 
     private func liveHappeningCard(_ item: LiveFeedItem) -> some View {
@@ -1959,6 +2163,11 @@ struct LiveScreen: View {
             }
             for event in dayEvents {
                 let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: event.title)
+                if let venueEventID,
+                   let row = viewModel.venueEventRows.first(where: { $0.id == venueEventID }),
+                   !VenueGameExpiration.isActiveOnDiscoverSurfaces(row: row) {
+                    continue
+                }
                 let key = "\(bar.id.uuidString)-\(venueEventID?.uuidString ?? event.id.uuidString)"
                 guard !seen.contains(key) else { continue }
                 seen.insert(key)
@@ -2284,7 +2493,11 @@ private struct FavoriteTeamsLiveSection: View {
             }
 
             if items.isEmpty {
-                Text("Favorite your teams to personalize Live.")
+                Text(
+                    hasFavoriteTeams
+                        ? "No favorite teams live right now"
+                        : "Favorite your teams to personalize Live."
+                )
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.mutedText(colorScheme))
                     .padding(16)
