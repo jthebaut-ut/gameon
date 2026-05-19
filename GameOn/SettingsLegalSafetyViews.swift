@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Legal & Safety (draft in-app policies; not legal advice)
 
-enum SettingsLegalDocumentKind: String, Identifiable {
+enum SettingsLegalDocumentKind: String, Identifiable, Hashable {
     case privacyPolicy
     case termsOfService
     case communityGuidelines
@@ -161,57 +161,70 @@ struct SettingsLegalContentSection: Hashable {
 
 struct SettingsLegalDocumentSheet: View {
     let document: SettingsLegalDocumentKind
+    var embedsInNavigationStack = true
+    var showsCloseButton = true
     @Environment(\.dismiss) private var dismiss
 
+    @ViewBuilder
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Last updated: \(SettingsLegalDocumentKind.lastUpdatedDisplay)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Text("Draft — for in-app reference only; not legal advice.")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
+        if embedsInNavigationStack {
+            NavigationStack {
+                content
+            }
+        } else {
+            content
+        }
+    }
 
-                    VStack(alignment: .leading, spacing: 18) {
-                        ForEach(document.draftSections, id: \.self) { section in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(section.heading)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                Text(section.body)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+    private var content: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Last updated: \(SettingsLegalDocumentKind.lastUpdatedDisplay)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text("Draft — for in-app reference only; not legal advice.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(document.draftSections, id: \.self) { section in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(section.heading)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Text(section.body)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .padding(18)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                    }
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                    }
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 16)
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                }
             }
-            .scrollIndicators(.visible)
-            .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-            }
-            .navigationTitle(document.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+        }
+        .scrollIndicators(.visible)
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+        }
+        .navigationTitle(document.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                 }

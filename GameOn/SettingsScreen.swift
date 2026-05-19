@@ -105,6 +105,18 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
     }
 }
 
+private enum ProfileSettingsRoute: Hashable {
+    case liveActivitySharing
+    case notifications
+    case timeZone
+    case appearance
+    case support
+    case communityGuidelines
+    case trustSafety
+    case privacyPolicy
+    case termsOfService
+}
+
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
 struct SettingsScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -125,19 +137,15 @@ struct SettingsScreen: View {
     @State private var showVenueRegisterMode = false
     @State private var showProfileScreen = false
     @State private var showProfileSettingsSheet = false
+    @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
-    @State private var showNotificationsSheet = false
     @State private var showLiveSharingModeDialog = false
-    @State private var showTimeZoneSheet = false
-    @State private var showAppearanceSheet = false
     @State private var showResetPasswordSheet = false
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteVenueOwnerSheet = false
     @State private var showReportedCommentsSheet = false
     @State private var showVenueOwnerPasswordResetSheet = false
-    @State private var legalDocumentSheet: SettingsLegalDocumentKind?
-    @State private var showContactSupportSheet = false
     @State private var showAddLocationSheet = false
     @State private var addLocationSubmitBanner: String?
     /// Holds Add-location draft fields across ``MapViewModel`` publishes (e.g. after photo upload) so the sheet does not reset.
@@ -516,6 +524,11 @@ struct SettingsScreen: View {
                 password = ""
             }
         }
+        .onChange(of: showProfileSettingsSheet) { _, isPresented in
+            if !isPresented {
+                profileSettingsPath = NavigationPath()
+            }
+        }
         .onChange(of: viewModel.isLoggedIn) { _, _ in
             password = ""
             logSettingsBusinessVenueSectionVisibilityForFanAccount()
@@ -580,30 +593,6 @@ struct SettingsScreen: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
-        }
-        .sheet(isPresented: $showNotificationsSheet) {
-            NavigationStack {
-                ScrollView {
-                    SettingsGameNotificationsCard(viewModel: viewModel, notificationSettingsStore: notificationSettingsStore)
-                        .padding(.horizontal, FGSpacing.lg)
-                        .padding(.top, FGSpacing.lg)
-                }
-                    .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-                    }
-                    .navigationTitle("Notifications")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showNotificationsSheet = false }
-                        }
-                    }
-            }
-            .tint(FGColor.accentGreen)
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: Binding(
             get: { showLiveSharingModeDialog && canShowLiveActivitySharing },
@@ -670,36 +659,6 @@ struct SettingsScreen: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
-        .sheet(isPresented: $showTimeZoneSheet) {
-            NavigationStack {
-                Form { SettingsTimeZoneCard(viewModel: viewModel) }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-                    }
-                    .navigationTitle("Time Zone")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showTimeZoneSheet = false }
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $showAppearanceSheet) {
-            NavigationStack {
-                FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
-                    .navigationTitle("Appearance")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showAppearanceSheet = false }
-                        }
-                    }
-            }
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
-            .presentationBackground(FGAdaptiveSurface.sheetRoot)
-        }
         .sheet(isPresented: $showResetPasswordSheet) {
             NavigationStack {
                 Form { SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email) }
@@ -759,26 +718,10 @@ struct SettingsScreen: View {
                 }
             }
         }
-        .sheet(item: $legalDocumentSheet) { document in
-            SettingsLegalDocumentSheet(document: document)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showContactSupportSheet) {
-            ContactGameOnSupportSheet(
-                viewModel: viewModel,
-                onRequestSignIn: {
-                    showContactSupportSheet = false
-                    showUserAuthSheet = true
-                }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
     }
 
     private var profileSettingsSheet: some View {
-        NavigationStack {
+        NavigationStack(path: $profileSettingsPath) {
             List {
                 profileSettingsPrivacySection()
                 profileSettingsNotificationsSection()
@@ -796,6 +739,9 @@ struct SettingsScreen: View {
             .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: ProfileSettingsRoute.self) { route in
+                profileSettingsDestination(route)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { showProfileSettingsSheet = false }
@@ -803,6 +749,141 @@ struct SettingsScreen: View {
             }
         }
         .tint(FGColor.accentGreen)
+    }
+
+    @ViewBuilder
+    private func profileSettingsDestination(_ route: ProfileSettingsRoute) -> some View {
+        switch route {
+        case .liveActivitySharing:
+            liveActivitySharingDestination
+
+        case .notifications:
+            ScrollView {
+                SettingsGameNotificationsCard(viewModel: viewModel, notificationSettingsStore: notificationSettingsStore)
+                    .padding(.horizontal, FGSpacing.lg)
+                    .padding(.top, FGSpacing.lg)
+            }
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+            }
+            .navigationTitle("Notifications")
+            .navigationBarTitleDisplayMode(.inline)
+
+        case .timeZone:
+            Form { SettingsTimeZoneCard(viewModel: viewModel) }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+                }
+                .navigationTitle("Time Zone")
+                .navigationBarTitleDisplayMode(.inline)
+
+        case .appearance:
+            FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
+                .navigationTitle("Appearance")
+                .navigationBarTitleDisplayMode(.inline)
+
+        case .support:
+            ContactGameOnSupportSheet(
+                viewModel: viewModel,
+                onRequestSignIn: {
+                    showProfileSettingsSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showUserAuthSheet = true
+                    }
+                },
+                embedsInNavigationStack: false,
+                showsCloseButton: false
+            )
+
+        case .communityGuidelines:
+            SettingsLegalDocumentSheet(
+                document: .communityGuidelines,
+                embedsInNavigationStack: false,
+                showsCloseButton: false
+            )
+
+        case .trustSafety:
+            SettingsLegalDocumentSheet(
+                document: .safetyReporting,
+                embedsInNavigationStack: false,
+                showsCloseButton: false
+            )
+
+        case .privacyPolicy:
+            SettingsLegalDocumentSheet(
+                document: .privacyPolicy,
+                embedsInNavigationStack: false,
+                showsCloseButton: false
+            )
+
+        case .termsOfService:
+            SettingsLegalDocumentSheet(
+                document: .termsOfService,
+                embedsInNavigationStack: false,
+                showsCloseButton: false
+            )
+        }
+    }
+
+    private var liveActivitySharingDestination: some View {
+        LiveActivitySharingOptionsSheet(
+            isEnabled: viewModel.currentUserLiveVisibilityEnabled,
+            mode: viewModel.currentUserLiveVisibilityMode,
+            friends: chatViewModel.friends.filter { !$0.preview.isBusinessAccount },
+            selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs,
+            isSaving: viewModel.isUpdatingLiveVisibilitySetting,
+            onChooseOff: {
+                Task {
+                    await viewModel.setLiveVisibilitySettings(
+                        enabled: false,
+                        mode: viewModel.currentUserLiveVisibilityMode,
+                        selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                    )
+                }
+            },
+            onChooseAllFriends: {
+                Task {
+                    await viewModel.setLiveVisibilitySettings(
+                        enabled: true,
+                        mode: .allFriends,
+                        selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                    )
+                }
+            },
+            onChooseSelectedFriends: {
+                Task {
+                    await chatViewModel.loadIfNeeded()
+                    await viewModel.setLiveVisibilitySettings(
+                        enabled: true,
+                        mode: .selectedFriends,
+                        selectedFriendIDs: viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                    )
+                }
+            },
+            onLoadFriends: {
+                Task { await chatViewModel.loadIfNeeded() }
+            },
+            onToggleFriend: { friendID in
+                var selectedIDs = viewModel.currentUserSelectedLiveVisibilityFriendIDs
+                if selectedIDs.contains(friendID) {
+                    selectedIDs.remove(friendID)
+                } else {
+                    selectedIDs.insert(friendID)
+                }
+                guard selectedIDs != viewModel.currentUserSelectedLiveVisibilityFriendIDs else { return }
+                Task {
+                    await viewModel.setLiveVisibilitySettings(
+                        enabled: true,
+                        mode: .selectedFriends,
+                        selectedFriendIDs: selectedIDs
+                    )
+                }
+            },
+            onClose: {},
+            embedsInNavigationStack: false,
+            showsCloseButton: false
+        )
     }
 
     private func presentFromProfileSettings(_ present: @escaping () -> Void) {
@@ -928,9 +1009,9 @@ struct SettingsScreen: View {
             Section {
                 settingsSectionCard {
                     Button {
-                        presentFromProfileSettings { showLiveSharingModeDialog = true }
+                        profileSettingsPath.append(ProfileSettingsRoute.liveActivitySharing)
                     } label: {
-                        settingsRow(title: "Live Activity Sharing", subtitle: liveSharingModeSubtitle, systemImage: "person.2.wave.2.fill")
+                        settingsRow(title: "Live Activity Sharing", subtitle: liveSharingModeSubtitle, systemImage: "person.2.wave.2.fill", showsChevron: true)
                     }
                     .buttonStyle(.plain)
                 }
@@ -946,9 +1027,9 @@ struct SettingsScreen: View {
         Section {
             settingsSectionCard {
                 Button {
-                    presentFromProfileSettings { showNotificationsSheet = true }
+                    profileSettingsPath.append(ProfileSettingsRoute.notifications)
                 } label: {
-                    settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge")
+                    settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge", showsChevron: true)
                 }
                 .buttonStyle(.plain)
             }
@@ -963,21 +1044,22 @@ struct SettingsScreen: View {
         Section {
             settingsSectionCard {
                 Button {
-                    presentFromProfileSettings { showTimeZoneSheet = true }
+                    profileSettingsPath.append(ProfileSettingsRoute.timeZone)
                 } label: {
-                    settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock")
+                    settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock", showsChevron: true)
                 }
                 .buttonStyle(.plain)
 
                 settingsRowDivider()
 
                 Button {
-                    presentFromProfileSettings { showAppearanceSheet = true }
+                    profileSettingsPath.append(ProfileSettingsRoute.appearance)
                 } label: {
                     settingsRow(
                         title: "Appearance",
                         subtitle: appearancePreference.displayName,
-                        systemImage: "circle.lefthalf.filled"
+                        systemImage: "circle.lefthalf.filled",
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -993,12 +1075,13 @@ struct SettingsScreen: View {
         Section {
             settingsSectionCard {
                 Button {
-                    presentFromProfileSettings { showContactSupportSheet = true }
+                    profileSettingsPath.append(ProfileSettingsRoute.support)
                 } label: {
                     settingsRow(
                         title: "Support",
                         subtitle: "Message the FanGeo team.",
-                        systemImage: "envelope.open.fill"
+                        systemImage: "envelope.open.fill",
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -1006,12 +1089,13 @@ struct SettingsScreen: View {
                 settingsRowDivider()
 
                 Button {
-                    presentFromProfileSettings { legalDocumentSheet = .communityGuidelines }
+                    profileSettingsPath.append(ProfileSettingsRoute.communityGuidelines)
                 } label: {
                     settingsRow(
                         title: SettingsLegalDocumentKind.communityGuidelines.title,
                         subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
-                        systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage
+                        systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage,
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -1019,12 +1103,13 @@ struct SettingsScreen: View {
                 settingsRowDivider()
 
                 Button {
-                    presentFromProfileSettings { legalDocumentSheet = .safetyReporting }
+                    profileSettingsPath.append(ProfileSettingsRoute.trustSafety)
                 } label: {
                     settingsRow(
                         title: SettingsLegalDocumentKind.safetyReporting.title,
                         subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
-                        systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage
+                        systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage,
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -1040,12 +1125,13 @@ struct SettingsScreen: View {
         Section {
             settingsSectionCard {
                 Button {
-                    presentFromProfileSettings { legalDocumentSheet = .privacyPolicy }
+                    profileSettingsPath.append(ProfileSettingsRoute.privacyPolicy)
                 } label: {
                     settingsRow(
                         title: SettingsLegalDocumentKind.privacyPolicy.title,
                         subtitle: SettingsLegalDocumentKind.privacyPolicy.rowSubtitle,
-                        systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage
+                        systemImage: SettingsLegalDocumentKind.privacyPolicy.systemImage,
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -1053,12 +1139,13 @@ struct SettingsScreen: View {
                 settingsRowDivider()
 
                 Button {
-                    presentFromProfileSettings { legalDocumentSheet = .termsOfService }
+                    profileSettingsPath.append(ProfileSettingsRoute.termsOfService)
                 } label: {
                     settingsRow(
                         title: SettingsLegalDocumentKind.termsOfService.title,
                         subtitle: SettingsLegalDocumentKind.termsOfService.rowSubtitle,
-                        systemImage: SettingsLegalDocumentKind.termsOfService.systemImage
+                        systemImage: SettingsLegalDocumentKind.termsOfService.systemImage,
+                        showsChevron: true
                     )
                 }
                 .buttonStyle(.plain)
@@ -1168,8 +1255,8 @@ struct SettingsScreen: View {
     }
 
     @ViewBuilder
-    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = FGColor.accentGreen) -> some View {
-        settingsRow(title: title, subtitle: subtitle, systemImage: systemImage, tint: tint) {
+    private func settingsRow(title: String, subtitle: String?, systemImage: String, tint: Color = FGColor.accentGreen, showsChevron: Bool = true) -> some View {
+        settingsRow(title: title, subtitle: subtitle, systemImage: systemImage, tint: tint, showsChevron: showsChevron) {
             EmptyView()
         }
     }
@@ -1180,6 +1267,7 @@ struct SettingsScreen: View {
         subtitle: String?,
         systemImage: String,
         tint: Color = FGColor.accentGreen,
+        showsChevron: Bool = true,
         @ViewBuilder trailing: () -> Trailing
     ) -> some View {
         HStack(alignment: .center, spacing: FGSpacing.md) {
@@ -1212,10 +1300,12 @@ struct SettingsScreen: View {
 
             trailing()
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
-                .frame(width: 14, height: 14, alignment: .center)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(SettingsPremiumChrome.mutedText(colorScheme))
+                    .frame(width: 14, height: 14, alignment: .center)
+            }
         }
         .padding(.horizontal, FGSpacing.md)
         .padding(.vertical, 10)
@@ -4185,61 +4275,74 @@ private struct LiveActivitySharingOptionsSheet: View {
     let onLoadFriends: () -> Void
     let onToggleFriend: (UUID) -> Void
     let onClose: () -> Void
+    var embedsInNavigationStack = true
+    var showsCloseButton = true
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var isSelectedFriendsExpanded = false
 
+    @ViewBuilder
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: FGSpacing.md) {
-                    Text("Choose who can see your public Live activity.")
-                        .font(.system(size: 13, weight: .regular, design: .rounded))
-                        .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
-                        .padding(.horizontal, FGSpacing.xs)
+        if embedsInNavigationStack {
+            NavigationStack {
+                content
+            }
+        } else {
+            content
+        }
+    }
 
-                    VStack(alignment: .leading, spacing: 0) {
-                        optionRow(
-                            title: "Off",
-                            subtitle: "Hide your Live activity from friend presence.",
-                            systemImage: "eye.slash.fill",
-                            isSelected: !isEnabled,
-                            action: onChooseOff
-                        )
+    private var content: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: FGSpacing.md) {
+                Text("Choose who can see your public Live activity.")
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(SettingsPremiumChrome.secondaryText(colorScheme))
+                    .padding(.horizontal, FGSpacing.xs)
 
-                        optionDivider()
+                VStack(alignment: .leading, spacing: 0) {
+                    optionRow(
+                        title: "Off",
+                        subtitle: "Hide your Live activity from friend presence.",
+                        systemImage: "eye.slash.fill",
+                        isSelected: !isEnabled,
+                        action: onChooseOff
+                    )
 
-                        optionRow(
-                            title: "All Friends",
-                            subtitle: "All accepted friends can see when you join public activity.",
-                            systemImage: "person.2.fill",
-                            isSelected: isEnabled && mode == .allFriends,
-                            action: onChooseAllFriends
-                        )
+                    optionDivider()
 
-                        optionDivider()
+                    optionRow(
+                        title: "All Friends",
+                        subtitle: "All accepted friends can see when you join public activity.",
+                        systemImage: "person.2.fill",
+                        isSelected: isEnabled && mode == .allFriends,
+                        action: onChooseAllFriends
+                    )
 
-                        selectedFriendsSection()
-                    }
-                    .background {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                            RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
-                                .fill(SettingsPremiumChrome.cardFill(colorScheme))
-                        }
-                    }
-                    .overlay {
+                    optionDivider()
+
+                    selectedFriendsSection()
+                }
+                .background {
+                    ZStack {
                         RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
-                            .strokeBorder(SettingsPremiumChrome.cardStroke(colorScheme), lineWidth: 0.75)
+                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                            .fill(SettingsPremiumChrome.cardFill(colorScheme))
                     }
                 }
-                .padding(FGSpacing.lg)
+                .overlay {
+                    RoundedRectangle(cornerRadius: SettingsPremiumChrome.cardRadius, style: .continuous)
+                        .strokeBorder(SettingsPremiumChrome.cardStroke(colorScheme), lineWidth: 0.75)
+                }
             }
-            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
-            .navigationTitle("Live Activity Sharing")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+            .padding(FGSpacing.lg)
+        }
+        .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+        .navigationTitle("Live Activity Sharing")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", action: onClose)
                 }

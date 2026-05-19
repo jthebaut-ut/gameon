@@ -4,6 +4,8 @@ import SwiftUI
 struct ContactGameOnSupportSheet: View {
     @ObservedObject var viewModel: MapViewModel
     var onRequestSignIn: () -> Void
+    var embedsInNavigationStack = true
+    var showsCloseButton = true
     @Environment(\.dismiss) private var dismiss
 
     @State private var category: SupportRequestCategory = .technicalIssue
@@ -34,127 +36,138 @@ struct ContactGameOnSupportSheet: View {
         viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn
     }
 
+    @ViewBuilder
     var body: some View {
-        NavigationStack {
-            Form {
+        if embedsInNavigationStack {
+            NavigationStack {
+                content
+            }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        Form {
+            Section {
+                HStack {
+                    Spacer()
+                    FanGeoInlineLogoView(variant: .white, width: 104, innerPadding: 6)
+                    Spacer()
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .listRowBackground(Color.clear)
+            }
+
+            if !hasAuthSession {
                 Section {
-                    HStack {
-                        Spacer()
-                        FanGeoInlineLogoView(variant: .white, width: 104, innerPadding: 6)
-                        Spacer()
+                    Text("Please sign in with your FanGeo or venue account to send a support message.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Button("Sign in or create account") {
+                        dismiss()
+                        onRequestSignIn()
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                    .listRowBackground(Color.clear)
                 }
+            } else {
+                Section {
+                    TextField("Subject", text: $subject)
+                        .textInputAutocapitalization(.sentences)
 
-                if !hasAuthSession {
-                    Section {
-                        Text("Please sign in with your FanGeo or venue account to send a support message.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Sign in or create account") {
-                            dismiss()
-                            onRequestSignIn()
+                    Picker("Category", selection: $category) {
+                        ForEach(SupportRequestCategory.allCases) { cat in
+                            Text(cat.displayTitle).tag(cat)
                         }
                     }
-                } else {
-                    Section {
-                        TextField("Subject", text: $subject)
-                            .textInputAutocapitalization(.sentences)
 
-                        Picker("Category", selection: $category) {
-                            ForEach(SupportRequestCategory.allCases) { cat in
-                                Text(cat.displayTitle).tag(cat)
-                            }
-                        }
+                    if let line = category.exampleHelperLine, !line.isEmpty {
+                        Text(line)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 2)
+                    }
 
-                        if let line = category.exampleHelperLine, !line.isEmpty {
-                            Text(line)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .padding(.top, 2)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Message")
-                                .font(.subheadline.weight(.semibold))
-                            TextEditor(text: $message)
-                                .frame(minHeight: 140)
-                                .overlay(alignment: .topLeading) {
-                                    if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                        Text("Describe your question or issue…")
-                                            .foregroundStyle(.tertiary)
-                                            .padding(.top, 8)
-                                            .padding(.leading, 4)
-                                            .allowsHitTesting(false)
-                                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Message")
+                            .font(.subheadline.weight(.semibold))
+                        TextEditor(text: $message)
+                            .frame(minHeight: 140)
+                            .overlay(alignment: .topLeading) {
+                                if message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    Text("Describe your question or issue…")
+                                        .foregroundStyle(.tertiary)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 4)
+                                        .allowsHitTesting(false)
                                 }
-                            Text("\(message.count) / \(SupportRequestService.messageMaxCharacters)")
-                                .font(.caption)
-                                .foregroundStyle(
-                                    message.count > SupportRequestService.messageMaxCharacters ? Color.red : .secondary
-                                )
-                        }
-                    } footer: {
-                        Text("Screenshots are not yet supported. Please describe the issue in your message.")
+                            }
+                        Text("\(message.count) / \(SupportRequestService.messageMaxCharacters)")
                             .font(.caption)
+                            .foregroundStyle(
+                                message.count > SupportRequestService.messageMaxCharacters ? Color.red : .secondary
+                            )
                     }
+                } footer: {
+                    Text("Screenshots are not yet supported. Please describe the issue in your message.")
+                        .font(.caption)
+                }
 
-                    Section {
-                        Text("For emergencies or immediate danger, contact local emergency services.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                Section {
+                    Text("For emergencies or immediate danger, contact local emergency services.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-            }
-            .navigationTitle("Contact Support")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+        }
+        .navigationTitle("Contact Support")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                 }
-                if hasAuthSession {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Send") { Task { await send() } }
-                            .disabled(!canSend)
-                    }
+            }
+            if hasAuthSession {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Send") { Task { await send() } }
+                        .disabled(!canSend)
                 }
             }
-            .overlay {
-                if isSending {
-                    ZStack {
-                        Color.black.opacity(0.12).ignoresSafeArea()
-                        ProgressView()
-                            .padding(20)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-                    }
+        }
+        .overlay {
+            if isSending {
+                ZStack {
+                    Color.black.opacity(0.12).ignoresSafeArea()
+                    ProgressView()
+                        .padding(20)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
                 }
             }
-            .alert("Sent", isPresented: $showSuccessAlert) {
-                Button("OK") { dismiss() }
-            } message: {
-                Text("Your support request has been sent to FanGeo.")
-            }
-            .alert("Couldn’t send", isPresented: $showFailureAlert) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Unable to send support request right now. Please try again later.")
-            }
-            .alert(
-                "Check your message",
-                isPresented: Binding(
-                    get: { validationMessage != nil },
-                    set: { if !$0 { validationMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) { validationMessage = nil }
-            } message: {
-                Text(validationMessage ?? "")
-            }
+        }
+        .alert("Sent", isPresented: $showSuccessAlert) {
+            Button("OK") { dismiss() }
+        } message: {
+            Text("Your support request has been sent to FanGeo.")
+        }
+        .alert("Couldn’t send", isPresented: $showFailureAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Unable to send support request right now. Please try again later.")
+        }
+        .alert(
+            "Check your message",
+            isPresented: Binding(
+                get: { validationMessage != nil },
+                set: { if !$0 { validationMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { validationMessage = nil }
+        } message: {
+            Text(validationMessage ?? "")
         }
     }
 
