@@ -6,18 +6,20 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
     case soccer = "Soccer"
     case basketball = "Basketball"
     case football = "Football"
+    case tennis = "Tennis"
     case baseball = "Baseball"
     case hockey = "Hockey"
-    case racing = "Racing"
-    case tennis = "Tennis"
+    case golf = "Golf"
     case combat = "Combat Sports"
+    case racing = "Racing"
     case ncaa = "NCAA"
 
     var id: String { rawValue }
 
     var chipTitle: String {
         switch self {
-        case .racing: return "Formula 1"
+        case .racing: return "Racing"
+        case .combat: return "Combat"
         case .ncaa: return "NCAA"
         default: return rawValue
         }
@@ -28,11 +30,12 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .soccer: return "soccerball"
         case .basketball: return "basketball.fill"
         case .football: return "football.fill"
+        case .tennis: return "tennisball.fill"
         case .baseball: return "baseball.fill"
         case .hockey: return "hockey.puck.fill"
-        case .racing: return "flag.checkered.2.crossed.fill"
-        case .tennis: return "tennisball.fill"
+        case .golf: return "figure.golf"
         case .combat: return "figure.boxing"
+        case .racing: return "flag.checkered.2.crossed.fill"
         case .ncaa: return "building.columns.fill"
         }
     }
@@ -42,12 +45,24 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
         case .soccer: return Color(red: 0.2, green: 0.72, blue: 0.42)
         case .basketball: return Color(red: 0.95, green: 0.55, blue: 0.12)
         case .football: return Color(red: 0.55, green: 0.38, blue: 0.22)
+        case .tennis: return Color(red: 0.62, green: 0.82, blue: 0.18)
         case .baseball: return Color(red: 0.78, green: 0.18, blue: 0.22)
         case .hockey: return Color(red: 0.18, green: 0.72, blue: 0.92)
-        case .racing: return Color(red: 0.88, green: 0.12, blue: 0.16)
-        case .tennis: return Color(red: 0.62, green: 0.82, blue: 0.18)
+        case .golf: return Color(red: 0.18, green: 0.62, blue: 0.32)
         case .combat: return Color(red: 0.62, green: 0.18, blue: 0.18)
+        case .racing: return Color(red: 0.88, green: 0.12, blue: 0.16)
         case .ncaa: return Color(red: 0.52, green: 0.14, blue: 0.22)
+        }
+    }
+
+    var discoverSportToken: String {
+        switch self {
+        case .basketball: return "NBA"
+        case .football: return "NFL"
+        case .hockey: return "NHL"
+        case .combat: return "UFC"
+        case .racing: return "Formula 1"
+        default: return chipTitle
         }
     }
 }
@@ -72,6 +87,11 @@ enum FavoriteTeamKind: String, CaseIterable, Identifiable, Codable, Hashable {
         case .fighter: return "Fighter"
         }
     }
+}
+
+struct FavoriteTeamCategory: Identifiable, Hashable {
+    let id: String
+    let title: String
 }
 
 /// Local catalog entry (text names only; logos are generated initials / SF Symbols — no third-party marks).
@@ -114,7 +134,27 @@ struct FavoriteTeam: Identifiable, Hashable, Codable {
 
 enum FavoriteTeamCatalog {
     static let all: [FavoriteTeam] =
-        soccer + basketball + football + baseball + hockey + racing + tennis + combat + ncaa + favoritePlayers + favoriteTournaments
+        soccer + basketball + football + baseball + hockey + golf + racing + tennis + combat + ncaa + favoritePlayers + favoriteTournaments
+
+    static let selectorSports: [FavoriteTeamSport] = [
+        .soccer,
+        .basketball,
+        .football,
+        .tennis,
+        .baseball,
+        .hockey,
+        .golf,
+        .combat,
+        .racing
+    ]
+
+    static var defaultSport: FavoriteTeamSport {
+        selectorSports.first { !categories(for: $0).isEmpty } ?? .soccer
+    }
+
+    static func defaultCategoryID(for sport: FavoriteTeamSport) -> String? {
+        categories(for: sport).first?.id
+    }
 
     static func team(id: String) -> FavoriteTeam? {
         all.first { $0.id == id }
@@ -145,6 +185,28 @@ enum FavoriteTeamCatalog {
         }
     }
 
+    static func teams(
+        sport: FavoriteTeamSport,
+        categoryID: String?,
+        region: String? = nil,
+        search: String = ""
+    ) -> [FavoriteTeam] {
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return all.filter { team in
+            guard sportMatches(team, selectedSport: sport) else { return false }
+            if let categoryID, !categoryMatches(team, categoryID: categoryID) { return false }
+            if let region, team.region != region { return false }
+            if q.isEmpty { return true }
+            return matchesSearch(team, query: q)
+        }
+    }
+
+    static func searchTeams(_ search: String) -> [FavoriteTeam] {
+        let q = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !q.isEmpty else { return all }
+        return all.filter { matchesSearch($0, query: q) }
+    }
+
     static func regions(for sport: FavoriteTeamSport?) -> [String] {
         let teams = all.filter { team in
             if let sport {
@@ -153,6 +215,22 @@ enum FavoriteTeamCatalog {
             return true
         }
         return Array(Set(teams.map(\.region))).sorted()
+    }
+
+    static func regions(for sport: FavoriteTeamSport, categoryID: String?) -> [String] {
+        let teams = teams(sport: sport, categoryID: categoryID)
+        let knownRegions = Set(["Europe", "North America", "South America", "Asia", "Africa", "Oceania"])
+        let order = ["Europe", "North America", "South America", "Asia", "Africa", "Oceania"]
+        let regions = Set(teams.map(\.region).filter { knownRegions.contains($0) })
+        return order.filter { regions.contains($0) }
+    }
+
+    static func categories(for sport: FavoriteTeamSport) -> [FavoriteTeamCategory] {
+        categoryDefinitions(for: sport).filter { category in
+            all.contains { team in
+                sportMatches(team, selectedSport: sport) && categoryMatches(team, categoryID: category.id)
+            }
+        }
     }
 
     static func sectionGroups(for teams: [FavoriteTeam]) -> [(title: String, teams: [FavoriteTeam])] {
@@ -164,6 +242,149 @@ enum FavoriteTeamCatalog {
                 (title: title, teams: teams.sorted { $0.name < $1.name })
             }
             .sorted { $0.title < $1.title }
+    }
+
+    private static func sportMatches(_ team: FavoriteTeam, selectedSport: FavoriteTeamSport) -> Bool {
+        if selectedSport == .basketball, team.sport == .ncaa { return true }
+        return team.sport == selectedSport
+    }
+
+    private static func categoryDefinitions(for sport: FavoriteTeamSport) -> [FavoriteTeamCategory] {
+        switch sport {
+        case .soccer:
+            return [
+                FavoriteTeamCategory(id: "soccer-clubs", title: "Clubs"),
+                FavoriteTeamCategory(id: "soccer-national-teams", title: "National Teams"),
+                FavoriteTeamCategory(id: "soccer-players", title: "Players"),
+                FavoriteTeamCategory(id: "soccer-tournaments", title: "Tournaments")
+            ]
+        case .basketball:
+            return [
+                FavoriteTeamCategory(id: "basketball-nba", title: "NBA"),
+                FavoriteTeamCategory(id: "basketball-ncaa", title: "NCAA"),
+                FavoriteTeamCategory(id: "basketball-national-teams", title: "National Teams"),
+                FavoriteTeamCategory(id: "basketball-players", title: "Players")
+            ]
+        case .football:
+            return [
+                FavoriteTeamCategory(id: "football-nfl", title: "NFL"),
+                FavoriteTeamCategory(id: "football-players", title: "Players"),
+                FavoriteTeamCategory(id: "football-tournaments", title: "Leagues")
+            ]
+        case .tennis:
+            return [
+                FavoriteTeamCategory(id: "tennis-players", title: "Players"),
+                FavoriteTeamCategory(id: "tennis-tournaments", title: "Tournaments")
+            ]
+        case .baseball:
+            return [
+                FavoriteTeamCategory(id: "baseball-mlb", title: "MLB"),
+                FavoriteTeamCategory(id: "baseball-players", title: "Players"),
+                FavoriteTeamCategory(id: "baseball-tournaments", title: "Leagues")
+            ]
+        case .hockey:
+            return [
+                FavoriteTeamCategory(id: "hockey-teams", title: "Teams")
+            ]
+        case .golf:
+            return [
+                FavoriteTeamCategory(id: "golf-players", title: "Players"),
+                FavoriteTeamCategory(id: "golf-tournaments", title: "Tournaments")
+            ]
+        case .combat:
+            return [
+                FavoriteTeamCategory(id: "combat-fighters", title: "Fighters"),
+                FavoriteTeamCategory(id: "combat-promotions", title: "Promotions")
+            ]
+        case .racing:
+            return [
+                FavoriteTeamCategory(id: "racing-teams", title: "Teams"),
+                FavoriteTeamCategory(id: "racing-drivers", title: "Drivers"),
+                FavoriteTeamCategory(id: "racing-series", title: "Series")
+            ]
+        case .ncaa:
+            return [
+                FavoriteTeamCategory(id: "basketball-ncaa", title: "NCAA")
+            ]
+        }
+    }
+
+    private static func categoryMatches(_ team: FavoriteTeam, categoryID: String) -> Bool {
+        switch categoryID {
+        case "soccer-clubs":
+            return team.sport == .soccer && team.kind == .team
+        case "soccer-national-teams":
+            return team.sport == .soccer && team.kind == .nationalTeam
+        case "soccer-players":
+            return team.sport == .soccer && team.kind == .player
+        case "soccer-tournaments":
+            return team.sport == .soccer && team.kind == .tournament
+        case "basketball-nba":
+            return team.sport == .basketball && (team.league == "NBA" || team.id == "league-nba")
+        case "basketball-ncaa":
+            return team.sport == .ncaa
+        case "basketball-national-teams":
+            return team.sport == .basketball && team.kind == .nationalTeam
+        case "basketball-players":
+            return team.sport == .basketball && team.kind == .player
+        case "football-nfl":
+            return team.sport == .football && team.kind == .team
+        case "football-players":
+            return team.sport == .football && team.kind == .player
+        case "football-tournaments":
+            return team.sport == .football && team.kind == .tournament
+        case "tennis-players":
+            return team.sport == .tennis && team.kind == .player
+        case "tennis-tournaments":
+            return team.sport == .tennis && team.kind == .tournament
+        case "baseball-mlb":
+            return team.sport == .baseball && team.kind == .team
+        case "baseball-players":
+            return team.sport == .baseball && team.kind == .player
+        case "baseball-tournaments":
+            return team.sport == .baseball && team.kind == .tournament
+        case "hockey-teams":
+            return team.sport == .hockey
+        case "golf-players":
+            return team.sport == .golf && team.kind == .player
+        case "golf-tournaments":
+            return team.sport == .golf && team.kind == .tournament
+        case "combat-fighters":
+            return team.sport == .combat && team.kind == .fighter
+        case "combat-promotions":
+            return team.sport == .combat && team.kind == .tournament
+        case "racing-teams":
+            return team.sport == .racing && team.kind == .team
+        case "racing-drivers":
+            return team.sport == .racing && team.kind == .driver
+        case "racing-series":
+            return team.sport == .racing && team.kind == .tournament
+        default:
+            return false
+        }
+    }
+
+    private static func matchesSearch(_ team: FavoriteTeam, query q: String) -> Bool {
+        if team.name.lowercased().contains(q) { return true }
+        if team.league.lowercased().contains(q) { return true }
+        if team.region.lowercased().contains(q) { return true }
+        if team.kind.rawValue.lowercased().contains(q) { return true }
+        if team.kind.displayTitle.lowercased().contains(q) { return true }
+        if team.shortCode?.lowercased().contains(q) == true { return true }
+        if team.searchAliases.contains(where: { $0.lowercased().contains(q) }) { return true }
+        if team.sport.rawValue.lowercased().contains(q) { return true }
+        if team.sport.chipTitle.lowercased().contains(q) { return true }
+        return categorySearchTerms(for: team).contains { $0.lowercased().contains(q) }
+    }
+
+    private static func categorySearchTerms(for team: FavoriteTeam) -> [String] {
+        var terms: [String] = []
+        for sport in selectorSports where sportMatches(team, selectedSport: sport) {
+            for category in categoryDefinitions(for: sport) where categoryMatches(team, categoryID: category.id) {
+                terms.append(category.title)
+            }
+        }
+        return terms
     }
 
     // MARK: Soccer (54)
@@ -287,6 +508,20 @@ enum FavoriteTeamCatalog {
         team("nhl-montreal-hockey", "Montreal Hockey", .hockey, "Pro Hockey", "hockey.puck.fill", 0.78, 0.12, 0.22),
         team("nhl-pittsburgh-hockey", "Pittsburgh Hockey", .hockey, "Pro Hockey", "hockey.puck.fill", 0.78, 0.52, 0.12),
         team("nhl-seattle-hockey", "Seattle Hockey", .hockey, "Pro Hockey", "hockey.puck.fill", 0.18, 0.52, 0.58)
+    ]
+
+    // MARK: Golf (players and tournaments; text-only identities)
+
+    private static let golf: [FavoriteTeam] = [
+        team("golf-scottie-scheffler", "Scottie Scheffler", .golf, "Golf", "figure.golf", 0.18, 0.62, 0.32, region: "Favorite Players", kind: .player, shortCode: "SS", aliases: ["Scheffler"]),
+        team("golf-rory-mcilroy", "Rory McIlroy", .golf, "Golf", "figure.golf", 0.12, 0.42, 0.72, region: "Favorite Players", kind: .player, shortCode: "RM", aliases: ["McIlroy"]),
+        team("golf-tiger-woods", "Tiger Woods", .golf, "Golf", "figure.golf", 0.18, 0.18, 0.18, region: "Favorite Players", kind: .player, shortCode: "TW", aliases: ["Tiger"]),
+        team("golf-nelly-korda", "Nelly Korda", .golf, "Golf", "figure.golf", 0.78, 0.32, 0.52, region: "Favorite Players", kind: .player, shortCode: "NK", aliases: ["Korda"]),
+        team("golf-lydia-ko", "Lydia Ko", .golf, "Golf", "figure.golf", 0.42, 0.18, 0.62, region: "Favorite Players", kind: .player, shortCode: "LK", aliases: ["Ko"]),
+        team("golf-masters", "The Masters", .golf, "Golf Major", "figure.golf", 0.12, 0.48, 0.28, region: "Tournaments", kind: .tournament, shortCode: "MAS", aliases: ["Masters"]),
+        team("golf-us-open", "U.S. Open Golf", .golf, "Golf Major", "figure.golf", 0.12, 0.32, 0.72, region: "Tournaments", kind: .tournament, shortCode: "USO", aliases: ["US Open Golf"]),
+        team("golf-the-open", "The Open", .golf, "Golf Major", "figure.golf", 0.22, 0.42, 0.32, region: "Tournaments", kind: .tournament, shortCode: "OPEN", aliases: ["British Open", "Open Championship"]),
+        team("golf-ryder-cup", "Ryder Cup", .golf, "Golf Tournament", "figure.golf", 0.78, 0.18, 0.22, region: "Tournaments", kind: .tournament, shortCode: "RC")
     ]
 
     // MARK: Racing (12) — country / region inspired, no team trademarks

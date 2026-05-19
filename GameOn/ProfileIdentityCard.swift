@@ -143,7 +143,7 @@ struct ProfileIdentityCard: View {
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
                 handlePromptBanner
             }
@@ -159,9 +159,6 @@ struct ProfileIdentityCard: View {
                 suggestedFansSection
                     .padding(.horizontal, 16)
             }
-
-            fanReputationSection
-                .padding(.horizontal, 16)
 
             favoriteTeamsSection
                 .padding(.horizontal, 16)
@@ -1076,61 +1073,6 @@ struct ProfileIdentityCard: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Reputation
-
-    private var fanReputationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Reputation")
-                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-                .textCase(.uppercase)
-                .tracking(0.7)
-
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "person.2.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(FGColor.accentGreen)
-                    .frame(width: 24, height: 24)
-                    .background {
-                        Circle()
-                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
-                    }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(reputation.title.uppercased())
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .tracking(0.6)
-
-                    Text(reputation.subtitle)
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-
-                    Text(reputation.contextLine)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
-
-                    Text(reputation.whyEarnedText)
-                        .font(.system(size: 10, weight: .regular, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.86))
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .background {
-                RoundedRectangle(cornerRadius: 19, style: .continuous)
-                    .fill(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.82))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 19, style: .continuous)
-                            .strokeBorder(Color.black.opacity(colorScheme == .dark ? 0.0 : 0.04), lineWidth: 0.75)
-                    }
-            }
-        }
     }
 
     // MARK: - Favorite teams
