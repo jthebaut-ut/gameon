@@ -556,6 +556,7 @@ struct UserProfileRow: Decodable {
     let email: String?
     let display_name: String?
     let username: String?
+    let bio: String?
     let avatar_url: String?
     let avatar_thumbnail_url: String?
     let is_business_account: Bool?
@@ -569,6 +570,7 @@ struct UserProfileRow: Decodable {
         case email
         case display_name
         case username
+        case bio
         case avatar_url
         case avatar_thumbnail_url
         case is_business_account
@@ -583,6 +585,7 @@ struct UserProfileRow: Decodable {
         email: String?,
         display_name: String?,
         username: String? = nil,
+        bio: String? = nil,
         avatar_url: String?,
         avatar_thumbnail_url: String?,
         is_business_account: Bool? = nil,
@@ -595,6 +598,7 @@ struct UserProfileRow: Decodable {
         self.email = email
         self.display_name = display_name
         self.username = username
+        self.bio = bio
         self.avatar_url = avatar_url
         self.avatar_thumbnail_url = avatar_thumbnail_url
         self.is_business_account = is_business_account
@@ -610,6 +614,7 @@ struct UserProfileRow: Decodable {
         email = try c.decodeIfPresent(String.self, forKey: .email)
         display_name = try c.decodeIfPresent(String.self, forKey: .display_name)
         username = try c.decodeIfPresent(String.self, forKey: .username)
+        bio = try c.decodeIfPresent(String.self, forKey: .bio)
         avatar_url = try c.decodeIfPresent(String.self, forKey: .avatar_url)
         avatar_thumbnail_url = try c.decodeIfPresent(String.self, forKey: .avatar_thumbnail_url)
         is_business_account = try c.decodeIfPresent(Bool.self, forKey: .is_business_account)
@@ -676,11 +681,43 @@ struct UserProfileInsert: Encodable {
     let email: String
     let display_name: String
     let username: String?
+    let bio: String?
     let avatar_url: String
     let avatar_thumbnail_url: String?
     let live_visibility_enabled: Bool
     let live_visibility_mode: String
     let selected_live_visibility_friend_ids: [String]
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case display_name
+        case username
+        case bio
+        case avatar_url
+        case avatar_thumbnail_url
+        case live_visibility_enabled
+        case live_visibility_mode
+        case selected_live_visibility_friend_ids
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(email, forKey: .email)
+        try c.encode(display_name, forKey: .display_name)
+        try c.encodeIfPresent(username, forKey: .username)
+        if let bio {
+            try c.encode(bio, forKey: .bio)
+        } else {
+            try c.encodeNil(forKey: .bio)
+        }
+        try c.encode(avatar_url, forKey: .avatar_url)
+        try c.encodeIfPresent(avatar_thumbnail_url, forKey: .avatar_thumbnail_url)
+        try c.encode(live_visibility_enabled, forKey: .live_visibility_enabled)
+        try c.encode(live_visibility_mode, forKey: .live_visibility_mode)
+        try c.encode(selected_live_visibility_friend_ids, forKey: .selected_live_visibility_friend_ids)
+    }
 }
 
 /// Initial `user_profiles` row when auth exists but no row yet (`insert` only — never random `id`).
@@ -688,6 +725,7 @@ struct UserProfileBootstrapInsert: Encodable {
     let id: UUID
     let email: String
     let display_name: String
+    let bio: String?
     /// Empty string when the column is `NOT NULL` and no asset yet.
     let avatar_url: String
     let avatar_thumbnail_url: String?

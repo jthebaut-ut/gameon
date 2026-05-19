@@ -360,6 +360,7 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserDisplayName: String = ""
     /// Stored without `@`, lowercase — public FanGeo handle.
     @Published var currentUserUsername: String = ""
+    @Published var currentUserBio: String = ""
     @Published var currentUserIsBusinessAccount: Bool = false
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""

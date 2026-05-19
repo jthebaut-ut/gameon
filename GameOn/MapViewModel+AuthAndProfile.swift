@@ -132,6 +132,7 @@ extension MapViewModel {
         venueOwnerEmail = normalizedOwnerEmail
         currentUserEmail = ""
         currentUserDisplayName = ""
+        currentUserBio = ""
         currentUserIsBusinessAccount = true
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
@@ -174,6 +175,7 @@ extension MapViewModel {
         isLoggedIn = false
         currentUserEmail = ""
         currentUserDisplayName = ""
+        currentUserBio = ""
         currentUserIsBusinessAccount = true
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
@@ -193,6 +195,7 @@ extension MapViewModel {
     func clearCurrentUserProfileLocalCache() {
         UserDefaults.standard.removeObject(forKey: "cachedUserDisplayName")
         UserDefaults.standard.removeObject(forKey: "cachedUserUsername")
+        UserDefaults.standard.removeObject(forKey: "cachedUserBio")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserAvatarThumbnailURL")
         UserDefaults.standard.removeObject(forKey: "cachedUserLiveVisibilityEnabled")
@@ -206,6 +209,7 @@ extension MapViewModel {
         currentUserEmail = ""
         currentUserDisplayName = ""
         currentUserUsername = ""
+        currentUserBio = ""
         currentUserIsBusinessAccount = false
         currentUserFanXP = .rookie
         currentUserAvatarURL = ""
@@ -371,16 +375,17 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     private static let userProfileIdentitySelectColumns =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url"
 
     private struct UserProfileIdentityRow: Decodable {
         let id: UUID?
         let email: String?
         let display_name: String?
         let username: String?
+        let bio: String?
         let avatar_url: String?
         let avatar_thumbnail_url: String?
     }
@@ -528,6 +533,7 @@ extension MapViewModel {
             id: authId,
             email: emailForRow,
             display_name: "",
+            bio: nil,
             avatar_url: "",
             avatar_thumbnail_url: nil,
             live_visibility_enabled: true,
@@ -610,6 +616,7 @@ extension MapViewModel {
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
+                currentUserBio = ""
                 currentUserIsBusinessAccount = false
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
@@ -682,6 +689,7 @@ extension MapViewModel {
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
+                currentUserBio = ""
                 currentUserIsBusinessAccount = false
                 currentUserAvatarURL = ""
                 currentUserAvatarThumbnailURL = ""
@@ -842,6 +850,7 @@ extension MapViewModel {
         await MainActor.run {
             currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
             currentUserUsername = UserDefaults.standard.string(forKey: "cachedUserUsername") ?? ""
+            currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
             currentUserIsBusinessAccount = false
             currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
             currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
@@ -954,6 +963,7 @@ extension MapViewModel {
                     venueOwnerEmail = ""
                     currentUserEmail = ""
                     currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+                    currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
                     currentUserIsBusinessAccount = false
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
@@ -1136,6 +1146,7 @@ extension MapViewModel {
                         }
                         currentUserDisplayName = profile.display_name ?? ""
                         currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                        currentUserBio = profile.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         currentUserIsBusinessAccount = profile.isBusinessIdentity
                         currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                         currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
@@ -1187,6 +1198,7 @@ extension MapViewModel {
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
                     currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    currentUserBio = profile.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     currentUserIsBusinessAccount = profile.isBusinessIdentity
                     currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_url)
                     currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile.avatar_thumbnail_url)
@@ -1255,7 +1267,8 @@ extension MapViewModel {
         displayName: String,
         avatarURL: String,
         avatarThumbnailURL: String? = nil,
-        username: String? = nil
+        username: String? = nil,
+        bio: String? = nil
     ) async -> String? {
         let session: Session
         do {
@@ -1383,6 +1396,20 @@ extension MapViewModel {
             return existing.isEmpty ? nil : FanGeoHandleRules.normalizeForStorage(existing)
         }()
 
+        let finalBioToSave: String? = {
+            let candidate: String
+            if let bio {
+                candidate = bio.trimmingCharacters(in: .whitespacesAndNewlines)
+            } else {
+                let current = currentUserBio.trimmingCharacters(in: .whitespacesAndNewlines)
+                candidate = current.isEmpty ? Self.trimmedNonEmpty(existingProfile?.bio) : current
+            }
+            return candidate.isEmpty ? nil : candidate
+        }()
+        if let finalBioToSave, finalBioToSave.count > 160 {
+            return "Bio must be 160 characters or less."
+        }
+
         do {
             let canonFull = ImageDisplayURL.canonicalStorageURLString(avatarURL)
             let existingAvatarURL = ImageDisplayURL.canonicalStorageURLString(existingProfile?.avatar_url)
@@ -1430,6 +1457,7 @@ extension MapViewModel {
                 email: emailForRow,
                 display_name: finalDisplayName,
                 username: finalUsernameToSave,
+                bio: finalBioToSave,
                 avatar_url: finalAvatarURL,
                 avatar_thumbnail_url: finalAvatarThumbnailURL,
                 live_visibility_enabled: currentUserLiveVisibilityEnabled,
@@ -1441,7 +1469,7 @@ extension MapViewModel {
 
 #if DEBUG
             print(
-                "[ProfilePersistenceDebug] profileUpsertPayload=id=\(authId.uuidString.lowercased()), email=\(emailForRow), displayNameEmpty=\(finalDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), usernameEmpty=\((finalUsernameToSave ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), avatarEmpty=\(finalAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), live_visibility_enabled=\(currentUserLiveVisibilityEnabled), live_visibility_mode=\(currentUserLiveVisibilityMode.rawValue), selectedFriendCount=\(currentUserSelectedLiveVisibilityFriendIDs.count)"
+                "[ProfilePersistenceDebug] profileUpsertPayload=id=\(authId.uuidString.lowercased()), email=\(emailForRow), displayNameEmpty=\(finalDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), usernameEmpty=\((finalUsernameToSave ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), bioLength=\(finalBioToSave?.count ?? 0), avatarEmpty=\(finalAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty), live_visibility_enabled=\(currentUserLiveVisibilityEnabled), live_visibility_mode=\(currentUserLiveVisibilityMode.rawValue), selectedFriendCount=\(currentUserSelectedLiveVisibilityFriendIDs.count)"
             )
             if preventedBlankProfileOverwrite {
                 print("[ProfilePersistenceDebug] preventedBlankProfileOverwrite=true")
@@ -1461,6 +1489,7 @@ extension MapViewModel {
                 if let finalUsernameToSave {
                     currentUserUsername = finalUsernameToSave
                 }
+                currentUserBio = finalBioToSave ?? ""
                 currentUserAvatarURL = finalAvatarURL
                 currentUserAvatarThumbnailURL = finalAvatarThumbnailURL ?? ""
                 cacheCurrentUserProfileLocally()
@@ -1679,6 +1708,7 @@ extension MapViewModel {
                 email: row.email,
                 display_name: row.display_name,
                 username: row.username,
+                bio: row.bio,
                 avatar_url: row.avatar_url,
                 avatar_thumbnail_url: row.avatar_thumbnail_url,
                 is_business_account: row.is_business_account,
@@ -1837,6 +1867,7 @@ extension MapViewModel {
     func cacheCurrentUserProfileLocally() {
         UserDefaults.standard.set(currentUserDisplayName, forKey: "cachedUserDisplayName")
         UserDefaults.standard.set(currentUserUsername, forKey: "cachedUserUsername")
+        UserDefaults.standard.set(currentUserBio, forKey: "cachedUserBio")
         UserDefaults.standard.set(currentUserAvatarURL, forKey: "cachedUserAvatarURL")
         UserDefaults.standard.set(currentUserAvatarThumbnailURL, forKey: "cachedUserAvatarThumbnailURL")
         UserDefaults.standard.set(currentUserLiveVisibilityEnabled, forKey: "cachedUserLiveVisibilityEnabled")

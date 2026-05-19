@@ -5,7 +5,7 @@ import Supabase
 struct SocialIdentityService {
     private let client: SupabaseClient
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -359,6 +359,7 @@ struct SocialIdentityService {
                 email: email,
                 display_name: displayName,
                 username: username,
+                bio: nil,
                 avatar_url: avatarURL,
                 avatar_thumbnail_url: avatarThumbnailURL,
                 is_business_account: isBusinessAccount,

@@ -135,7 +135,6 @@ struct SettingsScreen: View {
     @State private var showRegisterMode = false
     @State private var venueOwnerDashboardSheet: VenueOwnerDashboardSheetRoute?
     @State private var showVenueRegisterMode = false
-    @State private var showProfileScreen = false
     @State private var showProfileSettingsSheet = false
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
@@ -206,16 +205,12 @@ struct SettingsScreen: View {
             List {
                 Section {
                     if viewModel.isLoggedIn {
-                        ProfileIdentityCard(
-                            viewModel: viewModel,
-                            showProfileScreen: $showProfileScreen
-                        )
+                        ProfileIdentityCard(viewModel: viewModel)
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
                     } else if viewModel.isVenueOwnerLoggedIn {
                         SettingsProfileHero(
                             viewModel: viewModel,
-                            showProfileScreen: $showProfileScreen,
                             venueOwnerOnResetPassword: { showVenueOwnerPasswordResetSheet = true },
                             venueOwnerOnDismissSheetsAfterLogout: {
                                 venueOwnerDashboardSheet = nil
@@ -2312,7 +2307,6 @@ private struct SettingsVenueAuthSheet: View {
 
 private struct SettingsProfileHero: View {
     @ObservedObject var viewModel: MapViewModel
-    @Binding var showProfileScreen: Bool
     var venueOwnerOnResetPassword: () -> Void
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
 
@@ -2524,25 +2518,7 @@ private struct SettingsProfileHero: View {
     }
 
     var body: some View {
-        Group {
-            if viewModel.isLoggedIn {
-                Button {
-                    showProfileScreen = true
-                } label: {
-                    heroCard
-                }
-                .buttonStyle(.plain)
-            } else if viewModel.isVenueOwnerLoggedIn {
-                heroCard
-            } else {
-                heroCard
-            }
-        }
-        .sheet(isPresented: $showProfileScreen) {
-            UserProfileScreen(viewModel: viewModel) {
-                showProfileScreen = false
-            }
-        }
+        heroCard
     }
 }
 
@@ -2779,12 +2755,10 @@ private struct SettingsUserSection: View {
     @Binding var email: String
     @Binding var password: String
     @Binding var showRegisterMode: Bool
-    @Binding var showProfileScreen: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             if viewModel.isLoggedIn {
-                SettingsProfileButton(viewModel: viewModel, showProfileScreen: $showProfileScreen)
                 SettingsGameNotificationsCard(viewModel: viewModel, notificationSettingsStore: viewModel.notificationSettingsStore)
                 SettingsSavedGamesCard()
             }
@@ -3771,44 +3745,6 @@ private struct SettingsSavedGamesCard: View {
         .padding()
         .background(Color.white.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 22))
-    }
-}
-
-private struct SettingsProfileButton: View {
-    @ObservedObject var viewModel: MapViewModel
-    @Binding var showProfileScreen: Bool
-
-    var body: some View {
-        Button {
-            showProfileScreen = true
-        } label: {
-            HStack {
-                SettingsAccountProfileImage(viewModel: viewModel)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("My Profile")
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
-
-                    Text("Change display name and profile photo")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
-            }
-            .padding()
-            .background(Color.white.opacity(0.95))
-            .clipShape(RoundedRectangle(cornerRadius: 22))
-        }
-        .sheet(isPresented: $showProfileScreen) {
-            UserProfileScreen(viewModel: viewModel) {
-                showProfileScreen = false
-            }
-        }
     }
 }
 

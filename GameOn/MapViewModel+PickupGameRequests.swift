@@ -144,7 +144,7 @@ extension MapViewModel {
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,is_business_account")
+                .select("id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account")
                 .in("id", values: idsToFetch.map { $0.uuidString.lowercased() })
                 .limit(idsToFetch.count)
                 .execute()
@@ -412,7 +412,7 @@ extension MapViewModel {
             let ids = Array(requesterIds)
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
-                .select("id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status")
+                .select("id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status")
                 .in("id", values: ids.map { $0.uuidString.lowercased() })
                 .limit(200)
                 .execute()

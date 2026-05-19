@@ -11,6 +11,7 @@ struct UserProfileScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var editedDisplayName: String = ""
     @State private var editedUsername: String = ""
+    @State private var editedBio: String = ""
     @State private var handleStatusMessage = ""
     @State private var handleStatusIsPositive = false
     @State private var availabilityTask: Task<Void, Never>?
@@ -19,6 +20,8 @@ struct UserProfileScreen: View {
     @State private var isUploadingAvatar: Bool = false
     @State private var message: String = ""
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
+
+    private static let bioCharacterLimit = 160
 
     private var selectedTeams: [FavoriteTeam] {
         FavoriteTeamsStore.resolvedTeams(from: favoriteTeamIDsRaw)
@@ -50,6 +53,7 @@ struct UserProfileScreen: View {
                     profileHeaderCard
                     displayNameCard
                     usernameCard
+                    bioCard
                     photoCard
 
                     if !message.isEmpty {
@@ -79,9 +83,16 @@ struct UserProfileScreen: View {
             .onAppear {
                 editedDisplayName = resolvedDisplayName
                 editedUsername = viewModel.currentUserUsername
+                editedBio = limitedBio(viewModel.currentUserBio)
             }
             .onChange(of: editedUsername) { _, _ in
                 scheduleHandleAvailabilityCheck()
+            }
+            .onChange(of: editedBio) { _, newValue in
+                let limited = limitedBio(newValue)
+                if limited != newValue {
+                    editedBio = limited
+                }
             }
             .onChange(of: selectedAvatarItem) { _, item in
                 guard let item else { return }
@@ -197,6 +208,33 @@ struct UserProfileScreen: View {
         }
     }
 
+    private var bioCard: some View {
+        FGCard {
+            FGSectionHeader(
+                "Bio",
+                subtitle: "A short line about you. Optional."
+            )
+
+            TextEditor(text: $editedBio)
+                .font(FGTypography.body)
+                .frame(minHeight: 86)
+                .scrollContentBackground(.hidden)
+                .padding(.horizontal, FGSpacing.sm)
+                .padding(.vertical, FGSpacing.xs)
+                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
+                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+
+            Text("\(editedBio.count)/\(Self.bioCharacterLimit)")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
     private var photoCard: some View {
         FGCard {
             FGSectionHeader(
@@ -279,6 +317,10 @@ struct UserProfileScreen: View {
         return local.prefix(1).uppercased() + local.dropFirst()
     }
 
+    private func limitedBio(_ raw: String) -> String {
+        String(raw.prefix(Self.bioCharacterLimit))
+    }
+
     private var initials: String {
         let name = resolvedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty {
@@ -357,12 +399,14 @@ struct UserProfileScreen: View {
             await MainActor.run { message = FanGeoHandleRules.validationMessage(for: issue) }
             return
         }
+        let nextBio = limitedBio(editedBio)
 
         if let err = await viewModel.saveUserProfile(
             displayName: nextName,
             avatarURL: viewModel.currentUserAvatarURL,
             avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
-            username: editedUsername
+            username: editedUsername,
+            bio: nextBio
         ) {
             await MainActor.run { message = err }
             return

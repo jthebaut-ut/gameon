@@ -1,3 +1,5 @@
+import Photos
+import PhotosUI
 import SwiftUI
 import CoreLocation
 
@@ -5,18 +7,36 @@ import CoreLocation
 struct ProfileIdentityCard: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
-    @Binding var showProfileScreen: Bool
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var focusedIdentityField: IdentityField?
 
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @State private var showFavoriteTeamsPicker = false
     @State private var showHandleSetup = false
+    @State private var showIdentityEditor = false
+    @State private var selectedAvatarItem: PhotosPickerItem?
+    @State private var editedDisplayName = ""
+    @State private var editedUsername = ""
+    @State private var editedBio = ""
+    @State private var identityMessage = ""
+    @State private var handleStatusMessage = ""
+    @State private var handleStatusIsPositive = false
+    @State private var availabilityTask: Task<Void, Never>?
+    @State private var isSavingIdentity = false
+    @State private var isUploadingAvatar = false
 
-    init(viewModel: MapViewModel, showProfileScreen: Binding<Bool>) {
+    private static let bioCharacterLimit = 160
+
+    private enum IdentityField: Hashable {
+        case displayName
+        case username
+        case bio
+    }
+
+    init(viewModel: MapViewModel) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
         _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
-        _showProfileScreen = showProfileScreen
     }
 
     private var selectedTeams: [FavoriteTeam] {
@@ -39,6 +59,10 @@ struct ProfileIdentityCard: View {
     /// Persisted @handle, or temporary email-prefix fallback only (never saved as username).
     private var handleLine: String {
         viewModel.currentUserPublicHandleLine
+    }
+
+    private var bioLine: String {
+        viewModel.currentUserBio.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var fanXP: FanXPState {
@@ -130,13 +154,13 @@ struct ProfileIdentityCard: View {
 #endif
             FanReputationEngine.log(reputation)
         }
-        .sheet(isPresented: $showProfileScreen) {
-            UserProfileScreen(viewModel: viewModel) {
-                showProfileScreen = false
-            }
-        }
         .sheet(isPresented: $showHandleSetup) {
             FanGeoIdentitySetupView(viewModel: viewModel, mode: .handleOnly)
+        }
+        .sheet(isPresented: $showIdentityEditor) {
+            identityEditorSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showFavoriteTeamsPicker) {
             FavoriteTeamsPickerSheet(
@@ -151,6 +175,19 @@ struct ProfileIdentityCard: View {
                     }
                 )
             )
+        }
+        .onChange(of: selectedAvatarItem) { _, item in
+            guard let item else { return }
+            Task { await replaceAvatar(with: item) }
+        }
+        .onChange(of: editedUsername) { _, _ in
+            scheduleHandleAvailabilityCheck()
+        }
+        .onChange(of: editedBio) { _, newValue in
+            let limited = limitedBio(newValue)
+            if limited != newValue {
+                editedBio = limited
+            }
         }
     }
 
@@ -256,49 +293,69 @@ struct ProfileIdentityCard: View {
     }
 
     private var headerRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Button {
-                showProfileScreen = true
-            } label: {
-                HStack(alignment: .center, spacing: 12) {
-                    avatarStack
+        HStack(alignment: .top, spacing: 14) {
+            PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
+                avatarStack
+            }
+            .disabled(isUploadingAvatar || isSavingIdentity)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Update profile photo")
 
+            VStack(alignment: .leading, spacing: 7) {
+                Button {
+                    presentIdentityEditor(focusedField: .displayName)
+                } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(displayName)
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(.system(size: 23, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .minimumScaleFactor(0.75)
 
                         Text(handleLine)
-                            .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.54))
+                            .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.62))
                             .lineLimit(1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Edit display name and handle")
 
-                        Text(reputation.title.uppercased())
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(FGColor.accentGreen.opacity(0.78))
-                            .tracking(0.6)
+                Button {
+                    presentIdentityEditor(focusedField: .bio)
+                } label: {
+                    Text(bioLine.isEmpty ? "Add a short bio so fans know your vibe." : bioLine)
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(bioLine.isEmpty ? .white.opacity(0.36) : .white.opacity(0.74))
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(bioLine.isEmpty ? "Add bio" : "Edit bio")
+
+                HStack(spacing: 8) {
+                    Text(reputation.title.uppercased())
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.accentGreen.opacity(0.78))
+                        .tracking(0.6)
+                        .lineLimit(1)
+
+                    if !identityMessage.isEmpty {
+                        Text(identityMessage)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(identityMessage.contains("updated") || identityMessage == "Saved." ? FGColor.accentGreen.opacity(0.88) : .white.opacity(0.62))
                             .lineLimit(1)
                     }
                 }
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Edit profile")
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 6)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                compactHeaderButton(title: "Edit", systemImage: "pencil") {
-                    showProfileScreen = true
-                }
-                compactHeaderButton(
-                    title: savedVenueCount == 1 ? "1 saved" : "\(savedVenueCount) saved",
-                    systemImage: "bookmark"
-                ) {
-                    showProfileScreen = true
-                }
+            compactHeaderButton(title: "Edit", systemImage: "pencil") {
+                presentIdentityEditor(focusedField: .displayName)
             }
         }
     }
@@ -311,7 +368,7 @@ struct ProfileIdentityCard: View {
                 avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
                 displayName: displayName,
                 email: viewModel.currentUserEmail,
-                size: 52,
+                size: 78,
                 fallbackStyle: .darkCardTranslucent,
                 imagePlaceholderTint: .white
             )
@@ -323,11 +380,17 @@ struct ProfileIdentityCard: View {
 
             Circle()
                 .fill(Color(red: 0.04, green: 0.055, blue: 0.06))
-                .frame(width: 18, height: 18)
+                .frame(width: 24, height: 24)
                 .overlay {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 8, weight: .bold))
+                    if isUploadingAvatar {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(FGColor.accentGreen)
+                    } else {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(FGColor.accentGreen.opacity(0.9))
+                    }
                 }
                 .overlay {
                     Circle()
@@ -365,6 +428,280 @@ struct ProfileIdentityCard: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Inline identity editing
+
+    private var identityEditorSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .center, spacing: 12) {
+                        PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
+                            avatarStack
+                        }
+                        .disabled(isUploadingAvatar || isSavingIdentity)
+                        .buttonStyle(.plain)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Edit your profile")
+                                .font(.system(size: 19, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                            Text("Your public fan identity")
+                                .font(.system(size: 12, weight: .medium, design: .rounded))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        }
+                    }
+
+                    identityFieldCard(title: "Display name", subtitle: "Shown on your profile and social activity.") {
+                        TextField("Display name", text: $editedDisplayName)
+                            .textInputAutocapitalization(.words)
+                            .disableAutocorrection(true)
+                            .focused($focusedIdentityField, equals: .displayName)
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .profileIdentityInputStyle(colorScheme: colorScheme)
+                    }
+
+                    identityFieldCard(title: "@handle", subtitle: "Unique username for friend search.") {
+                        HStack(spacing: 4) {
+                            Text("@")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            TextField("handle", text: $editedUsername)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .focused($focusedIdentityField, equals: .username)
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .profileIdentityInputStyle(colorScheme: colorScheme)
+
+                        if !handleStatusMessage.isEmpty {
+                            Text(handleStatusMessage)
+                                .font(.system(size: 11, weight: .medium, design: .rounded))
+                                .foregroundStyle(handleStatusIsPositive ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                        }
+                    }
+
+                    identityFieldCard(title: "Bio", subtitle: "A short line about your fan energy.") {
+                        TextEditor(text: $editedBio)
+                            .focused($focusedIdentityField, equals: .bio)
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .frame(minHeight: 82)
+                            .scrollContentBackground(.hidden)
+                            .profileIdentityInputStyle(colorScheme: colorScheme)
+                            .overlay(alignment: .topLeading) {
+                                if editedBio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    Text("Add a short bio")
+                                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                                        .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.55))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 12)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+
+                        Text("\(editedBio.count)/\(Self.bioCharacterLimit)")
+                            .font(.system(size: 11, weight: .medium, design: .rounded))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+
+                    if !identityMessage.isEmpty {
+                        Text(identityMessage)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(identityMessage.contains("updated") || identityMessage == "Saved." ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+                .padding(.bottom, 28)
+            }
+            .fanGeoScreenBackground()
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { showIdentityEditor = false }
+                        .disabled(isSavingIdentity || isUploadingAvatar)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isSavingIdentity ? "Saving..." : "Save") {
+                        Task { await saveIdentity() }
+                    }
+                    .disabled(isSavingIdentity || isUploadingAvatar)
+                }
+            }
+            .onAppear {
+                resetIdentityDraft()
+            }
+        }
+    }
+
+    private func identityFieldCard<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text(subtitle)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+
+            content()
+        }
+        .padding(12)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.98))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                }
+        }
+    }
+
+    private func presentIdentityEditor(focusedField: IdentityField) {
+        resetIdentityDraft()
+        showIdentityEditor = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            self.focusedIdentityField = focusedField
+        }
+    }
+
+    private func resetIdentityDraft() {
+        editedDisplayName = displayName
+        editedUsername = viewModel.currentUserUsername
+        editedBio = limitedBio(viewModel.currentUserBio)
+        handleStatusMessage = ""
+        handleStatusIsPositive = false
+    }
+
+    private func limitedBio(_ raw: String) -> String {
+        String(raw.prefix(Self.bioCharacterLimit))
+    }
+
+    private func profilePhotoPickFailureHint() -> String {
+        switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+        case .denied, .restricted:
+            return "Photo access is off. Turn it on in Settings > Privacy & Security > Photos to upload a profile picture."
+        case .limited:
+            return "Couldn’t use that photo. Try another image, or allow more photos for FanGeo in Settings."
+        default:
+            return "Unable to read that photo. Try a different image or check your connection."
+        }
+    }
+
+    private func scheduleHandleAvailabilityCheck() {
+        availabilityTask?.cancel()
+        handleStatusMessage = ""
+        handleStatusIsPositive = false
+
+        let raw = editedUsername
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return
+        }
+        if let issue = FanGeoHandleRules.validate(raw) {
+            handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            return
+        }
+
+        availabilityTask = Task {
+            try? await Task.sleep(nanoseconds: 400_000_000)
+            guard !Task.isCancelled else { return }
+            guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
+            await MainActor.run {
+                guard !Task.isCancelled else { return }
+                if available {
+                    handleStatusMessage = "Handle available."
+                    handleStatusIsPositive = true
+                } else {
+                    handleStatusMessage = "That handle is already taken."
+                    handleStatusIsPositive = false
+                }
+            }
+        }
+    }
+
+    private func saveIdentity() async {
+        guard viewModel.isLoggedIn else {
+            await MainActor.run { identityMessage = "Please sign in to edit your profile." }
+            return
+        }
+
+        await MainActor.run { isSavingIdentity = true }
+        defer { Task { @MainActor in isSavingIdentity = false } }
+
+        let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nextName = trimmed.isEmpty ? displayName : trimmed
+        if ModerationService.containsProfanity(nextName) {
+            await MainActor.run { identityMessage = ModerationService.profanityRejectionUserMessage() }
+            return
+        }
+        if let issue = FanGeoHandleRules.validate(editedUsername) {
+            await MainActor.run { identityMessage = FanGeoHandleRules.validationMessage(for: issue) }
+            return
+        }
+
+        let nextBio = limitedBio(editedBio)
+        if let err = await viewModel.saveUserProfile(
+            displayName: nextName,
+            avatarURL: viewModel.currentUserAvatarURL,
+            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+            username: editedUsername,
+            bio: nextBio
+        ) {
+            await MainActor.run { identityMessage = err }
+            return
+        }
+
+        await MainActor.run {
+            identityMessage = "Saved."
+            showIdentityEditor = false
+        }
+    }
+
+    private func replaceAvatar(with item: PhotosPickerItem) async {
+        guard viewModel.isLoggedIn else {
+            await MainActor.run { identityMessage = "Please sign in to update your avatar." }
+            return
+        }
+
+        await MainActor.run {
+            isUploadingAvatar = true
+            identityMessage = "Uploading avatar..."
+        }
+        defer { Task { @MainActor in isUploadingAvatar = false } }
+
+        guard let data = try? await item.loadTransferable(type: Data.self) else {
+            await MainActor.run { identityMessage = profilePhotoPickFailureHint() }
+            return
+        }
+        guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
+            await MainActor.run { identityMessage = "Unable to upload avatar." }
+            return
+        }
+
+        let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let nextName = trimmed.isEmpty ? displayName : trimmed
+        if ModerationService.containsProfanity(nextName) {
+            await MainActor.run { identityMessage = ModerationService.profanityRejectionUserMessage() }
+            return
+        }
+        if let err = await viewModel.saveUserProfile(
+            displayName: nextName,
+            avatarURL: urls.fullURL,
+            avatarThumbnailURL: urls.thumbnailURL
+        ) {
+            await MainActor.run { identityMessage = err }
+            return
+        }
+        await MainActor.run { identityMessage = "Avatar updated." }
     }
 
     // MARK: - Stats
@@ -500,7 +837,7 @@ struct ProfileIdentityCard: View {
                         .foregroundStyle(.white.opacity(0.60))
                         .textCase(.uppercase)
                         .tracking(0.7)
-                    Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Part of your profile")
+                    Text(selectedTeams.isEmpty ? "Shape your fan identity" : "Show off your fan colors")
                         .font(.system(size: 10, weight: .medium, design: .rounded))
                         .foregroundStyle(.white.opacity(0.34))
                 }
@@ -536,51 +873,57 @@ struct ProfileIdentityCard: View {
     }
 
     private var favoriteTeamsBadgeRow: some View {
-        let visible = Array(selectedTeams.prefix(3))
-        let overflow = selectedTeams.count - visible.count
-
-        return HStack(alignment: .top, spacing: 8) {
-            ForEach(visible) { team in
-                teamBadgeColumn(team: team)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 10) {
+                ForEach(selectedTeams) { team in
+                    teamBadgeColumn(team: team)
+                }
             }
-            if overflow > 0 {
-                moreTeamsBadge(count: overflow)
-            }
-            Spacer(minLength: 0)
+            .padding(.vertical, 1)
         }
     }
 
     private func teamBadgeColumn(team: FavoriteTeam) -> some View {
-        HStack(spacing: 7) {
-            PremiumTeamIdentityOrb(team: team, diameter: 28)
+        VStack(alignment: .leading, spacing: 8) {
+            PremiumTeamIdentityOrb(team: team, diameter: 42)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(team.name)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.78))
-                    .lineLimit(1)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .lineLimit(2)
                     .truncationMode(.tail)
                     .minimumScaleFactor(0.75)
 
                 Text(team.sport.chipTitle)
-                    .font(.system(size: 8, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.4))
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .foregroundStyle(team.badgeColor.opacity(0.78))
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: 112, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .frame(width: 106, alignment: .topLeading)
+        .frame(minHeight: 116, alignment: .topLeading)
         .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.032 : 0.055))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            team.badgeColor.opacity(colorScheme == .dark ? 0.16 : 0.12),
+                            Color.white.opacity(colorScheme == .dark ? 0.034 : 0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    team.badgeColor.opacity(0.12),
-                                    Color.white.opacity(0.055)
+                                    team.badgeColor.opacity(0.32),
+                                    Color.white.opacity(0.075)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -589,27 +932,7 @@ struct ProfileIdentityCard: View {
                         )
                 }
         }
-    }
-
-    private func moreTeamsBadge(count: Int) -> some View {
-        HStack(spacing: 6) {
-            Text("+\(count)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.accentGreen.opacity(0.84))
-            Text("more")
-                .font(.system(size: 10, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.5))
-        }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 7)
-        .background {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.032 : 0.055))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
-                }
-        }
+        .shadow(color: team.badgeColor.opacity(0.08), radius: 9, y: 4)
     }
 
     private var addTeamsRow: some View {
@@ -658,6 +981,20 @@ struct ProfileIdentityCard: View {
     }
 }
 
+private extension View {
+    func profileIdentityInputStyle(colorScheme: ColorScheme) -> some View {
+        self
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.62 : 0.96))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+    }
+}
+
 private struct PremiumTeamIdentityOrb: View {
     let team: FavoriteTeam
     let diameter: CGFloat
@@ -673,7 +1010,7 @@ private struct PremiumTeamIdentityOrb: View {
                 }
 
             Text(team.initials)
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .font(.system(size: max(10, diameter * 0.34), weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.86))
         }
         .frame(width: diameter, height: diameter)

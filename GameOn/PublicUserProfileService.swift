@@ -15,6 +15,7 @@ struct PublicUserProfileData: Equatable {
     let displayName: String
     /// @handle line; may use temporary email-prefix fallback when username unset (email never shown).
     let publicHandleLine: String
+    let bio: String?
     let avatarURL: String?
     let avatarThumbnailURL: String?
     let fanXP: FanXPState
@@ -28,7 +29,7 @@ struct PublicUserProfileData: Equatable {
 
 enum PublicUserProfileService {
     private static let profileSelect =
-        "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
@@ -102,6 +103,7 @@ enum PublicUserProfileService {
             email: preview.email,
             display_name: preview.displayName,
             username: preview.username,
+            bio: nil,
             avatar_url: preview.avatarURL,
             avatar_thumbnail_url: preview.avatarThumbnailURL,
             is_business_account: preview.isBusinessAccount,
@@ -254,6 +256,7 @@ enum PublicUserProfileService {
 
         let avatarFull = ImageDisplayURL.canonicalStorageURLString(row?.avatar_url)
         let avatarThumb = ImageDisplayURL.canonicalStorageURLString(row?.avatar_thumbnail_url)
+        let trimmedBio = row?.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let reputation = FanReputationEngine.evaluate(
             FanReputationSignals(
                 fanXP: fanXP,
@@ -266,6 +269,7 @@ enum PublicUserProfileService {
             userId: userId,
             displayName: resolvedName,
             publicHandleLine: handleLine,
+            bio: trimmedBio.isEmpty ? nil : trimmedBio,
             avatarURL: avatarFull.isEmpty ? nil : avatarFull,
             avatarThumbnailURL: avatarThumb.isEmpty ? nil : avatarThumb,
             fanXP: fanXP,
