@@ -37,41 +37,132 @@ struct PublicProfileOpenToChipGrid: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
             ForEach(items) { item in
-                VStack(spacing: 6) {
-                    Image(systemName: item.systemImage)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(item.tint)
-                        .frame(height: 26)
+                openToChipCard(item)
+            }
+        }
+    }
 
-                    Text(item.title)
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.75)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 4)
-                .background {
+    private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: item.systemImage)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(item.tint)
+                .frame(height: 26)
+
+            Text(item.title)
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            item.tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    item.tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
-                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(item.tint.opacity(0.35), lineWidth: 0.85)
-                        }
+                        .strokeBorder(item.tint.opacity(0.35), lineWidth: 0.85)
+                }
+        }
+    }
+}
+
+/// Account profile Open To preview with per-card quick remove.
+struct SelfProfileOpenToPreviewGrid: View {
+    let items: [PublicProfileOpenToItem]
+    let onRemove: (PublicProfileOpenToItem) -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 8) {
+            ForEach(items) { item in
+                ZStack(alignment: .topTrailing) {
+                    openToChipCard(item)
+
+                    removeOpenToButton(item: item)
+                        .padding(5)
                 }
             }
         }
+    }
+
+    private func openToChipCard(_ item: PublicProfileOpenToItem) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: item.systemImage)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(item.tint)
+                .frame(height: 26)
+
+            Text(item.title)
+                .font(.system(size: 9, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 4)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            item.tint.opacity(colorScheme == .dark ? 0.22 : 0.14),
+                            Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(item.tint.opacity(0.35), lineWidth: 0.85)
+                }
+        }
+    }
+
+    private func removeOpenToButton(item: PublicProfileOpenToItem) -> some View {
+        Button {
+            onRemove(item)
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 7.5, weight: .bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.92))
+                .frame(width: 20, height: 20)
+                .background {
+                    Circle()
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.32 : 0.10))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(
+                                    Color.white.opacity(colorScheme == .dark ? 0.22 : 0.65),
+                                    lineWidth: 0.75
+                                )
+                        }
+                }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Remove \(item.title) from Open To")
     }
 }
 

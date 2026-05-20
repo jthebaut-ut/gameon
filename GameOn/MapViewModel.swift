@@ -325,6 +325,10 @@ final class MapViewModel: ObservableObject {
     }
     @Published var currentUserFanXP: FanXPState = .rookie
     @Published var currentUserFanIdentityPreferences: FanIdentityPreferences = .empty
+    /// Bumped after Open To save so an open public profile sheet can reload fresh RPC data.
+    @Published var publicProfileOpenToRevision: Int = 0
+    /// Bumped after Home Crowd set/clear so an open public profile sheet can reload fresh RPC data.
+    @Published var publicProfileHomeCrowdRevision: Int = 0
     @Published var currentUserHomeCrowdVenueId: UUID?
     @Published var currentUserHomeCrowdVenue: HomeCrowdVenueSummary?
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
@@ -461,6 +465,8 @@ final class MapViewModel: ObservableObject {
     @Published var discoverNavigateToAccountForUserAuth: Bool = false
     /// Account / profile → Discover: focus a venue on the map and open its detail sheet.
     @Published var discoverFocusVenueId: UUID?
+    /// Profile empty Home Crowd CTA → switch to Discover tab (cleared by MainTabView).
+    @Published var requestDiscoverTabForHomeCrowd = false
     /// When set, ``SettingsScreen`` presents ``SettingsUserAuthSheet`` (same fan sheet as Account tab). Cleared when handled.
     @Published var presentFanUserAuthSheetFromDiscover: Bool = false
     /// Initial mode for ``SettingsUserAuthSheet`` when opened from Discover guest prompts.

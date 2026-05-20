@@ -42,12 +42,10 @@ struct VenueDetailView: View {
     var locksScheduledGameDetailsForGuest: Bool = false
     /// Guest Discover: same fan auth presentation as other Discover CTAs.
     var onGuestGameLoginCTA: (() -> Void)? = nil
-    /// Fan Home Crowd picker (Discover venue detail).
+    /// Fan Home Crowd quick toggle (venue hero).
     var showsHomeCrowdControls: Bool = false
     var isHomeCrowdVenue: Bool = false
-    var hasOtherHomeCrowd: Bool = false
-    var onSetHomeCrowd: (() async -> Void)? = nil
-    var onClearHomeCrowd: (() async -> Void)? = nil
+    var onToggleHomeCrowd: (() async -> Void)? = nil
 
     @State private var isHomeCrowdActionInFlight = false
 
@@ -237,10 +235,6 @@ struct VenueDetailView: View {
                     .progressiveAppear(isVisible: contentRevealPhase >= 2)
                 venueFeaturesSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 2)
-                if showsHomeCrowdControls {
-                    homeCrowdSection
-                        .progressiveAppear(isVisible: contentRevealPhase >= 2)
-                }
                 venueActionSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 if locksScheduledGameDetailsForGuest {
@@ -342,19 +336,26 @@ struct VenueDetailView: View {
 
                     Spacer(minLength: FGSpacing.md)
 
-                    Button {
-                        runFanOnlyAction("favoriteVenue", onFavorite)
-                    } label: {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(isFavorite ? Color.red : Color.white)
-                            .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.25))
-                            .clipShape(Circle())
+                    HStack(spacing: 10) {
+                        if showsHomeCrowdControls {
+                            homeCrowdHeroToggleButton
+                                .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
+                        }
+
+                        Button {
+                            runFanOnlyAction("favoriteVenue", onFavorite)
+                        } label: {
+                            Image(systemName: isFavorite ? "heart.fill" : "heart")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(isFavorite ? Color.red : Color.white)
+                                .frame(width: 44, height: 44)
+                                .background(Color.black.opacity(0.25))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
+                        .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
                     }
-                    .buttonStyle(.plain)
-                    .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
-                    .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
                 }
 
                 Spacer(minLength: 0)
@@ -519,103 +520,38 @@ struct VenueDetailView: View {
         .softCardShadow()
     }
 
-    private var homeCrowdSection: some View {
-        FGCard {
-            VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                if isHomeCrowdVenue {
-                    HStack(spacing: 10) {
-                        Image(systemName: "flag.fill")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
-                            .frame(width: 34, height: 34)
-                            .background(
-                                Circle()
-                                    .fill(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(colorScheme == .dark ? 0.22 : 0.12))
-                            )
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Your Home Crowd")
-                                .font(FGTypography.body.weight(.bold))
-                                .foregroundStyle(FGColor.primaryText(colorScheme))
-                            Text("Shown on your fan profile.")
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        }
-                        Spacer(minLength: 0)
-                    }
-
-                    HStack(spacing: 10) {
-                        Button {
-                            Task { await runHomeCrowdAction(onClearHomeCrowd) }
-                        } label: {
-                            Text("Remove Home Crowd")
-                                .font(FGTypography.caption.weight(.semibold))
-                                .foregroundStyle(FGColor.dangerRed)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 9)
-                                .background(
-                                    RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                                        .strokeBorder(FGColor.dangerRed.opacity(0.35), lineWidth: 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isHomeCrowdActionInFlight)
-
-                        if hasOtherHomeCrowd {
-                            Text("Only one Home Crowd at a time.")
-                                .font(FGTypography.caption)
-                                .foregroundStyle(FGColor.mutedText(colorScheme))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                } else {
-                    Button {
-                        Task { await runHomeCrowdAction(onSetHomeCrowd) }
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "person.3.fill")
-                                .font(.body.weight(.semibold))
-                                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
-                                .frame(width: 34, height: 34)
-                                .background(
-                                    Circle()
-                                        .fill(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(colorScheme == .dark ? 0.22 : 0.12))
-                                )
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(hasOtherHomeCrowd ? "Change Home Crowd" : "Make this my Home Crowd")
-                                    .font(FGTypography.body.weight(.bold))
-                                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                                Text("Show this spot on your fan profile.")
-                                    .font(FGTypography.caption)
-                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            }
-
-                            Spacer(minLength: 0)
-
-                            if isHomeCrowdActionInFlight {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(FGColor.mutedText(colorScheme))
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isHomeCrowdActionInFlight)
-                }
+    private var homeCrowdHeroToggleButton: some View {
+        Button {
+            runFanOnlyAction("toggleHomeCrowd") {
+                Task { await runHomeCrowdToggle() }
+            }
+        } label: {
+            HomeCrowdShieldStarBadge(
+                diameter: 44,
+                visualState: isHomeCrowdVenue ? .active : .inactive
+            )
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        isHomeCrowdVenue
+                            ? Color(red: 0.72, green: 0.48, blue: 1.0).opacity(0.85)
+                            : Color.white.opacity(0.28),
+                        lineWidth: isHomeCrowdVenue ? 2 : 1
+                    )
             }
         }
+        .buttonStyle(.plain)
+        .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
+        .disabled(isHomeCrowdActionInFlight)
+        .accessibilityLabel(isHomeCrowdVenue ? "Remove this Home Crowd" : "Make this my Home Crowd")
     }
 
     @MainActor
-    private func runHomeCrowdAction(_ action: (() async -> Void)?) async {
-        guard let action else { return }
+    private func runHomeCrowdToggle() async {
+        guard !isHomeCrowdActionInFlight else { return }
         isHomeCrowdActionInFlight = true
         defer { isHomeCrowdActionInFlight = false }
-        await action()
+        await onToggleHomeCrowd?()
     }
 
     private var venueActionSection: some View {

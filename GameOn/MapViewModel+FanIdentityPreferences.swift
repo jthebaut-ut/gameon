@@ -35,6 +35,14 @@ extension MapViewModel {
             let fan_identity_preferences: FanIdentityPreferences
         }
 
+        let payloadIDs = FanOpenToCatalog.canonicalizeItemIDs(preferences.openToItems)
+        if let payloadData = try? JSONEncoder().encode(
+            ["open_to_items": payloadIDs]
+        ),
+           let payloadJSON = String(data: payloadData, encoding: .utf8) {
+            print("[OpenToDebug] savePayload= \(payloadJSON)")
+        }
+
         do {
             try await supabase
                 .from("user_profiles")
@@ -43,7 +51,9 @@ extension MapViewModel {
                 .execute()
             await MainActor.run {
                 currentUserFanIdentityPreferences = preferences
+                publicProfileOpenToRevision &+= 1
             }
+            print("[OpenToDebug] savedPreferences= ids=\(preferences.resolvedOpenToItemIDs)")
             return nil
         } catch {
 #if DEBUG

@@ -1,9 +1,26 @@
 import SwiftUI
 
+// MARK: - Sheet layout (public fan profile)
+
+enum PublicProfileSheetLayout {
+    /// Vertical gap between hero, actions, and stacked cards.
+    static let sectionSpacing: CGFloat = 14
+    /// Vertical gap between Home Crowd, Open To, and Mutual Fans cards.
+    static let gridCardSpacing: CGFloat = 14
+    /// Default editorial card corner (hero, grid shells).
+    static let editorialCardRadius: CGFloat = 24
+    /// Grid section card corners (Open To, Mutual Fans).
+    static let gridCardRadius: CGFloat = 20
+
+    static func horizontalPadding(screenWidth: CGFloat = UIScreen.main.bounds.width) -> CGFloat {
+        screenWidth <= 375 ? 20 : 22
+    }
+}
+
 // MARK: - Design chrome
 
 extension View {
-    func publicProfileEditorialCard(cornerRadius: CGFloat = 22) -> some View {
+    func publicProfileEditorialCard(cornerRadius: CGFloat = PublicProfileSheetLayout.editorialCardRadius) -> some View {
         modifier(PublicProfileEditorialCardModifier(cornerRadius: cornerRadius))
     }
 }
@@ -101,8 +118,8 @@ enum PublicProfileContentBuilder {
         return nil
     }
 
-    static func homeCrowdVenue(from data: PublicUserProfileData) -> PublicProfileVenueCard? {
-        data.homeCrowdVenue
+    static func homeCrowd(from data: PublicUserProfileData) -> HomeCrowdVenueSummary? {
+        data.homeCrowd
     }
 
     static func venuesExcludingHomeCrowd(from data: PublicUserProfileData) -> [PublicProfileVenueCard] {
@@ -136,13 +153,15 @@ struct PublicProfileTwoColumnGrid: View {
     let colorScheme: ColorScheme
 
     var body: some View {
-        VStack(spacing: 10) {
-            if let homeCrowd = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
-                PublicProfileGridHomeCrowdCard(venue: homeCrowd)
-                    .frame(maxWidth: .infinity)
-            }
+        VStack(spacing: PublicProfileSheetLayout.gridCardSpacing) {
+            HomeCrowdProfileCardView(
+                summary: PublicProfileContentBuilder.homeCrowd(from: data),
+                isSelfProfile: false
+            )
+            .frame(maxWidth: .infinity)
 
-            profileRow(left: favoriteTeamsSlot, right: .some(AnyView(PublicProfileGridOpenToCard(items: data.editorialOpenToItems))))
+            PublicProfileGridOpenToCard(items: data.editorialOpenToItems)
+                .frame(maxWidth: .infinity)
 
             PublicProfileGridMutualFansCard(
                 count: data.mutualFansCount,
@@ -154,33 +173,6 @@ struct PublicProfileTwoColumnGrid: View {
             .frame(maxWidth: .infinity)
         }
     }
-
-    @ViewBuilder
-    private func profileRow(left: PublicProfileGridSlot, right: PublicProfileGridSlot) -> some View {
-        switch (left, right) {
-        case (.none, .none):
-            EmptyView()
-        case let (.some(l), .some(r)):
-            HStack(alignment: .top, spacing: 10) {
-                l.frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-                r.frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-            }
-        case let (.some(l), .none):
-            l.frame(maxWidth: .infinity, alignment: .topLeading)
-        case let (.none, .some(r)):
-            r.frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-    }
-
-    private var favoriteTeamsSlot: PublicProfileGridSlot {
-        guard !data.favoriteTeams.isEmpty else { return .none }
-        return .some(AnyView(PublicProfileGridFavoriteTeamsCard(teams: data.favoriteTeams)))
-    }
-}
-
-private enum PublicProfileGridSlot {
-    case none
-    case some(AnyView)
 }
 
 // MARK: - Hero header
@@ -204,6 +196,19 @@ struct PublicProfileEditorialHero: View {
     private var statColumnWidth: CGFloat {
         guard containerWidth > 0 else { return 96 }
         return min(104, max(88, containerWidth * 0.26))
+    }
+
+    private var displayBio: String {
+        let trimmed = data.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            return "I am FanGeo's biggest fan."
+        }
+        return trimmed
+    }
+
+    private var isDefaultBio: Bool {
+        let trimmed = data.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty
     }
 
     var body: some View {
@@ -249,17 +254,21 @@ struct PublicProfileEditorialHero: View {
                     .frame(width: statColumnWidth)
             }
 
-            if let bio = data.bio, !bio.isEmpty {
-                Text(bio)
-                    .font(.system(size: 13, weight: .regular, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineSpacing(3)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Text(displayBio)
+                .font(.system(size: 13, weight: .medium, design: .rounded))
+                .foregroundStyle(
+                    FGColor.mutedText(colorScheme).opacity(isDefaultBio ? 0.88 : 0.94)
+                )
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 2)
 
             if let memberSince = data.memberSinceLabel, !memberSince.isEmpty {
                 heroMemberSinceRow(memberSince)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 2)
             }
         }
         .padding(16)
@@ -270,7 +279,7 @@ struct PublicProfileEditorialHero: View {
             }
         }
         .onPreferenceChange(PublicProfileHeroWidthKey.self) { containerWidth = $0 }
-        .publicProfileEditorialCard(cornerRadius: 22)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.editorialCardRadius)
     }
 
     private var heroStatColumn: some View {
@@ -301,19 +310,19 @@ struct PublicProfileEditorialHero: View {
     }
 
     private func heroMemberSinceRow(_ label: String) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 6) {
             Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.9))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.92))
             Text(label)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
     }
 
     private func avatar(diameter: CGFloat) -> some View {
-        let statusSize = max(14, diameter * 0.14)
         let borderWidth = max(2.5, diameter * 0.025)
 
         return UserAvatarView(
@@ -336,13 +345,6 @@ struct PublicProfileEditorialHero: View {
                     ),
                     lineWidth: borderWidth
                 )
-        }
-        .overlay(alignment: .bottomTrailing) {
-            Circle()
-                .fill(FGColor.accentGreen)
-                .frame(width: statusSize, height: statusSize)
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: max(2, statusSize * 0.14)))
-                .offset(x: statusSize * 0.12, y: statusSize * 0.12)
         }
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.28 : 0.18), radius: diameter * 0.12, y: diameter * 0.05)
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10), radius: diameter * 0.08, y: diameter * 0.04)
@@ -392,126 +394,7 @@ struct PublicProfileHeroStatCard: View {
     }
 }
 
-// MARK: - Grid: Home crowd
-
-struct PublicProfileGridHomeCrowdCard: View {
-    let venue: PublicProfileVenueCard
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            venueHeroImage
-                .frame(height: 168)
-                .clipped()
-
-            LinearGradient(
-                colors: [.clear, Color.black.opacity(0.78)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("HOME CROWD")
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color(red: 0.78, green: 0.62, blue: 1.0))
-                    .tracking(0.8)
-
-                Text(venue.venueName)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-
-                if !venue.cityLabel.isEmpty {
-                    Text(venue.cityLabel)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.88))
-                        .lineLimit(1)
-                }
-
-                Text("This fan's home crowd")
-                    .font(.system(size: 9.5, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.72))
-                    .lineLimit(1)
-            }
-            .padding(10)
-        }
-        .frame(maxWidth: .infinity, minHeight: 168)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.75)
-        }
-        .shadow(color: Color.black.opacity(0.10), radius: 10, y: 5)
-    }
-
-    @ViewBuilder
-    private var venueHeroImage: some View {
-        if let urlString = venue.thumbnailURL, let url = URL(string: urlString) {
-            DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
-                venuePlaceholder
-            }
-        } else {
-            venuePlaceholder
-        }
-    }
-
-    private var venuePlaceholder: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0.58, green: 0.36, blue: 0.92),
-                Color(red: 0.22, green: 0.38, blue: 0.88)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .overlay {
-            Image(systemName: "building.2.fill")
-                .font(.system(size: 42, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.35))
-        }
-    }
-}
-
 // MARK: - Grid: Favorite teams
-
-struct PublicProfileGridFavoriteTeamsCard: View {
-    let teams: [FavoriteTeam]
-    @Environment(\.colorScheme) private var colorScheme
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("FAVORITE TEAMS")
-                .font(.system(size: 9, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
-                .tracking(0.8)
-
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(teams.prefix(6)) { team in
-                    VStack(spacing: 6) {
-                        FavoriteTeamLogoBadge(team: team, diameter: 52)
-                        Text(team.shortCode?.isEmpty == false ? team.shortCode! : team.name)
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                            .minimumScaleFactor(0.75)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-        .publicProfileEditorialCard(cornerRadius: 18)
-    }
-}
 
 // MARK: - Grid: Open To
 
@@ -562,7 +445,7 @@ struct PublicProfileGridOpenToCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-        .publicProfileEditorialCard(cornerRadius: 18)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
     }
 }
 
@@ -592,7 +475,7 @@ struct PublicProfileGridVenuesCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-        .publicProfileEditorialCard(cornerRadius: 18)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
     }
 
     private func venueTile(_ venue: PublicProfileVenueCard) -> some View {
@@ -732,7 +615,7 @@ struct PublicProfileGridMutualFansCard: View {
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
-        .publicProfileEditorialCard(cornerRadius: 18)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
     }
 
     private var sharedTeamLogos: [FavoriteTeam] {

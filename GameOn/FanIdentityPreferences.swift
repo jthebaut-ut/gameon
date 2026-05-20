@@ -91,6 +91,14 @@ enum FanOpenToCatalog {
         if pickupSportTokens.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
             return pickupSportTokens.first { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
         }
+        for category in AppSportCatalog.SportCatalog.groupedCategories {
+            for row in category.rows {
+                if row.label.caseInsensitiveCompare(trimmed) == .orderedSame
+                    || row.selection.caseInsensitiveCompare(trimmed) == .orderedSame {
+                    return row.selection
+                }
+            }
+        }
         return nil
     }
 
@@ -163,6 +171,7 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case openToItems = "open_to_items"
+        case openToItemsCamelCase = "openToItems"
         case personalityTags = "personality_tags"
         case openToWatchParties = "open_to_watch_parties"
         case openToPickupBasketball = "open_to_pickup_basketball"
@@ -172,14 +181,17 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        openToItemsKeyPresent = c.contains(.openToItems)
-        let rawItems = try c.decodeIfPresent([String].self, forKey: .openToItems) ?? []
+        openToItemsKeyPresent = c.contains(.openToItems) || c.contains(.openToItemsCamelCase)
+        var rawItems = (try? c.decode([String].self, forKey: .openToItems)) ?? []
+        if rawItems.isEmpty {
+            rawItems = (try? c.decode([String].self, forKey: .openToItemsCamelCase)) ?? []
+        }
         openToItems = FanOpenToCatalog.canonicalizeItemIDs(rawItems)
-        personalityTags = try c.decodeIfPresent([String].self, forKey: .personalityTags)
-        openToWatchParties = try c.decodeIfPresent(Bool.self, forKey: .openToWatchParties)
-        openToPickupBasketball = try c.decodeIfPresent(Bool.self, forKey: .openToPickupBasketball)
-        openToSoccerMatches = try c.decodeIfPresent(Bool.self, forKey: .openToSoccerMatches)
-        openToMeetingLocalFans = try c.decodeIfPresent(Bool.self, forKey: .openToMeetingLocalFans)
+        personalityTags = try? c.decode([String].self, forKey: .personalityTags)
+        openToWatchParties = try? c.decode(Bool.self, forKey: .openToWatchParties)
+        openToPickupBasketball = try? c.decode(Bool.self, forKey: .openToPickupBasketball)
+        openToSoccerMatches = try? c.decode(Bool.self, forKey: .openToSoccerMatches)
+        openToMeetingLocalFans = try? c.decode(Bool.self, forKey: .openToMeetingLocalFans)
 
         if openToItems.isEmpty {
             let legacy = FanOpenToCatalog.idsFromLegacyBooleans(

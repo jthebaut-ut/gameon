@@ -18,7 +18,7 @@ struct FanIdentityPreferencesEditorView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Show other fans what sports and hangouts you're open to.")
+                    Text("Choose what you're open to with other fans.")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
 
@@ -33,7 +33,7 @@ struct FanIdentityPreferencesEditorView: View {
                 .padding(14)
             }
             .fanGeoScreenBackground()
-            .navigationTitle("Edit Fan Identity")
+            .navigationTitle("Edit Open To")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

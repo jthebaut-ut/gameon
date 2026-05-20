@@ -314,6 +314,7 @@ struct DiscoverScreen: View {
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
     @State private var discoverWeather: DiscoverWeather?
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
+    @State private var isDiscoverHomeCrowdToggleInFlight = false
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
 
@@ -764,13 +765,8 @@ struct DiscoverScreen: View {
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
-                hasOtherHomeCrowd: viewModel.currentUserHomeCrowdVenueId != nil
-                    && !viewModel.isHomeCrowdVenue(selectedBar.id),
-                onSetHomeCrowd: {
-                    _ = await viewModel.setMyHomeCrowd(selectedBar)
-                },
-                onClearHomeCrowd: {
-                    _ = await viewModel.clearMyHomeCrowd()
+                onToggleHomeCrowd: {
+                    await viewModel.toggleHomeCrowd(for: selectedBar)
                 }
             )
             .task {
@@ -2912,6 +2908,8 @@ struct DiscoverScreen: View {
                 venueHeroImage(bar)
 
                 HStack(spacing: 8) {
+                    discoverHomeCrowdHeroButton(bar: bar)
+
                     Button {
                         FGInteractionHaptics.softImpact()
                         if viewModel.canFavoriteVenues {
@@ -2951,6 +2949,12 @@ struct DiscoverScreen: View {
                 }
                 .padding(10)
             }
+            .onAppear {
+                let selected = viewModel.isHomeCrowdVenue(bar.id)
+                print(
+                    "[HomeCrowd] discoverHeroIconRendered venueId=\(bar.id.uuidString.lowercased()) selected=\(selected)"
+                )
+            }
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: FGSpacing.sm) {
@@ -2985,6 +2989,54 @@ struct DiscoverScreen: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func discoverHomeCrowdHeroButton(bar: BarVenue) -> some View {
+        let isActive = viewModel.isHomeCrowdVenue(bar.id)
+
+        return Button {
+            FGInteractionHaptics.softImpact()
+            let willSelect = !isActive
+            print(
+                "[HomeCrowd] toggleTap source=discoverHero venueId=\(bar.id.uuidString.lowercased()) selected=\(willSelect)"
+            )
+            if viewModel.canUseFanSocialFeatures {
+                Task {
+                    isDiscoverHomeCrowdToggleInFlight = true
+                    defer { isDiscoverHomeCrowdToggleInFlight = false }
+                    await viewModel.toggleHomeCrowd(for: bar)
+                }
+            } else if viewModel.isAuthenticatedForSocialFeatures {
+                viewModel.logBusinessUserGateBlocked(action: "toggleHomeCrowd")
+                fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            } else {
+                viewModel.discoverNavigateToAccountForUserAuth = true
+            }
+        } label: {
+            HomeCrowdShieldStarBadge(
+                diameter: 34,
+                visualState: isActive ? .active : .inactive
+            )
+            .background {
+                if !isActive {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 34, height: 34)
+                }
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        isActive
+                            ? Color(red: 0.72, green: 0.48, blue: 1.0).opacity(0.88)
+                            : discoverPreviewControlBorder,
+                        lineWidth: isActive ? 1.5 : 1
+                    )
+            }
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
+        .disabled(isDiscoverHomeCrowdToggleInFlight)
+        .accessibilityLabel(isActive ? "Remove this Home Crowd" : "Make this my Home Crowd")
     }
 
     private func venuePreviewRatingButton(_ bar: BarVenue) -> some View {

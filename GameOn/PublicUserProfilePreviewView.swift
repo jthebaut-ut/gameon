@@ -21,10 +21,14 @@ struct PublicUserProfilePreviewView: View {
 
     private let profilePokesService = ProfilePokesService()
 
+    private var profileContentHorizontalPadding: CGFloat {
+        PublicProfileSheetLayout.horizontalPadding()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: PublicProfileSheetLayout.sectionSpacing) {
                     if isLoading, profile == nil {
                         loadingSkeleton
                     } else if let profile {
@@ -40,9 +44,9 @@ struct PublicUserProfilePreviewView: View {
                         loadingSkeleton
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.top, 4)
-                .padding(.bottom, 24)
+                .padding(.horizontal, profileContentHorizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
             }
             .background(sheetBackground.ignoresSafeArea())
             .navigationTitle("Fan Profile")
@@ -57,6 +61,12 @@ struct PublicUserProfilePreviewView: View {
             await loadProfile()
             await loadPokeSummary(for: userId)
         }
+        .onChange(of: viewModel.publicProfileOpenToRevision) { _, _ in
+            Task { await loadProfile() }
+        }
+        .onChange(of: viewModel.publicProfileHomeCrowdRevision) { _, _ in
+            Task { await loadProfile() }
+        }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
             refreshFriendButtonState()
         }
@@ -66,45 +76,47 @@ struct PublicUserProfilePreviewView: View {
 
     @ViewBuilder
     private func profileContent(_ data: PublicUserProfileData) -> some View {
-        PublicProfileEditorialHero(data: data)
-            .onAppear {
+        VStack(spacing: PublicProfileSheetLayout.sectionSpacing) {
+            PublicProfileEditorialHero(data: data)
+                .onAppear {
 #if DEBUG
-                print("[PublicProfileEditorialUI] rendered user_id=\(data.userId.uuidString.lowercased())")
+                    print("[PublicProfileEditorialUI] rendered user_id=\(data.userId.uuidString.lowercased())")
 #endif
+                }
+
+            if friendButtonState != .hidden || canShowPokeControls(for: data.userId) {
+                PublicProfileSocialActionBar(
+                    friendState: friendButtonState,
+                    showsPoke: canShowPokeControls(for: data.userId),
+                    isFriendActionInFlight: isFriendActionInFlight,
+                    pokeTitle: pokeButtonTitle,
+                    pokeIcon: pokeButtonIcon,
+                    pokeForeground: pokeButtonForeground,
+                    pokeBackground: pokeButtonBackground,
+                    pokeBorder: pokeButtonBorder,
+                    isPokeDisabled: isPokeActionDisabled,
+                    isPokeInFlight: isPokeInFlight,
+                    onFriendAction: { Task { await performFriendAction(data) } },
+                    onPoke: { Task { await sendPoke(to: data.userId) } }
+                )
             }
 
-        if friendButtonState != .hidden || canShowPokeControls(for: data.userId) {
-            PublicProfileSocialActionBar(
-                friendState: friendButtonState,
-                showsPoke: canShowPokeControls(for: data.userId),
-                isFriendActionInFlight: isFriendActionInFlight,
-                pokeTitle: pokeButtonTitle,
-                pokeIcon: pokeButtonIcon,
-                pokeForeground: pokeButtonForeground,
-                pokeBackground: pokeButtonBackground,
-                pokeBorder: pokeButtonBorder,
-                isPokeDisabled: isPokeActionDisabled,
-                isPokeInFlight: isPokeInFlight,
-                onFriendAction: { Task { await performFriendAction(data) } },
-                onPoke: { Task { await sendPoke(to: data.userId) } }
-            )
-        }
+            PublicProfileTwoColumnGrid(data: data, colorScheme: colorScheme)
 
-        PublicProfileTwoColumnGrid(data: data, colorScheme: colorScheme)
+            if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {
+                PublicProfilePickupOrganizerCard(
+                    creatorUserId: data.userId,
+                    stats: data.organizerStats,
+                    compact: true
+                )
+            }
 
-        if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {
-            PublicProfilePickupOrganizerCard(
-                creatorUserId: data.userId,
-                stats: data.organizerStats,
-                compact: true
-            )
-        }
-
-        if let friendActionError, !friendActionError.isEmpty {
-            inlineError(friendActionError)
-        }
-        if let pokeActionError, !pokeActionError.isEmpty {
-            inlineError(pokeActionError)
+            if let friendActionError, !friendActionError.isEmpty {
+                inlineError(friendActionError)
+            }
+            if let pokeActionError, !pokeActionError.isEmpty {
+                inlineError(pokeActionError)
+            }
         }
     }
 

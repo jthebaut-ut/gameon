@@ -274,6 +274,11 @@ struct MainTabView: View {
             guard venueId != nil else { return }
             selectTab(.discover, reason: "discoverFocusVenueId")
         }
+        .onChange(of: viewModel.requestDiscoverTabForHomeCrowd) { _, go in
+            guard go else { return }
+            selectTab(.discover, reason: "homeCrowdPick")
+            viewModel.requestDiscoverTabForHomeCrowd = false
+        }
         .onChange(of: selectedTabStorage) { _, newRaw in
             AdDebugContext.setVisibleTab(newRaw)
 #if DEBUG

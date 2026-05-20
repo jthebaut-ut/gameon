@@ -115,6 +115,8 @@ private enum ProfileSettingsRoute: Hashable {
     case trustSafety
     case privacyPolicy
     case termsOfService
+    case resetPassword
+    case venueResetPassword
 }
 
 /// Account tab: end-user and venue-owner auth, profile, notifications, Apple Calendar sync, and entry to venue dashboard flows.
@@ -143,7 +145,6 @@ struct SettingsScreen: View {
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
     @State private var showLiveSharingModeDialog = false
-    @State private var showResetPasswordSheet = false
     @State private var showDeleteAccountSheet = false
     @State private var showDeleteVenueOwnerSheet = false
     @State private var showReportedCommentsSheet = false
@@ -666,21 +667,6 @@ struct SettingsScreen: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
-        .sheet(isPresented: $showResetPasswordSheet) {
-            NavigationStack {
-                Form { SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email) }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-                    }
-                    .navigationTitle("Reset Password")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showResetPasswordSheet = false }
-                        }
-                    }
-            }
-        }
         .sheet(isPresented: $showVenueOwnerPasswordResetSheet) {
             NavigationStack {
                 Form { SettingsVenuePasswordResetCard(viewModel: viewModel) }
@@ -830,6 +816,32 @@ struct SettingsScreen: View {
                 embedsInNavigationStack: false,
                 showsCloseButton: false
             )
+
+        case .resetPassword:
+            ScrollView {
+                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
+                    .padding(.horizontal, FGSpacing.lg)
+                    .padding(.top, FGSpacing.lg)
+            }
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+            }
+            .navigationTitle("Reset Password")
+            .navigationBarTitleDisplayMode(.inline)
+
+        case .venueResetPassword:
+            ScrollView {
+                SettingsVenuePasswordResetCard(viewModel: viewModel)
+                    .padding(.horizontal, FGSpacing.lg)
+                    .padding(.top, FGSpacing.lg)
+            }
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+            }
+            .navigationTitle("Reset venue password")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
@@ -907,9 +919,9 @@ struct SettingsScreen: View {
                 settingsSectionCard {
                     if viewModel.isLoggedIn {
                         Button {
-                            presentFromProfileSettings { showResetPasswordSheet = true }
+                            profileSettingsPath.append(ProfileSettingsRoute.resetPassword)
                         } label: {
-                            settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key")
+                            settingsRow(title: "Reset Password", subtitle: "Send a reset email.", systemImage: "key", showsChevron: true)
                         }
                         .buttonStyle(.plain)
 
@@ -917,17 +929,17 @@ struct SettingsScreen: View {
                             settingsRowDivider()
 
                             Button {
-                                presentFromProfileSettings { showVenueOwnerPasswordResetSheet = true }
+                                profileSettingsPath.append(ProfileSettingsRoute.venueResetPassword)
                             } label: {
-                                settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key")
+                                settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key", showsChevron: true)
                             }
                             .buttonStyle(.plain)
                         }
                     } else if viewModel.isVenueOwnerLoggedIn {
                         Button {
-                            presentFromProfileSettings { showVenueOwnerPasswordResetSheet = true }
+                            profileSettingsPath.append(ProfileSettingsRoute.venueResetPassword)
                         } label: {
-                            settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key")
+                            settingsRow(title: "Reset venue password", subtitle: "Send a venue owner reset email.", systemImage: "key", showsChevron: true)
                         }
                         .buttonStyle(.plain)
                     }

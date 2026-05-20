@@ -33,7 +33,7 @@ struct PublicUserProfileData {
     let sharedTeamsCount: Int
     let venueCount: Int
     let venueCards: [PublicProfileVenueCard]
-    let homeCrowdVenue: PublicProfileVenueCard?
+    let homeCrowd: HomeCrowdVenueSummary?
     let pickupHostedCount: Int
     let pickupJoinedCount: Int
     let socialHighlightLabels: [String]
@@ -153,6 +153,79 @@ enum PublicUserProfileService {
             let city_label: String?
             let thumbnail_url: String?
         }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            visible = try c.decode(Bool.self, forKey: .visible)
+            user_id = try? c.decode(UUID.self, forKey: .user_id)
+            display_name = try? c.decode(String.self, forKey: .display_name)
+            username = try? c.decode(String.self, forKey: .username)
+            bio = try? c.decode(String.self, forKey: .bio)
+            avatar_url = try? c.decode(String.self, forKey: .avatar_url)
+            avatar_thumbnail_url = try? c.decode(String.self, forKey: .avatar_thumbnail_url)
+            member_since = try? c.decode(String.self, forKey: .member_since)
+            favorite_team_ids = try? c.decode([String].self, forKey: .favorite_team_ids)
+            mutual_fans_count = try? c.decode(Int.self, forKey: .mutual_fans_count)
+            shared_teams_count = try? c.decode(Int.self, forKey: .shared_teams_count)
+            venue_count = try? c.decode(Int.self, forKey: .venue_count)
+            pickup_hosted_count = try? c.decode(Int.self, forKey: .pickup_hosted_count)
+            pickup_joined_count = try? c.decode(Int.self, forKey: .pickup_joined_count)
+            mutual_fan_avatars = try? c.decode([MutualFanRow].self, forKey: .mutual_fan_avatars)
+            venue_cards = try? c.decode([VenueCardRow].self, forKey: .venue_cards)
+            shared_team_ids = try? c.decode([String].self, forKey: .shared_team_ids)
+            if c.contains(.home_crowd_venue) {
+                if (try? c.decodeNil(forKey: .home_crowd_venue)) == true {
+                    home_crowd_venue = nil
+                    print("[HomeCrowdDebug] publicRpcHomeCrowd= null")
+                } else if let nested = try? c.superDecoder(forKey: .home_crowd_venue),
+                          let lenient = HomeCrowdVenueSummary.decodeLenient(from: nested) {
+                    home_crowd_venue = lenient
+                    print(
+                        "[HomeCrowdDebug] publicRpcHomeCrowd= venueId=\(lenient.venueId.uuidString.lowercased()) name=\(lenient.name) source=lenient"
+                    )
+                } else if let decoded = try? c.decode(HomeCrowdVenueSummary.self, forKey: .home_crowd_venue) {
+                    home_crowd_venue = decoded
+                    print(
+                        "[HomeCrowdDebug] publicRpcHomeCrowd= venueId=\(decoded.venueId.uuidString.lowercased()) name=\(decoded.name) source=strict"
+                    )
+                } else {
+                    home_crowd_venue = nil
+                    print("[HomeCrowdDebug] publicRpcHomeCrowdDecodeFailed")
+                }
+            } else {
+                home_crowd_venue = nil
+                print("[HomeCrowdDebug] publicRpcHomeCrowd= missing_key")
+            }
+
+            if let prefs = try? c.decode(FanIdentityPreferences.self, forKey: .fan_identity_preferences) {
+                fan_identity_preferences = prefs
+            } else {
+                fan_identity_preferences = nil
+                print("[OpenToDebug] publicRpcPreferencesDecodeFailed")
+            }
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case visible
+            case user_id
+            case display_name
+            case username
+            case bio
+            case avatar_url
+            case avatar_thumbnail_url
+            case member_since
+            case favorite_team_ids
+            case mutual_fans_count
+            case shared_teams_count
+            case venue_count
+            case pickup_hosted_count
+            case pickup_joined_count
+            case mutual_fan_avatars
+            case venue_cards
+            case fan_identity_preferences
+            case shared_team_ids
+            case home_crowd_venue
+        }
     }
 
     private static func fetchPublicIdentityRPC(targetUserId: UUID) async -> PublicIdentityRPCResponse? {
@@ -173,13 +246,121 @@ enum PublicUserProfileService {
                 "[PublicProfileLoadDebug] identityRPC visible=\(payload.visible) mutual=\(payload.mutual_fans_count ?? 0) venues=\(payload.venue_count ?? 0)"
             )
 #endif
+            let prefs = payload.fan_identity_preferences ?? .empty
+            print(
+                "[OpenToDebug] publicRpcPreferences= ids=\(prefs.resolvedOpenToItemIDs) keyPresent=\(prefs.openToItemsKeyPresent)"
+            )
             return payload
         } catch {
 #if DEBUG
             print("[PublicProfileLoadDebug] identityRPC_failed error=\(error.localizedDescription)")
 #endif
+            print("[OpenToDebug] publicRpcPreferences= decode_failed error=\(error.localizedDescription)")
             return nil
         }
+    }
+
+    private static func fetchFanIdentityPreferences(userId: UUID) async -> FanIdentityPreferences? {
+        struct Row: Decodable {
+            let fan_identity_preferences: FanIdentityPreferences?
+        }
+
+        do {
+            let rows: [Row] = try await supabase
+                .from("user_profiles")
+                .select("fan_identity_preferences")
+                .eq("id", value: userId.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.fan_identity_preferences
+        } catch {
+            print("[OpenToDebug] fetchFanIdentityPreferences failed userId=\(userId.uuidString.lowercased()) error=\(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private static func resolvePublicHomeCrowd(_ rpcVenue: HomeCrowdVenueSummary?) -> HomeCrowdVenueSummary? {
+        guard let rpcVenue else {
+            print("[HomeCrowdDebug] decodedPublicHomeCrowd= nil")
+            logRenderedHomeCrowd(nil)
+            return nil
+        }
+        let trimmedName = rpcVenue.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            print(
+                "[HomeCrowdDebug] decodedPublicHomeCrowd= rejected_empty_name venueId=\(rpcVenue.venueId.uuidString.lowercased())"
+            )
+            logRenderedHomeCrowd(nil)
+            return nil
+        }
+        let normalized = normalizedHomeCrowdSummary(rpcVenue)
+        print(
+            "[HomeCrowdDebug] decodedPublicHomeCrowd= venueId=\(normalized.venueId.uuidString.lowercased()) name=\(normalized.name)"
+        )
+        logRenderedHomeCrowd(normalized.venueId)
+        return normalized
+    }
+
+    private static func logRenderedHomeCrowd(_ venueId: UUID?) {
+        let value = venueId?.uuidString.lowercased() ?? "nil"
+        print("[HomeCrowdDebug] renderedHomeCrowd venueId=\(value)")
+    }
+
+    private static func fetchPublicHomeCrowdForLegacyProfile(userId: UUID) async -> HomeCrowdVenueSummary? {
+        if let identity = await fetchPublicIdentityRPC(targetUserId: userId), identity.visible,
+           let crowd = resolvePublicHomeCrowd(identity.home_crowd_venue) {
+            print("[HomeCrowdDebug] legacyHomeCrowd= source=identity_rpc")
+            return crowd
+        }
+
+        if let dedicated = await HomeCrowdService.fetchPublicHomeCrowdForFan(targetUserId: userId),
+           let crowd = resolvePublicHomeCrowd(dedicated) {
+            print("[HomeCrowdDebug] legacyHomeCrowd= source=dedicated_rpc")
+            return crowd
+        }
+
+        if let pointer = await HomeCrowdService.fetchPublicHomeCrowdPointer(targetUserId: userId) {
+            if let summary = await HomeCrowdService.fetchVenueSummaryForPublicProfile(
+                venueId: pointer.venue_id,
+                setAt: pointer.home_crowd_set_at,
+                excludeUserId: userId
+            ), let crowd = resolvePublicHomeCrowd(summary) {
+                print("[HomeCrowdDebug] legacyHomeCrowd= source=venue_summary_rpc")
+                return crowd
+            }
+
+            if let tableSummary = await HomeCrowdService.fetchVenueSummaryFromTable(
+                venueId: pointer.venue_id,
+                setAt: pointer.home_crowd_set_at
+            ), let crowd = resolvePublicHomeCrowd(tableSummary) {
+                print("[HomeCrowdDebug] legacyHomeCrowd= source=venues_table")
+                return crowd
+            }
+        }
+
+        print("[HomeCrowdDebug] legacyHomeCrowd= nil")
+        logRenderedHomeCrowd(nil)
+        return nil
+    }
+
+    private static func resolvePublicOpenToItems(
+        preferences: FanIdentityPreferences,
+        favoriteTeams: [FavoriteTeam],
+        venueCount: Int,
+        pickupHostedCount: Int,
+        pickupJoinedCount: Int
+    ) -> [PublicProfileOpenToItem] {
+        print("[OpenToDebug] decodedOpenToItems= \(preferences.resolvedOpenToItemIDs)")
+        let items = PublicProfileOpenToBuilder.items(
+            preferences: preferences,
+            favoriteTeams: favoriteTeams,
+            venueCount: venueCount,
+            pickupHostedCount: pickupHostedCount,
+            pickupJoinedCount: pickupJoinedCount
+        )
+        print("[OpenToDebug] renderedOpenToCount= \(items.count)")
+        return items
     }
 
     private static func assembleFromIdentityRPC(
@@ -210,7 +391,12 @@ enum PublicUserProfileService {
         let venueCount = max(0, rpc.venue_count ?? 0)
         let pickupHosted = max(0, rpc.pickup_hosted_count ?? 0)
         let pickupJoined = max(0, rpc.pickup_joined_count ?? 0)
-        let preferences = rpc.fan_identity_preferences ?? .empty
+        var preferences = rpc.fan_identity_preferences ?? .empty
+        if preferences.resolvedOpenToItemIDs.isEmpty,
+           let fetched = await fetchFanIdentityPreferences(userId: userId) {
+            preferences = fetched
+            print("[OpenToDebug] publicRpcPreferences= used_profile_fetch ids=\(preferences.resolvedOpenToItemIDs)")
+        }
         let sharedTeamNames = FavoriteTeamsStore.resolvedTeams(fromIDs: rpc.shared_team_ids ?? [])
             .map { ($0.shortCode?.isEmpty == false) ? $0.shortCode! : $0.name }
         let built = buildProfileData(
@@ -222,8 +408,11 @@ enum PublicUserProfileService {
             isBusinessAccount: false,
             hasResolvedIdentity: true,
             isPubliclyVisible: true,
-            memberSinceLabel: PublicProfileMemberSinceFormatter.label(from: rpc.member_since),
-            openToItems: PublicProfileOpenToBuilder.items(
+            memberSinceLabel: resolveMemberSinceLabel(
+                rpcMemberSince: rpc.member_since,
+                profileCreatedAt: cachedProfile?.created_at
+            ),
+            openToItems: resolvePublicOpenToItems(
                 preferences: preferences,
                 favoriteTeams: favoriteTeams,
                 venueCount: venueCount,
@@ -253,21 +442,14 @@ enum PublicUserProfileService {
                     thumbnailURL: thumb.isEmpty ? nil : thumb
                 )
             },
-            homeCrowdVenue: rpc.home_crowd_venue.map { summary in
-                let thumb = ImageDisplayURL.canonicalStorageURLString(summary.thumbnailURL)
-                return PublicProfileVenueCard(
-                    venueId: summary.venueId,
-                    venueName: summary.name,
-                    cityLabel: summary.locationLabel,
-                    thumbnailURL: thumb.isEmpty ? nil : thumb
-                )
-            },
+            homeCrowd: resolvePublicHomeCrowd(rpc.home_crowd_venue),
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
             sharedTeamNames: sharedTeamNames
         )
 
-        if let homeId = built.homeCrowdVenue?.venueId {
+        logRenderedHomeCrowd(built.homeCrowd?.venueId)
+        if let homeId = built.homeCrowd?.venueId {
             print("[HomeCrowd] publicProfile venueId=\(homeId.uuidString.lowercased())")
         }
 
@@ -301,7 +483,7 @@ enum PublicUserProfileService {
             sharedTeamsCount: 0,
             venueCount: 0,
             venueCards: [],
-            homeCrowdVenue: nil,
+            homeCrowd: nil,
             pickupHostedCount: 0,
             pickupJoinedCount: 0,
             socialHighlightLabels: [],
@@ -340,6 +522,14 @@ enum PublicUserProfileService {
         let venueCount = 0
         let pickupHosted = 0
         let pickupJoined = 0
+        let preferences = await fetchFanIdentityPreferences(userId: userId) ?? .empty
+        if preferences.resolvedOpenToItemIDs.isEmpty {
+            print("[OpenToDebug] legacyLoadPreferences= empty_or_unavailable")
+        } else {
+            print("[OpenToDebug] legacyLoadPreferences= ids=\(preferences.resolvedOpenToItemIDs)")
+        }
+
+        let legacyHomeCrowd = await fetchPublicHomeCrowdForLegacyProfile(userId: userId)
 
         var built = buildProfileData(
             userId: userId,
@@ -350,9 +540,12 @@ enum PublicUserProfileService {
             isBusinessAccount: isBusiness,
             hasResolvedIdentity: profileQuerySuccess,
             isPubliclyVisible: true,
-            memberSinceLabel: PublicProfileMemberSinceFormatter.label(from: row?.created_at),
-            openToItems: PublicProfileOpenToBuilder.items(
-                preferences: .empty,
+            memberSinceLabel: resolveMemberSinceLabel(
+                rpcMemberSince: nil,
+                profileCreatedAt: row?.created_at
+            ),
+            openToItems: resolvePublicOpenToItems(
+                preferences: preferences,
                 favoriteTeams: favoriteTeams,
                 venueCount: venueCount,
                 pickupHostedCount: pickupHosted,
@@ -363,13 +556,59 @@ enum PublicUserProfileService {
             sharedTeamsCount: 0,
             venueCount: venueCount,
             venueCards: [],
-            homeCrowdVenue: nil,
+            homeCrowd: legacyHomeCrowd,
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
             sharedTeamNames: []
         )
 
+        logRenderedHomeCrowd(built.homeCrowd?.venueId)
         return built
+    }
+
+    /// Resolves hero member-since from RPC `member_since` or `user_profiles.created_at` fallback.
+    private static func resolveMemberSinceLabel(
+        rpcMemberSince: String?,
+        profileCreatedAt: String?
+    ) -> String? {
+        let candidates: [(source: String, raw: String?)] = [
+            ("rpc_member_since", rpcMemberSince),
+            ("profile_created_at", profileCreatedAt)
+        ]
+
+        for candidate in candidates {
+            guard let raw = candidate.raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !raw.isEmpty else { continue }
+            if let label = PublicProfileMemberSinceFormatter.label(from: raw) {
+                print("[PublicProfileMemberSince] rendered value=\(label) source=\(candidate.source)")
+                return label
+            }
+            print(
+                "[PublicProfileMemberSince] missing reason=unparseable source=\(candidate.source) raw=\(raw.prefix(48))"
+            )
+        }
+
+        let rpcPresent = !(rpcMemberSince?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        let profilePresent = !(profileCreatedAt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        if !rpcPresent && !profilePresent {
+            print("[PublicProfileMemberSince] missing reason=no_timestamp_fields")
+        } else {
+            print("[PublicProfileMemberSince] missing reason=all_candidates_unparseable")
+        }
+        return nil
+    }
+
+    private static func normalizedHomeCrowdSummary(_ summary: HomeCrowdVenueSummary) -> HomeCrowdVenueSummary {
+        let thumb = ImageDisplayURL.canonicalStorageURLString(summary.thumbnailURL)
+        return HomeCrowdVenueSummary(
+            venueId: summary.venueId,
+            name: summary.name,
+            locationLabel: summary.locationLabel,
+            thumbnailURL: thumb.isEmpty ? nil : thumb,
+            setAtRaw: summary.setAtRaw,
+            fanCount: summary.fanCount,
+            fanAvatars: summary.fanAvatars
+        )
     }
 
     private static func socialHighlights(
@@ -479,7 +718,7 @@ enum PublicUserProfileService {
         sharedTeamsCount: Int,
         venueCount: Int,
         venueCards: [PublicProfileVenueCard],
-        homeCrowdVenue: PublicProfileVenueCard?,
+        homeCrowd: HomeCrowdVenueSummary?,
         pickupHostedCount: Int,
         pickupJoinedCount: Int,
         sharedTeamNames: [String]
@@ -543,7 +782,7 @@ enum PublicUserProfileService {
             sharedTeamsCount: sharedTeamsCount,
             venueCount: venueCount,
             venueCards: venueCards,
-            homeCrowdVenue: homeCrowdVenue,
+            homeCrowd: homeCrowd,
             pickupHostedCount: pickupHostedCount,
             pickupJoinedCount: pickupJoinedCount,
             socialHighlightLabels: socialHighlights(

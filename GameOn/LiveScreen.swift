@@ -2108,13 +2108,8 @@ struct LiveScreen: View {
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
-                hasOtherHomeCrowd: viewModel.currentUserHomeCrowdVenueId != nil
-                    && !viewModel.isHomeCrowdVenue(selectedBar.id),
-                onSetHomeCrowd: {
-                    _ = await viewModel.setMyHomeCrowd(selectedBar)
-                },
-                onClearHomeCrowd: {
-                    _ = await viewModel.clearMyHomeCrowd()
+                onToggleHomeCrowd: {
+                    await viewModel.toggleHomeCrowd(for: selectedBar)
                 }
             )
             .task {
