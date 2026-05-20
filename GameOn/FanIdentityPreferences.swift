@@ -236,6 +236,7 @@ struct PublicProfileOpenToItem: Identifiable {
 }
 
 enum PublicProfileOpenToBuilder {
+    /// Public profile shows only explicitly saved Open To items (no inference).
     static func items(
         preferences: FanIdentityPreferences,
         favoriteTeams: [FavoriteTeam],
@@ -243,25 +244,13 @@ enum PublicProfileOpenToBuilder {
         pickupHostedCount: Int,
         pickupJoinedCount: Int
     ) -> [PublicProfileOpenToItem] {
+        _ = favoriteTeams
+        _ = venueCount
+        _ = pickupHostedCount
+        _ = pickupJoinedCount
         let ids = preferences.resolvedOpenToItemIDs
-        if !ids.isEmpty {
-            return FanOpenToCatalog.publicDisplayItems(from: ids)
-        }
-
-        guard !preferences.hasExplicitOpenToConfiguration else { return [] }
-
-        var inferred: [String] = []
-        let seenSports = Set(favoriteTeams.map(\.sport))
-        if seenSports.contains(.basketball) || pickupHostedCount > 0 || pickupJoinedCount > 0 {
-            inferred.append("NBA")
-        }
-        if seenSports.contains(.soccer) {
-            inferred.append("Soccer")
-        }
-        if !favoriteTeams.isEmpty || venueCount > 0 {
-            inferred.append(FanOpenToSocialID.watchParties)
-        }
-        return FanOpenToCatalog.publicDisplayItems(from: FanOpenToCatalog.canonicalizeItemIDs(inferred))
+        guard !ids.isEmpty else { return [] }
+        return FanOpenToCatalog.publicDisplayItems(from: ids)
     }
 }
 

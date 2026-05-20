@@ -189,6 +189,10 @@ struct PublicUserProfilePreviewView: View {
                 .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.72))
                 .frame(height: 168)
                 .redacted(reason: .placeholder)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                .frame(height: 44)
+                .redacted(reason: .placeholder)
             HStack(spacing: 10) {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
@@ -199,6 +203,10 @@ struct PublicUserProfilePreviewView: View {
                     .frame(height: 176)
                     .redacted(reason: .placeholder)
             }
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                .frame(height: 120)
+                .redacted(reason: .placeholder)
             ProgressView().tint(FGColor.accentGreen).padding(.top, 4)
         }
     }

@@ -20,13 +20,7 @@ private struct PublicProfileEditorialCardModifier: ViewModifier {
                     .background {
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .fill(
-                                LinearGradient(
-                                    colors: colorScheme == .dark
-                                        ? [Color.white.opacity(0.10), Color.white.opacity(0.04)]
-                                        : [Color.white.opacity(0.92), Color.white.opacity(0.78)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                Color.white.opacity(colorScheme == .dark ? 0.12 : 0.98)
                             )
                     }
                     .overlay {
@@ -79,20 +73,6 @@ struct PublicProfileEditorialSectionTitle: View {
 
 // MARK: - Derived presentation (no extra network)
 
-enum PublicProfileOpenToCategory: String, CaseIterable {
-    case watch = "Watch"
-    case play = "Play"
-    case social = "Social"
-}
-
-struct PublicProfileGamedayStatus: Equatable {
-    let title: String
-    let subtitle: String?
-    let badge: String?
-    let systemImage: String
-    let gradient: [Color]
-}
-
 struct PublicProfileActivityRow: Identifiable, Equatable {
     let id: String
     let icon: String
@@ -110,124 +90,10 @@ struct PublicProfileSportsMoment: Equatable {
 enum PublicProfileContentBuilder {
     static let maxPublicOpenToItems = 6
 
-    static func gamedayStatus(from data: PublicUserProfileData, colorScheme: ColorScheme) -> PublicProfileGamedayStatus? {
-        let openIDs = Set(data.openToItems.map(\.id))
-
-        if openIDs.contains(FanOpenToSocialID.watchParties) || openIDs.contains(FanOpenToSocialID.sportsBars) {
-            let team = data.favoriteTeams.first
-            let subtitle = team.map { "Routing for \($0.shortCode ?? $0.name)" }
-            return PublicProfileGamedayStatus(
-                title: openIDs.contains(FanOpenToSocialID.sportsBars) ? "Bar Hopping" : "Watching Tonight",
-                subtitle: subtitle,
-                badge: team?.sport.chipTitle,
-                systemImage: openIDs.contains(FanOpenToSocialID.sportsBars) ? "wineglass.fill" : "tv.fill",
-                gradient: [Color(red: 0.18, green: 0.42, blue: 0.92), Color(red: 0.42, green: 0.22, blue: 0.88)]
-            )
-        }
-
-        let hasPickupSport = openIDs.contains { id in
-            FanOpenToCatalog.definition(id: id)?.isSocial == false
-        }
-        if hasPickupSport || data.pickupHostedCount > 0 || data.pickupJoinedCount > 0 {
-            return PublicProfileGamedayStatus(
-                title: "Looking for Pickup",
-                subtitle: data.pickupHostedCount > 0 ? "Hosts local runs" : "Ready to join a run",
-                badge: "PLAY",
-                systemImage: "sportscourt.fill",
-                gradient: [FGColor.accentGreen, Color(red: 0.12, green: 0.58, blue: 0.48)]
-            )
-        }
-
-        if !data.venueCards.isEmpty {
-            let venue = data.venueCards[0]
-            return PublicProfileGamedayStatus(
-                title: "At the Stadium",
-                subtitle: venue.venueName,
-                badge: venue.cityLabel.isEmpty ? nil : venue.cityLabel,
-                systemImage: "building.2.fill",
-                gradient: [Color(red: 0.58, green: 0.36, blue: 0.92), Color(red: 0.32, green: 0.22, blue: 0.72)]
-            )
-        }
-
-        if openIDs.contains(FanOpenToSocialID.meetLocalFans) {
-            return PublicProfileGamedayStatus(
-                title: data.mutualFansCount > 2 ? "Packed Crowd" : "Bar Hopping",
-                subtitle: data.mutualFansCount > 0 ? "\(data.mutualFansCount) mutual fans nearby" : "Open to meet fans",
-                badge: "SOCIAL",
-                systemImage: "person.3.fill",
-                gradient: [Color(red: 0.98, green: 0.55, blue: 0.28), Color(red: 0.92, green: 0.28, blue: 0.42)]
-            )
-        }
-
-        return nil
-    }
-
-    static func groupedOpenTo(_ items: [PublicProfileOpenToItem]) -> [(PublicProfileOpenToCategory, [PublicProfileOpenToItem])] {
-        let limited = Array(items.prefix(maxPublicOpenToItems))
-        return PublicProfileOpenToCategory.allCases.compactMap { category in
-            let bucket = limited.filter { $0.openToCategory == category }
-            return bucket.isEmpty ? nil : (category, bucket)
-        }
-    }
-
+    /// No real-time activity feed on public profile yet — do not invent rows.
     static func activityTimeline(from data: PublicUserProfileData) -> [PublicProfileActivityRow] {
-        var rows: [PublicProfileActivityRow] = []
-
-        for venue in data.venueCards.prefix(2) {
-            rows.append(
-                PublicProfileActivityRow(
-                    id: "venue-\(venue.id)",
-                    icon: "mappin.and.ellipse",
-                    tint: Color(red: 0.58, green: 0.36, blue: 0.92),
-                    text: "Regular at \(venue.venueName)"
-                )
-            )
-        }
-
-        if data.pickupJoinedCount > 0 {
-            rows.append(
-                PublicProfileActivityRow(
-                    id: "pickup-join",
-                    icon: "basketball.fill",
-                    tint: FavoriteTeamSport.basketball.accentColor,
-                    text: "Joined local pickup games"
-                )
-            )
-        } else if data.pickupHostedCount > 0 {
-            rows.append(
-                PublicProfileActivityRow(
-                    id: "pickup-host",
-                    icon: "figure.run.circle.fill",
-                    tint: FGColor.accentGreen,
-                    text: "Hosts pickup games in the area"
-                )
-            )
-        }
-
-        if data.sharedTeamsCount > 0 {
-            let label = data.sharedTeamsCount == 1 ? "1 shared favorite team" : "\(data.sharedTeamsCount) shared favorite teams"
-            rows.append(
-                PublicProfileActivityRow(
-                    id: "shared-teams",
-                    icon: "star.circle.fill",
-                    tint: FGColor.accentBlue,
-                    text: label
-                )
-            )
-        }
-
-        for highlight in data.socialHighlightLabels where !rows.contains(where: { $0.text == highlight }) {
-            rows.append(
-                PublicProfileActivityRow(
-                    id: "highlight-\(highlight.hashValue)",
-                    icon: "sparkles",
-                    tint: FGColor.accentGreen,
-                    text: highlight
-                )
-            )
-        }
-
-        return Array(rows.prefix(4))
+        _ = data
+        return []
     }
 
     static func sportsMoment(from data: PublicUserProfileData) -> PublicProfileSportsMoment? {
@@ -246,30 +112,14 @@ enum PublicProfileContentBuilder {
 }
 
 extension PublicProfileOpenToItem {
-    var editorialShortTitle: String {
-        if isSocial {
-            switch id {
-            case FanOpenToSocialID.watchParties: return "Watch"
-            case FanOpenToSocialID.sportsBars: return "Bars"
-            case FanOpenToSocialID.meetLocalFans: return "Fans"
-            default: return title
-            }
+    /// Mock-style labels under Open To icons.
+    var openToGridLabel: String {
+        switch id {
+        case FanOpenToSocialID.watchParties: return "Watch Parties"
+        case FanOpenToSocialID.sportsBars: return "Sports Bars"
+        case FanOpenToSocialID.meetLocalFans: return "Meeting Local Fans"
+        default: return AppSportCatalog.displayLabel(forSportToken: id)
         }
-        let short = AppSportCatalog.displayLabel(forSportToken: id)
-        if short.count <= 10 { return short }
-        return String(short.prefix(8))
-    }
-
-    var openToCategory: PublicProfileOpenToCategory {
-        if isSocial {
-            switch id {
-            case FanOpenToSocialID.watchParties, FanOpenToSocialID.sportsBars:
-                return .watch
-            default:
-                return .social
-            }
-        }
-        return .play
     }
 }
 
@@ -285,57 +135,47 @@ struct PublicProfileTwoColumnGrid: View {
     let data: PublicUserProfileData
     let colorScheme: ColorScheme
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
-
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-            if let homeVenue = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
-                PublicProfileGridHomeCrowdCard(
-                    venue: homeVenue,
-                    mutualFansCount: data.mutualFansCount,
-                    mutualAvatars: data.mutualFanAvatars,
-                    memberSinceLabel: data.memberSinceLabel
-                )
-            }
+        VStack(spacing: 10) {
+            profileRow(left: favoriteTeamsSlot, right: .some(AnyView(PublicProfileGridOpenToCard(items: data.editorialOpenToItems))))
 
-            if let gameday = PublicProfileContentBuilder.gamedayStatus(from: data, colorScheme: colorScheme) {
-                PublicProfileGridGamedayCard(status: gameday, favoriteTeams: data.favoriteTeams)
-            }
-
-            if !venuesForGrid.isEmpty {
-                PublicProfileGridVenuesCard(venues: venuesForGrid, totalCount: data.venueCount)
-            }
-
-            if !data.editorialOpenToItems.isEmpty {
-                PublicProfileGridOpenToCard(items: data.editorialOpenToItems)
-            }
-
-            let activity = PublicProfileContentBuilder.activityTimeline(from: data)
-            if !activity.isEmpty {
-                PublicProfileGridActivityCard(rows: activity)
-            }
-
-            if data.mutualFansCount > 0 {
-                PublicProfileGridMutualFansCard(
-                    count: data.mutualFansCount,
-                    avatars: data.mutualFanAvatars,
-                    sharedTeamNames: data.sharedTeamNames,
-                    sharedTeamsCount: data.sharedTeamsCount,
-                    favoriteTeams: data.favoriteTeams
-                )
-            }
+            PublicProfileGridMutualFansCard(
+                count: data.mutualFansCount,
+                avatars: data.mutualFanAvatars,
+                sharedTeamNames: data.sharedTeamNames,
+                sharedTeamsCount: data.sharedTeamsCount,
+                favoriteTeams: data.favoriteTeams
+            )
+            .frame(maxWidth: .infinity)
         }
     }
 
-    private var venuesForGrid: [PublicProfileVenueCard] {
-        let extra = PublicProfileContentBuilder.venuesExcludingHomeCrowd(from: data)
-        if !extra.isEmpty { return extra }
-        if PublicProfileContentBuilder.homeCrowdVenue(from: data) != nil { return [] }
-        return data.venueCards
+    @ViewBuilder
+    private func profileRow(left: PublicProfileGridSlot, right: PublicProfileGridSlot) -> some View {
+        switch (left, right) {
+        case (.none, .none):
+            EmptyView()
+        case let (.some(l), .some(r)):
+            HStack(alignment: .top, spacing: 10) {
+                l.frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
+                r.frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
+            }
+        case let (.some(l), .none):
+            l.frame(maxWidth: .infinity, alignment: .topLeading)
+        case let (.none, .some(r)):
+            r.frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
+
+    private var favoriteTeamsSlot: PublicProfileGridSlot {
+        guard !data.favoriteTeams.isEmpty else { return .none }
+        return .some(AnyView(PublicProfileGridFavoriteTeamsCard(teams: data.favoriteTeams)))
+    }
+}
+
+private enum PublicProfileGridSlot {
+    case none
+    case some(AnyView)
 }
 
 // MARK: - Hero header
@@ -375,10 +215,6 @@ struct PublicProfileEditorialHero: View {
                             .lineLimit(2)
                     }
 
-                    if !data.favoriteTeams.isEmpty {
-                        favoriteTeamsStrip
-                            .padding(.top, 2)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -444,20 +280,6 @@ struct PublicProfileEditorialHero: View {
         }
     }
 
-    private var favoriteTeamsStrip: some View {
-        HStack(spacing: 4) {
-            ForEach(data.favoriteTeams.prefix(5)) { team in
-                FavoriteTeamLogoBadge(team: team, diameter: 26)
-            }
-            if data.favoriteTeams.count > 5 {
-                Text("+\(data.favoriteTeams.count - 5)")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-                    .frame(width: 26, height: 26)
-                    .background(Circle().fill(FGColor.divider(colorScheme).opacity(0.5)))
-            }
-        }
-    }
 }
 
 struct PublicProfileHeroStatCard: View {
@@ -611,59 +433,43 @@ struct PublicProfileGridHomeCrowdCard: View {
     }
 }
 
-// MARK: - Grid: Gameday
+// MARK: - Grid: Favorite teams
 
-struct PublicProfileGridGamedayCard: View {
-    let status: PublicProfileGamedayStatus
-    let favoriteTeams: [FavoriteTeam]
+struct PublicProfileGridFavoriteTeamsCard: View {
+    let teams: [FavoriteTeam]
     @Environment(\.colorScheme) private var colorScheme
 
+    private let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("GAMEDAY STATUS")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("FAVORITE TEAMS")
                 .font(.system(size: 9, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color(red: 0.35, green: 0.78, blue: 0.48))
+                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
                 .tracking(0.8)
 
-            Text(status.title)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-
-            if let subtitle = status.subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .lineLimit(2)
-            }
-
-            Spacer(minLength: 4)
-
-            HStack {
-                if let team = favoriteTeams.first {
-                    FavoriteTeamLogoBadge(team: team, diameter: 36)
-                } else {
-                    Image(systemName: status.systemImage)
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(teams.prefix(6)) { team in
+                    VStack(spacing: 6) {
+                        FavoriteTeamLogoBadge(team: team, diameter: 52)
+                        Text(team.shortCode?.isEmpty == false ? team.shortCode! : team.name)
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                Spacer(minLength: 0)
-            }
-
-            if let badge = status.badge, !badge.isEmpty {
-                Label(badge, systemImage: "mappin.circle.fill")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .lineLimit(1)
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
-        .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(LinearGradient(colors: status.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-        }
-        .shadow(color: status.gradient.first?.opacity(0.28) ?? .clear, radius: 10, y: 5)
+        .publicProfileEditorialCard(cornerRadius: 18)
     }
 }
 
@@ -686,36 +492,37 @@ struct PublicProfileGridOpenToCard: View {
                 .foregroundStyle(Color(red: 0.98, green: 0.55, blue: 0.22))
                 .tracking(0.8)
 
-            LazyVGrid(columns: gridColumns, spacing: 8) {
-                ForEach(items) { item in
-                    VStack(spacing: 6) {
-                        Image(systemName: item.systemImage)
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundStyle(item.tint)
-                            .frame(height: 30)
+            if items.isEmpty {
+                Text("This fan hasn't shared what they're open to yet.")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                LazyVGrid(columns: gridColumns, spacing: 6) {
+                    ForEach(items) { item in
+                        VStack(spacing: 5) {
+                            Image(systemName: item.systemImage)
+                                .font(.system(size: 30, weight: .semibold))
+                                .foregroundStyle(item.tint)
+                                .frame(height: 34)
 
-                        Text(item.openToGridLabel)
-                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.75)
-                            .frame(minHeight: 22)
+                            Text(item.openToGridLabel)
+                                .font(.system(size: 9, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.7)
+                                .frame(minHeight: 24)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
         }
         .padding(10)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
         .publicProfileEditorialCard(cornerRadius: 18)
-    }
-}
-
-extension PublicProfileOpenToItem {
-    var openToGridLabel: String {
-        if isSocial { return title }
-        return AppSportCatalog.displayLabel(forSportToken: id)
     }
 }
 
@@ -744,7 +551,7 @@ struct PublicProfileGridVenuesCard: View {
             }
         }
         .padding(10)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
         .publicProfileEditorialCard(cornerRadius: 18)
     }
 
@@ -804,48 +611,6 @@ struct PublicProfileGridVenuesCard: View {
 
 }
 
-// MARK: - Grid: Recent activity
-
-struct PublicProfileGridActivityCard: View {
-    let rows: [PublicProfileActivityRow]
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("RECENT ACTIVITY")
-                .font(.system(size: 9, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.accentGreen)
-                .tracking(0.8)
-
-            VStack(spacing: 0) {
-                ForEach(Array(rows.prefix(3).enumerated()), id: \.element.id) { index, row in
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: row.icon)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(row.tint)
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(row.tint.opacity(0.14)))
-
-                        Text(row.text)
-                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.vertical, 6)
-
-                    if index < min(rows.count, 3) - 1 {
-                        Divider().opacity(0.45)
-                    }
-                }
-            }
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .publicProfileEditorialCard(cornerRadius: 18)
-    }
-}
-
 // MARK: - Grid: Mutual fans
 
 struct PublicProfileGridMutualFansCard: View {
@@ -856,54 +621,73 @@ struct PublicProfileGridMutualFansCard: View {
     let favoriteTeams: [FavoriteTeam]
     @Environment(\.colorScheme) private var colorScheme
 
+    private var sectionTitle: String {
+        if count > 0 { return "\(count) MUTUAL FANS" }
+        if sharedTeamsCount > 0 { return "SHARED TEAMS" }
+        return "MUTUAL FANS"
+    }
+
+    private var hasSocialProof: Bool {
+        count > 0 || sharedTeamsCount > 0 || !sharedTeamNames.isEmpty
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("\(count) MUTUAL FANS")
+            Text(sectionTitle)
                 .font(.system(size: 9, weight: .heavy, design: .rounded))
                 .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
                 .tracking(0.8)
 
-            HStack(spacing: -10) {
-                ForEach(avatars.prefix(4)) { fan in
-                    UserAvatarView(
-                        avatarThumbnailURL: fan.avatarURL,
-                        avatarURL: fan.avatarURL ?? "",
-                        avatarDisplayRefreshToken: UUID(),
-                        displayName: fan.displayName,
-                        email: "",
-                        size: 34,
-                        fallbackStyle: .lightOnWhiteChrome,
-                        imagePlaceholderTint: FGColor.accentBlue
-                    )
-                    .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
-                }
-                if count > avatars.prefix(4).count {
-                    Text("+\(count - avatars.prefix(4).count)")
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .frame(width: 34, height: 34)
-                        .background(Circle().fill(FGColor.divider(colorScheme).opacity(0.6)))
-                        .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
-                }
-            }
-
-            if !sharedTeamLogos.isEmpty {
-                HStack(spacing: 4) {
-                    ForEach(sharedTeamLogos.prefix(3)) { team in
-                        FavoriteTeamLogoBadge(team: team, diameter: 26)
+            if !hasSocialProof {
+                Text("No mutual fans yet.")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+            } else {
+                if count > 0 {
+                    HStack(spacing: -10) {
+                        ForEach(avatars.prefix(4)) { fan in
+                            UserAvatarView(
+                                avatarThumbnailURL: fan.avatarURL,
+                                avatarURL: fan.avatarURL ?? "",
+                                avatarDisplayRefreshToken: UUID(),
+                                displayName: fan.displayName,
+                                email: "",
+                                size: 34,
+                                fallbackStyle: .lightOnWhiteChrome,
+                                imagePlaceholderTint: FGColor.accentBlue
+                            )
+                            .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+                        }
+                        let shown = avatars.prefix(4).count
+                        if count > shown {
+                            Text("+\(count - shown)")
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(FGColor.divider(colorScheme).opacity(0.6)))
+                                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+                        }
                     }
                 }
-            }
 
-            if sharedTeamsCount > 0 {
-                Text(sharedTeamsCount == 1 ? "1 shared team" : "\(sharedTeamsCount) shared teams")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.accentGreen)
-            } else if !sharedTeamNames.isEmpty {
-                Text(sharedTeamNames.prefix(2).joined(separator: " · "))
-                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(2)
+                if !sharedTeamLogos.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(sharedTeamLogos.prefix(4)) { team in
+                            FavoriteTeamLogoBadge(team: team, diameter: 28)
+                        }
+                    }
+                }
+
+                if sharedTeamsCount > 0 {
+                    Text(sharedTeamsCount == 1 ? "1 shared team" : "\(sharedTeamsCount) shared teams")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.accentGreen)
+                } else if !sharedTeamNames.isEmpty {
+                    Text(sharedTeamNames.prefix(3).joined(separator: " · "))
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                }
             }
         }
         .padding(10)
