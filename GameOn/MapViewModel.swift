@@ -727,8 +727,10 @@ final class MapViewModel: ObservableObject {
     var loadVenuesRequestID: UUID?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
     var discoverSelectedDayRefreshRequestID: UUID?
-    var discoverCalendarDotLoadTask: Task<Void, Never>?
-    var discoverCalendarDotLoadRequestID: UUID?
+    var venueCalendarDotLoadTask: Task<Void, Never>?
+    var pickupCalendarDotLoadTask: Task<Void, Never>?
+    var venueCalendarDotLoadRequestID: UUID?
+    var pickupCalendarDotLoadRequestID: UUID?
     /// Serializes overlapping ``refreshPickupGamesForDiscoverMap`` calls so calendar open + dot preload do not stack duplicate Supabase fetches.
     var refreshPickupGamesForDiscoverMapCoalescingTask: Task<Void, Never>?
     var mapStatusDismissTask: Task<Void, Never>?

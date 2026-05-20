@@ -820,8 +820,12 @@ extension MapViewModel {
         return dates
     }
 
-    private func discoverCalendarDotsRequestIsCurrent(requestID: UUID) -> Bool {
-        discoverCalendarDotLoadRequestID == requestID
+    private func venueCalendarDotsRequestIsCurrent(requestID: UUID) -> Bool {
+        venueCalendarDotLoadRequestID == requestID
+    }
+
+    private func pickupCalendarDotsRequestIsCurrent(requestID: UUID) -> Bool {
+        pickupCalendarDotLoadRequestID == requestID
     }
 
     /// Guest Discover: avoid reusing empty calendar-dot caches after RLS/data fixes (calendar open, month paging, phase-1 preload).
@@ -1020,8 +1024,14 @@ extension MapViewModel {
         let cacheAge = venueGameCalendarDotDatesCache[cacheKey].map { Date().timeIntervalSince($0.fetchedAt) } ?? .infinity
         let guestCalendarOpenForcesNetwork = discoverGuestCalendarOpenForcesCalendarDotNetwork(reason)
         if !guestCalendarOpenForcesNetwork && cacheAge < DiscoverCalendarDotCacheConfig.ttl {
-            discoverCalendarDotLoadTask?.cancel()
-            discoverCalendarDotLoadTask = nil
+            if let task = venueCalendarDotLoadTask {
+                #if DEBUG
+                print("[CalendarDotsPerf] venueDotTaskCancelled")
+                #endif
+                task.cancel()
+            }
+            venueCalendarDotLoadTask = nil
+            venueCalendarDotLoadRequestID = nil
             isLoadingVenueCalendarDots = false
             calendarDotStatusText = nil
             #if DEBUG
@@ -1036,23 +1046,34 @@ extension MapViewModel {
         }
 
         isLoadingVenueCalendarDots = true
-        discoverCalendarDotLoadTask?.cancel()
+        if let task = venueCalendarDotLoadTask {
+            #if DEBUG
+            print("[CalendarDotsPerf] venueDotTaskCancelled")
+            #endif
+            task.cancel()
+        }
         let requestID = UUID()
-        discoverCalendarDotLoadRequestID = requestID
+        venueCalendarDotLoadRequestID = requestID
 
         #if DEBUG
         print("[CalendarDotsPerf] venue preload started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason) venueIds=\(venueIds.count)")
+        print("[CalendarDotsPerf] venueDotTaskStarted")
         #endif
 
-        discoverCalendarDotLoadTask = Task { @MainActor [weak self] in
+        venueCalendarDotLoadTask = Task { @MainActor [weak self] in
             guard let self else { return }
             let venueDotsBaselineBeforeNetwork = self.venueGameCalendarDotDates
             defer {
-                if self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) {
+                if self.venueCalendarDotsRequestIsCurrent(requestID: requestID) {
                     self.isLoadingVenueCalendarDots = false
-                    self.discoverCalendarDotLoadTask = nil
-                    self.calendarDotStatusText = nil
+                    self.venueCalendarDotLoadTask = nil
+                    if !self.isLoadingPickupCalendarDots {
+                        self.calendarDotStatusText = nil
+                    }
                     self.applyDiscoverGuestNearestEventDateIfNeeded(reason: reason)
+                    #if DEBUG
+                    print("[CalendarDotsPerf] venueDotTaskCompleted")
+                    #endif
                 }
             }
 
@@ -1064,7 +1085,7 @@ extension MapViewModel {
                     venueIds: [],
                     venueNames: []
                 )
-                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else { return }
+                guard self.venueCalendarDotsRequestIsCurrent(requestID: requestID) else { return }
                 if !localOnly.isEmpty {
                     self.venueGameCalendarDotDatesCache[cacheKey] = (dates: localOnly, fetchedAt: Date())
                     self.pruneVenueGameCalendarDotDatesCacheIfNeeded()
@@ -1105,7 +1126,7 @@ extension MapViewModel {
                     venueNames: venueNames
                 )
                 guard !Task.isCancelled else { return }
-                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                guard self.venueCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
                     print("[CalendarDotsPerf] stale venue dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
@@ -1154,7 +1175,7 @@ extension MapViewModel {
             } catch is CancellationError {
                 return
             } catch {
-                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                guard self.venueCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
                     print("[CalendarDotsPerf] stale venue dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
@@ -1197,9 +1218,11 @@ extension MapViewModel {
                         print("[DiscoverCalendarDotsDebug] loadVenueGameCalendarDots exit rpcFail keptInWindow=\(preserved.count)")
                         #endif
                     }
-                    self.calendarDotStatusText = nil
+                    if !self.isLoadingPickupCalendarDots {
+                        self.calendarDotStatusText = nil
+                    }
                     self.isLoadingVenueCalendarDots = false
-                    self.discoverCalendarDotLoadTask = nil
+                    self.venueCalendarDotLoadTask = nil
                     #if DEBUG
                     if preserved.isEmpty {
                         print("[DiscoverCalendarDotsDebug] loadVenueGameCalendarDots exit rpcFailNoFallback finalVenueGameCalendarDotDates=0")
@@ -1284,8 +1307,14 @@ extension MapViewModel {
         let pickupCacheAge = pickupGameCalendarDotDatesCache[cacheKey].map { Date().timeIntervalSince($0.fetchedAt) } ?? .infinity
         let guestCalendarOpenForcesNetwork = discoverGuestCalendarOpenForcesCalendarDotNetwork(reason)
         if !guestCalendarOpenForcesNetwork && pickupCacheAge < DiscoverCalendarDotCacheConfig.ttl {
-            discoverCalendarDotLoadTask?.cancel()
-            discoverCalendarDotLoadTask = nil
+            if let task = pickupCalendarDotLoadTask {
+                #if DEBUG
+                print("[CalendarDotsPerf] pickupDotTaskCancelled")
+                #endif
+                task.cancel()
+            }
+            pickupCalendarDotLoadTask = nil
+            pickupCalendarDotLoadRequestID = nil
             isLoadingPickupCalendarDots = false
             calendarDotStatusText = nil
             #if DEBUG
@@ -1301,26 +1330,37 @@ extension MapViewModel {
         }
 
         isLoadingPickupCalendarDots = true
-        discoverCalendarDotLoadTask?.cancel()
+        if let task = pickupCalendarDotLoadTask {
+            #if DEBUG
+            print("[CalendarDotsPerf] pickupDotTaskCancelled")
+            #endif
+            task.cancel()
+        }
         let requestID = UUID()
-        discoverCalendarDotLoadRequestID = requestID
+        pickupCalendarDotLoadRequestID = requestID
 
         #if DEBUG
         print("[CalendarDotsPerf] pickup preload started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason)")
+        print("[CalendarDotsPerf] pickupDotTaskStarted")
         #endif
 
-        discoverCalendarDotLoadTask = Task { @MainActor [weak self] in
+        pickupCalendarDotLoadTask = Task { @MainActor [weak self] in
             guard let self else { return }
             let pickupDotsBaselineBeforeNetwork = self.pickupGameCalendarDotDates
             #if DEBUG
             print("[PickupCalendarPerf] background refresh started month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart)) reason=\(reason)")
             #endif
             defer {
-                if self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) {
+                if self.pickupCalendarDotsRequestIsCurrent(requestID: requestID) {
                     self.isLoadingPickupCalendarDots = false
-                    self.discoverCalendarDotLoadTask = nil
-                    self.calendarDotStatusText = nil
+                    self.pickupCalendarDotLoadTask = nil
+                    if !self.isLoadingVenueCalendarDots {
+                        self.calendarDotStatusText = nil
+                    }
                     self.applyDiscoverGuestNearestEventDateIfNeeded(reason: reason)
+                    #if DEBUG
+                    print("[CalendarDotsPerf] pickupDotTaskCompleted")
+                    #endif
                 }
             }
 
@@ -1334,7 +1374,7 @@ extension MapViewModel {
                     dateMax: range.dateMax
                 )
                 guard !Task.isCancelled else { return }
-                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                guard self.pickupCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
                     print("[CalendarDotsPerf] stale pickup dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
@@ -1381,7 +1421,7 @@ extension MapViewModel {
             } catch is CancellationError {
                 return
             } catch {
-                guard self.discoverCalendarDotsRequestIsCurrent(requestID: requestID) else {
+                guard self.pickupCalendarDotsRequestIsCurrent(requestID: requestID) else {
                     #if DEBUG
                     print("[CalendarDotsPerf] stale pickup dot result ignored month=\(DiscoverVenueGameDateFormatting.sqlDate.string(from: monthStart))")
                     #endif
@@ -1413,9 +1453,11 @@ extension MapViewModel {
                         print("[DiscoverCalendarDotsDebug] loadPickupGameCalendarDots exit rpcFail keptInWindow=\(preserved.count)")
                         #endif
                     }
-                    self.calendarDotStatusText = nil
+                    if !self.isLoadingVenueCalendarDots {
+                        self.calendarDotStatusText = nil
+                    }
                     self.isLoadingPickupCalendarDots = false
-                    self.discoverCalendarDotLoadTask = nil
+                    self.pickupCalendarDotLoadTask = nil
                     #if DEBUG
                     if preserved.isEmpty {
                         print("[DiscoverCalendarDotsDebug] loadPickupGameCalendarDots exit rpcFailNoFallback finalPickupGameCalendarDotDates=0 fetchedDotCount=0 fallbackDotCount=0")
