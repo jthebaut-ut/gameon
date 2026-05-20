@@ -13,6 +13,16 @@ struct BusinessVenueGeocodeResult: Sendable {
     let formattedAddress: String
 }
 
+struct BusinessVenueReverseGeocodeResult: Sendable {
+    let addressLine1: String?
+    let addressLine2: String?
+    let locality: String?
+    let region: String?
+    let postalCode: String?
+    let countryCode: String?
+    let formattedAddress: String?
+}
+
 /// One-shot Core Location fetch for the Discover map “current location” control (no Utah/Lehi fallback).
 private final class DiscoverCurrentLocationFetchSession: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
@@ -508,6 +518,83 @@ extension MapViewModel {
         }
     }
 
+    func reverseGeocodeBusinessVenueLocation(for coordinate: CLLocationCoordinate2D) async -> BusinessVenueReverseGeocodeResult {
+        let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let result: BusinessVenueReverseGeocodeResult
+        if #available(iOS 26.0, *) {
+            result = await Self.businessVenueReverseGeocodeResultUsingMapKit(for: location)
+        } else {
+            result = BusinessVenueReverseGeocodeResult(
+                addressLine1: nil,
+                addressLine2: nil,
+                locality: nil,
+                region: nil,
+                postalCode: nil,
+                countryCode: nil,
+                formattedAddress: nil
+            )
+        }
+#if DEBUG
+        if result.formattedAddress != nil || result.addressLine1 != nil {
+            print("[InternationalAddressDebug] reverseGeocodeSuccess=true")
+        } else {
+            print("[InternationalAddressDebug] reverseGeocodeSuccess=false")
+        }
+#endif
+        return result
+    }
+
+    @available(iOS 26.0, *)
+    nonisolated private static func businessVenueReverseGeocodeResultUsingMapKit(for location: CLLocation) async -> BusinessVenueReverseGeocodeResult {
+        guard let request = MKReverseGeocodingRequest(location: location),
+              let item = try? await request.mapItems.first else {
+            return BusinessVenueReverseGeocodeResult(
+                addressLine1: nil,
+                addressLine2: nil,
+                locality: nil,
+                region: nil,
+                postalCode: nil,
+                countryCode: nil,
+                formattedAddress: nil
+            )
+        }
+
+        let representations = item.addressRepresentations
+        let lines = addressLines(from: representations, address: item.address)
+        let locality = trimmedNonEmpty(representations?.cityName)
+        let cityContext = trimmedNonEmpty(representations?.cityWithContext)
+        let regionPostal = stateAndPostalCode(from: lines, city: locality)
+        let region = stateAbbreviation(from: cityContext, city: locality) ?? regionPostal.state
+        let formatted = formattedBusinessVenueAddress(from: item)
+
+        return BusinessVenueReverseGeocodeResult(
+            addressLine1: streetLine(from: lines, city: locality),
+            addressLine2: nil,
+            locality: locality,
+            region: region,
+            postalCode: regionPostal.postalCode,
+            countryCode: nil,
+            formattedAddress: formatted
+        )
+    }
+
+    func fetchCurrentCoordinateForBusinessPin(timeoutSeconds: TimeInterval = 12) async -> CLLocationCoordinate2D? {
+        let session = DiscoverCurrentLocationFetchSession()
+        let result = await session.fetchBestCoordinateOnce(timeoutSeconds: timeoutSeconds)
+        guard case .coordinate(let coordinate) = result else { return nil }
+        recordCurrentUserLocation(coordinate)
+        return coordinate
+    }
+
+    nonisolated static func distanceMeters(
+        from lhs: CLLocationCoordinate2D,
+        to rhs: CLLocationCoordinate2D
+    ) -> CLLocationDistance {
+        let a = CLLocation(latitude: lhs.latitude, longitude: lhs.longitude)
+        let b = CLLocation(latitude: rhs.latitude, longitude: rhs.longitude)
+        return a.distance(from: b)
+    }
+
     nonisolated private static func formattedBusinessVenueAddress(from item: MKMapItem?) -> String? {
         guard let item else { return nil }
         if #available(iOS 26.0, *) {
@@ -516,7 +603,53 @@ extension MapViewModel {
                 ?? item.address?.shortAddress
             return trimmedNonEmpty(formatted)
         }
-        return trimmedNonEmpty(item.placemark.title)
+        return nil
+    }
+
+    nonisolated private static func businessVenueReverseGeocodeResult(
+        from placemark: CLPlacemark?,
+        fallbackFormattedAddress: String?
+    ) -> BusinessVenueReverseGeocodeResult {
+        guard let placemark else {
+            return BusinessVenueReverseGeocodeResult(
+                addressLine1: nil,
+                addressLine2: nil,
+                locality: nil,
+                region: nil,
+                postalCode: nil,
+                countryCode: nil,
+                formattedAddress: fallbackFormattedAddress
+            )
+        }
+
+        let streetParts = [placemark.subThoroughfare, placemark.thoroughfare]
+            .compactMap { trimmedNonEmpty($0) }
+        let line1 = streetParts.isEmpty
+            ? trimmedNonEmpty(placemark.name)
+            : streetParts.joined(separator: " ")
+        let locality = trimmedNonEmpty(placemark.locality)
+            ?? trimmedNonEmpty(placemark.subLocality)
+        let region = trimmedNonEmpty(placemark.administrativeArea)
+        let postal = trimmedNonEmpty(placemark.postalCode)
+        let country = trimmedNonEmpty(placemark.isoCountryCode).map(BusinessLocationCountryPolicy.normalizedStoredCountryCode)
+        let formatted = fallbackFormattedAddress
+            ?? BusinessVenueAddressFormatter.formattedAddress(
+                line1: line1 ?? "",
+                locality: locality ?? "",
+                region: region ?? "",
+                postalCode: postal ?? "",
+                countryCode: country ?? ""
+            )
+
+        return BusinessVenueReverseGeocodeResult(
+            addressLine1: line1,
+            addressLine2: nil,
+            locality: locality,
+            region: region,
+            postalCode: postal,
+            countryCode: country,
+            formattedAddress: trimmedNonEmpty(formatted)
+        )
     }
 
     /// Reverse geocode for pickup map pin (street line, city, state, postal code); all nil if lookup fails.

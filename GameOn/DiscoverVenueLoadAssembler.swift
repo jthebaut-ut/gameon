@@ -223,15 +223,14 @@ enum DiscoverVenueLoadAssembler {
         let formatted = row.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !formatted.isEmpty { return formatted }
 
-        return [
-            row.address,
-            row.city,
-            row.state,
-            row.zip_code
-        ]
-        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-        .filter { !$0.isEmpty }
-        .joined(separator: ", ")
+        return BusinessVenueAddressFormatter.formattedAddress(
+            line1: row.address_line1 ?? row.address ?? "",
+            line2: row.address_line2 ?? "",
+            locality: row.city ?? "",
+            region: row.region ?? row.state ?? "",
+            postalCode: row.postal_code ?? row.zip_code ?? "",
+            countryCode: row.country ?? ""
+        )
     }
 
     nonisolated static func sportsEventsFromVenueEventRows(_ rows: [VenueEventRow], formatter: DateFormatter) -> [SportsEvent] {

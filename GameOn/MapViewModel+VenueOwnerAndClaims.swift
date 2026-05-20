@@ -272,7 +272,10 @@ extension MapViewModel {
             familyFriendly: loc.familyFriendly,
             parkingAvailable: loc.parkingAvailable,
             coverPhotoURL: coverURL,
-            menuPhotoURL: menuPublic
+            menuPhotoURL: menuPublic,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            formattedAddress: loc.formattedAddress
         )
 
         let businessPayload = BusinessInsertPayload(
@@ -1482,7 +1485,7 @@ extension MapViewModel {
             return "Please enter \(labels.region.lowercased())."
         }
 
-        if trimmedCountry == "USA", !trimmedState.isEmpty, (trimmedState.count != 2 || !USStatesForBusinessLocation.validCodes.contains(trimmedState.uppercased())) {
+        if trimmedCountry == "US", !trimmedState.isEmpty, (trimmedState.count != 2 || !USStatesForBusinessLocation.validCodes.contains(trimmedState.uppercased())) {
             return "Please choose a valid US state."
         }
 
@@ -1500,6 +1503,17 @@ extension MapViewModel {
         print("[InternationalAddressDebug] addressValidation=passed")
 #endif
         return nil
+    }
+
+    private static func validBusinessVenueCoordinate(latitude: Double?, longitude: Double?) -> CLLocationCoordinate2D? {
+        guard let latitude, let longitude else { return nil }
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
+    }
+
+    private static func trimmedNonEmptyBusinessVenueString(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
     }
 
     private func venueClaimInsertForBusinessAddLocation(
@@ -1539,10 +1553,19 @@ extension MapViewModel {
             postalCode: trimmedZip,
             countryCode: trimmedCountry
         )
-        let geocodeResult = await geocodeBusinessVenueAddress(
-            geocodeQuery,
-            fallbackFormattedAddress: formattedAddress
-        )
+        let pinnedCoordinate = Self.validBusinessVenueCoordinate(latitude: form.latitude, longitude: form.longitude)
+        let geocodeResult = pinnedCoordinate == nil
+            ? await geocodeBusinessVenueAddress(geocodeQuery, fallbackFormattedAddress: formattedAddress)
+            : nil
+        let resolvedFormattedAddress = Self.trimmedNonEmptyBusinessVenueString(form.formattedAddress)
+            ?? geocodeResult?.formattedAddress
+            ?? formattedAddress
+        let resolvedCoordinate = pinnedCoordinate ?? geocodeResult?.coordinate
+#if DEBUG
+        if resolvedCoordinate != nil {
+            print("[InternationalAddressDebug] coordinatesSaved=true")
+        }
+#endif
 
         return VenueClaimInsert(
             owner_email: email,
@@ -1555,9 +1578,9 @@ extension MapViewModel {
             venue_state: trimmedState,
             venue_country: trimmedCountry,
             venue_zip_code: trimmedZip,
-            venue_formatted_address: (geocodeResult?.formattedAddress ?? formattedAddress).isEmpty ? nil : (geocodeResult?.formattedAddress ?? formattedAddress),
-            venue_latitude: geocodeResult?.coordinate.latitude,
-            venue_longitude: geocodeResult?.coordinate.longitude,
+            venue_formatted_address: resolvedFormattedAddress.isEmpty ? nil : resolvedFormattedAddress,
+            venue_latitude: resolvedCoordinate?.latitude,
+            venue_longitude: resolvedCoordinate?.longitude,
             venue_phone: trimmedPhone,
             venue_website: trimmedWebsite,
             venue_description: trimmedDesc,
@@ -2425,6 +2448,9 @@ extension MapViewModel {
         state: String,
         zipCode: String,
         country: String,
+        pinnedLatitude: Double? = nil,
+        pinnedLongitude: Double? = nil,
+        pinnedFormattedAddress: String? = nil,
         screenCount: Int,
         servesFood: Bool,
         hasWifi: Bool,
@@ -2544,16 +2570,23 @@ extension MapViewModel {
 
                 print("GEOCODING ADDRESS:", geocodeQuery)
 
-                let geocodeResult = await geocodeBusinessVenueAddress(
-                    geocodeQuery,
-                    fallbackFormattedAddress: fallbackFormattedAddress
-                )
-                let coordinate = geocodeResult?.coordinate
-                let formattedAddress = geocodeResult?.formattedAddress ?? fallbackFormattedAddress
+                let pinnedCoordinate = Self.validBusinessVenueCoordinate(latitude: pinnedLatitude, longitude: pinnedLongitude)
+                let geocodeResult = pinnedCoordinate == nil
+                    ? await geocodeBusinessVenueAddress(
+                        geocodeQuery,
+                        fallbackFormattedAddress: fallbackFormattedAddress
+                    )
+                    : nil
+                let coordinate = pinnedCoordinate ?? geocodeResult?.coordinate
+                let pinnedFormatted = Self.trimmedNonEmptyBusinessVenueString(pinnedFormattedAddress)
+                let formattedAddress = pinnedFormatted ?? geocodeResult?.formattedAddress ?? fallbackFormattedAddress
 #if DEBUG
                 print("[InternationalAddressDebug] formattedAddress=\(formattedAddress)")
                 print("[InternationalAddressDebug] latitude=\(coordinate?.latitude.description ?? "nil")")
                 print("[InternationalAddressDebug] longitude=\(coordinate?.longitude.description ?? "nil")")
+                if coordinate != nil {
+                    print("[InternationalAddressDebug] coordinatesSaved=true")
+                }
 #endif
 
                 let profile = VenueProfileInsert(

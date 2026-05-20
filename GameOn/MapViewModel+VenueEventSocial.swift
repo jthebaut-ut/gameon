@@ -729,7 +729,6 @@ extension MapViewModel {
             }
         }
 
-        let writeAction = isInterested ? "insert" : "delete"
         do {
             print("[GoingButtonDebug] interestEmailWrite=\(interestEmail)")
             print("[GoingButtonDebug] interestEmailRead=\(interestEmail)")
@@ -1202,7 +1201,6 @@ extension MapViewModel {
         let interestEmailRead = sessionInterestEmail ?? "nil"
         print("[GoingButtonDebug] interestEmailRead=\(interestEmailRead)")
 
-        let previousInterestIDs = await MainActor.run { venueEventInterestIDs }
         let previousInterestCounts = await MainActor.run { venueEventInterestCounts }
 
         let selectCols = "venue_event_id,user_email"

@@ -240,141 +240,154 @@ struct ProfileIdentityCard: View {
         viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
     }
 
+    private var shouldBlockFanIdentityCardForBusiness: Bool {
+        viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
+    }
+
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
-        VStack(alignment: .leading, spacing: 12) {
-            if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
-                handlePromptBanner
-            }
-
-            heroBlock
-
-            if canShowOwnerPokesHighlights {
-                pokesHighlightsSection
-                    .padding(.horizontal, 16)
-            }
-
-            if canShowSuggestedFans {
-                suggestedFansSection
-                    .padding(.horizontal, 16)
-            }
-
-            favoriteTeamsSection
-                .padding(.horizontal, 16)
-
-            homeCrowdSection
-                .padding(.horizontal, 16)
-
-            openToPreviewSection
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-        }
-        .background(cardShellBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay(cardBorder)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07), radius: 22, y: 12)
-        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.055), radius: 18, y: 3)
-        .onAppear {
+        if shouldBlockFanIdentityCardForBusiness {
+            EmptyView()
+                .onAppear {
 #if DEBUG
-            print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
-            print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
+                    print("[BusinessDashboardCleanup] FAN_LEVEL_CARD_BLOCKED_FOR_BUSINESS")
 #endif
-            DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
-            DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
-            FanReputationEngine.log(reputation)
-        }
-        .onChange(of: viewModel.currentUserBio) { _, newValue in
+                }
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
+                    handlePromptBanner
+                }
+
+                heroBlock
+
+                if canShowOwnerPokesHighlights {
+                    pokesHighlightsSection
+                        .padding(.horizontal, 16)
+                }
+
+                if canShowSuggestedFans {
+                    suggestedFansSection
+                        .padding(.horizontal, 16)
+                }
+
+                favoriteTeamsSection
+                    .padding(.horizontal, 16)
+
+                homeCrowdSection
+                    .padding(.horizontal, 16)
+
+                openToPreviewSection
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+            }
+            .background(cardShellBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay(cardBorder)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07), radius: 22, y: 12)
+            .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.055), radius: 18, y: 3)
+            .onAppear {
 #if DEBUG
-            print("[ProfileBioDebug] identityCardDisplayedBio=\(newValue.trimmingCharacters(in: .whitespacesAndNewlines))")
+                print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
+                print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
 #endif
-        }
-        .sheet(isPresented: $showHandleSetup) {
-            FanGeoIdentitySetupView(viewModel: viewModel, mode: .handleOnly)
-        }
-        .sheet(isPresented: $showIdentityEditor) {
-            identityEditorSheet
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showFanIdentityEditor) {
-            FanIdentityPreferencesEditorView(viewModel: viewModel)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
-        .task {
-            await viewModel.loadFanIdentityPreferencesFromProfile()
-        }
-        .task(id: profileStatsLoadToken) {
-            await loadProfileStatsIfNeeded()
-        }
-        .sheet(isPresented: $showFavoriteTeamsPicker) {
-            FavoriteTeamsPickerSheet(
-                selectedIDs: Binding(
-                    get: { selectedIDSet },
-                    set: { newSet in
-                        let sorted = Array(newSet).sorted()
-                        favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(sorted)
-                        Task {
-                            await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sorted)
+                DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
+                DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
+                FanReputationEngine.log(reputation)
+            }
+            .onChange(of: viewModel.currentUserBio) { _, newValue in
+#if DEBUG
+                print("[ProfileBioDebug] identityCardDisplayedBio=\(newValue.trimmingCharacters(in: .whitespacesAndNewlines))")
+#endif
+            }
+            .sheet(isPresented: $showHandleSetup) {
+                FanGeoIdentitySetupView(viewModel: viewModel, mode: .handleOnly)
+            }
+            .sheet(isPresented: $showIdentityEditor) {
+                identityEditorSheet
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showFanIdentityEditor) {
+                FanIdentityPreferencesEditorView(viewModel: viewModel)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+            }
+            .task {
+                await viewModel.loadFanIdentityPreferencesFromProfile()
+            }
+            .task(id: profileStatsLoadToken) {
+                await loadProfileStatsIfNeeded()
+            }
+            .sheet(isPresented: $showFavoriteTeamsPicker) {
+                FavoriteTeamsPickerSheet(
+                    selectedIDs: Binding(
+                        get: { selectedIDSet },
+                        set: { newSet in
+                            let sorted = Array(newSet).sorted()
+                            favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(sorted)
+                            Task {
+                                await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sorted)
+                            }
                         }
-                    }
+                    )
                 )
-            )
-        }
-        .sheet(isPresented: $showPokesHistorySheet) {
-            pokesHistorySheet
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
-        .onChange(of: showPokesHistorySheet) { _, isPresented in
-            if isPresented {
-                DebugLogGate.debug("[PokesUI] history opened")
-                viewModel.acknowledgeIncomingPokes(reason: "pokesHistorySheet")
             }
-        }
-        .task(id: profilePersonalizationLoadToken) {
-            guard isAccountTabActive else {
-#if DEBUG
-                print("[PerfPhase1C] profileLoadDeferred reason=accountTabHidden")
-#endif
-                return
+            .sheet(isPresented: $showPokesHistorySheet) {
+                pokesHistorySheet
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
+            .onChange(of: showPokesHistorySheet) { _, isPresented in
+                if isPresented {
+                    DebugLogGate.debug("[PokesUI] history opened")
+                    viewModel.acknowledgeIncomingPokes(reason: "pokesHistorySheet")
+                }
+            }
+            .task(id: profilePersonalizationLoadToken) {
+                guard isAccountTabActive else {
 #if DEBUG
-            print("[PerfPhase1C] profileLoadStarted reason=accountTabVisible")
+                    print("[PerfPhase1C] profileLoadDeferred reason=accountTabHidden")
 #endif
-            await refreshIncomingPokesLive(reason: "accountVisible")
-            await loadSuggestedFans()
-        }
-        .task(id: pokesLiveRefreshLoopToken) {
-            guard isAccountTabActive else { return }
-            while !Task.isCancelled {
-                do {
-                    try await Task.sleep(nanoseconds: Self.incomingPokesLiveRefreshIntervalNs)
-                } catch {
                     return
                 }
-                guard !Task.isCancelled, isAccountTabActive else { return }
-                await refreshIncomingPokesLive(reason: "slowInterval")
+#if DEBUG
+                print("[PerfPhase1C] profileLoadStarted reason=accountTabVisible")
+#endif
+                await refreshIncomingPokesLive(reason: "accountVisible")
+                await loadSuggestedFans()
             }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            guard phase == .active, isAccountTabActive else { return }
-            Task {
-                await refreshIncomingPokesLive(reason: "foreground")
+            .task(id: pokesLiveRefreshLoopToken) {
+                guard isAccountTabActive else { return }
+                while !Task.isCancelled {
+                    do {
+                        try await Task.sleep(nanoseconds: Self.incomingPokesLiveRefreshIntervalNs)
+                    } catch {
+                        return
+                    }
+                    guard !Task.isCancelled, isAccountTabActive else { return }
+                    await refreshIncomingPokesLive(reason: "slowInterval")
+                }
             }
-        }
-        .onChange(of: selectedAvatarItem) { _, item in
-            guard let item else { return }
-            Task { await replaceAvatar(with: item) }
-        }
-        .onChange(of: editedUsername) { _, _ in
-            scheduleHandleAvailabilityCheck()
-        }
-        .onChange(of: editedBio) { _, newValue in
-            let limited = limitedBio(newValue)
-            if limited != newValue {
-                editedBio = limited
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active, isAccountTabActive else { return }
+                Task {
+                    await refreshIncomingPokesLive(reason: "foreground")
+                }
+            }
+            .onChange(of: selectedAvatarItem) { _, item in
+                guard let item else { return }
+                Task { await replaceAvatar(with: item) }
+            }
+            .onChange(of: editedUsername) { _, _ in
+                scheduleHandleAvailabilityCheck()
+            }
+            .onChange(of: editedBio) { _, newValue in
+                let limited = limitedBio(newValue)
+                if limited != newValue {
+                    editedBio = limited
+                }
             }
         }
     }

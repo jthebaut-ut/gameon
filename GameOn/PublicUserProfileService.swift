@@ -537,7 +537,7 @@ enum PublicUserProfileService {
 
         let legacyHomeCrowd = await fetchPublicHomeCrowdForLegacyProfile(userId: userId)
 
-        var built = buildProfileData(
+        let built = buildProfileData(
             userId: userId,
             row: row,
             fanXP: fanXP,

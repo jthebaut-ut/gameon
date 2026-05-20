@@ -518,6 +518,61 @@ struct AddLocationClaimForm: Sendable {
     let parkingAvailable: Bool
     let coverPhotoURL: String
     let menuPhotoURL: String
+    let latitude: Double?
+    let longitude: Double?
+    let formattedAddress: String?
+
+    init(
+        venueName: String,
+        address: String,
+        addressLine2: String,
+        city: String,
+        state: String,
+        country: String,
+        zip: String,
+        phone: String,
+        website: String,
+        description: String,
+        proofNote: String,
+        screenCount: Int,
+        servesFood: Bool,
+        hasWifi: Bool,
+        hasGarden: Bool,
+        hasProjector: Bool,
+        petFriendly: Bool,
+        familyFriendly: Bool,
+        parkingAvailable: Bool,
+        coverPhotoURL: String,
+        menuPhotoURL: String,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        formattedAddress: String? = nil
+    ) {
+        self.venueName = venueName
+        self.address = address
+        self.addressLine2 = addressLine2
+        self.city = city
+        self.state = state
+        self.country = country
+        self.zip = zip
+        self.phone = phone
+        self.website = website
+        self.description = description
+        self.proofNote = proofNote
+        self.screenCount = screenCount
+        self.servesFood = servesFood
+        self.hasWifi = hasWifi
+        self.hasGarden = hasGarden
+        self.hasProjector = hasProjector
+        self.petFriendly = petFriendly
+        self.familyFriendly = familyFriendly
+        self.parkingAvailable = parkingAvailable
+        self.coverPhotoURL = coverPhotoURL
+        self.menuPhotoURL = menuPhotoURL
+        self.latitude = latitude
+        self.longitude = longitude
+        self.formattedAddress = formattedAddress
+    }
 
     /// Human-readable feature line stored in ``venue_claims.venue_features`` (schema has no separate columns for parking / family).
     func mergedVenueFeaturesLine() -> String {

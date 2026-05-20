@@ -128,8 +128,8 @@ final class FriendSuggestionsService {
         self.client = client
     }
 
-    static let defaultFetchPoolLimit = 30
-    static let defaultDisplayLimit = 10
+    nonisolated static let defaultFetchPoolLimit = 30
+    nonisolated static let defaultDisplayLimit = 10
 
     func fetchSuggestions(
         limit: Int = defaultFetchPoolLimit,

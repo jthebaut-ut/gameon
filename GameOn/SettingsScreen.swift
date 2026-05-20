@@ -1,4 +1,5 @@
 import Combine
+import CoreLocation
 import PhotosUI
 import SwiftUI
 
@@ -197,6 +198,10 @@ struct SettingsScreen: View {
         viewModel.currentUserIsBusinessAccount || viewModel.isVenueOwnerLoggedIn || viewModel.hasAuthenticatedVenueOwnerSession
     }
 
+    private var isBusinessAccountProfileContext: Bool {
+        viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
+    }
+
     private var canShowLiveActivitySharing: Bool {
         viewModel.canUseFanSocialFeatures && !isBusinessAccountForLiveSharing
     }
@@ -221,16 +226,10 @@ struct SettingsScreen: View {
         NavigationStack {
             List {
                 Section {
-                    if viewModel.isLoggedIn {
-                        ProfileIdentityCard(
-                            viewModel: viewModel,
-                            isAccountTabActive: isAccountTabSelected
-                        )
-                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
-                        .listRowBackground(Color.clear)
-                    } else if viewModel.isVenueOwnerLoggedIn {
+                    if isBusinessAccountProfileContext {
                         SettingsProfileHero(
                             viewModel: viewModel,
+                            venueOwnerOnNotifications: { showReportedCommentsSheet = true },
                             venueOwnerOnResetPassword: { showVenueOwnerPasswordResetSheet = true },
                             venueOwnerOnDismissSheetsAfterLogout: {
                                 venueOwnerDashboardSheet = nil
@@ -238,6 +237,18 @@ struct SettingsScreen: View {
                                 showReportedCommentsSheet = false
                                 showDeleteVenueOwnerSheet = false
                             }
+                        )
+                        .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .onAppear {
+#if DEBUG
+                            print("[BusinessDashboardCleanup] blockedFanIdentityCardForBusiness=true")
+#endif
+                        }
+                    } else if viewModel.isLoggedIn {
+                        ProfileIdentityCard(
+                            viewModel: viewModel,
+                            isAccountTabActive: isAccountTabSelected
                         )
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
@@ -1564,8 +1575,8 @@ struct SettingsScreen: View {
             locationLine: settingsBusinessDashboardLocationLine,
             isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
             managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
-            venuePhotoURL: settingsBusinessDashboardVenuePhotoURL,
-            venuePhotoThumbnailURL: settingsBusinessDashboardVenuePhotoThumbnailURL,
+            venuePhotoURL: nil,
+            venuePhotoThumbnailURL: nil,
             fansGoing: settingsBusinessDashboardFansGoing,
             activeChats: settingsBusinessDashboardActiveChats,
             predictions: settingsBusinessDashboardPredictions,
@@ -1755,6 +1766,7 @@ struct SettingsScreen: View {
         print("[BusinessDashboardDebug] gamesLoaded=\(inlineBusinessDashboardGames.count)")
         print("[BusinessDashboardDebug] crowdMetrics=\(settingsBusinessDashboardFansGoing)")
         print("[BusinessDashboardDebug] predictionsLoaded=\(settingsBusinessDashboardPredictions)")
+        print("[BusinessDashboardCleanup] removedDuplicateIdentityRow=true")
 #endif
     }
 
@@ -2629,10 +2641,24 @@ private struct SettingsVenueAuthSheet: View {
 
 private struct SettingsProfileHero: View {
     @ObservedObject var viewModel: MapViewModel
+    var venueOwnerOnNotifications: () -> Void
     var venueOwnerOnResetPassword: () -> Void
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+
+    private var isBusinessProfile: Bool {
+        viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
+    }
+
+    private var selectedVenueForHero: VenueProfileRow? {
+        let managed = viewModel.managedVenuesForOwner()
+        if let id = viewModel.ownerVenueDatabaseId,
+           let selected = managed.first(where: { $0.id == id }) {
+            return selected
+        }
+        return managed.first
+    }
 
     /// Email shown in the hero: fan session vs venue-owner session (existing ``MapViewModel`` flags; no auth changes).
     private var heroEmailLine: String {
@@ -2681,7 +2707,12 @@ private struct SettingsProfileHero: View {
     }
 
     private var resolvedDisplayName: String {
-        if viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn {
+        if isBusinessProfile {
+            if let venueName = trimmedNonEmpty(selectedVenueForHero?.venue_name) {
+                return venueName
+            }
+            let ownerVenue = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !ownerVenue.isEmpty { return ownerVenue }
             return venueOwnerBusinessHeroTitle
         }
         let current = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2694,11 +2725,11 @@ private struct SettingsProfileHero: View {
 
     /// Prefer venue-owner label when both flags are true (defensive; login paths normally keep them exclusive).
     private var accountTypeBadgeText: String {
-        viewModel.isVenueOwnerLoggedIn ? "Business owner account" : "User account"
+        isBusinessProfile ? "Official venue dashboard" : "User account"
     }
 
     private var activityBadgeText: String {
-        if viewModel.isVenueOwnerLoggedIn {
+        if isBusinessProfile {
             let managedCount = viewModel.managedVenuesForOwner().count
             return managedCount == 1 ? "1 managed venue" : "\(managedCount) managed venues"
         }
@@ -2707,7 +2738,27 @@ private struct SettingsProfileHero: View {
     }
 
     private var activityBadgeTint: Color {
-        viewModel.isVenueOwnerLoggedIn ? FGColor.accentGreen : FGColor.accentYellow
+        isBusinessProfile ? FGColor.accentGreen : FGColor.accentYellow
+    }
+
+    private var businessLocationLine: String? {
+        guard isBusinessProfile else { return nil }
+        let city = selectedVenueForHero?.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let state = selectedVenueForHero?.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
+        let country = selectedVenueForHero?.country.map(BusinessLocationCountryPolicy.countryName(for:)) ?? ""
+        let parts = [city, state, country].filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
+
+    private var businessHeroImageSource: String {
+        isBusinessProfile ? "forcedBusinessIcon" : "fanAvatar"
+    }
+
+    private var businessStatusLabel: String {
+        if viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved {
+            return "VERIFIED VENUE"
+        }
+        return "BUSINESS ACCOUNT"
     }
 
     private var accountTypeCapsule: some View {
@@ -2777,27 +2828,37 @@ private struct SettingsProfileHero: View {
 
             VStack(alignment: .leading, spacing: FGSpacing.lg) {
                 HStack(alignment: .top, spacing: FGSpacing.md) {
-                    UserAvatarView(
-                        avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
-                        avatarURL: viewModel.currentUserAvatarURL,
-                        avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
-                        displayName: resolvedDisplayName,
-                        email: heroEmailLine,
-                        size: 72,
-                        fallbackStyle: .darkCardTranslucent,
-                        imagePlaceholderTint: .white
-                    )
+                    heroAvatar
 
                     VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                        Text(viewModel.isVenueOwnerLoggedIn ? "Business account" : "FanGeo profile")
-                            .font(FGTypography.metadata.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.72))
+                        if isBusinessProfile {
+                            businessAccountLabel
+                        } else {
+                            Text("FanGeo profile")
+                                .font(FGTypography.metadata.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.72))
+                        }
 
-                        Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
-                            .font(FGTypography.sectionTitle)
-                            .foregroundStyle(.white)
+                        HStack(spacing: 8) {
+                            Text(resolvedDisplayName.isEmpty ? "My profile" : resolvedDisplayName)
+                                .font(isBusinessProfile ? .title2.weight(.black) : FGTypography.sectionTitle)
+                                .foregroundStyle(.white)
+                                .lineLimit(2)
 
-                        if !heroEmailLine.isEmpty {
+                            if isBusinessProfile {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.headline.weight(.bold))
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(FGColor.accentGreen)
+                            }
+                        }
+
+                        if let location = businessLocationLine {
+                            Label(location, systemImage: "mappin.and.ellipse")
+                                .font(FGTypography.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.84))
+                                .lineLimit(1)
+                        } else if !heroEmailLine.isEmpty {
                             Text(heroEmailLine)
                                 .font(FGTypography.caption)
                                 .foregroundStyle(.white.opacity(0.82))
@@ -2807,21 +2868,39 @@ private struct SettingsProfileHero: View {
 
                     Spacer(minLength: 0)
 
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.86))
-                        .frame(width: 34, height: 34)
-                        .background(Color(red: 0.82, green: 0.90, blue: 1.0).opacity(colorScheme == .dark ? 0.08 : 0.10))
-                        .clipShape(Circle())
-                        .overlay {
-                            Circle()
-                                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.15), lineWidth: 1)
+                    if isBusinessProfile {
+                        Button(action: venueOwnerOnNotifications) {
+                            Image(systemName: "bell.badge.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.white.opacity(0.92))
+                                .frame(width: 36, height: 36)
+                                .background(Color.white.opacity(0.12))
+                                .clipShape(Circle())
+                                .overlay {
+                                    Circle().strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+                                }
                         }
+                        .buttonStyle(.plain)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.86))
+                            .frame(width: 34, height: 34)
+                            .background(Color(red: 0.82, green: 0.90, blue: 1.0).opacity(colorScheme == .dark ? 0.08 : 0.10))
+                            .clipShape(Circle())
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.15), lineWidth: 1)
+                            }
+                    }
                 }
 
                 HStack(spacing: FGSpacing.sm) {
                     accountTypeCapsule
                     activityCapsule
+                    if isBusinessProfile {
+                        heroGlassPill(title: "Venue Owner Account", accent: FGColor.accentBlue)
+                    }
                 }
             }
             .padding(FGSpacing.xl)
@@ -2839,8 +2918,84 @@ private struct SettingsProfileHero: View {
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, y: 2)
     }
 
+    @ViewBuilder
+    private var heroAvatar: some View {
+        if isBusinessProfile {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.white.opacity(0.10))
+
+                businessBuildingFallbackIcon
+            }
+            .frame(width: 78, height: 78)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.20), lineWidth: 1)
+            }
+        } else {
+            UserAvatarView(
+                avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+                avatarURL: viewModel.currentUserAvatarURL,
+                avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+                displayName: resolvedDisplayName,
+                email: heroEmailLine,
+                size: 72,
+                fallbackStyle: .darkCardTranslucent,
+                imagePlaceholderTint: .white
+            )
+        }
+    }
+
+    private var businessBuildingFallbackIcon: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    FGColor.accentGreen.opacity(0.95),
+                    FGColor.businessGreen.opacity(0.78)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Image(systemName: "building.2.fill")
+                .font(.system(size: 34, weight: .black))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.white)
+        }
+    }
+
+    private var businessAccountLabel: some View {
+        Label(businessStatusLabel, systemImage: "shield.checkered")
+            .font(.caption.weight(.black))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(
+                LinearGradient(
+                    colors: [FGColor.accentGreen.opacity(0.95), FGColor.accentBlue.opacity(0.85)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(Capsule())
+    }
+
     var body: some View {
         heroCard
+            .onAppear {
+#if DEBUG
+                if isBusinessProfile {
+                    print("[BusinessDashboardCleanup] removedLegacyFanLevel=true")
+                    print("[BusinessDashboardCleanup] unifiedHeroCard=true")
+                    print("[BusinessDashboardCleanup] businessIdentityEnhanced=true")
+                    print("[BusinessDashboardCleanup] businessAccountStylingApplied=true")
+                    print("[BusinessDashboardCleanup] businessHeroImageSource=\(businessHeroImageSource)")
+                    print("[BusinessDashboardCleanup] blockedFanAvatarInBusinessHero=true")
+                    print("[BusinessDashboardCleanup] forcedBusinessIconHero=true")
+                }
+#endif
+            }
     }
 }
 
@@ -4030,6 +4185,9 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupState = ""
     @State private var signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
     @State private var signupZip = ""
+    @State private var signupLatitude: Double?
+    @State private var signupLongitude: Double?
+    @State private var signupFormattedAddress = ""
     @State private var signupPhoneDialISO = BusinessPhoneFields.defaultISO
     @State private var signupPhoneLocal = ""
     @State private var signupWebsite = ""
@@ -4047,6 +4205,7 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupMenuPicker: PhotosPickerItem?
     @State private var signupCoverData: Data?
     @State private var signupMenuData: Data?
+    @State private var showSignupPinPicker = false
     @Environment(\.colorScheme) private var colorScheme
 
     private var businessSignupMissingRequirementMessage: String? {
@@ -4081,6 +4240,20 @@ private struct SettingsVenueOwnerCard: View {
 
     private var signupAddressLabels: BusinessLocationAddressLabels {
         BusinessLocationCountryPolicy.labels(for: signupCountry)
+    }
+
+    private var signupLocationDraft: BusinessVenueLocationDraft {
+        BusinessVenueLocationDraft(
+            addressLine1: signupStreet,
+            addressLine2: signupAddressLine2,
+            locality: signupCity,
+            region: signupState,
+            postalCode: signupZip,
+            countryCode: signupCountry,
+            latitude: signupLatitude,
+            longitude: signupLongitude,
+            formattedAddress: signupFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : signupFormattedAddress
+        )
     }
 
 #if DEBUG
@@ -4120,140 +4293,7 @@ private struct SettingsVenueOwnerCard: View {
                 .fanGeoInputFieldStyle()
 
             if showVenueRegisterMode {
-                SettingsSheetSectionLabel(title: "Business")
-                TextField("Business / brand name", text: $signupBusinessName)
-                    .textInputAutocapitalization(.words)
-                    .fanGeoInputFieldStyle()
-
-                SettingsSheetSectionLabel(title: "First location")
-                TextField("Location name", text: $signupLocationName)
-                    .textInputAutocapitalization(.words)
-                    .fanGeoInputFieldStyle()
-
-                TextField("Street address", text: $signupStreet)
-                    .textContentType(.streetAddressLine1)
-                    .fanGeoInputFieldStyle()
-
-                TextField("Address line 2 (optional)", text: $signupAddressLine2)
-                    .textContentType(.streetAddressLine2)
-                    .fanGeoInputFieldStyle()
-
-                TextField(signupAddressLabels.locality, text: $signupCity)
-                    .textInputAutocapitalization(.words)
-                    .fanGeoInputFieldStyle()
-
-                HStack(alignment: .center, spacing: FGSpacing.md) {
-                    BusinessLocationRegionField(countryCode: signupCountry, labels: signupAddressLabels, region: $signupState)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    TextField(signupAddressLabels.postalCode, text: $signupZip)
-                        .textInputAutocapitalization(.never)
-                        .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
-                }
-                .fanGeoInputFieldStyle()
-
-                BusinessLocationCountryField(countryCode: $signupCountry)
-                    .fanGeoInputFieldStyle()
-
-                BusinessPhoneNumberField(dialISO: $signupPhoneDialISO, localNumber: $signupPhoneLocal)
-
-                TextField("Website (optional)", text: $signupWebsite)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .fanGeoInputFieldStyle()
-
-                TextField("Description", text: $signupDescription, axis: .vertical)
-                    .lineLimit(3...8)
-                    .fanGeoInputFieldStyle()
-
-                TextField("Proof note (how you operate this location)", text: $signupProof, axis: .vertical)
-                    .lineLimit(2...6)
-                    .fanGeoInputFieldStyle()
-
-                AddLocationVenueFeaturesGrid(
-                    screenCount: $signupScreenCount,
-                    servesFood: $signupServesFood,
-                    hasWifi: $signupHasWifi,
-                    hasGarden: $signupHasGarden,
-                    hasProjector: $signupHasProjector,
-                    petFriendly: $signupPetFriendly,
-                    parkingAvailable: $signupParking,
-                    familyFriendly: $signupFamilyFriendly,
-                    maxScreenCount: 40
-                )
-
-                SettingsSheetSectionLabel(title: "Photos", subtitle: "A main business photo is required.")
-
-                VenueOwnerListingPhotoPickerCard(
-                    title: "Business Photo",
-                    subtitle: "Main photo of your business",
-                    pickerSelection: $signupCoverPicker,
-                    remotePreviewURL: "",
-                    localPreviewData: signupCoverData,
-                    usesFanGeoSheetChrome: true
-                )
-
-                VenueOwnerListingPhotoPickerCard(
-                    title: "Others",
-                    subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
-                    pickerSelection: $signupMenuPicker,
-                    remotePreviewURL: "",
-                    localPreviewData: signupMenuData,
-                    usesFanGeoSheetChrome: true
-                )
-
-                HStack(alignment: .top, spacing: 10) {
-                    Button {
-                        venueSignupPoliciesAccepted.toggle()
-                    } label: {
-                        Image(systemName: venueSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
-                            .font(.title3)
-                            .foregroundStyle(venueSignupPoliciesAccepted ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
-                    .accessibilityAddTraits(venueSignupPoliciesAccepted ? .isSelected : [])
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 0) {
-                            Text("I agree to the ")
-                            Button {
-                                venueSignupLegalDocument = .termsOfService
-                            } label: {
-                                Text("Terms of Service")
-                                    .underline()
-                            }
-                            .buttonStyle(.plain)
-                            Text(", ")
-                            Button {
-                                venueSignupLegalDocument = .privacyPolicy
-                            } label: {
-                                Text("Privacy Policy")
-                                    .underline()
-                            }
-                            .buttonStyle(.plain)
-                            Text(", and ")
-                            Button {
-                                venueSignupLegalDocument = .communityGuidelines
-                            } label: {
-                                Text("Community Guidelines")
-                                    .underline()
-                            }
-                            .buttonStyle(.plain)
-                            Text(".")
-                        }
-                        .font(.footnote)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .tint(FGColor.accentBlue)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(FGSpacing.md)
-                .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
-                .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
-                }
+                signupRegistrationFields
             }
 
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
@@ -4299,7 +4339,10 @@ private struct SettingsVenueOwnerCard: View {
                                 familyFriendly: signupFamilyFriendly,
                                 parkingAvailable: signupParking,
                                 coverPhotoURL: "",
-                                menuPhotoURL: ""
+                                menuPhotoURL: "",
+                                latitude: signupLatitude,
+                                longitude: signupLongitude,
+                                formattedAddress: signupFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : signupFormattedAddress
                             )
                             let payload = BusinessOwnerSignupPayload(
                                 businessDisplayName: signupBusinessName,
@@ -4399,6 +4442,9 @@ private struct SettingsVenueOwnerCard: View {
                 signupState = ""
                 signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
                 signupZip = ""
+                signupLatitude = nil
+                signupLongitude = nil
+                signupFormattedAddress = ""
                 signupPhoneDialISO = BusinessPhoneFields.defaultISO
                 signupPhoneLocal = ""
                 signupWebsite = ""
@@ -4423,6 +4469,15 @@ private struct SettingsVenueOwnerCard: View {
 #if DEBUG
             print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
 #endif
+        }
+        .sheet(isPresented: $showSignupPinPicker) {
+            BusinessVenueLocationPinPickerView(
+                viewModel: viewModel,
+                initialDraft: signupLocationDraft,
+                fallbackCoordinate: viewModel.currentUserLocation ?? CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508),
+                onCancel: {},
+                onConfirm: applySignupLocationDraft
+            )
         }
         .onChange(of: signupCoverPicker) { _, item in
             Task {
@@ -4451,6 +4506,171 @@ private struct SettingsVenueOwnerCard: View {
         .sheet(item: $venueSignupLegalDocument) { document in
             SettingsLegalDocumentSheet(document: document)
         }
+    }
+
+    @ViewBuilder
+    private var signupRegistrationFields: some View {
+        SettingsSheetSectionLabel(title: "Business")
+        TextField("Business / brand name", text: $signupBusinessName)
+            .textInputAutocapitalization(.words)
+            .fanGeoInputFieldStyle()
+
+        SettingsSheetSectionLabel(title: "First location")
+        TextField("Location name", text: $signupLocationName)
+            .textInputAutocapitalization(.words)
+            .fanGeoInputFieldStyle()
+
+        signupAddressFields
+
+        BusinessPhoneNumberField(dialISO: $signupPhoneDialISO, localNumber: $signupPhoneLocal)
+
+        TextField("Website (optional)", text: $signupWebsite)
+            .textInputAutocapitalization(.never)
+            .keyboardType(.URL)
+            .fanGeoInputFieldStyle()
+
+        TextField("Description", text: $signupDescription, axis: .vertical)
+            .lineLimit(3...8)
+            .fanGeoInputFieldStyle()
+
+        TextField("Proof note (how you operate this location)", text: $signupProof, axis: .vertical)
+            .lineLimit(2...6)
+            .fanGeoInputFieldStyle()
+
+        AddLocationVenueFeaturesGrid(
+            screenCount: $signupScreenCount,
+            servesFood: $signupServesFood,
+            hasWifi: $signupHasWifi,
+            hasGarden: $signupHasGarden,
+            hasProjector: $signupHasProjector,
+            petFriendly: $signupPetFriendly,
+            parkingAvailable: $signupParking,
+            familyFriendly: $signupFamilyFriendly,
+            maxScreenCount: 40
+        )
+
+        SettingsSheetSectionLabel(title: "Photos", subtitle: "A main business photo is required.")
+
+        VenueOwnerListingPhotoPickerCard(
+            title: "Business Photo",
+            subtitle: "Main photo of your business",
+            pickerSelection: $signupCoverPicker,
+            remotePreviewURL: "",
+            localPreviewData: signupCoverData,
+            usesFanGeoSheetChrome: true
+        )
+
+        VenueOwnerListingPhotoPickerCard(
+            title: "Others",
+            subtitle: "Examples: menu, gym, patio, bar, seating, entrance",
+            pickerSelection: $signupMenuPicker,
+            remotePreviewURL: "",
+            localPreviewData: signupMenuData,
+            usesFanGeoSheetChrome: true
+        )
+
+        signupPolicyAgreement
+    }
+
+    @ViewBuilder
+    private var signupAddressFields: some View {
+        TextField("Street address", text: $signupStreet)
+            .textContentType(.streetAddressLine1)
+            .fanGeoInputFieldStyle()
+
+        TextField("Address line 2 (optional)", text: $signupAddressLine2)
+            .textContentType(.streetAddressLine2)
+            .fanGeoInputFieldStyle()
+
+        TextField(signupAddressLabels.locality, text: $signupCity)
+            .textInputAutocapitalization(.words)
+            .fanGeoInputFieldStyle()
+
+        HStack(alignment: .center, spacing: FGSpacing.md) {
+            BusinessLocationRegionField(countryCode: signupCountry, labels: signupAddressLabels, region: $signupState)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            TextField(signupAddressLabels.postalCode, text: $signupZip)
+                .textInputAutocapitalization(.never)
+                .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
+        }
+        .fanGeoInputFieldStyle()
+
+        BusinessLocationCountryField(countryCode: $signupCountry)
+            .fanGeoInputFieldStyle()
+
+        BusinessVenueLocationPinPreview(
+            draft: signupLocationDraft,
+            isLocked: false,
+            onAdjust: { showSignupPinPicker = true }
+        )
+    }
+
+    private var signupPolicyAgreement: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Button {
+                venueSignupPoliciesAccepted.toggle()
+            } label: {
+                Image(systemName: venueSignupPoliciesAccepted ? "checkmark.square.fill" : "square")
+                    .font(.title3)
+                    .foregroundStyle(venueSignupPoliciesAccepted ? FGColor.accentBlue : FGColor.mutedText(colorScheme))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("I agree to the Terms of Service, Privacy Policy, and Community Guidelines.")
+            .accessibilityAddTraits(venueSignupPoliciesAccepted ? .isSelected : [])
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 0) {
+                    Text("I agree to the ")
+                    Button {
+                        venueSignupLegalDocument = .termsOfService
+                    } label: {
+                        Text("Terms of Service")
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    Text(", ")
+                    Button {
+                        venueSignupLegalDocument = .privacyPolicy
+                    } label: {
+                        Text("Privacy Policy")
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    Text(", and ")
+                    Button {
+                        venueSignupLegalDocument = .communityGuidelines
+                    } label: {
+                        Text("Community Guidelines")
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    Text(".")
+                }
+                .font(.footnote)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .tint(FGColor.accentBlue)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(FGSpacing.md)
+        .background(FGColor.background(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.97))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+        }
+    }
+
+    private func applySignupLocationDraft(_ draft: BusinessVenueLocationDraft) {
+        signupStreet = draft.addressLine1
+        signupAddressLine2 = draft.addressLine2
+        signupCity = draft.locality
+        signupState = draft.region
+        signupZip = draft.postalCode
+        signupCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(draft.countryCode)
+        signupLatitude = draft.latitude
+        signupLongitude = draft.longitude
+        signupFormattedAddress = draft.formattedAddress ?? draft.displayAddress
     }
 }
 

@@ -1,4 +1,5 @@
 import Combine
+import CoreLocation
 import PhotosUI
 import SwiftUI
 
@@ -13,6 +14,9 @@ final class AddLocationSheetFormState: ObservableObject {
     @Published var state = ""
     @Published var country = BusinessLocationCountryPolicy.defaultCountryCode
     @Published var zip = ""
+    @Published var latitude: Double?
+    @Published var longitude: Double?
+    @Published var formattedAddress = ""
     /// ITU dial country (ISO 3166-1 alpha-2), default US `+1`; paired with ``phoneLocal``.
     @Published var phoneDialISO = BusinessPhoneFields.defaultISO
     /// National portion only; combined for RPC as ``BusinessPhoneFields/combinedStorage(iso:local:)``.
@@ -46,6 +50,9 @@ final class AddLocationSheetFormState: ObservableObject {
         state = ""
         country = BusinessLocationCountryPolicy.defaultCountryCode
         zip = ""
+        latitude = nil
+        longitude = nil
+        formattedAddress = ""
         phoneDialISO = BusinessPhoneFields.defaultISO
         phoneLocal = ""
         website = ""
@@ -79,6 +86,7 @@ struct AddBusinessLocationRequestSheet: View {
 
     @State private var selectedCoverPicker: PhotosPickerItem?
     @State private var selectedMenuPicker: PhotosPickerItem?
+    @State private var showPinPicker = false
 
     /// Non-nil ``submitBanner`` only flags success; Settings parent maps status to user-facing copy.
     private static let successCopy = "submitted"
@@ -102,6 +110,20 @@ struct AddBusinessLocationRequestSheet: View {
 
     private var addressLabels: BusinessLocationAddressLabels {
         BusinessLocationCountryPolicy.labels(for: form.country)
+    }
+
+    private var locationDraft: BusinessVenueLocationDraft {
+        BusinessVenueLocationDraft(
+            addressLine1: form.streetAddress,
+            addressLine2: form.addressLine2,
+            locality: form.city,
+            region: form.state,
+            postalCode: form.zip,
+            countryCode: form.country,
+            latitude: form.latitude,
+            longitude: form.longitude,
+            formattedAddress: form.formattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : form.formattedAddress
+        )
     }
 
     private var missingSubmitRequirements: [String] {
@@ -197,6 +219,11 @@ struct AddBusinessLocationRequestSheet: View {
 
                         BusinessLocationCountryField(countryCode: $form.country)
                             .fanGeoInputFieldStyle()
+                        BusinessVenueLocationPinPreview(
+                            draft: locationDraft,
+                            isLocked: false,
+                            onAdjust: { showPinPicker = true }
+                        )
                         BusinessPhoneNumberField(
                             dialISO: $form.phoneDialISO,
                             localNumber: $form.phoneLocal,
@@ -348,6 +375,15 @@ struct AddBusinessLocationRequestSheet: View {
                 print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
 #endif
             }
+            .sheet(isPresented: $showPinPicker) {
+                BusinessVenueLocationPinPickerView(
+                    viewModel: viewModel,
+                    initialDraft: locationDraft,
+                    fallbackCoordinate: viewModel.currentUserLocation ?? CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508),
+                    onCancel: {},
+                    onConfirm: applyLocationDraft
+                )
+            }
             .onChange(of: form.proofNote) { _, _ in
 #if DEBUG
                 logAddLocationFormState()
@@ -451,7 +487,10 @@ struct AddBusinessLocationRequestSheet: View {
             familyFriendly: form.familyFriendly,
             parkingAvailable: form.parkingAvailable,
             coverPhotoURL: form.coverPhotoURL,
-            menuPhotoURL: form.menuPhotoURL
+            menuPhotoURL: form.menuPhotoURL,
+            latitude: form.latitude,
+            longitude: form.longitude,
+            formattedAddress: form.formattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : form.formattedAddress
         )
 
         let err = await viewModel.submitAddLocationClaim(form: claim)
@@ -467,5 +506,17 @@ struct AddBusinessLocationRequestSheet: View {
                 isPresented = false
             }
         }
+    }
+
+    private func applyLocationDraft(_ draft: BusinessVenueLocationDraft) {
+        form.streetAddress = draft.addressLine1
+        form.addressLine2 = draft.addressLine2
+        form.city = draft.locality
+        form.state = draft.region
+        form.zip = draft.postalCode
+        form.country = BusinessLocationCountryPolicy.normalizedStoredCountryCode(draft.countryCode)
+        form.latitude = draft.latitude
+        form.longitude = draft.longitude
+        form.formattedAddress = draft.formattedAddress ?? draft.displayAddress
     }
 }

@@ -12,8 +12,24 @@ enum PublicProfileSheetLayout {
     /// Grid section card corners (Open To, Mutual Fans).
     static let gridCardRadius: CGFloat = 20
 
-    static func horizontalPadding(screenWidth: CGFloat = UIScreen.main.bounds.width) -> CGFloat {
-        screenWidth <= 375 ? 20 : 22
+    @MainActor
+    static func horizontalPadding(screenWidth: CGFloat? = nil) -> CGFloat {
+        let resolvedWidth = screenWidth ?? currentWindowSceneScreenWidth()
+        return resolvedWidth <= 375 ? 20 : 22
+    }
+
+    @MainActor
+    private static func currentWindowSceneScreenWidth() -> CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first(where: { $0.activationState == .foregroundActive })?
+            .screen
+            .bounds
+            .width
+            ?? UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.screen.bounds.width }
+                .first
+            ?? 393
     }
 }
 

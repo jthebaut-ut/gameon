@@ -1,3 +1,4 @@
+import CoreLocation
 import Photos
 import SwiftUI
 import PhotosUI
@@ -94,8 +95,12 @@ struct VenueOwnerDashboardView: View {
     @State private var venueState = ""
     @State private var venueZipCode = ""
     @State private var venueCountry = BusinessLocationCountryPolicy.defaultCountryCode
+    @State private var venueLatitude: Double?
+    @State private var venueLongitude: Double?
+    @State private var venueFormattedAddress = ""
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var selectedMenuPhoto: PhotosPickerItem?
+    @State private var showVenuePinPicker = false
     /// URLs used only for Bar/Menu previews (may include `?v=` / `&v=` cache bust). Supabase / viewModel URLs stay clean.
     @State private var displayedCoverPhotoURL = ""
     @State private var displayedMenuPhotoURL = ""
@@ -376,6 +381,9 @@ struct VenueOwnerDashboardView: View {
                     venueState = saved.state ?? ""
                     venueZipCode = saved.zip_code ?? ""
                     venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+                    venueLatitude = saved.latitude
+                    venueLongitude = saved.longitude
+                    venueFormattedAddress = saved.formatted_address ?? ""
 
                     totalScreens = saved.screen_count ?? 1
                     hasFood = saved.serves_food ?? false
@@ -442,6 +450,15 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
             print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
 #endif
+        }
+        .sheet(isPresented: $showVenuePinPicker) {
+            BusinessVenueLocationPinPickerView(
+                viewModel: viewModel,
+                initialDraft: venueLocationDraft,
+                fallbackCoordinate: viewModel.currentUserLocation ?? CLLocationCoordinate2D(latitude: 40.3916, longitude: -111.8508),
+                onCancel: {},
+                onConfirm: applyVenueLocationDraft
+            )
         }
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
@@ -606,8 +623,8 @@ struct VenueOwnerDashboardView: View {
             locationLine: businessDashboardLocationLine,
             isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
             managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
-            venuePhotoURL: displayedCoverPhotoURL.isEmpty ? viewModel.venueCoverPhotoURL : displayedCoverPhotoURL,
-            venuePhotoThumbnailURL: viewModel.venueCoverPhotoThumbnailURL,
+            venuePhotoURL: nil,
+            venuePhotoThumbnailURL: nil,
             fansGoing: businessDashboardFansGoing,
             activeChats: businessDashboardActiveChats,
             predictions: businessDashboardPredictions,
@@ -634,6 +651,20 @@ struct VenueOwnerDashboardView: View {
 
     private var venueAddressLabels: BusinessLocationAddressLabels {
         BusinessLocationCountryPolicy.labels(for: venueCountry)
+    }
+
+    private var venueLocationDraft: BusinessVenueLocationDraft {
+        BusinessVenueLocationDraft(
+            addressLine1: venueStreetAddress,
+            addressLine2: venueAddressLine2,
+            locality: venueCity,
+            region: venueState,
+            postalCode: venueZipCode,
+            countryCode: venueCountry,
+            latitude: venueLatitude,
+            longitude: venueLongitude,
+            formattedAddress: venueFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : venueFormattedAddress
+        )
     }
 
     private var businessDashboardEventIDs: [UUID] {
@@ -775,6 +806,19 @@ struct VenueOwnerDashboardView: View {
         print("[BusinessDashboardRouteDebug] effectiveSection=\(effectiveSection.rawValue)")
 #endif
     }
+
+    private func applyVenueLocationDraft(_ draft: BusinessVenueLocationDraft) {
+        guard !venueCoreIdentityLocked else { return }
+        venueStreetAddress = draft.addressLine1
+        venueAddressLine2 = draft.addressLine2
+        venueCity = draft.locality
+        venueState = draft.region
+        venueZipCode = draft.postalCode
+        venueCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(draft.countryCode)
+        venueLatitude = draft.latitude
+        venueLongitude = draft.longitude
+        venueFormattedAddress = draft.formattedAddress ?? draft.displayAddress
+    }
     
     private var profileSection: some View {
         dashboardCard(
@@ -814,6 +858,11 @@ struct VenueOwnerDashboardView: View {
             .opacity(venueCoreIdentityLocked ? 0.78 : 1)
 
             field(venueAddressLabels.postalCode, text: $venueZipCode, locked: venueCoreIdentityLocked)
+            BusinessVenueLocationPinPreview(
+                draft: venueLocationDraft,
+                isLocked: venueCoreIdentityLocked,
+                onAdjust: { showVenuePinPicker = true }
+            )
             BusinessPhoneNumberField(dialISO: $viewModel.ownerVenuePhoneDialISO, localNumber: $viewModel.ownerVenuePhone)
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
@@ -865,6 +914,9 @@ struct VenueOwnerDashboardView: View {
                             state: venueState,
                             zipCode: venueZipCode,
                             country: venueCountry,
+                            pinnedLatitude: venueLatitude,
+                            pinnedLongitude: venueLongitude,
+                            pinnedFormattedAddress: venueFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : venueFormattedAddress,
                             screenCount: totalScreens,
                             servesFood: hasFood,
                             hasWifi: hasWifi,
@@ -882,6 +934,9 @@ struct VenueOwnerDashboardView: View {
                                 venueState = saved.state ?? ""
                                 venueZipCode = saved.zip_code ?? ""
                                 venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+                                venueLatitude = saved.latitude
+                                venueLongitude = saved.longitude
+                                venueFormattedAddress = saved.formatted_address ?? ""
                                 totalScreens = saved.screen_count ?? 1
                                 hasFood = saved.serves_food ?? false
                                 hasWifi = saved.has_wifi ?? false
