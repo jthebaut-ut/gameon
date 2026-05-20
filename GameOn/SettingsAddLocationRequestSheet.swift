@@ -8,8 +8,9 @@ import SwiftUI
 final class AddLocationSheetFormState: ObservableObject {
     @Published var locationName = ""
     @Published var streetAddress = ""
+    @Published var addressLine2 = ""
     @Published var city = ""
-    @Published var state = "UT"
+    @Published var state = ""
     @Published var country = BusinessLocationCountryPolicy.defaultCountryCode
     @Published var zip = ""
     /// ITU dial country (ISO 3166-1 alpha-2), default US `+1`; paired with ``phoneLocal``.
@@ -40,8 +41,9 @@ final class AddLocationSheetFormState: ObservableObject {
 #endif
         locationName = ""
         streetAddress = ""
+        addressLine2 = ""
         city = ""
-        state = "UT"
+        state = ""
         country = BusinessLocationCountryPolicy.defaultCountryCode
         zip = ""
         phoneDialISO = BusinessPhoneFields.defaultISO
@@ -98,6 +100,10 @@ struct AddBusinessLocationRequestSheet: View {
         !form.menuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var addressLabels: BusinessLocationAddressLabels {
+        BusinessLocationCountryPolicy.labels(for: form.country)
+    }
+
     private var missingSubmitRequirements: [String] {
         var m: [String] = []
         if !viewModel.hasBusinessAccountForOwner() {
@@ -110,16 +116,17 @@ struct AddBusinessLocationRequestSheet: View {
             m.append("Missing location name")
         }
         if form.streetAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing address")
+            m.append("Missing address line 1")
         }
-        if form.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing city")
+        let country = BusinessLocationCountryPolicy.normalizedStoredCountryCode(form.country)
+        if country.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            m.append("Missing country")
         }
-        if form.state.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing state")
+        if addressLabels.localityRequired, form.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            m.append("Missing \(addressLabels.locality.lowercased())")
         }
-        if form.zip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            m.append("Missing ZIP code")
+        if addressLabels.regionRequired, form.state.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            m.append("Missing \(addressLabels.region.lowercased())")
         }
         let dialISO = form.phoneDialISO.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         if BusinessPhoneFields.country(iso: dialISO) == nil {
@@ -170,15 +177,19 @@ struct AddBusinessLocationRequestSheet: View {
                             .textInputAutocapitalization(.words)
                             .fanGeoInputFieldStyle()
                         TextField("Street address", text: $form.streetAddress)
+                            .textContentType(.streetAddressLine1)
                             .fanGeoInputFieldStyle()
-                        TextField("City", text: $form.city)
+                        TextField("Address line 2 (optional)", text: $form.addressLine2)
+                            .textContentType(.streetAddressLine2)
+                            .fanGeoInputFieldStyle()
+                        TextField(addressLabels.locality, text: $form.city)
                             .textInputAutocapitalization(.words)
                             .fanGeoInputFieldStyle()
 
                         HStack(alignment: .center, spacing: FGSpacing.md) {
-                            BusinessLocationUSStatePicker(title: "State", stateCode: $form.state)
+                            BusinessLocationRegionField(countryCode: form.country, labels: addressLabels, region: $form.state)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            TextField("ZIP", text: $form.zip)
+                            TextField(addressLabels.postalCode, text: $form.zip)
                                 .textInputAutocapitalization(.never)
                                 .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
                         }
@@ -331,6 +342,12 @@ struct AddBusinessLocationRequestSheet: View {
                 logAddLocationFormState()
 #endif
             }
+            .onChange(of: form.country) { _, newCountry in
+                BusinessLocationCountryPolicy.clearDefaultRegionIfNeeded(&form.state, whenCountryChangesTo: newCountry)
+#if DEBUG
+                print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
+#endif
+            }
             .onChange(of: form.proofNote) { _, _ in
 #if DEBUG
                 logAddLocationFormState()
@@ -416,6 +433,7 @@ struct AddBusinessLocationRequestSheet: View {
         let claim = AddLocationClaimForm(
             venueName: form.locationName,
             address: form.streetAddress,
+            addressLine2: form.addressLine2,
             city: form.city,
             state: form.state,
             country: form.country,

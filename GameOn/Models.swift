@@ -268,6 +268,12 @@ struct VenueClaimRow: Codable {
     let venue_id: UUID?
     let venue_name: String?
     let venue_address: String?
+    let venue_address_line2: String?
+    let venue_city: String?
+    let venue_state: String?
+    let venue_country: String?
+    let venue_zip_code: String?
+    let venue_formatted_address: String?
     let venue_phone: String?
     let venue_website: String?
     let proof_note: String?
@@ -287,6 +293,8 @@ nonisolated struct VenueEventRow: Codable {
     
     let event_title: String?
     let sport: String?
+    let home_team: String?
+    let away_team: String?
     let external_league: String?
     
     let event_date: String?

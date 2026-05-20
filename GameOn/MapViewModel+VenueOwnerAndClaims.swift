@@ -26,9 +26,11 @@ extension MapViewModel {
 
         ownerVenueName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
         ownerVenueAddress = bar.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        ownerVenueAddressLine2 = ""
         ownerVenueCity = ""
-        ownerVenueState = "UT"
+        ownerVenueState = ""
         ownerVenueZipCode = ""
+        ownerVenueCountry = BusinessLocationCountryPolicy.defaultCountryCode
         applyVenueOwnerPhoneFromCombined(bar.phone)
         ownerVenueWebsite = ""
         let sport = bar.primarySport.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -252,6 +254,7 @@ extension MapViewModel {
         let mergedLocationForm = AddLocationClaimForm(
             venueName: loc.venueName,
             address: loc.address,
+            addressLine2: loc.addressLine2,
             city: loc.city,
             state: loc.state,
             country: loc.country,
@@ -333,7 +336,7 @@ extension MapViewModel {
             return
         }
 
-        let claim = venueClaimInsertForBusinessAddLocation(
+        let claim = await venueClaimInsertForBusinessAddLocation(
             ownerEmail: ownerEmail,
             businessId: businessId,
             form: mergedLocationForm
@@ -853,7 +856,7 @@ extension MapViewModel {
     private func fetchVenueRowForClaim(venueId: UUID) async throws -> VenueRow? {
         let rows: [VenueRow] = try await supabase
             .from("venues")
-            .select("id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)")
+            .select("id,owner_email,business_id,admin_status,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)")
             .eq("id", value: venueId)
             .limit(1)
             .execute()
@@ -904,9 +907,20 @@ extension MapViewModel {
     ) -> VenueClaimInsert {
         let venueName = preferredClaimText(venueRow?.venue_name, fallback: bar.name)
         let venueAddress = preferredClaimText(venueRow?.address, fallback: bar.address)
+        let venueAddressLine2 = venueRow?.address_line2?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let venueCity = venueRow?.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let venueState = venueRow?.state?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() ?? ""
+        let venueState = venueRow?.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let venueCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(venueRow?.country ?? BusinessLocationCountryPolicy.defaultCountryCode)
         let venueZip = venueRow?.zip_code?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let formattedAddress = venueRow?.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? BusinessVenueAddressFormatter.formattedAddress(
+                line1: venueAddress,
+                line2: venueAddressLine2,
+                locality: venueCity,
+                region: venueState,
+                postalCode: venueZip,
+                countryCode: venueCountry
+            )
         let venuePhone = preferredClaimText(venueRow?.phone, fallback: bar.phone)
         let venueWebsite = venueRow?.website?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let venueDescription = venueRow?.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Ownership request submitted from Venue Detail."
@@ -929,10 +943,14 @@ extension MapViewModel {
             venue_id: bar.id,
             venue_name: venueName,
             venue_address: venueAddress,
+            venue_address_line2: venueAddressLine2.isEmpty ? nil : venueAddressLine2,
             venue_city: venueCity,
             venue_state: venueState,
-            venue_country: "USA",
+            venue_country: venueCountry,
             venue_zip_code: venueZip,
+            venue_formatted_address: formattedAddress.isEmpty ? nil : formattedAddress,
+            venue_latitude: venueRow?.latitude,
+            venue_longitude: venueRow?.longitude,
             venue_phone: venuePhone,
             venue_website: venueWebsite,
             venue_description: venueDescription,
@@ -1022,8 +1040,10 @@ extension MapViewModel {
                     venue_id: bar.id,
                     venue_name: claim.venue_name,
                     venue_address: claim.venue_address,
+                    venue_address_line2: claim.venue_address_line2,
                     venue_city: claim.venue_city,
                     venue_state: claim.venue_state,
+                    venue_country: claim.venue_country,
                     approval_status: inserted.approval_status,
                     rejection_acknowledged_at: nil
                 )
@@ -1165,7 +1185,7 @@ extension MapViewModel {
         do {
             let rows: [VenueClaimPendingSettingsRow] = try await supabase
                 .from("venue_claims")
-                .select("id,business_id,venue_id,venue_name,venue_address,venue_city,venue_state,approval_status,rejection_acknowledged_at")
+                .select("id,business_id,venue_id,venue_name,venue_address,venue_address_line2,venue_city,venue_state,venue_country,approval_status,rejection_acknowledged_at")
                 .eq("owner_email", value: email)
                 .order("created_at", ascending: false)
                 .limit(80)
@@ -1352,10 +1372,14 @@ extension MapViewModel {
             owner_email: claim.owner_email,
             venue_name: claim.venue_name,
             venue_address: claim.venue_address,
+            venue_address_line2: claim.venue_address_line2,
             venue_city: claim.venue_city,
             venue_state: claim.venue_state,
             venue_country: claim.venue_country,
             venue_zip_code: claim.venue_zip_code,
+            venue_formatted_address: claim.venue_formatted_address,
+            venue_latitude: claim.venue_latitude,
+            venue_longitude: claim.venue_longitude,
             venue_phone: claim.venue_phone,
             venue_website: claim.venue_website,
             venue_description: claim.venue_description,
@@ -1428,34 +1452,42 @@ extension MapViewModel {
         let trimmedName = form.venueName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedAddress = form.address.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCity = form.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedState = form.state.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let trimmedCountry = form.country.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let trimmedZip = form.zip.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedState = form.state.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(form.country)
         let trimmedPhone = form.phone.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDesc = form.description.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedProof = form.proofNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        let labels = BusinessLocationCountryPolicy.labels(for: trimmedCountry)
 
         guard !trimmedName.isEmpty,
               !trimmedAddress.isEmpty,
-              !trimmedCity.isEmpty,
-              !trimmedState.isEmpty,
-              !trimmedZip.isEmpty,
               !trimmedPhone.isEmpty,
               !trimmedDesc.isEmpty,
               !trimmedProof.isEmpty else {
+#if DEBUG
+            print("[InternationalAddressDebug] addressValidation=missingRequiredBase")
+#endif
             return "Please fill in all required fields."
+        }
+
+        if !BusinessLocationCountryPolicy.supportedCountryCodes.contains(trimmedCountry) {
+            return "Please choose a country."
+        }
+
+        if labels.localityRequired && trimmedCity.isEmpty {
+            return "Please enter \(labels.locality.lowercased())."
+        }
+
+        if labels.regionRequired && trimmedState.isEmpty {
+            return "Please enter \(labels.region.lowercased())."
+        }
+
+        if trimmedCountry == "USA", !trimmedState.isEmpty, (trimmedState.count != 2 || !USStatesForBusinessLocation.validCodes.contains(trimmedState.uppercased())) {
+            return "Please choose a valid US state."
         }
 
         if let phoneErr = BusinessPhoneFields.storageValidationError(combined: trimmedPhone) {
             return phoneErr
-        }
-
-        if !BusinessLocationCountryPolicy.supportedCountryCodes.contains(trimmedCountry) {
-            return "Country is not supported for new locations yet."
-        }
-
-        if trimmedState.count != 2 || !USStatesForBusinessLocation.validCodes.contains(trimmedState) {
-            return "Please choose a valid US state."
         }
 
         if requireCoverPhotoURL {
@@ -1464,6 +1496,9 @@ extension MapViewModel {
                 return "Main venue photo is required."
             }
         }
+#if DEBUG
+        print("[InternationalAddressDebug] addressValidation=passed")
+#endif
         return nil
     }
 
@@ -1471,12 +1506,13 @@ extension MapViewModel {
         ownerEmail: String,
         businessId: UUID,
         form: AddLocationClaimForm
-    ) -> VenueClaimInsert {
+    ) async -> VenueClaimInsert {
         let email = OwnerBusinessEmail.normalized(ownerEmail)
         let trimmedName = form.venueName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedAddress = form.address.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAddressLine2 = form.addressLine2.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCity = form.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedState = form.state.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let trimmedState = form.state.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(form.country)
         let trimmedZip = form.zip.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPhone = form.phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1487,6 +1523,26 @@ extension MapViewModel {
         let menu = form.menuPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
         let screenCount = max(1, min(99, form.screenCount))
         let featuresLine = form.mergedVenueFeaturesLine()
+        let formattedAddress = BusinessVenueAddressFormatter.formattedAddress(
+            line1: trimmedAddress,
+            line2: trimmedAddressLine2,
+            locality: trimmedCity,
+            region: trimmedState,
+            postalCode: trimmedZip,
+            countryCode: trimmedCountry
+        )
+        let geocodeQuery = BusinessVenueAddressFormatter.geocodeQuery(
+            line1: trimmedAddress,
+            line2: trimmedAddressLine2,
+            locality: trimmedCity,
+            region: trimmedState,
+            postalCode: trimmedZip,
+            countryCode: trimmedCountry
+        )
+        let geocodeResult = await geocodeBusinessVenueAddress(
+            geocodeQuery,
+            fallbackFormattedAddress: formattedAddress
+        )
 
         return VenueClaimInsert(
             owner_email: email,
@@ -1494,10 +1550,14 @@ extension MapViewModel {
             venue_id: nil,
             venue_name: trimmedName,
             venue_address: trimmedAddress,
+            venue_address_line2: trimmedAddressLine2.isEmpty ? nil : trimmedAddressLine2,
             venue_city: trimmedCity,
             venue_state: trimmedState,
             venue_country: trimmedCountry,
             venue_zip_code: trimmedZip,
+            venue_formatted_address: (geocodeResult?.formattedAddress ?? formattedAddress).isEmpty ? nil : (geocodeResult?.formattedAddress ?? formattedAddress),
+            venue_latitude: geocodeResult?.coordinate.latitude,
+            venue_longitude: geocodeResult?.coordinate.longitude,
             venue_phone: trimmedPhone,
             venue_website: trimmedWebsite,
             venue_description: trimmedDesc,
@@ -1538,13 +1598,13 @@ extension MapViewModel {
             venueName: form.venueName.trimmingCharacters(in: .whitespacesAndNewlines),
             venueAddress: form.address.trimmingCharacters(in: .whitespacesAndNewlines),
             venueCity: form.city.trimmingCharacters(in: .whitespacesAndNewlines),
-            venueState: form.state.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+            venueState: form.state.trimmingCharacters(in: .whitespacesAndNewlines),
             venueZip: form.zip.trimmingCharacters(in: .whitespacesAndNewlines)
         ) {
             return dup
         }
 
-        let claim = venueClaimInsertForBusinessAddLocation(ownerEmail: email, businessId: businessId, form: form)
+        let claim = await venueClaimInsertForBusinessAddLocation(ownerEmail: email, businessId: businessId, form: form)
 
         do {
             let inserted: VenueClaimInsertedRow = try await supabase
@@ -1679,9 +1739,11 @@ extension MapViewModel {
     func applyLockedVenueIdentityFromServerRow(_ saved: VenueProfileRow) {
         ownerVenueName = saved.venue_name ?? ""
         ownerVenueAddress = saved.address ?? ""
+        ownerVenueAddressLine2 = saved.address_line2 ?? ""
         ownerVenueCity = saved.city ?? ""
         ownerVenueState = saved.state ?? ""
         ownerVenueZipCode = saved.zip_code ?? ""
+        ownerVenueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
     }
 
     /// Applies ``VenueProfileRow`` fields into owner-facing ``MapViewModel`` state (photos, name, etc.).
@@ -1691,9 +1753,11 @@ extension MapViewModel {
         }
         ownerVenueName = saved.venue_name ?? ""
         ownerVenueAddress = saved.address ?? ""
+        ownerVenueAddressLine2 = saved.address_line2 ?? ""
         ownerVenueCity = saved.city ?? ""
         ownerVenueState = saved.state ?? ""
         ownerVenueZipCode = saved.zip_code ?? ""
+        ownerVenueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
         applyVenueOwnerPhoneFromCombined(saved.phone)
         ownerVenueWebsite = saved.website ?? ""
         ownerVenueDescription = saved.description ?? ""
@@ -2054,6 +2118,11 @@ extension MapViewModel {
                 venueClaimSubmittedDate = primary.created_at ?? ""
                 ownerVenueName = primary.venue_name ?? ""
                 ownerVenueAddress = primary.venue_address ?? ""
+                ownerVenueAddressLine2 = primary.venue_address_line2 ?? ""
+                ownerVenueCity = primary.venue_city ?? ""
+                ownerVenueState = primary.venue_state ?? ""
+                ownerVenueZipCode = primary.venue_zip_code ?? ""
+                ownerVenueCountry = primary.venue_country ?? BusinessLocationCountryPolicy.defaultCountryCode
                 applyVenueOwnerPhoneFromCombined(primary.venue_phone)
                 ownerVenueWebsite = primary.venue_website ?? ""
                 venueProofNote = primary.proof_note ?? ""
@@ -2080,9 +2149,12 @@ extension MapViewModel {
                 // Backend safety: required-field validation guard (UI should already enforce this).
                 let trimmedName = ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedAddress = ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedAddressLine2 = ownerVenueAddressLine2.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedCity = ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedState = ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedZip = ownerVenueZipCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(ownerVenueCountry)
+                let addressLabels = BusinessLocationCountryPolicy.labels(for: trimmedCountry)
                 let trimmedPhone = BusinessPhoneFields.combinedStorage(
                     iso: ownerVenuePhoneDialISO,
                     local: ownerVenuePhone
@@ -2093,13 +2165,19 @@ extension MapViewModel {
 
                 guard !trimmedName.isEmpty,
                       !trimmedAddress.isEmpty,
-                      !trimmedCity.isEmpty,
-                      !trimmedState.isEmpty,
-                      !trimmedZip.isEmpty,
                       !trimmedPhone.isEmpty,
                       !trimmedDesc.isEmpty else {
                     await MainActor.run {
                         venueAuthErrorMessage = "Complete all required fields before submitting."
+                    }
+                    return
+                }
+
+                if !BusinessLocationCountryPolicy.supportedCountryCodes.contains(trimmedCountry)
+                    || (addressLabels.localityRequired && trimmedCity.isEmpty)
+                    || (addressLabels.regionRequired && trimmedState.isEmpty) {
+                    await MainActor.run {
+                        venueAuthErrorMessage = "Complete the required address fields before submitting."
                     }
                     return
                 }
@@ -2120,6 +2198,26 @@ extension MapViewModel {
                 }
 
                 let linkedVenueId = pendingClaimVenueID
+                let formattedAddress = BusinessVenueAddressFormatter.formattedAddress(
+                    line1: trimmedAddress,
+                    line2: trimmedAddressLine2,
+                    locality: trimmedCity,
+                    region: trimmedState,
+                    postalCode: trimmedZip,
+                    countryCode: trimmedCountry
+                )
+                let geocodeQuery = BusinessVenueAddressFormatter.geocodeQuery(
+                    line1: trimmedAddress,
+                    line2: trimmedAddressLine2,
+                    locality: trimmedCity,
+                    region: trimmedState,
+                    postalCode: trimmedZip,
+                    countryCode: trimmedCountry
+                )
+                let geocodeResult = await geocodeBusinessVenueAddress(
+                    geocodeQuery,
+                    fallbackFormattedAddress: formattedAddress
+                )
 
 #if DEBUG
                 print("[ClaimPhaseB] submitting venue claim venue_id=\(linkedVenueId?.uuidString ?? "nil")")
@@ -2145,10 +2243,14 @@ extension MapViewModel {
                     venue_id: linkedVenueId,
                     venue_name: trimmedName,
                     venue_address: trimmedAddress,
+                    venue_address_line2: trimmedAddressLine2.isEmpty ? nil : trimmedAddressLine2,
                     venue_city: trimmedCity,
                     venue_state: trimmedState,
-                    venue_country: "USA",
+                    venue_country: trimmedCountry,
                     venue_zip_code: trimmedZip,
+                    venue_formatted_address: (geocodeResult?.formattedAddress ?? formattedAddress).isEmpty ? nil : (geocodeResult?.formattedAddress ?? formattedAddress),
+                    venue_latitude: geocodeResult?.coordinate.latitude,
+                    venue_longitude: geocodeResult?.coordinate.longitude,
                     venue_phone: trimmedPhone,
                     venue_website: ownerVenueWebsite,
                     venue_description: trimmedDesc,
@@ -2187,8 +2289,10 @@ extension MapViewModel {
                         venue_id: linkedVenueId,
                         venue_name: trimmedName,
                         venue_address: trimmedAddress,
+                        venue_address_line2: trimmedAddressLine2.isEmpty ? nil : trimmedAddressLine2,
                         venue_city: trimmedCity,
                         venue_state: trimmedState,
+                        venue_country: trimmedCountry,
                         approval_status: inserted.approval_status,
                         rejection_acknowledged_at: nil
                     )
@@ -2316,9 +2420,11 @@ extension MapViewModel {
     // Geocodes the address; updates `venues` by id when ``ownerVenueDatabaseId`` is set (Phase A3-prep), else legacy upsert on `owner_email`.
     func saveVenueProfile(
         streetAddress: String,
+        addressLine2: String,
         city: String,
         state: String,
         zipCode: String,
+        country: String,
         screenCount: Int,
         servesFood: Bool,
         hasWifi: Bool,
@@ -2380,15 +2486,14 @@ extension MapViewModel {
 
                 if let baseline,
                    baseline.latitude == nil || baseline.longitude == nil {
-                    let lockedAddress = [
-                        baseline.address,
-                        baseline.city,
-                        baseline.state,
-                        baseline.zip_code
-                    ]
-                    .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                    .joined(separator: ", ")
+                    let lockedAddress = BusinessVenueAddressFormatter.geocodeQuery(
+                        line1: baseline.address ?? "",
+                        line2: baseline.address_line2 ?? "",
+                        locality: baseline.city ?? "",
+                        region: baseline.state ?? "",
+                        postalCode: baseline.zip_code ?? "",
+                        countryCode: baseline.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+                    )
 
                     if !lockedAddress.isEmpty, let coord = await geocodeAddress(lockedAddress) {
 #if DEBUG
@@ -2402,27 +2507,68 @@ extension MapViewModel {
                     }
                 }
             } else {
-                let fullAddress = [
-                    streetAddress,
-                    city,
-                    state,
-                    zipCode
-                ]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: ", ")
+                let countryCode = BusinessLocationCountryPolicy.normalizedStoredCountryCode(country)
+                let addressLabels = BusinessLocationCountryPolicy.labels(for: countryCode)
+                let streetTrimmed = streetAddress.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cityTrimmed = city.trimmingCharacters(in: .whitespacesAndNewlines)
+                let stateTrimmed = state.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !streetTrimmed.isEmpty,
+                      BusinessLocationCountryPolicy.supportedCountryCodes.contains(countryCode),
+                      (!addressLabels.localityRequired || !cityTrimmed.isEmpty),
+                      (!addressLabels.regionRequired || !stateTrimmed.isEmpty) else {
+#if DEBUG
+                    print("[InternationalAddressDebug] addressValidation=failed")
+#endif
+                    return false
+                }
+#if DEBUG
+                print("[InternationalAddressDebug] addressValidation=passed")
+#endif
+                let addressLine2Trimmed = addressLine2.trimmingCharacters(in: .whitespacesAndNewlines)
+                let fallbackFormattedAddress = BusinessVenueAddressFormatter.formattedAddress(
+                    line1: streetTrimmed,
+                    line2: addressLine2Trimmed,
+                    locality: cityTrimmed,
+                    region: stateTrimmed,
+                    postalCode: zipCode,
+                    countryCode: countryCode
+                )
+                let geocodeQuery = BusinessVenueAddressFormatter.geocodeQuery(
+                    line1: streetTrimmed,
+                    line2: addressLine2Trimmed,
+                    locality: cityTrimmed,
+                    region: stateTrimmed,
+                    postalCode: zipCode,
+                    countryCode: countryCode
+                )
 
-                print("GEOCODING ADDRESS:", fullAddress)
+                print("GEOCODING ADDRESS:", geocodeQuery)
 
-                let coordinate = await geocodeAddress(fullAddress)
+                let geocodeResult = await geocodeBusinessVenueAddress(
+                    geocodeQuery,
+                    fallbackFormattedAddress: fallbackFormattedAddress
+                )
+                let coordinate = geocodeResult?.coordinate
+                let formattedAddress = geocodeResult?.formattedAddress ?? fallbackFormattedAddress
+#if DEBUG
+                print("[InternationalAddressDebug] formattedAddress=\(formattedAddress)")
+                print("[InternationalAddressDebug] latitude=\(coordinate?.latitude.description ?? "nil")")
+                print("[InternationalAddressDebug] longitude=\(coordinate?.longitude.description ?? "nil")")
+#endif
 
                 let profile = VenueProfileInsert(
                     owner_email: ownerEmailRow,
                     venue_name: ownerVenueName,
-                    address: streetAddress,
-                    city: city,
-                    state: state,
+                    address: streetTrimmed,
+                    address_line1: streetTrimmed,
+                    address_line2: addressLine2Trimmed.isEmpty ? nil : addressLine2Trimmed,
+                    city: cityTrimmed,
+                    state: stateTrimmed,
                     zip_code: zipCode,
+                    region: stateTrimmed.isEmpty ? nil : stateTrimmed,
+                    postal_code: zipCode.isEmpty ? nil : zipCode,
+                    country: countryCode,
+                    formatted_address: formattedAddress.isEmpty ? nil : formattedAddress,
                     phone: phoneForSave,
                     website: ownerVenueWebsite,
                     description: ownerVenueDescription,
@@ -2445,10 +2591,16 @@ extension MapViewModel {
                     let patch = VenueProfileUpdate(
                         owner_email: ownerEmailRow,
                         venue_name: ownerVenueName,
-                        address: streetAddress,
-                        city: city,
-                        state: state,
+                        address: streetTrimmed,
+                        address_line1: streetTrimmed,
+                        address_line2: addressLine2Trimmed.isEmpty ? nil : addressLine2Trimmed,
+                        city: cityTrimmed,
+                        state: stateTrimmed,
                         zip_code: zipCode,
+                        region: stateTrimmed.isEmpty ? nil : stateTrimmed,
+                        postal_code: zipCode.isEmpty ? nil : zipCode,
+                        country: countryCode,
+                        formatted_address: formattedAddress.isEmpty ? nil : formattedAddress,
                         phone: phoneForSave,
                         website: ownerVenueWebsite,
                         description: ownerVenueDescription,
@@ -2595,7 +2747,9 @@ extension MapViewModel {
         externalGameID: String? = nil,
         externalSource: String? = nil,
         importedFromAPI: Bool = false,
-        externalLeague: String? = nil
+        externalLeague: String? = nil,
+        homeTeam: String? = nil,
+        awayTeam: String? = nil
     ) {
         Task {
             _ = await saveVenueGameListingAsync(
@@ -2619,7 +2773,9 @@ extension MapViewModel {
                 externalGameID: externalGameID,
                 externalSource: externalSource,
                 importedFromAPI: importedFromAPI,
-                externalLeague: externalLeague
+                externalLeague: externalLeague,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam
             )
         }
     }
@@ -2655,7 +2811,9 @@ extension MapViewModel {
         externalGameID: String? = nil,
         externalSource: String? = nil,
         importedFromAPI: Bool = false,
-        externalLeague: String? = nil
+        externalLeague: String? = nil,
+        homeTeam: String? = nil,
+        awayTeam: String? = nil
     ) async -> Result<VenueEventRow, Error> {
         let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerRowEmail) else {
@@ -2684,6 +2842,8 @@ extension MapViewModel {
         let trimmedExternalGameID = externalGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedExternalSource = externalSource?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedExternalLeague = externalLeague?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedHomeTeam = homeTeam?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedAwayTeam = awayTeam?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         do {
             let dateFormatter = DateFormatter()
@@ -2705,6 +2865,8 @@ extension MapViewModel {
                 venue_name: ownerVenueName,
                 event_title: gameTitle,
                 sport: sport,
+                home_team: trimmedHomeTeam.isEmpty ? nil : trimmedHomeTeam,
+                away_team: trimmedAwayTeam.isEmpty ? nil : trimmedAwayTeam,
                 external_league: trimmedExternalLeague.isEmpty ? nil : trimmedExternalLeague,
                 event_date: dateFormatter.string(from: gameDate),
                 event_time: timeFormatter.string(from: gameStartTime),

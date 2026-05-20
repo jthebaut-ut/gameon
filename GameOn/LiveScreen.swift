@@ -2274,6 +2274,7 @@ struct LiveScreen: View {
                 sportsSupported: supportedSports,
                 hasGamesScheduledToday: !selectedDayGames.isEmpty,
                 venueEventRows: viewModel.venueEventRows,
+                venuePredictionSummaries: viewModel.venueEventPredictionSummaries,
                 isBusinessConfirmed: venueIsBusinessConfirmed(bar: selectedBar, claimStatus: claimStatus),
                 onDirections: { viewModel.openDirections(to: selectedBar) },
                 onCall: { viewModel.callVenue(selectedBar) },
@@ -2311,6 +2312,12 @@ struct LiveScreen: View {
                 locksScheduledGameDetailsForGuest: viewModel.isGuestDiscoverMode,
                 onGuestGameLoginCTA: {
                     viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                onLoadVenuePredictionSummaries: { ids in
+                    await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
+                },
+                onRefreshVenuePredictionSummary: { id in
+                    await viewModel.refreshVenueEventPredictionSummary(eventID: id)
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),

@@ -15,14 +15,14 @@ private let discoverVenueBusinessEmbedSelectSuffix =
     ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 
 private let discoverVenueRowSelectColumns =
-    "id,owner_email,business_id,venue_identity_key,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features," +
+    "id,owner_email,business_id,venue_identity_key,admin_status,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features," +
     "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
     "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
     discoverVenueBusinessEmbedSelectSuffix
 
 private enum DiscoverVenueFastPinSelect {
     nonisolated static let columns =
-        "id,venue_name,address,city,state,zip_code,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key" +
+        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key" +
         ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 
@@ -324,10 +324,14 @@ private extension MapViewModel {
             guard row.latitude == nil || row.longitude == nil else { continue }
             let rowOwner = OwnerBusinessEmail.normalized(row.owner_email ?? "")
             guard rowOwner == owner || vid == ownerVenueDatabaseId else { continue }
-            let addr = [row.address, row.city, row.state, row.zip_code]
-                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: ", ")
+            let addr = BusinessVenueAddressFormatter.geocodeQuery(
+                line1: row.address ?? "",
+                line2: row.address_line2 ?? "",
+                locality: row.city ?? "",
+                region: row.state ?? "",
+                postalCode: row.zip_code ?? "",
+                countryCode: row.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+            )
             guard !addr.isEmpty else { continue }
             guard let coord = await geocodeAddress(addr) else { continue }
             do {
@@ -1518,7 +1522,7 @@ extension MapViewModel {
 
         let t0 = Date()
         var byID: [UUID: VenueEventRow] = [:]
-        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,admin_status,scheduled_start_at,cleanup_delay_hours,purge_after_at"
+        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,admin_status,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api"
         let chunkSize = 80
 
         func mergeRows(_ rows: [VenueEventRow]) {
@@ -2312,7 +2316,7 @@ extension MapViewModel {
 
     private static func discoverVenueTextOrFilter(forSearchToken token: String) -> String {
         let like = postgrestIlikeTokenForOrFilter(token)
-        return "venue_name.ilike.\(like),address.ilike.\(like),city.ilike.\(like),zip_code.ilike.\(like)"
+        return "venue_name.ilike.\(like),address.ilike.\(like),formatted_address.ilike.\(like),city.ilike.\(like),zip_code.ilike.\(like),postal_code.ilike.\(like),country.ilike.\(like)"
     }
 
     private func fetchVenueRowsForDiscoverTextSearch(

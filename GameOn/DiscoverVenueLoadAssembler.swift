@@ -161,15 +161,7 @@ enum DiscoverVenueLoadAssembler {
             return BarVenue(
                 id: row.id ?? UUID(),
                 name: name,
-                address: [
-                    row.address,
-                    row.city,
-                    row.state,
-                    row.zip_code
-                ]
-                .compactMap { $0 }
-                .filter { !$0.isEmpty }
-                .joined(separator: ", "),
+                address: Self.displayAddress(for: row),
                 phone: row.phone ?? "",
                 primarySport: resolvedPrimarySport(from: supportedSports),
                 distance: "",
@@ -225,6 +217,21 @@ enum DiscoverVenueLoadAssembler {
                 country: "USA"
             )
         }
+    }
+
+    nonisolated private static func displayAddress(for row: VenueRow) -> String {
+        let formatted = row.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !formatted.isEmpty { return formatted }
+
+        return [
+            row.address,
+            row.city,
+            row.state,
+            row.zip_code
+        ]
+        .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
     }
 
     nonisolated static func sportsEventsFromVenueEventRows(_ rows: [VenueEventRow], formatter: DateFormatter) -> [SportsEvent] {

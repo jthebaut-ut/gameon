@@ -10,10 +10,10 @@ extension MapViewModel {
     private static let interestedOnlyVenueEventDefaultsKey = "gameon.following.interestedOnlyVenueEventIDs"
 
     private static let venueSelectColumnsFollowing =
-        "id,owner_email,business_id,admin_status,venue_name,address,city,state,zip_code,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)"
+        "id,owner_email,business_id,admin_status,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)"
 
     private static let venueEventSelectColumnsFollowing =
-        "id,venue_id,owner_email,venue_name,event_title,sport,event_date,event_time,scheduled_start_at,cleanup_delay_hours,purge_after_at"
+        "id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api"
 
     private static let interestChunkSize = 90
     private static let followingTabGlobalRefreshFreshnessInterval: TimeInterval = 60

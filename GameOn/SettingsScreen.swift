@@ -87,6 +87,7 @@ private enum SettingsPremiumChrome {
 /// presentation exists at a time (avoids SwiftUI reusing or stacking multiple ``VenueOwnerDashboardView`` hierarchies
 /// across the previous three independent ``.sheet(isPresented:)`` booleans).
 private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
+    case businessDashboard
     case manageVenue
     case manageGames
     case statistics
@@ -95,6 +96,8 @@ private enum VenueOwnerDashboardSheetRoute: String, Identifiable {
 
     var entryPoint: VenueOwnerDashboardEntryPoint {
         switch self {
+        case .businessDashboard:
+            return .overviewDashboard
         case .manageVenue:
             return .profileEditor
         case .manageGames:
@@ -150,6 +153,7 @@ struct SettingsScreen: View {
     @State private var showReportedCommentsSheet = false
     @State private var showVenueOwnerPasswordResetSheet = false
     @State private var showAddLocationSheet = false
+    @State private var inlineBusinessDashboardGames: [VenueEventRow] = []
     @State private var addLocationSubmitBanner: String?
     /// Holds Add-location draft fields across ``MapViewModel`` publishes (e.g. after photo upload) so the sheet does not reset.
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
@@ -254,7 +258,15 @@ struct SettingsScreen: View {
                     }
                 }
 
-                if viewModel.isVenueOwnerLoggedIn || !viewModel.isLoggedIn {
+                if shouldShowInlineBusinessDashboard {
+                    Section {
+                        settingsInlineBusinessDashboard
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                            .listRowBackground(Color.clear)
+                    }
+                }
+
+                if !shouldShowInlineBusinessDashboard && (viewModel.isVenueOwnerLoggedIn || !viewModel.isLoggedIn) {
                     Section {
                         settingsSectionCard {
                             let hasArchivedBusinessAccount = viewModel.hasArchivedBusinessAccountForOwner()
@@ -552,7 +564,12 @@ struct SettingsScreen: View {
                 showAddLocationSheet = false
             }
         }
+        .onChange(of: venueOwnerDashboardSheet) { _, newRoute in
+            print("[BusinessDashboardRouteDebug] sheetRoute=\(String(describing: newRoute))")
+        }
         .sheet(item: $venueOwnerDashboardSheet) { route in
+            let _ = print("[BusinessDashboardRouteDebug] sheetRoute=\(route.rawValue)")
+            let _ = print("[BusinessDashboardRouteDebug] entryPoint=\(String(describing: route.entryPoint))")
             VenueOwnerDashboardView(viewModel: viewModel, entryPoint: route.entryPoint)
                 .id(route.id)
                 .presentationDetents([.large])
@@ -1490,6 +1507,257 @@ struct SettingsScreen: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var shouldShowInlineBusinessDashboard: Bool {
+        viewModel.isVenueOwnerLoggedIn
+            && !viewModel.isVenueOwnerBusinessDataLoading
+            && viewModel.hasBusinessAccountForOwner()
+            && !viewModel.hasArchivedBusinessAccountForOwner()
+            && !viewModel.managedVenuesForOwner().isEmpty
+    }
+
+    private var settingsInlineBusinessDashboard: some View {
+        BusinessVenueDashboardOverviewView(
+            data: settingsBusinessDashboardData,
+            onNotifications: {
+                showReportedCommentsSheet = true
+            },
+            onMenu: {
+                venueOwnerDashboardSheet = .manageVenue
+            },
+            onAddGame: {
+                venueOwnerDashboardSheet = .manageVenue
+            },
+            onTonightGames: {
+                venueOwnerDashboardSheet = .manageGames
+            },
+            onPredictions: {
+                venueOwnerDashboardSheet = .statistics
+            },
+            onAnalytics: {
+                venueOwnerDashboardSheet = .statistics
+            },
+            onCommentsReports: {
+                showReportedCommentsSheet = true
+            },
+            onViewAllGames: {
+                venueOwnerDashboardSheet = .manageGames
+            }
+        )
+        .onAppear {
+            logSettingsInlineBusinessDashboardDebug()
+        }
+        .task(id: settingsInlineBusinessDashboardLoadToken) {
+            await refreshSettingsInlineBusinessDashboard()
+        }
+    }
+
+    private var settingsInlineBusinessDashboardLoadToken: String {
+        if let venueID = viewModel.ownerVenueDatabaseId {
+            return venueID.uuidString
+        }
+        return OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+    }
+
+    private var settingsBusinessDashboardData: BusinessVenueDashboardData {
+        BusinessVenueDashboardData(
+            venueName: settingsBusinessDashboardVenueName,
+            locationLine: settingsBusinessDashboardLocationLine,
+            isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
+            managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
+            venuePhotoURL: settingsBusinessDashboardVenuePhotoURL,
+            venuePhotoThumbnailURL: settingsBusinessDashboardVenuePhotoThumbnailURL,
+            fansGoing: settingsBusinessDashboardFansGoing,
+            activeChats: settingsBusinessDashboardActiveChats,
+            predictions: settingsBusinessDashboardPredictions,
+            atmosphereRating: settingsBusinessDashboardAtmosphereRating,
+            games: settingsBusinessDashboardGameItems
+        )
+    }
+
+    private var settingsBusinessDashboardSelectedVenue: VenueProfileRow? {
+        let managedVenues = viewModel.managedVenuesForOwner()
+        if let venueID = viewModel.ownerVenueDatabaseId,
+           let selected = managedVenues.first(where: { $0.id == venueID }) {
+            return selected
+        }
+        return managedVenues.first
+    }
+
+    private var settingsBusinessDashboardVenueName: String {
+        let selectedName = settingsBusinessDashboardSelectedVenue?.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !selectedName.isEmpty { return selectedName }
+
+        let ownerName = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return ownerName.isEmpty ? "Your venue" : ownerName
+    }
+
+    private var settingsBusinessDashboardLocationLine: String {
+        let selectedCity = settingsBusinessDashboardSelectedVenue?.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let selectedState = settingsBusinessDashboardSelectedVenue?.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let ownerCity = viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ownerState = viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
+        let city = selectedCity.isEmpty ? ownerCity : selectedCity
+        let state = selectedState.isEmpty ? ownerState : selectedState
+        let parts = [city, state].filter { !$0.isEmpty }
+        return parts.isEmpty ? "Venue dashboard" : parts.joined(separator: ", ")
+    }
+
+    private var settingsBusinessDashboardVenuePhotoURL: String? {
+        let selected = settingsBusinessDashboardSelectedVenue?.cover_photo_url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !selected.isEmpty { return selected }
+
+        let owner = viewModel.venueCoverPhotoURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return owner.isEmpty ? nil : owner
+    }
+
+    private var settingsBusinessDashboardVenuePhotoThumbnailURL: String? {
+        let selected = settingsBusinessDashboardSelectedVenue?.cover_photo_thumbnail_url?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !selected.isEmpty { return selected }
+
+        let owner = viewModel.venueCoverPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return owner.isEmpty ? nil : owner
+    }
+
+    private var settingsBusinessDashboardEventIDs: [UUID] {
+        inlineBusinessDashboardGames.compactMap(\.id)
+    }
+
+    private var settingsBusinessDashboardFansGoing: Int {
+        settingsBusinessDashboardEventIDs.reduce(0) { $0 + viewModel.interestCountForVenueEvent($1) }
+    }
+
+    private var settingsBusinessDashboardActiveChats: Int {
+        settingsBusinessDashboardEventIDs.reduce(0) { total, id in
+            total + (viewModel.fanUpdatesStore.venueEventComments[id]?.count ?? 0)
+        }
+    }
+
+    private var settingsBusinessDashboardPredictions: Int {
+        settingsBusinessDashboardEventIDs.reduce(0) { total, id in
+            total + (viewModel.venueEventPredictionSummaries[id]?.totalCount ?? 0)
+        }
+    }
+
+    private var settingsBusinessDashboardTodayGamesCount: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return inlineBusinessDashboardGames.reduce(0) { total, row in
+            guard let day = settingsBusinessDashboardGameDay(row),
+                  calendar.isDate(day, inSameDayAs: today) else {
+                return total
+            }
+            return total + 1
+        }
+    }
+
+    private var settingsBusinessDashboardAtmosphereRating: String {
+        guard let venueID = viewModel.ownerVenueDatabaseId,
+              let bar = viewModel.bars.first(where: { $0.id == venueID }),
+              viewModel.reviewCountDisplay(for: bar) > 0,
+              let rating = viewModel.mergedDisplayRating(for: bar) else {
+            return "New"
+        }
+        return String(format: "%.1f", rating)
+    }
+
+    private var settingsBusinessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayRows = inlineBusinessDashboardGames.filter { row in
+            guard let day = settingsBusinessDashboardGameDay(row) else { return false }
+            return calendar.isDate(day, inSameDayAs: today)
+        }
+        let sourceRows = todayRows.isEmpty ? Array(inlineBusinessDashboardGames.prefix(3)) : todayRows
+
+        return sourceRows.compactMap { row in
+            guard let id = row.id else { return nil }
+            let score = viewModel.venueOwnerEngagementScore(venueEventID: id)
+            let energy = settingsBusinessDashboardEnergy(score: score)
+            return BusinessVenueDashboardGameItem(
+                id: id,
+                title: settingsBusinessDashboardGameTitle(row),
+                subtitle: settingsBusinessDashboardGameSubtitle(row),
+                timeText: settingsBusinessDashboardGameTimeText(row),
+                sportIconName: viewModel.iconForSport(row.sport ?? ""),
+                goingCount: viewModel.interestCountForVenueEvent(id),
+                energyLabel: energy.label,
+                energyTint: energy.tint
+            )
+        }
+    }
+
+    private func settingsBusinessDashboardGameTitle(_ row: VenueEventRow) -> String {
+        let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return title.isEmpty ? "Game" : title
+    }
+
+    private func settingsBusinessDashboardGameSubtitle(_ row: VenueEventRow) -> String {
+        let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let league, !league.isEmpty { return league }
+
+        let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return sport.isEmpty ? "Venue game" : sport
+    }
+
+    private func settingsBusinessDashboardGameTimeText(_ row: VenueEventRow) -> String {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start.formatted(date: .omitted, time: .shortened)
+        }
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return time.isEmpty ? "Time TBD" : time
+    }
+
+    private func settingsBusinessDashboardGameDay(_ row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start
+        }
+
+        let raw = row.event_date?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !raw.isEmpty else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        return formatter.date(from: raw)
+    }
+
+    private func settingsBusinessDashboardEnergy(score: Int) -> (label: String, tint: Color) {
+        if score >= 30 { return ("High energy", FGColor.accentGreen) }
+        if score >= 8 { return ("Building", FGColor.accentYellow) }
+        return ("Normal", FGColor.accentBlue)
+    }
+
+    private func refreshSettingsInlineBusinessDashboard() async {
+        guard shouldShowInlineBusinessDashboard else { return }
+        let rows = await viewModel.loadMyVenueScheduledGames()
+        let ids = rows.compactMap(\.id)
+
+        await withTaskGroup(of: Void.self) { group in
+            for id in ids {
+                group.addTask {
+                    await viewModel.loadComments(for: id)
+                    await viewModel.loadVibes(for: id)
+                }
+            }
+        }
+
+        await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
+        await MainActor.run {
+            inlineBusinessDashboardGames = rows
+            logSettingsInlineBusinessDashboardDebug()
+        }
+    }
+
+    private func logSettingsInlineBusinessDashboardDebug() {
+#if DEBUG
+        print("[BusinessDashboardDebug] inlineOverviewRendered")
+        print("[BusinessDashboardDebug] venueLoaded=\(!settingsBusinessDashboardVenueName.isEmpty)")
+        print("[BusinessDashboardDebug] gamesLoaded=\(inlineBusinessDashboardGames.count)")
+        print("[BusinessDashboardDebug] crowdMetrics=\(settingsBusinessDashboardFansGoing)")
+        print("[BusinessDashboardDebug] predictionsLoaded=\(settingsBusinessDashboardPredictions)")
+#endif
+    }
+
     private func settingsVenueClaimApprovedForStatusRow() -> Bool {
         viewModel.venueOwnerToolsUnlockedForUI()
     }
@@ -1752,7 +2020,8 @@ struct SettingsScreen: View {
     private func settingsPendingClaimCityStateLine(_ claim: VenueClaimPendingSettingsRow) -> String? {
         let city = claim.venue_city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let st = claim.venue_state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let line = [city, st].filter { !$0.isEmpty }.joined(separator: ", ")
+        let country = claim.venue_country.map(BusinessLocationCountryPolicy.countryName(for:)) ?? ""
+        let line = [city, st, country].filter { !$0.isEmpty }.joined(separator: ", ")
         return line.isEmpty ? nil : line
     }
 
@@ -3756,8 +4025,9 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupBusinessName = ""
     @State private var signupLocationName = ""
     @State private var signupStreet = ""
+    @State private var signupAddressLine2 = ""
     @State private var signupCity = ""
-    @State private var signupState = "UT"
+    @State private var signupState = ""
     @State private var signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
     @State private var signupZip = ""
     @State private var signupPhoneDialISO = BusinessPhoneFields.defaultISO
@@ -3788,6 +4058,7 @@ private struct SettingsVenueOwnerCard: View {
             businessName: signupBusinessName,
             locationName: signupLocationName,
             streetAddress: signupStreet,
+            country: signupCountry,
             city: signupCity,
             state: signupState,
             zip: signupZip,
@@ -3806,6 +4077,10 @@ private struct SettingsVenueOwnerCard: View {
 
     private var signupPrimarySubmitDisabled: Bool {
         isSignupSubmitting || (showVenueRegisterMode && businessSignupMissingRequirementMessage != nil)
+    }
+
+    private var signupAddressLabels: BusinessLocationAddressLabels {
+        BusinessLocationCountryPolicy.labels(for: signupCountry)
     }
 
 #if DEBUG
@@ -3856,16 +4131,21 @@ private struct SettingsVenueOwnerCard: View {
                     .fanGeoInputFieldStyle()
 
                 TextField("Street address", text: $signupStreet)
+                    .textContentType(.streetAddressLine1)
                     .fanGeoInputFieldStyle()
 
-                TextField("City", text: $signupCity)
+                TextField("Address line 2 (optional)", text: $signupAddressLine2)
+                    .textContentType(.streetAddressLine2)
+                    .fanGeoInputFieldStyle()
+
+                TextField(signupAddressLabels.locality, text: $signupCity)
                     .textInputAutocapitalization(.words)
                     .fanGeoInputFieldStyle()
 
                 HStack(alignment: .center, spacing: FGSpacing.md) {
-                    BusinessLocationUSStatePicker(title: "State", stateCode: $signupState)
+                    BusinessLocationRegionField(countryCode: signupCountry, labels: signupAddressLabels, region: $signupState)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    TextField("ZIP", text: $signupZip)
+                    TextField(signupAddressLabels.postalCode, text: $signupZip)
                         .textInputAutocapitalization(.never)
                         .frame(minWidth: 88, maxWidth: 120, alignment: .leading)
                 }
@@ -4000,6 +4280,7 @@ private struct SettingsVenueOwnerCard: View {
                             let form = AddLocationClaimForm(
                                 venueName: signupLocationName,
                                 address: signupStreet,
+                                addressLine2: signupAddressLine2,
                                 city: signupCity,
                                 state: signupState,
                                 country: signupCountry,
@@ -4113,8 +4394,9 @@ private struct SettingsVenueOwnerCard: View {
                 signupBusinessName = ""
                 signupLocationName = ""
                 signupStreet = ""
+                signupAddressLine2 = ""
                 signupCity = ""
-                signupState = "UT"
+                signupState = ""
                 signupCountry = BusinessLocationCountryPolicy.defaultCountryCode
                 signupZip = ""
                 signupPhoneDialISO = BusinessPhoneFields.defaultISO
@@ -4135,6 +4417,12 @@ private struct SettingsVenueOwnerCard: View {
                 signupCoverData = nil
                 signupMenuData = nil
             }
+        }
+        .onChange(of: signupCountry) { _, newCountry in
+            BusinessLocationCountryPolicy.clearDefaultRegionIfNeeded(&signupState, whenCountryChangesTo: newCountry)
+#if DEBUG
+            print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
+#endif
         }
         .onChange(of: signupCoverPicker) { _, item in
             Task {

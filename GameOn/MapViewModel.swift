@@ -103,9 +103,11 @@ final class MapViewModel: ObservableObject {
     var legacyOwnerVenuesForEmailFallback: [VenueProfileRow] = []
     @Published var ownerVenueName: String = ""
     @Published var ownerVenueAddress: String = ""
+    @Published var ownerVenueAddressLine2: String = ""
     @Published var ownerVenueCity: String = ""
-    @Published var ownerVenueState: String = "UT"
+    @Published var ownerVenueState: String = ""
     @Published var ownerVenueZipCode: String = ""
+    @Published var ownerVenueCountry: String = BusinessLocationCountryPolicy.defaultCountryCode
     /// ITU dial country (ISO 3166-1 alpha-2) for ``ownerVenuePhone`` national portion; combined with local digits on save.
     @Published var ownerVenuePhoneDialISO: String = BusinessPhoneFields.defaultISO
     @Published var ownerVenuePhone: String = ""
@@ -167,6 +169,7 @@ final class MapViewModel: ObservableObject {
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventInterestCounts")
         }
     }
+    @Published var venueEventPredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
     let fanUpdatesStore = FanUpdatesRealtimeStore()
 
     var venueEventComments: [UUID: [VenueEventCommentRow]] {

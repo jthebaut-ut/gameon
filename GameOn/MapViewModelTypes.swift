@@ -74,6 +74,8 @@ struct VenueEventInsert: Encodable {
     let venue_name: String
     let event_title: String
     let sport: String
+    let home_team: String?
+    let away_team: String?
     let external_league: String?
     let event_date: String
     let event_time: String
@@ -266,9 +268,15 @@ struct VenueProfileInsert: Encodable {
     let owner_email: String
     let venue_name: String
     let address: String
+    let address_line1: String
+    let address_line2: String?
     let city: String
     let state: String
     let zip_code: String
+    let region: String?
+    let postal_code: String?
+    let country: String
+    let formatted_address: String?
     let phone: String
     let website: String
     let description: String
@@ -292,9 +300,15 @@ struct VenueProfileUpdate: Encodable {
     let owner_email: String
     let venue_name: String
     let address: String
+    let address_line1: String
+    let address_line2: String?
     let city: String
     let state: String
     let zip_code: String
+    let region: String?
+    let postal_code: String?
+    let country: String
+    let formatted_address: String?
     let phone: String
     let website: String
     let description: String
@@ -348,9 +362,15 @@ struct VenueProfileRow: Decodable {
     let admin_status: String?
     let venue_name: String?
     let address: String?
+    let address_line1: String?
+    let address_line2: String?
     let city: String?
     let state: String?
     let zip_code: String?
+    let region: String?
+    let postal_code: String?
+    let country: String?
+    let formatted_address: String?
     let phone: String?
     let website: String?
     let description: String?
@@ -387,9 +407,15 @@ struct VenueRow: Decodable {
     let admin_status: String?
     let venue_name: String?
     let address: String?
+    let address_line1: String?
+    let address_line2: String?
     let city: String?
     let state: String?
     let zip_code: String?
+    let region: String?
+    let postal_code: String?
+    let country: String?
+    let formatted_address: String?
     let phone: String?
     let website: String?
     let description: String?
@@ -473,9 +499,9 @@ enum DiscoverMapDisplayMode: String, CaseIterable, Equatable {
 struct AddLocationClaimForm: Sendable {
     let venueName: String
     let address: String
+    let addressLine2: String
     let city: String
     let state: String
-    /// Stored as 2-letter US abbreviation (e.g. `UT`, `CA`).
     let country: String
     let zip: String
     let phone: String
@@ -521,10 +547,14 @@ struct VenueClaimInsert: Encodable {
     let venue_id: UUID?
     let venue_name: String
     let venue_address: String
+    let venue_address_line2: String?
     let venue_city: String
     let venue_state: String
     let venue_country: String
     let venue_zip_code: String
+    let venue_formatted_address: String?
+    let venue_latitude: Double?
+    let venue_longitude: Double?
     let venue_phone: String
     let venue_website: String
     let venue_description: String
@@ -550,10 +580,14 @@ nonisolated struct VenueClaimAdminNotifyPayload: Encodable {
     let owner_email: String
     let venue_name: String
     let venue_address: String
+    let venue_address_line2: String?
     let venue_city: String
     let venue_state: String
     let venue_country: String
     let venue_zip_code: String
+    let venue_formatted_address: String?
+    let venue_latitude: Double?
+    let venue_longitude: Double?
     let venue_phone: String
     let venue_website: String
     let venue_description: String
@@ -581,8 +615,10 @@ struct VenueClaimPendingSettingsRow: Decodable, Identifiable, Equatable {
     let venue_id: UUID?
     let venue_name: String?
     let venue_address: String?
+    let venue_address_line2: String?
     let venue_city: String?
     let venue_state: String?
+    let venue_country: String?
     let approval_status: String?
     let rejection_acknowledged_at: String?
 }

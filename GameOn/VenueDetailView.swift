@@ -5,7 +5,9 @@ struct VenueDetailView: View {
     @Environment(\.openURL) private var openURL
     @State private var showClaimConfirmation = false
     @State private var claimActionError: String?
+    @State private var predictionClosedMessage: String?
     @State private var contentRevealPhase = 1
+    @State private var predictionSheet: VenueDetailPredictionSheetContext?
 
     let bar: BarVenue
     let selectedEvent: SportsEvent?
@@ -21,6 +23,7 @@ struct VenueDetailView: View {
     var sportsSupported: [String] = []
     var hasGamesScheduledToday: Bool = true
     var venueEventRows: [VenueEventRow] = []
+    var venuePredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
     var isBusinessConfirmed: Bool = false
     let onDirections: () -> Void
     let onCall: () -> Void
@@ -42,6 +45,8 @@ struct VenueDetailView: View {
     var locksScheduledGameDetailsForGuest: Bool = false
     /// Guest Discover: same fan auth presentation as other Discover CTAs.
     var onGuestGameLoginCTA: (() -> Void)? = nil
+    var onLoadVenuePredictionSummaries: (([UUID]) async -> Void)? = nil
+    var onRefreshVenuePredictionSummary: ((UUID) async -> Void)? = nil
     /// Fan Home Crowd quick toggle (venue hero).
     var showsHomeCrowdControls: Bool = false
     var isHomeCrowdVenue: Bool = false
@@ -271,6 +276,18 @@ struct VenueDetailView: View {
             VenueGameBusinessEmail.logDebug(bar: bar)
         }
         .onAppear(perform: logVenueDetailDebugState)
+        .sheet(item: $predictionSheet) { context in
+            VenueEventPredictionSheet(
+                venueEventID: context.venueEventID,
+                teams: context.teams,
+                predictionType: context.predictionType,
+                onSaved: {
+                    await onRefreshVenuePredictionSummary?(context.venueEventID)
+                }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
         .alert("Claim this venue?", isPresented: $showClaimConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Submit for Review") {
@@ -296,6 +313,19 @@ struct VenueDetailView: View {
             }
         } message: {
             Text(claimActionError ?? "")
+        }
+        .alert(
+            "FanGeo",
+            isPresented: Binding(
+                get: { predictionClosedMessage != nil },
+                set: { if !$0 { predictionClosedMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                predictionClosedMessage = nil
+            }
+        } message: {
+            Text(predictionClosedMessage ?? "")
         }
     }
 
@@ -733,6 +763,13 @@ struct VenueDetailView: View {
                 }
             }
         }
+        .task(id: predictionLoadToken(for: games)) {
+            let ids = games.compactMap { game -> UUID? in
+                guard game.supportsPredictions else { return nil }
+                return game.venueEventID
+            }
+            await onLoadVenuePredictionSummaries?(ids)
+        }
     }
 
     private var upcomingVenueGameItems: [VenueDetailGameItem] {
@@ -755,10 +792,13 @@ struct VenueDetailView: View {
 
             return VenueDetailGameItem(
                 id: key,
+                venueEventID: row.id,
                 title: title,
                 sport: sport,
+                teams: predictionTeams(for: row),
                 dateTimeText: venueGameDateTimeText(start: start, day: day, timeText: row.event_time),
                 sortDate: start ?? day ?? Date.distantFuture,
+                startsAt: start,
                 status: venueGameStatus(start: start, now: now)
             )
         }
@@ -775,10 +815,13 @@ struct VenueDetailView: View {
                 items.append(
                     VenueDetailGameItem(
                         id: key,
+                        venueEventID: nil,
                         title: selectedEvent.title,
                         sport: selectedEvent.sport,
+                        teams: nil,
                         dateTimeText: "\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)",
                         sortDate: selectedEvent.date,
+                        startsAt: selectedEvent.date,
                         status: .confirmed
                     )
                 )
@@ -792,29 +835,46 @@ struct VenueDetailView: View {
     }
 
     private func gameRow(_ game: VenueDetailGameItem) -> some View {
-        HStack(alignment: .top, spacing: FGSpacing.md) {
-            Image(systemName: iconForSport(game.sport))
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(FGColor.accentBlue)
-                .frame(width: 24)
+        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+            HStack(alignment: .top, spacing: FGSpacing.md) {
+                Image(systemName: iconForSport(game.sport))
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                Text(game.title)
-                    .font(FGTypography.body.weight(.semibold))
-                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                    Text(game.title)
+                        .font(FGTypography.body.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
 
-                Text(game.dateTimeText)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text(game.dateTimeText)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+
+                Spacer(minLength: FGSpacing.sm)
+
+                if let status = game.status {
+                    FGStatusPill(title: status.title, kind: .custom(tint: status.tint))
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
             }
 
-            Spacer(minLength: FGSpacing.sm)
-
-            if let status = game.status {
-                FGStatusPill(title: status.title, kind: .custom(tint: status.tint))
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
+            if game.supportsPredictions, let eventID = game.venueEventID, let teams = game.teams {
+                VenueEventPredictionModule(
+                    venueEventID: eventID,
+                    teams: teams,
+                    summary: venuePredictionSummaries[eventID],
+                    isLocked: game.predictionsLocked,
+                    onOpen: { type in
+                        openPredictionSheet(eventID: eventID, teams: teams, type: type, isLocked: game.predictionsLocked)
+                    },
+                    onLockedTap: {
+                        predictionClosedMessage = "Predictions closed for this game."
+                    }
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -917,6 +977,45 @@ struct VenueDetailView: View {
     private func trimmedNonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func predictionTeams(for row: VenueEventRow) -> VenueEventPredictionTeams? {
+        guard let home = trimmedNonEmpty(row.home_team),
+              let away = trimmedNonEmpty(row.away_team) else {
+            return nil
+        }
+        return VenueEventPredictionTeams(home: home, away: away)
+    }
+
+    private func predictionLoadToken(for games: [VenueDetailGameItem]) -> String {
+        games
+            .compactMap { game -> String? in
+                guard game.supportsPredictions, let id = game.venueEventID else { return nil }
+                return id.uuidString
+            }
+            .sorted()
+            .joined(separator: "|")
+    }
+
+    private func openPredictionSheet(
+        eventID: UUID,
+        teams: VenueEventPredictionTeams,
+        type: VenueEventPredictionType,
+        isLocked: Bool
+    ) {
+        guard !isLocked else {
+            predictionClosedMessage = "Predictions closed for this game."
+            return
+        }
+        guard showsFanOnlyActionButtons else {
+            onFanFeatureBlocked?("venuePrediction")
+            return
+        }
+        predictionSheet = VenueDetailPredictionSheetContext(
+            venueEventID: eventID,
+            teams: teams,
+            predictionType: type
+        )
     }
 
     private func compactHeroBadge(_ title: String, tint: Color) -> some View {
@@ -1119,11 +1218,50 @@ struct VenueDetailView: View {
 
 private struct VenueDetailGameItem: Identifiable {
     let id: String
+    let venueEventID: UUID?
     let title: String
     let sport: String
+    let teams: VenueEventPredictionTeams?
     let dateTimeText: String
     let sortDate: Date
+    let startsAt: Date?
     let status: VenueDetailGameStatus?
+
+    var predictionsLocked: Bool {
+        guard let startsAt else { return false }
+        return Date() > startsAt.addingTimeInterval(10 * 60)
+    }
+
+    var supportsPredictions: Bool {
+        guard venueEventID != nil, teams != nil else { return false }
+        return Self.supportedPredictionSports.contains(Self.normalizedSport(sport))
+    }
+
+    private static let supportedPredictionSports: Set<String> = [
+        "soccer",
+        "baseball",
+        "football",
+        "hockey"
+    ]
+
+    private static func normalizedSport(_ value: String) -> String {
+        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.contains("soccer") { return "soccer" }
+        if lowered.contains("baseball") { return "baseball" }
+        if lowered.contains("football") || lowered == "nfl" || lowered == "college football" { return "football" }
+        if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
+        return lowered
+    }
+}
+
+private struct VenueDetailPredictionSheetContext: Identifiable {
+    let venueEventID: UUID
+    let teams: VenueEventPredictionTeams
+    let predictionType: VenueEventPredictionType
+
+    var id: String {
+        "\(venueEventID.uuidString.lowercased())|\(predictionType.rawValue)"
+    }
 }
 
 private enum VenueDetailGameStatus {

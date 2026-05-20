@@ -44,6 +44,8 @@ private struct VenueOwnerAnalyticsDetailSelection: Identifiable {
 enum VenueOwnerDashboardEntryPoint: Equatable {
     /// Profile, games, and analytics tabs (legacy / rare).
     case allTabs
+    /// Settings → Business Dashboard: premium venue hub overview first, with quick actions into existing flows.
+    case overviewDashboard
     /// Settings → Manage Venue: venue profile, address, photos, features only.
     case profileEditor
     /// Settings → Manage Games: add / edit / cancel venue games.
@@ -57,7 +59,7 @@ struct VenueOwnerDashboardView: View {
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
 
-    @State private var selectedSection: VenueDashboardSection = .profile
+    @State private var selectedSection: VenueDashboardSection = .overview
 
     @State private var gameTitle = ""
     @State private var gameLeague = ""
@@ -87,9 +89,11 @@ struct VenueOwnerDashboardView: View {
     @State private var totalScreens = 1
     @State private var profileSaveMessage = ""
     @State private var venueStreetAddress = ""
+    @State private var venueAddressLine2 = ""
     @State private var venueCity = ""
-    @State private var venueState = "UT"
+    @State private var venueState = ""
     @State private var venueZipCode = ""
+    @State private var venueCountry = BusinessLocationCountryPolicy.defaultCountryCode
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var selectedMenuPhoto: PhotosPickerItem?
     /// URLs used only for Bar/Menu previews (may include `?v=` / `&v=` cache bust). Supabase / viewModel URLs stay clean.
@@ -166,6 +170,8 @@ struct VenueOwnerDashboardView: View {
     @State private var importedExternalGameID: String?
     @State private var importedExternalSource: String?
     @State private var importedExternalLeague: String?
+    @State private var importedHomeTeam: String?
+    @State private var importedAwayTeam: String?
     @State private var importedFromAPI = false
 
     init(
@@ -178,6 +184,7 @@ struct VenueOwnerDashboardView: View {
     }
 
     enum VenueDashboardSection: String, CaseIterable {
+        case overview = "Overview"
         case profile = "Profile"
         case games = "Games"
         case analytics = "Analytics"
@@ -185,6 +192,7 @@ struct VenueOwnerDashboardView: View {
         /// Shown in the segmented control (may differ from ``rawValue`` for clarity).
         var pickerLabel: String {
             switch self {
+            case .overview: rawValue
             case .profile, .games: rawValue
             case .analytics: "Analytics"
             }
@@ -195,6 +203,8 @@ struct VenueOwnerDashboardView: View {
         switch entryPoint {
         case .allTabs:
             return selectedSection
+        case .overviewDashboard:
+            return .overview
         case .profileEditor:
             return .profile
         case .gamesManager:
@@ -253,7 +263,9 @@ struct VenueOwnerDashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
 
-                header
+                if effectiveSection != .overview {
+                    header
+                }
 
                 if entryPoint == .allTabs {
                     sectionPicker
@@ -261,6 +273,8 @@ struct VenueOwnerDashboardView: View {
 
                 Group {
                     switch effectiveSection {
+                    case .overview:
+                        businessDashboardOverviewSection
                     case .profile:
                         profileSection
                     case .games:
@@ -292,12 +306,21 @@ struct VenueOwnerDashboardView: View {
             clearAnalyticsGameHistoryState()
         }
         .onAppear {
+            logBusinessDashboardRouteDebug()
+            if entryPoint == .overviewDashboard {
+                selectedSection = .overview
+#if DEBUG
+                print("[BusinessDashboardRouteDebug] forcedOverview")
+#endif
+            }
             if entryPoint != .analyticsViewer {
                 Task {
                     await viewModel.stopVenueOwnerAnalyticsRealtime()
                 }
             }
             switch effectiveSection {
+            case .overview:
+                logBusinessDashboardDebug()
             case .games:
                 logVenueOwnerToolsGate(screen: "ManageGames")
             case .analytics:
@@ -308,6 +331,8 @@ struct VenueOwnerDashboardView: View {
         }
         .onChange(of: effectiveSection) { _, newSection in
             switch newSection {
+            case .overview:
+                logBusinessDashboardDebug()
             case .games:
                 logVenueOwnerToolsGate(screen: "ManageGames")
             case .analytics:
@@ -317,7 +342,7 @@ struct VenueOwnerDashboardView: View {
             }
         }
         .onChange(of: selectedSection) { _, newValue in
-            guard entryPoint == .allTabs else { return }
+            guard entryPoint == .allTabs || entryPoint == .overviewDashboard else { return }
             if newValue != .analytics {
                 Task {
                     await viewModel.stopVenueOwnerAnalyticsRealtime()
@@ -330,7 +355,9 @@ struct VenueOwnerDashboardView: View {
             }
         }
         .task(id: effectiveSection) {
-            if effectiveSection == .analytics {
+            if effectiveSection == .overview {
+                await refreshBusinessDashboardOverview()
+            } else if effectiveSection == .analytics {
                 await loadVenueAnalytics()
             }
         }
@@ -344,9 +371,11 @@ struct VenueOwnerDashboardView: View {
                     viewModel.applyVenueProfileRowToOwnerState(saved)
 
                     venueStreetAddress = saved.address ?? ""
+                    venueAddressLine2 = saved.address_line2 ?? ""
                     venueCity = saved.city ?? ""
-                    venueState = saved.state ?? "UT"
+                    venueState = saved.state ?? ""
                     venueZipCode = saved.zip_code ?? ""
+                    venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
 
                     totalScreens = saved.screen_count ?? 1
                     hasFood = saved.serves_food ?? false
@@ -365,6 +394,10 @@ struct VenueOwnerDashboardView: View {
                         if venueStreetAddress.isEmpty, !street.isEmpty {
                             venueStreetAddress = street
                         }
+                        let line2 = viewModel.ownerVenueAddressLine2.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if venueAddressLine2.isEmpty, !line2.isEmpty {
+                            venueAddressLine2 = line2
+                        }
                         let city = viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
                         if venueCity.isEmpty, !city.isEmpty {
                             venueCity = city
@@ -376,6 +409,10 @@ struct VenueOwnerDashboardView: View {
                         let st = viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
                         if !st.isEmpty {
                             venueState = st
+                        }
+                        let country = viewModel.ownerVenueCountry.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !country.isEmpty {
+                            venueCountry = country
                         }
                     }
                 }
@@ -399,6 +436,12 @@ struct VenueOwnerDashboardView: View {
                     }
                 }
             }
+        }
+        .onChange(of: venueCountry) { _, newCountry in
+            BusinessLocationCountryPolicy.clearDefaultRegionIfNeeded(&venueState, whenCountryChangesTo: newCountry)
+#if DEBUG
+            print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
+#endif
         }
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
@@ -463,8 +506,10 @@ struct VenueOwnerDashboardView: View {
             return "Manage games"
         case .analyticsViewer:
             return "Analytics"
+        case .overviewDashboard:
+            return "Business Dashboard"
         case .allTabs:
-            return "Business dashboard"
+            return effectiveSection == .overview ? "Overview" : "Business dashboard"
         }
     }
 
@@ -476,8 +521,12 @@ struct VenueOwnerDashboardView: View {
             return "Add, edit, or cancel games for the selected location."
         case .analyticsViewer:
             return "Live engagement by game for the selected location."
+        case .overviewDashboard:
+            return "Live venue energy, games, fans, and performance."
         case .allTabs:
-            return "Manage your locations, schedule, and game-day experience."
+            return effectiveSection == .overview
+                ? "Live venue energy, games, fans, and performance."
+                : "Manage your locations, schedule, and game-day experience."
         }
     }
     
@@ -511,6 +560,221 @@ struct VenueOwnerDashboardView: View {
             }
         }
     }
+
+    private var businessDashboardOverviewSection: some View {
+        BusinessVenueDashboardOverviewView(
+            data: businessDashboardData,
+            onNotifications: {
+                withAnimation(.spring()) {
+                    selectedSection = .analytics
+                }
+            },
+            onMenu: {
+                withAnimation(.spring()) {
+                    selectedSection = .profile
+                }
+            },
+            onAddGame: {
+                withAnimation(.spring()) {
+                    selectedSection = .profile
+                }
+            },
+            onTonightGames: {
+                openBusinessDashboardGames(tab: .scheduled)
+            },
+            onPredictions: {
+                openBusinessDashboardAnalytics()
+            },
+            onAnalytics: {
+                openBusinessDashboardAnalytics()
+            },
+            onCommentsReports: {
+                openBusinessDashboardAnalytics()
+            },
+            onViewAllGames: {
+                openBusinessDashboardGames(tab: .scheduled)
+            }
+        )
+        .onAppear {
+            logBusinessDashboardDebug()
+        }
+    }
+
+    private var businessDashboardData: BusinessVenueDashboardData {
+        BusinessVenueDashboardData(
+            venueName: businessDashboardVenueName,
+            locationLine: businessDashboardLocationLine,
+            isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
+            managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
+            venuePhotoURL: displayedCoverPhotoURL.isEmpty ? viewModel.venueCoverPhotoURL : displayedCoverPhotoURL,
+            venuePhotoThumbnailURL: viewModel.venueCoverPhotoThumbnailURL,
+            fansGoing: businessDashboardFansGoing,
+            activeChats: businessDashboardActiveChats,
+            predictions: businessDashboardPredictions,
+            atmosphereRating: businessDashboardAtmosphereRating,
+            games: businessDashboardGameItems
+        )
+    }
+
+    private var businessDashboardVenueName: String {
+        let name = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "Your venue" : name
+    }
+
+    private var businessDashboardLocationLine: String {
+        let city = venueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let state = venueState.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ownerCity = viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ownerState = viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedCity = city.isEmpty ? ownerCity : city
+        let resolvedState = state.isEmpty ? ownerState : state
+        let parts = [resolvedCity, resolvedState].filter { !$0.isEmpty }
+        return parts.isEmpty ? "Venue dashboard" : parts.joined(separator: ", ")
+    }
+
+    private var venueAddressLabels: BusinessLocationAddressLabels {
+        BusinessLocationCountryPolicy.labels(for: venueCountry)
+    }
+
+    private var businessDashboardEventIDs: [UUID] {
+        myVenueGamesForManage.compactMap(\.id)
+    }
+
+    private var businessDashboardFansGoing: Int {
+        businessDashboardEventIDs.reduce(0) { $0 + viewModel.interestCountForVenueEvent($1) }
+    }
+
+    private var businessDashboardActiveChats: Int {
+        businessDashboardEventIDs.reduce(0) { total, id in
+            total + (fanUpdatesStore.venueEventComments[id]?.count ?? 0)
+        }
+    }
+
+    private var businessDashboardPredictions: Int {
+        businessDashboardEventIDs.reduce(0) { total, id in
+            total + (viewModel.venueEventPredictionSummaries[id]?.totalCount ?? 0)
+        }
+    }
+
+    private var businessDashboardTodayGamesCount: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return myVenueGamesForManage.reduce(0) { total, row in
+            guard let day = venueOwnerGameDay(row),
+                  calendar.isDate(day, inSameDayAs: today) else {
+                return total
+            }
+            return total + 1
+        }
+    }
+
+    private var businessDashboardAtmosphereRating: String {
+        guard let venueID = viewModel.ownerVenueDatabaseId,
+              let bar = viewModel.bars.first(where: { $0.id == venueID }),
+              viewModel.reviewCountDisplay(for: bar) > 0,
+              let rating = viewModel.mergedDisplayRating(for: bar) else {
+            return "New"
+        }
+        return String(format: "%.1f", rating)
+    }
+
+    private var businessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let todayRows = myVenueGamesForManage.filter { row in
+            guard let day = venueOwnerGameDay(row) else { return false }
+            return calendar.isDate(day, inSameDayAs: today)
+        }
+        let sourceRows = todayRows.isEmpty ? Array(myVenueGamesForManage.prefix(3)) : todayRows
+
+        return sourceRows.compactMap { row in
+            guard let id = row.id else { return nil }
+            let score = viewModel.venueOwnerEngagementScore(venueEventID: id)
+            let energy = businessDashboardEnergy(score: score)
+            return BusinessVenueDashboardGameItem(
+                id: id,
+                title: row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? (row.event_title ?? "Game") : "Game",
+                subtitle: businessDashboardGameSubtitle(row),
+                timeText: businessDashboardGameTimeText(row),
+                sportIconName: viewModel.iconForSport(row.sport ?? ""),
+                goingCount: viewModel.interestCountForVenueEvent(id),
+                energyLabel: energy.label,
+                energyTint: energy.tint
+            )
+        }
+    }
+
+    private func businessDashboardGameSubtitle(_ row: VenueEventRow) -> String {
+        let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let league, !league.isEmpty { return league }
+        let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return sport?.isEmpty == false ? (sport ?? "Venue game") : "Venue game"
+    }
+
+    private func businessDashboardGameTimeText(_ row: VenueEventRow) -> String {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start.formatted(date: .omitted, time: .shortened)
+        }
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return time.isEmpty ? "Time TBD" : time
+    }
+
+    private func businessDashboardEnergy(score: Int) -> (label: String, tint: Color) {
+        if score >= 30 { return ("High energy", FGColor.accentGreen) }
+        if score >= 8 { return ("Building", FGColor.accentYellow) }
+        return ("Normal", FGColor.accentBlue)
+    }
+
+    private func openBusinessDashboardGames(tab: ManageGamesListTab) {
+        guard !venueOwnerGamesAndAnalyticsLocked else { return }
+        clearManageGamesBanners()
+        manageGamesListTab = tab
+        if tab == .add {
+            initializeAddGameScheduleFromDefaults()
+        }
+        withAnimation(.spring()) {
+            selectedSection = .games
+        }
+    }
+
+    private func openBusinessDashboardAnalytics() {
+        guard !venueOwnerGamesAndAnalyticsLocked else { return }
+        businessVenueAnalyticsTab = .venueAnalytics
+        withAnimation(.spring()) {
+            selectedSection = .analytics
+        }
+    }
+
+    private func refreshBusinessDashboardOverview() async {
+        guard !venueOwnerGamesAndAnalyticsLocked else {
+            logBusinessDashboardDebug()
+            return
+        }
+        await refreshManageGamesList(isInitialPick: false)
+        let ids = await MainActor.run { businessDashboardEventIDs }
+        await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
+        await MainActor.run {
+            logBusinessDashboardDebug()
+        }
+    }
+
+    private func logBusinessDashboardDebug() {
+#if DEBUG
+        print("[BusinessDashboardDebug] openedOverview")
+        print("[BusinessDashboardDebug] venueLoaded=\(!businessDashboardVenueName.isEmpty)")
+        print("[BusinessDashboardDebug] todayGamesCount=\(businessDashboardTodayGamesCount)")
+        print("[BusinessDashboardDebug] fansGoingTotal=\(businessDashboardFansGoing)")
+        print("[BusinessDashboardDebug] activeChatsTotal=\(businessDashboardActiveChats)")
+        print("[BusinessDashboardDebug] predictionsTotal=\(businessDashboardPredictions)")
+#endif
+    }
+
+    private func logBusinessDashboardRouteDebug() {
+#if DEBUG
+        print("[BusinessDashboardRouteDebug] entryPoint=\(String(describing: entryPoint))")
+        print("[BusinessDashboardRouteDebug] effectiveSection=\(effectiveSection.rawValue)")
+#endif
+    }
     
     private var profileSection: some View {
         dashboardCard(
@@ -524,21 +788,21 @@ struct VenueOwnerDashboardView: View {
             }
 
             field("Bar / Pub / Restaurant Name", text: $viewModel.ownerVenueName, locked: venueCoreIdentityLocked)
-            field("Street Address", text: $venueStreetAddress, locked: venueCoreIdentityLocked)
-            field("City", text: $venueCity, locked: venueCoreIdentityLocked)
+            BusinessLocationCountryField(countryCode: $venueCountry)
+                .disabled(venueCoreIdentityLocked)
+                .fanGeoInputFieldStyle()
+                .opacity(venueCoreIdentityLocked ? 0.78 : 1)
+            field("Address Line 1", text: $venueStreetAddress, locked: venueCoreIdentityLocked)
+            field("Address Line 2 (optional)", text: $venueAddressLine2, locked: venueCoreIdentityLocked)
+            field(venueAddressLabels.locality, text: $venueCity, locked: venueCoreIdentityLocked)
 
             HStack(alignment: .center, spacing: 10) {
-                Picker("State", selection: $venueState) {
-                    ForEach(usStates, id: \.self) { state in
-                        Text(state).tag(state)
-                    }
-                }
-                .pickerStyle(.menu)
-                .disabled(venueCoreIdentityLocked)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(FGAdaptiveSurface.controlFill)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                BusinessLocationRegionField(countryCode: venueCountry, labels: venueAddressLabels, region: $venueState)
+                    .disabled(venueCoreIdentityLocked)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(FGAdaptiveSurface.controlFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
 
                 if venueCoreIdentityLocked {
                     Image(systemName: "lock.fill")
@@ -549,7 +813,7 @@ struct VenueOwnerDashboardView: View {
             }
             .opacity(venueCoreIdentityLocked ? 0.78 : 1)
 
-            field("ZIP Code", text: $venueZipCode, locked: venueCoreIdentityLocked)
+            field(venueAddressLabels.postalCode, text: $venueZipCode, locked: venueCoreIdentityLocked)
             BusinessPhoneNumberField(dialISO: $viewModel.ownerVenuePhoneDialISO, localNumber: $viewModel.ownerVenuePhone)
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
@@ -590,13 +854,17 @@ struct VenueOwnerDashboardView: View {
 
                     profileSaveMessage = "Saving..."
 
-                    viewModel.ownerVenueAddress = "\(venueStreetAddress), \(venueCity), \(venueState) \(venueZipCode)"
+                    viewModel.ownerVenueAddress = venueStreetAddress
+                    viewModel.ownerVenueAddressLine2 = venueAddressLine2
+                    viewModel.ownerVenueCountry = venueCountry
                     Task {
                         let success = await viewModel.saveVenueProfile(
                             streetAddress: venueStreetAddress,
+                            addressLine2: venueAddressLine2,
                             city: venueCity,
                             state: venueState,
                             zipCode: venueZipCode,
+                            country: venueCountry,
                             screenCount: totalScreens,
                             servesFood: hasFood,
                             hasWifi: hasWifi,
@@ -609,9 +877,11 @@ struct VenueOwnerDashboardView: View {
                             await MainActor.run {
                                 viewModel.applyVenueProfileRowToOwnerState(saved)
                                 venueStreetAddress = saved.address ?? ""
+                                venueAddressLine2 = saved.address_line2 ?? ""
                                 venueCity = saved.city ?? ""
-                                venueState = saved.state ?? "UT"
+                                venueState = saved.state ?? ""
                                 venueZipCode = saved.zip_code ?? ""
+                                venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
                                 totalScreens = saved.screen_count ?? 1
                                 hasFood = saved.serves_food ?? false
                                 hasWifi = saved.has_wifi ?? false
@@ -2208,6 +2478,8 @@ struct VenueOwnerDashboardView: View {
             importedExternalGameID = match.id
             importedExternalSource = externalSource
             importedExternalLeague = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
+            importedHomeTeam = match.homeTeam
+            importedAwayTeam = match.awayTeam
             importedFromAPI = true
             manageGamesError = ""
             manageGamesFeedback = "Game details imported — review and save."
@@ -2462,7 +2734,9 @@ struct VenueOwnerDashboardView: View {
                     if !manualLeague.isEmpty { return manualLeague }
                     return importedFromAPI ? importedExternalLeague : nil
                 }(),
-                importedFromAPI: importedFromAPI
+                importedFromAPI: importedFromAPI,
+                homeTeam: importedFromAPI ? importedHomeTeam : nil,
+                awayTeam: importedFromAPI ? importedAwayTeam : nil
             )
         }
 
@@ -2504,7 +2778,9 @@ struct VenueOwnerDashboardView: View {
             externalGameID: snapshot.externalGameID,
             externalSource: snapshot.externalSource,
             importedFromAPI: snapshot.importedFromAPI,
-            externalLeague: snapshot.externalLeague
+            externalLeague: snapshot.externalLeague,
+            homeTeam: snapshot.homeTeam,
+            awayTeam: snapshot.awayTeam
         )
 
         await MainActor.run {
@@ -2557,6 +2833,8 @@ struct VenueOwnerDashboardView: View {
         importedExternalGameID = nil
         importedExternalSource = nil
         importedExternalLeague = nil
+        importedHomeTeam = nil
+        importedAwayTeam = nil
         importedFromAPI = false
     }
 

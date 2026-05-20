@@ -8,6 +8,11 @@ fileprivate enum DiscoverLocationFetchResult {
     case unavailable(reason: String)
 }
 
+struct BusinessVenueGeocodeResult: Sendable {
+    let coordinate: CLLocationCoordinate2D
+    let formattedAddress: String
+}
+
 /// One-shot Core Location fetch for the Discover map “current location” control (no Utah/Lehi fallback).
 private final class DiscoverCurrentLocationFetchSession: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
@@ -467,6 +472,51 @@ extension MapViewModel {
         } catch {
             return nil
         }
+    }
+
+    func geocodeBusinessVenueAddress(_ query: String, fallbackFormattedAddress: String) async -> BusinessVenueGeocodeResult? {
+#if DEBUG
+        print("[InternationalAddressDebug] geocodeQuery=\(query)")
+#endif
+        guard let request = MKGeocodingRequest(addressString: query) else {
+#if DEBUG
+            print("[InternationalAddressDebug] addressValidation=geocodeRequestInvalid")
+#endif
+            return nil
+        }
+        do {
+            let item = try await request.mapItems.first
+            guard let coordinate = item?.location.coordinate else {
+#if DEBUG
+                print("[InternationalAddressDebug] addressValidation=geocodeNoResult")
+#endif
+                return nil
+            }
+            let formatted = Self.formattedBusinessVenueAddress(from: item) ?? fallbackFormattedAddress
+#if DEBUG
+            print("[InternationalAddressDebug] addressValidation=geocodeResolved")
+            print("[InternationalAddressDebug] formattedAddress=\(formatted)")
+            print("[InternationalAddressDebug] latitude=\(coordinate.latitude)")
+            print("[InternationalAddressDebug] longitude=\(coordinate.longitude)")
+#endif
+            return BusinessVenueGeocodeResult(coordinate: coordinate, formattedAddress: formatted)
+        } catch {
+#if DEBUG
+            print("[InternationalAddressDebug] addressValidation=geocodeFailed \(error.localizedDescription)")
+#endif
+            return nil
+        }
+    }
+
+    nonisolated private static func formattedBusinessVenueAddress(from item: MKMapItem?) -> String? {
+        guard let item else { return nil }
+        if #available(iOS 26.0, *) {
+            let formatted = item.addressRepresentations?.fullAddress(includingRegion: true, singleLine: true)
+                ?? item.address?.fullAddress
+                ?? item.address?.shortAddress
+            return trimmedNonEmpty(formatted)
+        }
+        return trimmedNonEmpty(item.placemark.title)
     }
 
     /// Reverse geocode for pickup map pin (street line, city, state, postal code); all nil if lookup fails.

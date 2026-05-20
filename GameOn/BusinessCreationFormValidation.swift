@@ -13,6 +13,7 @@ enum BusinessCreationFormValidation {
         businessName: String,
         locationName: String,
         streetAddress: String,
+        country: String,
         city: String,
         state: String,
         zip: String,
@@ -40,16 +41,19 @@ enum BusinessCreationFormValidation {
         if loc.isEmpty { return "Location name missing" }
 
         let street = streetAddress.trimmingCharacters(in: .whitespacesAndNewlines)
-        if street.isEmpty { return "Address missing" }
+        if street.isEmpty { return "Address line 1 missing" }
+
+        let normalizedCountry = BusinessLocationCountryPolicy.normalizedStoredCountryCode(country)
+        let labels = BusinessLocationCountryPolicy.labels(for: normalizedCountry)
+        if !BusinessLocationCountryPolicy.supportedCountryCodes.contains(normalizedCountry) {
+            return "Country missing"
+        }
 
         let cityT = city.trimmingCharacters(in: .whitespacesAndNewlines)
-        if cityT.isEmpty { return "City missing" }
+        if labels.localityRequired, cityT.isEmpty { return "\(labels.locality) missing" }
 
         let stateT = state.trimmingCharacters(in: .whitespacesAndNewlines)
-        if stateT.isEmpty { return "State missing" }
-
-        let zipT = zip.trimmingCharacters(in: .whitespacesAndNewlines)
-        if zipT.isEmpty { return "ZIP code missing" }
+        if labels.regionRequired, stateT.isEmpty { return "\(labels.region) missing" }
 
         let phoneCombined = BusinessPhoneFields.combinedStorage(iso: phoneDialISO, local: phoneLocal)
             .trimmingCharacters(in: .whitespacesAndNewlines)

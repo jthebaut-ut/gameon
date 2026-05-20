@@ -8,6 +8,16 @@ private enum GuestDiscoverLockedCopy {
         "Log in or create a FanGeo account to view details, join pickup games, save venues, and unlock the full FanGeo experience."
 }
 
+private struct DiscoverPredictionSheetContext: Identifiable {
+    let venueEventID: UUID
+    let teams: VenueEventPredictionTeams
+    let predictionType: VenueEventPredictionType
+
+    var id: String {
+        "\(venueEventID.uuidString.lowercased())|\(predictionType.rawValue)"
+    }
+}
+
 private enum PickupGameMapMarkerActivity {
     case low
     case medium
@@ -294,6 +304,7 @@ struct DiscoverScreen: View {
     /// Month shown in the Discover calendar overlay (drives dot loads when switching Venues / Pickup).
     @State private var discoverCalendarDisplayedMonth = Date()
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
+    @State private var predictionSheet: DiscoverPredictionSheetContext?
     @State private var showVenueRatingSheet = false
     @State private var fanFeatureGateAlertMessage: String?
     @State private var mapVenueReloadTask: Task<Void, Never>?
@@ -351,6 +362,22 @@ struct DiscoverScreen: View {
         let countColor: Color
         let background: Color
         let selectedBackground: Color
+    }
+
+    private struct DiscoverVenuePredictionVisibility {
+        let eventID: UUID?
+        let sportType: String
+        let teams: VenueEventPredictionTeams?
+        let hasHomeTeam: Bool
+        let hasAwayTeam: Bool
+        let startsAt: Date?
+        let lockTime: Date?
+        let isLocked: Bool
+        let hiddenReason: String?
+
+        var shouldRender: Bool {
+            hiddenReason == nil || isLocked
+        }
     }
 
     init(
@@ -425,6 +452,18 @@ struct DiscoverScreen: View {
                     viewModel: viewModel,
                     venueEventID: event.id
                 )
+            }
+            .sheet(item: $predictionSheet) { context in
+                VenueEventPredictionSheet(
+                    venueEventID: context.venueEventID,
+                    teams: context.teams,
+                    predictionType: context.predictionType,
+                    onSaved: {
+                        await viewModel.refreshVenueEventPredictionSummary(eventID: context.venueEventID)
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: Binding(
                 get: { showVenueRatingSheet && viewModel.canRateVenues && viewModel.isAuthenticatedForSocialFeatures && viewModel.selectedBar != nil },
@@ -725,6 +764,7 @@ struct DiscoverScreen: View {
                 sportsSupported: supportedSports,
                 hasGamesScheduledToday: !selectedDayGames.isEmpty,
                 venueEventRows: viewModel.venueEventRows,
+                venuePredictionSummaries: viewModel.venueEventPredictionSummaries,
                 isBusinessConfirmed: isBusinessConfirmed,
                 onDirections: { viewModel.openDirections(to: selectedBar) },
                 onCall: { viewModel.callVenue(selectedBar) },
@@ -762,6 +802,12 @@ struct DiscoverScreen: View {
                 locksScheduledGameDetailsForGuest: viewModel.isGuestDiscoverMode,
                 onGuestGameLoginCTA: {
                     viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                onLoadVenuePredictionSummaries: { ids in
+                    await viewModel.loadVenueEventPredictionSummaries(eventIDs: ids)
+                },
+                onRefreshVenuePredictionSummary: { id in
+                    await viewModel.refreshVenueEventPredictionSummary(eventID: id)
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
@@ -3555,6 +3601,11 @@ struct DiscoverScreen: View {
         let previewEnergyGlow = previewEnergy?.isHighEnergy == true
             ? previewEnergyTint.opacity(colorScheme == .dark ? 0.22 : 0.14)
             : Color.clear
+        let predictionVisibility = venuePredictionVisibility(
+            bar: bar,
+            event: event,
+            venueEventID: venueEventID
+        )
 
         return VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .top, spacing: 11) {
@@ -3599,6 +3650,28 @@ struct DiscoverScreen: View {
                 Spacer(minLength: 0)
             }
 
+            if let predictionEventID = predictionVisibility.eventID,
+               predictionVisibility.shouldRender,
+               let teams = predictionVisibility.teams {
+                VenueEventPredictionModule(
+                    venueEventID: predictionEventID,
+                    teams: teams,
+                    summary: viewModel.venueEventPredictionSummaries[predictionEventID],
+                    isLocked: predictionVisibility.isLocked,
+                    onOpen: { type in
+                        openDiscoverPredictionSheet(
+                            eventID: predictionEventID,
+                            teams: teams,
+                            type: type,
+                            isLocked: predictionVisibility.isLocked
+                        )
+                    },
+                    onLockedTap: {
+                        fanFeatureGateAlertMessage = "Predictions closed for this game."
+                    }
+                )
+            }
+
             if let venueEventID {
                 venueGameCardSocialActionRow(
                     venueEventID: venueEventID,
@@ -3634,9 +3707,207 @@ struct DiscoverScreen: View {
         }
         .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
         .task(id: venueEventID ?? event.id) {
+            if predictionVisibility.shouldRender, let predictionEventID = predictionVisibility.eventID {
+                await viewModel.loadVenueEventPredictionSummaries(eventIDs: [predictionEventID])
+            }
             guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle, on: event.date) else { return }
             viewModel.prefetchFanUpdatesCardSocialData(for: id)
         }
+    }
+
+    private func openDiscoverPredictionSheet(
+        eventID: UUID,
+        teams: VenueEventPredictionTeams,
+        type: VenueEventPredictionType,
+        isLocked: Bool
+    ) {
+        guard !isLocked else {
+            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            return
+        }
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return
+        }
+        guard viewModel.canUseFanSocialFeatures else {
+            viewModel.logBusinessUserGateBlocked(action: "venuePrediction")
+            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            return
+        }
+        predictionSheet = DiscoverPredictionSheetContext(
+            venueEventID: eventID,
+            teams: teams,
+            predictionType: type
+        )
+    }
+
+    private func venuePredictionVisibility(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?
+    ) -> DiscoverVenuePredictionVisibility {
+        let row = venueEventRowForPrediction(bar: bar, event: event, venueEventID: venueEventID)
+        let resolvedEventID = venueEventID ?? row?.id
+        let sportType = trimmedNonEmpty(row?.sport) ?? event.sport
+        let homeTeam = trimmedNonEmpty(row?.home_team)
+        let awayTeam = trimmedNonEmpty(row?.away_team)
+        let startsAt = row.flatMap(venuePredictionStartDate(for:)) ?? venuePredictionFallbackStartDate(for: event)
+        let lockTime = startsAt?.addingTimeInterval(10 * 60)
+        let isLocked = lockTime.map { Date() > $0 } ?? false
+        let hiddenReason: String?
+
+        if resolvedEventID == nil {
+            hiddenReason = "missingVenueEventId"
+        } else if !venuePredictionSportIsSupported(sportType) {
+            hiddenReason = "unsupportedSport"
+        } else if homeTeam == nil {
+            hiddenReason = "missingHomeTeam"
+        } else if awayTeam == nil {
+            hiddenReason = "missingAwayTeam"
+        } else if startsAt == nil {
+            hiddenReason = "missingStartTime"
+        } else {
+            hiddenReason = nil
+        }
+
+        let teams: VenueEventPredictionTeams?
+        if let homeTeam, let awayTeam {
+            teams = VenueEventPredictionTeams(home: homeTeam, away: awayTeam)
+        } else {
+            teams = nil
+        }
+
+        let visibility = DiscoverVenuePredictionVisibility(
+            eventID: resolvedEventID,
+            sportType: sportType,
+            teams: teams,
+            hasHomeTeam: homeTeam != nil,
+            hasAwayTeam: awayTeam != nil,
+            startsAt: startsAt,
+            lockTime: lockTime,
+            isLocked: isLocked,
+            hiddenReason: hiddenReason
+        )
+        logVenuePredictionVisibilityIfHidden(visibility)
+        return visibility
+    }
+
+    private func venueEventRowForPrediction(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?
+    ) -> VenueEventRow? {
+        if let venueEventID,
+           let byID = viewModel.venueEventRows.first(where: { $0.id == venueEventID }) {
+            return byID
+        }
+
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return viewModel.venueEventRows.first { row in
+            guard venueEventRowMatchesDiscoverVenue(row, bar: bar) else { return false }
+            guard trimmedNonEmpty(row.event_title)?.caseInsensitiveCompare(title) == .orderedSame else { return false }
+            guard let rowStart = venuePredictionStartDate(for: row) ?? venuePredictionFallbackDay(for: row) else { return true }
+            return Calendar.current.isDate(rowStart, inSameDayAs: event.date)
+        }
+    }
+
+    private func venueEventRowMatchesDiscoverVenue(_ row: VenueEventRow, bar: BarVenue) -> Bool {
+        if row.venue_id == bar.id { return true }
+        if let venueName = trimmedNonEmpty(row.venue_name),
+           venueName.caseInsensitiveCompare(bar.name) == .orderedSame {
+            return true
+        }
+        if let rowOwner = trimmedNonEmpty(row.owner_email),
+           let barOwner = bar.ownerEmail,
+           OwnerBusinessEmail.normalized(rowOwner) == OwnerBusinessEmail.normalized(barOwner) {
+            return true
+        }
+        return false
+    }
+
+    private func venuePredictionSportIsSupported(_ value: String) -> Bool {
+        switch venuePredictionNormalizedSport(value) {
+        case "soccer", "baseball", "football", "hockey":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private func venuePredictionNormalizedSport(_ value: String) -> String {
+        let lowered = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.contains("soccer") { return "soccer" }
+        if lowered.contains("baseball") || lowered == "mlb" { return "baseball" }
+        if lowered.contains("football") || lowered == "nfl" { return "football" }
+        if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
+        return lowered
+    }
+
+    private func venuePredictionStartDate(for row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start
+        }
+
+        guard let day = trimmedNonEmpty(row.event_date),
+              let time = trimmedNonEmpty(row.event_time),
+              time.lowercased() != "time tbd" else {
+            return nil
+        }
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd h:mm a"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: "\(day) \(time)")
+    }
+
+    private func venuePredictionFallbackDay(for row: VenueEventRow) -> Date? {
+        guard let day = trimmedNonEmpty(row.event_date) else { return nil }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: day)
+    }
+
+    private func venuePredictionFallbackStartDate(for event: SportsEvent) -> Date? {
+        let time = event.time.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !time.isEmpty, time.lowercased() != "time tbd" else { return nil }
+        let dayFormatter = DateFormatter()
+        dayFormatter.calendar = Calendar.current
+        dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+        dayFormatter.timeZone = TimeZone.current
+
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd h:mm a"
+        formatter.timeZone = TimeZone.current
+        return formatter.date(from: "\(dayFormatter.string(from: event.date)) \(time)")
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func logVenuePredictionVisibilityIfHidden(_ visibility: DiscoverVenuePredictionVisibility) {
+#if DEBUG
+        guard let hiddenReason = visibility.hiddenReason else { return }
+        let startsAt = visibility.startsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+        let lockTime = visibility.lockTime.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
+        print("[VenuePredictionVisibilityDebug] eventId=\(visibility.eventID?.uuidString.lowercased() ?? "nil")")
+        print("[VenuePredictionVisibilityDebug] sportType=\(visibility.sportType)")
+        print("[VenuePredictionVisibilityDebug] hasHomeTeam=\(visibility.hasHomeTeam)")
+        print("[VenuePredictionVisibilityDebug] hasAwayTeam=\(visibility.hasAwayTeam)")
+        print("[VenuePredictionVisibilityDebug] startsAt=\(startsAt)")
+        print("[VenuePredictionVisibilityDebug] lockTime=\(lockTime)")
+        print("[VenuePredictionVisibilityDebug] isLocked=\(visibility.isLocked)")
+        print("[VenuePredictionVisibilityDebug] hiddenReason=\(hiddenReason)")
+#endif
     }
 
     private func venuePreviewGoingButton(

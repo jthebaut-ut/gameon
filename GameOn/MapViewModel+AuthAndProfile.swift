@@ -315,9 +315,11 @@ extension MapViewModel {
         clearPendingVenueClaimContext()
         ownerVenueName = ""
         ownerVenueAddress = ""
+        ownerVenueAddressLine2 = ""
         ownerVenueCity = ""
-        ownerVenueState = "UT"
+        ownerVenueState = ""
         ownerVenueZipCode = ""
+        ownerVenueCountry = BusinessLocationCountryPolicy.defaultCountryCode
         ownerVenuePhoneDialISO = BusinessPhoneFields.defaultISO
         ownerVenuePhone = ""
         ownerVenueWebsite = ""
