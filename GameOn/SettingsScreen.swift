@@ -5041,6 +5041,7 @@ struct BusinessLocationVenuePicker: View {
     var chrome: Chrome = .settings
     /// When set (Settings), shown as the last menu action to submit a new business location for review.
     var onRequestAddNewLocation: (() -> Void)?
+    @State private var showVenueListSheet = false
 
     init(viewModel: MapViewModel, chrome: Chrome = .settings, onRequestAddNewLocation: (() -> Void)? = nil) {
         self.viewModel = viewModel
@@ -5063,18 +5064,6 @@ struct BusinessLocationVenuePicker: View {
         return viewModel.managedVenuesForOwner().first(where: { $0.id == selectedId }) ?? viewModel.managedVenuesForOwner().first
     }
 
-    private var pickerSelection: Binding<UUID?> {
-        Binding(
-            get: { viewModel.ownerVenueDatabaseId ?? venuePairs.first?.0 },
-            set: { newId in
-                guard let newId else { return }
-                Task {
-                    await viewModel.selectManagedVenue(id: newId)
-                }
-            }
-        )
-    }
-
     private var selectedVenueLabel: String {
         let id = viewModel.ownerVenueDatabaseId ?? venuePairs.first?.0
         if let id, let name = venuePairs.first(where: { $0.0 == id })?.1 {
@@ -5085,9 +5074,7 @@ struct BusinessLocationVenuePicker: View {
 
     private var selectedVenueSubtitle: String {
         if let row = selectedVenueRow {
-            let city = row.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let state = row.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let locationLine = [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+            let locationLine = venueLocationSubtitle(for: row)
             if !locationLine.isEmpty {
                 return locationLine
             }
@@ -5096,6 +5083,37 @@ struct BusinessLocationVenuePicker: View {
             return "\(venuePairs.count) approved locations available to manage."
         }
         return "Approved location for listings, games, and analytics."
+    }
+
+    private func venueDisplayName(for row: VenueProfileRow) -> String {
+        let raw = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return raw.isEmpty ? "Location" : raw
+    }
+
+    private func venueLocationSubtitle(for row: VenueProfileRow) -> String {
+        let city = row.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let region = (row.region ?? row.state)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let country = row.country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let locationLine = [city, region, country].filter { !$0.isEmpty }.joined(separator: ", ")
+        if !locationLine.isEmpty { return locationLine }
+        let formatted = row.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !formatted.isEmpty { return formatted }
+        return row.address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private func venueStatusTitle(for row: VenueProfileRow?) -> String? {
+        let raw = row?.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if raw.isEmpty || raw == "active" { return "Approved" }
+        if raw.contains("pending") || raw.contains("review") { return "Pending" }
+        return raw.capitalized
+    }
+
+    private func venueStatusTint(for row: VenueProfileRow?) -> Color {
+        let raw = row?.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if raw.isEmpty || raw == "active" { return FGColor.accentGreen }
+        if raw.contains("pending") || raw.contains("review") { return FGColor.accentYellow }
+        if raw.contains("reject") || raw.contains("archive") { return FGColor.dangerRed }
+        return FGColor.accentBlue
     }
 
     private var settingsPickerLabel: String {
@@ -5256,6 +5274,199 @@ struct BusinessLocationVenuePicker: View {
             .clipShape(Capsule(style: .continuous))
     }
 
+    private func managedVenueStatusBadge(row: VenueProfileRow?) -> some View {
+        let tint = venueStatusTint(for: row)
+        return Text(venueStatusTitle(for: row) ?? "Approved")
+            .font(FGTypography.metadata.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+            .clipShape(Capsule(style: .continuous))
+    }
+
+    private var dashboardChromeSelectorButton: some View {
+        Button {
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] selectorTapped=true")
+#endif
+            showVenueListSheet = true
+        } label: {
+            HStack(alignment: .center, spacing: FGSpacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                    Image(systemName: "building.2.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .frame(width: 46, height: 46)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Managing location")
+                        .font(FGTypography.metadata.weight(.bold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .textCase(.uppercase)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(selectedVenueLabel)
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+
+                        managedVenueStatusBadge(row: selectedVenueRow)
+                    }
+
+                    Text(selectedVenueSubtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+            }
+            .padding(FGSpacing.md)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(FGAdaptiveSurface.cardElevated)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .strokeBorder(FGColor.divider(colorScheme).opacity(0.65), lineWidth: 1)
+                    }
+            )
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.08), radius: 18, x: 0, y: 10)
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] selectorVisible=true")
+#endif
+        }
+    }
+
+    private var dashboardVenueListSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(viewModel.managedVenuesForOwner().compactMap { $0.id == nil ? nil : $0 }, id: \.id) { row in
+                        managedVenueSheetRow(row)
+                    }
+
+                    if onRequestAddNewLocation != nil {
+                        Divider()
+                            .padding(.vertical, 4)
+                        addNewVenueSheetButton
+                    }
+                }
+                .padding(.horizontal, FGSpacing.lg)
+                .padding(.top, FGSpacing.md)
+                .padding(.bottom, FGSpacing.xl)
+            }
+            .navigationTitle("Managed venues")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        showVenueListSheet = false
+                    }
+                }
+            }
+            .fanGeoScreenBackground()
+        }
+    }
+
+    private func managedVenueSheetRow(_ row: VenueProfileRow) -> some View {
+        let isSelected = row.id == viewModel.ownerVenueDatabaseId
+        return Button {
+            guard let id = row.id else { return }
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] venueSelected id=\(id.uuidString)")
+#endif
+            showVenueListSheet = false
+            Task {
+                await viewModel.selectManagedVenue(id: id)
+            }
+        } label: {
+            HStack(spacing: FGSpacing.md) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                        .fill(venueStatusTint(for: row).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                    Image(systemName: "building.2")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(venueStatusTint(for: row))
+                }
+                .frame(width: 42, height: 42)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(venueDisplayName(for: row))
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                        managedVenueStatusBadge(row: row)
+                    }
+
+                    Text(venueLocationSubtitle(for: row).isEmpty ? "Business location" : venueLocationSubtitle(for: row))
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
+            .padding(FGSpacing.md)
+            .background(FGAdaptiveSurface.cardElevated)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var addNewVenueSheetButton: some View {
+        Button {
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] addVenueTapped=true")
+#endif
+            showVenueListSheet = false
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                onRequestAddNewLocation?()
+            }
+        } label: {
+            HStack(spacing: FGSpacing.md) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(FGColor.accentBlue)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Add New Venue")
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("Add Location")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(FGSpacing.md)
+            .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.09))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func logPickerDebug() {
 #if DEBUG
         let n = venuePairs.count
@@ -5284,33 +5495,15 @@ struct BusinessLocationVenuePicker: View {
                     settingsChromePickerStack()
 
                 case .dashboard:
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Managing location")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Picker("Managing location", selection: pickerSelection) {
-                            ForEach(venuePairs, id: \.0) { pair in
-                                HStack {
-                                    Text(pair.1)
-                                        .foregroundStyle(.primary)
-                                    Spacer(minLength: 6)
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.green)
-                                }
-                                .tag(Optional(pair.0))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.accentColor)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(FGAdaptiveSurface.controlFill)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
+                    dashboardChromeSelectorButton
                 }
             }
+        }
+        .sheet(isPresented: $showVenueListSheet) {
+            dashboardVenueListSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .onAppear { logPickerDebug() }
         .onChange(of: viewModel.ownerVenueDatabaseId) { _, _ in

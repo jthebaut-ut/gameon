@@ -533,7 +533,11 @@ struct VenueOwnerDashboardView: View {
 
     @ViewBuilder
     private var managingVenueHeaderRow: some View {
-        BusinessLocationVenuePicker(viewModel: viewModel, chrome: .dashboard)
+        BusinessLocationVenuePicker(
+            viewModel: viewModel,
+            chrome: .dashboard,
+            onRequestAddNewLocation: { openAddLocationFromBusinessDashboard() }
+        )
     }
 
     private var headerTitle: String {
