@@ -77,77 +77,10 @@ struct FanOpenToActivityCard: View {
     }
 }
 
-// MARK: - Personality chip
-
-struct FanPersonalityChip: View {
-    let label: String
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        Button(action: onTap) {
-            Text(label)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundStyle(isSelected ? .white : FGColor.primaryText(colorScheme))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background {
-                    Capsule(style: .continuous)
-                        .fill(
-                            isSelected
-                                ? LinearGradient(
-                                    colors: [FGColor.accentBlue, FGColor.accentBlue.opacity(0.82)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                                : LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.07 : 0.82),
-                                        Color.white.opacity(colorScheme == .dark ? 0.04 : 0.72)
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                        )
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .strokeBorder(
-                                    isSelected ? FGColor.accentBlue.opacity(0.5) : FGColor.divider(colorScheme),
-                                    lineWidth: isSelected ? 1 : 0.75
-                                )
-                        }
-                }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Wrapping layout for personality chips
-
-struct FanPersonalityChipFlow: View {
-    let selectedIDs: Set<String>
-    let onToggle: (FanPersonalityTag) -> Void
-
-    private let columns = [GridItem(.adaptive(minimum: 108), spacing: 8)]
-
-    var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-            ForEach(FanPersonalityTag.allCases) { tag in
-                FanPersonalityChip(
-                    label: tag.label,
-                    isSelected: selectedIDs.contains(tag.rawValue),
-                    onTap: { onToggle(tag) }
-                )
-            }
-        }
-    }
-}
-
 // MARK: - Open To picker grid (editor)
 
 struct FanOpenToPickerGrid: View {
+    let activities: [FanOpenToActivityDefinition]
     let selectedIDs: Set<String>
     let onSelect: (FanOpenToActivityDefinition) -> Void
 
@@ -159,7 +92,7 @@ struct FanOpenToPickerGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(FanOpenToCatalog.all) { activity in
+            ForEach(activities) { activity in
                 if !selectedIDs.contains(activity.id) {
                     FanOpenToActivityCard(
                         activity: activity,
@@ -182,6 +115,8 @@ struct FanOpenToSelectedGrid: View {
         GridItem(.flexible(), spacing: 8)
     ]
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         if selectedIDs.isEmpty {
             Text("Tap a sport or activity below to add it.")
@@ -203,6 +138,4 @@ struct FanOpenToSelectedGrid: View {
             }
         }
     }
-
-    @Environment(\.colorScheme) private var colorScheme
 }

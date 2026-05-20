@@ -1,34 +1,53 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Open To catalog
+// MARK: - Open To catalog (Pickup sports + social activities)
 
 struct FanOpenToActivityDefinition: Identifiable, Hashable {
     let id: String
     let title: String
     let systemImage: String
+    let isSocial: Bool
 
     func tint(colorScheme: ColorScheme) -> Color {
         FanOpenToCatalog.tint(for: id, colorScheme: colorScheme)
     }
 }
 
+enum FanOpenToSocialID {
+    static let watchParties = "watch_parties"
+    static let sportsBars = "sports_bars"
+    static let meetLocalFans = "meet_local_fans"
+}
+
+/// Open To options: same sport tokens as Pickup Games (`AppSportCatalog`) plus fixed social activities.
 enum FanOpenToCatalog {
-    static let all: [FanOpenToActivityDefinition] = [
-        FanOpenToActivityDefinition(id: "pickup_basketball", title: "Pickup Basketball", systemImage: "basketball.fill"),
-        FanOpenToActivityDefinition(id: "soccer_matches", title: "Soccer Matches", systemImage: "soccerball"),
-        FanOpenToActivityDefinition(id: "watch_parties", title: "Watch Parties", systemImage: "tv.and.mediabox.fill"),
-        FanOpenToActivityDefinition(id: "pickup_soccer", title: "Pickup Soccer", systemImage: "soccerball"),
-        FanOpenToActivityDefinition(id: "pickup_football", title: "Pickup Football", systemImage: "football.fill"),
-        FanOpenToActivityDefinition(id: "pickup_baseball", title: "Pickup Baseball", systemImage: "baseball.fill"),
-        FanOpenToActivityDefinition(id: "pickup_tennis", title: "Pickup Tennis", systemImage: "tennisball.fill"),
-        FanOpenToActivityDefinition(id: "pickup_golf", title: "Pickup Golf", systemImage: "figure.golf"),
-        FanOpenToActivityDefinition(id: "pickup_hockey", title: "Pickup Hockey", systemImage: "hockey.puck.fill"),
-        FanOpenToActivityDefinition(id: "running_fitness", title: "Running / Fitness", systemImage: "figure.run"),
-        FanOpenToActivityDefinition(id: "combat_sports", title: "Combat Sports", systemImage: "figure.boxing"),
-        FanOpenToActivityDefinition(id: "racing", title: "Racing", systemImage: "flag.checkered.2.crossed.fill"),
-        FanOpenToActivityDefinition(id: "meet_local_fans", title: "Meet Local Fans", systemImage: "person.2.wave.2.fill")
+    /// Authoritative pickup sport list (same as pickup game create/edit form).
+    static var pickupSportTokens: [String] {
+        AppSportCatalog.formPickerSportsOrdered
+    }
+
+    static let socialActivities: [FanOpenToActivityDefinition] = [
+        FanOpenToActivityDefinition(id: FanOpenToSocialID.watchParties, title: "Watch Parties", systemImage: "tv.and.mediabox.fill", isSocial: true),
+        FanOpenToActivityDefinition(id: FanOpenToSocialID.sportsBars, title: "Sports Bars", systemImage: "wineglass.fill", isSocial: true),
+        FanOpenToActivityDefinition(id: FanOpenToSocialID.meetLocalFans, title: "Meeting Local Fans", systemImage: "person.2.wave.2.fill", isSocial: true)
     ]
+
+    static var sportActivities: [FanOpenToActivityDefinition] {
+        pickupSportTokens.map { token in
+            let visual = SportFilterCatalog.resolve(token)
+            return FanOpenToActivityDefinition(
+                id: token,
+                title: AppSportCatalog.displayLabel(forSportToken: token),
+                systemImage: visual.systemImage,
+                isSocial: false
+            )
+        }
+    }
+
+    static var all: [FanOpenToActivityDefinition] {
+        socialActivities + sportActivities
+    }
 
     static func definition(id: String) -> FanOpenToActivityDefinition? {
         all.first { $0.id == id }
@@ -39,32 +58,16 @@ enum FanOpenToCatalog {
     }
 
     static func tint(for id: String, colorScheme: ColorScheme) -> Color {
-        switch id {
-        case "pickup_basketball", "pickup_tennis":
-            return FavoriteTeamSport.basketball.accentColor
-        case "soccer_matches", "pickup_soccer":
-            return FavoriteTeamSport.soccer.accentColor
-        case "watch_parties":
+        if id == FanOpenToSocialID.watchParties {
             return Color(red: 0.98, green: 0.67, blue: 0.33)
-        case "pickup_football":
-            return FavoriteTeamSport.football.accentColor
-        case "pickup_baseball":
-            return FavoriteTeamSport.baseball.accentColor
-        case "pickup_golf":
-            return FavoriteTeamSport.golf.accentColor
-        case "pickup_hockey":
-            return FavoriteTeamSport.hockey.accentColor
-        case "running_fitness":
-            return FGColor.accentGreen
-        case "combat_sports":
-            return FavoriteTeamSport.combat.accentColor
-        case "racing":
-            return FavoriteTeamSport.racing.accentColor
-        case "meet_local_fans":
-            return FGColor.accentBlue
-        default:
+        }
+        if id == FanOpenToSocialID.sportsBars {
+            return Color(red: 0.72, green: 0.28, blue: 0.52)
+        }
+        if id == FanOpenToSocialID.meetLocalFans {
             return FGColor.accentBlue
         }
+        return SportFilterCatalog.resolve(id).accent
     }
 
     static func publicDisplayItems(from itemIDs: [String]) -> [PublicProfileOpenToItem] {
@@ -73,12 +76,50 @@ enum FanOpenToCatalog {
                 id: def.id,
                 title: def.title,
                 systemImage: def.systemImage,
-                tint: tint(for: def.id, colorScheme: .light)
+                tint: tint(for: def.id, colorScheme: .light),
+                isSocial: def.isSocial
             )
         }
     }
 
-    /// Maps legacy boolean prefs into `open_to_items` ids.
+    /// Maps legacy Open To ids / booleans to canonical pickup tokens or social ids.
+    static func canonicalItemID(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if definition(id: trimmed) != nil { return trimmed }
+        if let mapped = legacyOpenToIDMap[trimmed] { return mapped }
+        if pickupSportTokens.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            return pickupSportTokens.first { $0.caseInsensitiveCompare(trimmed) == .orderedSame }
+        }
+        return nil
+    }
+
+    static func canonicalizeItemIDs(_ raw: [String]) -> [String] {
+        var seen = Set<String>()
+        var out: [String] = []
+        for item in raw {
+            guard let id = canonicalItemID(item), seen.insert(id).inserted else { continue }
+            out.append(id)
+        }
+        return out
+    }
+
+    private static let legacyOpenToIDMap: [String: String] = [
+        "pickup_basketball": "NBA",
+        "pickup_soccer": "Soccer",
+        "soccer_matches": "Soccer",
+        "pickup_football": "NFL",
+        "pickup_baseball": "Baseball",
+        "pickup_tennis": "Tennis",
+        "pickup_golf": "Golf",
+        "pickup_hockey": "NHL",
+        "running_fitness": "Running",
+        "combat_sports": "UFC",
+        "racing": "Formula 1",
+        "meet_local_fans": FanOpenToSocialID.meetLocalFans,
+        "open_to_meeting_local_fans": FanOpenToSocialID.meetLocalFans
+    ]
+
     static func idsFromLegacyBooleans(
         watchParties: Bool?,
         pickupBasketball: Bool?,
@@ -86,11 +127,11 @@ enum FanOpenToCatalog {
         meetingLocalFans: Bool?
     ) -> [String] {
         var ids: [String] = []
-        if pickupBasketball == true { ids.append("pickup_basketball") }
-        if soccerMatches == true { ids.append("soccer_matches") }
-        if watchParties == true { ids.append("watch_parties") }
-        if meetingLocalFans == true { ids.append("meet_local_fans") }
-        return ids
+        if pickupBasketball == true { ids.append("NBA") }
+        if soccerMatches == true { ids.append("Soccer") }
+        if watchParties == true { ids.append(FanOpenToSocialID.watchParties) }
+        if meetingLocalFans == true { ids.append(FanOpenToSocialID.meetLocalFans) }
+        return canonicalizeItemIDs(ids)
     }
 }
 
@@ -99,20 +140,21 @@ enum FanOpenToCatalog {
 /// Stored in `user_profiles.fan_identity_preferences`.
 struct FanIdentityPreferences: Codable, Equatable, Sendable {
     var openToItems: [String]
-    var personalityTags: [String]
+
+    /// Decoded only; never written on save.
+    private var personalityTags: [String]?
 
     /// True when JSON included `open_to_items` (including an empty array after save).
     private(set) var openToItemsKeyPresent: Bool = false
 
-    /// Legacy boolean fields — read-only for backward compatibility.
     private var openToWatchParties: Bool?
     private var openToPickupBasketball: Bool?
     private var openToSoccerMatches: Bool?
     private var openToMeetingLocalFans: Bool?
 
-    init(openToItems: [String] = [], personalityTags: [String] = []) {
-        self.openToItems = openToItems
-        self.personalityTags = personalityTags
+    init(openToItems: [String] = []) {
+        self.openToItems = FanOpenToCatalog.canonicalizeItemIDs(openToItems)
+        self.personalityTags = nil
         self.openToWatchParties = nil
         self.openToPickupBasketball = nil
         self.openToSoccerMatches = nil
@@ -131,8 +173,9 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         openToItemsKeyPresent = c.contains(.openToItems)
-        openToItems = try c.decodeIfPresent([String].self, forKey: .openToItems) ?? []
-        personalityTags = try c.decodeIfPresent([String].self, forKey: .personalityTags) ?? []
+        let rawItems = try c.decodeIfPresent([String].self, forKey: .openToItems) ?? []
+        openToItems = FanOpenToCatalog.canonicalizeItemIDs(rawItems)
+        personalityTags = try c.decodeIfPresent([String].self, forKey: .personalityTags)
         openToWatchParties = try c.decodeIfPresent(Bool.self, forKey: .openToWatchParties)
         openToPickupBasketball = try c.decodeIfPresent(Bool.self, forKey: .openToPickupBasketball)
         openToSoccerMatches = try c.decodeIfPresent(Bool.self, forKey: .openToSoccerMatches)
@@ -153,8 +196,7 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(openToItems, forKey: .openToItems)
-        try c.encode(personalityTags, forKey: .personalityTags)
+        try c.encode(FanOpenToCatalog.canonicalizeItemIDs(openToItems), forKey: .openToItems)
     }
 
     mutating func markOpenToSaved() {
@@ -163,9 +205,8 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
 
     static let empty = FanIdentityPreferences()
 
-    /// Item ids to show on public profile (explicit list only).
     var resolvedOpenToItemIDs: [String] {
-        openToItems.filter { FanOpenToCatalog.definition(id: $0) != nil }
+        FanOpenToCatalog.canonicalizeItemIDs(openToItems)
     }
 
     var hasExplicitOpenToConfiguration: Bool {
@@ -177,55 +218,24 @@ struct FanIdentityPreferences: Codable, Equatable, Sendable {
     }
 }
 
-// MARK: - Personality tags
-
-enum FanPersonalityTag: String, CaseIterable, Identifiable, Hashable {
-    case loud
-    case dieHard = "die_hard"
-    case statsNerd = "stats_nerd"
-    case casual
-    case trashTalker = "trash_talker"
-    case optimistic
-    case superSocial = "super_social"
-    case rivalryFriendly = "rivalry_friendly"
-    case hostEnergy = "host_energy"
-    case familyFriendly = "family_friendly"
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .loud: return "Loud"
-        case .dieHard: return "Die-hard"
-        case .statsNerd: return "Stats nerd"
-        case .casual: return "Casual"
-        case .trashTalker: return "Trash talker"
-        case .optimistic: return "Optimistic"
-        case .superSocial: return "Super social"
-        case .rivalryFriendly: return "Rivalry friendly"
-        case .hostEnergy: return "Host energy"
-        case .familyFriendly: return "Family friendly"
-        }
-    }
-}
-
 /// Interest chip for public Open To grid.
 struct PublicProfileOpenToItem: Identifiable {
     let id: String
     let title: String
     let systemImage: String
     let tint: Color
+    let isSocial: Bool
 
-    init(id: String, title: String, systemImage: String, tint: Color = FGColor.accentBlue) {
+    init(id: String, title: String, systemImage: String, tint: Color = FGColor.accentBlue, isSocial: Bool = false) {
         self.id = id
         self.title = title
         self.systemImage = systemImage
         self.tint = tint
+        self.isSocial = isSocial
     }
 }
 
 enum PublicProfileOpenToBuilder {
-    /// Public profile shows only explicitly saved `open_to_items` (after legacy migration on decode).
     static func items(
         preferences: FanIdentityPreferences,
         favoriteTeams: [FavoriteTeam],
@@ -238,21 +248,20 @@ enum PublicProfileOpenToBuilder {
             return FanOpenToCatalog.publicDisplayItems(from: ids)
         }
 
-        // Users who never set prefs: optional light inference (no toggle UI).
         guard !preferences.hasExplicitOpenToConfiguration else { return [] }
 
         var inferred: [String] = []
-        var seenSports = Set(favoriteTeams.map(\.sport))
+        let seenSports = Set(favoriteTeams.map(\.sport))
         if seenSports.contains(.basketball) || pickupHostedCount > 0 || pickupJoinedCount > 0 {
-            inferred.append("pickup_basketball")
+            inferred.append("NBA")
         }
         if seenSports.contains(.soccer) {
-            inferred.append("soccer_matches")
+            inferred.append("Soccer")
         }
         if !favoriteTeams.isEmpty || venueCount > 0 {
-            inferred.append("watch_parties")
+            inferred.append(FanOpenToSocialID.watchParties)
         }
-        return FanOpenToCatalog.publicDisplayItems(from: inferred)
+        return FanOpenToCatalog.publicDisplayItems(from: FanOpenToCatalog.canonicalizeItemIDs(inferred))
     }
 }
 

@@ -182,38 +182,3 @@ struct PublicProfileVenuePillsRow: View {
             .background(Circle().fill(FGColor.accentBlue.opacity(0.12)))
     }
 }
-
-// MARK: - Personality pills
-
-struct PublicProfilePersonalityPills: View {
-    let tags: [String]
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(tags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 6)
-                        .background {
-                            Capsule(style: .continuous)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [FGColor.accentBlue, FGColor.accentBlue.opacity(0.78)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .overlay {
-                                    Capsule(style: .continuous)
-                                        .strokeBorder(FGColor.accentBlue.opacity(0.45), lineWidth: 0.75)
-                                }
-                        }
-                }
-            }
-        }
-    }
-}

@@ -14,20 +14,15 @@ struct FanIdentityPreferencesEditorView: View {
         Set(draft.openToItems)
     }
 
-    private var selectedPersonalitySet: Set<String> {
-        Set(draft.personalityTags)
-    }
-
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Show other fans what you're open to.")
+                    Text("Show other fans what sports and hangouts you're open to.")
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
 
                     openToCard
-                    personalityCard
 
                     if !message.isEmpty {
                         Text(message)
@@ -75,31 +70,30 @@ struct FanIdentityPreferencesEditorView: View {
                 onRemove: { id in removeOpenTo(id) }
             )
 
-            Text("Add more")
+            Text("Social")
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .padding(.top, 2)
 
             FanOpenToPickerGrid(
+                activities: FanOpenToCatalog.socialActivities,
                 selectedIDs: selectedOpenToSet,
                 onSelect: { addOpenTo($0) }
             )
-        }
-        .padding(12)
-        .fanGeoGlassCard(cornerRadius: 18)
-    }
 
-    private var personalityCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Fan Personality")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
+            Text("Pickup sports")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.top, 4)
+
+            Text("Same sports as Pickup Games")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme))
-                .textCase(.uppercase)
-                .tracking(0.6)
 
-            FanPersonalityChipFlow(
-                selectedIDs: selectedPersonalitySet,
-                onToggle: { togglePersonality($0) }
+            FanOpenToPickerGrid(
+                activities: FanOpenToCatalog.sportActivities,
+                selectedIDs: selectedOpenToSet,
+                onSelect: { addOpenTo($0) }
             )
         }
         .padding(12)
@@ -117,23 +111,13 @@ struct FanIdentityPreferencesEditorView: View {
         print("[FanIdentityEditor] removedOpenTo=\(id)")
     }
 
-    private func togglePersonality(_ tag: FanPersonalityTag) {
-        if draft.personalityTags.contains(tag.rawValue) {
-            draft.personalityTags.removeAll { $0 == tag.rawValue }
-        } else {
-            draft.personalityTags.append(tag.rawValue)
-        }
-        print("[FanIdentityEditor] selectedPersonality=\(tag.rawValue)")
-    }
-
     @MainActor
     private func save() async {
         isSaving = true
         defer { isSaving = false }
 
         var normalized = draft
-        normalized.openToItems = Array(Set(normalized.openToItems)).sorted()
-        normalized.personalityTags = Array(Set(normalized.personalityTags)).sorted()
+        normalized.openToItems = FanOpenToCatalog.canonicalizeItemIDs(normalized.openToItems).sorted()
         normalized.markOpenToSaved()
 
         if let err = await viewModel.saveFanIdentityPreferences(normalized) {

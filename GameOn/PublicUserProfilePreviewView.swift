@@ -24,7 +24,7 @@ struct PublicUserProfilePreviewView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 14) {
+                VStack(spacing: 10) {
                     if isLoading, profile == nil {
                         loadingSkeleton
                     } else if let profile {
@@ -40,9 +40,9 @@ struct PublicUserProfilePreviewView: View {
                         loadingSkeleton
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
-                .padding(.bottom, 28)
+                .padding(.horizontal, 14)
+                .padding(.top, 4)
+                .padding(.bottom, 24)
             }
             .background(sheetBackground.ignoresSafeArea())
             .navigationTitle("Fan Profile")
@@ -90,53 +90,7 @@ struct PublicUserProfilePreviewView: View {
             )
         }
 
-        if let gameday = PublicProfileContentBuilder.gamedayStatus(from: data, colorScheme: colorScheme) {
-            PublicProfileGamedayStatusCard(status: gameday)
-        }
-
-        if let homeVenue = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
-            PublicProfileHomeCrowdCard(
-                venue: homeVenue,
-                mutualFansCount: data.mutualFansCount,
-                mutualAvatars: data.mutualFanAvatars,
-                memberSinceLabel: data.memberSinceLabel
-            )
-        }
-
-        if !data.personalityTags.isEmpty {
-            PublicProfilePersonalityCard(tags: data.personalityTags)
-        }
-
-        if !data.editorialOpenToItems.isEmpty {
-            PublicProfileOpenToEditorialCard(items: data.editorialOpenToItems)
-        }
-
-        if let moment = PublicProfileContentBuilder.sportsMoment(from: data) {
-            PublicProfileSportsMomentCard(moment: moment)
-        }
-
-        let extraVenues = PublicProfileContentBuilder.venuesExcludingHomeCrowd(from: data)
-        if !extraVenues.isEmpty || data.venueCount > 1 {
-            PublicProfileVenuesVisitedCard(
-                venues: extraVenues.isEmpty ? data.venueCards : extraVenues,
-                totalCount: data.venueCount
-            )
-        }
-
-        let activity = PublicProfileContentBuilder.activityTimeline(from: data)
-        if !activity.isEmpty {
-            PublicProfileRecentActivityCard(rows: activity)
-        }
-
-        if data.mutualFansCount > 0 || data.sharedTeamsCount > 0 {
-            PublicProfileMutualFansEditorialCard(
-                count: data.mutualFansCount,
-                avatars: data.mutualFanAvatars,
-                sharedTeamNames: data.sharedTeamNames,
-                sharedTeamsCount: data.sharedTeamsCount,
-                favoriteTeams: data.favoriteTeams
-            )
-        }
+        PublicProfileTwoColumnGrid(data: data, colorScheme: colorScheme)
 
         if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {
             PublicProfilePickupOrganizerCard(
@@ -230,19 +184,21 @@ struct PublicUserProfilePreviewView: View {
     }
 
     private var loadingSkeleton: some View {
-        VStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+        VStack(spacing: 10) {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.72))
-                .frame(height: 200)
+                .frame(height: 168)
                 .redacted(reason: .placeholder)
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
-                .frame(height: 88)
-                .redacted(reason: .placeholder)
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
-                .frame(height: 140)
-                .redacted(reason: .placeholder)
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                    .frame(height: 176)
+                    .redacted(reason: .placeholder)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.06 : 0.62))
+                    .frame(height: 176)
+                    .redacted(reason: .placeholder)
+            }
             ProgressView().tint(FGColor.accentGreen).padding(.top, 4)
         }
     }
@@ -265,18 +221,8 @@ struct PublicUserProfilePreviewView: View {
     }
 
     private var sheetBackground: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-            LinearGradient(
-                colors: [
-                    Color(red: 0.97, green: 0.99, blue: 1.0).opacity(colorScheme == .dark ? 0.04 : 0.98),
-                    Color(red: 0.93, green: 0.97, blue: 0.99).opacity(colorScheme == .dark ? 0.06 : 0.88),
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.04 : 0.06)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        }
+        Color(red: 0.94, green: 0.95, blue: 0.97)
+            .opacity(colorScheme == .dark ? 0.92 : 1)
     }
 
     // MARK: - Actions

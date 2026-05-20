@@ -211,8 +211,6 @@ enum PublicUserProfileService {
         let preferences = rpc.fan_identity_preferences ?? .empty
         let sharedTeamNames = FavoriteTeamsStore.resolvedTeams(fromIDs: rpc.shared_team_ids ?? [])
             .map { ($0.shortCode?.isEmpty == false) ? $0.shortCode! : $0.name }
-        let personalityLabels = Self.personalityLabels(from: preferences.personalityTags)
-
         let built = buildProfileData(
             userId: userId,
             row: row,
@@ -255,7 +253,6 @@ enum PublicUserProfileService {
             },
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
-            personalityTags: personalityLabels,
             sharedTeamNames: sharedTeamNames
         )
 
@@ -295,12 +292,6 @@ enum PublicUserProfileService {
             personalityTags: [],
             sharedTeamNames: []
         )
-    }
-
-    private static func personalityLabels(from rawTags: [String]) -> [String] {
-        rawTags.compactMap { token in
-            FanPersonalityTag(rawValue: token)?.label
-        }
     }
 
     // MARK: - Legacy fallback
@@ -358,7 +349,6 @@ enum PublicUserProfileService {
             venueCards: [],
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
-            personalityTags: [],
             sharedTeamNames: []
         )
 
@@ -474,7 +464,6 @@ enum PublicUserProfileService {
         venueCards: [PublicProfileVenueCard],
         pickupHostedCount: Int,
         pickupJoinedCount: Int,
-        personalityTags: [String],
         sharedTeamNames: [String]
     ) -> PublicUserProfileData {
         let emailNorm = OwnerBusinessEmail.normalized(row?.email ?? "")
@@ -544,7 +533,7 @@ enum PublicUserProfileService {
                 pickupJoined: pickupJoinedCount,
                 sharedTeams: sharedTeamsCount
             ),
-            personalityTags: personalityTags,
+            personalityTags: [],
             sharedTeamNames: sharedTeamNames
         )
     }

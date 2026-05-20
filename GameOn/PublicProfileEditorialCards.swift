@@ -113,20 +113,22 @@ enum PublicProfileContentBuilder {
     static func gamedayStatus(from data: PublicUserProfileData, colorScheme: ColorScheme) -> PublicProfileGamedayStatus? {
         let openIDs = Set(data.openToItems.map(\.id))
 
-        if openIDs.contains("watch_parties") || openIDs.contains("soccer_matches") {
+        if openIDs.contains(FanOpenToSocialID.watchParties) || openIDs.contains(FanOpenToSocialID.sportsBars) {
             let team = data.favoriteTeams.first
             let subtitle = team.map { "Routing for \($0.shortCode ?? $0.name)" }
             return PublicProfileGamedayStatus(
-                title: openIDs.contains("watch_parties") ? "Watching Tonight" : "Match Day Mode",
+                title: openIDs.contains(FanOpenToSocialID.sportsBars) ? "Bar Hopping" : "Watching Tonight",
                 subtitle: subtitle,
                 badge: team?.sport.chipTitle,
-                systemImage: "tv.fill",
+                systemImage: openIDs.contains(FanOpenToSocialID.sportsBars) ? "wineglass.fill" : "tv.fill",
                 gradient: [Color(red: 0.18, green: 0.42, blue: 0.92), Color(red: 0.42, green: 0.22, blue: 0.88)]
             )
         }
 
-        if openIDs.contains(where: { $0.hasPrefix("pickup_") || $0 == "running_fitness" || $0 == "combat_sports" || $0 == "racing" })
-            || data.pickupHostedCount > 0 || data.pickupJoinedCount > 0 {
+        let hasPickupSport = openIDs.contains { id in
+            FanOpenToCatalog.definition(id: id)?.isSocial == false
+        }
+        if hasPickupSport || data.pickupHostedCount > 0 || data.pickupJoinedCount > 0 {
             return PublicProfileGamedayStatus(
                 title: "Looking for Pickup",
                 subtitle: data.pickupHostedCount > 0 ? "Hosts local runs" : "Ready to join a run",
@@ -147,7 +149,7 @@ enum PublicProfileContentBuilder {
             )
         }
 
-        if openIDs.contains("meet_local_fans") {
+        if openIDs.contains(FanOpenToSocialID.meetLocalFans) {
             return PublicProfileGamedayStatus(
                 title: data.mutualFansCount > 2 ? "Packed Crowd" : "Bar Hopping",
                 subtitle: data.mutualFansCount > 0 ? "\(data.mutualFansCount) mutual fans nearby" : "Open to meet fans",
@@ -245,40 +247,94 @@ enum PublicProfileContentBuilder {
 
 extension PublicProfileOpenToItem {
     var editorialShortTitle: String {
-        switch id {
-        case "watch_parties": return "Watch"
-        case "soccer_matches": return "Matches"
-        case "pickup_basketball": return "Hoop"
-        case "pickup_soccer": return "Soccer"
-        case "pickup_football": return "Football"
-        case "pickup_baseball": return "Diamond"
-        case "pickup_tennis": return "Tennis"
-        case "pickup_golf": return "Golf"
-        case "pickup_hockey": return "Hockey"
-        case "running_fitness": return "Run"
-        case "combat_sports": return "Combat"
-        case "racing": return "Race"
-        case "meet_local_fans": return "Fans"
-        default:
-            return title.split(separator: " ").first.map(String.init) ?? title
+        if isSocial {
+            switch id {
+            case FanOpenToSocialID.watchParties: return "Watch"
+            case FanOpenToSocialID.sportsBars: return "Bars"
+            case FanOpenToSocialID.meetLocalFans: return "Fans"
+            default: return title
+            }
         }
+        let short = AppSportCatalog.displayLabel(forSportToken: id)
+        if short.count <= 10 { return short }
+        return String(short.prefix(8))
     }
 
     var openToCategory: PublicProfileOpenToCategory {
-        switch id {
-        case "watch_parties", "soccer_matches":
-            return .watch
-        case "meet_local_fans":
-            return .social
-        default:
-            return .play
+        if isSocial {
+            switch id {
+            case FanOpenToSocialID.watchParties, FanOpenToSocialID.sportsBars:
+                return .watch
+            default:
+                return .social
+            }
         }
+        return .play
     }
 }
 
 extension PublicUserProfileData {
     var editorialOpenToItems: [PublicProfileOpenToItem] {
         Array(openToItems.prefix(PublicProfileContentBuilder.maxPublicOpenToItems))
+    }
+}
+
+// MARK: - Two-column grid (mock layout)
+
+struct PublicProfileTwoColumnGrid: View {
+    let data: PublicUserProfileData
+    let colorScheme: ColorScheme
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
+            if let homeVenue = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
+                PublicProfileGridHomeCrowdCard(
+                    venue: homeVenue,
+                    mutualFansCount: data.mutualFansCount,
+                    mutualAvatars: data.mutualFanAvatars,
+                    memberSinceLabel: data.memberSinceLabel
+                )
+            }
+
+            if let gameday = PublicProfileContentBuilder.gamedayStatus(from: data, colorScheme: colorScheme) {
+                PublicProfileGridGamedayCard(status: gameday, favoriteTeams: data.favoriteTeams)
+            }
+
+            if !venuesForGrid.isEmpty {
+                PublicProfileGridVenuesCard(venues: venuesForGrid, totalCount: data.venueCount)
+            }
+
+            if !data.editorialOpenToItems.isEmpty {
+                PublicProfileGridOpenToCard(items: data.editorialOpenToItems)
+            }
+
+            let activity = PublicProfileContentBuilder.activityTimeline(from: data)
+            if !activity.isEmpty {
+                PublicProfileGridActivityCard(rows: activity)
+            }
+
+            if data.mutualFansCount > 0 {
+                PublicProfileGridMutualFansCard(
+                    count: data.mutualFansCount,
+                    avatars: data.mutualFanAvatars,
+                    sharedTeamNames: data.sharedTeamNames,
+                    sharedTeamsCount: data.sharedTeamsCount,
+                    favoriteTeams: data.favoriteTeams
+                )
+            }
+        }
+    }
+
+    private var venuesForGrid: [PublicProfileVenueCard] {
+        let extra = PublicProfileContentBuilder.venuesExcludingHomeCrowd(from: data)
+        if !extra.isEmpty { return extra }
+        if PublicProfileContentBuilder.homeCrowdVenue(from: data) != nil { return [] }
+        return data.venueCards
     }
 }
 
@@ -289,52 +345,72 @@ struct PublicProfileEditorialHero: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
                 avatar
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(data.displayName)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.8)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(data.displayName)
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+
+                        if data.reputation.privileges.isVerifiedOrganizer {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
+                        }
+                    }
 
                     Text(data.publicHandleLine)
-                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+                    if !data.reputation.profileSubtitle.isEmpty {
+                        Text(data.reputation.profileSubtitle)
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(0.92))
+                            .lineLimit(2)
+                    }
 
                     if !data.favoriteTeams.isEmpty {
                         favoriteTeamsStrip
+                            .padding(.top, 2)
                     }
-
-                    PublicProfilePremiumReputationPill(reputation: data.reputation)
-                        .padding(.top, 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 8) {
+                    if data.mutualFansCount > 0 {
+                        PublicProfileHeroStatCard(
+                            value: "\(data.mutualFansCount)",
+                            label: data.mutualFansCount == 1 ? "Mutual fan" : "Mutual fans",
+                            icon: "person.2.fill",
+                            tint: Color(red: 0.58, green: 0.36, blue: 0.92)
+                        )
+                    }
+                    PublicProfileHeroStatCard(
+                        value: data.reputation.title,
+                        label: "Fan reputation",
+                        icon: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill",
+                        tint: FGColor.accentGreen
+                    )
+                }
+                .frame(width: 108)
             }
 
             if let bio = data.bio, !bio.isEmpty {
                 Text(bio)
-                    .font(.system(size: 14, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.88))
-                    .lineSpacing(3)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.86))
+                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            if let memberSince = data.memberSinceLabel {
-                Text(memberSince)
-                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            }
         }
-        .padding(18)
-        .background(heroBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.65), lineWidth: 0.85)
-        }
-        .shadow(color: Color.black.opacity(0.07), radius: 20, y: 10)
+        .padding(14)
+        .publicProfileEditorialCard(cornerRadius: 22)
     }
 
     private var avatar: some View {
@@ -344,7 +420,7 @@ struct PublicProfileEditorialHero: View {
             avatarDisplayRefreshToken: UUID(),
             displayName: data.displayName,
             email: "",
-            size: 92,
+            size: 76,
             fallbackStyle: .lightOnWhiteChrome,
             imagePlaceholderTint: FGColor.accentBlue
         )
@@ -352,143 +428,76 @@ struct PublicProfileEditorialHero: View {
             Circle()
                 .strokeBorder(
                     LinearGradient(
-                        colors: [FGColor.accentBlue, FGColor.accentGreen, Color.white.opacity(0.9)],
+                        colors: [FGColor.accentBlue, FGColor.accentGreen],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 3
+                    lineWidth: 2.5
                 )
         }
-        .shadow(color: FGColor.accentBlue.opacity(0.22), radius: 12, y: 6)
+        .overlay(alignment: .bottomTrailing) {
+            Circle()
+                .fill(FGColor.accentGreen)
+                .frame(width: 14, height: 14)
+                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+                .offset(x: 2, y: 2)
+        }
     }
 
     private var favoriteTeamsStrip: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 4) {
             ForEach(data.favoriteTeams.prefix(5)) { team in
-                FavoriteTeamLogoBadge(team: team, diameter: 28)
+                FavoriteTeamLogoBadge(team: team, diameter: 26)
             }
             if data.favoriteTeams.count > 5 {
                 Text("+\(data.favoriteTeams.count - 5)")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(FGColor.divider(colorScheme).opacity(0.5)))
             }
-        }
-        .padding(.top, 2)
-    }
-
-    private var heroBackground: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.white.opacity(colorScheme == .dark ? 0.10 : 0.98),
-                    Color(red: 0.94, green: 0.97, blue: 1.0).opacity(colorScheme == .dark ? 0.08 : 0.92),
-                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.06 : 0.08)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            Circle()
-                .fill(FGColor.accentBlue.opacity(0.08))
-                .frame(width: 160, height: 160)
-                .offset(x: 120, y: -50)
-            Circle()
-                .fill(FGColor.accentGreen.opacity(0.07))
-                .frame(width: 120, height: 120)
-                .offset(x: -80, y: 60)
         }
     }
 }
 
-struct PublicProfilePremiumReputationPill: View {
-    let reputation: FanReputationProfile
+struct PublicProfileHeroStatCard: View {
+    let value: String
+    let label: String
+    let icon: String
+    let tint: Color
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill")
-                .font(.system(size: 10, weight: .bold))
-            Text(reputation.title.uppercased())
-                .font(.system(size: 10, weight: .heavy, design: .rounded))
-                .tracking(0.7)
+        VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .lineLimit(2)
         }
-        .foregroundStyle(
-            LinearGradient(
-                colors: [Color(red: 0.12, green: 0.62, blue: 0.42), FGColor.accentGreen],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        )
-        .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
         .background {
-            Capsule(style: .continuous)
-                .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.92))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.96))
                 .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(FGColor.accentGreen.opacity(0.35), lineWidth: 0.85)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.85), lineWidth: 0.75)
                 }
-        }
-        .shadow(color: FGColor.accentGreen.opacity(0.12), radius: 6, y: 3)
-    }
-}
-
-// MARK: - Gameday status
-
-struct PublicProfileGamedayStatusCard: View {
-    let status: PublicProfileGamedayStatus
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.18))
-                    .frame(width: 52, height: 52)
-                Image(systemName: status.systemImage)
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(status.title)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                if let subtitle = status.subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.88))
-                        .lineLimit(2)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let badge = status.badge, !badge.isEmpty {
-                Text(badge.uppercased())
-                    .font(.system(size: 9, weight: .heavy, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(Color.white.opacity(0.2)))
-            }
-        }
-        .padding(16)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: status.gradient,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: status.gradient.first?.opacity(0.35) ?? .clear, radius: 16, y: 8)
         }
     }
 }
 
-// MARK: - Home crowd
+// MARK: - Grid: Home crowd
 
-struct PublicProfileHomeCrowdCard: View {
+struct PublicProfileGridHomeCrowdCard: View {
     let venue: PublicProfileVenueCard
     let mutualFansCount: Int
     let mutualAvatars: [PublicProfileMutualFanAvatar]
@@ -498,53 +507,62 @@ struct PublicProfileHomeCrowdCard: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             venueHeroImage
-                .frame(height: 148)
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .frame(height: 188)
+                .clipped()
 
             LinearGradient(
-                colors: [.clear, Color.black.opacity(0.72)],
-                startPoint: .center,
+                colors: [.clear, Color.black.opacity(0.78)],
+                startPoint: .top,
                 endPoint: .bottom
             )
-            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 6) {
-                PublicProfileEditorialSectionTitle("Home Crowd", accent: .white.opacity(0.92))
+            VStack(alignment: .leading, spacing: 5) {
+                Text("HOME CROWD")
+                    .font(.system(size: 9, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color(red: 0.78, green: 0.62, blue: 1.0))
+                    .tracking(0.8)
 
                 Text(venue.venueName)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(2)
 
-                HStack(spacing: 8) {
-                    if let memberSinceLabel {
-                        Label(memberSinceLabel.replacingOccurrences(of: "Member since ", with: "Regular since "), systemImage: "calendar")
-                    } else {
-                        Label("Regular", systemImage: "heart.fill")
-                    }
-                }
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.88))
+                Text(regularLine)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.88))
+                    .lineLimit(1)
 
                 if mutualFansCount > 0 {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         overlappingAvatars
-                        Text(mutualLabel)
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.92))
+                        Text("+\(max(0, mutualFansCount - min(mutualAvatars.count, 4)))")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(Color.white.opacity(0.22)))
                     }
                     .padding(.top, 2)
                 }
             }
-            .padding(14)
+            .padding(10)
         }
-        .frame(maxWidth: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: Color.black.opacity(0.14), radius: 18, y: 10)
+        .frame(maxWidth: .infinity, minHeight: 188)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.75)
+        }
+        .shadow(color: Color.black.opacity(0.10), radius: 10, y: 5)
     }
 
-    private var mutualLabel: String {
-        mutualFansCount == 1 ? "1 mutual fan here" : "\(mutualFansCount) mutual fans"
+    private var regularLine: String {
+        if let memberSinceLabel {
+            let year = memberSinceLabel.replacingOccurrences(of: "Member since ", with: "")
+            return "Regular • Since \(year)"
+        }
+        return "Favorite spot"
     }
 
     @ViewBuilder
@@ -575,195 +593,188 @@ struct PublicProfileHomeCrowdCard: View {
     }
 
     private var overlappingAvatars: some View {
-        HStack(spacing: -10) {
-            ForEach(mutualAvatars.prefix(4)) { fan in
+        HStack(spacing: -8) {
+            ForEach(mutualAvatars.prefix(3)) { fan in
                 UserAvatarView(
                     avatarThumbnailURL: fan.avatarURL,
                     avatarURL: fan.avatarURL ?? "",
                     avatarDisplayRefreshToken: UUID(),
                     displayName: fan.displayName,
                     email: "",
-                    size: 28,
+                    size: 24,
                     fallbackStyle: .lightOnWhiteChrome,
                     imagePlaceholderTint: .white
                 )
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+                .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
             }
         }
     }
 }
 
-// MARK: - Personality
+// MARK: - Grid: Gameday
 
-struct PublicProfilePersonalityCard: View {
-    let tags: [String]
-    @Environment(\.colorScheme) private var colorScheme
-
-    private let columns = [GridItem(.adaptive(minimum: 96), spacing: 8)]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PublicProfileEditorialSectionTitle("Fan Personality", subtitle: "Their vibe on game day")
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                ForEach(tags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .frame(maxWidth: .infinity)
-                        .background {
-                            Capsule(style: .continuous)
-                                .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.94))
-                                .overlay {
-                                    Capsule(style: .continuous)
-                                        .strokeBorder(FGColor.accentBlue.opacity(0.28), lineWidth: 0.85)
-                                }
-                        }
-                }
-            }
-        }
-        .padding(14)
-        .publicProfileEditorialCard()
-    }
-}
-
-// MARK: - Open To
-
-struct PublicProfileOpenToEditorialCard: View {
-    let items: [PublicProfileOpenToItem]
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PublicProfileEditorialSectionTitle("Open To", subtitle: "What they're down for")
-
-            ForEach(PublicProfileContentBuilder.groupedOpenTo(items), id: \.0.rawValue) { category, bucket in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(category.rawValue.uppercased())
-                        .font(.system(size: 9, weight: .heavy, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
-                        .tracking(0.9)
-
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.flexible(), spacing: 10),
-                            GridItem(.flexible(), spacing: 10),
-                            GridItem(.flexible(), spacing: 10)
-                        ],
-                        spacing: 10
-                    ) {
-                        ForEach(bucket) { item in
-                            VStack(spacing: 8) {
-                                Image(systemName: item.systemImage)
-                                    .font(.system(size: 28, weight: .semibold))
-                                    .foregroundStyle(item.tint)
-                                    .frame(height: 32)
-
-                                Text(item.editorialShortTitle)
-                                    .font(.system(size: 10, weight: .heavy, design: .rounded))
-                                    .foregroundStyle(FGColor.primaryText(colorScheme))
-                                    .lineLimit(1)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(openToCellBackground(item))
-                        }
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .publicProfileEditorialCard()
-    }
-
-    private func openToCellBackground(_ item: PublicProfileOpenToItem) -> some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(
-                LinearGradient(
-                    colors: [
-                        item.tint.opacity(colorScheme == .dark ? 0.24 : 0.16),
-                        Color.white.opacity(colorScheme == .dark ? 0.06 : 0.94)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(item.tint.opacity(0.32), lineWidth: 0.85)
-            }
-    }
-}
-
-// MARK: - Sports moment placeholder
-
-struct PublicProfileSportsMomentCard: View {
-    let moment: PublicProfileSportsMoment
+struct PublicProfileGridGamedayCard: View {
+    let status: PublicProfileGamedayStatus
+    let favoriteTeams: [FavoriteTeam]
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            PublicProfileEditorialSectionTitle("Favorite Sports Moment")
-            Text(moment.headline)
+            Text("GAMEDAY STATUS")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color(red: 0.35, green: 0.78, blue: 0.48))
+                .tracking(0.8)
+
+            Text(status.title)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-            if let year = moment.yearLabel {
-                Text(year)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+
+            if let subtitle = status.subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 4)
+
+            HStack {
+                if let team = favoriteTeams.first {
+                    FavoriteTeamLogoBadge(team: team, diameter: 36)
+                } else {
+                    Image(systemName: status.systemImage)
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let badge = status.badge, !badge.isEmpty {
+                Label(badge, systemImage: "mappin.circle.fill")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.92))
+                    .lineLimit(1)
             }
         }
-        .padding(14)
-        .publicProfileEditorialCard()
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(LinearGradient(colors: status.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        .shadow(color: status.gradient.first?.opacity(0.28) ?? .clear, radius: 10, y: 5)
     }
 }
 
-// MARK: - Venues visited
+// MARK: - Grid: Open To
 
-struct PublicProfileVenuesVisitedCard: View {
+struct PublicProfileGridOpenToCard: View {
+    let items: [PublicProfileOpenToItem]
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let gridColumns = [
+        GridItem(.flexible(), spacing: 6),
+        GridItem(.flexible(), spacing: 6),
+        GridItem(.flexible(), spacing: 6)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("OPEN TO")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color(red: 0.98, green: 0.55, blue: 0.22))
+                .tracking(0.8)
+
+            LazyVGrid(columns: gridColumns, spacing: 8) {
+                ForEach(items) { item in
+                    VStack(spacing: 6) {
+                        Image(systemName: item.systemImage)
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(item.tint)
+                            .frame(height: 30)
+
+                        Text(item.openToGridLabel)
+                            .font(.system(size: 8.5, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.75)
+                            .frame(minHeight: 22)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .publicProfileEditorialCard(cornerRadius: 18)
+    }
+}
+
+extension PublicProfileOpenToItem {
+    var openToGridLabel: String {
+        if isSocial { return title }
+        return AppSportCatalog.displayLabel(forSportToken: id)
+    }
+}
+
+// MARK: - Grid: Venues visited
+
+struct PublicProfileGridVenuesCard: View {
     let venues: [PublicProfileVenueCard]
     let totalCount: Int
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PublicProfileEditorialSectionTitle("Venues Visited", subtitle: "Where they've been")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("VENUES VISITED")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
+                .tracking(0.8)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(venues.prefix(4)) { venue in
-                        venueTile(venue)
-                    }
-                    if totalCount > venues.count {
-                        moreTile(count: totalCount - venues.count)
-                    }
+            HStack(spacing: 8) {
+                ForEach(venues.prefix(3)) { venue in
+                    venueTile(venue)
+                }
+                let shown = min(3, venues.count)
+                if totalCount > shown {
+                    moreBubble(count: totalCount - shown)
                 }
             }
         }
-        .padding(14)
-        .publicProfileEditorialCard()
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .publicProfileEditorialCard(cornerRadius: 18)
     }
 
     private func venueTile(_ venue: PublicProfileVenueCard) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(spacing: 5) {
             venueImage(venue)
-                .frame(width: 88, height: 88)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(width: 56, height: 56)
+                .clipShape(Circle())
+                .overlay(Circle().strokeBorder(FGColor.divider(colorScheme), lineWidth: 0.75))
 
             Text(venue.venueName)
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(.system(size: 8.5, weight: .bold, design: .rounded))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
-                .lineLimit(1)
-                .frame(width: 88, alignment: .leading)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .frame(width: 62)
+        }
+        .frame(maxWidth: .infinity)
+    }
 
-            if !venue.cityLabel.isEmpty {
-                Text(venue.cityLabel)
-                    .font(.system(size: 9, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-                    .lineLimit(1)
-                    .frame(width: 88, alignment: .leading)
-            }
+    private func moreBubble(count: Int) -> some View {
+        VStack(spacing: 5) {
+            Text("+\(count)")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(width: 56, height: 56)
+                .background(Circle().fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.08)))
+            Text("more")
+                .font(.system(size: 8.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
         }
     }
 
@@ -791,67 +802,53 @@ struct PublicProfileVenuesVisitedCard: View {
         }
     }
 
-    private func moreTile(count: Int) -> some View {
-        VStack {
-            Text("+\(count)")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.accentBlue)
-            Text("more")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-        }
-        .frame(width: 88, height: 88)
-        .background {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.08))
-        }
-    }
 }
 
-// MARK: - Recent activity
+// MARK: - Grid: Recent activity
 
-struct PublicProfileRecentActivityCard: View {
+struct PublicProfileGridActivityCard: View {
     let rows: [PublicProfileActivityRow]
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            PublicProfileEditorialSectionTitle("Recent Activity")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("RECENT ACTIVITY")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.accentGreen)
+                .tracking(0.8)
 
             VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    HStack(alignment: .top, spacing: 10) {
+                ForEach(Array(rows.prefix(3).enumerated()), id: \.element.id) { index, row in
+                    HStack(alignment: .top, spacing: 8) {
                         Image(systemName: row.icon)
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(row.tint)
-                            .frame(width: 26, height: 26)
+                            .frame(width: 22, height: 22)
                             .background(Circle().fill(row.tint.opacity(0.14)))
 
                         Text(row.text)
-                            .font(.system(size: 12.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Spacer(minLength: 0)
                     }
-                    .padding(.vertical, 9)
+                    .padding(.vertical, 6)
 
-                    if index < rows.count - 1 {
-                        Divider()
-                            .padding(.leading, 36)
-                            .opacity(0.55)
+                    if index < min(rows.count, 3) - 1 {
+                        Divider().opacity(0.45)
                     }
                 }
             }
         }
-        .padding(14)
-        .publicProfileEditorialCard()
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .publicProfileEditorialCard(cornerRadius: 18)
     }
 }
 
-// MARK: - Mutual fans (premium)
+// MARK: - Grid: Mutual fans
 
-struct PublicProfileMutualFansEditorialCard: View {
+struct PublicProfileGridMutualFansCard: View {
     let count: Int
     let avatars: [PublicProfileMutualFanAvatar]
     let sharedTeamNames: [String]
@@ -860,46 +857,58 @@ struct PublicProfileMutualFansEditorialCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PublicProfileEditorialSectionTitle("Mutual Fans", subtitle: "Fans you both know")
+        VStack(alignment: .leading, spacing: 8) {
+            Text("\(count) MUTUAL FANS")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
+                .tracking(0.8)
 
-            HStack(alignment: .center, spacing: 14) {
-                overlappingAvatars
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(count) mutual")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+            HStack(spacing: -10) {
+                ForEach(avatars.prefix(4)) { fan in
+                    UserAvatarView(
+                        avatarThumbnailURL: fan.avatarURL,
+                        avatarURL: fan.avatarURL ?? "",
+                        avatarDisplayRefreshToken: UUID(),
+                        displayName: fan.displayName,
+                        email: "",
+                        size: 34,
+                        fallbackStyle: .lightOnWhiteChrome,
+                        imagePlaceholderTint: FGColor.accentBlue
+                    )
+                    .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+                }
+                if count > avatars.prefix(4).count {
+                    Text("+\(count - avatars.prefix(4).count)")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text("fans in common")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(FGColor.divider(colorScheme).opacity(0.6)))
+                        .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
                 }
             }
 
             if !sharedTeamLogos.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(sharedTeamLogos.prefix(4)) { team in
-                        FavoriteTeamLogoBadge(team: team, diameter: 32)
-                    }
-                    if sharedTeamsCount > sharedTeamLogos.count {
-                        Text("+\(sharedTeamsCount - sharedTeamLogos.count)")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                HStack(spacing: 4) {
+                    ForEach(sharedTeamLogos.prefix(3)) { team in
+                        FavoriteTeamLogoBadge(team: team, diameter: 26)
                     }
                 }
-            } else if !sharedTeamNames.isEmpty {
-                Text(sharedTeamNames.prefix(3).joined(separator: " · "))
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
 
             if sharedTeamsCount > 0 {
-                Text(sharedTeamsCount == 1 ? "You follow the same team" : "Shared fan energy across \(sharedTeamsCount) teams")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                Text(sharedTeamsCount == 1 ? "1 shared team" : "\(sharedTeamsCount) shared teams")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(FGColor.accentGreen)
+            } else if !sharedTeamNames.isEmpty {
+                Text(sharedTeamNames.prefix(2).joined(separator: " · "))
+                    .font(.system(size: 9.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(2)
             }
         }
-        .padding(14)
-        .publicProfileEditorialCard()
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+        .publicProfileEditorialCard(cornerRadius: 18)
     }
 
     private var sharedTeamLogos: [FavoriteTeam] {
@@ -911,24 +920,6 @@ struct PublicProfileMutualFansEditorialCard: View {
         }
     }
 
-    private var overlappingAvatars: some View {
-        HStack(spacing: -12) {
-            ForEach(avatars.prefix(5)) { fan in
-                UserAvatarView(
-                    avatarThumbnailURL: fan.avatarURL,
-                    avatarURL: fan.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
-                    displayName: fan.displayName,
-                    email: "",
-                    size: 40,
-                    fallbackStyle: .lightOnWhiteChrome,
-                    imagePlaceholderTint: FGColor.accentBlue
-                )
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2.5))
-                .shadow(color: Color.black.opacity(0.08), radius: 4, y: 2)
-            }
-        }
-    }
 }
 
 // MARK: - Action bar
@@ -983,9 +974,9 @@ struct PublicProfileSocialActionBar: View {
             }
             .foregroundStyle(pokeForeground)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(pokeBackground)
             )
             .overlay {
@@ -1008,9 +999,9 @@ struct PublicProfileSocialActionBar: View {
             }
             .foregroundStyle(filled ? .white : FGColor.accentGreen)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(filled ? FGColor.accentGreen : FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.10))
             )
         }
