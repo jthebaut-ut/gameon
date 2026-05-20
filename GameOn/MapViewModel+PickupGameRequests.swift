@@ -239,26 +239,48 @@ extension MapViewModel {
         let unique = Array(Set(gameIds))
         guard !unique.isEmpty else { return }
         do {
-            let rows: [PickupGameRequestRow] = try await supabase
-                .from("pickup_game_requests")
-                .select(pickupGameRequestsSelectColumns)
-                .eq("requester_user_id", value: uid.uuidString.lowercased())
-                .in("pickup_game_id", values: unique)
-                .order("updated_at", ascending: false)
-                .limit(800)
-                .execute()
-                .value
-            let latest = PickupGameRequestRow.pickupLatestRequestByGameId(rows)
-            for id in unique {
-                if latest[id] == nil {
-                    pickupMyLatestJoinRequestByGameId.removeValue(forKey: id)
-                }
-            }
-            for (k, v) in latest {
-                pickupMyLatestJoinRequestByGameId[k] = v
+            if let latest = try await fetchPickupMyJoinRequestsForDiscoverGames(gameIds: unique, userId: uid) {
+                applyPickupMyJoinRequestsForDiscoverGames(gameIds: unique, latest: latest)
             }
         } catch {
             // Leave existing cache; Discover still works.
+        }
+    }
+
+    func fetchPickupMyJoinRequestsForDiscoverGames(gameIds: [UUID]) async throws -> [UUID: PickupGameRequestRow]? {
+        guard let uid = currentUserAuthId, isAuthenticatedForSocialFeatures else { return nil }
+        return try await fetchPickupMyJoinRequestsForDiscoverGames(gameIds: gameIds, userId: uid)
+    }
+
+    private func fetchPickupMyJoinRequestsForDiscoverGames(
+        gameIds: [UUID],
+        userId: UUID
+    ) async throws -> [UUID: PickupGameRequestRow]? {
+        let unique = Array(Set(gameIds))
+        guard !unique.isEmpty else { return [:] }
+        let rows: [PickupGameRequestRow] = try await supabase
+            .from("pickup_game_requests")
+            .select(pickupGameRequestsSelectColumns)
+            .eq("requester_user_id", value: userId.uuidString.lowercased())
+            .in("pickup_game_id", values: unique)
+            .order("updated_at", ascending: false)
+            .limit(800)
+            .execute()
+            .value
+        return PickupGameRequestRow.pickupLatestRequestByGameId(rows)
+    }
+
+    func applyPickupMyJoinRequestsForDiscoverGames(
+        gameIds: [UUID],
+        latest: [UUID: PickupGameRequestRow]
+    ) {
+        for id in Array(Set(gameIds)) {
+            if latest[id] == nil {
+                pickupMyLatestJoinRequestByGameId.removeValue(forKey: id)
+            }
+        }
+        for (k, v) in latest {
+            pickupMyLatestJoinRequestByGameId[k] = v
         }
     }
 

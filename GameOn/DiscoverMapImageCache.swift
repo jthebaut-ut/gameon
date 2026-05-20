@@ -71,6 +71,16 @@ actor DiscoverMapImageCache {
             _ = await image(for: url)
         }
     }
+
+    func invalidate(urls: [URL]) {
+        for url in urls {
+            storage.removeValue(forKey: url)
+            inFlight[url]?.cancel()
+            inFlight.removeValue(forKey: url)
+        }
+        let removed = Set(urls)
+        order.removeAll { removed.contains($0) }
+    }
 }
 
 /// Loads a remote image with RAM cache; keeps layout stable with an intentional placeholder (non-blocking).

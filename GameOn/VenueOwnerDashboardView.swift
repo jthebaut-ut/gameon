@@ -431,6 +431,7 @@ struct VenueOwnerDashboardView: View {
         .onChange(of: selectedCoverPhoto) { _, newItem in
             Task {
                 guard let newItem else { return }
+                print("[VenuePhotoSaveDebug] pickedImage=true")
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
                     await MainActor.run {
@@ -463,6 +464,7 @@ struct VenueOwnerDashboardView: View {
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
                 guard let newItem else { return }
+                print("[VenuePhotoSaveDebug] pickedImage=true")
                 if let data = try? await newItem.loadTransferable(type: Data.self),
                    let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
                     await MainActor.run {

@@ -396,7 +396,7 @@ struct AddBusinessLocationRequestSheet: View {
                     print("[AddLocationForm] photo selected type=bar")
 #endif
                     if let data = try? await item.loadTransferable(type: Data.self),
-                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg") {
+                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "cover.jpg", assignToCurrentVenueProfile: false) {
                         await MainActor.run {
                             form.coverPhotoURL = url
                             form.displayedCoverPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)
@@ -422,7 +422,7 @@ struct AddBusinessLocationRequestSheet: View {
                     print("[AddLocationForm] photo selected type=menu")
 #endif
                     if let data = try? await item.loadTransferable(type: Data.self),
-                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg") {
+                       let url = await viewModel.uploadVenuePhoto(data: data, fileName: "menu.jpg", assignToCurrentVenueProfile: false) {
                         await MainActor.run {
                             form.menuPhotoURL = url
                             form.displayedMenuPhotoURL = VenueOwnerPhotoPickerCopy.urlWithCacheBust(url)

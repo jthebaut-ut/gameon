@@ -270,12 +270,15 @@ extension MapViewModel {
         }
 
         isLoadingPickupGamesForMap = true
-        defer { isLoadingPickupGamesForMap = false }
 
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: selectedDate)
+        let requestSport = selectedSport
+        let requestID = UUID()
+        pickupDiscoverEnrichmentRequestID = requestID
         guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else {
             pickupGamesForDiscoverMap = []
+            isLoadingPickupGamesForMap = false
             markPickupDiscoverMapDataDirtyForNextRefresh()
             return
         }
@@ -297,8 +300,8 @@ extension MapViewModel {
                 .eq("status", value: "active")
                 .eq("is_visible", value: true)
 
-            if selectedSport != "All" {
-                query = query.eq("sport", value: selectedSport)
+            if requestSport != "All" {
+                query = query.eq("sport", value: requestSport)
             }
 
             let rows: [PickupGameRow] = try await query
@@ -318,7 +321,7 @@ extension MapViewModel {
                     dropParseStart += 1
                     continue
                 }
-                if !cal.isDate(start, inSameDayAs: selectedDate) {
+                if !cal.isDate(start, inSameDayAs: dayStart) {
                     dropWrongDay += 1
                     continue
                 }
@@ -340,16 +343,16 @@ extension MapViewModel {
             }
 
 #if DEBUG
-            let sportFilter = selectedSport == "All" ? "(none)" : selectedSport
+            let sportFilter = requestSport == "All" ? "(none)" : requestSport
             print(
-                "[DiscoverPickupDiag] op=mapRefreshDay table=pickup_games selectedCalendarDay=\(pickupDebugYMD(selectedDate)) dayStartISO=\(startISO) dayEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(selectedSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) afterClientFilterCount=\(filtered.count) clientDrop_parseStart=\(dropParseStart) wrongDay=\(dropWrongDay) removeAfterPast=\(dropRemoveAfterPast) notVisible=\(dropNotVisible) full=\(dropFull)"
+                "[DiscoverPickupDiag] op=mapRefreshDay table=pickup_games selectedCalendarDay=\(pickupDebugYMD(dayStart)) dayStartISO=\(startISO) dayEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(requestSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) afterClientFilterCount=\(filtered.count) clientDrop_parseStart=\(dropParseStart) wrongDay=\(dropWrongDay) removeAfterPast=\(dropRemoveAfterPast) notVisible=\(dropNotVisible) full=\(dropFull)"
             )
             print("[DiscoverPickupDiag] NOTE map query uses same remove_after_at OR-null filter as calendar dots.")
             for (i, row) in rows.prefix(5).enumerated() {
                 let tit = row.title.replacingOccurrences(of: "\n", with: " ")
                 print("[DiscoverPickupDiag] mapRawRow[\(i)] id=\(row.id.uuidString) title=\(tit) sport=\(row.sport) game_start_at=\(row.game_start_at) status=\(row.status) is_visible=\(row.is_visible) remove_after_at=\(row.remove_after_at ?? "nil")")
             }
-            print("[DiscoverPickupPublic] selectedDayRawPickupRows=\(rows.count) sport=\(selectedSport) dayStartISO=\(startISO)")
+            print("[DiscoverPickupPublic] selectedDayRawPickupRows=\(rows.count) sport=\(requestSport) dayStartISO=\(startISO)")
             if rows.isEmpty {
                 do {
                     let probe = try await supabase
@@ -370,6 +373,9 @@ extension MapViewModel {
 
             pickupGamesForDiscoverMap = filtered
             pickupDiscoverCoordinatorDirty = false
+            isLoadingPickupGamesForMap = false
+            print("[PickupPerf] coreRowsPublished count=\(filtered.count)")
+            print("[PickupPerf] primaryLoadingClearedBeforeEnrichment=true")
             if !preservePickupCalendarDotDatesCache {
                 pickupGameCalendarDotDatesCache.removeAll()
             }
@@ -377,23 +383,109 @@ extension MapViewModel {
             if let sel = selectedPickupGameForMap, !filtered.contains(where: { $0.id == sel.id }) {
                 clearPickupMapSelection()
             }
-            if isAuthenticatedForSocialFeatures {
-                await refreshPickupMyJoinRequestsForDiscoverGames(gameIds: filtered.map(\.id))
-                await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
-            }
-            if !isGuestDiscoverMode {
-                await loadPickupCreatorProfilesIfNeeded(creatorUserIds: Set(filtered.map(\.creator_user_id)))
+            let gameIDs = filtered.map(\.id)
+            let creatorIDs = Set(filtered.map(\.creator_user_id))
+            Task { @MainActor [weak self] in
+                await self?.runPickupDiscoverEnrichmentAfterCorePublish(
+                    gameIDs: gameIDs,
+                    creatorUserIDs: creatorIDs,
+                    requestID: requestID,
+                    selectedDay: dayStart,
+                    selectedSport: requestSport
+                )
             }
             if isGuestDiscoverMode, filtered.isEmpty {
                 loadDiscoverCalendarDots(around: selectedDate, reason: "pickup_map_refresh_guest_empty_day")
             }
             invalidateCalendarTabEventsListCache()
         } catch {
+            isLoadingPickupGamesForMap = false
 #if DEBUG
             print("[PickupGames] refreshDiscover failed:", error)
 #endif
             markPickupDiscoverMapDataDirtyForNextRefresh()
         }
+    }
+
+    private func pickupDiscoverEnrichmentIsCurrent(
+        requestID: UUID,
+        selectedDay: Date,
+        selectedSport: String
+    ) -> Bool {
+        pickupDiscoverEnrichmentRequestID == requestID &&
+            Calendar.current.isDate(selectedDate, inSameDayAs: selectedDay) &&
+            self.selectedSport == selectedSport
+    }
+
+    private func runPickupDiscoverEnrichmentAfterCorePublish(
+        gameIDs: [UUID],
+        creatorUserIDs: Set<UUID>,
+        requestID: UUID,
+        selectedDay: Date,
+        selectedSport: String
+    ) async {
+        guard pickupDiscoverEnrichmentIsCurrent(
+            requestID: requestID,
+            selectedDay: selectedDay,
+            selectedSport: selectedSport
+        ) else {
+            print("[PickupPerf] enrichmentDiscarded reason=staleRequest")
+            return
+        }
+
+        print("[PickupPerf] enrichmentStarted count=\(gameIDs.count)")
+
+        if isAuthenticatedForSocialFeatures {
+            do {
+                if let latest = try await fetchPickupMyJoinRequestsForDiscoverGames(gameIds: gameIDs) {
+                    guard pickupDiscoverEnrichmentIsCurrent(
+                        requestID: requestID,
+                        selectedDay: selectedDay,
+                        selectedSport: selectedSport
+                    ) else {
+                        print("[PickupPerf] enrichmentDiscarded reason=staleRequest")
+                        return
+                    }
+                    applyPickupMyJoinRequestsForDiscoverGames(gameIds: gameIDs, latest: latest)
+                }
+            } catch {
+                #if DEBUG
+                print("[PickupGames] discover enrichment join requests failed:", error)
+                #endif
+            }
+
+            guard pickupDiscoverEnrichmentIsCurrent(
+                requestID: requestID,
+                selectedDay: selectedDay,
+                selectedSport: selectedSport
+            ) else {
+                print("[PickupPerf] enrichmentDiscarded reason=staleRequest")
+                return
+            }
+            await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
+        }
+
+        guard pickupDiscoverEnrichmentIsCurrent(
+            requestID: requestID,
+            selectedDay: selectedDay,
+            selectedSport: selectedSport
+        ) else {
+            print("[PickupPerf] enrichmentDiscarded reason=staleRequest")
+            return
+        }
+        if !isGuestDiscoverMode {
+            await loadPickupCreatorProfilesIfNeeded(creatorUserIds: creatorUserIDs)
+        }
+
+        guard pickupDiscoverEnrichmentIsCurrent(
+            requestID: requestID,
+            selectedDay: selectedDay,
+            selectedSport: selectedSport
+        ) else {
+            print("[PickupPerf] enrichmentDiscarded reason=staleRequest")
+            return
+        }
+        print("[PickupPerf] enrichmentCompleted")
     }
 
     func loadMyPickupGamesForSettings() async {

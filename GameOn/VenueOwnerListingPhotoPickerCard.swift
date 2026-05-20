@@ -9,11 +9,8 @@ enum VenueOwnerPhotoPickerCopy {
         "Photos are chosen only when you tap here. If the picker is empty, check Photo Library access for FanGeo in Settings."
 
     static func urlWithCacheBust(_ cleanBase: String) -> String {
-        let t = String(Date().timeIntervalSince1970)
         let trimmed = cleanBase.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
-        let sep = trimmed.contains("?") ? "&" : "?"
-        return "\(trimmed)\(sep)v=\(t)"
+        return trimmed
     }
 
     /// Uses the same `v` query as the full-size preview URL so thumbnail previews refresh together.

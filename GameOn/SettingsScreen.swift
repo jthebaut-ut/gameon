@@ -161,9 +161,20 @@ struct SettingsScreen: View {
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireFaceIDForPrivateChat = true
 
     private var appearancePreference: FanGeoAppearancePreference {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
+    }
+
+    private var privateChatFaceIDBinding: Binding<Bool> {
+        Binding(
+            get: { requireFaceIDForPrivateChat },
+            set: { newValue in
+                requireFaceIDForPrivateChat = newValue
+                print("[PrivateChatSecurityDebug] settingChanged=\(newValue)")
+            }
+        )
     }
 
     private var liveVisibilityBinding: Binding<Bool> {
@@ -1052,31 +1063,48 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func profileSettingsPrivacySection() -> some View {
-        if canShowLiveActivitySharing {
+        if viewModel.isLoggedIn || canShowLiveActivitySharing {
             Section {
                 settingsSectionCard {
-                    settingsToggleRow(
-                        title: "Allow other fans to discover me",
-                        subtitle: "Lets FanGeo suggest your profile to other fans with shared teams, venues, or games.",
-                        systemImage: "person.crop.circle.badge.checkmark",
-                        isOn: profileDiscoverabilityBinding,
-                        isUpdating: viewModel.isUpdatingProfileDiscoverabilitySetting,
-                        tint: FGColor.accentBlue
-                    )
-
-                    settingsRowDivider()
-
-                    Button {
-                        profileSettingsPath.append(ProfileSettingsRoute.liveActivitySharing)
-                    } label: {
-                        settingsRow(title: "Live Activity Sharing", subtitle: liveSharingModeSubtitle, systemImage: "person.2.wave.2.fill", showsChevron: true)
+                    if viewModel.isLoggedIn {
+                        settingsToggleRow(
+                            title: "Require Face ID for Private Chat",
+                            subtitle: "When enabled, FanGeo asks for Face ID before opening private messages.",
+                            systemImage: "faceid",
+                            isOn: privateChatFaceIDBinding,
+                            isUpdating: false,
+                            tint: FGColor.accentBlue
+                        )
                     }
-                    .buttonStyle(.plain)
+
+                    if viewModel.isLoggedIn && canShowLiveActivitySharing {
+                        settingsRowDivider()
+                    }
+
+                    if canShowLiveActivitySharing {
+                        settingsToggleRow(
+                            title: "Allow other fans to discover me",
+                            subtitle: "Lets FanGeo suggest your profile to other fans with shared teams, venues, or games.",
+                            systemImage: "person.crop.circle.badge.checkmark",
+                            isOn: profileDiscoverabilityBinding,
+                            isUpdating: viewModel.isUpdatingProfileDiscoverabilitySetting,
+                            tint: FGColor.accentBlue
+                        )
+
+                        settingsRowDivider()
+
+                        Button {
+                            profileSettingsPath.append(ProfileSettingsRoute.liveActivitySharing)
+                        } label: {
+                            settingsRow(title: "Live Activity Sharing", subtitle: liveSharingModeSubtitle, systemImage: "person.2.wave.2.fill", showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
                 .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
                 .listRowBackground(Color.clear)
             } header: {
-                settingsSectionHeader("Privacy & Social")
+                settingsSectionHeader("Privacy & Security")
             }
         }
     }
@@ -3262,7 +3290,17 @@ private struct SettingsUserSection: View {
 // MARK: - Private chat (local device lock)
 
 private struct SettingsPrivateChatDeviceAuthCard: View {
-    @AppStorage("gameon.require_device_auth_for_private_chat") private var requireDeviceAuthForPrivateChat = true
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = true
+
+    private var requireFaceIDBinding: Binding<Bool> {
+        Binding(
+            get: { requireDeviceAuthForPrivateChat },
+            set: { newValue in
+                requireDeviceAuthForPrivateChat = newValue
+                print("[PrivateChatSecurityDebug] settingChanged=\(newValue)")
+            }
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -3270,10 +3308,10 @@ private struct SettingsPrivateChatDeviceAuthCard: View {
                 .font(.headline)
                 .fontWeight(.bold)
 
-            Toggle("Require Face ID / passcode for private messages", isOn: $requireDeviceAuthForPrivateChat)
+            Toggle("Require Face ID for Private Chat", isOn: requireFaceIDBinding)
                 .font(.subheadline)
 
-            Text("When on, FanGeo asks for Face ID, Touch ID, or your device passcode before opening the Chat tab. This stays on your device only.")
+            Text("When enabled, FanGeo asks for Face ID before opening private messages.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

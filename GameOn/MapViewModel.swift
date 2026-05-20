@@ -152,10 +152,16 @@ final class MapViewModel: ObservableObject {
     @Published var openVenueOwnerAuthSheetFromClaimFlow: Bool = false
     @Published var venueCoverPhotoURL = ""
     @Published var venueCoverPhotoThumbnailURL = ""
+    var pendingVenueCoverPhotoVenueID: UUID?
+    var pendingVenueCoverPhotoURL: String?
+    var pendingVenueCoverPhotoThumbnailURL: String?
     @Published var venueCrowdPhotoURL = ""
     @Published var venueTVWallPhotoURL = ""
     @Published var venueMenuPhotoURL = ""
     @Published var venueMenuPhotoThumbnailURL = ""
+    var pendingVenueMenuPhotoVenueID: UUID?
+    var pendingVenueMenuPhotoURL: String?
+    var pendingVenueMenuPhotoThumbnailURL: String?
     @Published var venueSpecialsPhotoURL = ""
     @Published var ownerVenueScreenCount: Int = 1
     @Published var ownerVenueServesFood: Bool = false
@@ -736,6 +742,7 @@ final class MapViewModel: ObservableObject {
     var pickupCalendarDotLoadRequestID: UUID?
     /// Serializes overlapping ``refreshPickupGamesForDiscoverMap`` calls so calendar open + dot preload do not stack duplicate Supabase fetches.
     var refreshPickupGamesForDiscoverMapCoalescingTask: Task<Void, Never>?
+    var pickupDiscoverEnrichmentRequestID: UUID?
     var mapStatusDismissTask: Task<Void, Never>?
     var socialActionToastDismissTask: Task<Void, Never>?
 

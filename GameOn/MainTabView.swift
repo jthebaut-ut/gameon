@@ -13,7 +13,7 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
 
-    @AppStorage("gameon.require_device_auth_for_private_chat") private var requireDeviceAuthForPrivateChat = true
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = true
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
     @State private var showBlockingFanIdentitySetup = false
@@ -86,6 +86,7 @@ struct MainTabView: View {
             .onAppear {
                 guard !didRunInitialPrivateChatTabGate else { return }
                 didRunInitialPrivateChatTabGate = true
+                print("[PrivateChatSecurityDebug] requireFaceIDSetting=\(requireDeviceAuthForPrivateChat)")
                 Task { await enforcePrivateChatGateOnLaunchIfNeeded() }
             }
     }
@@ -250,18 +251,10 @@ struct MainTabView: View {
 #endif
         }
         .onChange(of: chatViewModel.pendingDmOpenPreview) { _, preview in
-            guard preview != nil else { return }
-            if requireDeviceAuthForPrivateChat && viewModel.isAuthenticatedForSocialFeatures {
-                Task { await selectChatTabAfterDeviceAuth() }
-            } else {
-                privateChatUnlockedForCurrentSelection = true
-                selectTab(.chat, reason: "pendingDmOpenPreview")
-                updateDirectChatReadStateVisibility()
-            }
+            handlePendingDmOpenPreviewChange(preview)
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            Task { await handleAppBecameActive() }
+            handleScenePhaseChange(phase)
         }
         .onChange(of: viewModel.discoverNavigateToAccountForUserAuth) { _, go in
             guard go else { return }
@@ -345,13 +338,46 @@ struct MainTabView: View {
         }
     }
 
+    private func handlePendingDmOpenPreviewChange(_ preview: UserPreview?) {
+        guard preview != nil else { return }
+        if requireDeviceAuthForPrivateChat && viewModel.isAuthenticatedForSocialFeatures {
+            Task { await selectChatTabAfterDeviceAuth() }
+        } else {
+            if !requireDeviceAuthForPrivateChat {
+                print("[PrivateChatSecurityDebug] biometricPromptSkippedReason=settingDisabled")
+            }
+            privateChatUnlockedForCurrentSelection = true
+            selectTab(.chat, reason: "pendingDmOpenPreview")
+            updateDirectChatReadStateVisibility()
+        }
+    }
+
+    private func handleScenePhaseChange(_ phase: ScenePhase) {
+        guard phase == .active else {
+            if requireDeviceAuthForPrivateChat {
+                privateChatUnlockedForCurrentSelection = false
+                updateDirectChatReadStateVisibility()
+            }
+            return
+        }
+        Task { await handleAppBecameActive() }
+    }
+
     /// Scene restore: if the saved tab is Chat, require local auth or bounce away from private messages.
     private func enforcePrivateChatGateOnLaunchIfNeeded() async {
         guard selectedTab == .chat else { return }
         mountTab(.chat, reason: "enforcePrivateChatGateOnLaunch")
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
-        guard requireDeviceAuthForPrivateChat else { return }
+        guard requireDeviceAuthForPrivateChat else {
+            print("[PrivateChatSecurityDebug] biometricPromptSkippedReason=settingDisabled")
+            await MainActor.run {
+                privateChatUnlockedForCurrentSelection = true
+                updateDirectChatReadStateVisibility()
+            }
+            return
+        }
 
+        print("[PrivateChatSecurityDebug] biometricPromptRequired=true")
         let outcome = await PrivateChatAccessGate.authenticateForPrivateChat()
         if outcome == .granted {
             await MainActor.run {
@@ -390,6 +416,7 @@ struct MainTabView: View {
         }
 
         guard requireDeviceAuthForPrivateChat else {
+            print("[PrivateChatSecurityDebug] biometricPromptSkippedReason=settingDisabled")
             await MainActor.run {
                 privateChatUnlockedForCurrentSelection = true
                 selectTab(.chat, reason: "selectChatTabAfterDeviceAuth")
@@ -398,6 +425,7 @@ struct MainTabView: View {
             return
         }
 
+        print("[PrivateChatSecurityDebug] biometricPromptRequired=true")
         let outcome = await PrivateChatAccessGate.authenticateForPrivateChat()
         await MainActor.run {
             switch outcome {
@@ -981,6 +1009,7 @@ struct MainTabView: View {
             if hadChatRealtime {
                 chatViewModel.scheduleEnsureSocialRealtimeAfterForeground()
             }
+            await enforcePrivateChatGateOnLaunchIfNeeded()
         }
 
         if hasOpenVenueEventCommentsSheet {

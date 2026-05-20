@@ -69,6 +69,18 @@ extension MapViewModel {
         return fullFileName + "_thumb.jpg"
     }
 
+    private static func versionedVenuePhotoFileName(for fileName: String) -> String {
+        let trimmed = fileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = trimmed.isEmpty ? "venue.jpg" : trimmed
+        let version = Int(Date().timeIntervalSince1970 * 1000)
+        if let dot = source.lastIndex(of: "."), dot < source.endIndex {
+            let base = String(source[..<dot])
+            let ext = String(source[source.index(after: dot)...])
+            return "\(base)-\(version).\(ext)"
+        }
+        return "\(source)-\(version).jpg"
+    }
+
     /// True when ``auth.signUp`` failed because the email is already registered (wording varies by Supabase / network).
     private static func isVenueOwnerSignupDuplicateEmailError(_ message: String) -> Bool {
         let m = message
@@ -221,7 +233,7 @@ extension MapViewModel {
             currentUserAuthId = ownerUserId
         }
 
-        guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg") else {
+        guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
 #if DEBUG
             print("[BusinessSignup] cover upload failed post-auth (uploadVenuePhoto returned nil; see ERROR UPLOADING PHOTO log above) cover_upload_url_exists=false")
 #endif
@@ -239,7 +251,7 @@ extension MapViewModel {
 
         var menuPublic = ""
         if let menuData = menuPhotoJPEGData, !menuData.isEmpty {
-            menuPublic = (await uploadVenuePhoto(data: menuData, fileName: "menu.jpg")) ?? ""
+            menuPublic = (await uploadVenuePhoto(data: menuData, fileName: "menu.jpg", assignToCurrentVenueProfile: false)) ?? ""
         }
 
 #if DEBUG
@@ -1796,10 +1808,68 @@ extension MapViewModel {
         ownerVenueHasGarden = saved.has_garden ?? false
         ownerVenueHasProjector = saved.has_projector ?? false
         ownerVenuePetFriendly = saved.pet_friendly ?? false
-        venueCoverPhotoURL = saved.cover_photo_url ?? ""
-        venueMenuPhotoURL = saved.menu_photo_url ?? ""
-        venueCoverPhotoThumbnailURL = saved.cover_photo_thumbnail_url ?? ""
-        venueMenuPhotoThumbnailURL = saved.menu_photo_thumbnail_url ?? ""
+        let savedCover = saved.cover_photo_url ?? ""
+        let savedCoverThumb = saved.cover_photo_thumbnail_url ?? ""
+        let coverPendingMatchesVenue = pendingVenueCoverPhotoVenueID == nil || pendingVenueCoverPhotoVenueID == saved.id
+        if let pending = pendingVenueCoverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+           coverPendingMatchesVenue,
+           !pending.isEmpty,
+           pending != savedCover {
+            venueCoverPhotoURL = pending
+            venueCoverPhotoThumbnailURL = pendingVenueCoverPhotoThumbnailURL ?? savedCoverThumb
+            print("[VenuePhotoSaveDebug] stalePhotoOverwritePrevented=true")
+        } else {
+            venueCoverPhotoURL = savedCover
+            venueCoverPhotoThumbnailURL = savedCoverThumb
+            if pendingVenueCoverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) == savedCover {
+                pendingVenueCoverPhotoVenueID = nil
+                pendingVenueCoverPhotoURL = nil
+                pendingVenueCoverPhotoThumbnailURL = nil
+            }
+        }
+
+        let savedMenu = saved.menu_photo_url ?? ""
+        let savedMenuThumb = saved.menu_photo_thumbnail_url ?? ""
+        let menuPendingMatchesVenue = pendingVenueMenuPhotoVenueID == nil || pendingVenueMenuPhotoVenueID == saved.id
+        if let pending = pendingVenueMenuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines),
+           menuPendingMatchesVenue,
+           !pending.isEmpty,
+           pending != savedMenu {
+            venueMenuPhotoURL = pending
+            venueMenuPhotoThumbnailURL = pendingVenueMenuPhotoThumbnailURL ?? savedMenuThumb
+            print("[VenuePhotoSaveDebug] stalePhotoOverwritePrevented=true")
+        } else {
+            venueMenuPhotoURL = savedMenu
+            venueMenuPhotoThumbnailURL = savedMenuThumb
+            if pendingVenueMenuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) == savedMenu {
+                pendingVenueMenuPhotoVenueID = nil
+                pendingVenueMenuPhotoURL = nil
+                pendingVenueMenuPhotoThumbnailURL = nil
+            }
+        }
+    }
+
+    func updateManagedVenueProfileCaches(_ saved: VenueProfileRow) {
+        guard let savedId = saved.id else { return }
+        var updated = false
+        ownedBusinessVenues = ownedBusinessVenues.map { row in
+            if row.id == savedId {
+                updated = true
+                return saved
+            }
+            return row
+        }
+        legacyOwnerVenuesForEmailFallback = legacyOwnerVenuesForEmailFallback.map { row in
+            if row.id == savedId {
+                updated = true
+                return saved
+            }
+            return row
+        }
+        if !updated, ownedBusinessVenues.isEmpty {
+            legacyOwnerVenuesForEmailFallback.append(saved)
+        }
+        print("[VenuePhotoSaveDebug] cacheUpdatedPhotoURL=\(saved.cover_photo_url ?? "")")
     }
 
     /// User picked a venue from the switcher; persists selection and reloads profile + games lists (DEBUG logs).
@@ -2433,6 +2503,7 @@ extension MapViewModel {
                     .execute()
                     .value
                 if let row = byId.first {
+                    print("[VenuePhotoSaveDebug] reloadPhotoURL=\(row.cover_photo_url ?? "")")
                     return row
                 }
                 return nil
@@ -2452,7 +2523,9 @@ extension MapViewModel {
                 .limit(1)
                 .execute()
                 .value
-
+            if let row = rows.first {
+                print("[VenuePhotoSaveDebug] reloadPhotoURL=\(row.cover_photo_url ?? "")")
+            }
             return rows.first
 
         } catch {
@@ -2484,8 +2557,22 @@ extension MapViewModel {
             let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
             guard OwnerBusinessEmail.isValidStrict(ownerEmailRow) else { return false }
 
-            let coverThumb = venueCoverPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
-            let menuThumb = venueMenuPhotoThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            let pendingCoverMatchesSelectedVenue = pendingVenueCoverPhotoVenueID == nil || pendingVenueCoverPhotoVenueID == ownerVenueDatabaseId
+            let pendingMenuMatchesSelectedVenue = pendingVenueMenuPhotoVenueID == nil || pendingVenueMenuPhotoVenueID == ownerVenueDatabaseId
+            let pendingCoverForSave = pendingCoverMatchesSelectedVenue ? pendingVenueCoverPhotoURL : nil
+            let pendingMenuForSave = pendingMenuMatchesSelectedVenue ? pendingVenueMenuPhotoURL : nil
+            let pendingCoverThumbForSave = pendingCoverMatchesSelectedVenue ? pendingVenueCoverPhotoThumbnailURL : nil
+            let pendingMenuThumbForSave = pendingMenuMatchesSelectedVenue ? pendingVenueMenuPhotoThumbnailURL : nil
+            let coverPhotoURLForSave = (pendingCoverForSave ?? venueCoverPhotoURL)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let menuPhotoURLForSave = (pendingMenuForSave ?? venueMenuPhotoURL)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let coverThumb = (pendingCoverThumbForSave ?? venueCoverPhotoThumbnailURL)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let menuThumb = (pendingMenuThumbForSave ?? venueMenuPhotoThumbnailURL)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            print("[VenuePhotoSaveDebug] pendingPhotoURL=\(pendingVenueCoverPhotoURL ?? "")")
+            print("[VenuePhotoSaveDebug] savePayloadPhotoURL=\(coverPhotoURLForSave)")
 
             let phoneForSave = BusinessPhoneFields.combinedStorage(
                 iso: ownerVenuePhoneDialISO,
@@ -2517,8 +2604,8 @@ extension MapViewModel {
                     has_garden: hasGarden,
                     has_projector: hasProjector,
                     pet_friendly: petFriendly,
-                    cover_photo_url: venueCoverPhotoURL,
-                    menu_photo_url: venueMenuPhotoURL,
+                    cover_photo_url: coverPhotoURLForSave,
+                    menu_photo_url: menuPhotoURLForSave,
                     cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
                     menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
                 )
@@ -2635,8 +2722,8 @@ extension MapViewModel {
                     pet_friendly: petFriendly,
                     latitude: coordinate?.latitude,
                     longitude: coordinate?.longitude,
-                    cover_photo_url: venueCoverPhotoURL,
-                    menu_photo_url: venueMenuPhotoURL,
+                    cover_photo_url: coverPhotoURLForSave,
+                    menu_photo_url: menuPhotoURLForSave,
                     cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
                     menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
                 )
@@ -2667,8 +2754,8 @@ extension MapViewModel {
                         pet_friendly: petFriendly,
                         latitude: coordinate?.latitude,
                         longitude: coordinate?.longitude,
-                        cover_photo_url: venueCoverPhotoURL,
-                        menu_photo_url: venueMenuPhotoURL,
+                        cover_photo_url: coverPhotoURLForSave,
+                        menu_photo_url: menuPhotoURLForSave,
                         cover_photo_thumbnail_url: coverThumb.isEmpty ? nil : coverThumb,
                         menu_photo_thumbnail_url: menuThumb.isEmpty ? nil : menuThumb
                     )
@@ -2693,6 +2780,13 @@ extension MapViewModel {
 
             print("VENUE PROFILE SAVED")
             await loadVenuesFromSupabase(forceRefresh: true)
+            if let saved = await loadVenueProfile() {
+                await MainActor.run {
+                    updateManagedVenueProfileCaches(saved)
+                    applyVenueProfileRowToOwnerState(saved)
+                }
+                print("[VenuePhotoSaveDebug] savedDatabasePhotoURL=\(saved.cover_photo_url ?? "")")
+            }
             return true
 
         } catch {
@@ -2704,7 +2798,7 @@ extension MapViewModel {
     }
 
     // Uploads full + thumbnail JPEGs under the owner’s email folder in `venue-photos`; returns the full image public URL.
-    func uploadVenuePhoto(data: Data, fileName: String) async -> String? {
+    func uploadVenuePhoto(data: Data, fileName: String, assignToCurrentVenueProfile: Bool = true) async -> String? {
         do {
             let session = try? await supabase.auth.session
             print("CURRENT SUPABASE USER:", session?.user.email ?? "NO USER")
@@ -2714,8 +2808,12 @@ extension MapViewModel {
                 .replacingOccurrences(of: "@", with: "_")
                 .replacingOccurrences(of: ".", with: "_")
 
-            let pathFull = "\(safeEmail)/\(fileName)"
-            let thumbName = Self.companionVenueThumbnailFileName(for: fileName)
+            let fieldName = fileName.lowercased().contains("menu") ? "menu_photo_url" : "cover_photo_url"
+            print("[VenuePhotoSaveDebug] uploadStarted field=\(fieldName)")
+
+            let storedFileName = Self.versionedVenuePhotoFileName(for: fileName)
+            let pathFull = "\(safeEmail)/\(storedFileName)"
+            let thumbName = Self.companionVenueThumbnailFileName(for: storedFileName)
             let pathThumb = "\(safeEmail)/\(thumbName)"
 
             let oldFull: String
@@ -2766,11 +2864,33 @@ extension MapViewModel {
             await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldFull, newPublicURL: fullStr, bucket: "venue-photos")
             await deleteReplacedStorageObjectIfNeeded(oldPublicURL: oldThumb, newPublicURL: thumbStr, bucket: "venue-photos")
 
-            if fileName.lowercased().contains("menu") {
-                venueMenuPhotoThumbnailURL = thumbStr
-            } else {
-                venueCoverPhotoThumbnailURL = thumbStr
+            let cacheURLs = [oldFull, oldThumb, fullStr, thumbStr].compactMap { raw -> URL? in
+                let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.isEmpty ? nil : URL(string: trimmed)
             }
+            await DiscoverMapImageCache.shared.invalidate(urls: cacheURLs)
+
+            if assignToCurrentVenueProfile {
+                if fieldName == "menu_photo_url" {
+                    venueMenuPhotoURL = fullStr
+                    venueMenuPhotoThumbnailURL = thumbStr
+                    pendingVenueMenuPhotoVenueID = ownerVenueDatabaseId
+                    pendingVenueMenuPhotoURL = fullStr
+                    pendingVenueMenuPhotoThumbnailURL = thumbStr
+                } else {
+                    venueCoverPhotoURL = fullStr
+                    venueCoverPhotoThumbnailURL = thumbStr
+                    pendingVenueCoverPhotoVenueID = ownerVenueDatabaseId
+                    pendingVenueCoverPhotoURL = fullStr
+                    pendingVenueCoverPhotoThumbnailURL = thumbStr
+                }
+            }
+
+            let pendingLogURL = assignToCurrentVenueProfile
+                ? (fieldName == "cover_photo_url" ? pendingVenueCoverPhotoURL ?? "" : pendingVenueMenuPhotoURL ?? "")
+                : fullStr
+            print("[VenuePhotoSaveDebug] uploadCompleted url=\(fullStr)")
+            print("[VenuePhotoSaveDebug] pendingPhotoURL=\(pendingLogURL)")
 
             return fullStr
 

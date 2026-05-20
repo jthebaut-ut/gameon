@@ -1,6 +1,10 @@
 import Foundation
 import LocalAuthentication
 
+enum PrivateChatSecuritySettings {
+    static let requireFaceIDSettingKey = "requireFaceIDForPrivateChat"
+}
+
 /// Local device authentication before showing private chat (Face ID, Touch ID, or device passcode via ``LAPolicy/deviceOwnerAuthentication``).
 @MainActor
 enum PrivateChatAccessGate {
