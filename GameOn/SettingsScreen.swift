@@ -1566,6 +1566,9 @@ struct SettingsScreen: View {
             onAddGame: {
                 venueOwnerDashboardSheet = .manageVenue
             },
+            onAddVenue: {
+                openAddLocationFromBusinessDashboard()
+            },
             onTonightGames: {
                 venueOwnerDashboardSheet = .manageGames
             },
@@ -2073,6 +2076,16 @@ struct SettingsScreen: View {
 #endif
         addLocationSubmitBanner = nil
         addLocationSheetFormState.reset(reason: "open")
+        showAddLocationSheet = true
+    }
+
+    private func openAddLocationFromBusinessDashboard() {
+#if DEBUG
+        print("[AddLocationForm] initialized fresh")
+        print("[AddLocationForm] opened from businessDashboard")
+#endif
+        addLocationSubmitBanner = nil
+        addLocationSheetFormState.reset(reason: "businessDashboard")
         showAddLocationSheet = true
     }
 

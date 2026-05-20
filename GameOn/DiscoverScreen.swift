@@ -3240,8 +3240,9 @@ struct DiscoverScreen: View {
 
     
     private func venueHeroImage(_ bar: BarVenue) -> some View {
-        Group {
-            if let urlString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
+        let coverURLString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL)
+        return Group {
+            if let urlString = coverURLString,
                let url = URL(string: urlString) {
                 DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
                     venueHeroPlaceholder
@@ -3254,6 +3255,9 @@ struct DiscoverScreen: View {
         .frame(height: 148)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .onAppear {
+            logDiscoverCardPhotoDebug(bar: bar, urlString: coverURLString)
+        }
         .overlay(alignment: .bottomLeading) {
             Text("Watch spot")
                 .font(FGTypography.metadata.weight(.bold))
@@ -3264,6 +3268,17 @@ struct DiscoverScreen: View {
                 .clipShape(Capsule(style: .continuous))
                 .padding(12)
         }
+    }
+
+    private func logDiscoverCardPhotoDebug(bar: BarVenue, urlString: String?) {
+#if DEBUG
+        let resolved = urlString ?? ""
+        let thumbnail = bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let usingThumbnail = !thumbnail.isEmpty && resolved == thumbnail
+        print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
+        print("[VenuePhotoDisplayDebug] usingThumbnail=\(usingThumbnail)")
+        print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")
+#endif
     }
 
     private var venueHeroPlaceholder: some View {

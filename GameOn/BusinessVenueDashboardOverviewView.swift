@@ -32,6 +32,7 @@ struct BusinessVenueDashboardOverviewView: View {
     let onNotifications: () -> Void
     let onMenu: () -> Void
     let onAddGame: () -> Void
+    let onAddVenue: () -> Void
     let onTonightGames: () -> Void
     let onPredictions: () -> Void
     let onAnalytics: () -> Void
@@ -46,6 +47,7 @@ struct BusinessVenueDashboardOverviewView: View {
         .onAppear {
 #if DEBUG
             print("[BusinessDashboardCleanup] removedDarkFanLevelCard=true")
+            print("[BusinessDashboardDebug] addVenueQuickActionVisible=true")
 #endif
         }
     }
@@ -62,10 +64,18 @@ struct BusinessVenueDashboardOverviewView: View {
                     BusinessVenueDashboardActionCard(title: "Manage Games", systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
                     BusinessVenueDashboardActionCard(title: "Statistics", systemImage: "chart.bar.xaxis", tint: Color.orange, action: onAnalytics)
                     BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
+                    BusinessVenueDashboardActionCard(title: "Add Venue", systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
                 }
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    private func handleAddVenueTapped() {
+#if DEBUG
+        print("[BusinessDashboardDebug] addVenueQuickActionTapped=true")
+#endif
+        onAddVenue()
     }
 
     private var tonightSection: some View {

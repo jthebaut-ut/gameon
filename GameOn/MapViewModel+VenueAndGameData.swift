@@ -22,7 +22,7 @@ private let discoverVenueRowSelectColumns =
 
 private enum DiscoverVenueFastPinSelect {
     nonisolated static let columns =
-        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key" +
+        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
         ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 
@@ -231,6 +231,45 @@ private extension MapViewModel {
             venueNames: venueNames,
             querySource: base.querySource
         )
+    }
+
+    func updateSelectedVenuePhotoStateFromLoadedBars(_ loadedBars: [BarVenue]) {
+        guard let selected = selectedBar,
+              let refreshed = loadedBars.first(where: { $0.id == selected.id }) else { return }
+        selectedBar = refreshed
+    }
+
+    func invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: [BarVenue]) async {
+        var previousById: [UUID: BarVenue] = [:]
+        for bar in bars {
+            previousById[bar.id] = bar
+        }
+        var urlsToInvalidate: [URL] = []
+        for newBar in newBars {
+            guard let oldBar = previousById[newBar.id] else { continue }
+            let oldURLs = [
+                oldBar.coverPhotoURL,
+                oldBar.coverPhotoThumbnailURL,
+                oldBar.menuPhotoURL,
+                oldBar.menuPhotoThumbnailURL
+            ]
+            let newURLs = [
+                newBar.coverPhotoURL,
+                newBar.coverPhotoThumbnailURL,
+                newBar.menuPhotoURL,
+                newBar.menuPhotoThumbnailURL
+            ]
+            guard oldURLs != newURLs else { continue }
+            urlsToInvalidate.append(contentsOf: (oldURLs + newURLs).compactMap { raw in
+                guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+                return URL(string: trimmed)
+            })
+        }
+        guard !urlsToInvalidate.isEmpty else { return }
+        await DiscoverMapImageCache.shared.invalidate(urls: urlsToInvalidate)
+#if DEBUG
+        print("[VenuePhotoDisplayDebug] cacheInvalidatedForPhotoChange=true")
+#endif
     }
 
     /// Fetches the signed-in owner's managed venue row when it is not already in the viewport batch (e.g. new venue or null coordinates excluded from SQL bounds).
@@ -2593,10 +2632,13 @@ extension MapViewModel {
                 }
 
                 if SampleData.includeSampleData {
+                    await invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: mergedPhase1Bars)
                     bars = mergedPhase1Bars + SampleData.bars
                 } else {
+                    await invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: mergedPhase1Bars)
                     bars = mergedPhase1Bars
                 }
+                updateSelectedVenuePhotoStateFromLoadedBars(mergedPhase1Bars)
 
                 venueEventRows = []
                 rebuildVenueEventIDsByKey(from: [])
@@ -2642,10 +2684,13 @@ extension MapViewModel {
             }
 
             if SampleData.includeSampleData {
+                await invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: mergedPhase2Bars)
                 bars = mergedPhase2Bars + SampleData.bars
             } else {
+                await invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: mergedPhase2Bars)
                 bars = mergedPhase2Bars
             }
+            updateSelectedVenuePhotoStateFromLoadedBars(mergedPhase2Bars)
 
             venueEventRows = fetchedVenueEventRows
             venueEventIDsByKey = idsByKey

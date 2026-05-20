@@ -39,6 +39,15 @@ struct MapVenuePreviewCard: View {
             .joined(separator: " • ")
     }
 
+    private var discoverCardCoverURLString: String? {
+        ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL)
+    }
+
+    private var discoverCardUsesThumbnail: Bool {
+        let thumbnail = bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !thumbnail.isEmpty && discoverCardCoverURLString == thumbnail
+    }
+
     private var venueMiniStats: [VenueMiniStat] {
         [
             VenueMiniStat(vibeType: "packed", icon: "🔥", label: "On fire", countColor: .red, background: Color(red: 1.00, green: 0.90, blue: 0.92), selectedBackground: .red.opacity(0.18)),
@@ -244,10 +253,11 @@ struct MapVenuePreviewCard: View {
     }
 
     private var venueImage: some View {
+        let coverURLString = discoverCardCoverURLString
 
-        ZStack(alignment: .bottomLeading) {
+        return ZStack(alignment: .bottomLeading) {
 
-            if let urlString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL),
+            if let urlString = coverURLString,
                let url = URL(string: urlString) {
 
                 DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
@@ -272,6 +282,18 @@ struct MapVenuePreviewCard: View {
         }
         .frame(width: 135, height: 112)
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .onAppear {
+            logDiscoverCardPhotoDebug(urlString: coverURLString)
+        }
+    }
+
+    private func logDiscoverCardPhotoDebug(urlString: String?) {
+#if DEBUG
+        let resolved = urlString ?? ""
+        print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
+        print("[VenuePhotoDisplayDebug] usingThumbnail=\(discoverCardUsesThumbnail)")
+        print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")
+#endif
     }
 
     private func previewSocialChip(_ title: String, tint: Color) -> some View {

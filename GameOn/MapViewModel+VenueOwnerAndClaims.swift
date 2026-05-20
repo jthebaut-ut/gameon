@@ -2869,6 +2869,9 @@ extension MapViewModel {
                 return trimmed.isEmpty ? nil : URL(string: trimmed)
             }
             await DiscoverMapImageCache.shared.invalidate(urls: cacheURLs)
+#if DEBUG
+            print("[VenuePhotoDisplayDebug] cacheInvalidatedForPhotoChange=true")
+#endif
 
             if assignToCurrentVenueProfile {
                 if fieldName == "menu_photo_url" {

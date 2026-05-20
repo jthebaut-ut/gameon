@@ -90,23 +90,44 @@ struct VenueDetailView: View {
     }
 
     private var heroImageURL: URL? {
-        guard let raw = ImageDisplayURL.forDetail(
-            thumbnail: bar.coverPhotoThumbnailURL ?? bar.menuPhotoThumbnailURL,
-            full: coverPhotoURL ?? bar.coverPhotoURL ?? menuPhotoURL ?? bar.menuPhotoURL
-        ), let url = URL(string: raw) else {
+        guard let raw = venueDetailsHeroURLString,
+              let url = URL(string: raw) else {
             return nil
         }
         return url
     }
 
-    private var insideVenueImageURL: URL? {
-        guard let raw = ImageDisplayURL.forDetail(
+    private var venueDetailsHeroURLString: String? {
+        ImageDisplayURL.forDetail(
+            thumbnail: bar.coverPhotoThumbnailURL,
+            full: coverPhotoURL ?? bar.coverPhotoURL
+        ) ?? ImageDisplayURL.forDetail(
             thumbnail: bar.menuPhotoThumbnailURL,
             full: menuPhotoURL ?? bar.menuPhotoURL
-        ), let url = URL(string: raw) else {
+        )
+    }
+
+    private var venueDetailsHeroUsesThumbnail: Bool {
+        let selected = venueDetailsHeroURLString?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let coverThumb = bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let menuThumb = bar.menuPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !selected.isEmpty && (selected == coverThumb || selected == menuThumb)
+    }
+
+    private var insideVenueImageURL: URL? {
+        guard let raw = venueDetailsSecondPhotoURLString,
+              let url = URL(string: raw) else {
             return nil
         }
         return url
+    }
+
+    private var venueDetailsSecondPhotoURLString: String? {
+        guard let second = ImageDisplayURL.forDetail(
+            thumbnail: bar.menuPhotoThumbnailURL,
+            full: menuPhotoURL ?? bar.menuPhotoURL
+        ) else { return nil }
+        return second == venueDetailsHeroURLString ? nil : second
     }
 
     private var venueShareText: String {
@@ -1039,6 +1060,12 @@ struct VenueDetailView: View {
         print("[VenueDetailDebug] selected venue owner_email=\(bar.ownerEmail ?? "nil")")
         print("[VenueDetailDebug] selected venue sports_supported=\(sportsSupported)")
         print("[VenueDetailDebug] selected venue ratingCount=\(ratingCount)")
+        let hero = venueDetailsHeroURLString ?? ""
+        let second = venueDetailsSecondPhotoURLString ?? ""
+        print("[VenuePhotoDisplayDebug] venueDetailsHeroURL=\(hero)")
+        print("[VenuePhotoDisplayDebug] venueDetailsSecondPhotoURL=\(second)")
+        print("[VenuePhotoDisplayDebug] usingThumbnail=\(venueDetailsHeroUsesThumbnail)")
+        print("[VenuePhotoDisplayDebug] fallbackUsed=\(hero.isEmpty)")
         if let rating = resolvedRating {
             print("[VenueDetailDebug] selected venue ratingAverage=\(rating)")
         } else {

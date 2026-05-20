@@ -165,6 +165,9 @@ struct VenueOwnerDashboardView: View {
     @State private var cancelGameRowSnapshot: VenueEventRow?
     @State private var cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
     @State private var showVenueOwnerContactSupport = false
+    @State private var showAddLocationSheet = false
+    @State private var addLocationSubmitBanner: String?
+    @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     @State private var showSchedulePicker = false
     @State private var schedulePickerDate = Date()
     @State private var importGamesDate = Date()
@@ -490,6 +493,22 @@ struct VenueOwnerDashboardView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
+        .sheet(isPresented: $showAddLocationSheet) {
+            AddBusinessLocationRequestSheet(
+                viewModel: viewModel,
+                form: addLocationSheetFormState,
+                submitBanner: $addLocationSubmitBanner,
+                isPresented: $showAddLocationSheet
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .onAppear {
+                if !viewModel.hasAuthenticatedVenueOwnerSession {
+                    showAddLocationSheet = false
+                }
+            }
+        }
     }
     
     private var header: some View {
@@ -597,6 +616,9 @@ struct VenueOwnerDashboardView: View {
                 withAnimation(.spring()) {
                     selectedSection = .profile
                 }
+            },
+            onAddVenue: {
+                openAddLocationFromBusinessDashboard()
             },
             onTonightGames: {
                 openBusinessDashboardGames(tab: .scheduled)
@@ -800,6 +822,16 @@ struct VenueOwnerDashboardView: View {
         print("[BusinessDashboardDebug] activeChatsTotal=\(businessDashboardActiveChats)")
         print("[BusinessDashboardDebug] predictionsTotal=\(businessDashboardPredictions)")
 #endif
+    }
+
+    private func openAddLocationFromBusinessDashboard() {
+#if DEBUG
+        print("[AddLocationForm] initialized fresh")
+        print("[AddLocationForm] opened from businessDashboard")
+#endif
+        addLocationSubmitBanner = nil
+        addLocationSheetFormState.reset(reason: "businessDashboard")
+        showAddLocationSheet = true
     }
 
     private func logBusinessDashboardRouteDebug() {
