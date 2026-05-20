@@ -67,6 +67,9 @@ struct PublicUserProfilePreviewView: View {
         .onChange(of: viewModel.publicProfileHomeCrowdRevision) { _, _ in
             Task { await loadProfile() }
         }
+        .onChange(of: viewModel.publicProfileBioRevision) { _, _ in
+            Task { await loadProfile() }
+        }
         .onChange(of: chatViewModel.friendshipChipByOtherUserId) { _, _ in
             refreshFriendButtonState()
         }
@@ -262,6 +265,9 @@ struct PublicUserProfilePreviewView: View {
         if cached == nil,
            let friend = chatViewModel.friends.first(where: { $0.preview.id == userId }) {
             cached = PublicUserProfileService.userProfileRow(from: friend.preview)
+        }
+        if userId == viewModel.currentUserAuthId {
+            cached = viewModel.currentUserProfileRowForPublicProfileCache()
         }
 
         let loaded = await PublicUserProfileService.load(userId: userId, cachedProfile: cached)

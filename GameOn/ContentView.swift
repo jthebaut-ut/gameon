@@ -12,8 +12,8 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             if shouldShowSplash {
-                FanGeoSplashView(bootstrapError: bootstrapCoordinator.bootstrapError)
-                    .transition(.opacity)
+                FanGeoSplashView()
+                    .zIndex(1)
             } else {
                 PublicProfilePresentationHost(
                     viewModel: viewModel,
@@ -25,10 +25,9 @@ struct ContentView: View {
                         performsInitialBootstrap: bootstrapCoordinator.shouldUseMainTabFallbackBootstrap
                     )
                 }
-                .transition(.opacity)
+                .zIndex(0)
             }
         }
-        .animation(.easeInOut(duration: 0.45), value: shouldShowSplash)
         .onAppear {
             #if DEBUG
             print("[LaunchPathDebug] ContentViewMounted=true")

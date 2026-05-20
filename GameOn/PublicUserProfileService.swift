@@ -371,12 +371,17 @@ enum PublicUserProfileService {
         let teamIDs = rpc.favorite_team_ids ?? []
         let favoriteTeams = FavoriteTeamsStore.resolvedTeams(fromIDs: teamIDs)
 
+        let resolvedBio = resolveProfileBio(rpcBio: rpc.bio, cachedBio: cachedProfile?.bio)
+#if DEBUG
+        print("[ProfileBioDebug] publicProfileLoadedBio=\(resolvedBio ?? "")")
+#endif
+
         let row = UserProfileRow(
             id: userId,
             email: cachedProfile?.email,
             display_name: rpc.display_name,
             username: rpc.username,
-            bio: rpc.bio,
+            bio: resolvedBio,
             avatar_url: rpc.avatar_url,
             avatar_thumbnail_url: rpc.avatar_thumbnail_url,
             is_business_account: false,
@@ -495,19 +500,20 @@ enum PublicUserProfileService {
     // MARK: - Legacy fallback
 
     private static func loadLegacy(userId: UUID, cachedProfile: UserProfileRow?) async -> PublicUserProfileData {
-        var profileQuerySuccess = false
-        var row: UserProfileRow? = cachedProfile
-        if let cached = cachedProfile, cached.id == userId {
-            profileQuerySuccess = true
+        let fetched = await fetchProfileRow(userId: userId)
+        let row: UserProfileRow?
+        if let fetchedRow = fetched.row {
+            row = fetchedRow
+        } else if let cached = cachedProfile, cached.id == userId {
+            row = cached
         } else {
             row = nil
         }
-
-        if row == nil {
-            let fetched = await fetchProfileRow(userId: userId)
-            row = fetched.row
-            profileQuerySuccess = fetched.success
-        }
+        let profileQuerySuccess = fetched.success || row != nil
+#if DEBUG
+        let loadedBio = row?.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        print("[ProfileBioDebug] publicProfileLoadedBio=\(loadedBio)")
+#endif
 
         let (fanXP, _) = await loadPublicXP(userId: userId)
         let organizerStats = await fetchOrganizerStats(userId: userId)
@@ -700,6 +706,13 @@ enum PublicUserProfileService {
     private static func fetchPublicFavoriteTeams(userId: UUID) async -> [FavoriteTeam] {
         let ids = await FavoriteTeamsSyncService.fetchTeamIDs(userId: userId)
         return FavoriteTeamsStore.resolvedTeams(fromIDs: ids)
+    }
+
+    private static func resolveProfileBio(rpcBio: String?, cachedBio: String?) -> String? {
+        let rpcTrimmed = rpcBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !rpcTrimmed.isEmpty { return rpcTrimmed }
+        let cachedTrimmed = cachedBio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return cachedTrimmed.isEmpty ? nil : cachedTrimmed
     }
 
     private static func buildProfileData(

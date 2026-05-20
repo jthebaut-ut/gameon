@@ -12,6 +12,7 @@ struct WatchZoneApp: App {
         print("GAMEON_DEBUG bundlePath=\(b.bundlePath)")
         print("GAMEON_DEBUG executablePath=\(b.executablePath ?? "(nil)")")
         print("GAMEON_DEBUG bundleIdentifier=\(b.bundleIdentifier ?? "(nil)")")
+        print("[FanGeoSplashDebug] launchScreenLoaded")
         #endif
     }
 

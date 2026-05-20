@@ -411,6 +411,9 @@ struct UserProfileScreen: View {
             await MainActor.run { message = err }
             return
         }
+#if DEBUG
+        print("[ProfileBioDebug] saveBio=\(nextBio)")
+#endif
         await MainActor.run { message = "Saved." }
         onDone()
     }

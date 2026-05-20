@@ -331,6 +331,8 @@ final class MapViewModel: ObservableObject {
     @Published var publicProfileOpenToRevision: Int = 0
     /// Bumped after Home Crowd set/clear so an open public profile sheet can reload fresh RPC data.
     @Published var publicProfileHomeCrowdRevision: Int = 0
+    /// Bumped after bio save so an open public profile sheet can reload fresh identity data.
+    @Published var publicProfileBioRevision: Int = 0
     @Published var currentUserHomeCrowdVenueId: UUID?
     @Published var currentUserHomeCrowdVenue: HomeCrowdVenueSummary?
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()

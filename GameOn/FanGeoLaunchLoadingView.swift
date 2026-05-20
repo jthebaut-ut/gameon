@@ -1,220 +1,128 @@
 import SwiftUI
 
+/// Full-screen static splash shown immediately after the static `LaunchScreen` storyboard.
 struct FanGeoSplashView: View {
-    let bootstrapError: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotionEnabled
-    @State private var animateIn = true
-    @State private var loadingStatusIndex = 0
-    @State private var pulse = false
+    @State private var statusIndex = 0
 
-    private static let artworkAssetName = "FanGeoCircularLogo"
-    private static let loadingStatusMessages = [
-        "Loading FanGeo...",
-        "Finding live sports energy...",
-        "Loading venues and games...",
-        "Preparing your map..."
+    private static let statusMessages = [
+        "Finding nearby games...",
+        "Checking live matchups...",
+        "Building your fan feed...",
+        "Loading FanGeo..."
     ]
 
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Color.black
+                Color.white
                     .ignoresSafeArea()
 
-                VStack(spacing: 26) {
-                    Spacer(minLength: 24)
-
-                    Image(Self.artworkAssetName)
+                VStack(spacing: 16) {
+                    Image("FanGeoSplashCollage")
                         .resizable()
                         .interpolation(.high)
                         .antialiased(true)
                         .scaledToFit()
-                        .frame(width: proxy.size.width * 0.94)
-                        .scaleEffect(logoScale)
-                        .opacity(logoOpacity)
-                        .shadow(color: .white.opacity(0.10), radius: 22, y: 0)
-                        .shadow(color: .black.opacity(0.65), radius: 28, y: 14)
+                        .padding(.horizontal, 18)
+                        .frame(
+                            maxWidth: .infinity,
+                            maxHeight: max(320, proxy.size.height * 0.78)
+                        )
+                        .background(Color.white)
                         .accessibilityLabel("FanGeo")
 
-                    FanGeoLaunchLoadingCluster(
-                        message: currentLoadingStatusText,
-                        isAnimating: !reduceMotionEnabled,
-                        ringSize: 44
+                    FanGeoSplashStatusPill(
+                        text: Self.statusMessages[statusIndex],
+                        showsMotion: !reduceMotionEnabled
                     )
-
-                    Spacer(minLength: 34)
+                    .padding(.bottom, 18)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 24)
             }
         }
-        .background(Color.black.ignoresSafeArea())
+        .ignoresSafeArea()
         .task {
-            await runLaunchAnimation()
-        }
-        .task(id: bootstrapError) {
-            await runLoadingStatusCycle()
+            await rotateStatusMessages()
         }
         .onAppear {
-            logInitialVisibility()
-            logLoadingStatusText(currentLoadingStatusText)
-        }
-        .onChange(of: loadingStatusIndex) {
-            logLoadingStatusText(currentLoadingStatusText)
-        }
-        .onChange(of: bootstrapError) {
-            logLoadingStatusText(currentLoadingStatusText)
-        }
-        .onDisappear {
             #if DEBUG
-            print("[LaunchScreenDebug] appBootstrapComplete=true")
+            print("[FanGeoSplashDebug] splashViewAppeared")
             #endif
         }
     }
 
-    private var currentLoadingStatusText: String {
-        bootstrapError ?? Self.loadingStatusMessages[loadingStatusIndex]
-    }
-
-    private var logoScale: CGFloat {
-        if reduceMotionEnabled { return 1 }
-        guard animateIn else { return 0.985 }
-        return pulse ? 1.01 : 1.0
-    }
-
-    private var logoOpacity: Double {
-        if reduceMotionEnabled { return 1 }
-        guard animateIn else { return 1 }
-        return pulse ? 0.98 : 1
-    }
-
     @MainActor
-    private func runLaunchAnimation() async {
-        #if DEBUG
-        print("[LaunchScreenDebug] animationStarted=true")
-        #endif
-
-        if reduceMotionEnabled {
-            animateIn = true
-            return
-        }
-
-        animateIn = false
-        withAnimation(.easeOut(duration: 0.28)) {
-            animateIn = true
-        }
-
-        try? await Task.sleep(nanoseconds: 260_000_000)
-        withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-            pulse = true
-        }
-    }
-
-    @MainActor
-    private func runLoadingStatusCycle() async {
-        guard bootstrapError == nil, !reduceMotionEnabled else { return }
+    private func rotateStatusMessages() async {
+        guard !reduceMotionEnabled else { return }
 
         while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            guard !Task.isCancelled, bootstrapError == nil else { continue }
-
-            withAnimation(.easeInOut(duration: 0.22)) {
-                loadingStatusIndex = (loadingStatusIndex + 1) % Self.loadingStatusMessages.count
-            }
+            try? await Task.sleep(nanoseconds: FanGeoSplashAnimation.statusRotationInterval)
+            guard !Task.isCancelled else { return }
+            statusIndex = (statusIndex + 1) % Self.statusMessages.count
         }
-    }
-
-    private func logInitialVisibility() {
-        #if DEBUG
-        print("[LaunchPathDebug] FanGeoSplashViewMounted=true")
-        print("[LaunchPathDebug] selectedSplashAsset=\(Self.artworkAssetName)")
-        print("[LaunchScreenDebug] visibleLogo=true")
-        print("[LaunchScreenDebug] artworkAsset=\(Self.artworkAssetName)")
-        print("[LaunchScreenDebug] loadingWheelVisible=true")
-        print("[LaunchScreenDebug] reduceMotionEnabled=\(reduceMotionEnabled)")
-        #endif
-    }
-
-    private func logLoadingStatusText(_ text: String) {
-        #if DEBUG
-        print("[LaunchScreenDebug] statusText=\(text)")
-        #endif
     }
 }
 
-private struct FanGeoLaunchLoadingCluster: View {
-    let message: String
-    let isAnimating: Bool
-    let ringSize: CGFloat
+private struct FanGeoSplashStatusPill: View {
+    let text: String
+    let showsMotion: Bool
 
     var body: some View {
-        VStack(spacing: 12) {
-            FanGeoPremiumLoadingWheel(isAnimating: isAnimating, size: ringSize)
-
-            Text(message)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .tracking(0.2)
-                .foregroundStyle(.white.opacity(0.94))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.82)
-                .contentTransition(isAnimating ? .opacity : .identity)
-        }
-        .frame(maxWidth: 300)
-        .padding(.top, 4)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(message)
-    }
-}
-
-private struct FanGeoPremiumLoadingWheel: View {
-    let isAnimating: Bool
-    let size: CGFloat
-    @State private var rotationDegrees = 0.0
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(.white.opacity(0.24), lineWidth: 2.4)
-
-            Circle()
-                .trim(from: 0.08, to: 0.78)
-                .stroke(
-                    AngularGradient(
-                        colors: [
-                            .white,
-                            FGColor.accentGreen,
-                            Color.orange,
-                            FGColor.accentBlue
-                        ],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 4.8, lineCap: .round)
+        HStack(spacing: 9) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.orange, Color(red: 1.0, green: 0.11, blue: 0.42)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 )
-                .rotationEffect(.degrees(rotationDegrees))
-                .shadow(color: FGColor.accentGreen.opacity(0.62), radius: 10, y: 0)
-                .shadow(color: Color.orange.opacity(0.34), radius: 12, y: 0)
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
-        .onAppear {
-            updateRotation()
-        }
-        .onChange(of: isAnimating) {
-            updateRotation()
-        }
-    }
+                .accessibilityHidden(true)
 
-    private func updateRotation() {
-        if isAnimating {
-            rotationDegrees = 0
-            withAnimation(.linear(duration: 1.15).repeatForever(autoreverses: false)) {
-                rotationDegrees = 360
-            }
-        } else {
-            withAnimation(.none) {
-                rotationDegrees = 0
+            Text(text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .tracking(0.2)
+                .foregroundStyle(Color.black.opacity(0.68))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .contentTransition(showsMotion ? .opacity : .identity)
+
+            if showsMotion {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(Color(red: 1.0, green: 0.30, blue: 0.18))
+                    .scaleEffect(0.72)
+                    .accessibilityHidden(true)
+            } else {
+                Circle()
+                    .fill(Color(red: 1.0, green: 0.30, blue: 0.18).opacity(0.7))
+                    .frame(width: 5, height: 5)
+                    .accessibilityHidden(true)
             }
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.92))
+                .shadow(color: Color.black.opacity(0.08), radius: 14, y: 6)
+        }
+        .overlay {
+            Capsule(style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.26),
+                            Color(red: 1.0, green: 0.11, blue: 0.42).opacity(0.22)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 0.8
+                )
+        }
+        .accessibilityLabel(text)
     }
 }

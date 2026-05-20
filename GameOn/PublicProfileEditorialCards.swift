@@ -198,17 +198,19 @@ struct PublicProfileEditorialHero: View {
         return min(104, max(88, containerWidth * 0.26))
     }
 
+    private var trimmedBio: String {
+        data.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     private var displayBio: String {
-        let trimmed = data.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if trimmed.isEmpty {
+        if trimmedBio.isEmpty {
             return "I am FanGeo's biggest fan."
         }
-        return trimmed
+        return trimmedBio
     }
 
     private var isDefaultBio: Bool {
-        let trimmed = data.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty
+        trimmedBio.isEmpty
     }
 
     var body: some View {
@@ -264,6 +266,12 @@ struct PublicProfileEditorialHero: View {
                 .lineLimit(3)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.top, 2)
+                .onAppear {
+#if DEBUG
+                    print("[ProfileBioDebug] identityCardDisplayedBio=\(trimmedBio)")
+                    print("[ProfileBioDebug] usingFallbackBio=\(isDefaultBio)")
+#endif
+                }
 
             if let memberSince = data.memberSinceLabel, !memberSince.isEmpty {
                 heroMemberSinceRow(memberSince)

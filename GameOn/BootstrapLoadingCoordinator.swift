@@ -9,7 +9,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
     @Published private(set) var shouldUseMainTabFallbackBootstrap = false
 
     private var didStart = false
-    private let minimumVisibleSeconds: TimeInterval = 1.15
+    private let minimumVisibleSeconds: TimeInterval = FanGeoSplashAnimation.minimumVisibleDuration
     private let maximumWaitSeconds: TimeInterval = 3.8
 
     func beginIfNeeded(
@@ -48,9 +48,10 @@ final class BootstrapLoadingCoordinator: ObservableObject {
             shouldUseMainTabFallbackBootstrap = true
         }
 
-        withAnimation(.easeInOut(duration: 0.45)) {
-            isBootstrapping = false
-        }
+        #if DEBUG
+        print("[FanGeoSplashDebug] transitionToMainApp")
+        #endif
+        isBootstrapping = false
     }
 
     /// Critical launch path only — must stay fast enough for splash dismiss.

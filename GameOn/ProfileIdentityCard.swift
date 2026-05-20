@@ -250,10 +250,16 @@ struct ProfileIdentityCard: View {
         .onAppear {
 #if DEBUG
             print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
+            print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
 #endif
             DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
             DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
             FanReputationEngine.log(reputation)
+        }
+        .onChange(of: viewModel.currentUserBio) { _, newValue in
+#if DEBUG
+            print("[ProfileBioDebug] identityCardDisplayedBio=\(newValue.trimmingCharacters(in: .whitespacesAndNewlines))")
+#endif
         }
         .sheet(isPresented: $showHandleSetup) {
             FanGeoIdentitySetupView(viewModel: viewModel, mode: .handleOnly)

@@ -1519,9 +1519,15 @@ extension MapViewModel {
                 currentUserAvatarURL = finalAvatarURL
                 currentUserAvatarThumbnailURL = finalAvatarThumbnailURL ?? ""
                 cacheCurrentUserProfileLocally()
+                applyCurrentUserBioToProfileCaches(bio: finalBioToSave)
+                publicProfileBioRevision &+= 1
                 bumpCurrentUserAvatarDisplayRefresh()
             }
 
+#if DEBUG
+            print("[ProfileBioDebug] saveBio=\(finalBioToSave ?? "")")
+            print("[ProfileBioDebug] savedUserProfilesBio=\(finalBioToSave ?? "")")
+#endif
             print("USER PROFILE SAVED")
             return nil
 
@@ -1784,6 +1790,51 @@ extension MapViewModel {
     }
 
     @MainActor
+    func applyCurrentUserBioToProfileCaches(bio: String?) {
+        guard let userId = currentUserAuthId else { return }
+        let trimmed = bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let normalizedBio = trimmed.isEmpty ? nil : trimmed
+
+        func patched(_ row: UserProfileRow) -> UserProfileRow {
+            UserProfileRow(
+                id: row.id,
+                email: row.email,
+                display_name: row.display_name,
+                username: row.username,
+                bio: normalizedBio,
+                avatar_url: row.avatar_url,
+                avatar_thumbnail_url: row.avatar_thumbnail_url,
+                is_business_account: row.is_business_account,
+                admin_status: row.admin_status,
+                live_visibility_enabled: row.live_visibility_enabled,
+                live_visibility_mode: row.live_visibility_mode,
+                selected_live_visibility_friend_ids: row.selected_live_visibility_friend_ids,
+                discoverable_by_fans: row.discoverable_by_fans,
+                created_at: row.created_at
+            )
+        }
+
+        let currentEmail = OwnerBusinessEmail.normalized(currentUserEmail)
+        for (key, row) in userProfilesByEmail {
+            let rowEmail = OwnerBusinessEmail.normalized(row.email ?? "")
+            if row.id == userId || (!currentEmail.isEmpty && rowEmail == currentEmail) {
+                userProfilesByEmail[key] = patched(row)
+            }
+        }
+
+        if let row = pickupJoinRequesterProfileByUserId[userId] {
+            pickupJoinRequesterProfileByUserId[userId] = patched(row)
+        }
+
+        goingUserProfiles = goingUserProfiles.map { $0.id == userId ? patched($0) : $0 }
+        for eventID in goingProfilesByVenueEventID.keys {
+            goingProfilesByVenueEventID[eventID] = goingProfilesByVenueEventID[eventID]?.map {
+                $0.id == userId ? patched($0) : $0
+            }
+        }
+    }
+
+    @MainActor
     private func applyCurrentUserLiveVisibilityToProfileCaches(
         enabled: Bool,
         mode: LiveVisibilityMode,
@@ -1941,6 +1992,8 @@ extension MapViewModel {
                     if let existing = userProfilesByEmail[key] {
                         if existing.isBusinessIdentity, !profile.isBusinessIdentity {
                             userProfilesByEmail[key] = profile
+                        } else if !existing.isBusinessIdentity, !profile.isBusinessIdentity {
+                            userProfilesByEmail[key] = mergeFanProfileRow(existing: existing, fetched: profile)
                         }
                     } else {
                         userProfilesByEmail[key] = profile
@@ -1951,6 +2004,54 @@ extension MapViewModel {
         } catch {
             print("ERROR LOADING USER PROFILES FOR EMAILS:", error)
         }
+    }
+
+    /// Prefer fresher `user_profiles.bio` when batch-loading social identity rows.
+    private func mergeFanProfileRow(existing: UserProfileRow, fetched: UserProfileRow) -> UserProfileRow {
+        let existingBio = existing.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let fetchedBio = fetched.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let resolvedBio: String?
+        if !fetchedBio.isEmpty {
+            resolvedBio = fetchedBio
+        } else if !existingBio.isEmpty {
+            resolvedBio = existingBio
+        } else {
+            resolvedBio = nil
+        }
+
+        return UserProfileRow(
+            id: fetched.id ?? existing.id,
+            email: fetched.email ?? existing.email,
+            display_name: {
+                let f = fetched.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !f.isEmpty { return f }
+                return existing.display_name
+            }(),
+            username: {
+                let f = fetched.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !f.isEmpty { return f }
+                return existing.username
+            }(),
+            bio: resolvedBio,
+            avatar_url: {
+                let f = ImageDisplayURL.canonicalStorageURLString(fetched.avatar_url)
+                if !f.isEmpty { return f }
+                return existing.avatar_url
+            }(),
+            avatar_thumbnail_url: {
+                let f = ImageDisplayURL.canonicalStorageURLString(fetched.avatar_thumbnail_url)
+                if !f.isEmpty { return f }
+                return existing.avatar_thumbnail_url
+            }(),
+            is_business_account: fetched.is_business_account ?? existing.is_business_account,
+            admin_status: fetched.admin_status ?? existing.admin_status,
+            live_visibility_enabled: fetched.live_visibility_enabled ?? existing.live_visibility_enabled,
+            live_visibility_mode: fetched.live_visibility_mode ?? existing.live_visibility_mode,
+            selected_live_visibility_friend_ids: fetched.selected_live_visibility_friend_ids
+                ?? existing.selected_live_visibility_friend_ids,
+            discoverable_by_fans: fetched.discoverable_by_fans ?? existing.discoverable_by_fans,
+            created_at: fetched.created_at ?? existing.created_at
+        )
     }
 
     func cacheCurrentUserProfileLocally() {
