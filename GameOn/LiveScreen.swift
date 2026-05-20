@@ -36,6 +36,19 @@ struct LiveScreen: View {
         let topVibeText: String?
     }
 
+    /// Real FanGeo momentum for a venue/game today (no synthetic activity).
+    private struct LiveCrowdMomentum: Identifiable {
+        let item: LiveFeedItem
+        let score: Int
+        let goingCount: Int
+        let chatCount: Int
+        let topVibeLabel: String?
+        let homeCrowdFanCount: Int
+
+        var id: String { item.id }
+        var showsFriendAvatars: Bool { !item.energy.socialPresenceProfiles.isEmpty }
+    }
+
     fileprivate struct FavoriteTeamLiveItem: Identifiable {
         let id: String
         let team: FavoriteTeam
@@ -172,15 +185,13 @@ struct LiveScreen: View {
         let rankedItems = liveRankedItems(for: liveCalendarToday)
         let venuesAndPickupToday = venuesAndPickupTodayRows(from: rankedItems)
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
-        let crowdBuilding = Array(rankedItems.filter { $0.energy.goingCount >= 8 && !$0.energy.isLiveNow }.prefix(6))
-        let fansChatting = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.commentCount > 0 }.prefix(6)) : []
+        let crowdBuilding = liveCrowdBuildingMoments(from: rankedItems)
         let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
         let visibleSectionCount = visibleLiveSectionCount(
             matches: displayedLiveMatches,
             venuesAndPickupToday: venuesAndPickupToday,
             friendsGoing: friendsGoing,
-            crowdBuilding: crowdBuilding,
-            fansChatting: fansChatting
+            crowdBuilding: crowdBuilding
         )
         let _: Void = logLiveFeedSnapshot(
             venuesAndPickupTodayCount: venuesAndPickupToday.count,
@@ -204,6 +215,7 @@ struct LiveScreen: View {
                             ),
                             todayCount: venuesAndPickupToday.count,
                             friendsCount: friendsGoing.count,
+                            crowdCount: crowdBuilding.count,
                             showFriendsChip: showPersonalLiveSections,
                             scrollToSection: { section in
                                 scrollToLiveSection(section, proxy: scrollProxy)
@@ -213,6 +225,7 @@ struct LiveScreen: View {
                         if showPersonalLiveSections {
                             FavoriteTeamsLiveSection(
                                 items: favoriteTeamItems,
+                                favoriteTeams: favoriteTeams,
                                 hasFavoriteTeams: !favoriteTeams.isEmpty,
                                 onWatchNearby: { _ in
                                     selectedTab = .discover
@@ -228,21 +241,14 @@ struct LiveScreen: View {
                                 .id(LiveScrollSection.friends.rawValue)
                         }
                         liveCrowdBuildingSection(items: crowdBuilding)
-                        if showPersonalLiveSections {
-                            liveFansChattingSection(items: fansChatting)
-                        }
+                            .id(LiveScrollSection.crowdBuilding.rawValue)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 76)
                     .padding(.bottom, 112)
                 }
                 .refreshable {
-                    await MainActor.run {
-                        refreshLiveMatches(forceRefresh: true)
-#if DEBUG
-                        print("[PerfPhase1] liveAutoRefresh forceRefresh=true reason=pullToRefresh")
-#endif
-                    }
+                    await performManualLiveRefresh()
                 }
             }
         }
@@ -287,17 +293,55 @@ struct LiveScreen: View {
     }
 
     private func liveHeroHeader(totalCount: Int) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Live")
-                .font(.system(size: 36, weight: .bold, design: .rounded))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Live")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
 
-            Text(liveHeroSubtitle(totalCount: totalCount))
-                .font(FGTypography.caption)
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .fixedSize(horizontal: false, vertical: true)
+                Text(liveHeroSubtitle(totalCount: totalCount))
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            liveManualRefreshButton
         }
         .padding(.top, 4)
+    }
+
+    private var liveManualRefreshButton: some View {
+        Button {
+            Task { await performManualLiveRefresh() }
+        } label: {
+            HStack(spacing: 6) {
+                if viewModel.isLoadingLiveMatches {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Text("Refresh")
+                    .font(.caption.weight(.bold))
+            }
+            .foregroundStyle(FGColor.accentGreen)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.10))
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.accentGreen.opacity(0.28), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isLoadingLiveMatches)
+        .accessibilityLabel("Refresh live games")
     }
 
     private func liveHeroSubtitle(totalCount: Int) -> String {
@@ -316,10 +360,15 @@ struct LiveScreen: View {
         matches.count + venuesAndPickup.filter(\.isLiveNow).count
     }
 
+    private var liveCrowdSummaryAccent: Color {
+        Color(red: 0.95, green: 0.52, blue: 0.14)
+    }
+
     private func liveSummaryChips(
         liveNowCount: Int,
         todayCount: Int,
         friendsCount: Int,
+        crowdCount: Int,
         showFriendsChip: Bool,
         scrollToSection: @escaping (LiveScrollSection) -> Void
     ) -> some View {
@@ -347,6 +396,13 @@ struct LiveScreen: View {
                     }
                     .buttonStyle(LiveSummaryChipButtonStyle())
                 }
+
+                Button {
+                    scrollToSection(.crowdBuilding)
+                } label: {
+                    liveSummaryChip(title: "Crowd", count: crowdCount, accent: liveCrowdSummaryAccent, icon: "flame.fill")
+                }
+                .buttonStyle(LiveSummaryChipButtonStyle())
             }
             .padding(.horizontal, 1)
             .padding(.vertical, 2)
@@ -385,9 +441,10 @@ struct LiveScreen: View {
     }
 
     private enum LiveScrollSection: String {
-        case liveGames = "live-games-section"
-        case today = "today-section"
-        case friends = "friends-section"
+        case liveGames = "liveGamesSection"
+        case today = "todayPlansSection"
+        case friends = "friendsGoingSection"
+        case crowdBuilding = "crowdBuildingSection"
     }
 
     private enum LivePanelKind {
@@ -395,7 +452,6 @@ struct LiveScreen: View {
         case venuesPickup
         case friendsGoing
         case crowdBuilding
-        case fansChatting
 
         var icon: String {
             switch self {
@@ -403,7 +459,6 @@ struct LiveScreen: View {
             case .venuesPickup: return "mappin.and.ellipse"
             case .friendsGoing: return "person.2.fill"
             case .crowdBuilding: return "flame.fill"
-            case .fansChatting: return "bubble.left.and.bubble.right.fill"
             }
         }
 
@@ -417,8 +472,6 @@ struct LiveScreen: View {
                 return FGColor.accentBlue
             case .crowdBuilding:
                 return Color(red: 0.95, green: 0.52, blue: 0.14)
-            case .fansChatting:
-                return Color(red: 0.22, green: 0.62, blue: 0.78)
             }
         }
 
@@ -518,11 +571,21 @@ struct LiveScreen: View {
             if viewModel.isLoadingLiveMatches && matches.isEmpty {
                 liveGamesLoadingCard
             } else if matches.isEmpty {
-                liveSectionEmptyState(
-                    liveGamesSportFilter == nil
-                        ? "No live pro games right now"
-                        : "No live \(liveGamesSportFilter!.filterChipLabel) games right now"
-                )
+                VStack(alignment: .leading, spacing: 8) {
+                    liveSectionEmptyState(
+                        liveGamesSportFilter == nil
+                            ? "No live pro games right now"
+                            : "No live \(liveGamesSportFilter!.filterChipLabel) games right now"
+                    )
+#if DEBUG
+                    if let hint = viewModel.liveMatchesEmptyDebugHint {
+                        Text(hint)
+                            .font(.caption2)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+#endif
+                }
             } else {
                 VStack(spacing: 10) {
                     ForEach(matches) { match in
@@ -1240,7 +1303,18 @@ struct LiveScreen: View {
     }
 
     private func refreshLiveMatches(forceRefresh: Bool) {
-        viewModel.refreshLiveMatchesForLiveTab(forceRefresh: forceRefresh)
+        Task { await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: forceRefresh) }
+    }
+
+    @MainActor
+    private func performManualLiveRefresh() async {
+#if DEBUG
+        print("[LiveDebug] manualRefreshStarted")
+#endif
+        await viewModel.refreshLiveMatchesForLiveTab(forceRefresh: true)
+#if DEBUG
+        print("[LiveDebug] manualRefreshFinished")
+#endif
     }
 
     private enum LiveVenuesPickupRow: Identifiable {
@@ -1542,40 +1616,104 @@ struct LiveScreen: View {
         }
     }
 
-    private func liveCrowdBuildingSection(items: [LiveFeedItem]) -> some View {
+    private func liveCrowdBuildingSection(items: [LiveCrowdMomentum]) -> some View {
         livePanelSection(
             kind: .crowdBuilding,
             title: "Crowd Building",
-            subtitle: isBusinessLiveAudienceUser ? "Venues gaining momentum" : "Games fans are piling into"
+            subtitle: isBusinessLiveAudienceUser
+                ? "Venues where FanGeo activity is picking up today"
+                : "Games and watch spots gaining momentum today"
         ) {
             if items.isEmpty {
-                liveSectionEmptyState("Crowd momentum shows up here")
+                liveSectionEmptyState("Crowd momentum shows up here.")
             } else {
                 VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        liveSignalRow(item)
+                    ForEach(items) { momentum in
+                        liveCrowdBuildingCard(momentum)
                     }
                 }
             }
         }
     }
 
-    private func liveFansChattingSection(items: [LiveFeedItem]) -> some View {
-        livePanelSection(
-            kind: .fansChatting,
-            title: "Fans Chatting",
-            subtitle: "Active threads at venues"
-        ) {
-            if items.isEmpty {
-                liveSectionEmptyState("Chat activity shows up here")
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        liveSignalRow(item)
+    private func liveCrowdBuildingCard(_ momentum: LiveCrowdMomentum) -> some View {
+        let item = momentum.item
+        return Button {
+            openLiveItem(item)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    SportArtworkIconView(sport: item.event.sport, diameter: 36)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.event.title)
+                            .font(FGTypography.cardTitle)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+                        Text(item.bar.name)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                HStack(spacing: 8) {
+                    if momentum.goingCount > 0 {
+                        crowdBuildingMetricChip(
+                            icon: "person.2.fill",
+                            label: momentum.goingCount == 1 ? "1 going" : "\(momentum.goingCount) going"
+                        )
+                    }
+                    if momentum.chatCount > 0 {
+                        crowdBuildingMetricChip(
+                            icon: "bubble.left.and.bubble.right.fill",
+                            label: momentum.chatCount == 1 ? "1 chat" : "\(momentum.chatCount) chat"
+                        )
+                    }
+                    if let topVibe = momentum.topVibeLabel {
+                        crowdBuildingMetricChip(icon: "flame.fill", label: topVibe, accent: FGColor.dangerRed)
+                    }
+                    if momentum.homeCrowdFanCount > 0 {
+                        crowdBuildingMetricChip(
+                            icon: "shield.lefthalf.filled",
+                            label: momentum.homeCrowdFanCount == 1 ? "Home Crowd" : "Home Crowd · \(momentum.homeCrowdFanCount)",
+                            accent: Color(red: 0.58, green: 0.36, blue: 0.94)
+                        )
+                    }
+                }
+
+                if momentum.showsFriendAvatars {
+                    HStack(spacing: 8) {
+                        GoingAvatarStack(
+                            profiles: item.energy.socialPresenceProfiles,
+                            viewerUserID: viewModel.currentUserAuthId,
+                            diameter: 26
+                        )
+                        Text(item.energy.socialPresenceLabel ?? "Fans going")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
                     }
                 }
             }
+            .padding(14)
+            .background(liveCardSurface(cornerRadius: 20, highlighted: false))
         }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
+    }
+
+    private func crowdBuildingMetricChip(icon: String, label: String, accent: Color = FGColor.accentGreen) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .bold))
+            Text(label)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .lineLimit(1)
+        }
+        .foregroundStyle(accent)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(Capsule(style: .continuous).fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.10)))
     }
 
     private func livePanelSection<Content: View>(
@@ -1775,31 +1913,6 @@ struct LiveScreen: View {
         .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
     }
 
-    private func liveSignalRow(_ item: LiveFeedItem) -> some View {
-        Button {
-            openLiveItem(item)
-        } label: {
-            HStack(spacing: 12) {
-                SportArtworkIconView(sport: item.event.sport, diameter: 38)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(item.event.title)
-                        .font(FGTypography.cardTitle)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(1)
-                    Text("\(item.bar.name) · \(viewModel.displayTime(for: item.event))")
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                liveInlineTokens(item)
-            }
-            .padding(14)
-            .background(liveCardSurface(cornerRadius: 20, highlighted: false))
-        }
-        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: true))
-    }
-
     private func liveEmptyCard(_ message: String) -> some View {
         Text(message)
             .font(FGTypography.caption)
@@ -1941,20 +2054,113 @@ struct LiveScreen: View {
         } else if item.energy.startsSoon {
             tokens.append("Starts Soon")
         }
-        if item.energy.goingCount >= 8 {
-            tokens.append("Crowd Building")
+        if item.energy.goingCount > 0 && !item.energy.isLiveNow {
+            tokens.append("Momentum")
         }
         if canShowPersonalLiveSections && item.energy.friendGoingCount > 0 {
             tokens.append("Friends Going")
-        }
-        if canShowPersonalLiveSections && item.energy.commentCount > 0 {
-            tokens.append("Fans Chatting")
         }
         return Array(tokens.reduce(into: [String]()) { unique, token in
             if !unique.contains(token) {
                 unique.append(token)
             }
         }.prefix(4))
+    }
+
+    private func liveCrowdBuildingMoments(from rankedItems: [LiveFeedItem]) -> [LiveCrowdMomentum] {
+        let qualified = rankedItems.compactMap { crowdMomentumCandidate(for: $0) }
+            .sorted { lhs, rhs in
+                if lhs.score == rhs.score {
+                    return lhs.item.event.date < rhs.item.event.date
+                }
+                return lhs.score > rhs.score
+            }
+        let rendered = Array(qualified.prefix(6))
+#if DEBUG
+        print("[LiveCrowdDebug] candidates=\(rankedItems.count) qualified=\(qualified.count)")
+        print("[LiveCrowdDebug] rendered=\(rendered.map(\.id).joined(separator: ","))")
+#endif
+        return rendered
+    }
+
+    private func crowdMomentumCandidate(for item: LiveFeedItem) -> LiveCrowdMomentum? {
+        guard !item.energy.isLiveNow else { return nil }
+
+        let packedCount = packedVibeCount(for: item.venueEventID)
+        let homeCrowdFanCount = homeCrowdActivityCount(for: item.bar)
+        let goingCount = item.energy.goingCount
+        let chatCount = canShowPersonalLiveSections ? item.energy.commentCount : 0
+        let friendGoingCount = canShowPersonalLiveSections ? item.energy.friendGoingCount : 0
+        let vibeActivity = item.vibeCount
+
+        let hasRealSignal = goingCount > 0
+            || chatCount > 0
+            || vibeActivity > 0
+            || friendGoingCount > 0
+            || homeCrowdFanCount > 0
+        guard hasRealSignal else { return nil }
+
+        let score = crowdMomentumScore(
+            goingCount: goingCount,
+            chatCount: chatCount,
+            vibeActivity: vibeActivity,
+            packedCount: packedCount,
+            friendGoingCount: friendGoingCount,
+            homeCrowdFanCount: homeCrowdFanCount,
+            startsSoon: item.energy.startsSoon
+        )
+        guard score >= 10 else { return nil }
+
+        let topVibe = crowdTopVibeLabel(for: item, packedCount: packedCount)
+        return LiveCrowdMomentum(
+            item: item,
+            score: score,
+            goingCount: goingCount,
+            chatCount: chatCount,
+            topVibeLabel: topVibe,
+            homeCrowdFanCount: homeCrowdFanCount
+        )
+    }
+
+    private func crowdMomentumScore(
+        goingCount: Int,
+        chatCount: Int,
+        vibeActivity: Int,
+        packedCount: Int,
+        friendGoingCount: Int,
+        homeCrowdFanCount: Int,
+        startsSoon: Bool
+    ) -> Int {
+        (goingCount * 5)
+            + (chatCount * 3)
+            + (vibeActivity * 4)
+            + (packedCount * 12)
+            + (friendGoingCount * 15)
+            + (min(homeCrowdFanCount, 24) * 2)
+            + (startsSoon ? 8 : 0)
+    }
+
+    private func packedVibeCount(for venueEventID: UUID?) -> Int {
+        guard let venueEventID else { return 0 }
+        return fanUpdatesStore.venueEventVibeCounts[venueEventID]?["packed"] ?? 0
+    }
+
+    private func homeCrowdActivityCount(for bar: BarVenue) -> Int {
+        guard viewModel.currentUserHomeCrowdVenueId == bar.id else { return 0 }
+        return max(viewModel.currentUserHomeCrowdVenue?.fanCount ?? 0, 1)
+    }
+
+    private func crowdTopVibeLabel(for item: LiveFeedItem, packedCount: Int) -> String? {
+        if packedCount > 0 {
+            return packedCount == 1 ? "Packed Crowd" : "Packed Crowd · \(packedCount)"
+        }
+        if let top = item.topVibeText {
+            if top.hasPrefix("Packed") {
+                return top.replacingOccurrences(of: "Packed ·", with: "Packed Crowd ·")
+            }
+            return top
+        }
+        return nil
     }
 
     private func liveRankedItems(for day: Date) -> [LiveFeedItem] {
@@ -2209,15 +2415,13 @@ struct LiveScreen: View {
         matches: [LiveMatch],
         venuesAndPickupToday: [LiveVenuesPickupRow],
         friendsGoing: [LiveFeedItem],
-        crowdBuilding: [LiveFeedItem],
-        fansChatting: [LiveFeedItem]
+        crowdBuilding: [LiveCrowdMomentum]
     ) -> Int {
         [
             !matches.isEmpty,
             !venuesAndPickupToday.isEmpty,
             !friendsGoing.isEmpty,
-            !crowdBuilding.isEmpty,
-            !fansChatting.isEmpty
+            !crowdBuilding.isEmpty
         ].filter { $0 }.count
     }
 
@@ -2243,7 +2447,7 @@ struct LiveScreen: View {
 #if DEBUG
         let hiddenSections = canShowPersonalLiveSections
             ? "none"
-            : "Your Teams Live|Friends Going|Fans Chatting|Live Activity Sharing|favorite team momentum|friend avatar stacks|mutual friend presence|friend-based indicators"
+            : "Your Teams Live|Friends Going|Live Activity Sharing|favorite team momentum|friend avatar stacks|mutual friend presence|friend-based indicators"
         print("[LiveVisibilityDebug] isBusinessAccount=\(isBusinessLiveAudienceUser)")
         print("[LiveVisibilityDebug] hidingSocialLiveSections=\(!canShowPersonalLiveSections)")
         print("[LiveVisibilityDebug] renderingFanSections=\(canShowPersonalLiveSections)")
@@ -2262,6 +2466,7 @@ struct LiveScreen: View {
 
 private struct FavoriteTeamsLiveSection: View {
     let items: [LiveScreen.FavoriteTeamLiveItem]
+    let favoriteTeams: [FavoriteTeam]
     let hasFavoriteTeams: Bool
     let onWatchNearby: (LiveScreen.FavoriteTeamLiveItem) -> Void
 
@@ -2271,17 +2476,14 @@ private struct FavoriteTeamsLiveSection: View {
         Color(red: 0.96, green: 0.78, blue: 0.18)
     }
 
+    private var headerTeams: [FavoriteTeam] {
+        Array(favoriteTeams.prefix(3))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(headerAccent.opacity(colorScheme == .dark ? 0.22 : 0.14))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(headerAccent)
-                }
+            HStack(alignment: .center, spacing: 12) {
+                sectionHeaderIcon
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Your Teams Live")
@@ -2317,6 +2519,61 @@ private struct FavoriteTeamsLiveSection: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var sectionHeaderIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .background {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            headerTeams.isEmpty
+                                ? headerAccent.opacity(colorScheme == .dark ? 0.22 : 0.14)
+                                : Color.white.opacity(colorScheme == .dark ? 0.08 : 0.42)
+                        )
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(
+                            Color.white.opacity(colorScheme == .dark ? 0.14 : 0.55),
+                            lineWidth: 1
+                        )
+                }
+                .frame(width: 40, height: 40)
+
+            if headerTeams.isEmpty {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(headerAccent)
+            } else {
+                overlappingFavoriteTeamOrbs(teams: headerTeams)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            headerTeams.isEmpty
+                ? "Your Teams Live"
+                : "Your Teams Live, \(headerTeams.map(\.name).joined(separator: ", "))"
+        )
+    }
+
+    private func overlappingFavoriteTeamOrbs(teams: [FavoriteTeam]) -> some View {
+        let orbDiameter: CGFloat = 22
+        return HStack(spacing: -(orbDiameter * 0.34)) {
+            ForEach(teams) { team in
+                FavoriteTeamLogoBadge(team: team, diameter: orbDiameter)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(
+                                Color.white.opacity(colorScheme == .dark ? 0.55 : 0.92),
+                                lineWidth: 1.5
+                            )
+                    }
+                    .shadow(color: team.badgeColor.opacity(colorScheme == .dark ? 0.35 : 0.22), radius: 3, y: 1)
+            }
+        }
     }
 
     private func sectionSurface(highlighted: Bool) -> some View {

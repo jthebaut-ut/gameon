@@ -137,17 +137,22 @@ struct VenueDetailView: View {
     private func logVenueFeaturesDebug(renderedItems: [VenueFeatureDisplayItem]) {
 #if DEBUG
         let enabledLabels = renderedItems
-            .filter(\.isEnabled)
+            .filter { $0.availability == .available }
             .map(\.label)
             .joined(separator: " | ")
         let disabledLabels = renderedItems
-            .filter { !$0.isEnabled }
+            .filter { $0.availability == .unavailable }
+            .map(\.label)
+            .joined(separator: " | ")
+        let unknownLabels = renderedItems
+            .filter { $0.availability == .unknown }
             .map(\.label)
             .joined(separator: " | ")
         print("[VenueFeaturesDebug] venueId=\(bar.id.uuidString)")
         print("[VenueFeaturesDebug] sourceFeatureCount=\(VenueFeatureDisplaySource.configuredFeatureCount(for: bar))")
         print("[VenueFeaturesDebug] enabledFeatures=\(enabledLabels)")
         print("[VenueFeaturesDebug] disabledFeatures=\(disabledLabels)")
+        print("[VenueFeaturesDebug] unknownFeatures=\(unknownLabels)")
         print("[VenueFeaturesDebug] renderedFeatureLabels=\(renderedItems.map(\.label).joined(separator: " | "))")
 #endif
     }
@@ -1019,8 +1024,10 @@ struct VenueDetailView: View {
                 }
 
                 HStack(spacing: FGSpacing.sm) {
-                    FGStatusPill(title: VenueFeatureDefinitions.screenLabel(count: bar.screenCount), kind: .custom(tint: FGColor.accentBlue))
-                    if bar.servesFood {
+                    if let screenCount = bar.screenCount, screenCount > 0 {
+                        FGStatusPill(title: VenueFeatureDefinitions.screenLabel(count: screenCount), kind: .custom(tint: FGColor.accentBlue))
+                    }
+                    if bar.servesFood == true {
                         FGStatusPill(title: VenueFeatureDefinitions.foodDrinks.label, kind: .custom(tint: FGColor.accentGreen))
                     }
                     if ImageDisplayURL.forDetail(thumbnail: nil, full: menuPhotoURL ?? bar.menuPhotoURL) != nil {
@@ -1067,7 +1074,23 @@ struct VenueDetailView: View {
         let items = venueFeatureItems
 
         return FGCard {
-            FGSectionHeader("Venue features", subtitle: "What makes this spot easy to choose")
+            FGSectionHeader(
+                "Venue features",
+                subtitle: bar.isCommunityVenue
+                    ? "Amenities are unverified for this community venue"
+                    : "What makes this spot easy to choose"
+            )
+
+            if bar.isCommunityVenue {
+                HStack(spacing: 6) {
+                    Image(systemName: "building.2.crop.circle")
+                        .font(.caption.weight(.semibold))
+                    Text("Community venue · unverified features")
+                        .font(FGTypography.caption.weight(.semibold))
+                }
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.bottom, 4)
+            }
 
             VenueFeatureGrid(items: items)
         }

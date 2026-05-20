@@ -360,8 +360,23 @@ function normalizeSportsDBStatus(raw: unknown): MatchStatus {
   if (status.includes("HALF") || status === "HT") return "HT"
   if (status.includes("FT") || status.includes("FINAL") || status.includes("FINISHED")) return "FT"
   if (["1H", "2H", "ET", "BT", "P", "OT", "Q1", "Q2", "Q3", "Q4", "LIVE"].includes(status)) return "LIVE"
-  if (status.includes("LIVE") || status.includes("'") || status.includes("Q") || status.includes("PERIOD")) return "LIVE"
-  if (status === "NS" || status.includes("SCHED")) return "SCHEDULED"
+  if (
+    status.includes("LIVE") ||
+    status.includes("IN PROGRESS") ||
+    status.includes("IN PLAY") ||
+    status.includes("IN-PLAY") ||
+    status.includes("PLAYING") ||
+    status.includes("ACTIVE") ||
+    status.includes("STARTED") ||
+    status.includes("EXTRA INNING") ||
+    status.includes("'") ||
+    status.includes("Q") ||
+    status.includes("PERIOD") ||
+    status.includes("INNING")
+  ) {
+    return "LIVE"
+  }
+  if (status === "NS" || status.includes("SCHED") || status.includes("NOT STARTED")) return "SCHEDULED"
   return "SCHEDULED"
 }
 

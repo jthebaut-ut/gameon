@@ -407,7 +407,7 @@ struct FollowingScreen: View {
             GameOnSegmentedControl(
                 tabs: [
                     GameOnSegmentedTab(id: GoingVenueTab.games, title: "Watching", tint: FGColor.accentGreen),
-                    GameOnSegmentedTab(id: GoingVenueTab.saved, title: "Saved", tint: FGColor.accentGreen)
+                    GameOnSegmentedTab(id: GoingVenueTab.saved, title: "Saved", systemImage: "heart.fill", tint: FGColor.accentGreen)
                 ],
                 selection: $selectedGoingVenueTab
             )

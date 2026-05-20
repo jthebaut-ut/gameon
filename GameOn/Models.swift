@@ -45,12 +45,13 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     let games: [String]
     let coordinate: CLLocationCoordinate2D
     let goingCounts: [String: Int]
-    let screenCount: Int
-    let servesFood: Bool
-    let hasWifi: Bool
-    let hasGarden: Bool
-    let hasProjector: Bool
-    let petFriendly: Bool
+    /// Nil = unverified/unknown (typical for community venues). Non-nil = business-confirmed.
+    let screenCount: Int?
+    let servesFood: Bool?
+    let hasWifi: Bool?
+    let hasGarden: Bool?
+    let hasProjector: Bool?
+    let petFriendly: Bool?
     /// Raw public `venues.features` text; used for configured features that do not have dedicated columns yet.
     let rawVenueFeatures: String?
 
@@ -85,12 +86,12 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         games: [String],
         coordinate: CLLocationCoordinate2D,
         goingCounts: [String: Int],
-        screenCount: Int = 2,
-        servesFood: Bool = true,
-        hasWifi: Bool = true,
-        hasGarden: Bool = false,
-        hasProjector: Bool = false,
-        petFriendly: Bool = false,
+        screenCount: Int? = nil,
+        servesFood: Bool? = nil,
+        hasWifi: Bool? = nil,
+        hasGarden: Bool? = nil,
+        hasProjector: Bool? = nil,
+        petFriendly: Bool? = nil,
         rawVenueFeatures: String? = nil,
         coverPhotoURL: String? = nil,
         menuPhotoURL: String? = nil,
@@ -135,6 +136,16 @@ nonisolated struct BarVenue: Identifiable, Equatable {
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {
         lhs.id == rhs.id
+    }
+
+    /// Linked to a verified business account — amenity columns are treated as owner-confirmed true/false.
+    var hasBusinessVerifiedFeatures: Bool {
+        businessId != nil
+    }
+
+    /// Seeded/imported community map venue (no business owner on file).
+    var isCommunityVenue: Bool {
+        !hasBusinessVerifiedFeatures
     }
 }
 

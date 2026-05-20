@@ -1566,7 +1566,7 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
             print("[BusinessAddGameDebug] openSchedulePicker=true")
 #endif
-            viewModel.refreshLiveMatchesForCalendar(forceRefresh: false)
+            Task { await viewModel.refreshLiveMatchesForCalendar(forceRefresh: false) }
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {

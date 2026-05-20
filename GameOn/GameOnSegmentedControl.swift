@@ -3,6 +3,7 @@ import SwiftUI
 struct GameOnSegmentedTab<Selection: Hashable>: Identifiable {
     let id: Selection
     let title: String
+    var systemImage: String?
     var badge: String?
     var tint: Color?
     var showsActivityDot: Bool
@@ -12,6 +13,7 @@ struct GameOnSegmentedTab<Selection: Hashable>: Identifiable {
     init(
         id: Selection,
         title: String,
+        systemImage: String? = nil,
         badge: String? = nil,
         tint: Color? = nil,
         showsActivityDot: Bool = false,
@@ -20,6 +22,7 @@ struct GameOnSegmentedTab<Selection: Hashable>: Identifiable {
     ) {
         self.id = id
         self.title = title
+        self.systemImage = systemImage
         self.badge = badge
         self.tint = tint
         self.showsActivityDot = showsActivityDot
@@ -66,10 +69,18 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
         } label: {
             VStack(spacing: 6) {
                 HStack(spacing: 7) {
-                    Text(tab.title)
-                        .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                    HStack(spacing: tab.systemImage == nil ? 0 : 4) {
+                        if let systemImage = tab.systemImage {
+                            Image(systemName: systemImage)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(isSelected ? tint : FGColor.secondaryText(colorScheme))
+                        }
+
+                        Text(tab.title)
+                            .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
+                    }
 
                     if let badge = tab.badge, !badge.isEmpty {
                         Text(badge)

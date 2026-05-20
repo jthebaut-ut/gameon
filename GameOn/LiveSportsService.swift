@@ -1,15 +1,38 @@
 import Foundation
+import Supabase
+
+/// Last client-side fetch diagnostics for Live tab DEBUG empty states.
+struct LiveMatchesFetchDiagnostics: Equatable {
+    let provider: String
+    let requestURL: String
+    let rawCount: Int
+    let decodedCount: Int
+    let liveCount: Int
+    let todayScheduledCount: Int
+    let apiError: String?
+    let cacheSyncAttempted: Bool
+}
 
 actor LiveSportsService {
     static let shared = LiveSportsService()
 
-    /// Reads the cached Supabase table populated by `sync-live-matches` (API-Football primary,
-    /// TheSportsDB fallback). The client does not poll or hold sports API credentials.
+    /// Reads the cached Supabase table populated by `sync-live-matches` (TheSportsDB v2/v1).
+    /// The client does not hold sports API credentials; optional edge sync refreshes the cache.
+    static let providerDescription = "supabase:live_matches (TheSportsDB via sync-live-matches)"
+
     private let cacheTTL: TimeInterval = 60
+    private let cacheSyncCooldown: TimeInterval = 55
     private var cachedMatches: (fetchedAt: Date, matches: [LiveMatch])?
     private var inFlightFetch: Task<[LiveMatch], Error>?
+    private var lastCacheSyncAt: Date?
+    private(set) var lastFetchDiagnostics: LiveMatchesFetchDiagnostics?
 
     func fetchLiveMatches(forceRefresh: Bool = false) async throws -> [LiveMatch] {
+#if DEBUG
+        print("[LiveDebug] refreshStarted forceRefresh=\(forceRefresh)")
+        print("[LiveDebug] timezone=\(TimeZone.current.identifier)")
+        print("[LiveDebug] provider=\(Self.providerDescription)")
+#endif
         if !forceRefresh,
            let cachedMatches,
            Date().timeIntervalSince(cachedMatches.fetchedAt) < cacheTTL {
@@ -29,8 +52,9 @@ actor LiveSportsService {
 #if DEBUG
         print("[LiveDebug] query_execution_started forceRefresh=\(forceRefresh)")
 #endif
-        let task = Task<[LiveMatch], Error> {
-            try await Self.fetchLiveMatchesFromSupabase()
+        let task = Task<[LiveMatch], Error> { [forceRefresh] in
+            let syncAttempted = await self.triggerCacheSyncIfNeeded(force: forceRefresh)
+            return try await self.fetchLiveMatchesFromSupabase(cacheSyncAttempted: syncAttempted)
         }
         inFlightFetch = task
         defer { inFlightFetch = nil }
@@ -40,8 +64,42 @@ actor LiveSportsService {
         return matches
     }
 
-    private static func fetchLiveMatchesFromSupabase() async throws -> [LiveMatch] {
-        let requestURL = try await liveMatchesRequestURL()
+    private func triggerCacheSyncIfNeeded(force: Bool) async -> Bool {
+        let now = Date()
+        if !force,
+           let lastCacheSyncAt,
+           now.timeIntervalSince(lastCacheSyncAt) < cacheSyncCooldown {
+            return false
+        }
+        lastCacheSyncAt = now
+#if DEBUG
+        print("[LiveDebug] cacheSyncStarted")
+#endif
+        struct SyncResponse: Decodable {
+            let success: Bool?
+            let source: String?
+            let error: String?
+        }
+        do {
+            let response: SyncResponse = try await supabase.functions.invoke(
+                "sync-live-matches",
+                options: FunctionInvokeOptions(method: .post)
+            )
+#if DEBUG
+            print(
+                "[LiveDebug] cacheSyncFinished success=\(response.success ?? false) source=\(response.source ?? "nil") error=\(response.error ?? "nil")"
+            )
+#endif
+        } catch {
+#if DEBUG
+            print("[LiveDebug] apiError=cache_sync \(error.localizedDescription)")
+#endif
+        }
+        return true
+    }
+
+    private func fetchLiveMatchesFromSupabase(cacheSyncAttempted: Bool) async throws -> [LiveMatch] {
+        let requestURL = try await Self.liveMatchesRequestURL()
         let publishableKey = await supabasePublishableKey
         var request = URLRequest(url: requestURL)
         request.httpMethod = "GET"
@@ -49,32 +107,56 @@ actor LiveSportsService {
         request.setValue("Bearer \(publishableKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        logRequest(requestURL: requestURL, request: request)
+        Self.logRequest(requestURL: requestURL, request: request)
 
 #if DEBUG
-        print("[LiveDebug] START FETCH")
-        print("[LiveDebug] URL =", requestURL.absoluteString)
+        print("[LiveDebug] requestURL=\(requestURL.absoluteString)")
 #endif
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+#if DEBUG
+            print("[LiveDebug] apiError=\(error.localizedDescription)")
+#endif
+            lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
+                provider: Self.providerDescription,
+                requestURL: requestURL.absoluteString,
+                rawCount: 0,
+                decodedCount: 0,
+                liveCount: 0,
+                todayScheduledCount: 0,
+                apiError: error.localizedDescription,
+                cacheSyncAttempted: cacheSyncAttempted
+            )
+            throw error
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
 
 #if DEBUG
-        print("[LiveDebug] status =", httpResponse.statusCode)
-        print("[LiveDebug] raw_bytes =", data.count)
-        print("[LiveDebug] raw_preview =", rawPreview(data))
         print("[LiveDebug] response_status=\(httpResponse.statusCode)")
-        print("[LiveDebug] raw_response=\(rawPreview(data))")
+        print("[LiveDebug] raw_bytes=\(data.count)")
 #endif
 
         guard 200..<300 ~= httpResponse.statusCode else {
+            let apiError = "HTTP \(httpResponse.statusCode): \(Self.rawPreview(data))"
 #if DEBUG
-            print("[LiveDebug] raw_count=unavailable")
-            print("[LiveDebug] filtered_count=0")
-            print("[LiveDebug] final_count=0")
+            print("[LiveDebug] apiError=\(apiError)")
+            print("[LiveDebug] rawCount=0 decodedCount=0 liveCount=0 todayCount=0")
 #endif
-            throw LiveSportsServiceError.supabaseRequestFailed(statusCode: httpResponse.statusCode, body: rawPreview(data))
+            lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
+                provider: Self.providerDescription,
+                requestURL: requestURL.absoluteString,
+                rawCount: 0,
+                decodedCount: 0,
+                liveCount: 0,
+                todayScheduledCount: 0,
+                apiError: apiError,
+                cacheSyncAttempted: cacheSyncAttempted
+            )
+            throw LiveSportsServiceError.supabaseRequestFailed(statusCode: httpResponse.statusCode, body: Self.rawPreview(data))
         }
 
         let rows: [LiveMatchRow]
@@ -82,18 +164,29 @@ actor LiveSportsService {
             rows = try JSONDecoder().decode([LiveMatchRow].self, from: data)
         } catch {
 #if DEBUG
-            print("[LiveDebug] raw_count=decode_failed")
-            print("[LiveDebug] filtered_count=0")
-            print("[LiveDebug] final_count=0")
+            print("[LiveDebug] apiError=decode \(error.localizedDescription)")
 #endif
+            lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
+                provider: Self.providerDescription,
+                requestURL: requestURL.absoluteString,
+                rawCount: 0,
+                decodedCount: 0,
+                liveCount: 0,
+                todayScheduledCount: 0,
+                apiError: error.localizedDescription,
+                cacheSyncAttempted: cacheSyncAttempted
+            )
             throw error
         }
-#if DEBUG
-        print("[LiveDebug] rows_count =", rows.count)
-        print("[LiveDebug] first_row =", rows.first as Any)
-#endif
+
         let normalized = rows.compactMap(\.liveMatch)
-        let deduped = deduplicateLiveMatches(normalized)
+        let decodeDropped = rows.count - normalized.count
+        if decodeDropped > 0 {
+#if DEBUG
+            print("[LiveDebug] filteredOut reason=row_decode_failed count=\(decodeDropped)")
+#endif
+        }
+        let deduped = Self.deduplicateLiveMatches(normalized)
         let matches = deduped.sorted { lhs, rhs in
             if lhs.matchStatus.isHappeningNow != rhs.matchStatus.isHappeningNow {
                 return lhs.matchStatus.isHappeningNow && !rhs.matchStatus.isHappeningNow
@@ -102,18 +195,38 @@ actor LiveSportsService {
             return lhs.league.localizedCaseInsensitiveCompare(rhs.league) == .orderedAscending
         }
 
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let liveCount = matches.filter(\.matchStatus.isHappeningNow).count
+        let todayScheduledCount = matches.filter {
+            $0.matchStatus == .scheduled && cal.isDate($0.startTime, inSameDayAs: today)
+        }.count
+        let scheduledNotLive = matches.filter { !$0.matchStatus.isHappeningNow && $0.matchStatus != .fullTime }.count
+        if scheduledNotLive > 0 {
 #if DEBUG
-        print("[LiveDebug] normalized_count =", normalized.count)
-        print("[LiveDebug] final_count =", matches.count)
-        print("[LiveDedupDebug] raw_count=\(normalized.count)")
-        print("[LiveDedupDebug] deduped_count=\(deduped.count)")
-        print("[LiveDedupDebug] duplicate_removed=\(normalized.count - deduped.count)")
-        print("[LiveDebug] raw_count=\(rows.count)")
-        logRowSamples(rows)
-        print("[LiveDebug] filtered_count=\(deduped.count)")
-        logMatchSamples(deduped)
-        print("[LiveDebug] final_count=\(matches.count)")
+            print("[LiveDebug] filteredOut reason=not_live_or_halftime count=\(scheduledNotLive) (Live tab shows LIVE/HT only)")
 #endif
+        }
+
+#if DEBUG
+        print("[LiveDebug] rawCount=\(rows.count)")
+        print("[LiveDebug] decodedCount=\(normalized.count)")
+        print("[LiveDebug] liveCount=\(liveCount)")
+        print("[LiveDebug] todayCount=\(todayScheduledCount)")
+        Self.logRowSamples(rows)
+        Self.logMatchSamples(deduped)
+#endif
+
+        lastFetchDiagnostics = LiveMatchesFetchDiagnostics(
+            provider: Self.providerDescription,
+            requestURL: requestURL.absoluteString,
+            rawCount: rows.count,
+            decodedCount: normalized.count,
+            liveCount: liveCount,
+            todayScheduledCount: todayScheduledCount,
+            apiError: nil,
+            cacheSyncAttempted: cacheSyncAttempted
+        )
 
         return matches
     }
@@ -315,16 +428,32 @@ private nonisolated struct LiveMatchRow: Decodable {
     }
 
     private static func parseMatchStatus(_ raw: String?) -> MatchStatus {
-        switch clean(raw)?.uppercased() {
-        case "LIVE", "1H", "2H", "ET", "BT", "P":
-            return .live
-        case "HT":
-            return .halfTime
-        case "FT", "AET", "PEN", "FINAL":
+        let status = clean(raw)?.uppercased() ?? ""
+        if status.contains("HALF") || status == "HT" { return .halfTime }
+        if status.contains("FT") || status.contains("FINAL") || status.contains("FINISHED") || status == "AET" || status == "PEN" {
             return .fullTime
-        default:
+        }
+        if ["LIVE", "1H", "2H", "ET", "BT", "P", "OT", "Q1", "Q2", "Q3", "Q4"].contains(status) {
+            return .live
+        }
+        if status.contains("LIVE")
+            || status.contains("IN PROGRESS")
+            || status.contains("IN PLAY")
+            || status.contains("IN-PLAY")
+            || status.contains("PLAYING")
+            || status.contains("ACTIVE")
+            || status.contains("STARTED")
+            || status.contains("EXTRA INNING")
+            || status.contains("'")
+            || status.contains("Q")
+            || status.contains("PERIOD")
+            || status.contains("INNING") {
+            return .live
+        }
+        if status == "NS" || status.contains("SCHED") || status.contains("NOT STARTED") {
             return .scheduled
         }
+        return .scheduled
     }
 
 }

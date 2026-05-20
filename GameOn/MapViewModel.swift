@@ -315,6 +315,8 @@ final class MapViewModel: ObservableObject {
     @Published var liveMatches: [LiveMatch] = []
     @Published var isLoadingLiveMatches: Bool = false
     @Published var liveMatchesLoadError: String?
+    /// DEBUG-only hint when Live Games is empty (provider/cache diagnostics).
+    @Published var liveMatchesEmptyDebugHint: String?
     @Published var isUpdatingMapGames: Bool = false
     @Published var mapStatusText: String?
     @Published var socialActionToastText: String?

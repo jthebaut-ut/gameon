@@ -81,12 +81,12 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
     let latitude: Double
     let longitude: Double
     let goingCounts: [String: Int]
-    let screenCount: Int
-    let servesFood: Bool
-    let hasWifi: Bool
-    let hasGarden: Bool
-    let hasProjector: Bool
-    let petFriendly: Bool
+    let screenCount: Int?
+    let servesFood: Bool?
+    let hasWifi: Bool?
+    let hasGarden: Bool?
+    let hasProjector: Bool?
+    let petFriendly: Bool?
     let rawVenueFeatures: String?
     let coverPhotoURL: String?
     let menuPhotoURL: String?

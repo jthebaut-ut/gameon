@@ -9,6 +9,7 @@
 --   - business_id = NULL
 --   - admin_status = 'active'
 --   - country = 'USA'
+--   - amenity columns (screen_count, serves_food, has_wifi, etc.) = NULL (unverified)
 --
 -- Idempotency:
 --   - dedupe by `venue_identity_key`
@@ -126,12 +127,12 @@ SELECT
   p.website,
   p.description,
   p.features,
-  p.screen_count,
-  p.serves_food,
-  p.has_wifi,
-  false,
-  p.has_projector,
-  false,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
   p.latitude,
   p.longitude,
   p.cover_photo_url,
