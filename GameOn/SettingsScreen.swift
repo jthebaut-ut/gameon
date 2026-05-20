@@ -3734,6 +3734,75 @@ private struct SettingsVenuePasswordResetCard: View {
     }
 }
 
+private struct SettingsBusinessPasswordResetSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Binding var isPresented: Bool
+    @State private var resetEmail = ""
+    @State private var isSending = false
+
+    private var prefilledBusinessEmail: String {
+        OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: FGSpacing.md) {
+                FGSectionHeader(
+                    "Reset business password",
+                    subtitle: "We’ll email a secure link to reset the password for your business owner account."
+                )
+
+                TextField("Business email", text: $resetEmail)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .fanGeoInputFieldStyle()
+
+                FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
+                    Task {
+                        isSending = true
+                        await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .venueOwner)
+                        isSending = false
+                    }
+                }
+
+                if !viewModel.venuePasswordResetMessage.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: "Reset link sent",
+                        message: viewModel.venuePasswordResetMessage,
+                        tint: FGColor.accentGreen,
+                        systemImage: "checkmark.circle.fill"
+                    )
+                }
+
+                if !viewModel.venuePasswordResetError.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: "Reset unavailable",
+                        message: viewModel.venuePasswordResetError,
+                        tint: FGColor.dangerRed,
+                        systemImage: "xmark.circle.fill"
+                    )
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(FGSpacing.lg)
+            .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+            .navigationTitle("Reset business password")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(viewModel.venuePasswordResetMessage.isEmpty ? "Cancel" : "Done") {
+                        isPresented = false
+                    }
+                }
+            }
+            .onAppear {
+                resetEmail = prefilledBusinessEmail
+            }
+        }
+    }
+}
+
 private struct FanGeoAppearanceSelectionView: View {
     @Binding var selectionRaw: String
     @Environment(\.colorScheme) private var colorScheme
@@ -4227,6 +4296,7 @@ private struct SettingsVenueOwnerCard: View {
     @State private var venueSignupPoliciesAccepted = false
     @State private var venueSignupLegalDocument: SettingsLegalDocumentKind?
     @State private var isSignupSubmitting = false
+    @State private var showBusinessPasswordResetSheet = false
 
     @State private var signupBusinessName = ""
     @State private var signupLocationName = ""
@@ -4342,6 +4412,23 @@ private struct SettingsVenueOwnerCard: View {
 
             SecureField("Business owner password", text: $venuePassword)
                 .fanGeoInputFieldStyle()
+
+            if !showVenueRegisterMode {
+                Button {
+#if DEBUG
+                    print("[BusinessPasswordResetDebug] forgotPasswordTapped=true")
+#endif
+                    viewModel.venuePasswordResetMessage = ""
+                    viewModel.venuePasswordResetError = ""
+                    showBusinessPasswordResetSheet = true
+                } label: {
+                    Text("Forgot password?")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
 
             if showVenueRegisterMode {
                 signupRegistrationFields
@@ -4483,6 +4570,8 @@ private struct SettingsVenueOwnerCard: View {
         .onChange(of: showVenueRegisterMode) { _, isRegister in
             venuePassword = ""
             viewModel.venueAuthErrorMessage = ""
+            viewModel.venuePasswordResetMessage = ""
+            viewModel.venuePasswordResetError = ""
             if !isRegister {
                 venueSignupPoliciesAccepted = false
                 signupBusinessName = ""
@@ -4556,6 +4645,15 @@ private struct SettingsVenueOwnerCard: View {
         }
         .sheet(item: $venueSignupLegalDocument) { document in
             SettingsLegalDocumentSheet(document: document)
+        }
+        .sheet(isPresented: $showBusinessPasswordResetSheet) {
+            SettingsBusinessPasswordResetSheet(
+                viewModel: viewModel,
+                isPresented: $showBusinessPasswordResetSheet
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
     }
 

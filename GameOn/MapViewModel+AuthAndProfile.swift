@@ -2091,6 +2091,11 @@ extension MapViewModel {
     /// Sends Supabase Auth password recovery email; routes feedback to fan vs venue-owner UI strings on ``MapViewModel``.
     func sendPasswordResetEmail(_ email: String, accountKind: PasswordResetAccountKind) async {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+#if DEBUG
+        if case .venueOwner = accountKind {
+            print("[BusinessPasswordResetDebug] resetEmail=\(trimmed)")
+        }
+#endif
         guard !trimmed.isEmpty else {
             await MainActor.run {
                 switch accountKind {
@@ -2098,8 +2103,11 @@ extension MapViewModel {
                     userPasswordResetError = "Enter an email address."
                     userPasswordResetMessage = ""
                 case .venueOwner:
-                    venuePasswordResetError = "Enter an email address."
+                    venuePasswordResetError = "Enter your business email first."
                     venuePasswordResetMessage = ""
+#if DEBUG
+                    print("[BusinessPasswordResetDebug] resetError=Enter your business email first.")
+#endif
                 }
             }
             return
@@ -2113,8 +2121,11 @@ extension MapViewModel {
                     userPasswordResetMessage = "Check your email for a reset link."
                     userPasswordResetError = ""
                 case .venueOwner:
-                    venuePasswordResetMessage = "Check your email for a reset link."
+                    venuePasswordResetMessage = "Password reset link sent. Check your email."
                     venuePasswordResetError = ""
+#if DEBUG
+                    print("[BusinessPasswordResetDebug] resetLinkSent=true")
+#endif
                 }
             }
         } catch {
@@ -2126,6 +2137,9 @@ extension MapViewModel {
                 case .venueOwner:
                     venuePasswordResetMessage = ""
                     venuePasswordResetError = error.localizedDescription
+#if DEBUG
+                    print("[BusinessPasswordResetDebug] resetError=\(error.localizedDescription)")
+#endif
                 }
             }
         }
