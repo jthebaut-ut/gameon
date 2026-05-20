@@ -6,39 +6,33 @@ struct FanGeoSplashView: View {
     @State private var statusIndex = 0
 
     private static let statusMessages = [
+        "Loading FanGeo...",
         "Finding nearby games...",
-        "Checking live matchups...",
-        "Building your fan feed...",
-        "Loading FanGeo..."
+        "Loading live matchups..."
     ]
 
     var body: some View {
-        GeometryReader { proxy in
+        ZStack {
             ZStack {
                 Color.white
                     .ignoresSafeArea()
 
-                VStack(spacing: 16) {
-                    Image("FanGeoSplashCollage")
-                        .resizable()
-                        .interpolation(.high)
-                        .antialiased(true)
-                        .scaledToFit()
-                        .padding(.horizontal, 18)
-                        .frame(
-                            maxWidth: .infinity,
-                            maxHeight: max(320, proxy.size.height * 0.78)
-                        )
-                        .background(Color.white)
-                        .accessibilityLabel("FanGeo")
+                Image("FanGeoSplashCollage")
+                    .resizable()
+                    .interpolation(.high)
+                    .antialiased(true)
+                    .scaledToFit()
+                    .padding(.horizontal, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.white)
+                    .accessibilityLabel("FanGeo")
+            }
 
-                    FanGeoSplashStatusPill(
-                        text: Self.statusMessages[statusIndex],
-                        showsMotion: !reduceMotionEnabled
-                    )
-                    .padding(.bottom, 18)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack {
+                Spacer()
+                FanGeoLoadingStatusText(text: Self.statusMessages[statusIndex])
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 34)
             }
         }
         .ignoresSafeArea()
@@ -47,7 +41,13 @@ struct FanGeoSplashView: View {
         }
         .onAppear {
             #if DEBUG
-            print("[FanGeoSplashDebug] splashViewAppeared")
+            print("[FanGeoLoadingDebug] splashDisplayed")
+            print("[FanGeoLoadingDebug] loadingStatus=\(Self.statusMessages[statusIndex])")
+            #endif
+        }
+        .onChange(of: statusIndex) { _, newValue in
+            #if DEBUG
+            print("[FanGeoLoadingDebug] loadingStatus=\(Self.statusMessages[newValue])")
             #endif
         }
     }
@@ -64,21 +64,13 @@ struct FanGeoSplashView: View {
     }
 }
 
-private struct FanGeoSplashStatusPill: View {
+private struct FanGeoLoadingStatusText: View {
     let text: String
-    let showsMotion: Bool
 
     var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 11, weight: .black))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.orange, Color(red: 1.0, green: 0.11, blue: 0.42)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+        HStack(spacing: 7) {
+            Text("⚡")
+                .font(.system(size: 12, weight: .semibold))
                 .accessibilityHidden(true)
 
             Text(text)
@@ -87,42 +79,8 @@ private struct FanGeoSplashStatusPill: View {
                 .foregroundStyle(Color.black.opacity(0.68))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
-                .contentTransition(showsMotion ? .opacity : .identity)
-
-            if showsMotion {
-                ProgressView()
-                    .controlSize(.mini)
-                    .tint(Color(red: 1.0, green: 0.30, blue: 0.18))
-                    .scaleEffect(0.72)
-                    .accessibilityHidden(true)
-            } else {
-                Circle()
-                    .fill(Color(red: 1.0, green: 0.30, blue: 0.18).opacity(0.7))
-                    .frame(width: 5, height: 5)
-                    .accessibilityHidden(true)
-            }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 9)
-        .background {
-            Capsule(style: .continuous)
-                .fill(Color.white.opacity(0.92))
-                .shadow(color: Color.black.opacity(0.08), radius: 14, y: 6)
-        }
-        .overlay {
-            Capsule(style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.orange.opacity(0.26),
-                            Color(red: 1.0, green: 0.11, blue: 0.42).opacity(0.22)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    ),
-                    lineWidth: 0.8
-                )
-        }
+        .frame(maxWidth: .infinity)
         .accessibilityLabel(text)
     }
 }

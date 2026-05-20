@@ -49,7 +49,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         }
 
         #if DEBUG
-        print("[FanGeoSplashDebug] transitionToMainApp")
+        print("[FanGeoLoadingDebug] appReady")
         #endif
         isBootstrapping = false
     }

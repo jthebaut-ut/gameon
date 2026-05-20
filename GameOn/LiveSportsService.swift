@@ -64,6 +64,30 @@ actor LiveSportsService {
         return matches
     }
 
+    func fetchLiveMatches(
+        on selectedDate: Date,
+        sportFilter: String? = nil,
+        forceRefresh: Bool = false
+    ) async throws -> [LiveMatch] {
+        let matches = try await fetchLiveMatches(forceRefresh: forceRefresh)
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: selectedDate)
+        let sport = sportFilter?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return matches
+            .filter { calendar.startOfDay(for: $0.startTime) == day }
+            .filter { match in
+                guard !sport.isEmpty, sport.localizedCaseInsensitiveCompare("All") != .orderedSame else {
+                    return true
+                }
+                return match.sport.localizedCaseInsensitiveCompare(sport) == .orderedSame
+                    || SportFilterCatalog.storedSport(match.sport, matchesSearchQuery: sport)
+            }
+            .sorted { lhs, rhs in
+                if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+                return "\(lhs.awayTeam) \(lhs.homeTeam)".localizedCaseInsensitiveCompare("\(rhs.awayTeam) \(rhs.homeTeam)") == .orderedAscending
+            }
+    }
+
     private func triggerCacheSyncIfNeeded(force: Bool) async -> Bool {
         let now = Date()
         if !force,

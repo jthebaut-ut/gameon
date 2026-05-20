@@ -74,8 +74,12 @@ struct VenueEventInsert: Encodable {
     let venue_name: String
     let event_title: String
     let sport: String
+    let external_league: String?
     let event_date: String
     let event_time: String
+    let external_game_id: String?
+    let external_source: String?
+    let imported_from_api: Bool
     let sound_on: Bool
     let audio_type: String
     let drink_special: String

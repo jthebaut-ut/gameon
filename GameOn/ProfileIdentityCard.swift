@@ -90,6 +90,7 @@ struct ProfileIdentityCard: View {
     @State private var isLoadingSuggestedFans = false
     @State private var suggestedFansMessage: String?
     @State private var sendingSuggestedFanRequestIds: Set<UUID> = []
+    @State private var profileStatsCounts: ProfileStatsCounts?
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -122,6 +123,13 @@ struct ProfileIdentityCard: View {
     private var pokesLiveRefreshLoopToken: String {
         let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
         return "\(auth)|pokesLive=\(isAccountTabActive)"
+    }
+
+    private var profileStatsLoadToken: String {
+        let auth = viewModel.currentUserAuthId?.uuidString ?? "anonymous"
+        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let teams = FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw).sorted().joined(separator: ",")
+        return "\(auth)|\(email)|teams=\(teams)|active=\(isAccountTabActive)"
     }
 
     private var selectedTeams: [FavoriteTeam] {
@@ -204,6 +212,26 @@ struct ProfileIdentityCard: View {
 #endif
     }
 
+    private func loadProfileStatsIfNeeded() async {
+        guard isAccountTabActive, let userId = viewModel.currentUserAuthId else { return }
+        let email = await viewModel.strictNormalizedSessionEmailForSocialTables()
+            ?? viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let counts = await ProfileStatsService.shared.loadStats(
+            userId: userId,
+            userEmail: email,
+            forceRefresh: false
+        )
+        await MainActor.run {
+            profileStatsCounts = counts
+#if DEBUG
+            print("[ProfileStatsDebug] pickupGamesCount=\(counts.pickupGamesCount)")
+            print("[ProfileStatsDebug] venueGamesCount=\(counts.venueGamesCount)")
+            print("[ProfileStatsDebug] favoriteTeamsCount=\(counts.favoriteTeamsCount)")
+            print("[ProfileStatsDebug] friendsCount=\(counts.friendsCount)")
+#endif
+        }
+    }
+
     private var canShowOwnerPokesHighlights: Bool {
         viewModel.isLoggedIn && viewModel.currentUserAuthId != nil
     }
@@ -276,6 +304,9 @@ struct ProfileIdentityCard: View {
         }
         .task {
             await viewModel.loadFanIdentityPreferencesFromProfile()
+        }
+        .task(id: profileStatsLoadToken) {
+            await loadProfileStatsIfNeeded()
         }
         .sheet(isPresented: $showFavoriteTeamsPicker) {
             FavoriteTeamsPickerSheet(
@@ -1339,11 +1370,11 @@ struct ProfileIdentityCard: View {
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            statCell(value: gamesWatchedValue, label: "Plans")
+            statCell(value: pickupGamesValue, label: "Pickup\nGames")
             statDivider
-            statCell(value: venuesVisitedValue, label: "Venues")
+            statCell(value: venueGamesValue, label: "Venue\nGames")
             statDivider
-            statCell(value: teamsValue, label: "Teams")
+            statCell(value: favoriteTeamsValue, label: "Fav\nTeams")
             statDivider
             statCell(value: friendsValue, label: "Friends")
         }
@@ -1367,23 +1398,24 @@ struct ProfileIdentityCard: View {
             .padding(.vertical, 3)
     }
 
-    private var gamesWatchedValue: String {
-        let n = viewModel.followingTabGoingItems.count
+    private var pickupGamesValue: String {
+        let localApproved = viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }.count
+        let n = profileStatsCounts?.pickupGamesCount ?? localApproved
         return n > 0 ? "\(n)" : "—"
     }
 
-    private var venuesVisitedValue: String {
-        let n = max(viewModel.favoriteVenueIDs.count, viewModel.followingTabSavedVenues.count)
+    private var venueGamesValue: String {
+        let n = profileStatsCounts?.venueGamesCount ?? viewModel.followingTabGoingItems.filter { $0.isServerGoing }.count
         return n > 0 ? "\(n)" : "—"
     }
 
-    private var teamsValue: String {
-        let n = selectedTeams.count
+    private var favoriteTeamsValue: String {
+        let n = profileStatsCounts?.favoriteTeamsCount ?? selectedTeams.count
         return n > 0 ? "\(n)" : "—"
     }
 
     private var friendsValue: String {
-        let n = chatViewModel.friends.count
+        let n = profileStatsCounts?.friendsCount ?? chatViewModel.friends.count
         return n > 0 ? "\(n)" : "—"
     }
 
@@ -1397,7 +1429,7 @@ struct ProfileIdentityCard: View {
                 .font(.system(size: 10, weight: .semibold, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme))
                 .multilineTextAlignment(.center)
-                .lineLimit(1)
+                .lineLimit(2)
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)

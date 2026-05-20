@@ -60,6 +60,7 @@ struct VenueOwnerDashboardView: View {
     @State private var selectedSection: VenueDashboardSection = .profile
 
     @State private var gameTitle = ""
+    @State private var gameLeague = ""
     @State private var gameSpecial = ""
     @State private var soundOn = true
     @State private var coverCharge = ""
@@ -134,7 +135,13 @@ struct VenueOwnerDashboardView: View {
         case add = 1
     }
 
+    private enum BusinessGameCreationMode: String, CaseIterable {
+        case manual = "Manual Entry"
+        case importLive = "Import From Live Games"
+    }
+
     @State private var manageGamesListTab: ManageGamesListTab = .scheduled
+    @State private var gameCreationMode: BusinessGameCreationMode = .manual
     @State private var didPickInitialManageGamesTab = false
     @State private var myVenueGamesForManage: [VenueEventRow] = []
     @State private var manageGamesListLoading = false
@@ -151,6 +158,15 @@ struct VenueOwnerDashboardView: View {
     @State private var showVenueOwnerContactSupport = false
     @State private var showSchedulePicker = false
     @State private var schedulePickerDate = Date()
+    @State private var importGamesDate = Date()
+    @State private var importGamesSportFilter = "All"
+    @State private var importGamesMatches: [LiveMatch] = []
+    @State private var isLoadingImportGames = false
+    @State private var importGamesError = ""
+    @State private var importedExternalGameID: String?
+    @State private var importedExternalSource: String?
+    @State private var importedExternalLeague: String?
+    @State private var importedFromAPI = false
 
     init(
         viewModel: MapViewModel,
@@ -1542,14 +1558,22 @@ struct VenueOwnerDashboardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            pickFromSportsScheduleCard
+            gameCreationModePicker
+
+            if gameCreationMode == .importLive {
+                importFromLiveGamesPane
+            }
 
             addGameFormFields
         }
         .onAppear {
             clearManageGamesErrorIfAddGameScheduleIsFutureValid()
+            if Calendar.current.startOfDay(for: importGamesDate) != Calendar.current.startOfDay(for: gameDate) {
+                importGamesDate = gameDate
+            }
 #if DEBUG
             print("[ManageGamesAddPane] render")
+            print("[BusinessGameImportDebug] selectedMode=\(gameCreationMode.rawValue)")
 #endif
         }
         .onDisappear {
@@ -1557,6 +1581,233 @@ struct VenueOwnerDashboardView: View {
             print("[ManageGamesAddPane] disappear")
 #endif
         }
+    }
+
+    private var gameCreationModePicker: some View {
+        Picker("Game creation mode", selection: $gameCreationMode) {
+            ForEach(BusinessGameCreationMode.allCases, id: \.self) { mode in
+                Text(mode.rawValue).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: gameCreationMode) { _, newValue in
+#if DEBUG
+            print("[BusinessGameImportDebug] selectedMode=\(newValue.rawValue)")
+#endif
+            if newValue == .importLive {
+                importGamesDate = gameDate
+                Task { await fetchImportGames(forceRefresh: false) }
+            } else {
+                clearImportedGameMetadata()
+            }
+        }
+    }
+
+    private var importFromLiveGamesPane: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "bolt.horizontal.circle.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.orange)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Import From Live Games")
+                        .font(.subheadline.weight(.bold))
+                    Text("Pick a real game, then review and save it as a venue listing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            DatePicker(
+                "Game day",
+                selection: $importGamesDate,
+                in: minimumSelectableGameCalendarDate...Date.distantFuture,
+                displayedComponents: .date
+            )
+            .font(.subheadline.weight(.semibold))
+            .padding()
+            .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .onChange(of: importGamesDate) { _, newDate in
+#if DEBUG
+                print("[BusinessGameImportDebug] selectedDate=\(Self.debugDateFormatter.string(from: newDate))")
+#endif
+                Task { await fetchImportGames(forceRefresh: true) }
+            }
+
+            importSportFilterChips
+
+            if isLoadingImportGames {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading live/API games...")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if !importGamesError.isEmpty {
+                importMessageCard(
+                    icon: "wifi.exclamationmark",
+                    title: "Couldn’t load games",
+                    message: "\(importGamesError) Manual Entry is still available."
+                )
+            } else if filteredImportMatches.isEmpty {
+                importMessageCard(
+                    icon: "calendar.badge.exclamationmark",
+                    title: "No games found for this day.",
+                    message: "You can still add one manually."
+                )
+            } else {
+                VStack(spacing: 10) {
+                    ForEach(filteredImportMatches) { match in
+                        Button {
+                            Task { await selectImportedLiveGame(match) }
+                        } label: {
+                            importedGameCard(match)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.orange.opacity(0.20), lineWidth: 1)
+        )
+        .task {
+            await fetchImportGames(forceRefresh: false)
+        }
+    }
+
+    private var availableImportSports: [String] {
+        var seen = Set<String>()
+        return importGamesMatches.compactMap { match in
+            let sport = Self.mappedVenueSport(for: match).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !sport.isEmpty, seen.insert(sport.lowercased()).inserted else { return nil }
+            return sport
+        }.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+    }
+
+    private var filteredImportMatches: [LiveMatch] {
+        importGamesMatches.filter { match in
+            guard importGamesSportFilter != "All" else { return true }
+            let mapped = Self.mappedVenueSport(for: match)
+            return mapped.localizedCaseInsensitiveCompare(importGamesSportFilter) == .orderedSame
+                || SportFilterCatalog.storedSport(mapped, matchesSearchQuery: importGamesSportFilter)
+        }
+    }
+
+    private var importSportFilterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                importSportChip("All")
+                ForEach(availableImportSports, id: \.self) { sport in
+                    importSportChip(sport)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private func importSportChip(_ sport: String) -> some View {
+        let isSelected = importGamesSportFilter == sport
+        return Button {
+            importGamesSportFilter = sport
+#if DEBUG
+            print("[BusinessGameImportDebug] apiFetchStarted sport=\(sport)")
+#endif
+            Task { await fetchImportGames(forceRefresh: false) }
+        } label: {
+            Text(sport)
+                .font(.caption.weight(.bold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.orange : FGAdaptiveSurface.sheetRoot.opacity(0.72))
+                .foregroundStyle(isSelected ? .white : .primary)
+                .clipShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func importMessageCard(icon: String, title: String, message: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.orange)
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func importedGameCard(_ match: LiveMatch) -> some View {
+        let sport = Self.mappedVenueSport(for: match)
+        let status = VenueOwnerScheduledGameChoice(match: match).statusLabel
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(Self.importedGameTitle(for: match))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                Spacer(minLength: 8)
+                Text(status)
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(match.matchStatus.isHappeningNow ? Color.green : Color.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background((match.matchStatus.isHappeningNow ? Color.green : Color.orange).opacity(0.14))
+                    .clipShape(Capsule(style: .continuous))
+            }
+
+            HStack(spacing: 6) {
+                Text(sport)
+                    .font(.caption.weight(.semibold))
+                Text("/")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(match.league)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            HStack(spacing: 8) {
+                Text("\(Self.dateFormatter.string(from: match.startTime)) at \(Self.timeFormatter.string(from: match.startTime))")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Text("Imported game")
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(Color.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule(style: .continuous))
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.34), lineWidth: 1)
+        )
     }
 
     private var pickFromSportsScheduleCard: some View {
@@ -1748,6 +1999,8 @@ struct VenueOwnerDashboardView: View {
 #endif
                 }
 
+            field("League / competition (optional)", text: $gameLeague)
+
             Toggle("Audio / sound will be ON", isOn: $soundOn)
                 .fontWeight(.semibold)
                 .padding()
@@ -1875,6 +2128,128 @@ struct VenueOwnerDashboardView: View {
 #endif
     }
 
+    private func fetchImportGames(forceRefresh: Bool) async {
+        let snapshot = await MainActor.run {
+            (
+                date: importGamesDate,
+                sport: importGamesSportFilter
+            )
+        }
+
+#if DEBUG
+        print("[BusinessGameImportDebug] selectedDate=\(Self.debugDateFormatter.string(from: snapshot.date))")
+        print("[BusinessGameImportDebug] apiFetchStarted sport=\(snapshot.sport)")
+#endif
+
+        await MainActor.run {
+            isLoadingImportGames = true
+            importGamesError = ""
+        }
+
+        do {
+            let matches = try await LiveSportsService.shared.fetchLiveMatches(
+                on: snapshot.date,
+                sportFilter: nil,
+                forceRefresh: forceRefresh
+            )
+            await MainActor.run {
+                importGamesMatches = matches
+                if importGamesSportFilter != "All",
+                   !availableImportSports.contains(where: { $0.localizedCaseInsensitiveCompare(importGamesSportFilter) == .orderedSame }) {
+                    importGamesSportFilter = "All"
+                }
+                isLoadingImportGames = false
+            }
+#if DEBUG
+            print("[BusinessGameImportDebug] apiFetchResult count=\(matches.count)")
+#endif
+        } catch {
+            await MainActor.run {
+                importGamesMatches = []
+                importGamesError = error.localizedDescription
+                isLoadingImportGames = false
+            }
+#if DEBUG
+            print("[BusinessGameImportDebug] apiFetchResult count=0 error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    private func selectImportedLiveGame(_ match: LiveMatch) async {
+        let title = Self.importedGameTitle(for: match)
+        let mappedSport = Self.mappedVenueSport(for: match)
+        let externalSource = LiveSportsService.providerDescription
+        let venueId = await MainActor.run { viewModel.ownerVenueDatabaseId }
+
+#if DEBUG
+        print("[BusinessGameImportDebug] selectedExternalGame id=\(match.id)")
+#endif
+
+        let duplicate = await viewModel.venueGameImportDuplicateExists(
+            externalGameID: match.id,
+            externalSource: externalSource,
+            venueId: venueId,
+            gameDate: match.startTime
+        )
+        guard !duplicate else {
+            await MainActor.run {
+                manageGamesError = "This game already exists for this venue."
+                manageGamesFeedback = ""
+            }
+            return
+        }
+
+        await MainActor.run {
+            gameTitle = title
+            viewModel.ownerVenuePrimarySport = mappedSport
+            gameDate = Calendar.current.startOfDay(for: match.startTime)
+            gameStartTime = match.startTime
+            gameLeague = match.league
+            importedExternalGameID = match.id
+            importedExternalSource = externalSource
+            importedExternalLeague = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
+            importedFromAPI = true
+            manageGamesError = ""
+            manageGamesFeedback = "Game details imported — review and save."
+        }
+
+#if DEBUG
+        print("[BusinessGameImportDebug] populatedTitle=\(title)")
+#endif
+    }
+
+    nonisolated fileprivate static func importedGameTitle(for match: LiveMatch) -> String {
+        let home = match.homeTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        let away = match.awayTeam.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !home.isEmpty, !away.isEmpty { return "\(home) vs \(away)" }
+        return [home, away].filter { !$0.isEmpty }.joined(separator: " vs ")
+    }
+
+    nonisolated fileprivate static func mappedVenueSport(for match: LiveMatch) -> String {
+        let direct = match.sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visual = LiveSportVisualType.normalize(direct)
+        switch visual {
+        case .basketball:
+            return "NBA"
+        case .nfl:
+            return "NFL"
+        case .hockey:
+            return "NHL"
+        case .baseball:
+            return "Baseball"
+        case .soccer:
+            return "Soccer"
+        case .tennis:
+            return "Tennis"
+        case .golf:
+            return "Golf"
+        case .formula1:
+            return "Formula 1"
+        case .other:
+            return direct.isEmpty ? "Sports" : direct
+        }
+    }
+
     /// Clears add/list transient UI when the owner switches managed location (see ``MapViewModel/ownerVenueDatabaseId``).
     private func clearManageGamesTransientStateForVenueSwitch() {
         clearManageGamesBanners()
@@ -1885,6 +2260,10 @@ struct VenueOwnerDashboardView: View {
         didPickInitialManageGamesTab = false
         manageGamesRefreshInFlight = false
         manageGamesListLoading = false
+        gameCreationMode = .manual
+        importGamesMatches = []
+        importGamesError = ""
+        clearImportedGameMetadata()
 #if DEBUG
         print("[BusinessGameState] cleared transient game state for venue switch")
 #endif
@@ -1906,6 +2285,29 @@ struct VenueOwnerDashboardView: View {
         let title = r.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return "\(d)|\(t)|\(title)"
     }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .none
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    private static let debugDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     private func performManageGameCancel(rowSnapshot: VenueEventRow) async {
         await MainActor.run {
@@ -2043,6 +2445,7 @@ struct VenueOwnerDashboardView: View {
                 gameStartTime: gameStartTime,
                 soundOn: soundOn,
                 teamFanbase: teamFanbase,
+                gameLeague: gameLeague,
                 crowdLevel: crowdLevel,
                 liveOccupancy: liveOccupancy,
                 seating: seating,
@@ -2051,8 +2454,33 @@ struct VenueOwnerDashboardView: View {
                 coverCharge: coverCharge,
                 reservationsAvailable: reservationsAvailable,
                 waitlistAvailable: waitlistAvailable,
-                cleanupDelayHours: cleanupDelayHours
+                cleanupDelayHours: cleanupDelayHours,
+                externalGameID: importedFromAPI ? importedExternalGameID : nil,
+                externalSource: importedFromAPI ? importedExternalSource : nil,
+                externalLeague: { () -> String? in
+                    let manualLeague = gameLeague.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !manualLeague.isEmpty { return manualLeague }
+                    return importedFromAPI ? importedExternalLeague : nil
+                }(),
+                importedFromAPI: importedFromAPI
             )
+        }
+
+        if snapshot.importedFromAPI {
+            let duplicate = await viewModel.venueGameImportDuplicateExists(
+                externalGameID: snapshot.externalGameID,
+                externalSource: snapshot.externalSource,
+                venueId: viewModel.ownerVenueDatabaseId,
+                gameDate: snapshot.gameDate
+            )
+            if duplicate {
+                await MainActor.run {
+                    isSavingNewGame = false
+                    manageGamesError = "This game already exists for this venue."
+                    manageGamesFeedback = ""
+                }
+                return
+            }
         }
 
         let result = await viewModel.saveVenueGameListingAsync(
@@ -2072,7 +2500,11 @@ struct VenueOwnerDashboardView: View {
             coverCharge: snapshot.coverCharge,
             reservationInfo: snapshot.reservationsAvailable ? "Reservations available" : "",
             socialCoordination: snapshot.waitlistAvailable ? "Waitlist available" : "",
-            cleanupDelayHours: snapshot.cleanupDelayHours
+            cleanupDelayHours: snapshot.cleanupDelayHours,
+            externalGameID: snapshot.externalGameID,
+            externalSource: snapshot.externalSource,
+            importedFromAPI: snapshot.importedFromAPI,
+            externalLeague: snapshot.externalLeague
         )
 
         await MainActor.run {
@@ -2103,6 +2535,7 @@ struct VenueOwnerDashboardView: View {
 
     private func resetAddGameFormAfterSave() {
         gameTitle = ""
+        gameLeague = ""
         gameSpecial = ""
         soundOn = true
         coverCharge = ""
@@ -2117,6 +2550,14 @@ struct VenueOwnerDashboardView: View {
         waitlistAvailable = false
         showSpecialsFields = false
         cleanupDelayHours = VenueOwnerGameDataRetentionHours.defaultPickerHours
+        clearImportedGameMetadata()
+    }
+
+    private func clearImportedGameMetadata() {
+        importedExternalGameID = nil
+        importedExternalSource = nil
+        importedExternalLeague = nil
+        importedFromAPI = false
     }
 
     private func refreshAnalyticsGameHistory() async {
@@ -2304,8 +2745,8 @@ private nonisolated struct VenueOwnerScheduledGameChoice: Identifiable, Equatabl
 
     init(match: LiveMatch) {
         id = match.id
-        title = "\(match.awayTeam) vs \(match.homeTeam)"
-        sport = match.sport
+        title = VenueOwnerDashboardView.importedGameTitle(for: match)
+        sport = VenueOwnerDashboardView.mappedVenueSport(for: match)
         league = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
         startTime = match.startTime
         status = match.matchStatus
@@ -2818,6 +3259,24 @@ private struct VenueOwnerManageGameRow: View {
                         .background(Color.blue.opacity(0.08))
                         .clipShape(Capsule())
                 }
+
+                if row.imported_from_api == true {
+                    Text("Imported")
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(Color.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+
+            if let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !league.isEmpty {
+                Text(league)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Text("\(goingCount) going · \(commentCount) comments · \(vibeTotal) vibes")

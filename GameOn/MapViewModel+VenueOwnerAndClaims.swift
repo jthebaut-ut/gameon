@@ -2591,7 +2591,11 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
+        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours,
+        externalGameID: String? = nil,
+        externalSource: String? = nil,
+        importedFromAPI: Bool = false,
+        externalLeague: String? = nil
     ) {
         Task {
             _ = await saveVenueGameListingAsync(
@@ -2611,7 +2615,11 @@ extension MapViewModel {
                 coverCharge: coverCharge,
                 reservationInfo: reservationInfo,
                 socialCoordination: socialCoordination,
-                cleanupDelayHours: cleanupDelayHours
+                cleanupDelayHours: cleanupDelayHours,
+                externalGameID: externalGameID,
+                externalSource: externalSource,
+                importedFromAPI: importedFromAPI,
+                externalLeague: externalLeague
             )
         }
     }
@@ -2643,7 +2651,11 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
+        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours,
+        externalGameID: String? = nil,
+        externalSource: String? = nil,
+        importedFromAPI: Bool = false,
+        externalLeague: String? = nil
     ) async -> Result<VenueEventRow, Error> {
         let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerRowEmail) else {
@@ -2669,6 +2681,9 @@ extension MapViewModel {
         let retentionHours = VenueOwnerGameDataRetentionHours.standardOptions.contains(cleanupDelayHours)
             ? cleanupDelayHours
             : VenueOwnerGameDataRetentionHours.defaultPickerHours
+        let trimmedExternalGameID = externalGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedExternalSource = externalSource?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmedExternalLeague = externalLeague?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         do {
             let dateFormatter = DateFormatter()
@@ -2690,8 +2705,12 @@ extension MapViewModel {
                 venue_name: ownerVenueName,
                 event_title: gameTitle,
                 sport: sport,
+                external_league: trimmedExternalLeague.isEmpty ? nil : trimmedExternalLeague,
                 event_date: dateFormatter.string(from: gameDate),
                 event_time: timeFormatter.string(from: gameStartTime),
+                external_game_id: trimmedExternalGameID.isEmpty ? nil : trimmedExternalGameID,
+                external_source: trimmedExternalSource.isEmpty ? nil : trimmedExternalSource,
+                imported_from_api: importedFromAPI,
                 sound_on: soundOn,
                 audio_type: audioType.rawValue,
                 drink_special: drinkSpecial,
@@ -2760,6 +2779,10 @@ extension MapViewModel {
     private static func userFacingVenueGameScheduleOrSaveError(_ error: Error) -> String {
         let raw = error.localizedDescription
         let s = raw.lowercased()
+        if s.contains("idx_venue_events_unique_external_game_per_venue_day")
+            || (s.contains("duplicate") && s.contains("external_game")) {
+            return "This game already exists for this venue."
+        }
         if s.contains("check")
             || s.contains("constraint")
             || s.contains("violates")
@@ -2770,6 +2793,64 @@ extension MapViewModel {
             return VenueOwnerGameScheduleValidation.futureDateTimeMessage
         }
         return raw.isEmpty ? "Unable to save the game right now. Please try again." : raw
+    }
+
+    func venueGameImportDuplicateExists(
+        externalGameID: String?,
+        externalSource: String?,
+        venueId: UUID?,
+        gameDate: Date
+    ) async -> Bool {
+        let trimmedExternalGameID = externalGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmedExternalGameID.isEmpty else {
+#if DEBUG
+            print("[BusinessGameImportDebug] duplicateCheckResult=false reason=missing_external_id")
+#endif
+            return false
+        }
+
+        let trimmedExternalSource = externalSource?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        dateFormatter.timeZone = TimeZone.current
+        let eventDate = dateFormatter.string(from: gameDate)
+
+        do {
+            var query = supabase
+                .from("venue_events")
+                .select("id")
+                .eq("external_game_id", value: trimmedExternalGameID)
+                .eq("event_date", value: eventDate)
+                .eq("admin_status", value: "active")
+
+            if !trimmedExternalSource.isEmpty {
+                query = query.eq("external_source", value: trimmedExternalSource)
+            }
+            if let venueId {
+                query = query.eq("venue_id", value: venueId.uuidString.lowercased())
+            } else {
+                let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
+                if OwnerBusinessEmail.isValidStrict(ownerRowEmail) {
+                    query = query.eq("owner_email", value: ownerRowEmail)
+                }
+            }
+
+            let rows: [VenueEventDuplicateCheckRow] = try await query.limit(1).execute().value
+            let exists = !rows.isEmpty
+#if DEBUG
+            print("[BusinessGameImportDebug] duplicateCheckResult=\(exists)")
+#endif
+            return exists
+        } catch {
+#if DEBUG
+            print("[BusinessGameImportDebug] duplicateCheckResult=false error=\(error.localizedDescription)")
+#endif
+            return false
+        }
+    }
+
+    private struct VenueEventDuplicateCheckRow: Decodable {
+        let id: UUID?
     }
 
     /// Updates only `event_title` for a venue-owned game (Manage Games title edit).
