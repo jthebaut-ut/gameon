@@ -270,6 +270,10 @@ struct MainTabView: View {
             updateDirectChatReadStateVisibility()
             viewModel.discoverNavigateToAccountForUserAuth = false
         }
+        .onChange(of: viewModel.discoverFocusVenueId) { _, venueId in
+            guard venueId != nil else { return }
+            selectTab(.discover, reason: "discoverFocusVenueId")
+        }
         .onChange(of: selectedTabStorage) { _, newRaw in
             AdDebugContext.setVisibleTab(newRaw)
 #if DEBUG

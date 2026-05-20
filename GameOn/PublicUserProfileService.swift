@@ -33,6 +33,7 @@ struct PublicUserProfileData {
     let sharedTeamsCount: Int
     let venueCount: Int
     let venueCards: [PublicProfileVenueCard]
+    let homeCrowdVenue: PublicProfileVenueCard?
     let pickupHostedCount: Int
     let pickupJoinedCount: Int
     let socialHighlightLabels: [String]
@@ -63,7 +64,7 @@ struct PublicProfileMutualFanAvatar: Equatable, Identifiable {
 
 enum PublicUserProfileService {
     private static let profileSelect =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
@@ -138,6 +139,7 @@ enum PublicUserProfileService {
         let venue_cards: [VenueCardRow]?
         let fan_identity_preferences: FanIdentityPreferences?
         let shared_team_ids: [String]?
+        let home_crowd_venue: HomeCrowdVenueSummary?
 
         struct MutualFanRow: Decodable {
             let user_id: UUID?
@@ -251,10 +253,23 @@ enum PublicUserProfileService {
                     thumbnailURL: thumb.isEmpty ? nil : thumb
                 )
             },
+            homeCrowdVenue: rpc.home_crowd_venue.map { summary in
+                let thumb = ImageDisplayURL.canonicalStorageURLString(summary.thumbnailURL)
+                return PublicProfileVenueCard(
+                    venueId: summary.venueId,
+                    venueName: summary.name,
+                    cityLabel: summary.locationLabel,
+                    thumbnailURL: thumb.isEmpty ? nil : thumb
+                )
+            },
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
             sharedTeamNames: sharedTeamNames
         )
+
+        if let homeId = built.homeCrowdVenue?.venueId {
+            print("[HomeCrowd] publicProfile venueId=\(homeId.uuidString.lowercased())")
+        }
 
 #if DEBUG
         print(
@@ -286,6 +301,7 @@ enum PublicUserProfileService {
             sharedTeamsCount: 0,
             venueCount: 0,
             venueCards: [],
+            homeCrowdVenue: nil,
             pickupHostedCount: 0,
             pickupJoinedCount: 0,
             socialHighlightLabels: [],
@@ -334,7 +350,7 @@ enum PublicUserProfileService {
             isBusinessAccount: isBusiness,
             hasResolvedIdentity: profileQuerySuccess,
             isPubliclyVisible: true,
-            memberSinceLabel: nil,
+            memberSinceLabel: PublicProfileMemberSinceFormatter.label(from: row?.created_at),
             openToItems: PublicProfileOpenToBuilder.items(
                 preferences: .empty,
                 favoriteTeams: favoriteTeams,
@@ -347,6 +363,7 @@ enum PublicUserProfileService {
             sharedTeamsCount: 0,
             venueCount: venueCount,
             venueCards: [],
+            homeCrowdVenue: nil,
             pickupHostedCount: pickupHosted,
             pickupJoinedCount: pickupJoined,
             sharedTeamNames: []
@@ -462,6 +479,7 @@ enum PublicUserProfileService {
         sharedTeamsCount: Int,
         venueCount: Int,
         venueCards: [PublicProfileVenueCard],
+        homeCrowdVenue: PublicProfileVenueCard?,
         pickupHostedCount: Int,
         pickupJoinedCount: Int,
         sharedTeamNames: [String]
@@ -525,6 +543,7 @@ enum PublicUserProfileService {
             sharedTeamsCount: sharedTeamsCount,
             venueCount: venueCount,
             venueCards: venueCards,
+            homeCrowdVenue: homeCrowdVenue,
             pickupHostedCount: pickupHostedCount,
             pickupJoinedCount: pickupJoinedCount,
             socialHighlightLabels: socialHighlights(

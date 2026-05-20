@@ -325,6 +325,8 @@ final class MapViewModel: ObservableObject {
     }
     @Published var currentUserFanXP: FanXPState = .rookie
     @Published var currentUserFanIdentityPreferences: FanIdentityPreferences = .empty
+    @Published var currentUserHomeCrowdVenueId: UUID?
+    @Published var currentUserHomeCrowdVenue: HomeCrowdVenueSummary?
     @Published var fanXPRewardOverlay = FanXPRewardOverlayManager()
     /// When set, ``PublicProfileOverlayWindowPresenter`` shows ``PublicUserProfilePreviewView`` in a top-level UIWindow (not a SwiftUI sheet).
     @Published var publicProfileSheetUserId: UUID?
@@ -457,6 +459,8 @@ final class MapViewModel: ObservableObject {
     @Published var isDiscoverVenueSearchLoading: Bool = false
     /// Discover login gate: set to `true` to switch ``MainTabView`` to Account so the user can sign in (cleared by MainTabView).
     @Published var discoverNavigateToAccountForUserAuth: Bool = false
+    /// Account / profile → Discover: focus a venue on the map and open its detail sheet.
+    @Published var discoverFocusVenueId: UUID?
     /// When set, ``SettingsScreen`` presents ``SettingsUserAuthSheet`` (same fan sheet as Account tab). Cleared when handled.
     @Published var presentFanUserAuthSheetFromDiscover: Bool = false
     /// Initial mode for ``SettingsUserAuthSheet`` when opened from Discover guest prompts.

@@ -102,7 +102,7 @@ enum PublicProfileContentBuilder {
     }
 
     static func homeCrowdVenue(from data: PublicUserProfileData) -> PublicProfileVenueCard? {
-        data.venueCards.first
+        data.homeCrowdVenue
     }
 
     static func venuesExcludingHomeCrowd(from data: PublicUserProfileData) -> [PublicProfileVenueCard] {
@@ -137,6 +137,11 @@ struct PublicProfileTwoColumnGrid: View {
 
     var body: some View {
         VStack(spacing: 10) {
+            if let homeCrowd = PublicProfileContentBuilder.homeCrowdVenue(from: data) {
+                PublicProfileGridHomeCrowdCard(venue: homeCrowd)
+                    .frame(maxWidth: .infinity)
+            }
+
             profileRow(left: favoriteTeamsSlot, right: .some(AnyView(PublicProfileGridOpenToCard(items: data.editorialOpenToItems))))
 
             PublicProfileGridMutualFansCard(
@@ -180,26 +185,43 @@ private enum PublicProfileGridSlot {
 
 // MARK: - Hero header
 
+private struct PublicProfileHeroWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 struct PublicProfileEditorialHero: View {
     let data: PublicUserProfileData
     @Environment(\.colorScheme) private var colorScheme
+    @State private var containerWidth: CGFloat = 0
+
+    private var avatarDiameter: CGFloat {
+        Self.resolvedAvatarDiameter(containerWidth: containerWidth)
+    }
+
+    private var statColumnWidth: CGFloat {
+        guard containerWidth > 0 else { return 96 }
+        return min(104, max(88, containerWidth * 0.26))
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                avatar
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                avatar(diameter: avatarDiameter)
 
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text(data.displayName)
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .font(.system(size: 21, weight: .bold, design: .rounded))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .lineLimit(2)
-                            .minimumScaleFactor(0.8)
+                            .minimumScaleFactor(0.82)
 
                         if data.reputation.privileges.isVerifiedOrganizer {
                             Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 13, weight: .bold))
                                 .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
                         }
                     }
@@ -215,48 +237,92 @@ struct PublicProfileEditorialHero: View {
                             .lineLimit(2)
                     }
 
+                    if !data.favoriteTeams.isEmpty {
+                        heroFavoriteTeamsRow
+                            .padding(.top, 2)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
 
-                VStack(spacing: 8) {
-                    if data.mutualFansCount > 0 {
-                        PublicProfileHeroStatCard(
-                            value: "\(data.mutualFansCount)",
-                            label: data.mutualFansCount == 1 ? "Mutual fan" : "Mutual fans",
-                            icon: "person.2.fill",
-                            tint: Color(red: 0.58, green: 0.36, blue: 0.92)
-                        )
-                    }
-                    PublicProfileHeroStatCard(
-                        value: data.reputation.title,
-                        label: "Fan reputation",
-                        icon: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill",
-                        tint: FGColor.accentGreen
-                    )
-                }
-                .frame(width: 108)
+                heroStatColumn
+                    .frame(width: statColumnWidth)
             }
 
             if let bio = data.bio, !bio.isEmpty {
                 Text(bio)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.86))
-                    .lineSpacing(2)
+                    .font(.system(size: 13, weight: .regular, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineSpacing(3)
+                    .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
+
+            if let memberSince = data.memberSinceLabel, !memberSince.isEmpty {
+                heroMemberSinceRow(memberSince)
+            }
         }
-        .padding(14)
+        .padding(16)
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .preference(key: PublicProfileHeroWidthKey.self, value: geo.size.width)
+            }
+        }
+        .onPreferenceChange(PublicProfileHeroWidthKey.self) { containerWidth = $0 }
         .publicProfileEditorialCard(cornerRadius: 22)
     }
 
-    private var avatar: some View {
-        UserAvatarView(
+    private var heroStatColumn: some View {
+        VStack(spacing: 8) {
+            if data.mutualFansCount > 0 {
+                PublicProfileHeroStatCard(
+                    value: "\(data.mutualFansCount)",
+                    label: data.mutualFansCount == 1 ? "Mutual fan" : "Mutual fans",
+                    icon: "person.2.fill",
+                    tint: Color(red: 0.58, green: 0.36, blue: 0.92)
+                )
+            }
+            PublicProfileHeroStatCard(
+                value: data.reputation.title,
+                label: "Fan reputation",
+                icon: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill",
+                tint: FGColor.accentGreen
+            )
+        }
+    }
+
+    private var heroFavoriteTeamsRow: some View {
+        HStack(spacing: 5) {
+            ForEach(data.favoriteTeams.prefix(5)) { team in
+                FavoriteTeamLogoBadge(team: team, diameter: 26)
+            }
+        }
+    }
+
+    private func heroMemberSinceRow(_ label: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.9))
+            Text(label)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .lineLimit(1)
+        }
+    }
+
+    private func avatar(diameter: CGFloat) -> some View {
+        let statusSize = max(14, diameter * 0.14)
+        let borderWidth = max(2.5, diameter * 0.025)
+
+        return UserAvatarView(
             avatarThumbnailURL: data.avatarThumbnailURL,
             avatarURL: data.avatarURL ?? "",
             avatarDisplayRefreshToken: UUID(),
             displayName: data.displayName,
             email: "",
-            size: 76,
+            size: diameter,
             fallbackStyle: .lightOnWhiteChrome,
             imagePlaceholderTint: FGColor.accentBlue
         )
@@ -268,18 +334,27 @@ struct PublicProfileEditorialHero: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 2.5
+                    lineWidth: borderWidth
                 )
         }
         .overlay(alignment: .bottomTrailing) {
             Circle()
                 .fill(FGColor.accentGreen)
-                .frame(width: 14, height: 14)
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
-                .offset(x: 2, y: 2)
+                .frame(width: statusSize, height: statusSize)
+                .overlay(Circle().strokeBorder(Color.white, lineWidth: max(2, statusSize * 0.14)))
+                .offset(x: statusSize * 0.12, y: statusSize * 0.12)
         }
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.28 : 0.18), radius: diameter * 0.12, y: diameter * 0.05)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10), radius: diameter * 0.08, y: diameter * 0.04)
+        .frame(width: diameter, height: diameter)
     }
 
+    /// ~30% of hero width, clamped for premium anchor on phone / SE-safe compact floor.
+    static func resolvedAvatarDiameter(containerWidth: CGFloat) -> CGFloat {
+        guard containerWidth > 0 else { return 120 }
+        let scaled = containerWidth * 0.30
+        return min(132, max(100, scaled))
+    }
 }
 
 struct PublicProfileHeroStatCard: View {
@@ -321,15 +396,12 @@ struct PublicProfileHeroStatCard: View {
 
 struct PublicProfileGridHomeCrowdCard: View {
     let venue: PublicProfileVenueCard
-    let mutualFansCount: Int
-    let mutualAvatars: [PublicProfileMutualFanAvatar]
-    let memberSinceLabel: String?
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             venueHeroImage
-                .frame(height: 188)
+                .frame(height: 168)
                 .clipped()
 
             LinearGradient(
@@ -350,41 +422,27 @@ struct PublicProfileGridHomeCrowdCard: View {
                     .foregroundStyle(.white)
                     .lineLimit(2)
 
-                Text(regularLine)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.88))
-                    .lineLimit(1)
-
-                if mutualFansCount > 0 {
-                    HStack(spacing: 6) {
-                        overlappingAvatars
-                        Text("+\(max(0, mutualFansCount - min(mutualAvatars.count, 4)))")
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color.white.opacity(0.22)))
-                    }
-                    .padding(.top, 2)
+                if !venue.cityLabel.isEmpty {
+                    Text(venue.cityLabel)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.88))
+                        .lineLimit(1)
                 }
+
+                Text("This fan's home crowd")
+                    .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.72))
+                    .lineLimit(1)
             }
             .padding(10)
         }
-        .frame(maxWidth: .infinity, minHeight: 188)
+        .frame(maxWidth: .infinity, minHeight: 168)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.75)
         }
         .shadow(color: Color.black.opacity(0.10), radius: 10, y: 5)
-    }
-
-    private var regularLine: String {
-        if let memberSinceLabel {
-            let year = memberSinceLabel.replacingOccurrences(of: "Member since ", with: "")
-            return "Regular • Since \(year)"
-        }
-        return "Favorite spot"
     }
 
     @ViewBuilder
@@ -411,24 +469,6 @@ struct PublicProfileGridHomeCrowdCard: View {
             Image(systemName: "building.2.fill")
                 .font(.system(size: 42, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.35))
-        }
-    }
-
-    private var overlappingAvatars: some View {
-        HStack(spacing: -8) {
-            ForEach(mutualAvatars.prefix(3)) { fan in
-                UserAvatarView(
-                    avatarThumbnailURL: fan.avatarURL,
-                    avatarURL: fan.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
-                    displayName: fan.displayName,
-                    email: "",
-                    size: 24,
-                    fallbackStyle: .lightOnWhiteChrome,
-                    imagePlaceholderTint: .white
-                )
-                .overlay(Circle().strokeBorder(Color.white, lineWidth: 1.5))
-            }
         }
     }
 }

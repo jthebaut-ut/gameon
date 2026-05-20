@@ -255,7 +255,12 @@ enum PublicProfileOpenToBuilder {
 }
 
 enum PublicProfileMemberSinceFormatter {
+    /// Public hero line, e.g. "FanGeo member since May 2026" or "FanGeo member since 2026".
     static func label(from raw: String?) -> String? {
+        fanGeoMemberSinceLabel(from: raw)
+    }
+
+    static func fanGeoMemberSinceLabel(from raw: String?) -> String? {
         guard let raw,
               let date = SupabaseTimestampParsing.parseTimestamptz(raw) else {
             return nil
@@ -266,8 +271,8 @@ enum PublicProfileMemberSinceFormatter {
         let monthSymbols = calendar.monthSymbols
         let monthName = (1...12).contains(month) ? monthSymbols[month - 1] : ""
         if monthName.isEmpty {
-            return "Member since \(year)"
+            return "FanGeo member since \(year)"
         }
-        return "Member since \(monthName) \(year)"
+        return "FanGeo member since \(monthName) \(year)"
     }
 }

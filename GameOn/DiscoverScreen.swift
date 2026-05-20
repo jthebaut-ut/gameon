@@ -556,6 +556,21 @@ struct DiscoverScreen: View {
                 await viewModel.consumeFollowingVenueNavigationIfPending()
             }
         }
+        .onChange(of: viewModel.discoverFocusVenueId) { _, venueId in
+            guard let venueId else { return }
+            viewModel.discoverFocusVenueId = nil
+            Task { @MainActor in
+                if viewModel.bars.first(where: { $0.id == venueId }) == nil
+                    && viewModel.followingTabSavedVenues.first(where: { $0.id == venueId }) == nil {
+                    await viewModel.loadVenuesFromSupabase()
+                }
+                let bar = viewModel.bars.first(where: { $0.id == venueId })
+                    ?? viewModel.followingTabSavedVenues.first(where: { $0.id == venueId })
+                guard let bar else { return }
+                viewModel.selectedBar = bar
+                showVenueDetails = true
+            }
+        }
         .onChange(of: viewModel.discoverAuthGateActive) { wasActive, isActive in
             viewModel.logDiscoverAuthGateDebug()
             if !isActive {
@@ -746,6 +761,16 @@ struct DiscoverScreen: View {
                 locksScheduledGameDetailsForGuest: viewModel.isGuestDiscoverMode,
                 onGuestGameLoginCTA: {
                     viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
+                isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
+                hasOtherHomeCrowd: viewModel.currentUserHomeCrowdVenueId != nil
+                    && !viewModel.isHomeCrowdVenue(selectedBar.id),
+                onSetHomeCrowd: {
+                    _ = await viewModel.setMyHomeCrowd(selectedBar)
+                },
+                onClearHomeCrowd: {
+                    _ = await viewModel.clearMyHomeCrowd()
                 }
             )
             .task {

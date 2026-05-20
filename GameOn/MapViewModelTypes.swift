@@ -679,6 +679,7 @@ struct UserProfileRow: Decodable {
     let live_visibility_mode: String?
     let selected_live_visibility_friend_ids: [UUID]?
     let discoverable_by_fans: Bool?
+    let created_at: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -694,6 +695,7 @@ struct UserProfileRow: Decodable {
         case live_visibility_mode
         case selected_live_visibility_friend_ids
         case discoverable_by_fans
+        case created_at
     }
 
     init(
@@ -709,7 +711,8 @@ struct UserProfileRow: Decodable {
         live_visibility_enabled: Bool? = nil,
         live_visibility_mode: String? = nil,
         selected_live_visibility_friend_ids: [UUID]? = nil,
-        discoverable_by_fans: Bool? = nil
+        discoverable_by_fans: Bool? = nil,
+        created_at: String? = nil
     ) {
         self.id = id
         self.email = email
@@ -724,6 +727,7 @@ struct UserProfileRow: Decodable {
         self.live_visibility_mode = live_visibility_mode
         self.selected_live_visibility_friend_ids = selected_live_visibility_friend_ids
         self.discoverable_by_fans = discoverable_by_fans
+        self.created_at = created_at
     }
 
     init(from decoder: Decoder) throws {
@@ -740,6 +744,7 @@ struct UserProfileRow: Decodable {
         live_visibility_enabled = try c.decodeIfPresent(Bool.self, forKey: .live_visibility_enabled)
         live_visibility_mode = try c.decodeIfPresent(String.self, forKey: .live_visibility_mode)
         discoverable_by_fans = try c.decodeIfPresent(Bool.self, forKey: .discoverable_by_fans)
+        created_at = try c.decodeIfPresent(String.self, forKey: .created_at)
 
         if let ids = try? c.decodeIfPresent([UUID].self, forKey: .selected_live_visibility_friend_ids) {
             selected_live_visibility_friend_ids = ids

@@ -2105,6 +2105,16 @@ struct LiveScreen: View {
                 locksScheduledGameDetailsForGuest: viewModel.isGuestDiscoverMode,
                 onGuestGameLoginCTA: {
                     viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
+                isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
+                hasOtherHomeCrowd: viewModel.currentUserHomeCrowdVenueId != nil
+                    && !viewModel.isHomeCrowdVenue(selectedBar.id),
+                onSetHomeCrowd: {
+                    _ = await viewModel.setMyHomeCrowd(selectedBar)
+                },
+                onClearHomeCrowd: {
+                    _ = await viewModel.clearMyHomeCrowd()
                 }
             )
             .task {

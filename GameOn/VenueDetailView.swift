@@ -42,6 +42,14 @@ struct VenueDetailView: View {
     var locksScheduledGameDetailsForGuest: Bool = false
     /// Guest Discover: same fan auth presentation as other Discover CTAs.
     var onGuestGameLoginCTA: (() -> Void)? = nil
+    /// Fan Home Crowd picker (Discover venue detail).
+    var showsHomeCrowdControls: Bool = false
+    var isHomeCrowdVenue: Bool = false
+    var hasOtherHomeCrowd: Bool = false
+    var onSetHomeCrowd: (() async -> Void)? = nil
+    var onClearHomeCrowd: (() async -> Void)? = nil
+
+    @State private var isHomeCrowdActionInFlight = false
 
     private static let sqlDayFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -229,6 +237,10 @@ struct VenueDetailView: View {
                     .progressiveAppear(isVisible: contentRevealPhase >= 2)
                 venueFeaturesSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 2)
+                if showsHomeCrowdControls {
+                    homeCrowdSection
+                        .progressiveAppear(isVisible: contentRevealPhase >= 2)
+                }
                 venueActionSection
                     .progressiveAppear(isVisible: contentRevealPhase >= 3)
                 if locksScheduledGameDetailsForGuest {
@@ -505,6 +517,105 @@ struct VenueDetailView: View {
                 .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
         }
         .softCardShadow()
+    }
+
+    private var homeCrowdSection: some View {
+        FGCard {
+            VStack(alignment: .leading, spacing: FGSpacing.sm) {
+                if isHomeCrowdVenue {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flag.fill")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
+                            .frame(width: 34, height: 34)
+                            .background(
+                                Circle()
+                                    .fill(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(colorScheme == .dark ? 0.22 : 0.12))
+                            )
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Your Home Crowd")
+                                .font(FGTypography.body.weight(.bold))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                            Text("Shown on your fan profile.")
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        }
+                        Spacer(minLength: 0)
+                    }
+
+                    HStack(spacing: 10) {
+                        Button {
+                            Task { await runHomeCrowdAction(onClearHomeCrowd) }
+                        } label: {
+                            Text("Remove Home Crowd")
+                                .font(FGTypography.caption.weight(.semibold))
+                                .foregroundStyle(FGColor.dangerRed)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 9)
+                                .background(
+                                    RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                                        .strokeBorder(FGColor.dangerRed.opacity(0.35), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isHomeCrowdActionInFlight)
+
+                        if hasOtherHomeCrowd {
+                            Text("Only one Home Crowd at a time.")
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.mutedText(colorScheme))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                } else {
+                    Button {
+                        Task { await runHomeCrowdAction(onSetHomeCrowd) }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.3.fill")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.58, green: 0.36, blue: 0.92))
+                                .frame(width: 34, height: 34)
+                                .background(
+                                    Circle()
+                                        .fill(Color(red: 0.58, green: 0.36, blue: 0.92).opacity(colorScheme == .dark ? 0.22 : 0.12))
+                                )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(hasOtherHomeCrowd ? "Change Home Crowd" : "Make this my Home Crowd")
+                                    .font(FGTypography.body.weight(.bold))
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                                Text("Show this spot on your fan profile.")
+                                    .font(FGTypography.caption)
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            }
+
+                            Spacer(minLength: 0)
+
+                            if isHomeCrowdActionInFlight {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isHomeCrowdActionInFlight)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func runHomeCrowdAction(_ action: (() async -> Void)?) async {
+        guard let action else { return }
+        isHomeCrowdActionInFlight = true
+        defer { isHomeCrowdActionInFlight = false }
+        await action()
     }
 
     private var venueActionSection: some View {

@@ -235,6 +235,9 @@ struct ProfileIdentityCard: View {
             favoriteTeamsSection
                 .padding(.horizontal, 16)
 
+            homeCrowdSection
+                .padding(.horizontal, 16)
+
             openToPreviewSection
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -1392,6 +1395,127 @@ struct ProfileIdentityCard: View {
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Home Crowd
+
+    private var homeCrowdSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Home Crowd")
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .textCase(.uppercase)
+                        .tracking(0.7)
+                    Text(viewModel.currentUserHomeCrowdVenue == nil
+                         ? "Your fan home base"
+                         : "Your Home Crowd")
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                }
+                Spacer(minLength: 0)
+                if viewModel.currentUserHomeCrowdVenue != nil {
+                    Button {
+                        viewModel.focusDiscoverOnHomeCrowdVenue()
+                    } label: {
+                        Text("Explore venue")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if let home = viewModel.currentUserHomeCrowdVenue {
+                ZStack(alignment: .bottomLeading) {
+                    homeCrowdPreviewHero(home)
+                        .frame(height: 120)
+                        .clipped()
+
+                    LinearGradient(
+                        colors: [.clear, Color.black.opacity(0.72)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("HOME CROWD")
+                            .font(.system(size: 9, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color(red: 0.78, green: 0.62, blue: 1.0))
+                            .tracking(0.8)
+                        Text(home.name)
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(2)
+                        if !home.locationLabel.isEmpty {
+                            Text(home.locationLabel)
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.88))
+                                .lineLimit(1)
+                        }
+                        Text("Your Home Crowd")
+                            .font(.system(size: 9.5, weight: .medium, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.72))
+                    }
+                    .padding(10)
+                }
+                .frame(maxWidth: .infinity, minHeight: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.85), lineWidth: 0.75)
+                }
+
+                Button {
+                    viewModel.focusDiscoverOnHomeCrowdVenue()
+                } label: {
+                    Text("Change")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("Choose your Home Crowd")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Text("Pick a sports bar, watch spot, or pickup court on Discover and tap Make this my Home Crowd.")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func homeCrowdPreviewHero(_ home: HomeCrowdVenueSummary) -> some View {
+        if let raw = home.thumbnailURL, let url = URL(string: raw) {
+            DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
+                homeCrowdThumbnailPlaceholder(size: 120)
+            }
+        } else {
+            homeCrowdThumbnailPlaceholder(size: 120)
+        }
+    }
+
+    private func homeCrowdThumbnailPlaceholder(size: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.58, green: 0.36, blue: 0.92).opacity(0.45),
+                        Color(red: 0.22, green: 0.38, blue: 0.88).opacity(0.35)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay {
+                Image(systemName: "flag.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
     }
 
     // MARK: - Open To preview
