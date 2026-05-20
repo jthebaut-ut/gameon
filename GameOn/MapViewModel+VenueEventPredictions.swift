@@ -17,4 +17,14 @@ extension MapViewModel {
         VenueEventPredictionService.shared.invalidate(eventID: eventID)
         await loadVenueEventPredictionSummaries(eventIDs: [eventID], forceRefresh: true)
     }
+
+    @MainActor
+    func prefetchVenuePredictionSummariesForVisibleBatch(eventIDs: [UUID]) async {
+        let uniqueIDs = Array(Set(eventIDs))
+        guard !uniqueIDs.isEmpty else { return }
+        #if DEBUG
+        print("[DiscoverSocialPerf] predictionBatchLoad=true")
+        #endif
+        await loadVenueEventPredictionSummaries(eventIDs: uniqueIDs)
+    }
 }

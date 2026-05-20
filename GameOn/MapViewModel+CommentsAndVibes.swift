@@ -73,6 +73,10 @@ private enum FanUpdatesPrefetchTTL {
     static let vibes: TimeInterval = 20
 }
 
+private enum DiscoverVisibleSocialPrefetchConfig {
+    static let maxVisibleEvents = 12
+}
+
 private enum FanChatAppLevelRealtimeConfig {
     static let maxTrackedEventIDs = 160
     static let filterChunkSize = 80
@@ -1573,6 +1577,42 @@ extension MapViewModel {
         }
     }
 
+    private func loadVibesBatch(for venueEventIDs: [UUID]) async {
+        guard !venueEventIDs.isEmpty else { return }
+        do {
+            let rows: [VenueEventVibeRow] = try await supabase
+                .from("venue_event_vibes")
+                .select("venue_event_id,user_email,vibe_type")
+                .in("venue_event_id", values: venueEventIDs.map { $0.uuidString.lowercased() })
+                .execute()
+                .value
+
+            let email = await strictNormalizedSessionEmailForSocialTables()
+                ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+
+            var countsByEventID: [UUID: [String: Int]] = [:]
+            var myVibesByEventID: [UUID: Set<String>] = [:]
+            for row in rows {
+                guard let eventID = row.venue_event_id, let vibe = row.vibe_type else { continue }
+                countsByEventID[eventID, default: [:]][vibe, default: 0] += 1
+                if OwnerBusinessEmail.normalized(row.user_email ?? "") == email {
+                    myVibesByEventID[eventID, default: []].insert(vibe)
+                }
+            }
+
+            await MainActor.run {
+                let now = Date()
+                for eventID in venueEventIDs {
+                    venueEventVibeCounts[eventID] = countsByEventID[eventID] ?? [:]
+                    myVenueEventVibes[eventID] = myVibesByEventID[eventID] ?? []
+                    fanUpdatesVibePrefetchedAt[eventID] = now
+                }
+            }
+        } catch {
+            logVenueEventSocialLoadError("ERROR LOADING VIBES BATCH:", loadCancelledTag: "vibes_batch", error: error)
+        }
+    }
+
     // Inserts or deletes a single vibe row for the signed-in user or venue owner.
     func toggleVibe(for venueEventID: UUID, vibeType: String) async {
         guard canUseFanSocialFeatures else {
@@ -1671,6 +1711,88 @@ extension MapViewModel {
     }
 
     @MainActor
+    func prefetchVisibleDiscoverSocialData(eventIDs: [UUID], predictionEventIDs: [UUID]) {
+        let visibleEventIDs = orderedUniqueVenueEventIDs(eventIDs, limit: DiscoverVisibleSocialPrefetchConfig.maxVisibleEvents)
+        let visiblePredictionEventIDs = orderedUniqueVenueEventIDs(predictionEventIDs, limit: DiscoverVisibleSocialPrefetchConfig.maxVisibleEvents)
+        guard !visibleEventIDs.isEmpty || !visiblePredictionEventIDs.isEmpty else {
+            #if DEBUG
+            print("[DiscoverSocialPerf] visibleBatchSkipped reason=empty")
+            #endif
+            return
+        }
+
+        let batchKey = discoverVisibleSocialPrefetchKey(
+            eventIDs: visibleEventIDs,
+            predictionEventIDs: visiblePredictionEventIDs
+        )
+        if let existing = discoverVisibleSocialPrefetchTasksByKey[batchKey] {
+            #if DEBUG
+            print("[DiscoverSocialPerf] coalescedExistingBatch=true")
+            print("[DiscoverSocialPerf] visibleBatchSkipped reason=inFlight")
+            #endif
+            Task { await existing.value }
+            return
+        }
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                self.discoverVisibleSocialPrefetchTasksByKey[batchKey] = nil
+                #if DEBUG
+                print("[DiscoverSocialPerf] visibleBatchCompleted")
+                #endif
+            }
+
+            #if DEBUG
+            print("[DiscoverSocialPerf] visibleBatchStarted count=\(visibleEventIDs.count)")
+            #endif
+
+            async let commentsAndVibes: Void = self.prefetchFanUpdatesPreviewBatchForVisibleEvents(eventIDs: visibleEventIDs)
+            async let goingProfiles: Void = self.prefetchGoingProfilesForVisibleEventBatchIfNeeded(eventIDs: visibleEventIDs)
+            async let predictions: Void = self.prefetchVenuePredictionSummariesForVisibleBatch(eventIDs: visiblePredictionEventIDs)
+            _ = await (commentsAndVibes, goingProfiles, predictions)
+        }
+        discoverVisibleSocialPrefetchTasksByKey[batchKey] = task
+    }
+
+    @MainActor
+    private func orderedUniqueVenueEventIDs(_ ids: [UUID], limit: Int) -> [UUID] {
+        var seen: Set<UUID> = []
+        var ordered: [UUID] = []
+        ordered.reserveCapacity(min(ids.count, limit))
+        for id in ids {
+            guard !seen.contains(id) else { continue }
+            seen.insert(id)
+            ordered.append(id)
+            if ordered.count >= limit { break }
+        }
+        return ordered
+    }
+
+    @MainActor
+    private func discoverVisibleSocialPrefetchKey(eventIDs: [UUID], predictionEventIDs: [UUID]) -> String {
+        let socialKey = eventIDs.map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
+        let predictionKey = predictionEventIDs.map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
+        return "social:\(socialKey)|prediction:\(predictionKey)"
+    }
+
+    @MainActor
+    private func prefetchFanUpdatesPreviewBatchForVisibleEvents(eventIDs: [UUID]) async {
+        let commentIDs = eventIDs.filter { id in
+            !(fanUpdatesPrefetchIsFresh(fanUpdatesCommentPrefetchedAt[id], ttl: FanUpdatesPrefetchTTL.comments) &&
+              venueEventCommentPreviewCounts[id] != nil)
+        }
+        let vibeIDs = eventIDs.filter { id in
+            !(fanUpdatesPrefetchIsFresh(fanUpdatesVibePrefetchedAt[id], ttl: FanUpdatesPrefetchTTL.vibes) &&
+              venueEventVibeCounts[id] != nil)
+        }
+
+        async let comments: Void = loadFanUpdatesPreviewBatch(for: commentIDs)
+        async let vibes: Void = loadVibesBatch(for: vibeIDs)
+        _ = await (comments, vibes)
+    }
+
+    @MainActor
     func prefetchCommentsForFanUpdatesCardIfNeeded(venueEventID: UUID) {
         if let task = fanUpdatesCommentPrefetchTasks[venueEventID] {
             Task { await task.value }
@@ -1733,6 +1855,43 @@ extension MapViewModel {
             }
             venueEventCommentPreviews[venueEventID] = previewRows
             fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
+        }
+    }
+
+    private func loadFanUpdatesPreviewBatch(for venueEventIDs: [UUID]) async {
+        guard !venueEventIDs.isEmpty else { return }
+        do {
+            let rowsRaw: [VenueEventCommentRow] = try await supabase
+                .from("venue_event_comments")
+                .select(VenueEventCommentsPagination.selectColumns)
+                .in("venue_event_id", values: venueEventIDs.map { $0.uuidString.lowercased() })
+                .or("is_moderation_hidden.is.null,is_moderation_hidden.eq.false")
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .execute()
+                .value
+
+            let rows = rowsRaw.filter { !$0.isHiddenFromThread }
+            var counts: [UUID: Int] = [:]
+            var previews: [UUID: [VenueEventCommentRow]] = [:]
+            for row in rows {
+                guard let eventID = row.venue_event_id else { continue }
+                counts[eventID, default: 0] += 1
+                if (previews[eventID]?.count ?? 0) < VenueEventCommentsPagination.previewLimit {
+                    previews[eventID, default: []].append(row)
+                }
+            }
+
+            await MainActor.run {
+                let now = Date()
+                for eventID in venueEventIDs {
+                    updateVenueEventCommentPreviewCount(for: eventID, to: counts[eventID] ?? 0)
+                    venueEventCommentPreviews[eventID] = previews[eventID] ?? []
+                    fanUpdatesCommentPrefetchedAt[eventID] = now
+                }
+            }
+        } catch {
+            logVenueEventSocialLoadError("ERROR LOADING FAN UPDATES PREVIEW BATCH:", loadCancelledTag: "fan_updates_preview_batch", error: error)
         }
     }
 

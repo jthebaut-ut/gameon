@@ -47,6 +47,11 @@ final class LaunchWarmPreloadCoordinator {
         let warmStart = Date()
         print("[LaunchPerf] warmPreloadStart")
 
+        await runWarmTask(name: "businessOwnerHydration", delayMs: 220) {
+            await viewModel.runDeferredBusinessOwnerHydrationAfterLaunch()
+        }
+        guard !Task.isCancelled else { return }
+
         await runWarmTask(name: "personalization", delayMs: 180) {
             await viewModel.refreshUserPersonalizationInBackground()
         }

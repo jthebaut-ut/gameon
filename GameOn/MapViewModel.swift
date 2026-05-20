@@ -381,6 +381,8 @@ final class MapViewModel: ObservableObject {
     var isCalendarTabSelected = false
     /// When true, ``scheduleDiscoverMapRenderSnapshotRebuild(reason:)`` is a no-op until a single ``flushDiscoverMapRenderSnapshotRebuild(reason:)``.
     var suppressDiscoverSnapshotRebuilds = false
+    /// Currently running detached Discover map snapshot build; cancelled when a newer rebuild supersedes it.
+    var activeDiscoverSnapshotTask: Task<DiscoverMapSnapshotDetachedOutput?, Never>?
     var discoverSnapshotRebuildCoalesceTask: Task<Void, Never>?
     var discoverSnapshotPendingRebuildReason: String?
     let discoverSnapshotRebuildCoalesceNanoseconds: UInt64 = 100_000_000
@@ -530,6 +532,7 @@ final class MapViewModel: ObservableObject {
         get { fanUpdatesStore.fanUpdatesVibePrefetchTasks }
         set { fanUpdatesStore.fanUpdatesVibePrefetchTasks = newValue }
     }
+    var discoverVisibleSocialPrefetchTasksByKey: [String: Task<Void, Never>] = [:]
     var fanUpdatesGoingProfilePrefetchTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesCommentPrefetchedAt: [UUID: Date] {
         get { fanUpdatesStore.fanUpdatesCommentPrefetchedAt }

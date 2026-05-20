@@ -996,6 +996,68 @@ extension MapViewModel {
     }
 
     @MainActor
+    func prefetchGoingProfilesForVisibleEventBatchIfNeeded(eventIDs: [UUID]) async {
+        let idsToFetch = eventIDs.filter { eventID in
+            !(fanUpdatesGoingProfilesPrefetchIsFresh(fanUpdatesGoingProfilePrefetchedAt[eventID]) &&
+              goingProfilesByVenueEventID[eventID] != nil)
+        }
+        guard !idsToFetch.isEmpty else { return }
+
+        guard canUseFanSocialFeatures else {
+            let now = Date()
+            for eventID in idsToFetch {
+                goingProfilesByVenueEventID[eventID] = []
+                fanUpdatesGoingProfilePrefetchedAt[eventID] = now
+            }
+            return
+        }
+
+        do {
+            let rows: [VenueEventInterestRow] = try await supabase
+                .from("venue_event_interests")
+                .select("venue_event_id,user_email")
+                .in("venue_event_id", values: idsToFetch.map { $0.uuidString.lowercased() })
+                .execute()
+                .value
+
+            var emailsByEventID: [UUID: [String]] = [:]
+            var allEmails: Set<String> = []
+            for row in rows {
+                guard let eventID = row.venue_event_id else { continue }
+                let email = OwnerBusinessEmail.normalized(row.user_email ?? "")
+                guard OwnerBusinessEmail.isValidStrict(email) else { continue }
+                emailsByEventID[eventID, default: []].append(email)
+                allEmails.insert(email)
+            }
+
+            let profileRows = allEmails.isEmpty
+                ? []
+                : try await SocialIdentityService().fetchUserProfileRows(forEmails: Array(allEmails))
+            var profilesByEmail: [String: UserProfileRow] = [:]
+            for profile in profileRows {
+                let email = OwnerBusinessEmail.normalized(profile.email ?? "")
+                guard OwnerBusinessEmail.isValidStrict(email), profilesByEmail[email] == nil else { continue }
+                profilesByEmail[email] = profile
+            }
+
+            let now = Date()
+            for eventID in idsToFetch {
+                let eventProfiles = (emailsByEventID[eventID] ?? []).compactMap { profilesByEmail[$0] }
+                goingProfilesByVenueEventID[eventID] = eventProfiles
+                fanUpdatesGoingProfilePrefetchedAt[eventID] = now
+            }
+        } catch {
+            if error is CancellationError {
+                #if DEBUG
+                print("[LoadCancelled] going profiles visible batch")
+                #endif
+            } else {
+                print("ERROR LOADING GOING USER PROFILES BATCH:", error)
+            }
+        }
+    }
+
+    @MainActor
     private func fanUpdatesGoingProfilesPrefetchIsFresh(_ date: Date?) -> Bool {
         guard let date else { return false }
         return Date().timeIntervalSince(date) < FanUpdatesGoingProfilesPrefetchTTL.profiles

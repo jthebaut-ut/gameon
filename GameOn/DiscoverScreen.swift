@@ -861,6 +861,53 @@ struct DiscoverScreen: View {
         }
     }
 
+    private func visibleVenuePreviewEventsForSocialPrefetch(
+        bar: BarVenue,
+        gamesToday: [SportsEvent],
+        selectedVenueEvent: SportsEvent?
+    ) -> [SportsEvent] {
+        if let selectedVenueEvent {
+            return [selectedVenueEvent]
+        }
+        let filtered = gamesFilteredForVenuePreview(
+            bar: bar,
+            gamesToday: gamesToday,
+            filter: venuePreviewGameFilter
+        )
+        return Array(filtered.prefix(12))
+    }
+
+    private func visibleVenuePreviewSocialPrefetchKey(bar: BarVenue, events: [SportsEvent]) -> String {
+        let eventKey = events
+            .map { "\($0.id)|\($0.title)|\(Int($0.date.timeIntervalSince1970))" }
+            .joined(separator: ",")
+        return "\(bar.id.uuidString.lowercased())|\(viewModel.selectedSport)|\(venuePreviewGameFilter.rawValue)|\(eventKey)"
+    }
+
+    private func prefetchVisibleVenueSocialData(bar: BarVenue, events: [SportsEvent]) async {
+        guard !events.isEmpty else {
+            await viewModel.prefetchVisibleDiscoverSocialData(eventIDs: [], predictionEventIDs: [])
+            return
+        }
+
+        var eventIDs: [UUID] = []
+        var predictionEventIDs: [UUID] = []
+        for event in events {
+            let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let venueEventID = await viewModel.venueEventID(for: bar, gameTitle: gameTitle, on: event.date) else { continue }
+            eventIDs.append(venueEventID)
+            let predictionVisibility = venuePredictionVisibility(
+                bar: bar,
+                event: event,
+                venueEventID: venueEventID
+            )
+            if predictionVisibility.shouldRender, let predictionEventID = predictionVisibility.eventID {
+                predictionEventIDs.append(predictionEventID)
+            }
+        }
+        await viewModel.prefetchVisibleDiscoverSocialData(eventIDs: eventIDs, predictionEventIDs: predictionEventIDs)
+    }
+
     private func discoverVenueClaimAction(for bar: BarVenue) -> ((BarVenue) async -> String?)? {
         guard viewModel.canSubmitVenueOwnershipClaim(for: bar) else { return nil }
         return { venue in
@@ -3130,6 +3177,15 @@ struct DiscoverScreen: View {
             sportFilter: viewModel.selectedSport
         )
         let selectedVenueEvent = selectedEventForVenue(gamesToday: gamesToday)
+        let visibleSocialPrefetchEvents = visibleVenuePreviewEventsForSocialPrefetch(
+            bar: resolved,
+            gamesToday: gamesToday,
+            selectedVenueEvent: selectedVenueEvent
+        )
+        let visibleSocialPrefetchKey = visibleVenuePreviewSocialPrefetchKey(
+            bar: resolved,
+            events: visibleSocialPrefetchEvents
+        )
 
         return VStack(alignment: .leading, spacing: 12) {
             venuePreviewCardStaticHeader(bar: resolved)
@@ -3175,19 +3231,10 @@ struct DiscoverScreen: View {
             guard oldId != newId else { return }
             venuePreviewGameFilter = .all
         }
-        .task(id: resolved.id) {
+        .task(id: visibleSocialPrefetchKey) {
             await viewModel.prefetchDiscoverVenueImages(for: resolved, includeMenu: false)
             guard viewModel.canViewDiscoverDetails() else { return }
-            let dayEvents = viewModel.gamesForVenuePreview(
-                bar: resolved,
-                date: viewModel.selectedDate,
-                sportFilter: viewModel.selectedSport
-            )
-            for game in dayEvents {
-                if let venueEventID = await viewModel.venueEventID(for: resolved, gameTitle: game.title) {
-                    viewModel.prefetchFanUpdatesCardSocialData(for: venueEventID)
-                }
-            }
+            await prefetchVisibleVenueSocialData(bar: resolved, events: visibleSocialPrefetchEvents)
         }
     }
 
@@ -3706,13 +3753,6 @@ struct DiscoverScreen: View {
             }
         }
         .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
-        .task(id: venueEventID ?? event.id) {
-            if predictionVisibility.shouldRender, let predictionEventID = predictionVisibility.eventID {
-                await viewModel.loadVenueEventPredictionSummaries(eventIDs: [predictionEventID])
-            }
-            guard let id = await viewModel.venueEventID(for: bar, gameTitle: gameTitle, on: event.date) else { return }
-            viewModel.prefetchFanUpdatesCardSocialData(for: id)
-        }
     }
 
     private func openDiscoverPredictionSheet(
@@ -4128,9 +4168,6 @@ struct DiscoverScreen: View {
         .padding(.top, 1)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .task(id: venueEventID) {
-            viewModel.prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
-        }
     }
 
     private func venuePreviewMiniStatChip(

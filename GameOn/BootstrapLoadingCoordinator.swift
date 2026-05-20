@@ -41,7 +41,6 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         if completedInTime {
             shouldUseMainTabFallbackBootstrap = false
             LaunchBootstrapState.markCriticalBootstrapCompleted()
-            scheduleWarmPreload(viewModel: viewModel, chatViewModel: chatViewModel)
         } else {
             bootstrapError = "Opening FanGeo while the rest finishes loading."
             bootstrapTask.cancel()
@@ -52,6 +51,10 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         print("[FanGeoLoadingDebug] appReady")
         #endif
         isBootstrapping = false
+        print("[BusinessLaunchPerf] splashNoLongerBlockedByBusinessRefresh=true")
+        if completedInTime {
+            scheduleWarmPreload(viewModel: viewModel, chatViewModel: chatViewModel)
+        }
     }
 
     /// Critical launch path only — must stay fast enough for splash dismiss.
@@ -96,7 +99,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
         chatViewModel: ChatViewModel
     ) {
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 120_000_000)
+            try? await Task.sleep(nanoseconds: 350_000_000)
             LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
                 viewModel: viewModel,
                 chatViewModel: chatViewModel,

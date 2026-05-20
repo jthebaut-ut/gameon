@@ -551,6 +551,11 @@ extension MapViewModel {
         }
     }
 
+    func restorePersistedSelectedVenueForBusinessLaunch() {
+        ownerVenueDatabaseId = readPersistedSelectedVenueId()
+        isVenueOwnerBusinessDataLoading = true
+    }
+
     /// Active venues for this owner: business-linked rows when present, otherwise legacy `owner_email` rows.
     func managedVenuesForOwner() -> [VenueProfileRow] {
         if !ownedBusinessVenues.isEmpty {
@@ -2054,6 +2059,22 @@ extension MapViewModel {
                 isVenueOwnerBusinessDataLoading = false
             }
         }
+    }
+
+    func runDeferredBusinessOwnerHydrationAfterLaunch() async {
+        let shouldHydrate = await MainActor.run {
+            hasAuthenticatedVenueOwnerSession
+        }
+        guard shouldHydrate else { return }
+
+        print("[BusinessLaunchPerf] deferredBusinessHydrationStarted=true")
+
+        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        await MainActor.run {
+            checkVenueApprovalStatus()
+        }
+
+        print("[BusinessLaunchPerf] deferredBusinessHydrationCompleted=true")
     }
 
     // Loads the latest `venue_claims` row for `venueOwnerEmail` to drive pending/approved UI and prefilled venue fields.

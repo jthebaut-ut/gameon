@@ -142,8 +142,11 @@ extension MapViewModel {
         currentUserDiscoverableByFans = true
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
-        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-        checkVenueApprovalStatus()
+        restorePersistedSelectedVenueForBusinessLaunch()
+        print("[BusinessLaunchPerf] criticalBootstrapMinimal=true")
+        Task { [weak self] in
+            await self?.runDeferredBusinessOwnerHydrationAfterLaunch()
+        }
         logBusinessOwnerSessionFlags(context: "\(context)_restored")
         return true
     }
@@ -188,8 +191,8 @@ extension MapViewModel {
         currentUserAuthId = session.user.id
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
-        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
-        checkVenueApprovalStatus()
+        restorePersistedSelectedVenueForBusinessLaunch()
+        print("[BusinessLaunchPerf] criticalBootstrapMinimal=true")
         logBusinessOwnerSessionFlags(context: "\(context)_restored")
         return true
     }
