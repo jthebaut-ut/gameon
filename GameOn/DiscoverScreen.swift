@@ -3105,31 +3105,11 @@ struct DiscoverScreen: View {
 
                     venuePreviewRatingButton(bar)
                 }
-
-                Button {
-                    viewModel.openDirections(to: bar)
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: FGSpacing.xs) {
-                        Image(systemName: "location.fill")
-                            .font(.caption)
-                        Text(bar.address)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-
-                        if !bar.distance.isEmpty {
-                            Text("• \(bar.distance)")
-                                .foregroundStyle(discoverPreviewSecondaryTextColor)
-                                .lineLimit(1)
-                        }
-                    }
-                    .font(FGTypography.caption)
-                    .foregroundStyle(FGColor.accentBlue)
-                }
-                .buttonStyle(.plain)
             }
         }
         .onAppear {
 #if DEBUG
+            print("[VenuePreviewHeaderDebug] addressRemoved=true")
             print("[VenueFeatureDebug] propagatedToDiscover=true")
             print("[VenueFeatureDebug] discoverCardFeatureChipsRemoved=true")
             print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
@@ -3305,26 +3285,21 @@ struct DiscoverScreen: View {
     }
 
     
+    @ViewBuilder
     private func venueHeroImage(_ bar: BarVenue) -> some View {
-        let coverURLString = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL)
-        return Group {
-            if let urlString = coverURLString,
-               let url = URL(string: urlString) {
-                DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
+        let heroURLString = safeVenueHeroImageURLString(for: bar)
+        let heroURL = heroURLString.flatMap(URL.init(string:))
+        let fallbackUsed = heroURL == nil
+
+        ZStack(alignment: .bottomLeading) {
+            if let heroURL {
+                DiscoverCachedRemoteImage(url: heroURL, contentMode: .fill) {
                     venueHeroPlaceholder
                 }
             } else {
                 venueHeroPlaceholder
             }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 148)
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .onAppear {
-            logDiscoverCardPhotoDebug(bar: bar, urlString: coverURLString)
-        }
-        .overlay(alignment: .bottomLeading) {
+
             Text("Watch spot")
                 .font(FGTypography.metadata.weight(.bold))
                 .foregroundStyle(.white)
@@ -3334,6 +3309,34 @@ struct DiscoverScreen: View {
                 .clipShape(Capsule(style: .continuous))
                 .padding(12)
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 148)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .onAppear {
+#if DEBUG
+            print("[VenuePreviewHeaderDebug] renderingHeroImage venueId=\(bar.id.uuidString.lowercased())")
+            print("[VenuePreviewHeaderDebug] heroImageURL=\(heroURLString ?? "nil")")
+            print("[VenuePreviewHeaderDebug] heroImageFallbackUsed=\(fallbackUsed)")
+            print("[VenuePreviewHeaderDebug] photoArrowRemovedDueToCrash=true")
+#endif
+            logDiscoverCardPhotoDebug(bar: bar, urlString: heroURLString)
+        }
+    }
+
+    private func safeVenueHeroImageURLString(for bar: BarVenue) -> String? {
+        let raw = ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL)
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty,
+              let components = URLComponents(string: trimmed),
+              let scheme = components.scheme?.lowercased(),
+              (scheme == "http" || scheme == "https"),
+              let host = components.host,
+              !host.isEmpty,
+              URL(string: trimmed) != nil else {
+            return nil
+        }
+        return trimmed
     }
 
     private func logDiscoverCardPhotoDebug(bar: BarVenue, urlString: String?) {

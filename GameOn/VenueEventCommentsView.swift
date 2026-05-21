@@ -37,18 +37,30 @@ struct VenueEventCommentsView: View {
     @State private var hasUnseenNewComments = false
     @State private var lastCommentId: String?
     @State private var showEmojiPicker = false
-    @State private var fanReactionPulseKeys: Set<String> = []
 
     private let commentsBottomAnchorID = "comments-bottom-anchor"
     private let commentsScrollCoordinateSpaceName = "fan-updates-comments-scroll"
     private let commentsNearBottomThreshold: CGFloat = 72
 
     private let quickUpdates = [
-        "🎙️ Audio confirmed",
-        "🔥 Packed",
         "🪑 Seats open",
-        "📺 TVs visible",
-        "🍺 Drink specials"
+        "🔥 Packed",
+        "🎤 Audio confirmed",
+        "🍺 Drink specials",
+        "📺 TVs visible"
+    ]
+
+    private let worldCupPhraseReactions = [
+        "⚽ GOALLLL",
+        "😱 WHAT A SAVE",
+        "😡 ROBBED",
+        "🤯 CHAOS",
+        "🔥 VAMOS",
+        "🇺🇸 LET’S GOOO",
+        "🇲🇽 VAMOS",
+        "🇫🇷 ALLEZ",
+        "🇦🇷 DALE",
+        "🇧🇷 VAI BRASIL"
     ]
 
     private let commonFanEmojis = ["⚽️", "🏀", "🏈", "⚾️", "🏒", "🔥", "😱", "😡", "🤯", "👏", "🙌", "💪", "🍻", "📺", "🎙️", "🪑"]
@@ -227,8 +239,6 @@ struct VenueEventCommentsView: View {
 
             fanUpdatesBottomRefreshSpinner
 
-            liveReactionsSection
-
             inputBar
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,6 +268,7 @@ struct VenueEventCommentsView: View {
             FanChatEmojiPickerSheet(
                 commonFanEmojis: commonFanEmojis,
                 worldCupEmojis: worldCupEmojis,
+                worldCupPhrases: worldCupPhraseReactions,
                 onSelect: insertEmojiIntoComment
             )
             .presentationDetents([.medium])
@@ -525,104 +536,6 @@ struct VenueEventCommentsView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel("Refreshing fan updates")
         }
-    }
-
-    @ViewBuilder
-    private var liveReactionsSection: some View {
-        if viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFanSocialFeatures {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Live reactions")
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(secondaryLabelColor)
-                    .textCase(.uppercase)
-                    .tracking(0.4)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(VenueCrowdReactionCatalog.reactions, id: \.id) { reaction in
-                            fanReactionPill(reactionID: reaction.id, label: reaction.label)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-            }
-            .padding(12)
-            .background(inputBarChromeBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(cardBorderColor, lineWidth: fanUpdatesIsDark ? 1 : 0.5)
-            )
-            .progressiveAppear(isVisible: commentsChromeVisible, yOffset: 6)
-            .onAppear {
-#if DEBUG
-                print("[FanReactionDebug] shownInsideFanChat=true")
-#endif
-                viewModel.prefetchVibesForFanUpdatesCardIfNeeded(venueEventID: venueEventID)
-            }
-        }
-    }
-
-    private func fanReactionPill(reactionID: String, label: String) -> some View {
-        let countKey = VenueCrowdReactionCatalog.countKey(for: reactionID)
-        let count = fanUpdatesStore.venueEventVibeCounts[venueEventID]?[countKey] ?? 0
-        let pulseKey = "\(venueEventID.uuidString.lowercased())|\(reactionID)"
-        let isPulsing = fanReactionPulseKeys.contains(pulseKey)
-
-        return Button {
-            FGInteractionHaptics.selection()
-            withAnimation(.spring(response: 0.22, dampingFraction: 0.68)) {
-                _ = fanReactionPulseKeys.insert(pulseKey)
-            }
-#if DEBUG
-            print("[FanReactionDebug] reactionTapped=\(reactionID)")
-#endif
-            Task {
-                await viewModel.addCrowdReaction(for: venueEventID, reactionID: reactionID)
-                try? await Task.sleep(nanoseconds: 340_000_000)
-                await MainActor.run {
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        fanReactionPulseKeys.remove(pulseKey)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Text(label)
-                    .font(.system(size: 11.5, weight: .heavy, design: .rounded))
-                    .lineLimit(1)
-
-                if count > 0 {
-                    Text("\(count)")
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(sendAccentColor)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule(style: .continuous).fill(Color.white.opacity(fanUpdatesIsDark ? 0.12 : 0.82)))
-                        .scaleEffect(isPulsing ? 1.12 : 1)
-                }
-            }
-            .foregroundStyle(primaryLabelColor)
-            .padding(.horizontal, 10)
-            .frame(height: 32)
-            .background {
-                Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .background {
-                        Capsule(style: .continuous)
-                            .fill(sendAccentColor.opacity(fanUpdatesIsDark ? 0.13 : 0.08))
-                    }
-            }
-            .overlay {
-                Capsule(style: .continuous)
-                    .strokeBorder(sendAccentColor.opacity(fanUpdatesIsDark ? 0.25 : 0.16), lineWidth: 1)
-            }
-            .scaleEffect(isPulsing ? 1.035 : 1)
-        }
-        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.965, hapticOnPress: false))
-        .accessibilityLabel("\(label), \(count) reactions")
     }
 
     private var fanUpdatesSkeletonCard: some View {
@@ -1155,6 +1068,13 @@ struct VenueEventCommentsView: View {
                                 .opacity(isPostingComment ? 0.5 : 1.0)
                             }
                         }
+                        .padding(.vertical, 1)
+                    }
+                    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                    .onAppear {
+#if DEBUG
+                        print("[EmojiInputDebug] composerReactionChipsRemoved=true")
+#endif
                     }
 
                     HStack(alignment: .center, spacing: 10) {
@@ -1285,10 +1205,16 @@ struct VenueEventCommentsView: View {
     }
 
     private func insertEmojiIntoComment(_ emoji: String) {
-        let candidate = newComment + emoji
+        let isWorldCupPhrase = worldCupPhraseReactions.contains(emoji)
+        let separator = isWorldCupPhrase && !newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? " " : ""
+        let candidate = newComment + separator + emoji
         newComment = String(candidate.prefix(maxCommentLength))
 #if DEBUG
-        print("[EmojiInputDebug] emojiInserted=\(emoji)")
+        if isWorldCupPhrase {
+            print("[EmojiInputDebug] worldCupPhraseInserted=\(emoji)")
+        } else {
+            print("[EmojiInputDebug] emojiInserted=\(emoji)")
+        }
 #endif
     }
 
@@ -1648,19 +1574,24 @@ struct VenueEventCommentsView: View {
 private struct FanChatEmojiPickerSheet: View {
     let commonFanEmojis: [String]
     let worldCupEmojis: [String]
+    let worldCupPhrases: [String]
     let onSelect: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 6)
+    private let phraseColumns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     emojiSection(title: "Fan emojis", emojis: commonFanEmojis)
-                    emojiSection(title: "World Cup", emojis: worldCupEmojis)
+                    worldCupSection
                 }
                 .padding(18)
             }
@@ -1670,6 +1601,47 @@ private struct FanChatEmojiPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var worldCupSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("World Cup")
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .textCase(.uppercase)
+                .tracking(0.4)
+
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(worldCupEmojis, id: \.self) { emoji in
+                    emojiButton(emoji)
+                }
+            }
+
+            LazyVGrid(columns: phraseColumns, spacing: 10) {
+                ForEach(worldCupPhrases, id: \.self) { phrase in
+                    Button {
+                        onSelect(phrase)
+                    } label: {
+                        Text(phrase)
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .padding(.horizontal, 10)
+                            .background(FGAdaptiveSurface.controlFill)
+                            .clipShape(Capsule(style: .continuous))
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.6), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.94, hapticOnPress: false))
+                    .accessibilityLabel("Insert \(phrase)")
                 }
             }
         }
@@ -1685,25 +1657,29 @@ private struct FanChatEmojiPickerSheet: View {
 
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(emojis, id: \.self) { emoji in
-                    Button {
-                        onSelect(emoji)
-                    } label: {
-                        Text(emoji)
-                            .font(.system(size: 26))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(FGAdaptiveSurface.controlFill)
-                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.6), lineWidth: 1)
-                            }
-                    }
-                    .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.92, hapticOnPress: false))
-                    .accessibilityLabel("Insert \(emoji)")
+                    emojiButton(emoji)
                 }
             }
         }
+    }
+
+    private func emojiButton(_ emoji: String) -> some View {
+        Button {
+            onSelect(emoji)
+        } label: {
+            Text(emoji)
+                .font(.system(size: 26))
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(FGAdaptiveSurface.controlFill)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(FGColor.divider(colorScheme).opacity(0.6), lineWidth: 1)
+                }
+        }
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.92, hapticOnPress: false))
+        .accessibilityLabel("Insert \(emoji)")
     }
 }
 

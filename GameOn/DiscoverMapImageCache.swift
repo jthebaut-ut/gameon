@@ -106,20 +106,24 @@ struct DiscoverCachedRemoteImage<Placeholder: View>: View {
         .animation(.easeOut(duration: 0.22), value: loadedImageVisible)
         .task(id: url?.absoluteString) {
             loadedImageVisible = false
+            uiImage = nil
             guard let url else {
-                uiImage = nil
                 return
             }
             if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
+                guard !Task.isCancelled else { return }
                 uiImage = cached
                 loadedImageVisible = true
                 return
             }
             if let loaded = await DiscoverMapImageCache.shared.image(for: url) {
+                guard !Task.isCancelled else { return }
                 uiImage = loaded
                 await Task.yield()
+                guard !Task.isCancelled else { return }
                 loadedImageVisible = true
             } else {
+                guard !Task.isCancelled else { return }
                 uiImage = nil
             }
         }
