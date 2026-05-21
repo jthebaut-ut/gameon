@@ -523,9 +523,29 @@ struct SettingsScreen: View {
                     Button {
                         showProfileSettingsSheet = true
                     } label: {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 17, weight: .semibold))
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(FGColor.accentGreen)
+                            .frame(width: 34, height: 34)
+                            .background {
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                Circle()
+                                    .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.82))
+                            }
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.70), lineWidth: 0.75)
+                            }
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.24 : 0.10), radius: 10, y: 4)
+                            .onAppear {
+#if DEBUG
+                                print("[ProfileMenuDebug] settingsGearIconApplied=true")
+#endif
+                            }
                     }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Open settings")
                 }
             }
