@@ -177,6 +177,9 @@ final class MapViewModel: ObservableObject {
         }
     }
     @Published var venueEventPredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
+    var venueEventPredictionRealtimeTasks: [UUID: Task<Void, Never>] = [:]
+    var venueEventPredictionRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
+    var venueEventPredictionRealtimeRefreshTasks: [UUID: Task<Void, Never>] = [:]
     let fanUpdatesStore = FanUpdatesRealtimeStore()
 
     var venueEventComments: [UUID: [VenueEventCommentRow]] {

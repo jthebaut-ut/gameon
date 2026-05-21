@@ -9,8 +9,8 @@ struct HomeCrowdProfileCardView: View {
     var onChooseHomeCrowd: (() -> Void)? = nil
     @Environment(\.colorScheme) private var colorScheme
 
-    private let cardHeight: CGFloat = 162
-    private let imageWidth: CGFloat = 118
+    private let cardHeight: CGFloat = 112
+    private let imageSide: CGFloat = 86
 
     private var subtitleLine: String? {
         guard let summary else { return nil }
@@ -33,7 +33,7 @@ struct HomeCrowdProfileCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             if let summary {
                 populatedCardBody(summary)
                     .frame(height: cardHeight)
@@ -41,84 +41,72 @@ struct HomeCrowdProfileCardView: View {
                 emptyCardBody
                     .frame(height: cardHeight)
             }
-
-            if isSelfProfile {
-                if summary != nil, onExploreVenue != nil || onChangeHomeCrowd != nil {
-                    populatedActionCapsuleRow
-                } else if summary == nil, let onChooseHomeCrowd {
-                    chooseHomeCrowdCTA(action: onChooseHomeCrowd)
-                }
-            }
         }
         .animation(.easeInOut(duration: 0.28), value: summary?.venueId)
+        .onAppear {
+#if DEBUG
+            print("[ProfileHierarchyDebug] homeCrowdCompactCard=true")
+            print("[ProfileHierarchyDebug] homeCrowdCardHeight=\(Int(cardHeight))")
+            print("[ProfileHierarchyDebug] homeCrowdCardHasVenue=\(summary != nil)")
+#endif
+        }
     }
 
     // MARK: - Populated
 
     private func populatedCardBody(_ summary: HomeCrowdVenueSummary) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 7) {
                 homeCrowdTitleLabel
 
-                Spacer(minLength: 10)
-
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(summary.name)
-                        .font(.system(size: 19, weight: .semibold, design: .rounded))
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
-                        .minimumScaleFactor(0.88)
+                        .minimumScaleFactor(0.82)
+                        .layoutPriority(1)
 
                     if let subtitleLine {
                         Text(subtitleLine)
-                            .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
                     }
 
-                    if !isSelfProfile {
-                        Text("This fan's home crowd")
+                    if let crowdLine = compactCrowdSubtitle(summary) {
+                        Text(crowdLine)
                             .font(.system(size: 10, weight: .medium, design: .rounded))
                             .foregroundStyle(FGColor.mutedText(colorScheme))
                             .lineLimit(1)
                     }
                 }
 
-                Spacer(minLength: 12)
-
-                populatedBottomSocialProof(summary)
+                if isSelfProfile, onExploreVenue != nil || onChangeHomeCrowd != nil {
+                    compactActionRow
+                        .padding(.top, 1)
+                }
             }
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
             .padding(.leading, 14)
-            .padding(.trailing, 4)
+            .padding(.trailing, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             populatedVenueImageColumn(summary)
-                .frame(width: imageWidth)
-                .padding(.trailing, 10)
-                .padding(.vertical, 10)
+                .frame(width: imageSide, height: imageSide)
+                .padding(.trailing, 12)
         }
         .homeCrowdCardChrome(colorScheme: colorScheme, accent: homeCrowdAccent)
     }
 
-    @ViewBuilder
-    private func populatedBottomSocialProof(_ summary: HomeCrowdVenueSummary) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !summary.resolvedFanAvatars.isEmpty || (fanCountLine != nil) {
-                HStack(spacing: 10) {
-                    if !summary.resolvedFanAvatars.isEmpty {
-                        homeCrowdAvatarStack(summary)
-                    }
-                    if let fanCountLine {
-                        Text(fanCountLine)
-                            .font(.system(size: 11, weight: .medium, design: .rounded))
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
+    private func compactCrowdSubtitle(_ summary: HomeCrowdVenueSummary) -> String? {
+        if let fanCountLine, !fanCountLine.isEmpty {
+            return fanCountLine
         }
+        if isSelfProfile {
+            return "Your match-day crowd"
+        }
+        return "This fan's home crowd"
     }
 
     private func populatedVenueImageColumn(_ summary: HomeCrowdVenueSummary) -> some View {
@@ -134,8 +122,8 @@ struct HomeCrowdProfileCardView: View {
                     homeCrowdPlaceholderVisual
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .frame(width: imageSide, height: imageSide)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
             LinearGradient(
                 colors: [
@@ -146,57 +134,64 @@ struct HomeCrowdProfileCardView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-            HomeCrowdShieldStarBadge(diameter: 28, visualState: .active)
-                .padding(8)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(colorScheme == .dark ? 0.34 : 0.82),
+                            homeCrowdAccent.opacity(0.34)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
+
+            HomeCrowdShieldStarBadge(diameter: 24, visualState: .active)
+                .padding(7)
         }
-        .frame(maxHeight: .infinity)
+        .shadow(color: homeCrowdAccent.opacity(colorScheme == .dark ? 0.28 : 0.16), radius: 12, y: 4)
     }
 
     // MARK: - Empty
 
     private var emptyCardBody: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 7) {
                 homeCrowdTitleLabel
 
-                Spacer(minLength: 10)
-
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(emptyMainLine)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(isSelfProfile ? 2 : 3)
-                        .minimumScaleFactor(0.9)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.84)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if isSelfProfile {
-                        Text("Pick your favorite sports bar, supporter pub, pickup court, or watch spot.")
-                            .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        Text("Pick your go-to watch spot or local sports crowd.")
+                            .font(.system(size: 10.5, weight: .medium, design: .rounded))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("Fans identify with their local crowd.")
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
                             .lineLimit(2)
-                            .padding(.top, 2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
-                Spacer(minLength: 8)
+                if isSelfProfile, let onChooseHomeCrowd {
+                    chooseHomeCrowdCTA(action: onChooseHomeCrowd)
+                        .padding(.top, 1)
+                }
             }
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
             .padding(.leading, 14)
-            .padding(.trailing, 4)
+            .padding(.trailing, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
 
             emptyPlaceholderColumn
-                .frame(width: imageWidth)
-                .padding(.trailing, 10)
-                .padding(.vertical, 10)
+                .frame(width: imageSide, height: imageSide)
+                .padding(.trailing, 12)
         }
         .homeCrowdCardChrome(colorScheme: colorScheme, accent: homeCrowdAccent)
     }
@@ -227,7 +222,6 @@ struct HomeCrowdProfileCardView: View {
             HomeCrowdShieldStarBadge(diameter: 48, visualState: .active)
                 .shadow(color: homeCrowdAccent.opacity(0.45), radius: 14, y: 4)
         }
-        .frame(maxHeight: .infinity)
     }
 
     // MARK: - Shared visuals
@@ -295,13 +289,13 @@ struct HomeCrowdProfileCardView: View {
 
     // MARK: - Actions
 
-    private var populatedActionCapsuleRow: some View {
-        HStack(spacing: 8) {
+    private var compactActionRow: some View {
+        HStack(spacing: 7) {
             if let onExploreVenue {
-                homeCrowdCapsuleButton(title: "Explore", icon: "map.fill", action: onExploreVenue)
+                homeCrowdCapsuleButton(title: "Open Venue", icon: "arrow.up.right", isPrimary: true, action: onExploreVenue)
             }
             if let onChangeHomeCrowd {
-                homeCrowdCapsuleButton(title: "Change", showsHomeCrowdBadge: true, action: onChangeHomeCrowd)
+                homeCrowdIconButton(showsHomeCrowdBadge: true, action: onChangeHomeCrowd)
             }
         }
     }
@@ -311,11 +305,11 @@ struct HomeCrowdProfileCardView: View {
             HStack(spacing: 6) {
                 HomeCrowdShieldStarBadge(diameter: 18, visualState: .active)
                 Text("Choose Home Crowd")
-                    .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+                    .font(.system(size: 11.5, weight: .heavy, design: .rounded))
             }
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity, minHeight: 30)
+            .padding(.horizontal, 10)
             .background {
                 Capsule(style: .continuous)
                     .fill(
@@ -338,6 +332,7 @@ struct HomeCrowdProfileCardView: View {
         title: String,
         icon: String? = nil,
         showsHomeCrowdBadge: Bool = false,
+        isPrimary: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -351,23 +346,60 @@ struct HomeCrowdProfileCardView: View {
                 Text(title)
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
             }
-            .foregroundStyle(FGColor.accentBlue)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .foregroundStyle(isPrimary ? .white : FGColor.accentBlue)
+            .frame(minHeight: 30)
+            .padding(.horizontal, 11)
             .background {
                 Capsule(style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(isPrimary ? FGColor.accentBlue : Color.clear)
                     .background {
-                        Capsule(style: .continuous)
-                            .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.08))
+                        if !isPrimary {
+                            Capsule(style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .background {
+                                    Capsule(style: .continuous)
+                                        .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.08))
+                                }
+                        }
                     }
             }
             .overlay {
                 Capsule(style: .continuous)
-                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.75), lineWidth: 0.75)
+                    .strokeBorder(isPrimary ? Color.white.opacity(0.20) : FGColor.divider(colorScheme).opacity(0.75), lineWidth: 0.75)
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private func homeCrowdIconButton(
+        showsHomeCrowdBadge: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Group {
+                if showsHomeCrowdBadge {
+                    HomeCrowdShieldStarBadge(diameter: 18, visualState: .active)
+                } else {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 12, weight: .bold))
+                }
+            }
+            .frame(width: 30, height: 30)
+            .background {
+                Circle()
+                    .fill(.ultraThinMaterial)
+                    .background {
+                        Circle()
+                            .fill(homeCrowdAccent.opacity(colorScheme == .dark ? 0.15 : 0.10))
+                    }
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.70), lineWidth: 0.75)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Change Home Crowd")
     }
 
     private var homeCrowdAccent: Color {

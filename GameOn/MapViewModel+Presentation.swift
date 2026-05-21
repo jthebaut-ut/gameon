@@ -95,7 +95,7 @@ extension MapViewModel {
     }
 
     func displayTime(for event: SportsEvent) -> String {
-        "\(event.time) \(selectedTimeZone.abbreviation)"
+        CompactGameTimeFormatter.timeWithZone(rawTime: event.time, timeZoneOption: selectedTimeZone)
     }
 
     func iconForSport(_ sport: String) -> String {

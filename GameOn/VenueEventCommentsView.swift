@@ -269,7 +269,13 @@ struct VenueEventCommentsView: View {
                 commonFanEmojis: commonFanEmojis,
                 worldCupEmojis: worldCupEmojis,
                 worldCupPhrases: worldCupPhraseReactions,
-                onSelect: insertEmojiIntoComment
+                onSelect: { selection in
+                    insertEmojiIntoComment(selection)
+                    showEmojiPicker = false
+#if DEBUG
+                    print("[EmojiInputDebug] emojiPickerDismissedAfterSelection=true")
+#endif
+                }
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)

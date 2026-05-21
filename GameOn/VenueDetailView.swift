@@ -21,6 +21,7 @@ struct VenueDetailView: View {
     var ratingCount: Int = 0
     var displaySport: String? = nil
     var sportsSupported: [String] = []
+    var selectedTimeZone: TimeZoneOption = .mountain
     var hasGamesScheduledToday: Bool = true
     var venueEventRows: [VenueEventRow] = []
     var venuePredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
@@ -47,6 +48,8 @@ struct VenueDetailView: View {
     var onGuestGameLoginCTA: (() -> Void)? = nil
     var onLoadVenuePredictionSummaries: (([UUID]) async -> Void)? = nil
     var onRefreshVenuePredictionSummary: ((UUID) async -> Void)? = nil
+    var onStartVenuePredictionRealtime: ((UUID) async -> Void)? = nil
+    var onStopVenuePredictionRealtime: ((UUID) async -> Void)? = nil
     /// Fan Home Crowd quick toggle (venue hero).
     var showsHomeCrowdControls: Bool = false
     var isHomeCrowdVenue: Bool = false
@@ -846,7 +849,7 @@ struct VenueDetailView: View {
                         title: selectedEvent.title,
                         sport: selectedEvent.sport,
                         teams: nil,
-                        dateTimeText: "\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) at \(selectedEvent.time)",
+                        dateTimeText: "\(selectedEvent.date.formatted(date: .abbreviated, time: .omitted)) • \(CompactGameTimeFormatter.timeWithZone(rawTime: selectedEvent.time, timeZoneOption: selectedTimeZone))",
                         sortDate: selectedEvent.date,
                         startsAt: selectedEvent.date,
                         status: .confirmed
@@ -906,6 +909,29 @@ struct VenueDetailView: View {
                             value: value,
                             isLocked: game.predictionsLocked
                         )
+                    },
+                    onQuickScoreSave: { homeScore, awayScore in
+                        await quickSaveScorePrediction(
+                            eventID: eventID,
+                            homeScore: homeScore,
+                            awayScore: awayScore,
+                            isLocked: game.predictionsLocked
+                        )
+                    },
+                    onQuickScoreClear: {
+                        await quickClearScorePrediction(
+                            eventID: eventID,
+                            isLocked: game.predictionsLocked
+                        )
+                    },
+                    onRefreshSummary: {
+                        await onRefreshVenuePredictionSummary?(eventID)
+                    },
+                    onStartRealtime: {
+                        await onStartVenuePredictionRealtime?(eventID)
+                    },
+                    onStopRealtime: {
+                        await onStopVenuePredictionRealtime?(eventID)
                     },
                     onLockedTap: {
                         predictionClosedMessage = "Predictions closed for this game."
@@ -985,15 +1011,16 @@ struct VenueDetailView: View {
 
     private func venueGameDateTimeText(start: Date?, day: Date?, timeText: String?) -> String {
         if let start {
-            return start.formatted(date: .abbreviated, time: .shortened)
+            let dateText = start.formatted(date: .abbreviated, time: .omitted)
+            return "\(dateText) • \(CompactGameTimeFormatter.timeWithZone(for: start, timeZoneOption: selectedTimeZone))"
         }
 
         guard let day else { return "Time TBD" }
         let dateText = day.formatted(date: .abbreviated, time: .omitted)
         guard let time = trimmedNonEmpty(timeText), time.lowercased() != "time tbd" else {
-            return "\(dateText) at Time TBD"
+            return "\(dateText) • Time TBD"
         }
-        return "\(dateText) at \(time)"
+        return "\(dateText) • \(CompactGameTimeFormatter.timeWithZone(rawTime: time, timeZoneOption: selectedTimeZone))"
     }
 
     private func venueGameStatus(start: Date?, now: Date) -> VenueDetailGameStatus? {
@@ -1039,6 +1066,7 @@ struct VenueDetailView: View {
         type: VenueEventPredictionType,
         isLocked: Bool
     ) {
+        guard type != .score else { return }
         guard !isLocked else {
             predictionClosedMessage = "Predictions closed for this game."
             return
@@ -1052,6 +1080,62 @@ struct VenueDetailView: View {
             teams: teams,
             predictionType: type
         )
+    }
+
+    @MainActor
+    private func quickSaveScorePrediction(
+        eventID: UUID,
+        homeScore: Int,
+        awayScore: Int,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            predictionClosedMessage = "Predictions closed for this game."
+            return false
+        }
+        guard showsFanOnlyActionButtons else {
+            onFanFeatureBlocked?("venuePrediction")
+            return false
+        }
+        do {
+            try await VenueEventPredictionService.shared.upsertPrediction(
+                venueEventId: eventID,
+                predictionType: .score,
+                predictedHomeScore: homeScore,
+                predictedAwayScore: awayScore
+            )
+            await onRefreshVenuePredictionSummary?(eventID)
+            return true
+        } catch {
+            predictionClosedMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @MainActor
+    private func quickClearScorePrediction(
+        eventID: UUID,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            predictionClosedMessage = "Predictions closed for this game."
+            return false
+        }
+        guard showsFanOnlyActionButtons else {
+            onFanFeatureBlocked?("venuePrediction")
+            return false
+        }
+        do {
+            try await VenueEventPredictionService.shared.deletePrediction(
+                venueEventId: eventID,
+                predictionType: .score
+            )
+            await onRefreshVenuePredictionSummary?(eventID)
+            return true
+        } catch {
+            predictionClosedMessage = error.localizedDescription
+            return false
+        }
     }
 
     @MainActor

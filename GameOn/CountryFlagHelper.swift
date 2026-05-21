@@ -108,7 +108,7 @@ enum CountryFlagHelper {
             .lowercased()
     }
 
-    private static func flagEmoji(forRegionCode regionCode: String) -> String {
+    nonisolated private static func flagEmoji(forRegionCode regionCode: String) -> String {
         regionCode
             .uppercased()
             .unicodeScalars

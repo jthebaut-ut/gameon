@@ -398,6 +398,12 @@ struct DiscoverScreen: View {
         let selectedBackground: Color
     }
 
+    private struct VenuePreviewStableGameItem: Identifiable {
+        let id: String
+        let index: Int
+        let event: SportsEvent
+    }
+
     private struct DiscoverVenuePredictionVisibility {
         let eventID: UUID?
         let sportType: String
@@ -796,6 +802,7 @@ struct DiscoverScreen: View {
                 ratingCount: ratingCount,
                 displaySport: displaySport,
                 sportsSupported: supportedSports,
+                selectedTimeZone: viewModel.selectedTimeZone,
                 hasGamesScheduledToday: !selectedDayGames.isEmpty,
                 venueEventRows: viewModel.venueEventRows,
                 venuePredictionSummaries: viewModel.venueEventPredictionSummaries,
@@ -842,6 +849,12 @@ struct DiscoverScreen: View {
                 },
                 onRefreshVenuePredictionSummary: { id in
                     await viewModel.refreshVenueEventPredictionSummary(eventID: id)
+                },
+                onStartVenuePredictionRealtime: { id in
+                    await viewModel.startVenueEventPredictionRealtime(for: id)
+                },
+                onStopVenuePredictionRealtime: { id in
+                    await viewModel.stopVenueEventPredictionRealtime(for: id)
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
@@ -915,7 +928,7 @@ struct DiscoverScreen: View {
 
     private func prefetchVisibleVenueSocialData(bar: BarVenue, events: [SportsEvent]) async {
         guard !events.isEmpty else {
-            await viewModel.prefetchVisibleDiscoverSocialData(eventIDs: [], predictionEventIDs: [])
+            viewModel.prefetchVisibleDiscoverSocialData(eventIDs: [], predictionEventIDs: [])
             return
         }
 
@@ -934,7 +947,7 @@ struct DiscoverScreen: View {
                 predictionEventIDs.append(predictionEventID)
             }
         }
-        await viewModel.prefetchVisibleDiscoverSocialData(eventIDs: eventIDs, predictionEventIDs: predictionEventIDs)
+        viewModel.prefetchVisibleDiscoverSocialData(eventIDs: eventIDs, predictionEventIDs: predictionEventIDs)
     }
 
     private func discoverVenueClaimAction(for bar: BarVenue) -> ((BarVenue) async -> String?)? {
@@ -3072,9 +3085,13 @@ struct DiscoverScreen: View {
 
                     Button {
                         FGInteractionHaptics.selection()
+#if DEBUG
+                        print("[VenuePreviewDismissDebug] topCloseTapped=true")
+#endif
                         withAnimation(.spring()) {
                             viewModel.selectedBar = nil
                             viewModel.clearDiscoverRemotePreviewHold()
+                            pendingResumeVenueIDAfterLogin = nil
                         }
                     } label: {
                         Image(systemName: "xmark")
@@ -3113,6 +3130,7 @@ struct DiscoverScreen: View {
             print("[VenueFeatureDebug] propagatedToDiscover=true")
             print("[VenueFeatureDebug] discoverCardFeatureChipsRemoved=true")
             print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
+            print("[VenuePreviewDismissDebug] restoredTopCloseButton=true")
             if bar.hasBusinessVerifiedFeatures {
                 print("[VenueFeatureDebug] approvedBusinessVenueFeaturesVerified=true")
             }
@@ -3280,6 +3298,9 @@ struct DiscoverScreen: View {
             print("[VenuePreviewScrollDebug] fullCardContentScrollable=true")
             print("[VenuePreviewScrollDebug] bottomActionsPinned=true")
             print("[VenuePreviewScrollDebug] removedAllGoingTabs=true")
+            print("[VenuePreviewStabilityDebug] closeButtonRemoved=true")
+            print("[VenuePreviewStabilityDebug] swipeDismissConfirmedRemoved=true")
+            print("[VenuePreviewStabilityDebug] gameCount=\(gamesToday.count)")
 #endif
         }
     }
@@ -3406,16 +3427,33 @@ struct DiscoverScreen: View {
         VStack(alignment: .leading, spacing: FGSpacing.sm) {
             FGStatusPill(title: "Showing selected game", kind: .custom(tint: FGColor.accentBlue))
             if viewModel.isGuestDiscoverMode {
+#if DEBUG
+                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
+                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
+                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=false")
+                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=true")
+                let _ = print("[VenuePreviewModeDebug] eventTitle=\(selectedEvent.title)")
+#endif
                 guestVenueGamePreviewRow(bar: bar, event: selectedEvent) {
                     showVenueDetails = true
                 }
             } else {
+#if DEBUG
+                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
+                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
+                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=true")
+                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=false")
+                let _ = print("[VenuePreviewModeDebug] eventTitle=\(selectedEvent.title)")
+#endif
                 gameInterestRow(bar: bar, event: selectedEvent)
             }
         }
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
+        let stableEvents = Array(gamesToday.prefix(12))
+        let stableItems = venuePreviewStableGameItems(for: stableEvents, selectedVenueID: bar.id)
+
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
                 VStack(alignment: .leading, spacing: 16) {
@@ -3424,18 +3462,27 @@ struct DiscoverScreen: View {
                     } else if gamesToday.isEmpty {
                         venuePreviewNoGamesForSelectedDayView(bar: bar)
                     } else {
-                        ForEach(VenueGamesAdInjector.listItems(for: Array(gamesToday.prefix(12)))) { item in
-                            switch item {
-                            case .game(let event):
-                                if viewModel.isGuestDiscoverMode {
-                                    guestVenueGamePreviewRow(bar: bar, event: event) {
-                                        showVenueDetails = true
-                                    }
-                                } else {
-                                    gameInterestRow(bar: bar, event: event)
+                        ForEach(stableItems) { item in
+                            if viewModel.isGuestDiscoverMode {
+#if DEBUG
+                                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
+                                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
+                                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=false")
+                                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=true")
+                                let _ = print("[VenuePreviewModeDebug] eventTitle=\(item.event.title)")
+#endif
+                                guestVenueGamePreviewRow(bar: bar, event: item.event) {
+                                    showVenueDetails = true
                                 }
-                            case .sponsored(let slotIndex, _):
-                                SponsoredVenueCardView(slotIndex: slotIndex)
+                            } else {
+#if DEBUG
+                                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
+                                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
+                                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=true")
+                                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=false")
+                                let _ = print("[VenuePreviewModeDebug] eventTitle=\(item.event.title)")
+#endif
+                                gameInterestRow(bar: bar, event: item.event)
                             }
                         }
                     }
@@ -3445,6 +3492,9 @@ struct DiscoverScreen: View {
                 .onAppear {
 #if DEBUG
                     print("[VenueGameCardUI] separatedGameCards=true")
+                    print("[VenuePreviewStabilityDebug] inlineAdInjectionDisabled=true")
+                    print("[VenuePreviewStabilityDebug] stableGameForEach=true")
+                    print("[VenuePreviewStabilityDebug] gameCount=\(gamesToday.count)")
 #endif
                 }
             }
@@ -3454,6 +3504,27 @@ struct DiscoverScreen: View {
                     .controlSize(.small)
                     .padding(.trailing, 2)
             }
+        }
+    }
+
+    private func venuePreviewStableGameItems(
+        for stableEvents: [SportsEvent],
+        selectedVenueID: UUID
+    ) -> [VenuePreviewStableGameItem] {
+        let groupedIDs = Dictionary(grouping: stableEvents.map(\.id), by: { $0 })
+        let duplicateIDs = Set(groupedIDs.compactMap { id, values in values.count > 1 ? id : nil })
+        let gameIDText = stableEvents.map { $0.id.uuidString.lowercased() }.joined(separator: ",")
+        let duplicateIDText = duplicateIDs.map { $0.uuidString.lowercased() }.sorted().joined(separator: ",")
+#if DEBUG
+        print("[VenuePreviewStabilityDebug] gameCount=\(stableEvents.count)")
+        print("[VenuePreviewStabilityDebug] gameIds=\(gameIDText)")
+        print("[VenuePreviewStabilityDebug] duplicateGameIds=\(duplicateIDText.isEmpty ? "none" : duplicateIDText)")
+        print("[VenuePreviewStabilityDebug] selectedVenueId=\(selectedVenueID.uuidString.lowercased())")
+#endif
+        return stableEvents.enumerated().map { index, event in
+            let uuidText = event.id.uuidString.lowercased()
+            let stableID = duplicateIDs.contains(event.id) ? "\(uuidText)-\(index)" : uuidText
+            return VenuePreviewStableGameItem(id: stableID, index: index, event: event)
         }
     }
 
@@ -3522,9 +3593,15 @@ struct DiscoverScreen: View {
     private func venuePreviewTimeLabel(for date: Date, fallback: String?) -> String {
         let fallback = fallback?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !fallback.isEmpty, fallback.lowercased() != "time tbd" {
-            return fallback
+            return CompactGameTimeFormatter.timeWithZone(
+                rawTime: fallback,
+                timeZoneOption: viewModel.selectedTimeZone
+            )
         }
-        return date.formatted(date: .omitted, time: .shortened)
+        return CompactGameTimeFormatter.timeWithZone(
+            for: date,
+            timeZoneOption: viewModel.selectedTimeZone
+        )
     }
 
     private func venuePreviewNextAvailableGame(for bar: BarVenue) -> (title: String, dateText: String, timeText: String)? {
@@ -3896,6 +3973,29 @@ struct DiscoverScreen: View {
                                 isLocked: predictionVisibility.isLocked
                             )
                         },
+                        onQuickScoreSave: { homeScore, awayScore in
+                            await quickSaveDiscoverScorePrediction(
+                                eventID: predictionEventID,
+                                homeScore: homeScore,
+                                awayScore: awayScore,
+                                isLocked: predictionVisibility.isLocked
+                            )
+                        },
+                        onQuickScoreClear: {
+                            await quickClearDiscoverScorePrediction(
+                                eventID: predictionEventID,
+                                isLocked: predictionVisibility.isLocked
+                            )
+                        },
+                        onRefreshSummary: {
+                            await viewModel.refreshVenueEventPredictionSummary(eventID: predictionEventID)
+                        },
+                        onStartRealtime: {
+                            await viewModel.startVenueEventPredictionRealtime(for: predictionEventID)
+                        },
+                        onStopRealtime: {
+                            await viewModel.stopVenueEventPredictionRealtime(for: predictionEventID)
+                        },
                         onLockedTap: {
                             fanFeatureGateAlertMessage = "Predictions closed for this game."
                         }
@@ -4004,6 +4104,7 @@ struct DiscoverScreen: View {
         type: VenueEventPredictionType,
         isLocked: Bool
     ) {
+        guard type != .score else { return }
         guard !isLocked else {
             fanFeatureGateAlertMessage = "Predictions closed for this game."
             return
@@ -4022,6 +4123,72 @@ struct DiscoverScreen: View {
             teams: teams,
             predictionType: type
         )
+    }
+
+    @MainActor
+    private func quickSaveDiscoverScorePrediction(
+        eventID: UUID,
+        homeScore: Int,
+        awayScore: Int,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            return false
+        }
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return false
+        }
+        guard viewModel.canUseFanSocialFeatures else {
+            viewModel.logBusinessUserGateBlocked(action: "venuePrediction")
+            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            return false
+        }
+        do {
+            try await VenueEventPredictionService.shared.upsertPrediction(
+                venueEventId: eventID,
+                predictionType: .score,
+                predictedHomeScore: homeScore,
+                predictedAwayScore: awayScore
+            )
+            await viewModel.refreshVenueEventPredictionSummary(eventID: eventID)
+            return true
+        } catch {
+            fanFeatureGateAlertMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @MainActor
+    private func quickClearDiscoverScorePrediction(
+        eventID: UUID,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            return false
+        }
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return false
+        }
+        guard viewModel.canUseFanSocialFeatures else {
+            viewModel.logBusinessUserGateBlocked(action: "venuePrediction")
+            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            return false
+        }
+        do {
+            try await VenueEventPredictionService.shared.deletePrediction(
+                venueEventId: eventID,
+                predictionType: .score
+            )
+            await viewModel.refreshVenueEventPredictionSummary(eventID: eventID)
+            return true
+        } catch {
+            fanFeatureGateAlertMessage = error.localizedDescription
+            return false
+        }
     }
 
     @MainActor

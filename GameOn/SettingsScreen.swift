@@ -1823,11 +1823,13 @@ struct SettingsScreen: View {
     }
 
     private func settingsBusinessDashboardGameTimeText(_ row: VenueEventRow) -> String {
-        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
-            return start.formatted(date: .omitted, time: .shortened)
-        }
-        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return time.isEmpty ? "Time TBD" : time
+        BusinessVenueDashboardGameDateTimeFormatter.compactLabel(
+            startDate: FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at),
+            eventDateRaw: row.event_date,
+            eventTimeRaw: row.event_time,
+            timeZoneOption: viewModel.selectedTimeZone,
+            calendar: Calendar.current
+        )
     }
 
     private func settingsBusinessDashboardGameStartDate(_ row: VenueEventRow) -> Date? {

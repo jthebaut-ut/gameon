@@ -86,6 +86,61 @@ struct BusinessVenueDashboardGameItem: Identifiable, Equatable {
     let energyTint: Color
 }
 
+enum BusinessVenueDashboardGameDateTimeFormatter {
+    static func compactLabel(
+        startDate: Date?,
+        eventDateRaw: String?,
+        eventTimeRaw: String?,
+        timeZoneOption: TimeZoneOption,
+        calendar: Calendar = .current,
+        now: Date = Date()
+    ) -> String {
+        var displayCalendar = calendar
+        displayCalendar.timeZone = CompactGameTimeFormatter.timeZone(for: timeZoneOption)
+        let timeText = startDate.map {
+            CompactGameTimeFormatter.timeWithZone(for: $0, timeZoneOption: timeZoneOption)
+        } ?? CompactGameTimeFormatter.timeWithZone(rawTime: eventTimeRaw, timeZoneOption: timeZoneOption)
+
+        guard let date = startDate ?? parseEventDate(eventDateRaw, calendar: displayCalendar) else {
+            return timeText
+        }
+
+        return "\(dayLabel(for: date, calendar: displayCalendar, now: now)) • \(timeText)"
+    }
+
+    private static func dayLabel(for date: Date, calendar: Calendar, now: Date) -> String {
+        if calendar.isDate(date, inSameDayAs: now) {
+            return "Today"
+        }
+
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)),
+           calendar.isDate(date, inSameDayAs: tomorrow) {
+            return "Tomorrow"
+        }
+
+        let today = calendar.startOfDay(for: now)
+        let targetDay = calendar.startOfDay(for: date)
+        let daysAhead = calendar.dateComponents([.day], from: today, to: targetDay).day
+        if let daysAhead, (2...6).contains(daysAhead) {
+            return date.formatted(.dateTime.weekday(.abbreviated))
+        }
+
+        return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    private static func parseEventDate(_ raw: String?, calendar: Calendar) -> Date? {
+        let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !value.isEmpty else { return nil }
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: String(value.prefix(10)))
+    }
+}
+
 struct BusinessVenueDashboardOverviewView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
@@ -261,18 +316,28 @@ private struct BusinessVenueDashboardGameRow: View {
                 .foregroundStyle(FGColor.accentBlue)
                 .frame(width: 34, height: 34)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(game.timeText)
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(FGColor.accentBlue)
+            VStack(alignment: .leading, spacing: 4) {
                 Text(game.title)
                     .font(FGTypography.cardTitle)
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                     .lineLimit(1)
-                Text(game.subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(1)
+
+                HStack(spacing: 5) {
+                    Text(game.timeText)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+
+                    if !game.subtitle.isEmpty {
+                        Text("•")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                        Text(game.subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
+                }
             }
 
             Spacer(minLength: 8)

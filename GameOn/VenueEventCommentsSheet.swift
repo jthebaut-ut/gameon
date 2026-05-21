@@ -5,6 +5,7 @@ struct VenueEventCommentsSheet: View {
     @ObservedObject var viewModel: MapViewModel
     let venueEventID: UUID
 
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
@@ -54,6 +55,34 @@ struct VenueEventCommentsSheet: View {
             .toolbarBackground(sheetRootBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(navigationChromeColorScheme, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+#if DEBUG
+                        print("[FanUpdatesSheetDebug] closeButtonTapped=true")
+#endif
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            dismiss()
+                        }
+#if DEBUG
+                        print("[FanUpdatesSheetDebug] dismissedFromCloseButton=true")
+#endif
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme).opacity(0.72))
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial, in: Circle())
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.58), lineWidth: 1)
+                            }
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08), radius: 8, y: 3)
+                    }
+                    .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.92, hapticOnPress: false))
+                    .accessibilityLabel("Close Fan Updates")
+                }
+            }
         }
     }
 }

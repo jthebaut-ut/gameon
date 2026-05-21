@@ -24,6 +24,19 @@ struct VenuePredictionParticipantAvatar: Identifiable, Equatable, Sendable {
     let avatarThumbnailURL: String?
 }
 
+struct VenueScorePredictionCrowdPick: Identifiable, Equatable, Sendable {
+    let homeScore: Int?
+    let awayScore: Int?
+    let count: Int
+    let percent: Int
+    let isOther: Bool
+
+    var id: String {
+        if isOther { return "other" }
+        return "\(homeScore ?? -1)-\(awayScore ?? -1)"
+    }
+}
+
 struct VenueEventPredictionSummary: Equatable, Sendable {
     let venueEventID: UUID
     let totalCount: Int
@@ -31,6 +44,8 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
     let winnerPercent: Int?
     let winnerPercents: [String: Int]
     let scoreMode: String?
+    let scorePredictionTotal: Int
+    let topScorePredictions: [VenueScorePredictionCrowdPick]
     let firstScoreLeader: String?
     let firstScorePercent: Int?
     let firstScorePercents: [String: Int]
@@ -46,6 +61,8 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
             winnerPercent: nil,
             winnerPercents: [:],
             scoreMode: nil,
+            scorePredictionTotal: 0,
+            topScorePredictions: [],
             firstScoreLeader: nil,
             firstScorePercent: nil,
             firstScorePercents: [:],
@@ -131,6 +148,11 @@ final class VenueEventPredictionService {
                 print("[VenuePredictionDebug] winnerPercent=\(summary.winnerPercent ?? 0)")
                 print("[VenuePredictionDebug] scoreMode=\(summary.scoreMode ?? "none")")
                 print("[VenuePredictionDebug] firstScorePercent=\(summary.firstScorePercent ?? 0)")
+                print("[ScorePredictionDebug] aggregateLoaded=\(!summary.topScorePredictions.isEmpty)")
+                print("[ScorePredictionDebug] aggregateTotal=\(summary.scorePredictionTotal)")
+                if let topScore = summary.topScorePredictions.first, !topScore.isOther {
+                    print("[ScorePredictionDebug] topScore=\(topScore.homeScore ?? 0)-\(topScore.awayScore ?? 0):\(topScore.percent)")
+                }
 #endif
             }
         } catch {
@@ -267,6 +289,8 @@ final class VenueEventPredictionService {
             denominator: winnerRows.count
         )
         let scoreMode = modeScore(rows: scoreRows)
+        let scoreCrowdPicks = topScorePredictions(rows: scoreRows)
+        let scorePredictionTotal = scoreRows.filter { $0.predicted_home_score != nil && $0.predicted_away_score != nil }.count
         let firstScore = leaderPercent(
             values: firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) },
             denominator: firstScoreRows.count
@@ -295,6 +319,8 @@ final class VenueEventPredictionService {
             winnerPercent: winner?.percent,
             winnerPercents: winnerPercents,
             scoreMode: scoreMode,
+            scorePredictionTotal: scorePredictionTotal,
+            topScorePredictions: scoreCrowdPicks,
             firstScoreLeader: firstScore?.label,
             firstScorePercent: firstScore?.percent,
             firstScorePercents: firstScorePercents,
@@ -378,6 +404,48 @@ final class VenueEventPredictionService {
                 return lhs.key > rhs.key
             }?
             .key
+    }
+
+    private static func topScorePredictions(rows: [VenueEventPredictionRow]) -> [VenueScorePredictionCrowdPick] {
+        let values = rows.compactMap { row -> (home: Int, away: Int)? in
+            guard let home = row.predicted_home_score, let away = row.predicted_away_score else { return nil }
+            return (home, away)
+        }
+        let total = values.count
+        guard total > 0 else { return [] }
+
+        let grouped = Dictionary(grouping: values, by: { "\($0.home)-\($0.away)" })
+        let ranked = grouped
+            .compactMap { _, values -> VenueScorePredictionCrowdPick? in
+                guard let first = values.first else { return nil }
+                return VenueScorePredictionCrowdPick(
+                    homeScore: first.home,
+                    awayScore: first.away,
+                    count: values.count,
+                    percent: Int((Double(values.count) / Double(total) * 100).rounded()),
+                    isOther: false
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.count != rhs.count { return lhs.count > rhs.count }
+                let lhsHome = lhs.homeScore ?? 0
+                let rhsHome = rhs.homeScore ?? 0
+                if lhsHome != rhsHome { return lhsHome > rhsHome }
+                return (lhs.awayScore ?? 0) > (rhs.awayScore ?? 0)
+            }
+
+        let top = Array(ranked.prefix(3))
+        let remainingCount = max(0, total - top.reduce(0) { $0 + $1.count })
+        guard remainingCount > 0 else { return top }
+        return top + [
+            VenueScorePredictionCrowdPick(
+                homeScore: nil,
+                awayScore: nil,
+                count: remainingCount,
+                percent: Int((Double(remainingCount) / Double(total) * 100).rounded()),
+                isOther: true
+            )
+        ]
     }
 
     private static func trimmed(_ value: String?) -> String? {

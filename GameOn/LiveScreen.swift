@@ -130,18 +130,13 @@ struct LiveScreen: View {
     }
 
     private func formattedLocalGameStartTime(_ startTime: Date, includeLocalPrefix: Bool = false) -> String {
-        let timeZone = userSelectedTimeZone
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = timeZone
-        formatter.dateFormat = "h:mm a"
-        let time = formatter.string(from: startTime)
-        let abbreviation = timeZone.abbreviation(for: startTime) ?? viewModel.selectedTimeZone.abbreviation
-        let label = includeLocalPrefix ? "Local \(abbreviation)" : abbreviation
-        let displayed = "\(time) (\(label))"
+        let displayed = CompactGameTimeFormatter.timeWithZone(
+            for: startTime,
+            timeZoneOption: viewModel.selectedTimeZone
+        )
 #if DEBUG
         print("[LiveGameTimeDebug] rawStartTime=\(startTime)")
-        print("[LiveGameTimeDebug] userTimeZone=\(timeZone.identifier)")
+        print("[LiveGameTimeDebug] userTimeZone=\(userSelectedTimeZone.identifier)")
         print("[LiveGameTimeDebug] displayedStartTime=\(displayed)")
 #endif
         return displayed
@@ -1173,7 +1168,7 @@ struct LiveScreen: View {
             }
 
             HStack(spacing: 10) {
-                Text("\(sportType.displayLabel) · Started \(formattedLocalGameStartTime(match.startTime))")
+                Text("\(sportType.displayLabel) · \(formattedLocalGameStartTime(match.startTime))")
                     .font(FGTypography.metadata)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .lineLimit(1)
@@ -2295,6 +2290,7 @@ struct LiveScreen: View {
                 ratingCount: ratingCount,
                 displaySport: displaySport,
                 sportsSupported: supportedSports,
+                selectedTimeZone: viewModel.selectedTimeZone,
                 hasGamesScheduledToday: !selectedDayGames.isEmpty,
                 venueEventRows: viewModel.venueEventRows,
                 venuePredictionSummaries: viewModel.venueEventPredictionSummaries,
@@ -2341,6 +2337,12 @@ struct LiveScreen: View {
                 },
                 onRefreshVenuePredictionSummary: { id in
                     await viewModel.refreshVenueEventPredictionSummary(eventID: id)
+                },
+                onStartVenuePredictionRealtime: { id in
+                    await viewModel.startVenueEventPredictionRealtime(for: id)
+                },
+                onStopVenuePredictionRealtime: { id in
+                    await viewModel.stopVenueEventPredictionRealtime(for: id)
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),

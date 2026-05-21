@@ -31,6 +31,73 @@ enum TimeZoneOption: String, CaseIterable, Identifiable {
     }
 }
 
+enum CompactGameTimeFormatter {
+    static func timeWithZone(for date: Date, timeZoneOption: TimeZoneOption) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone(for: timeZoneOption)
+        formatter.dateFormat = "h:mm a"
+        return "\(formatter.string(from: date)) \(timeZoneOption.abbreviation)"
+    }
+
+    static func timeWithZone(rawTime: String?, timeZoneOption: TimeZoneOption) -> String {
+        let raw = rawTime?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !raw.isEmpty else { return "Time TBD" }
+
+        let cleaned = compactTimeText(raw)
+        guard !cleaned.isEmpty, cleaned.lowercased() != "time tbd" else {
+            return "Time TBD"
+        }
+
+        if endsWithKnownZone(cleaned) {
+            return cleaned
+        }
+        return "\(cleaned) \(timeZoneOption.abbreviation)"
+    }
+
+    static func timeZone(for option: TimeZoneOption) -> TimeZone {
+        TimeZone(identifier: option.identifier) ?? .current
+    }
+
+    private static func compactTimeText(_ raw: String) -> String {
+        var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if value.lowercased().hasPrefix("started ") {
+            value.removeFirst("Started ".count)
+        }
+
+        for replacement in verboseTimezoneReplacements {
+            value = value.replacingOccurrences(
+                of: replacement,
+                with: "",
+                options: [.caseInsensitive]
+            )
+        }
+
+        value = value
+            .replacingOccurrences(of: "(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return value
+    }
+
+    private static func endsWithKnownZone(_ value: String) -> Bool {
+        let uppercased = value.uppercased()
+        return knownZoneAbbreviations.contains { uppercased.hasSuffix(" \($0)") }
+    }
+
+    private static let knownZoneAbbreviations = ["MT", "PT", "ET", "CT"]
+
+    private static let verboseTimezoneReplacements = [
+        "(MT)", "(PT)", "(ET)", "(CT)",
+        "Local MT", "Local PT", "Local ET", "Local CT",
+        "MST", "MDT", "PST", "PDT", "EST", "EDT", "CST", "CDT",
+        "Mountain Time", "Pacific Time", "Eastern Time", "Central Time"
+    ]
+}
+
 /// Discover tab map layer: venue pins vs pickup game pins (session-only; not persisted).
 enum DiscoverMapContentMode: String, CaseIterable, Identifiable, Equatable {
     case venues
