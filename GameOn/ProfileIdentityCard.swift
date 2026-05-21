@@ -295,13 +295,13 @@ struct ProfileIdentityCard: View {
                         .padding(.horizontal, 16)
                 }
 
+                favoriteTeamsSection
+                    .padding(.horizontal, 16)
+
                 if canShowSuggestedFans {
                     suggestedFansSection
                         .padding(.horizontal, 16)
                 }
-
-                favoriteTeamsSection
-                    .padding(.horizontal, 16)
 
                 homeCrowdSection
                     .padding(.horizontal, 16)
@@ -469,88 +469,75 @@ struct ProfileIdentityCard: View {
 
     // MARK: - Pokes highlights
 
+    @ViewBuilder
     private var pokesHighlightsSection: some View {
-        Button {
-            showPokesHistorySheet = true
-        } label: {
-            HStack(spacing: 11) {
-                pokesAvatarStack
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text("Pokes")
-                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(
-                                viewModel.hasUnseenPokes
-                                    ? FGColor.primaryText(colorScheme).opacity(0.88)
-                                    : FGColor.mutedText(colorScheme)
-                            )
-                            .textCase(.uppercase)
-                            .tracking(0.7)
-
+        let _ = logPokeCompactRowState()
+        if shouldShowCompactPokesRow {
+            Button {
+#if DEBUG
+                print("[PokeUIFlowDebug] openingFullPokeSheet=true")
+#endif
+                showPokesHistorySheet = true
+            } label: {
+                HStack(spacing: 10) {
+                    ZStack(alignment: .bottomTrailing) {
+                        compactPokesAvatarStack
                         Image(systemName: "hand.wave.fill")
                             .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 19, height: 19)
+                            .background(Circle().fill(FGColor.accentBlue))
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.92), lineWidth: 1)
+                            }
+                            .offset(x: 2, y: 2)
                             .pokesUnseenWaveIconEmphasis(isActive: viewModel.hasUnseenPokes)
-
-                        if viewModel.hasUnseenPokes {
-                            Text("New")
-                                .font(.system(size: 9, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background {
-                                    Capsule(style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [
-                                                    FGColor.accentBlue,
-                                                    Color(red: 0.22, green: 0.48, blue: 0.96),
-                                                    Color(red: 1, green: 0.46, blue: 0.16)
-                                                ],
-                                                startPoint: .leading,
-                                                endPoint: .trailing
-                                            )
-                                        )
-                                }
-                                .pokesUnseenNewPillEmphasis(isActive: true)
-                        }
                     }
-                    .pokesUnseenTitleRowEmphasis(isActive: viewModel.hasUnseenPokes)
 
-                    Text(pokesHighlightsCopy)
-                        .font(.system(size: 12, weight: .bold, design: .rounded))
-                        .foregroundStyle(incomingPokeTotalCount == 0 ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme))
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(compactPokesSummaryCopy)
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                                .lineLimit(1)
 
-                    Text(pokesHighlightsSubcopy)
-                        .font(.system(size: 10, weight: .medium, design: .rounded))
-                        .foregroundStyle(FGColor.mutedText(colorScheme))
-                        .lineLimit(1)
-                }
+                            if viewModel.hasUnseenPokes {
+                                Text("New")
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule(style: .continuous).fill(FGColor.accentBlue))
+                                    .pokesUnseenNewPillEmphasis(isActive: true)
+                            }
+                        }
+                        .pokesUnseenTitleRowEmphasis(isActive: viewModel.hasUnseenPokes)
 
-                Spacer(minLength: 0)
+                        Text("Tap for full poke history")
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                            .lineLimit(1)
+                    }
 
-                if isLoadingIncomingPokes {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(FGColor.accentBlue)
-                } else {
+                    Spacer(minLength: 0)
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.72))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.74))
                 }
+                .padding(.horizontal, 12)
+                .frame(height: 64)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background {
+                    pokesHighlightsCardBackground
+                }
+                .pokesUnseenHighlightsEmphasis(isActive: viewModel.hasUnseenPokes)
             }
-            .padding(.horizontal, 13)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                pokesHighlightsCardBackground
-            }
-            .pokesUnseenHighlightsEmphasis(isActive: viewModel.hasUnseenPokes)
+            .buttonStyle(.plain)
+            .accessibilityLabel(pokesHighlightsAccessibilityLabel)
+            .accessibilityHint("Opens Pokes history")
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(pokesHighlightsAccessibilityLabel)
-        .accessibilityHint("Opens Pokes history")
     }
 
     private var pokesHighlightsCardBackground: some View {
@@ -582,12 +569,12 @@ struct ProfileIdentityCard: View {
             }
     }
 
-    private var pokesAvatarStack: some View {
+    private var compactPokesAvatarStack: some View {
         ZStack {
             if uniqueRecentPokersForAvatars.isEmpty {
                 Circle()
                     .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.10))
-                    .frame(width: 42, height: 42)
+                    .frame(width: 38, height: 38)
                     .overlay {
                         Image(systemName: "hand.wave.fill")
                             .font(.system(size: 15, weight: .semibold))
@@ -602,14 +589,14 @@ struct ProfileIdentityCard: View {
                 ZStack(alignment: .leading) {
                     ForEach(Array(visiblePokers.enumerated()), id: \.element.id) { index, poke in
                         pokesAvatar(poke)
-                            .offset(x: CGFloat(index) * 18)
+                            .offset(x: CGFloat(index) * 15)
                             .zIndex(Double(visiblePokers.count - index))
                     }
                 }
-                .frame(width: CGFloat(visiblePokers.count - 1) * 18 + 34, height: 36, alignment: .leading)
+                .frame(width: CGFloat(visiblePokers.count - 1) * 15 + 30, height: 34, alignment: .leading)
             }
         }
-        .frame(width: 88, alignment: .leading)
+        .frame(width: 74, alignment: .leading)
     }
 
     private var uniqueRecentPokersForAvatars: [ProfilePokeIncomingItem] {
@@ -635,7 +622,7 @@ struct ProfileIdentityCard: View {
             ),
             displayName: poke.pokerDisplayName,
             email: "",
-            size: 34,
+            size: 30,
             fallbackStyle: .lightOnWhiteChrome,
             imagePlaceholderTint: FGColor.accentBlue
         )
@@ -646,28 +633,39 @@ struct ProfileIdentityCard: View {
         .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 4, y: 2)
     }
 
-    private var pokesHighlightsCopy: String {
-        if isLoadingIncomingPokes && incomingPokes.isEmpty {
-            return "Loading Pokes..."
-        }
-        guard incomingPokeTotalCount > 0 else { return "No pokes yet" }
-        return incomingPokeTotalCount == 1 ? "1 poke" : "\(incomingPokeTotalCount) pokes"
+    private var shouldShowCompactPokesRow: Bool {
+        incomingPokeTotalCount > 0
     }
 
-    private var pokesHighlightsSubcopy: String {
-        if let incomingPokesMessage, !incomingPokesMessage.isEmpty {
-            return incomingPokesMessage
+    private var compactPokesSummaryCopy: String {
+        let count = incomingPokeTotalCount
+        guard count > 0 else { return "" }
+        let firstName = uniqueRecentPokersForAvatars.first?.pokerDisplayName
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !firstName.isEmpty {
+            if count == 1 {
+                return "\(firstName) poked you"
+            }
+            return "\(firstName) and \(count - 1) \(count == 2 ? "other" : "others") poked you"
         }
-        if viewModel.hasUnseenPokes {
-            return "New pokes since you last checked"
+        if count == 1 {
+            return "1 recent poke"
         }
-        return incomingPokeTotalCount == 0
-            ? "Fans can poke you from your public profile"
-            : "Most recent pokes first"
+        return "\(count) recent pokes"
     }
 
     private var pokesHighlightsAccessibilityLabel: String {
-        incomingPokeTotalCount == 0 ? "Pokes, no pokes yet" : "Pokes, \(pokesHighlightsCopy)"
+        "Pokes, \(compactPokesSummaryCopy)"
+    }
+
+    private func logPokeCompactRowState() {
+#if DEBUG
+        print("[PokeUIFlowDebug] compactRowVisible=\(shouldShowCompactPokesRow)")
+        print("[PokeUIFlowDebug] pokeCount=\(incomingPokeTotalCount)")
+        if !shouldShowCompactPokesRow {
+            print("[PokeUIFlowDebug] emptyPokesHidden=true")
+        }
+#endif
     }
 
     private var pokesHistorySheet: some View {

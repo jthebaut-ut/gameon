@@ -3021,6 +3021,18 @@ struct DiscoverScreen: View {
             : FGColor.background(colorScheme).opacity(0.90)
     }
 
+    private var venueGameElevatedSurface: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.055)
+            : Color.white.opacity(0.97)
+    }
+
+    private var venueGamePredictionInsetSurface: Color {
+        colorScheme == .dark
+            ? FGColor.accentBlue.opacity(0.12)
+            : FGColor.accentBlue.opacity(0.055)
+    }
+
     private var discoverPreviewAccentSurface: Color {
         colorScheme == .dark
             ? FGColor.accentGreen.opacity(0.18)
@@ -3396,13 +3408,15 @@ struct DiscoverScreen: View {
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
-                        if viewModel.isLoadingEvents && gamesToday.isEmpty {
-                            loadingVenueGamesView
-                        } else if gamesToday.isEmpty {
-                            venuePreviewNoGamesForSelectedDayView(bar: bar)
-                        } else {
-                            ForEach(Array(gamesToday.prefix(12)), id: \.id) { event in
+                VStack(alignment: .leading, spacing: 16) {
+                    if viewModel.isLoadingEvents && gamesToday.isEmpty {
+                        loadingVenueGamesView
+                    } else if gamesToday.isEmpty {
+                        venuePreviewNoGamesForSelectedDayView(bar: bar)
+                    } else {
+                        ForEach(VenueGamesAdInjector.listItems(for: Array(gamesToday.prefix(12)))) { item in
+                            switch item {
+                            case .game(let event):
                                 if viewModel.isGuestDiscoverMode {
                                     guestVenueGamePreviewRow(bar: bar, event: event) {
                                         showVenueDetails = true
@@ -3410,11 +3424,19 @@ struct DiscoverScreen: View {
                                 } else {
                                     gameInterestRow(bar: bar, event: event)
                                 }
+                            case .sponsored(let slotIndex, _):
+                                SponsoredVenueCardView(slotIndex: slotIndex)
                             }
                         }
+                    }
                 }
                 .padding(.bottom, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .onAppear {
+#if DEBUG
+                    print("[VenueGameCardUI] separatedGameCards=true")
+#endif
+                }
             }
 
             if viewModel.isRefreshingDiscoverEvents && !gamesToday.isEmpty {
@@ -3683,16 +3705,15 @@ struct DiscoverScreen: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                    .fill(discoverPreviewInnerSurface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                            .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
-                    )
-            )
+            .background(venueGameElevatedCardBackground(border: discoverPreviewControlBorder, accent: viewModel.colorForSport(event.sport)))
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.10), radius: 12, x: 0, y: 7)
         }
         .buttonStyle(.plain)
+        .onAppear {
+#if DEBUG
+            print("[VenueGameCardUI] appliedElevatedCardStyle=true")
+#endif
+        }
     }
 
     private func venueGameSportIconWithLabel(sport: String) -> some View {
@@ -3772,11 +3793,11 @@ struct DiscoverScreen: View {
             venueEventID: venueEventID
         )
 
-        return VStack(alignment: .leading, spacing: 9) {
+        return VStack(alignment: .leading, spacing: 13) {
             HStack(alignment: .top, spacing: 11) {
                 venueGameSportIconWithLabel(sport: event.sport)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(event.title)
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(colorScheme))
@@ -3784,9 +3805,11 @@ struct DiscoverScreen: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text("\(event.date.formatted(date: .abbreviated, time: .omitted)) · \(viewModel.displayTime(for: event))")
-                        .font(FGTypography.caption)
+                        .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(discoverPreviewSecondaryTextColor)
                 }
+
+                Spacer(minLength: 8)
 
                 venuePreviewGoingButton(
                     bar: bar,
@@ -3794,6 +3817,15 @@ struct DiscoverScreen: View {
                     venueEventID: venueEventID,
                     alreadyInterested: alreadyInterested
                 )
+            }
+            .padding(10)
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(colorScheme == .dark ? Color.white.opacity(0.045) : FGColor.background(colorScheme).opacity(0.72))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(discoverPreviewControlBorder.opacity(colorScheme == .dark ? 0.7 : 0.55), lineWidth: 1)
             }
 
             HStack(alignment: .center, spacing: 10) {
@@ -3831,35 +3863,40 @@ struct DiscoverScreen: View {
             if let predictionEventID = predictionVisibility.eventID,
                predictionVisibility.shouldRender,
                let teams = predictionVisibility.teams {
-                VenueEventPredictionModule(
-                    venueEventID: predictionEventID,
-                    teams: teams,
-                    sportType: predictionVisibility.sportType,
-                    summary: viewModel.venueEventPredictionSummaries[predictionEventID],
-                    isLocked: predictionVisibility.isLocked,
-                    onOpen: { type in
-                        openDiscoverPredictionSheet(
-                            eventID: predictionEventID,
-                            teams: teams,
-                            type: type,
-                            isLocked: predictionVisibility.isLocked
-                        )
-                    },
-                    onQuickVote: { type, value in
-                        await quickSaveDiscoverPrediction(
-                            eventID: predictionEventID,
-                            type: type,
-                            value: value,
-                            isLocked: predictionVisibility.isLocked
-                        )
-                    },
-                    onLockedTap: {
-                        fanFeatureGateAlertMessage = "Predictions closed for this game."
-                    }
-                )
+                venueGamePredictionInset {
+                    VenueEventPredictionModule(
+                        venueEventID: predictionEventID,
+                        teams: teams,
+                        sportType: predictionVisibility.sportType,
+                        summary: viewModel.venueEventPredictionSummaries[predictionEventID],
+                        isLocked: predictionVisibility.isLocked,
+                        onOpen: { type in
+                            openDiscoverPredictionSheet(
+                                eventID: predictionEventID,
+                                teams: teams,
+                                type: type,
+                                isLocked: predictionVisibility.isLocked
+                            )
+                        },
+                        onQuickVote: { type, value in
+                            await quickSaveDiscoverPrediction(
+                                eventID: predictionEventID,
+                                type: type,
+                                value: value,
+                                isLocked: predictionVisibility.isLocked
+                            )
+                        },
+                        onLockedTap: {
+                            fanFeatureGateAlertMessage = "Predictions closed for this game."
+                        }
+                    )
+                }
             }
 
             if let venueEventID {
+                Divider()
+                    .overlay(discoverPreviewControlBorder.opacity(colorScheme == .dark ? 0.72 : 0.46))
+                    .padding(.vertical, 1)
                 venueGameCardSocialActionRow(
                     venueEventID: venueEventID,
                     previewEnergy: previewEnergy
@@ -3867,16 +3904,9 @@ struct DiscoverScreen: View {
                 venuePreviewInteractionStrip(venueEventID: venueEventID)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                .fill(discoverPreviewInnerSurface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: FGRadius.large, style: .continuous)
-                        .strokeBorder(previewEnergyBorder, lineWidth: previewEnergy?.isHighEnergy == true ? 1.25 : 1)
-                )
-        )
+        .padding(.horizontal, 13)
+        .padding(.vertical, 13)
+        .background(venueGameElevatedCardBackground(border: previewEnergyBorder, accent: previewEnergyTint))
         .overlay(alignment: .top) {
             if previewEnergy?.hasBadge == true {
                 Capsule(style: .continuous)
@@ -3893,6 +3923,69 @@ struct DiscoverScreen: View {
             }
         }
         .shadow(color: previewEnergyGlow, radius: 10, x: 0, y: 3)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.11), radius: 14, x: 0, y: 8)
+        .onAppear {
+#if DEBUG
+            print("[VenueGameCardUI] appliedElevatedCardStyle=true")
+#endif
+        }
+    }
+
+    private func venueGameElevatedCardBackground(border: Color, accent: Color) -> some View {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .background {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(venueGameElevatedSurface)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                accent.opacity(colorScheme == .dark ? 0.10 : 0.055),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                border.opacity(colorScheme == .dark ? 0.95 : 0.76),
+                                accent.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                                Color.white.opacity(colorScheme == .dark ? 0.06 : 0.82)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+    }
+
+    private func venueGamePredictionInset<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            content()
+        }
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(venueGamePredictionInsetSurface)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
+        }
+        .onAppear {
+#if DEBUG
+            print("[VenueGameCardUI] predictionInsetStyle=true")
+#endif
+        }
     }
 
     private func openDiscoverPredictionSheet(

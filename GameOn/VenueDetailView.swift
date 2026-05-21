@@ -779,9 +779,13 @@ struct VenueDetailView: View {
                     systemImage: "tv"
                 )
             } else {
+                let adInsertionPositions = VenueGamesAdInjector.insertedAfterGamePositions(gameCount: games.count)
                 VStack(spacing: FGSpacing.sm) {
-                    ForEach(games) { game in
+                    ForEach(Array(games.enumerated()), id: \.element.id) { index, game in
                         gameRow(game)
+                        if let slotIndex = adInsertionPositions.firstIndex(of: index + 1) {
+                            SponsoredVenueCardView(slotIndex: slotIndex)
+                        }
                     }
                 }
             }

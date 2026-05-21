@@ -7,7 +7,19 @@ struct NationalTeamIdentity: Equatable, Codable {
     let supporterLabel: String
 
     var displayTitle: String {
-        "\(flag) \(supporterLabel)"
+        displayTitle(languageCode: L10n.defaultLanguageCode)
+    }
+
+    func resolvedSupporterLabel(languageCode: String) -> String {
+        NationalTeamCopy.resolvedSupporterLabel(
+            rawLabel: supporterLabel,
+            countryName: countryName,
+            languageCode: languageCode
+        )
+    }
+
+    func displayTitle(languageCode: String) -> String {
+        "\(flag) \(resolvedSupporterLabel(languageCode: languageCode))"
     }
 
     static func fromProfile(
@@ -31,6 +43,8 @@ struct NationalTeamIdentity: Equatable, Codable {
 }
 
 enum NationalTeamCopy {
+    static let defaultSupporterLabelKey = "national_team_label_fan"
+
     private static let fallbacks: [String: String] = [
         "national_team": "National Team",
         "national_team_subtitle": "Represent your country for World Cup season.",
@@ -57,7 +71,50 @@ enum NationalTeamCopy {
     }
 
     static func defaultSupporterLabel(countryName: String, languageCode: String) -> String {
-        "\(countryName) \(text("national_team_label_fan", languageCode: languageCode))"
+        "\(countryName) \(text(defaultSupporterLabelKey, languageCode: languageCode))"
+    }
+
+    static func storageSupporterLabelKey(from rawLabel: String) -> String {
+        let trimmed = rawLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return defaultSupporterLabelKey }
+        if fallbacks.keys.contains(trimmed) { return trimmed }
+
+        let normalized = trimmed.lowercased()
+        if normalized.contains("supporter") { return "national_team_label_supporter" }
+        if normalized.contains("till i die") { return "national_team_label_till_i_die" }
+        if normalized.contains("representing") { return "national_team_label_representing" }
+        if normalized.contains("fan") { return defaultSupporterLabelKey }
+        return defaultSupporterLabelKey
+    }
+
+    static func resolvedSupporterLabel(rawLabel: String, countryName: String, languageCode: String) -> String {
+        let trimmed = rawLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallback = defaultSupporterLabel(countryName: countryName, languageCode: languageCode)
+        guard !trimmed.isEmpty else { return fallback }
+
+        if fallbacks.keys.contains(trimmed) {
+            return "\(countryName) \(text(trimmed, languageCode: languageCode))"
+        }
+
+        if trimmed.contains("_") {
+#if DEBUG
+            print("[LocalizationDebug] missingNationalTeamKey=\(trimmed)")
+#endif
+            return fallback
+        }
+
+        let knownDisplaySuffixes = fallbacks.keys
+            .map { text($0, languageCode: languageCode) }
+            .filter { !$0.isEmpty }
+        if knownDisplaySuffixes.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+            return "\(countryName) \(trimmed)"
+        }
+
+        if trimmed.localizedCaseInsensitiveContains(countryName) {
+            return trimmed
+        }
+
+        return fallback
     }
 }
 
@@ -127,7 +184,7 @@ struct NationalTeamIdentityCard: View {
                     .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.78)))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(identity.supporterLabel)
+                    Text(identity.resolvedSupporterLabel(languageCode: appLanguageRaw))
                         .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(1)
@@ -224,12 +281,11 @@ struct NationalTeamPickerSheet: View {
     }
 
     private func identity(for country: NationalTeamCountryOption) -> NationalTeamIdentity {
-        let label = NationalTeamCopy.defaultSupporterLabel(countryName: country.name, languageCode: appLanguageRaw)
         return NationalTeamIdentity(
             countryCode: country.code,
             countryName: country.name,
             flag: country.flag,
-            supporterLabel: label
+            supporterLabel: NationalTeamCopy.defaultSupporterLabelKey
         )
     }
 
@@ -253,7 +309,7 @@ struct NationalTeamPickerSheet: View {
 #if DEBUG
             print("[NationalTeamDebug] selectedCountry=\(option.name)")
             print("[NationalTeamDebug] countrySelected code=\(option.code)")
-            print("[NationalTeamDebug] resolvedLabel=\(identity.supporterLabel)")
+            print("[NationalTeamDebug] resolvedLabel=\(identity.resolvedSupporterLabel(languageCode: appLanguageRaw))")
 #endif
             onSave(identity)
             dismiss()

@@ -1629,11 +1629,18 @@ extension MapViewModel {
             return "Sign in to update your national team."
         }
 
+        let storedSupporterLabel = NationalTeamCopy.storageSupporterLabelKey(from: identity.supporterLabel)
+        let storedIdentity = NationalTeamIdentity(
+            countryCode: identity.countryCode,
+            countryName: identity.countryName,
+            flag: identity.flag,
+            supporterLabel: storedSupporterLabel
+        )
         let patch = UserProfileNationalTeamPatch(
-            national_team_country_code: identity.countryCode,
-            national_team_country_name: identity.countryName,
-            national_team_flag: identity.flag,
-            national_team_supporter_label: identity.supporterLabel,
+            national_team_country_code: storedIdentity.countryCode,
+            national_team_country_name: storedIdentity.countryName,
+            national_team_flag: storedIdentity.flag,
+            national_team_supporter_label: storedIdentity.supporterLabel,
             national_team_updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
@@ -1645,11 +1652,11 @@ extension MapViewModel {
                 .execute()
 
             await MainActor.run {
-                currentUserNationalTeam = identity
+                currentUserNationalTeam = storedIdentity
                 cacheCurrentUserProfileLocally()
                 publicProfileBioRevision &+= 1
 #if DEBUG
-                print("[NationalTeamDebug] profileSavedNationalTeam=\(identity.countryCode)")
+                print("[NationalTeamDebug] profileSavedNationalTeam=\(storedIdentity.countryCode)")
 #endif
             }
             return nil

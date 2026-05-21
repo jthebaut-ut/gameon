@@ -111,6 +111,8 @@ struct PublicUserProfilePreviewView: View {
                     .onAppear {
 #if DEBUG
                         print("[NationalTeamDebug] publicProfileNationalTeamDisplayed=true")
+                        print("[NationalTeamDebug] publicProfileRawLabel=\(nationalTeam.supporterLabel)")
+                        print("[NationalTeamDebug] publicProfileResolvedLabel=\(nationalTeam.resolvedSupporterLabel(languageCode: appLanguageRaw))")
 #endif
                     }
             }
