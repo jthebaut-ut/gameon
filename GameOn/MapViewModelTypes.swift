@@ -267,6 +267,7 @@ struct InsertedBusinessIdRow: Decodable {
 struct VenueProfileInsert: Encodable {
     let owner_email: String
     let venue_name: String
+    let supporter_country: String?
     let address: String
     let address_line1: String
     let address_line2: String?
@@ -299,6 +300,7 @@ struct VenueProfileInsert: Encodable {
 struct VenueProfileUpdate: Encodable {
     let owner_email: String
     let venue_name: String
+    let supporter_country: String?
     let address: String
     let address_line1: String
     let address_line2: String?
@@ -329,6 +331,7 @@ struct VenueProfileUpdate: Encodable {
 
 /// Partial `venues` update for FanGeo-approved listings: omits identity, address, and coordinates so they cannot be changed from the client.
 struct VenueProfileOperationalUpdate: Encodable {
+    let supporter_country: String?
     let phone: String
     let website: String
     let description: String
@@ -351,6 +354,23 @@ struct VenueCoordinatesPatch: Encodable {
     let longitude: Double
 }
 
+struct VenueSupporterCountryUpdate: Encodable {
+    let supporter_country: String?
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let supporter_country {
+            try container.encode(supporter_country, forKey: .supporter_country)
+        } else {
+            try container.encodeNil(forKey: .supporter_country)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case supporter_country
+    }
+}
+
 struct VenueProfileRow: Decodable {
     let id: UUID?
     let owner_email: String?
@@ -360,6 +380,7 @@ struct VenueProfileRow: Decodable {
     let venue_identity_key: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
+    let supporter_country: String?
     let venue_name: String?
     let address: String?
     let address_line1: String?
@@ -405,6 +426,7 @@ struct VenueRow: Decodable {
     let venue_identity_key: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
+    let supporter_country: String?
     let venue_name: String?
     let address: String?
     let address_line1: String?
@@ -1310,4 +1332,92 @@ struct VenueEventVibeInsert: Encodable {
     let venue_event_id: UUID
     let user_email: String
     let vibe_type: String
+}
+
+struct VenueSupporterCountryDisplay: Equatable {
+    let storedCountry: String
+    let countryCode: String?
+    let countryName: String
+    let flag: String
+    let wording: String
+
+    var title: String {
+        "\(flag) \(countryName) \(wording)"
+    }
+}
+
+enum VenueSupporterCountryMode {
+    static func normalizedStorageValue(_ country: String?) -> String? {
+        let trimmed = country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    static func display(for storedCountry: String?, languageCode: String) -> VenueSupporterCountryDisplay? {
+        guard let stored = normalizedStorageValue(storedCountry) else { return nil }
+        let code = CountryFlagHelper.countryCode(for: stored)
+        let flag = CountryFlagHelper.flag(for: stored) ?? "🏟️"
+        let displayName = supporterDisplayName(storedCountry: stored, countryCode: code, languageCode: languageCode)
+        return VenueSupporterCountryDisplay(
+            storedCountry: stored,
+            countryCode: code,
+            countryName: displayName,
+            flag: flag,
+            wording: supporterWording(countryCode: code, countryName: displayName)
+        )
+    }
+
+    private static func supporterDisplayName(storedCountry: String, countryCode: String?, languageCode: String) -> String {
+        if storedCountry.count <= 3, let countryCode {
+            if countryCode == "US" { return "USA" }
+            let localeIdentifier = L10n.normalizedLanguageCode(languageCode)
+            return Locale(identifier: localeIdentifier).localizedString(forRegionCode: countryCode) ?? storedCountry
+        }
+        if countryCode == "US", storedCountry.localizedCaseInsensitiveContains("united states") {
+            return "USA"
+        }
+        return storedCountry
+    }
+
+    private static func supporterWording(countryCode: String?, countryName: String) -> String {
+        switch countryCode {
+        case "MX":
+            return "Supporters"
+        case "US":
+            return "Watch Spot"
+        case "FR", "BR", "ES", "PT":
+            return "Fan Zone"
+        case "AR":
+            return "Crowd"
+        default:
+            return countryName.count <= 8 ? "Crowd" : "Supporters"
+        }
+    }
+}
+
+enum VenueCrowdReactionCatalog {
+    static let storagePrefix = "crowd_reaction"
+
+    static let reactions: [(id: String, label: String)] = [
+        ("goal", "⚽ GOALLLL"),
+        ("save", "😱 WHAT A SAVE"),
+        ("robbed", "😡 ROBBED"),
+        ("chaos", "🤯 CHAOS"),
+        ("vamos", "🔥 VAMOS"),
+        ("usa_lets_go", "🇺🇸 LET’S GOOO")
+    ]
+
+    static func storageValue(for reactionID: String) -> String {
+        "\(storagePrefix).\(reactionID).\(UUID().uuidString.lowercased())"
+    }
+
+    static func normalizedCountKey(for rawVibeType: String) -> String {
+        guard rawVibeType.hasPrefix("\(storagePrefix).") else { return rawVibeType }
+        let pieces = rawVibeType.split(separator: ".")
+        guard pieces.count >= 2 else { return rawVibeType }
+        return "\(storagePrefix).\(pieces[1])"
+    }
+
+    static func countKey(for reactionID: String) -> String {
+        "\(storagePrefix).\(reactionID)"
+    }
 }

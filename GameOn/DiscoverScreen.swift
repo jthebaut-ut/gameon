@@ -3860,6 +3860,13 @@ struct DiscoverScreen: View {
                 Spacer(minLength: 0)
             }
 
+            if let supporter = VenueSupporterCountryMode.display(
+                for: bar.supporterCountry,
+                languageCode: appLanguageRaw
+            ) {
+                venueSupporterBanner(supporter)
+            }
+
             if let predictionEventID = predictionVisibility.eventID,
                predictionVisibility.shouldRender,
                let teams = predictionVisibility.teams {
@@ -4298,6 +4305,7 @@ struct DiscoverScreen: View {
         let source = "discoverVenueGameCard"
         let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
         let _ = logFanChatEntryUXRendered(source: source, eventId: venueEventID, count: commentCount)
+        let _ = logFanReactionRemovedFromVenueCard()
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 10) {
@@ -4400,6 +4408,82 @@ struct DiscoverScreen: View {
                 ? "\(L10n.t("fan_chat", languageCode: appLanguageRaw)), \(commentCount) comments"
                 : L10n.t("fan_chat", languageCode: appLanguageRaw)
         )
+    }
+
+    private func logFanReactionRemovedFromVenueCard() {
+#if DEBUG
+        print("[FanReactionDebug] removedFromVenueCard=true")
+#endif
+    }
+
+    private func venueSupporterBanner(_ supporter: VenueSupporterCountryDisplay) -> some View {
+        let colors = venueSupporterBannerColors(for: supporter.countryCode)
+
+        return HStack(spacing: 12) {
+            Text(supporter.flag)
+                .font(.system(size: 34))
+                .frame(width: 48, height: 48)
+                .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.15 : 0.78)))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(supporter.title)
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+
+                Text("Tournament crowd mode")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.82))
+                    .textCase(.uppercase)
+                    .tracking(0.4)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(13)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: colors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.06))
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.24), lineWidth: 1)
+        }
+        .shadow(color: (colors.first ?? FGColor.accentBlue).opacity(colorScheme == .dark ? 0.28 : 0.18), radius: 14, x: 0, y: 8)
+        .onAppear {
+#if DEBUG
+            print("[VenueSupporterDebug] supporterCountry=\(supporter.storedCountry)")
+            print("[VenueSupporterDebug] supporterBannerVisible=true")
+#endif
+        }
+    }
+
+    private func venueSupporterBannerColors(for countryCode: String?) -> [Color] {
+        switch countryCode {
+        case "MX":
+            return [Color(red: 0.00, green: 0.46, blue: 0.25), Color(red: 0.78, green: 0.06, blue: 0.15)]
+        case "US":
+            return [Color(red: 0.05, green: 0.20, blue: 0.56), Color(red: 0.78, green: 0.08, blue: 0.18)]
+        case "FR":
+            return [Color(red: 0.00, green: 0.16, blue: 0.48), Color(red: 0.86, green: 0.08, blue: 0.20)]
+        case "AR":
+            return [Color(red: 0.12, green: 0.54, blue: 0.84), Color(red: 0.93, green: 0.75, blue: 0.22)]
+        case "BR":
+            return [Color(red: 0.00, green: 0.52, blue: 0.27), Color(red: 0.96, green: 0.78, blue: 0.10)]
+        default:
+            return [FGColor.accentGreen.opacity(0.92), FGColor.accentBlue.opacity(0.90)]
+        }
     }
 
     private func logFanChatEntryUXRendered(source: String, eventId: UUID, count: Int) {

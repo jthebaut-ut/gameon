@@ -885,7 +885,7 @@ extension MapViewModel {
     private func fetchVenueRowForClaim(venueId: UUID) async throws -> VenueRow? {
         let rows: [VenueRow] = try await supabase
             .from("venues")
-            .select("id,owner_email,business_id,admin_status,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)")
+            .select("id,owner_email,business_id,admin_status,supporter_country,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,phone,website,description,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url,businesses!venues_business_id_fkey(owner_email,admin_status)")
             .eq("id", value: venueId)
             .limit(1)
             .execute()
@@ -1797,6 +1797,7 @@ extension MapViewModel {
         ownerVenueState = saved.state ?? ""
         ownerVenueZipCode = saved.zip_code ?? ""
         ownerVenueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+        ownerVenueSupporterCountry = saved.supporter_country ?? ""
     }
 
     /// Applies ``VenueProfileRow`` fields into owner-facing ``MapViewModel`` state (photos, name, etc.).
@@ -1811,6 +1812,7 @@ extension MapViewModel {
         ownerVenueState = saved.state ?? ""
         ownerVenueZipCode = saved.zip_code ?? ""
         ownerVenueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+        ownerVenueSupporterCountry = saved.supporter_country ?? ""
         applyVenueOwnerPhoneFromCombined(saved.phone)
         ownerVenueWebsite = saved.website ?? ""
         ownerVenueDescription = saved.description ?? ""
@@ -1883,6 +1885,47 @@ extension MapViewModel {
             legacyOwnerVenuesForEmailFallback.append(saved)
         }
         print("[VenuePhotoSaveDebug] cacheUpdatedPhotoURL=\(saved.cover_photo_url ?? "")")
+    }
+
+    func updateVenueSupporterCountry(_ country: String?) async -> Bool {
+        let normalized = VenueSupporterCountryMode.normalizedStorageValue(country)
+        let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
+        guard OwnerBusinessEmail.isValidStrict(ownerEmailRow) else { return false }
+
+        await MainActor.run {
+            ownerVenueSupporterCountry = normalized ?? ""
+        }
+
+        let patch = VenueSupporterCountryUpdate(supporter_country: normalized)
+        do {
+            if let venueId = ownerVenueDatabaseId {
+                try await supabase
+                    .from("venues")
+                    .update(patch)
+                    .eq("id", value: venueId.uuidString.lowercased())
+                    .execute()
+            } else {
+                try await supabase
+                    .from("venues")
+                    .update(patch)
+                    .eq("owner_email", value: ownerEmailRow)
+                    .execute()
+            }
+#if DEBUG
+            print("[VenueSupporterDebug] supporterCountryUpdated=\(normalized ?? "nil")")
+#endif
+            if let saved = await loadVenueProfile() {
+                await MainActor.run {
+                    applyVenueProfileRowToOwnerState(saved)
+                    updateManagedVenueProfileCaches(saved)
+                }
+            }
+            await loadVenuesFromSupabase(forceRefresh: true)
+            return true
+        } catch {
+            print("ERROR UPDATING VENUE SUPPORTER COUNTRY:", error)
+            return false
+        }
     }
 
     /// User picked a venue from the switcher; persists selection and reloads profile + games lists (DEBUG logs).
@@ -2648,6 +2691,7 @@ extension MapViewModel {
                 iso: ownerVenuePhoneDialISO,
                 local: ownerVenuePhone
             ).trimmingCharacters(in: .whitespacesAndNewlines)
+            let supporterCountryForSave = VenueSupporterCountryMode.normalizedStorageValue(ownerVenueSupporterCountry)
 
             let identityLocked = venueCoreIdentityLockedForSelectedVenue()
 #if DEBUG
@@ -2669,6 +2713,7 @@ extension MapViewModel {
                 }
 
                 let operationalPatch = VenueProfileOperationalUpdate(
+                    supporter_country: supporterCountryForSave,
                     phone: phoneForSave,
                     website: ownerVenueWebsite,
                     description: ownerVenueDescription,
@@ -2775,6 +2820,7 @@ extension MapViewModel {
                 let profile = VenueProfileInsert(
                     owner_email: ownerEmailRow,
                     venue_name: ownerVenueName,
+                    supporter_country: supporterCountryForSave,
                     address: streetTrimmed,
                     address_line1: streetTrimmed,
                     address_line2: addressLine2Trimmed.isEmpty ? nil : addressLine2Trimmed,
@@ -2807,6 +2853,7 @@ extension MapViewModel {
                     let patch = VenueProfileUpdate(
                         owner_email: ownerEmailRow,
                         venue_name: ownerVenueName,
+                        supporter_country: supporterCountryForSave,
                         address: streetTrimmed,
                         address_line1: streetTrimmed,
                         address_line2: addressLine2Trimmed.isEmpty ? nil : addressLine2Trimmed,

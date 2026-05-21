@@ -51,6 +51,8 @@ enum AdDebugDiagnostics {
                 "configuredApplicationID": configuredAppID,
                 "appIDMatch": "\(plistAppID == configuredAppID)",
                 "usesTestAds": "\(AdMobConfiguration.usesTestAds)",
+                "testDeviceConfigured": "\(AdRuntimeDevice.testDeviceConfigured)",
+                "deviceIsPhysical": "\(!AdRuntimeDevice.isSimulator)",
                 "buildIsDebug": buildIsDebugDescription(),
                 "bannerUnit": AdMobConfiguration.bannerAdUnitID,
                 "nativeUnit": AdMobConfiguration.nativeAdUnitID,

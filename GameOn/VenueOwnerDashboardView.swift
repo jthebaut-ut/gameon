@@ -60,6 +60,7 @@ struct VenueOwnerDashboardView: View {
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selectedSection: VenueDashboardSection = .overview
 
@@ -116,6 +117,7 @@ struct VenueOwnerDashboardView: View {
     @State private var selectedCoverPhoto: PhotosPickerItem?
     @State private var selectedMenuPhoto: PhotosPickerItem?
     @State private var showVenuePinPicker = false
+    @State private var showVenueSupporterPicker = false
     /// URLs used only for Bar/Menu previews (may include `?v=` / `&v=` cache bust). Supabase / viewModel URLs stay clean.
     @State private var displayedCoverPhotoURL = ""
     @State private var displayedMenuPhotoURL = ""
@@ -483,6 +485,30 @@ struct VenueOwnerDashboardView: View {
                 onCancel: {},
                 onConfirm: applyVenueLocationDraft
             )
+        }
+        .sheet(isPresented: $showVenueSupporterPicker) {
+            VenueSupporterCountryPickerSheet(
+                currentCountry: viewModel.ownerVenueSupporterCountry,
+                onSelect: { country in
+                    Task {
+                        let success = await viewModel.updateVenueSupporterCountry(country)
+                        await MainActor.run {
+                            profileSaveMessage = success ? "Supporter country updated" : "Unable to update supporter country"
+                        }
+                    }
+                },
+                onClear: {
+                    Task {
+                        let success = await viewModel.updateVenueSupporterCountry(nil)
+                        await MainActor.run {
+                            profileSaveMessage = success ? "Supporter country cleared" : "Unable to clear supporter country"
+                        }
+                    }
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .onChange(of: selectedMenuPhoto) { _, newItem in
             Task {
@@ -947,6 +973,7 @@ struct VenueOwnerDashboardView: View {
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
             field("Features: Big Screens, Terrace, Sound On", text: $viewModel.ownerVenueFeatures)
+            venueSupporterCountryEditor()
 
             VStack(alignment: .leading, spacing: 28) {
                 venueOwnerVenueFeaturesCard()
@@ -1048,6 +1075,81 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+        }
+    }
+
+    private func venueSupporterCountryEditor() -> some View {
+        let display = VenueSupporterCountryMode.display(
+            for: viewModel.ownerVenueSupporterCountry,
+            languageCode: appLanguageRaw
+        )
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(display?.flag ?? "🏆")
+                    .font(.system(size: 30))
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.13)))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Who is your venue supporting?")
+                        .font(.subheadline.weight(.heavy))
+                        .foregroundStyle(.primary)
+                    Text(display?.title ?? "Choose a World Cup country or clear this any time.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    showVenueSupporterPicker = true
+                } label: {
+                    Text(display == nil ? "Select country" : "Change country")
+                        .font(.caption.weight(.heavy))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.12))
+                        .foregroundStyle(FGColor.accentBlue)
+                        .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                }
+                .buttonStyle(.plain)
+
+                if display != nil {
+                    Button {
+                        Task {
+                            let success = await viewModel.updateVenueSupporterCountry(nil)
+                            await MainActor.run {
+                                profileSaveMessage = success ? "Supporter country cleared" : "Unable to clear supporter country"
+                            }
+                        }
+                    } label: {
+                        Text("Clear")
+                            .font(.caption.weight(.heavy))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 11)
+                            .background(Color.red.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                            .foregroundStyle(.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(14)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.24 : 0.14), lineWidth: 1)
+        }
+        .onAppear {
+#if DEBUG
+            print("[VenueSupporterDebug] supporterCountry=\(viewModel.ownerVenueSupporterCountry.isEmpty ? "nil" : viewModel.ownerVenueSupporterCountry)")
+#endif
         }
     }
 
@@ -3429,6 +3531,119 @@ private struct VenueOwnerGameTitleEditTarget: Identifiable {
 private struct VenueOwnerIdentifiedVenueEvent: Identifiable {
     let id: UUID
     var row: VenueEventRow
+}
+
+private struct VenueSupporterCountryPickerSheet: View {
+    let currentCountry: String
+    let onSelect: (String) -> Void
+    let onClear: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
+    @State private var searchText = ""
+
+    private var options: [NationalTeamCountryOption] {
+        NationalTeamCountryCatalog.options(matching: searchText, languageCode: appLanguageRaw)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Who is your venue supporting?")
+                            .font(.title2.weight(.heavy))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("Show fans your World Cup watch spot identity on venue game cards.")
+                            .font(.subheadline)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    HStack(spacing: 9) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        TextField("Search countries", text: $searchText)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled()
+                    }
+                    .padding()
+                    .background(FGAdaptiveSurface.controlFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                    if VenueSupporterCountryMode.normalizedStorageValue(currentCountry) != nil {
+                        Button {
+                            onClear()
+                            dismiss()
+                        } label: {
+                            Label("Clear supporter country", systemImage: "xmark.circle.fill")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.red)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(12)
+                                .background(Color.red.opacity(colorScheme == .dark ? 0.16 : 0.09))
+                                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Popular" : "Countries")
+                            .font(.caption.weight(.heavy))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .textCase(.uppercase)
+                        ForEach(options) { option in
+                            countryRow(option)
+                        }
+                    }
+                }
+                .padding(18)
+            }
+            .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.t("cancel", languageCode: appLanguageRaw)) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func countryRow(_ option: NationalTeamCountryOption) -> some View {
+        let isSelected = currentCountry.caseInsensitiveCompare(option.name) == .orderedSame
+            || VenueSupporterCountryMode.display(for: currentCountry, languageCode: appLanguageRaw)?.countryCode == option.code
+
+        return Button {
+#if DEBUG
+            print("[VenueSupporterDebug] supporterCountry=\(option.name)")
+#endif
+            onSelect(option.name)
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Text(option.flag)
+                    .font(.title2)
+                    .frame(width: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(option.name)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(VenueSupporterCountryMode.display(for: option.name, languageCode: appLanguageRaw)?.title ?? option.code)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
+            .padding(12)
+            .background(FGAdaptiveSurface.controlFill)
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
 }
 
 private nonisolated struct VenueOwnerScheduledGameChoice: Identifiable, Equatable {

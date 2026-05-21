@@ -633,6 +633,8 @@ extension MapViewModel {
             _ = await task.result
             fanChatAppLevelRealtimeTask = nil
         }
+        fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask?.cancel()
+        fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask = nil
 
         if let channel = fanChatAppLevelRealtimeChannel {
             await supabase.removeChannel(channel)
@@ -656,6 +658,17 @@ extension MapViewModel {
                 InsertAction.self,
                 schema: "public",
                 table: "venue_event_comments",
+                filter: RealtimePostgresFilter.in("venue_event_id", values: chunk)
+            )
+        }
+        let vibeStreams = FanChatAppLevelRealtimeConfig.chunked(
+            ids,
+            size: FanChatAppLevelRealtimeConfig.filterChunkSize
+        ).map { chunk in
+            channel.postgresChange(
+                AnyAction.self,
+                schema: "public",
+                table: "venue_event_vibes",
                 filter: RealtimePostgresFilter.in("venue_event_id", values: chunk)
             )
         }
@@ -691,11 +704,50 @@ extension MapViewModel {
                     await self?.consumeFanChatAppLevelRealtimeStream(stream, trackedEventIDs: tracked)
                 }
             }
+            for stream in vibeStreams {
+                group.addTask { [weak self] in
+                    await self?.consumeCrowdReactionAppLevelRealtimeStream(stream, trackedEventIDs: ids)
+                }
+            }
         }
 
         if fanChatAppLevelRealtimeChannel === channel {
             fanChatAppLevelRealtimeChannel = nil
             await supabase.removeChannel(channel)
+        }
+    }
+
+    private func consumeCrowdReactionAppLevelRealtimeStream(
+        _ stream: AsyncStream<AnyAction>,
+        trackedEventIDs: [UUID]
+    ) async {
+        for await _ in stream {
+            if Task.isCancelled { break }
+#if DEBUG
+            print("[CrowdReactionDebug] realtimeReceived=true")
+#endif
+            scheduleCrowdReactionVibeRealtimeRefresh(eventIDs: trackedEventIDs)
+        }
+    }
+
+    @MainActor
+    private func scheduleCrowdReactionVibeRealtimeRefresh(eventIDs: [UUID]) {
+        let ids = Array(Set(eventIDs))
+        fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask?.cancel()
+        fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 300_000_000)
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled else { return }
+            await withTaskGroup(of: Void.self) { group in
+                for id in ids {
+                    group.addTask { [weak self] in
+                        await self?.loadVibes(for: id)
+                    }
+                }
+            }
         }
     }
 
@@ -2144,12 +2196,13 @@ extension MapViewModel {
                 ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
             for row in rows {
-                guard let vibe = row.vibe_type else { continue }
+                guard let rawVibe = row.vibe_type else { continue }
+                let vibe = VenueCrowdReactionCatalog.normalizedCountKey(for: rawVibe)
 
                 counts[vibe, default: 0] += 1
 
                 if OwnerBusinessEmail.normalized(row.user_email ?? "") == email {
-                    myVibes.insert(vibe)
+                    myVibes.insert(rawVibe)
                 }
             }
 
@@ -2157,6 +2210,14 @@ extension MapViewModel {
                 venueEventVibeCounts[venueEventID] = counts
                 myVenueEventVibes[venueEventID] = myVibes
                 fanUpdatesVibePrefetchedAt[venueEventID] = Date()
+#if DEBUG
+                for reaction in VenueCrowdReactionCatalog.reactions {
+                    let key = VenueCrowdReactionCatalog.countKey(for: reaction.id)
+                    if let count = counts[key] {
+                        print("[CrowdReactionDebug] countUpdated=\(reaction.id):\(count)")
+                    }
+                }
+#endif
             }
 
             DebugLogGate.debug("LOADED VIBES: \(counts)")
@@ -2182,10 +2243,11 @@ extension MapViewModel {
             var countsByEventID: [UUID: [String: Int]] = [:]
             var myVibesByEventID: [UUID: Set<String>] = [:]
             for row in rows {
-                guard let eventID = row.venue_event_id, let vibe = row.vibe_type else { continue }
+                guard let eventID = row.venue_event_id, let rawVibe = row.vibe_type else { continue }
+                let vibe = VenueCrowdReactionCatalog.normalizedCountKey(for: rawVibe)
                 countsByEventID[eventID, default: [:]][vibe, default: 0] += 1
                 if OwnerBusinessEmail.normalized(row.user_email ?? "") == email {
-                    myVibesByEventID[eventID, default: []].insert(vibe)
+                    myVibesByEventID[eventID, default: []].insert(rawVibe)
                 }
             }
 
@@ -2195,10 +2257,60 @@ extension MapViewModel {
                     venueEventVibeCounts[eventID] = countsByEventID[eventID] ?? [:]
                     myVenueEventVibes[eventID] = myVibesByEventID[eventID] ?? []
                     fanUpdatesVibePrefetchedAt[eventID] = now
+#if DEBUG
+                    for reaction in VenueCrowdReactionCatalog.reactions {
+                        let key = VenueCrowdReactionCatalog.countKey(for: reaction.id)
+                        if let count = countsByEventID[eventID]?[key] {
+                            print("[CrowdReactionDebug] countUpdated=\(reaction.id):\(count)")
+                        }
+                    }
+#endif
                 }
             }
         } catch {
             logVenueEventSocialLoadError("ERROR LOADING VIBES BATCH:", loadCancelledTag: "vibes_batch", error: error)
+        }
+    }
+
+    func addCrowdReaction(for venueEventID: UUID, reactionID: String) async {
+        guard canUseFanSocialFeatures else {
+            logBusinessUserGateBlocked(action: "crowdReaction")
+            return
+        }
+        let email = await strictNormalizedSessionEmailForSocialTables()
+            ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
+
+        guard OwnerBusinessEmail.isValidStrict(email) else {
+            DebugLogGate.debug("LOGIN REQUIRED TO ADD CROWD REACTION")
+            return
+        }
+
+        let countKey = VenueCrowdReactionCatalog.countKey(for: reactionID)
+        let storageValue = VenueCrowdReactionCatalog.storageValue(for: reactionID)
+        let previousCounts = venueEventVibeCounts[venueEventID] ?? [:]
+
+        venueEventVibeCounts[venueEventID, default: [:]][countKey, default: 0] += 1
+#if DEBUG
+        print("[CrowdReactionDebug] reactionTapped=\(reactionID)")
+        print("[CrowdReactionDebug] countUpdated=\(venueEventVibeCounts[venueEventID]?[countKey] ?? 0)")
+#endif
+
+        do {
+            let insert = VenueEventVibeInsert(
+                venue_event_id: venueEventID,
+                user_email: email,
+                vibe_type: storageValue
+            )
+
+            try await supabase
+                .from("venue_event_vibes")
+                .insert(insert)
+                .execute()
+
+            await loadVibes(for: venueEventID)
+        } catch {
+            venueEventVibeCounts[venueEventID] = previousCounts
+            print("ERROR ADDING CROWD REACTION:", error)
         }
     }
 

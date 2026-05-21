@@ -10,6 +10,7 @@ struct CompactNativeAdCard: View {
     let hostTabRaw: String
     let slotIndex: Int
     let layoutWidth: CGFloat
+    let prefersLightChrome: Bool
     var onAdLoaded: (() -> Void)? = nil
     var onAdFailed: ((Error) -> Void)? = nil
 
@@ -18,6 +19,7 @@ struct CompactNativeAdCard: View {
         hostTabRaw: String,
         slotIndex: Int,
         layoutWidth: CGFloat,
+        prefersLightChrome: Bool = false,
         onAdLoaded: (() -> Void)? = nil,
         onAdFailed: ((Error) -> Void)? = nil
     ) {
@@ -25,6 +27,7 @@ struct CompactNativeAdCard: View {
         self.hostTabRaw = hostTabRaw
         self.slotIndex = slotIndex
         self.layoutWidth = layoutWidth
+        self.prefersLightChrome = prefersLightChrome
         self.onAdLoaded = onAdLoaded
         self.onAdFailed = onAdFailed
     }
@@ -41,6 +44,7 @@ struct CompactNativeAdCard: View {
                     adUnitID: AdMobConfiguration.nativeAdUnitID,
                     slotIndex: slotIndex,
                     layoutWidth: layoutWidth,
+                    prefersLightChrome: prefersLightChrome,
                     onAdLoaded: {
                         withAnimation(.easeOut(duration: 0.2)) {
                             adLoaded = true
@@ -63,6 +67,7 @@ struct CompactNativeAdCard: View {
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: adLoaded ? CompactNativeAdHostView.preferredHeight : 0)
+                .background(Color.clear)
                 .opacity(adLoaded ? 1 : 0)
                 .allowsHitTesting(adLoaded)
                 .onAppear {
@@ -96,6 +101,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
     let adUnitID: String
     let slotIndex: Int
     let layoutWidth: CGFloat
+    let prefersLightChrome: Bool
     let onAdLoaded: () -> Void
     let onAdFailed: (Error) -> Void
 
@@ -110,6 +116,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> CompactNativeAdHostView {
         let view = CompactNativeAdHostView(frame: .zero)
+        view.setPrefersLightChrome(prefersLightChrome)
         context.coordinator.attach(hostView: view)
         AdDebugDiagnostics.logViewSnapshot(
             phase: "makeUIView",
@@ -132,6 +139,8 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: CompactNativeAdHostView, context: Context) {
+        uiView.backgroundColor = .clear
+        uiView.setPrefersLightChrome(prefersLightChrome)
         context.coordinator.attach(hostView: uiView)
         AdDebugDiagnostics.logViewSnapshot(
             phase: "updateUIView",
@@ -328,6 +337,7 @@ private final class CompactNativeAdHostView: NativeAdView {
     private let bodyLabel = UILabel()
     private let advertiserLabel = UILabel()
     private let ctaButton = UIButton(type: .system)
+    private var prefersLightChrome = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -339,7 +349,14 @@ private final class CompactNativeAdHostView: NativeAdView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    func setPrefersLightChrome(_ prefersLightChrome: Bool) {
+        self.prefersLightChrome = prefersLightChrome
+        applyChromeColors()
+    }
+
     func populate(with nativeAd: NativeAd) {
+        isHidden = false
+        alpha = 1
         headlineLabel.text = nativeAd.headline
         bodyLabel.text = nativeAd.body
 
@@ -368,6 +385,8 @@ private final class CompactNativeAdHostView: NativeAdView {
 
     func clearNativeAd() {
         self.nativeAd = nil
+        isHidden = true
+        alpha = 0
         headlineLabel.text = nil
         bodyLabel.text = nil
         advertiserLabel.text = nil
@@ -378,6 +397,10 @@ private final class CompactNativeAdHostView: NativeAdView {
     }
 
     private func configureLayout() {
+        isOpaque = false
+        backgroundColor = .clear
+        isHidden = true
+        alpha = 0
         clipsToBounds = false
         layer.cornerRadius = 0
         layer.masksToBounds = false
@@ -443,6 +466,8 @@ private final class CompactNativeAdHostView: NativeAdView {
         ctaButton.translatesAutoresizingMaskIntoConstraints = false
         addSubview(ctaButton)
 
+        applyChromeColors()
+
         let contentGuide = layoutMarginsGuide
         layoutMargins = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
 
@@ -488,5 +513,25 @@ private final class CompactNativeAdHostView: NativeAdView {
 
             heightAnchor.constraint(equalToConstant: Self.preferredHeight)
         ])
+    }
+
+    private func applyChromeColors() {
+        if prefersLightChrome {
+            chromeBackgroundView.effect = nil
+            chromeBackgroundView.contentView.backgroundColor = UIColor.white.withAlphaComponent(0.96)
+            adBadgeLabel.textColor = UIColor.black.withAlphaComponent(0.58)
+            adBadgeLabel.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.06)
+            headlineLabel.textColor = UIColor.black.withAlphaComponent(0.86)
+            bodyLabel.textColor = UIColor.black.withAlphaComponent(0.62)
+            advertiserLabel.textColor = UIColor.black.withAlphaComponent(0.48)
+        } else {
+            chromeBackgroundView.effect = UIBlurEffect(style: .systemUltraThinMaterial)
+            chromeBackgroundView.contentView.backgroundColor = .clear
+            adBadgeLabel.textColor = .tertiaryLabel
+            adBadgeLabel.backgroundColor = UIColor.label.withAlphaComponent(0.04)
+            headlineLabel.textColor = .label
+            bodyLabel.textColor = .secondaryLabel
+            advertiserLabel.textColor = .tertiaryLabel
+        }
     }
 }

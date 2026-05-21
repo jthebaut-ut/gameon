@@ -43,6 +43,8 @@ struct FanGeoSplashView: View {
             print("[FanGeoLoadingDebug] loadingStatus=\(Self.statusMessage)")
             print("[FanGeoLoadingBrandingDebug] premiumSplashLoaded=true")
             print("[FanGeoLoadingBrandingDebug] launchAndSwiftUIMatch=true")
+            print("[LaunchScreenDebug] launchBackgroundApplied=true")
+            print("[LaunchScreenDebug] loadingScreenMatched=true")
             #endif
         }
     }

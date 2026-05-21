@@ -330,6 +330,7 @@ extension MapViewModel {
         ownerVenueState = ""
         ownerVenueZipCode = ""
         ownerVenueCountry = BusinessLocationCountryPolicy.defaultCountryCode
+        ownerVenueSupporterCountry = ""
         ownerVenuePhoneDialISO = BusinessPhoneFields.defaultISO
         ownerVenuePhone = ""
         ownerVenueWebsite = ""

@@ -82,6 +82,11 @@ enum CountryFlagHelper {
     }
 
     private static func regionCode(for teamName: String) -> String? {
+        let uppercasedCode = teamName.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        if aliasesByRegionCode.keys.contains(uppercasedCode) {
+            return uppercasedCode
+        }
+
         let normalized = normalize(teamName)
         guard !normalized.isEmpty else { return nil }
         if let direct = regionCodeByAlias[normalized] {

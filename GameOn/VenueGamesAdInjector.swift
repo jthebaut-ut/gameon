@@ -78,97 +78,65 @@ enum VenueGamesAdInjector {
 }
 
 struct SponsoredVenueCardView: View {
-    private static let reservedHeight: CGFloat = 98
-
     let slotIndex: Int
 
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var nativeAdLoaded = false
-    @State private var nativeAdFailed = false
+    private enum InlineAdLoadState {
+        case loading
+        case loaded
+        case failed
+    }
+
+    @State private var loadState: InlineAdLoadState = .loading
 
     var body: some View {
-        ZStack {
-            fallbackCard
-                .opacity(nativeAdLoaded ? 0 : 1)
-
-            if !nativeAdFailed {
+        Group {
+            switch loadState {
+            case .loading, .loaded:
                 CompactNativeAdCard(
                     placement: "venue.gamesFeed",
                     hostTabRaw: "discover",
                     slotIndex: slotIndex,
                     layoutWidth: 0,
+                    prefersLightChrome: true,
                     onAdLoaded: {
                         withAnimation(.easeOut(duration: 0.2)) {
-                            nativeAdLoaded = true
+                            loadState = .loaded
                         }
+#if DEBUG
+                        print("[VenueInlineAdDebug] adLoaded=true")
+                        print("[VenueInlineAdDebug] bannerDidReceiveAd=true")
+#endif
                     },
-                    onAdFailed: { _ in
+                    onAdFailed: { error in
                         withAnimation(.easeOut(duration: 0.2)) {
-                            nativeAdFailed = true
-                            nativeAdLoaded = false
+                            loadState = .failed
                         }
+#if DEBUG
+                        print("[VenueInlineAdDebug] adFailed error=\(error.localizedDescription)")
+                        print("[VenueInlineAdDebug] bannerDidFail error=\(error.localizedDescription)")
+                        print("[VenueInlineAdDebug] hiddenDueToNoFill=true")
+#endif
                     }
                 )
-                .opacity(nativeAdLoaded ? 1 : 0)
+                .frame(height: loadState == .loaded ? 98 : 0)
+                .opacity(loadState == .loaded ? 1 : 0)
+                .clipped()
+                .allowsHitTesting(loadState == .loaded)
+                .accessibilityElement(children: .contain)
+                .onAppear {
+#if DEBUG
+                    let adUnitID = AdMobConfiguration.nativeAdUnitID
+                    print("[VenueInlineAdDebug] deviceIsPhysical=\(!AdRuntimeDevice.isSimulator)")
+                    print("[VenueInlineAdDebug] adUnitID=\(adUnitID)")
+                    print("[VenueInlineAdDebug] adSize=native width=0 height=98")
+                    print("[VenueInlineAdDebug] adLoadStarted=true")
+                    print("[VenueInlineAdDebug] containerHiddenUntilLoaded=true")
+                    print("[VenueInlineAdDebug] blackPlaceholderPrevented=true")
+#endif
+                }
+            case .failed:
+                EmptyView()
             }
         }
-        .frame(height: Self.reservedHeight)
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .contain)
-    }
-
-    private var fallbackCard: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.12))
-
-                Image(systemName: "ticket.fill")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(FGColor.accentBlue)
-            }
-            .frame(width: 46, height: 46)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Sponsored")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.07))
-                    )
-
-                Text("Game day specials nearby")
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                Text("Explore match-night offers")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding()
-        .frame(height: Self.reservedHeight)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
-
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.05))
-            }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08), lineWidth: 1)
-        )
     }
 }

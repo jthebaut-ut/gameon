@@ -62,6 +62,21 @@ enum AdMobConfiguration {
     }
 }
 
+enum AdRuntimeDevice {
+    static var isSimulator: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
+
+    /// DEBUG builds use Google test ad units, which are safe on physical devices.
+    static var testDeviceConfigured: Bool {
+        AdMobConfiguration.usesTestAds
+    }
+}
+
 /// Backward-compatible name used by older call sites.
 enum AdMobTestConfiguration {
     static var testBannerAdUnitID: String { AdMobConfiguration.testBannerAdUnitID }
@@ -101,6 +116,7 @@ enum GoogleMobileAdsBootstrap {
         guard !didStart else { return }
         didStart = true
         AdMobDiagnostics.logBootstrap()
+        print("[AdDebug] testDeviceConfigured=\(AdRuntimeDevice.testDeviceConfigured)")
         Task {
             _ = await MobileAds.shared.start()
             AdDebugDiagnostics.logSDKStartCompleted()

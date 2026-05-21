@@ -37,6 +37,7 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var fanChatAppLevelLastScheduleRequestedEventIDs: [UUID] = []
     var fanChatAppLevelRealtimeResubscribeTask: Task<Void, Never>?
     var fanChatAppLevelSeenCommentIDs: Set<UUID> = []
+    var crowdReactionVibeRealtimeRefreshTask: Task<Void, Never>?
     var fanChatCommentCountReconcileTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesCommentPrefetchTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] = [:]

@@ -108,6 +108,7 @@ final class MapViewModel: ObservableObject {
     @Published var ownerVenueState: String = ""
     @Published var ownerVenueZipCode: String = ""
     @Published var ownerVenueCountry: String = BusinessLocationCountryPolicy.defaultCountryCode
+    @Published var ownerVenueSupporterCountry: String = ""
     /// ITU dial country (ISO 3166-1 alpha-2) for ``ownerVenuePhone`` national portion; combined with local digits on save.
     @Published var ownerVenuePhoneDialISO: String = BusinessPhoneFields.defaultISO
     @Published var ownerVenuePhone: String = ""

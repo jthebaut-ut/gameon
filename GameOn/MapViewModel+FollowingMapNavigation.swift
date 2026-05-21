@@ -143,7 +143,8 @@ extension MapViewModel {
             adminStatus: bar.adminStatus,
             venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
             businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
-            contactEmailRaw: bar.contactEmailRaw
+            contactEmailRaw: bar.contactEmailRaw,
+            supporterCountry: bar.supporterCountry
         )
     }
 }

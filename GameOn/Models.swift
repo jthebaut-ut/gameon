@@ -73,6 +73,8 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     let businessOwnerEmailRaw: String?
     /// Reserved for a future public `contact_email`-style column; always nil today.
     let contactEmailRaw: String?
+    /// Optional venue-owned tournament supporter setting (e.g. "Mexico", "United States").
+    let supporterCountry: String?
 
     init(
         id: UUID = UUID(),
@@ -102,7 +104,8 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         adminStatus: String? = nil,
         venueOwnerEmailRaw: String? = nil,
         businessOwnerEmailRaw: String? = nil,
-        contactEmailRaw: String? = nil
+        contactEmailRaw: String? = nil,
+        supporterCountry: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -132,6 +135,7 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         self.venueOwnerEmailRaw = venueOwnerEmailRaw
         self.businessOwnerEmailRaw = businessOwnerEmailRaw
         self.contactEmailRaw = contactEmailRaw
+        self.supporterCountry = supporterCountry
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {

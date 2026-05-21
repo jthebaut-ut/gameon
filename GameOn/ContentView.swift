@@ -11,6 +11,9 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
+            Color.white
+                .ignoresSafeArea()
+
             if shouldShowSplash {
                 FanGeoSplashView()
                     .zIndex(1)
