@@ -3248,6 +3248,13 @@ struct DiscoverScreen: View {
                 VStack(alignment: .leading, spacing: 12) {
                     venuePreviewCardStaticHeader(bar: resolved)
 
+                    if let supporter = VenueSupporterCountryMode.display(
+                        for: resolved.supporterCountry,
+                        languageCode: appLanguageRaw
+                    ) {
+                        venueSupporterBanner(supporter)
+                    }
+
                     Rectangle()
                         .fill(FGColor.divider(colorScheme))
                         .frame(height: 1)
@@ -3860,13 +3867,6 @@ struct DiscoverScreen: View {
                 Spacer(minLength: 0)
             }
 
-            if let supporter = VenueSupporterCountryMode.display(
-                for: bar.supporterCountry,
-                languageCode: appLanguageRaw
-            ) {
-                venueSupporterBanner(supporter)
-            }
-
             if let predictionEventID = predictionVisibility.eventID,
                predictionVisibility.shouldRender,
                let teams = predictionVisibility.teams {
@@ -4463,6 +4463,9 @@ struct DiscoverScreen: View {
         .shadow(color: (colors.first ?? FGColor.accentBlue).opacity(colorScheme == .dark ? 0.28 : 0.18), radius: 14, x: 0, y: 8)
         .onAppear {
 #if DEBUG
+            print("[VenueSupporterBannerDebug] venueLevelBanner=true")
+            print("[VenueSupporterBannerDebug] supporterCountry=\(supporter.storedCountry)")
+            print("[VenueSupporterBannerDebug] movedOutsideGameCard=true")
             print("[VenueSupporterDebug] supporterCountry=\(supporter.storedCountry)")
             print("[VenueSupporterDebug] supporterBannerVisible=true")
 #endif

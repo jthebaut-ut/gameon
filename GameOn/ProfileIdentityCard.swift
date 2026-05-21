@@ -110,10 +110,18 @@ struct ProfileIdentityCard: View {
     private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
         UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
     private static let favoriteTeamsCarouselHeight: CGFloat = 178
-    private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 24
+    private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 8
+    private static let profileMajorSectionSpacing: CGFloat = 22
 
     private let profilePokesService = ProfilePokesService()
     private let friendSuggestionsService = FriendSuggestionsService()
+
+    private enum ProfileSectionHierarchy {
+        case hero
+        case primary
+        case secondary
+        case utility
+    }
 
     private enum IdentityField: Hashable {
         case displayName
@@ -280,36 +288,46 @@ struct ProfileIdentityCard: View {
 #endif
                 }
         } else {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Self.profileMajorSectionSpacing) {
                 if viewModel.needsFanHandleSelection && !viewModel.needsBlockingFanIdentitySetup {
                     handlePromptBanner
+                        .padding(.horizontal, 16)
                 }
 
-                heroBlock
+                profileSectionContainer(.hero) {
+                    heroBlock
+                }
 
-                nationalTeamSection
-                    .padding(.horizontal, 16)
+                profileSectionContainer(.primary) {
+                    nationalTeamSection
+                }
 
                 if canShowOwnerPokesHighlights {
-                    pokesHighlightsSection
-                        .padding(.horizontal, 16)
+                    profileSectionContainer(.utility) {
+                        pokesHighlightsSection
+                    }
                 }
 
-                favoriteTeamsSection
-                    .padding(.horizontal, 16)
+                profileSectionContainer(.primary) {
+                    favoriteTeamsSection
+                }
 
                 if canShowSuggestedFans {
-                    suggestedFansSection
-                        .padding(.horizontal, 16)
+                    profileSectionContainer(.secondary) {
+                        suggestedFansSection
+                    }
                 }
 
-                homeCrowdSection
-                    .padding(.horizontal, 16)
+                profileSectionContainer(.secondary) {
+                    homeCrowdSection
+                }
 
-                openToPreviewSection
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
+                profileSectionContainer(.secondary) {
+                    openToPreviewSection
+                }
+                .padding(.bottom, 16)
             }
+            .padding(.top, 14)
             .background(cardShellBackground)
             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
             .overlay(cardBorder)
@@ -319,6 +337,9 @@ struct ProfileIdentityCard: View {
 #if DEBUG
                 print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
                 print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
+                print("[ProfileHierarchyDebug] sectionSpacingApplied=\(Int(Self.profileMajorSectionSpacing))")
+                print("[ProfileHierarchyDebug] cardElevationUpdated=true")
+                print("[ProfileHierarchyDebug] sectionGroupingEnabled=true")
 #endif
                 DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
                 DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
@@ -465,6 +486,175 @@ struct ProfileIdentityCard: View {
                 ),
                 lineWidth: 0.75
             )
+    }
+
+    private func profileSectionContainer<Content: View>(
+        _ hierarchy: ProfileSectionHierarchy,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .padding(profileSectionInnerPadding(for: hierarchy))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(profileSectionBackground(for: hierarchy))
+            .clipShape(RoundedRectangle(cornerRadius: profileSectionCornerRadius(for: hierarchy), style: .continuous))
+            .overlay(profileSectionBorder(for: hierarchy))
+            .shadow(
+                color: profileSectionShadowColor(for: hierarchy),
+                radius: profileSectionShadowRadius(for: hierarchy),
+                x: 0,
+                y: profileSectionShadowYOffset(for: hierarchy)
+            )
+            .padding(.horizontal, 16)
+    }
+
+    private func profileSectionInnerPadding(for hierarchy: ProfileSectionHierarchy) -> EdgeInsets {
+        switch hierarchy {
+        case .hero:
+            EdgeInsets(top: 0, leading: 0, bottom: 16, trailing: 0)
+        case .primary:
+            EdgeInsets(top: 16, leading: 14, bottom: 16, trailing: 14)
+        case .secondary:
+            EdgeInsets(top: 14, leading: 13, bottom: 14, trailing: 13)
+        case .utility:
+            EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0)
+        }
+    }
+
+    private func profileSectionCornerRadius(for hierarchy: ProfileSectionHierarchy) -> CGFloat {
+        switch hierarchy {
+        case .hero:
+            26
+        case .primary:
+            24
+        case .secondary, .utility:
+            22
+        }
+    }
+
+    private func profileSectionBackground(for hierarchy: ProfileSectionHierarchy) -> some View {
+        RoundedRectangle(cornerRadius: profileSectionCornerRadius(for: hierarchy), style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: profileSectionBackgroundColors(for: hierarchy),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+    }
+
+    private func profileSectionBorder(for hierarchy: ProfileSectionHierarchy) -> some View {
+        RoundedRectangle(cornerRadius: profileSectionCornerRadius(for: hierarchy), style: .continuous)
+            .strokeBorder(
+                LinearGradient(
+                    colors: profileSectionBorderColors(for: hierarchy),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: profileSectionBorderWidth(for: hierarchy)
+            )
+    }
+
+    private func profileSectionBackgroundColors(for hierarchy: ProfileSectionHierarchy) -> [Color] {
+        switch hierarchy {
+        case .hero:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.085 : 0.98),
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.075 : 0.070),
+                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.045 : 0.050)
+            ]
+        case .primary:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.075 : 0.96),
+                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.060 : 0.055),
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.050 : 0.045)
+            ]
+        case .secondary:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.050 : 0.88),
+                Color.white.opacity(colorScheme == .dark ? 0.030 : 0.64),
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.030)
+            ]
+        case .utility:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.040 : 0.80),
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.032)
+            ]
+        }
+    }
+
+    private func profileSectionBorderColors(for hierarchy: ProfileSectionHierarchy) -> [Color] {
+        switch hierarchy {
+        case .hero:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.13 : 0.92),
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.18),
+                Color.black.opacity(colorScheme == .dark ? 0.04 : 0.08)
+            ]
+        case .primary:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.10 : 0.86),
+                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.17),
+                Color.black.opacity(colorScheme == .dark ? 0.03 : 0.065)
+            ]
+        case .secondary:
+            return [
+                Color.white.opacity(colorScheme == .dark ? 0.075 : 0.72),
+                Color.black.opacity(colorScheme == .dark ? 0.025 : 0.055)
+            ]
+        case .utility:
+            return [
+                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.10),
+                Color.black.opacity(colorScheme == .dark ? 0.02 : 0.05)
+            ]
+        }
+    }
+
+    private func profileSectionBorderWidth(for hierarchy: ProfileSectionHierarchy) -> CGFloat {
+        switch hierarchy {
+        case .hero, .primary:
+            1
+        case .secondary, .utility:
+            0.85
+        }
+    }
+
+    private func profileSectionShadowColor(for hierarchy: ProfileSectionHierarchy) -> Color {
+        switch hierarchy {
+        case .hero:
+            return Color.black.opacity(colorScheme == .dark ? 0.26 : 0.075)
+        case .primary:
+            return FGColor.accentBlue.opacity(colorScheme == .dark ? 0.13 : 0.075)
+        case .secondary:
+            return Color.black.opacity(colorScheme == .dark ? 0.14 : 0.040)
+        case .utility:
+            return FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.035)
+        }
+    }
+
+    private func profileSectionShadowRadius(for hierarchy: ProfileSectionHierarchy) -> CGFloat {
+        switch hierarchy {
+        case .hero:
+            20
+        case .primary:
+            16
+        case .secondary:
+            10
+        case .utility:
+            8
+        }
+    }
+
+    private func profileSectionShadowYOffset(for hierarchy: ProfileSectionHierarchy) -> CGFloat {
+        switch hierarchy {
+        case .hero:
+            10
+        case .primary:
+            8
+        case .secondary:
+            5
+        case .utility:
+            3
+        }
     }
 
     // MARK: - Pokes highlights
@@ -2330,7 +2520,7 @@ private struct ProfileSuggestedFansSection: View {
 
     private var loadingRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: 14) {
                 ForEach(0..<3, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
@@ -2338,7 +2528,8 @@ private struct ProfileSuggestedFansSection: View {
                         .redacted(reason: .placeholder)
                 }
             }
-            .padding(.vertical, 1)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 3)
         }
         .accessibilityLabel(L10n.t("suggested_fans", languageCode: appLanguageRaw))
     }
@@ -2370,12 +2561,14 @@ private struct ProfileSuggestedFansSection: View {
 
     private var suggestionsRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: 14) {
                 ForEach(suggestions) { suggestion in
                     suggestionCard(suggestion)
                 }
             }
-            .padding(.vertical, 1)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 4)
+            .padding(.trailing, 8)
         }
     }
 
@@ -2416,12 +2609,12 @@ private struct ProfileSuggestedFansSection: View {
             addButton(for: suggestion)
         }
         .padding(12)
-        .frame(width: 154, height: 178, alignment: .top)
+        .frame(width: 158, height: 178, alignment: .top)
         .background(cardBackground)
         .overlay(alignment: .topTrailing) {
             dismissButton(for: suggestion)
         }
-        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08), radius: 12, y: 7)
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.085), radius: 14, y: 8)
         .accessibilityElement(children: .combine)
     }
 

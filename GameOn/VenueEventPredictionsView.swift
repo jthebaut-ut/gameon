@@ -23,33 +23,7 @@ struct VenueEventPredictionModule: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: FGSpacing.md) {
-            HStack(spacing: FGSpacing.sm) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.t("before_the_game", languageCode: appLanguageRaw))
-                        .font(FGTypography.caption.weight(.bold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text(teams.displayMatchup)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(2)
-                    Text(isLocked ? "Predictions closed" : "Make your pre-game picks")
-                        .font(.caption2)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                }
-
-                Spacer(minLength: FGSpacing.sm)
-
-                participantAvatars
-
-                Text(predictionCountText)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme))
-                    .lineLimit(1)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-            }
+            compactPredictionHeader
 
             winnerMatchupSection(
                 title: "Who wins?",
@@ -106,8 +80,46 @@ struct VenueEventPredictionModule: View {
             print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
             print("[PredictionUILayoutDebug] firstScoreRowLayout=true")
             print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
+            print("[PredictionHeaderLayoutDebug] compactHeaderEnabled=true")
+            print("[PredictionHeaderLayoutDebug] inlineMatchupApplied=true")
 #endif
         }
+    }
+
+    private var compactPredictionHeader: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(compactHeaderTitle)
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .allowsTightening(true)
+
+                Spacer(minLength: FGSpacing.xs)
+
+                participantAvatars
+
+                Text(predictionCountText)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+            }
+
+            Text(isLocked ? "Predictions closed" : "Make your pre-game picks")
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.82))
+                .lineLimit(1)
+        }
+    }
+
+    private var compactHeaderTitle: String {
+        "\(L10n.t("before_the_game", languageCode: appLanguageRaw)) • \(teams.displayMatchup)"
     }
 
     private var predictionCountText: String {
