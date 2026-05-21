@@ -21,6 +21,10 @@ struct VenueEventPredictionModule: View {
                     Text("Before the game")
                         .font(FGTypography.caption.weight(.bold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(teams.displayMatchup)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
                     Text(isLocked ? "Predictions closed" : "Make your pre-game picks")
                         .font(.caption2)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
@@ -172,7 +176,7 @@ struct VenueEventPredictionSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: FGSpacing.lg) {
-                Text("\(teams.away) vs \(teams.home)")
+                Text(teams.displayMatchup)
                     .font(FGTypography.body.weight(.semibold))
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
 
@@ -246,8 +250,8 @@ struct VenueEventPredictionSheet: View {
             }
         case .score:
             VStack(spacing: FGSpacing.md) {
-                scoreStepper(team: teams.away, score: $awayScore)
                 scoreStepper(team: teams.home, score: $homeScore)
+                scoreStepper(team: teams.away, score: $awayScore)
             }
         }
     }

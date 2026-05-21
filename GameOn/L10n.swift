@@ -21,17 +21,16 @@ enum L10n {
         AppLanguage(code: "de", nativeName: "Deutsch", englishName: "German", flag: "🇩🇪"),
         AppLanguage(code: "it", nativeName: "Italiano", englishName: "Italian", flag: "🇮🇹"),
         AppLanguage(code: "pl", nativeName: "Polski", englishName: "Polish", flag: "🇵🇱"),
-        AppLanguage(code: "ru", nativeName: "Русский", englishName: "Russian", flag: "🇷🇺")
+        AppLanguage(code: "ru", nativeName: "Русский", englishName: "Russian", flag: "🇷🇺"),
+        AppLanguage(code: "sq", nativeName: "Shqip", englishName: "Albanian", flag: "🇦🇱"),
+        AppLanguage(code: "zh-Hans", nativeName: "中文（简体）", englishName: "Simplified Chinese", flag: "🇨🇳")
     ]
 
     static func normalizedLanguageCode(_ raw: String?) -> String {
         let code = (raw ?? defaultLanguageCode)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-        guard supportedLanguages.contains(where: { $0.code == code }) else {
-            return defaultLanguageCode
-        }
-        return code
+        return supportedLanguages.first { $0.code.caseInsensitiveCompare(code) == .orderedSame }?.code
+            ?? defaultLanguageCode
     }
 
     static func language(for raw: String?) -> AppLanguage {
@@ -61,6 +60,7 @@ enum L10n {
 
 struct FanGeoLanguageSelectionView: View {
     @Binding var selectionRaw: String
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
     private var selectedLanguage: AppLanguage {
@@ -111,10 +111,43 @@ struct FanGeoLanguageSelectionView: View {
         .background(FGColor.screenGradient(colorScheme).ignoresSafeArea())
         .navigationTitle(L10n.t("language", languageCode: selectionRaw))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+#if DEBUG
+                    print("[LocalizationDebug] languageDoneTapped=true")
+#endif
+                    dismiss()
+                } label: {
+                    Text(L10n.t("done", languageCode: selectionRaw))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(FGColor.accentGreen)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(.ultraThinMaterial)
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.78))
+                        }
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.64), lineWidth: 0.75)
+                        }
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 8, y: 3)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.t("done", languageCode: selectionRaw))
+            }
+        }
         .onAppear {
 #if DEBUG
             print("[LocalizationDebug] languageSettingVisible=true")
             print("[LocalizationDebug] selectedLanguage=\(selectedLanguage.code)")
+            print("[LocalizationDebug] addedLanguage=sq")
+            print("[LocalizationDebug] albanianVisible=\(L10n.supportedLanguages.contains { $0.code == "sq" })")
+            print("[LocalizationDebug] addedLanguage=zh-Hans")
+            print("[LocalizationDebug] chineseSimplifiedVisible=\(L10n.supportedLanguages.contains { $0.code == "zh-Hans" })")
 #endif
         }
     }

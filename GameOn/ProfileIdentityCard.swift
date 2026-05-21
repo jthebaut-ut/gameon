@@ -87,8 +87,10 @@ struct ProfileIdentityCard: View {
     @State private var incomingPokes: [ProfilePokeIncomingItem] = []
     @State private var incomingPokeTotalCount = 0
     @State private var isLoadingIncomingPokes = false
+    @State private var isClearingAllPokes = false
     @State private var incomingPokesMessage: String?
     @State private var showPokesHistorySheet = false
+    @State private var showClearAllPokesConfirmation = false
     @State private var suggestedFans: [FriendSuggestionProfile] = []
     @State private var isLoadingSuggestedFans = false
     @State private var suggestedFansMessage: String?
@@ -667,7 +669,7 @@ struct ProfileIdentityCard: View {
                     ContentUnavailableView(
                         "No pokes yet",
                         systemImage: "hand.wave.fill",
-                        description: Text("When fans poke you, they'll show up here.")
+                        description: Text("When fans poke you, they’ll appear here.")
                     )
                 } else {
                     List(incomingPokes) { poke in
@@ -692,14 +694,40 @@ struct ProfileIdentityCard: View {
                     Button("Done") { showPokesHistorySheet = false }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        Task { await forceRefreshIncomingPokes() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
+                    HStack(spacing: 12) {
+                        Button {
+#if DEBUG
+                            print("[FanPokesDebug] clearAllTapped=true")
+#endif
+                            showClearAllPokesConfirmation = true
+                        } label: {
+                            Text("Clear")
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                        }
+                        .disabled(incomingPokes.isEmpty || isLoadingIncomingPokes || isClearingAllPokes)
+                        .foregroundStyle(FGColor.dangerRed)
+                        .accessibilityLabel("Clear all Pokes")
+
+                        Button {
+                            Task { await forceRefreshIncomingPokes() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .disabled(isLoadingIncomingPokes || isClearingAllPokes)
+                        .accessibilityLabel("Refresh Pokes")
                     }
-                    .disabled(isLoadingIncomingPokes)
-                    .accessibilityLabel("Refresh Pokes")
                 }
+            }
+            .alert("Clear all pokes?", isPresented: $showClearAllPokesConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Clear All", role: .destructive) {
+#if DEBUG
+                    print("[FanPokesDebug] clearAllConfirmed=true")
+#endif
+                    Task { await clearAllIncomingPokes() }
+                }
+            } message: {
+                Text("This will remove all pokes from your list. This can’t be undone.")
             }
             .task {
                 await forceRefreshIncomingPokes()
@@ -756,6 +784,39 @@ struct ProfileIdentityCard: View {
         await refreshIncomingPokesLive(reason: "manual")
     }
 
+    private func clearAllIncomingPokes() async {
+        guard !isClearingAllPokes else { return }
+        await MainActor.run {
+            isClearingAllPokes = true
+            incomingPokesMessage = nil
+        }
+
+        do {
+            let clearedCount = try await profilePokesService.clearIncomingPokesHistoryForCurrentUser()
+            await MainActor.run {
+                incomingPokes = []
+                incomingPokeTotalCount = 0
+                incomingPokesMessage = nil
+                isClearingAllPokes = false
+                if let authId = viewModel.currentUserAuthId {
+                    ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId] = Date()
+                }
+                viewModel.clearUnseenPokesBadgeState()
+#if DEBUG
+                print("[FanPokesDebug] clearAllCompleted count=\(clearedCount)")
+#endif
+            }
+        } catch {
+            await MainActor.run {
+                incomingPokesMessage = "Couldn't clear Pokes"
+                isClearingAllPokes = false
+#if DEBUG
+                print("[FanPokesDebug] clearAllFailed error=\(error.localizedDescription)")
+#endif
+            }
+        }
+    }
+
     private func refreshIncomingPokesLive(reason: String) async {
         guard isAccountTabActive else { return }
         await loadIncomingPokes(ignoreCache: true)
@@ -792,21 +853,18 @@ struct ProfileIdentityCard: View {
         }
 
         do {
-            async let itemsTask = profilePokesService.fetchMyIncomingPokes(limit: Self.incomingPokesHighlightsLimit)
-            async let summaryTask = profilePokesService.fetchPokeSummary(targetUserId: authId)
-            let items = try await itemsTask
-            let summary = try await summaryTask
+            let items = try await profilePokesService.fetchMyIncomingPokes(limit: Self.incomingPokesHighlightsLimit)
 
             await MainActor.run {
                 incomingPokes = items
-                incomingPokeTotalCount = summary.totalPokes
+                incomingPokeTotalCount = items.count
                 incomingPokesMessage = nil
                 isLoadingIncomingPokes = false
                 ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId] = Date()
                 viewModel.applyIncomingPokesFetch(items)
                 acknowledgePokesCardAfterSuccessfulLoad()
             }
-            DebugLogGate.debug("[PokesUI] incoming load count=\(items.count) total=\(summary.totalPokes)")
+            DebugLogGate.debug("[PokesUI] incoming load count=\(items.count) total=\(items.count)")
         } catch {
             await MainActor.run {
                 incomingPokes = []

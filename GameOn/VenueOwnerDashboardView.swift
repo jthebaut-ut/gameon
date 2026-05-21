@@ -63,6 +63,10 @@ struct VenueOwnerDashboardView: View {
     @State private var selectedSection: VenueDashboardSection = .overview
 
     @State private var gameTitle = ""
+    @State private var gameTeam1 = ""
+    @State private var gameTeam2 = ""
+    @State private var lastGeneratedGameTitle = ""
+    @State private var titleManuallyEdited = false
     @State private var gameLeague = ""
     @State private var gameSpecial = ""
     @State private var soundOn = true
@@ -156,6 +160,8 @@ struct VenueOwnerDashboardView: View {
         case manual = "Manual Entry"
         case importLive = "Import From Live Games"
     }
+
+    private static let manualPredictionTeamValidationMessage = "Add both teams so fans can make predictions."
 
     @State private var manageGamesListTab: ManageGamesListTab = .scheduled
     @State private var gameCreationMode: BusinessGameCreationMode = .manual
@@ -1998,6 +2004,53 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private var manualGameRequiresStructuredTeams: Bool {
+        gameCreationMode == .manual && Self.predictionSupportedManualGameSport(viewModel.ownerVenuePrimarySport)
+    }
+
+    private var trimmedManualTeam1: String {
+        gameTeam1.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedManualTeam2: String {
+        gameTeam2.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var manualStructuredTeamsAreValid: Bool {
+        !trimmedManualTeam1.isEmpty && !trimmedManualTeam2.isEmpty
+    }
+
+    private var saveGameListingDisabled: Bool {
+        isSavingNewGame || (manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid)
+    }
+
+    private var gameTitleBinding: Binding<String> {
+        Binding(
+            get: { gameTitle },
+            set: { newValue in
+                updateGameTitleFromManualEdit(newValue)
+            }
+        )
+    }
+
+    private static func predictionSupportedManualGameSport(_ sport: String) -> Bool {
+        switch normalizedPredictionManualGameSport(sport) {
+        case "soccer", "baseball", "football", "hockey":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func normalizedPredictionManualGameSport(_ sport: String) -> String {
+        let lowered = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.contains("soccer") { return "soccer" }
+        if lowered.contains("baseball") || lowered == "mlb" { return "baseball" }
+        if lowered.contains("football") || lowered == "nfl" { return "football" }
+        if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
+        return lowered
+    }
+
     private var gameCreationModePicker: some View {
         Picker("Game creation mode", selection: $gameCreationMode) {
             ForEach(BusinessGameCreationMode.allCases, id: \.self) { mode in
@@ -2321,7 +2374,7 @@ struct VenueOwnerDashboardView: View {
 
     private var addGameFormFields: some View {
         Group {
-            field("Game title, example: France vs Brazil", text: $gameTitle)
+            field("Game title, example: France vs Brazil", text: gameTitleBinding)
                 .onAppear {
 #if DEBUG
                     print("[ManageGamesAddPane] title appear")
@@ -2412,6 +2465,23 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
                     print("[ManageGamesAddPane] sport appear")
 #endif
+                    logBusinessManualGameTeamDebug()
+                }
+                .onChange(of: viewModel.ownerVenuePrimarySport) { _, _ in
+                    handleManualGamePredictionSportChanged()
+                }
+
+            if manualGameRequiresStructuredTeams {
+                manualStructuredTeamsFields
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid {
+                Text(Self.manualPredictionTeamValidationMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.dangerRed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
                 }
 
             field("League / competition (optional)", text: $gameLeague)
@@ -2490,8 +2560,84 @@ struct VenueOwnerDashboardView: View {
                         .tint(.primary)
                 }
             }
-            .disabled(isSavingNewGame)
+            .disabled(saveGameListingDisabled)
         }
+    }
+
+    private var manualStructuredTeamsFields: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            field("Team 1", text: Binding(
+                get: { gameTeam1 },
+                set: { updateManualGameTeam1($0) }
+            ))
+            field("Team 2", text: Binding(
+                get: { gameTeam2 },
+                set: { updateManualGameTeam2($0) }
+            ))
+        }
+        .onAppear {
+            synchronizeManualGameTitleWithTeams()
+            logBusinessManualGameTeamDebug()
+        }
+    }
+
+    private func updateGameTitleFromManualEdit(_ newValue: String) {
+        gameTitle = newValue
+        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let generated = lastGeneratedGameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        titleManuallyEdited = generated.isEmpty ? !trimmed.isEmpty : trimmed != generated
+        logBusinessManualGameTeamDebug()
+    }
+
+    private func updateManualGameTeam1(_ newValue: String) {
+        gameTeam1 = newValue
+        synchronizeManualGameTitleWithTeams()
+    }
+
+    private func updateManualGameTeam2(_ newValue: String) {
+        gameTeam2 = newValue
+        synchronizeManualGameTitleWithTeams()
+    }
+
+    private func handleManualGamePredictionSportChanged() {
+        synchronizeManualGameTitleWithTeams()
+        logBusinessManualGameTeamDebug()
+    }
+
+    private func synchronizeManualGameTitleWithTeams() {
+        let team1 = trimmedManualTeam1
+        let team2 = trimmedManualTeam2
+        let previousGenerated = lastGeneratedGameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard manualGameRequiresStructuredTeams, !team1.isEmpty, !team2.isEmpty else {
+            logBusinessManualGameTeamDebug(generatedTitle: previousGenerated)
+            return
+        }
+
+        let generated = "\(team1) vs \(team2)"
+        let currentTitle = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let shouldSyncTitle = currentTitle.isEmpty
+            || !titleManuallyEdited
+            || (!previousGenerated.isEmpty && currentTitle == previousGenerated)
+
+        lastGeneratedGameTitle = generated
+        if shouldSyncTitle {
+            gameTitle = generated
+            titleManuallyEdited = false
+        }
+
+        logBusinessManualGameTeamDebug(generatedTitle: generated)
+    }
+
+    private func logBusinessManualGameTeamDebug(generatedTitle: String? = nil) {
+#if DEBUG
+        let generated = generatedTitle ?? lastGeneratedGameTitle
+        print("[BusinessManualGameDebug] selectedSport=\(viewModel.ownerVenuePrimarySport)")
+        print("[BusinessManualGameDebug] requiresTeams=\(manualGameRequiresStructuredTeams)")
+        print("[BusinessManualGameDebug] team1=\(trimmedManualTeam1)")
+        print("[BusinessManualGameDebug] team2=\(trimmedManualTeam2)")
+        print("[BusinessManualGameDebug] generatedTitle=\(generated)")
+        print("[BusinessManualGameDebug] titleManuallyEdited=\(titleManuallyEdited)")
+#endif
     }
 
     private func clearManageGamesBanners() {
@@ -2528,11 +2674,16 @@ struct VenueOwnerDashboardView: View {
 
     private func applyScheduledGameChoice(_ choice: VenueOwnerScheduledGameChoice) {
         gameTitle = choice.title
+        gameTeam1 = choice.homeTeam
+        gameTeam2 = choice.awayTeam
+        lastGeneratedGameTitle = choice.title
+        titleManuallyEdited = false
         viewModel.ownerVenuePrimarySport = choice.sport
         gameDate = Calendar.current.startOfDay(for: choice.startTime)
         gameStartTime = choice.startTime
         manageGamesError = ""
         showSchedulePicker = false
+        synchronizeManualGameTitleWithTeams()
 #if DEBUG
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
@@ -2540,6 +2691,7 @@ struct VenueOwnerDashboardView: View {
         print("[BusinessAddGameDebug] autopopulatedTitle=\(choice.title)")
         print("[BusinessAddGameDebug] autopopulatedSport=\(choice.sport)")
         print("[BusinessAddGameDebug] autopopulatedStartTime=\(f.string(from: choice.startTime))")
+        logBusinessManualGameTeamDebug(generatedTitle: choice.title)
 #endif
     }
 
@@ -2616,10 +2768,14 @@ struct VenueOwnerDashboardView: View {
 
         await MainActor.run {
             gameTitle = title
+            lastGeneratedGameTitle = title
+            titleManuallyEdited = false
             viewModel.ownerVenuePrimarySport = mappedSport
             gameDate = Calendar.current.startOfDay(for: match.startTime)
             gameStartTime = match.startTime
             gameLeague = match.league
+            gameTeam1 = match.homeTeam
+            gameTeam2 = match.awayTeam
             importedExternalGameID = match.id
             importedExternalSource = externalSource
             importedExternalLeague = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
@@ -2807,7 +2963,10 @@ struct VenueOwnerDashboardView: View {
     private func saveNewVenueGameFromForm() async {
         let trimmedTitle: String
         let scheduleStillPast: Bool
-        (trimmedTitle, scheduleStillPast) = await MainActor.run {
+        let requiresStructuredTeams: Bool
+        let manualTeam1: String
+        let manualTeam2: String
+        (trimmedTitle, scheduleStillPast, requiresStructuredTeams, manualTeam1, manualTeam2) = await MainActor.run {
             let cal = Calendar.current
             let now = Date()
             let clamped = VenueOwnerGameScheduleValidation.clampGameDateAndTimeToMinimumNow(
@@ -2831,7 +2990,17 @@ struct VenueOwnerDashboardView: View {
                 now: now,
                 calendar: cal
             )
-            return (t, past)
+            logBusinessManualGameTeamDebug()
+            return (t, past, manualGameRequiresStructuredTeams, trimmedManualTeam1, trimmedManualTeam2)
+        }
+
+        if requiresStructuredTeams, manualTeam1.isEmpty || manualTeam2.isEmpty {
+            await MainActor.run {
+                manageGamesError = Self.manualPredictionTeamValidationMessage
+                manageGamesFeedback = ""
+                logBusinessManualGameTeamDebug()
+            }
+            return
         }
 
         guard !trimmedTitle.isEmpty else {
@@ -2880,8 +3049,8 @@ struct VenueOwnerDashboardView: View {
                     return importedFromAPI ? importedExternalLeague : nil
                 }(),
                 importedFromAPI: importedFromAPI,
-                homeTeam: importedFromAPI ? importedHomeTeam : nil,
-                awayTeam: importedFromAPI ? importedAwayTeam : nil
+                homeTeam: importedFromAPI ? importedHomeTeam : (manualGameRequiresStructuredTeams ? trimmedManualTeam1 : nil),
+                awayTeam: importedFromAPI ? importedAwayTeam : (manualGameRequiresStructuredTeams ? trimmedManualTeam2 : nil)
             )
         }
 
@@ -2956,6 +3125,10 @@ struct VenueOwnerDashboardView: View {
 
     private func resetAddGameFormAfterSave() {
         gameTitle = ""
+        gameTeam1 = ""
+        gameTeam2 = ""
+        lastGeneratedGameTitle = ""
+        titleManuallyEdited = false
         gameLeague = ""
         gameSpecial = ""
         soundOn = true
@@ -3162,6 +3335,8 @@ private nonisolated struct VenueOwnerScheduledGameChoice: Identifiable, Equatabl
     let title: String
     let sport: String
     let league: String?
+    let homeTeam: String
+    let awayTeam: String
     let startTime: Date
     let status: MatchStatus
     let externalProviderId: String?
@@ -3171,6 +3346,8 @@ private nonisolated struct VenueOwnerScheduledGameChoice: Identifiable, Equatabl
         title = VenueOwnerDashboardView.importedGameTitle(for: match)
         sport = VenueOwnerDashboardView.mappedVenueSport(for: match)
         league = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
+        homeTeam = match.homeTeam
+        awayTeam = match.awayTeam
         startTime = match.startTime
         status = match.matchStatus
         externalProviderId = match.id

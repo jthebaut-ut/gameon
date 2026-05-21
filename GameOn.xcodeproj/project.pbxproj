@@ -121,6 +121,8 @@
 				it,
 				pl,
 				ru,
+				sq,
+				zh-Hans,
 				Base,
 			);
 			mainGroup = F8E47F2F2FA66B2400CAEA00;

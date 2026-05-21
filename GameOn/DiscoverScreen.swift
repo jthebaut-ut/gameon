@@ -376,8 +376,10 @@ struct DiscoverScreen: View {
         let hiddenReason: String?
 
         var shouldRender: Bool {
-            hiddenReason == nil || isLocked
+            hiddenReason == nil
         }
+
+        var predictionVisible: Bool { hiddenReason == nil }
     }
 
     init(
@@ -4031,7 +4033,7 @@ struct DiscoverScreen: View {
             isLocked: isLocked,
             hiddenReason: hiddenReason
         )
-        logVenuePredictionVisibilityIfHidden(visibility)
+        logVenuePredictionVisibility(visibility)
         return visibility
     }
 
@@ -4137,19 +4139,19 @@ struct DiscoverScreen: View {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private func logVenuePredictionVisibilityIfHidden(_ visibility: DiscoverVenuePredictionVisibility) {
+    private func logVenuePredictionVisibility(_ visibility: DiscoverVenuePredictionVisibility) {
 #if DEBUG
-        guard let hiddenReason = visibility.hiddenReason else { return }
         let startsAt = visibility.startsAt.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
         let lockTime = visibility.lockTime.map { ISO8601DateFormatter().string(from: $0) } ?? "nil"
         print("[VenuePredictionVisibilityDebug] eventId=\(visibility.eventID?.uuidString.lowercased() ?? "nil")")
         print("[VenuePredictionVisibilityDebug] sportType=\(visibility.sportType)")
         print("[VenuePredictionVisibilityDebug] hasHomeTeam=\(visibility.hasHomeTeam)")
         print("[VenuePredictionVisibilityDebug] hasAwayTeam=\(visibility.hasAwayTeam)")
+        print("[VenuePredictionVisibilityDebug] predictionVisible=\(visibility.predictionVisible)")
         print("[VenuePredictionVisibilityDebug] startsAt=\(startsAt)")
         print("[VenuePredictionVisibilityDebug] lockTime=\(lockTime)")
         print("[VenuePredictionVisibilityDebug] isLocked=\(visibility.isLocked)")
-        print("[VenuePredictionVisibilityDebug] hiddenReason=\(hiddenReason)")
+        print("[VenuePredictionVisibilityDebug] hiddenReason=\(visibility.hiddenReason ?? "none")")
 #endif
     }
 

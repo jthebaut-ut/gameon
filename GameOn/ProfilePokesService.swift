@@ -117,6 +117,7 @@ final class ProfilePokesService {
     private let client: SupabaseClient
 
     private static let table = "profile_pokes"
+    private static let recipientClearTable = "profile_pokes_recipient_clear"
     private static let pokeSelect = "id,poker_user_id,poked_user_id,created_at,source"
     private static let profileSelect = "id,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
 
@@ -221,12 +222,18 @@ final class ProfilePokesService {
             return []
         }
 
+        let clearedAt = await fetchRecipientClearedAtIfAvailable(for: currentUserID)
+        var pokeQuery = client
+            .from(Self.table)
+            .select(Self.pokeSelect)
+            .eq("poked_user_id", value: currentUserID.uuidString.lowercased())
+        if let clearedAt {
+            pokeQuery = pokeQuery.gt("created_at", value: clearedAt)
+        }
+
         let pokeRows: [ProfilePokeRow]
         do {
-            pokeRows = try await client
-                .from(Self.table)
-                .select(Self.pokeSelect)
-                .eq("poked_user_id", value: currentUserID.uuidString.lowercased())
+            pokeRows = try await pokeQuery
                 .order("created_at", ascending: false)
                 .limit(cappedLimit)
                 .execute()
@@ -245,6 +252,42 @@ final class ProfilePokesService {
 
         DebugLogGate.debug("[PokesDebug] incoming count=\(items.count)")
         return items
+    }
+
+    /// Hides all incoming Pokes at or before now from the signed-in recipient's profile/history only.
+    func clearIncomingPokesHistoryForCurrentUser() async throws -> Int {
+        let currentUserID = try await currentUserId()
+        let visibleCount = (try? await fetchMyIncomingPokes(limit: 100).count) ?? 0
+        let clearedAt = ISO8601DateFormatter().string(from: Date())
+        let row = ProfilePokesRecipientClearUpsert(
+            user_id: currentUserID,
+            cleared_at: clearedAt
+        )
+
+        try await client
+            .from(Self.recipientClearTable)
+            .upsert(row, onConflict: "user_id")
+            .execute()
+
+        DebugLogGate.debug("[PokesDebug] clearIncoming completed count=\(visibleCount)")
+        return visibleCount
+    }
+
+    /// Recipient hide cursor; non-fatal when the clear table is missing or unreadable (pre-migration / RLS).
+    private func fetchRecipientClearedAtIfAvailable(for userID: UUID) async -> String? {
+        do {
+            let rows: [ProfilePokesRecipientClearRow] = try await client
+                .from(Self.recipientClearTable)
+                .select("user_id,cleared_at")
+                .eq("user_id", value: userID.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+            return rows.first?.cleared_at
+        } catch {
+            DebugLogGate.debug("[PokesDebug] incoming recipientClear failed error=\(error.localizedDescription)")
+            return nil
+        }
     }
 
     private func fetchPokerProfilesByID(_ pokerIDs: [UUID]) async -> [UUID: ProfilePokeProfileRow] {
@@ -305,5 +348,15 @@ final class ProfilePokesService {
         let avatar_url: String?
         let avatar_thumbnail_url: String?
         let admin_status: String?
+    }
+
+    private struct ProfilePokesRecipientClearRow: Decodable, Sendable {
+        let user_id: UUID
+        let cleared_at: String?
+    }
+
+    private struct ProfilePokesRecipientClearUpsert: Encodable, Sendable {
+        let user_id: UUID
+        let cleared_at: String
     }
 }

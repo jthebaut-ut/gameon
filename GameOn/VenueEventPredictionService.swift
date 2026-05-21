@@ -13,7 +13,8 @@ struct VenueEventPredictionTeams: Equatable, Sendable {
     let home: String
     let away: String
 
-    var options: [String] { [away, home] }
+    var displayMatchup: String { "\(home) vs \(away)" }
+    var options: [String] { [home, away] }
 }
 
 struct VenuePredictionParticipantAvatar: Identifiable, Equatable, Sendable {
