@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct VenueGameCardInput: Equatable, Hashable {
     let venueEventID: UUID
@@ -33,6 +34,30 @@ struct VenueGameCardGoingSnapshot {
     let reconcileStatus: VenueGameCardReconcileStatus
     let lastGoingUpdatedAt: Date?
     let lastAvatarUpdatedAt: Date?
+}
+
+@MainActor
+final class VenueGameCardSnapshotStore: ObservableObject {
+    @Published private(set) var goingSnapshots: [UUID: VenueGameCardGoingSnapshot] = [:]
+
+    func snapshot(for eventID: UUID) -> VenueGameCardGoingSnapshot? {
+#if DEBUG
+        print("[VenueGameCardStoreDebug] snapshotStoreUsed eventId=\(eventID.uuidString.lowercased())")
+#endif
+        return goingSnapshots[eventID]
+    }
+
+    func setSnapshot(_ snapshot: VenueGameCardGoingSnapshot, for eventID: UUID) {
+        goingSnapshots[eventID] = snapshot
+#if DEBUG
+        print("[VenueGameCardStoreDebug] snapshotStoreUpdated eventId=\(eventID.uuidString.lowercased())")
+        print("[VenueGameCardStoreDebug] mapViewModelSnapshotPublishRemoved=true")
+#endif
+    }
+
+    func reset() {
+        goingSnapshots = [:]
+    }
 }
 
 struct VenueGameCardState {

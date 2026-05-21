@@ -41,7 +41,7 @@ extension MapViewModel {
             .count
         let cachedGoing = venueEventInterestWriteInFlightIDs.contains(input.venueEventID)
             ? nil
-            : venueGameCardGoingSnapshots[input.venueEventID]
+            : venueGameCardSnapshotStore.snapshot(for: input.venueEventID)
         let fanChatCount = fanUpdatesDisplayCommentCount(for: input.venueEventID)
         let vibeCounts = venueEventVibeCounts[input.venueEventID] ?? [:]
         let selectedVibes = myVenueEventVibes[input.venueEventID] ?? []
@@ -155,7 +155,7 @@ extension MapViewModel {
         var refreshIDs = ids.filter {
             venueGameCardGoingSnapshotNeedsInitialRefresh(
                 eventID: $0,
-                snapshot: venueGameCardGoingSnapshots[$0],
+                snapshot: venueGameCardSnapshotStore.snapshot(for: $0),
                 now: now
             )
         }
@@ -190,7 +190,7 @@ extension MapViewModel {
 #endif
             await refreshVenueGameCardGoingState(venueEventID: eventID)
 #if DEBUG
-            if let snapshot = venueGameCardGoingSnapshots[eventID] {
+            if let snapshot = venueGameCardSnapshotStore.snapshot(for: eventID) {
                 let avatarCount = snapshot.goingAvatarProfiles
                     .filter { $0.isFanVisibleForLivePresence(to: currentUserAuthId) }
                     .count
@@ -210,19 +210,22 @@ extension MapViewModel {
         )
 #endif
         await MainActor.run {
-            let existing = venueGameCardGoingSnapshots[venueEventID]
-            venueGameCardGoingSnapshots[venueEventID] = VenueGameCardGoingSnapshot(
-                isCurrentUserGoing: existing?.isCurrentUserGoing ?? isInterestedInVenueEvent(venueEventID),
-                goingCount: existing?.goingCount
-                    ?? venueEventInterestCounts[venueEventID]
-                    ?? followingTabGoingInterestCounts[venueEventID]
-                    ?? 0,
-                goingAvatarProfiles: existing?.goingAvatarProfiles
-                    ?? goingProfilesByVenueEventID[venueEventID]
-                    ?? [],
-                reconcileStatus: .reconciling,
-                lastGoingUpdatedAt: existing?.lastGoingUpdatedAt,
-                lastAvatarUpdatedAt: existing?.lastAvatarUpdatedAt
+            let existing = venueGameCardSnapshotStore.snapshot(for: venueEventID)
+            venueGameCardSnapshotStore.setSnapshot(
+                VenueGameCardGoingSnapshot(
+                    isCurrentUserGoing: existing?.isCurrentUserGoing ?? isInterestedInVenueEvent(venueEventID),
+                    goingCount: existing?.goingCount
+                        ?? venueEventInterestCounts[venueEventID]
+                        ?? followingTabGoingInterestCounts[venueEventID]
+                        ?? 0,
+                    goingAvatarProfiles: existing?.goingAvatarProfiles
+                        ?? goingProfilesByVenueEventID[venueEventID]
+                        ?? [],
+                    reconcileStatus: .reconciling,
+                    lastGoingUpdatedAt: existing?.lastGoingUpdatedAt,
+                    lastAvatarUpdatedAt: existing?.lastAvatarUpdatedAt
+                ),
+                for: venueEventID
             )
         }
 
@@ -266,13 +269,16 @@ extension MapViewModel {
 
             await MainActor.run {
                 let now = Date()
-                venueGameCardGoingSnapshots[venueEventID] = VenueGameCardGoingSnapshot(
-                    isCurrentUserGoing: currentUserIsGoing,
-                    goingCount: count,
-                    goingAvatarProfiles: eventProfiles,
-                    reconcileStatus: .idle,
-                    lastGoingUpdatedAt: now,
-                    lastAvatarUpdatedAt: now
+                venueGameCardSnapshotStore.setSnapshot(
+                    VenueGameCardGoingSnapshot(
+                        isCurrentUserGoing: currentUserIsGoing,
+                        goingCount: count,
+                        goingAvatarProfiles: eventProfiles,
+                        reconcileStatus: .idle,
+                        lastGoingUpdatedAt: now,
+                        lastAvatarUpdatedAt: now
+                    ),
+                    for: venueEventID
                 )
 #if DEBUG
                 let avatarCount = eventProfiles
@@ -288,20 +294,23 @@ extension MapViewModel {
             }
         } catch {
             await MainActor.run {
-                let existing = venueGameCardGoingSnapshots[venueEventID]
-                venueGameCardGoingSnapshots[venueEventID] = VenueGameCardGoingSnapshot(
-                    isCurrentUserGoing: existing?.isCurrentUserGoing
-                        ?? isInterestedInVenueEvent(venueEventID),
-                    goingCount: existing?.goingCount
-                        ?? venueEventInterestCounts[venueEventID]
-                        ?? followingTabGoingInterestCounts[venueEventID]
-                        ?? 0,
-                    goingAvatarProfiles: existing?.goingAvatarProfiles
-                        ?? goingProfilesByVenueEventID[venueEventID]
-                        ?? [],
-                    reconcileStatus: .failed(error.localizedDescription),
-                    lastGoingUpdatedAt: existing?.lastGoingUpdatedAt,
-                    lastAvatarUpdatedAt: existing?.lastAvatarUpdatedAt
+                let existing = venueGameCardSnapshotStore.snapshot(for: venueEventID)
+                venueGameCardSnapshotStore.setSnapshot(
+                    VenueGameCardGoingSnapshot(
+                        isCurrentUserGoing: existing?.isCurrentUserGoing
+                            ?? isInterestedInVenueEvent(venueEventID),
+                        goingCount: existing?.goingCount
+                            ?? venueEventInterestCounts[venueEventID]
+                            ?? followingTabGoingInterestCounts[venueEventID]
+                            ?? 0,
+                        goingAvatarProfiles: existing?.goingAvatarProfiles
+                            ?? goingProfilesByVenueEventID[venueEventID]
+                            ?? [],
+                        reconcileStatus: .failed(error.localizedDescription),
+                        lastGoingUpdatedAt: existing?.lastGoingUpdatedAt,
+                        lastAvatarUpdatedAt: existing?.lastAvatarUpdatedAt
+                    ),
+                    for: venueEventID
                 )
             }
         }

@@ -772,7 +772,10 @@ extension MapViewModel {
         recomputeCalendarDotDates()
         refreshPickupJoinCachesAfterMutation()
         await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
-        await loadMyPickupGameJoinRequestsForFollowing()
+        await loadMyPickupGameJoinRequestsForFollowing(
+            forceRefresh: true,
+            reason: "pickupGameDeleted"
+        )
         pickupOrganizerRequestsSyncGeneration &+= 1
         pickupJoinRequestUiRevision &+= 1
         await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)

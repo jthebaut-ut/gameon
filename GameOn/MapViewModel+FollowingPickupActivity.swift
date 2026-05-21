@@ -9,6 +9,8 @@ extension MapViewModel {
         hasUnreadPickupActivity = false
         pickupActivityCount = 0
         lastJoinStatusRefreshAt = nil
+        lastSuccessfulFollowingJoinRequestsRefreshAt = nil
+        lastSuccessfulFollowingJoinRequestsRefreshUserId = nil
         lastKnownJoinStatus = [:]
         pickupFollowingUnreadActivityGameIds = []
         pickupFollowingCardRefreshSpinGameId = nil
@@ -135,7 +137,10 @@ extension MapViewModel {
 #if DEBUG
         print("[PickupJoinRefresh] trigger=\(isUserPull ? "pull" : "auto_or_foreground")")
 #endif
-        await loadMyPickupGameJoinRequestsForFollowing()
+        await loadMyPickupGameJoinRequestsForFollowing(
+            forceRefresh: isUserPull,
+            reason: isUserPull ? "pullToRefresh" : "autoOrForeground"
+        )
     }
 
     /// Per-card refresh (Games to Play row).
@@ -154,7 +159,10 @@ extension MapViewModel {
             )
         }
         pickupFollowingCardRefreshSpinGameId = pickupGameId
-        await loadMyPickupGameJoinRequestsForFollowing()
+        await loadMyPickupGameJoinRequestsForFollowing(
+            forceRefresh: true,
+            reason: "manualCardRefresh"
+        )
         pickupFollowingCardRefreshSpinGameId = nil
         pickupActivityCount = pickupFollowingUnreadActivityGameIds.count
         hasUnreadPickupActivity = pickupActivityCount > 0
@@ -183,7 +191,10 @@ extension MapViewModel {
 #if DEBUG
             print("[PickupRealtimeUpdate] debounced_reload")
 #endif
-            await self.loadMyPickupGameJoinRequestsForFollowing()
+            await self.loadMyPickupGameJoinRequestsForFollowing(
+                forceRefresh: true,
+                reason: "pickupRealtimeUpdate"
+            )
         }
     }
 

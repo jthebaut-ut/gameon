@@ -546,6 +546,7 @@ struct MapVenuePreviewCard: View {
 
     private func logVenueMiniStatsDebug(eventId: UUID, counts: [String: Int]) {
 #if DEBUG
+        guard VenueGameCardDiagnostics.enabled else { return }
         print("[VenueMiniStatsDebug] eventId=\(eventId.uuidString)")
         print("[VenueMiniStatsDebug] counts=packed:\(counts["packed"] ?? 0),seats:\(counts["seats_open"] ?? 0),tv:\(counts["tv_visible"] ?? 0),sound:\(counts["audio_on"] ?? 0),crowd:\(counts["crowd"] ?? 0)")
         print("[VenueMiniStatsDebug] packed=\(counts["packed"] ?? 0)")

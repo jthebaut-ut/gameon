@@ -3,6 +3,10 @@ import SwiftUI
 import MapKit
 import UIKit
 
+enum VenueGameCardDiagnostics {
+    static let enabled = false
+}
+
 private enum GuestDiscoverLockedCopy {
     static let body =
         "Log in or create a FanGeo account to view details, join pickup games, save venues, and unlock the full FanGeo experience."
@@ -343,6 +347,7 @@ struct DiscoverScreen: View {
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     @ObservedObject var chatViewModel: ChatViewModel
     @Binding var isCalendarOverlayPresented: Bool
+    let isDiscoverTabSelected: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -404,6 +409,15 @@ struct DiscoverScreen: View {
         let event: SportsEvent
     }
 
+    private struct VenueGameCardSnapshotObservedContent<Content: View>: View {
+        @ObservedObject var store: VenueGameCardSnapshotStore
+        let content: () -> Content
+
+        var body: some View {
+            content()
+        }
+    }
+
     private struct DiscoverVenuePredictionVisibility {
         let eventID: UUID?
         let sportType: String
@@ -425,12 +439,14 @@ struct DiscoverScreen: View {
     init(
         viewModel: MapViewModel,
         chatViewModel: ChatViewModel,
-        isCalendarOverlayPresented: Binding<Bool>
+        isCalendarOverlayPresented: Binding<Bool>,
+        isDiscoverTabSelected: Bool = true
     ) {
         _viewModel = ObservedObject(wrappedValue: viewModel)
         _fanUpdatesStore = ObservedObject(wrappedValue: viewModel.fanUpdatesStore)
         _chatViewModel = ObservedObject(wrappedValue: chatViewModel)
         _isCalendarOverlayPresented = isCalendarOverlayPresented
+        self.isDiscoverTabSelected = isDiscoverTabSelected
     }
 
     var body: some View {
@@ -2821,7 +2837,11 @@ struct DiscoverScreen: View {
         )
 
         return Group {
-            if discoverTopAdLoadFailed {
+            if !isDiscoverTabSelected {
+                Color.clear
+                    .frame(width: bannerSize.width, height: bannerSize.height)
+                    .allowsHitTesting(false)
+            } else if discoverTopAdLoadFailed {
                 Color.clear
                     .frame(width: bannerSize.width, height: bannerSize.height)
                     .allowsHitTesting(false)
@@ -3428,22 +3448,14 @@ struct DiscoverScreen: View {
             FGStatusPill(title: "Showing selected game", kind: .custom(tint: FGColor.accentBlue))
             if viewModel.isGuestDiscoverMode {
 #if DEBUG
-                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
-                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
-                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=false")
-                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=true")
-                let _ = print("[VenuePreviewModeDebug] eventTitle=\(selectedEvent.title)")
+                let _ = logVenuePreviewModeDebug(renderingFullGameCard: false, eventTitle: selectedEvent.title)
 #endif
                 guestVenueGamePreviewRow(bar: bar, event: selectedEvent) {
                     showVenueDetails = true
                 }
             } else {
 #if DEBUG
-                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
-                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
-                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=true")
-                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=false")
-                let _ = print("[VenuePreviewModeDebug] eventTitle=\(selectedEvent.title)")
+                let _ = logVenuePreviewModeDebug(renderingFullGameCard: true, eventTitle: selectedEvent.title)
 #endif
                 gameInterestRow(bar: bar, event: selectedEvent)
             }
@@ -3465,22 +3477,14 @@ struct DiscoverScreen: View {
                         ForEach(stableItems) { item in
                             if viewModel.isGuestDiscoverMode {
 #if DEBUG
-                                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
-                                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
-                                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=false")
-                                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=true")
-                                let _ = print("[VenuePreviewModeDebug] eventTitle=\(item.event.title)")
+                                let _ = logVenuePreviewModeDebug(renderingFullGameCard: false, eventTitle: item.event.title)
 #endif
                                 guestVenueGamePreviewRow(bar: bar, event: item.event) {
                                     showVenueDetails = true
                                 }
                             } else {
 #if DEBUG
-                                let _ = print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
-                                let _ = print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
-                                let _ = print("[VenuePreviewModeDebug] renderingFullGameCard=true")
-                                let _ = print("[VenuePreviewModeDebug] renderingGuestPreviewRow=false")
-                                let _ = print("[VenuePreviewModeDebug] eventTitle=\(item.event.title)")
+                                let _ = logVenuePreviewModeDebug(renderingFullGameCard: true, eventTitle: item.event.title)
 #endif
                                 gameInterestRow(bar: bar, event: item.event)
                             }
@@ -3702,12 +3706,24 @@ struct DiscoverScreen: View {
         return String(format: L10n.t("going_count_format", languageCode: appLanguageRaw), "\(count)")
     }
 
+    private func logVenuePreviewModeDebug(renderingFullGameCard: Bool, eventTitle: String) {
+#if DEBUG
+        guard VenueGameCardDiagnostics.enabled else { return }
+        print("[VenuePreviewModeDebug] isGuestDiscoverMode=\(viewModel.isGuestDiscoverMode)")
+        print("[VenuePreviewModeDebug] isLoggedIn=\(viewModel.isAuthenticatedForSocialFeatures)")
+        print("[VenuePreviewModeDebug] renderingFullGameCard=\(renderingFullGameCard)")
+        print("[VenuePreviewModeDebug] renderingGuestPreviewRow=\(!renderingFullGameCard)")
+        print("[VenuePreviewModeDebug] eventTitle=\(eventTitle)")
+#endif
+    }
+
     private func logGoingAvatarDebug(
         currentUserGoing: Bool,
         avatarStackCount: Int,
         emptyGoingPromptVisible: Bool
     ) {
 #if DEBUG
+        guard VenueGameCardDiagnostics.enabled else { return }
         print("[GoingAvatarDebug] currentUserGoing=\(currentUserGoing)")
         print("[GoingAvatarDebug] avatarStackCount=\(avatarStackCount)")
         print("[GoingAvatarDebug] emptyGoingPromptVisible=\(emptyGoingPromptVisible)")
@@ -3716,6 +3732,7 @@ struct DiscoverScreen: View {
 
     private func logVenueGameCardStoreRender(state: VenueGameCardState?) {
 #if DEBUG
+        guard VenueGameCardDiagnostics.enabled else { return }
         guard let state else { return }
         print("[VenueGameCardStoreDebug] phase=renderFromMirror")
         print("[VenueGameCardStoreDebug] render eventId=\(state.input.venueEventID.uuidString.lowercased())")
@@ -3862,6 +3879,12 @@ struct DiscoverScreen: View {
     }
 
     private func gameInterestRow(bar: BarVenue, event: SportsEvent) -> some View {
+        VenueGameCardSnapshotObservedContent(store: viewModel.venueGameCardSnapshotStore) {
+            gameInterestRowContent(bar: bar, event: event)
+        }
+    }
+
+    private func gameInterestRowContent(bar: BarVenue, event: SportsEvent) -> some View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
 
@@ -4821,6 +4844,7 @@ struct DiscoverScreen: View {
 
     private func logVenueMiniStatsDebug(eventId: UUID, counts: [String: Int]) {
 #if DEBUG
+        guard VenueGameCardDiagnostics.enabled else { return }
         print("[VenueMiniStatsDebug] eventId=\(eventId.uuidString)")
         print("[VenueMiniStatsDebug] counts=packed:\(counts["packed"] ?? 0),seats:\(counts["seats_open"] ?? 0),tv:\(counts["tv_visible"] ?? 0),sound:\(counts["audio_on"] ?? 0),crowd:\(counts["crowd"] ?? 0)")
         print("[VenueMiniStatsDebug] packed=\(counts["packed"] ?? 0)")

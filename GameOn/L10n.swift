@@ -45,7 +45,9 @@ enum L10n {
         let resolved = localized == key ? localizedString(key, languageCode: defaultLanguageCode) : localized
         let value = resolved == key ? key : resolved
 #if DEBUG
-        print("[LocalizationDebug] localizedKeyUsed=\(key)")
+        if VenueGameCardDiagnostics.enabled {
+            print("[LocalizationDebug] localizedKeyUsed=\(key)")
+        }
         if localized == key {
             print("[LocalizationDebug] missingKey=\(key)")
         }

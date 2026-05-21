@@ -12,6 +12,8 @@ private struct PickupGameRequestStatusOnly: Decodable {
 }
 
 extension MapViewModel {
+    private static let followingJoinRequestsFreshnessInterval: TimeInterval = 60
+
 
     func resolvedPickupGameRow(for id: UUID) -> PickupGameRow? {
         if let s = selectedPickupGameForMap, s.id == id { return s }
@@ -489,7 +491,10 @@ extension MapViewModel {
             await refreshPickupGamesForDiscoverMap(force: true)
             recomputeCalendarDotDates()
             await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
-            await loadMyPickupGameJoinRequestsForFollowing()
+            await loadMyPickupGameJoinRequestsForFollowing(
+                forceRefresh: true,
+                reason: "pickupJoinRequestCreated"
+            )
         } catch {
 #if DEBUG
             print("[PickupRequest] request failed game=\(pickupGameId.uuidString.lowercased()) error=\(error)")
@@ -596,7 +601,10 @@ extension MapViewModel {
                 mergePickupInsertedLocally(orig)
                 pickupGamesFollowingTabCache[pickupGameId] = orig
             }
-            await loadMyPickupGameJoinRequestsForFollowing()
+            await loadMyPickupGameJoinRequestsForFollowing(
+                forceRefresh: true,
+                reason: "pickupWithdrawRollback"
+            )
 #if DEBUG
             print("[PickupJoinWithdraw] gameId=\(pickupGameId.uuidString.lowercased())")
             print("[PickupJoinWithdraw] requestId=\(effectiveRequestId.uuidString.lowercased())")
@@ -612,7 +620,10 @@ extension MapViewModel {
         await loadMyLatestJoinRequestForPickupGame(pickupGameId: pickupGameId)
         await loadOrganizerPickupRequestSummaries(gameIds: [pickupGameId])
         await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
-        await loadMyPickupGameJoinRequestsForFollowing()
+        await loadMyPickupGameJoinRequestsForFollowing(
+            forceRefresh: true,
+            reason: "pickupWithdrawSucceeded"
+        )
         refreshPickupJoinCachesAfterMutation()
         invalidateCalendarTabEventsListCache()
         await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
@@ -909,7 +920,40 @@ extension MapViewModel {
         return true
     }
 
-    func loadMyPickupGameJoinRequestsForFollowing() async {
+    func loadMyPickupGameJoinRequestsForFollowing(
+        forceRefresh: Bool = false,
+        reason: String = "ordinary"
+    ) async {
+        guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
+            myPickupGameJoinRequestCards = []
+            pickupGamesFollowingTabCache.removeAll()
+            pickupJoinRequestLatestByPickupGameIdForFan = [:]
+            lastSuccessfulFollowingJoinRequestsRefreshAt = nil
+            lastSuccessfulFollowingJoinRequestsRefreshUserId = nil
+            resetPickupFollowingActivityStateForCacheClear()
+#if DEBUG
+            print("[GamesToPlayDebug] approvedRequestsCount=0 activeApprovedGamesCount=0 filteredExpiredGamesCount=0 finalGamesToPlayCount=0 reason=no_uid_or_pickup_gate")
+#endif
+            invalidateCalendarTabEventsListCache()
+            logPickupActivityBadgeDebug()
+            return
+        }
+
+        if !forceRefresh,
+           let refreshedAt = freshFollowingJoinRequestsRefreshDate(for: uid) {
+            let age = Date().timeIntervalSince(refreshedAt)
+            if age < Self.followingJoinRequestsFreshnessInterval {
+#if DEBUG
+                print("[TabPerfDebug] followingJoinRequestsRefreshSkipped reason=fresh age=\(String(format: "%.1f", age))")
+#endif
+                return
+            }
+        }
+
+#if DEBUG
+        print("[TabPerfDebug] followingJoinRequestsRefreshStarted reason=\(reason)")
+#endif
+
         let baseline = pickupFollowingCaptureActivityBaseline()
         let wasPrimed = pickupFollowingActivityPrimed
 
@@ -919,19 +963,6 @@ extension MapViewModel {
         }
         defer {
             isPickupFollowingJoinListRefreshing = false
-        }
-
-        guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
-            myPickupGameJoinRequestCards = []
-            pickupGamesFollowingTabCache.removeAll()
-            pickupJoinRequestLatestByPickupGameIdForFan = [:]
-            resetPickupFollowingActivityStateForCacheClear()
-#if DEBUG
-            print("[GamesToPlayDebug] approvedRequestsCount=0 activeApprovedGamesCount=0 filteredExpiredGamesCount=0 finalGamesToPlayCount=0 reason=no_uid_or_pickup_gate")
-#endif
-            invalidateCalendarTabEventsListCache()
-            logPickupActivityBadgeDebug()
-            return
         }
 
         let priorJoinCardsSnapshot = myPickupGameJoinRequestCards
@@ -963,6 +994,11 @@ extension MapViewModel {
 #endif
                 invalidateCalendarTabEventsListCache()
                 logPickupActivityBadgeDebug()
+                lastSuccessfulFollowingJoinRequestsRefreshAt = Date()
+                lastSuccessfulFollowingJoinRequestsRefreshUserId = uid
+#if DEBUG
+                print("[TabPerfDebug] followingJoinRequestsRefreshSucceeded count=0")
+#endif
                 return
             }
 
@@ -1162,11 +1198,26 @@ extension MapViewModel {
 
             invalidateCalendarTabEventsListCache()
             logPickupActivityBadgeDebug()
+            lastSuccessfulFollowingJoinRequestsRefreshAt = Date()
+            lastSuccessfulFollowingJoinRequestsRefreshUserId = uid
+#if DEBUG
+            print("[TabPerfDebug] followingJoinRequestsRefreshSucceeded count=\(cards.count)")
+#endif
         } catch {
 #if DEBUG
             print("[FollowingPickup] load join cards failed:", error)
 #endif
         }
+    }
+
+    private func freshFollowingJoinRequestsRefreshDate(for uid: UUID) -> Date? {
+        if lastSuccessfulFollowingJoinRequestsRefreshUserId == uid,
+           let refreshedAt = lastSuccessfulFollowingJoinRequestsRefreshAt {
+            return refreshedAt
+        }
+
+        guard pickupFollowingActivityPrimed else { return nil }
+        return lastJoinStatusRefreshAt
     }
 
     private func pillKindForFollowingPickupRequest(status: String) -> PickupFollowingJoinRequestPillKind {

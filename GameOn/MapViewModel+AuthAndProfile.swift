@@ -251,7 +251,7 @@ extension MapViewModel {
         venueGameCardInitialGoingRefreshTask?.cancel()
         venueGameCardInitialGoingRefreshTask = nil
         venueGameCardInitialGoingRefreshLastIDs = []
-        venueGameCardGoingSnapshots = [:]
+        venueGameCardSnapshotStore.reset()
         socialActionToastDismissTask?.cancel()
         socialActionToastDismissTask = nil
         socialActionToastText = nil

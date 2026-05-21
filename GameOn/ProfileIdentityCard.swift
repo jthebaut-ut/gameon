@@ -106,6 +106,7 @@ struct ProfileIdentityCard: View {
     private static let incomingPokesHighlightsLimit = 50
     private static let suggestedFansDisplayLimit = 10
     private static let suggestedFansFetchLimit = 30
+    private static let incomingPokesFreshnessIntervalSeconds: TimeInterval = 60
     private static let incomingPokesLiveRefreshIntervalSeconds = 20
     private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
         UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
@@ -980,7 +981,7 @@ struct ProfileIdentityCard: View {
     }
 
     private func forceRefreshIncomingPokes() async {
-        await refreshIncomingPokesLive(reason: "manual")
+        await refreshIncomingPokesLive(reason: "manual", forceRefresh: true)
     }
 
     private func clearAllIncomingPokes() async {
@@ -1016,9 +1017,9 @@ struct ProfileIdentityCard: View {
         }
     }
 
-    private func refreshIncomingPokesLive(reason: String) async {
+    private func refreshIncomingPokesLive(reason: String, forceRefresh: Bool = false) async {
         guard isAccountTabActive else { return }
-        await loadIncomingPokes(ignoreCache: true)
+        await loadIncomingPokes(ignoreCache: forceRefresh, reason: reason)
     }
 
     /// Clears tab/avatar/card unseen state after the Pokes card has loaded on Account (not on tab select alone).
@@ -1027,7 +1028,7 @@ struct ProfileIdentityCard: View {
         viewModel.acknowledgeIncomingPokes(reason: "pokesCardLoaded")
     }
 
-    private func loadIncomingPokes(ignoreCache: Bool = false) async {
+    private func loadIncomingPokes(ignoreCache: Bool = false, reason: String = "ordinary") async {
         guard canShowOwnerPokesHighlights, let authId = viewModel.currentUserAuthId else {
             await MainActor.run {
                 incomingPokes = []
@@ -1039,12 +1040,19 @@ struct ProfileIdentityCard: View {
         }
 
         if !ignoreCache,
-           !incomingPokes.isEmpty,
            let loadedAt = ProfilePhase1PersonalizationCache.incomingPokesLoadedAtByAuthId[authId],
-           Date().timeIntervalSince(loadedAt) < ProfilePhase1PersonalizationCache.ttlSeconds {
+           Date().timeIntervalSince(loadedAt) < Self.incomingPokesFreshnessIntervalSeconds {
+            let age = Date().timeIntervalSince(loadedAt)
+#if DEBUG
+            print("[TabPerfDebug] accountPokesRefreshSkipped reason=fresh age=\(String(format: "%.1f", age))")
+#endif
             acknowledgePokesCardAfterSuccessfulLoad()
             return
         }
+
+#if DEBUG
+        print("[TabPerfDebug] accountPokesRefreshStarted reason=\(reason)")
+#endif
 
         await MainActor.run {
             isLoadingIncomingPokes = true
@@ -1064,6 +1072,9 @@ struct ProfileIdentityCard: View {
                 acknowledgePokesCardAfterSuccessfulLoad()
             }
             DebugLogGate.debug("[PokesUI] incoming load count=\(items.count) total=\(items.count)")
+#if DEBUG
+            print("[TabPerfDebug] accountPokesRefreshSucceeded count=\(items.count)")
+#endif
         } catch {
             await MainActor.run {
                 incomingPokes = []
@@ -2492,6 +2503,17 @@ private struct ProfileSuggestedFansSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
+    private enum CardMetrics {
+        static let width: CGFloat = 168
+        static let height: CGFloat = 220
+        static let avatarSize: CGFloat = 74
+        static let mutualAvatarSize: CGFloat = 18
+        static let buttonHeight: CGFloat = 34
+        static let verticalSpacing: CGFloat = 9
+        static let infoHeight: CGFloat = 48
+        static let reasonRowHeight: CGFloat = 24
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
@@ -2527,7 +2549,7 @@ private struct ProfileSuggestedFansSection: View {
                 ForEach(0..<3, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.72))
-                        .frame(width: 148, height: 172)
+                        .frame(width: CardMetrics.width, height: CardMetrics.height)
                         .redacted(reason: .placeholder)
                 }
             }
@@ -2576,27 +2598,21 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private func suggestionCard(_ suggestion: FriendSuggestionProfile) -> some View {
-        VStack(spacing: 11) {
+        VStack(spacing: CardMetrics.verticalSpacing) {
             PublicProfileAvatarTap(userId: suggestion.userID, context: "profile_suggested_fans") {
-                VStack(spacing: 8) {
+                VStack(spacing: CardMetrics.verticalSpacing) {
                     avatar(for: suggestion)
 
-                    VStack(spacing: 3) {
+                    VStack(spacing: 4) {
                         Text(displayName(for: suggestion))
-                            .font(.system(size: 13.5, weight: .bold, design: .rounded))
+                            .font(.system(size: 14.5, weight: .bold, design: .rounded))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .truncationMode(.tail)
 
-                        if let handle = handleText(for: suggestion) {
-                            Text(handle)
-                                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                                .lineLimit(1)
-                        }
-
-                        reasonPill(for: suggestion)
+                        mutualOrReasonRow(for: suggestion)
                     }
+                    .frame(height: CardMetrics.infoHeight, alignment: .top)
                 }
                 .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
@@ -2609,16 +2625,23 @@ private struct ProfileSuggestedFansSection: View {
                 }
             )
 
+            Spacer(minLength: 0)
+
             addButton(for: suggestion)
         }
         .padding(12)
-        .frame(width: 158, height: 178, alignment: .top)
+        .frame(width: CardMetrics.width, height: CardMetrics.height, alignment: .top)
         .background(cardBackground)
         .overlay(alignment: .topTrailing) {
             dismissButton(for: suggestion)
         }
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.085), radius: 14, y: 8)
         .accessibilityElement(children: .combine)
+        .onAppear {
+#if DEBUG
+            print("[FriendSuggestionsDebug] cardSize=width:\(Int(CardMetrics.width)),height:\(Int(CardMetrics.height)),avatar:\(Int(CardMetrics.avatarSize)),buttonHeight:\(Int(CardMetrics.buttonHeight))")
+#endif
+        }
     }
 
     private func dismissButton(for suggestion: FriendSuggestionProfile) -> some View {
@@ -2654,7 +2677,7 @@ private struct ProfileSuggestedFansSection: View {
             ),
             displayName: displayName(for: suggestion),
             email: "",
-            size: 58,
+            size: CardMetrics.avatarSize,
             fallbackStyle: .lightOnWhiteChrome,
             imagePlaceholderTint: FGColor.accentBlue
         )
@@ -2676,11 +2699,74 @@ private struct ProfileSuggestedFansSection: View {
         .background(Circle().fill(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.96)))
     }
 
+    @ViewBuilder
+    private func mutualOrReasonRow(for suggestion: FriendSuggestionProfile) -> some View {
+        if suggestion.mutualFriendCount > 0 {
+            mutualFansRow(for: suggestion)
+        } else {
+            reasonPill(for: suggestion)
+                .frame(height: CardMetrics.reasonRowHeight)
+        }
+    }
+
+    private func mutualFansRow(for suggestion: FriendSuggestionProfile) -> some View {
+        HStack(spacing: 5) {
+            if !suggestion.mutualFriendAvatars.isEmpty {
+                ZStack(alignment: .leading) {
+                    ForEach(Array(suggestion.mutualFriendAvatars.prefix(3).enumerated()), id: \.element.id) { index, avatar in
+                        mutualFanAvatar(avatar)
+                            .offset(x: CGFloat(index) * 12)
+                            .zIndex(Double(3 - index))
+                    }
+                }
+                .frame(
+                    width: CardMetrics.mutualAvatarSize + CGFloat(max(0, min(3, suggestion.mutualFriendAvatars.count) - 1)) * 12,
+                    height: CardMetrics.mutualAvatarSize
+                )
+            }
+
+            Text(mutualFansLabel(for: suggestion.mutualFriendCount))
+                .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: CardMetrics.reasonRowHeight)
+        .accessibilityLabel(mutualFansLabel(for: suggestion.mutualFriendCount))
+    }
+
+    private func mutualFanAvatar(_ avatar: FriendSuggestionMutualFanAvatar) -> some View {
+        UserAvatarView(
+            avatarThumbnailURL: avatar.avatarThumbnailURL,
+            avatarURL: avatar.avatarURL ?? "",
+            avatarDisplayRefreshToken: ProfileAvatarRefreshToken.stable(
+                userId: avatar.userID,
+                thumbnailURL: avatar.avatarThumbnailURL,
+                avatarURL: avatar.avatarURL
+            ),
+            displayName: avatar.displayName ?? "Fan",
+            email: "",
+            size: CardMetrics.mutualAvatarSize,
+            fallbackStyle: .lightOnWhiteChrome,
+            imagePlaceholderTint: FGColor.accentBlue
+        )
+        .overlay {
+            Circle()
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.22 : 0.96), lineWidth: 1.5)
+        }
+    }
+
+    private func mutualFansLabel(for count: Int) -> String {
+        "\(count) mutual \(count == 1 ? "fan" : "fans")"
+    }
+
     private func reasonPill(for suggestion: FriendSuggestionProfile) -> some View {
         Text(localizedReasonLabel(safeReasonLabel(for: suggestion)))
             .font(.system(size: 9.5, weight: .bold, design: .rounded))
             .foregroundStyle(FGColor.accentGreen)
             .lineLimit(1)
+            .truncationMode(.tail)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background {
@@ -2712,7 +2798,7 @@ private struct ProfileSuggestedFansSection: View {
             }
             .foregroundStyle(state.foreground)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 7)
+            .frame(height: CardMetrics.buttonHeight)
             .background {
                 Capsule()
                     .fill(state.fill)

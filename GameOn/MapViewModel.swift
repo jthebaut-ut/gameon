@@ -194,7 +194,7 @@ final class MapViewModel: ObservableObject {
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventInterestCounts")
         }
     }
-    @Published var venueGameCardGoingSnapshots: [UUID: VenueGameCardGoingSnapshot] = [:]
+    let venueGameCardSnapshotStore = VenueGameCardSnapshotStore()
     var venueGameCardInitialGoingRefreshTask: Task<Void, Never>?
     var venueGameCardInitialGoingRefreshLastIDs: [UUID] = []
     let venueGameCardGoingSnapshotTTL: TimeInterval = 25
@@ -686,6 +686,9 @@ final class MapViewModel: ObservableObject {
     @Published var unseenPokesCount: Int = 0
     /// Latest incoming poke timestamp from the most recent fetch (badge + acknowledgment).
     var latestTrackedIncomingPokeAt: Date?
+    /// Last successful Following pickup join-card reload; non-published so tab freshness checks do not redraw roots.
+    var lastSuccessfulFollowingJoinRequestsRefreshAt: Date?
+    var lastSuccessfulFollowingJoinRequestsRefreshUserId: UUID?
     /// Last successful Following pickup join-list reload (Games to Play).
     @Published var lastJoinStatusRefreshAt: Date?
     /// Latest join request status string per pickup game id after the last reload (`pending`, `approved`, …).

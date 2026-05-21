@@ -26,8 +26,10 @@ private enum PredictionTeamDisplayName {
             shortened = original
         }
 #if DEBUG
-        print("[PredictionCardLayoutDebug] displayNameOriginal=\(original)")
-        print("[PredictionCardLayoutDebug] displayNameShortened=\(shortened)")
+        if VenueGameCardDiagnostics.enabled {
+            print("[PredictionCardLayoutDebug] displayNameOriginal=\(original)")
+            print("[PredictionCardLayoutDebug] displayNameShortened=\(shortened)")
+        }
 #endif
         return shortened
     }
@@ -136,34 +138,36 @@ struct VenueEventPredictionModule: View {
         }
         .onAppear {
 #if DEBUG
-            print("[PredictionUIDebug] homeTeam=\(teams.home)")
-            print("[PredictionUIDebug] awayTeam=\(teams.away)")
-            print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home) ?? "none")")
-            print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away) ?? "none")")
-            print("[PredictionUIDebug] teamType=home:\(teamDebugType(teams.home)),away:\(teamDebugType(teams.away))")
-            print("[PredictionUIDebug] countryFlagApplied=home:\(CountryFlagHelper.flag(for: teams.home) != nil),away:\(CountryFlagHelper.flag(for: teams.away) != nil)")
-            print("[PredictionUILayoutDebug] sport=\(sportType)")
-            print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
-            print("[PredictionUILayoutDebug] firstScoreRowLayout=true")
-            print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
-            print("[PredictionHeaderLayoutDebug] compactHeaderEnabled=true")
-            print("[PredictionHeaderLayoutDebug] inlineMatchupApplied=true")
-            print("[PredictionUIDebug] inlineScorePredictionRowRemoved=true")
-            print("[ScorePredictionDebug] inlineModeEnabled=true")
-            print("[PredictionCardLayoutDebug] equalCardSizeApplied=true")
-            print("[PredictionCardLayoutDebug] compactCardSizingApplied=true")
-            print("[PredictionCardLayoutDebug] cardWidth=flexEqual")
-            print("[PredictionCardLayoutDebug] cardHeight=winner:\(PredictionCardMetrics.matchupHeight),score:\(PredictionCardMetrics.scoreHeight)")
-            print("[PredictionCardLayoutDebug] controlsRecentered=true")
-            print("[PredictionCardLayoutDebug] bottomPaddingAdjusted=true")
-            print("[PredictionCardLayoutDebug] touchTargetsValidated=true")
-            print("[PredictionCardLayoutDebug] restoredVerticalBreathingRoom=true")
-            print("[PredictionCardLayoutDebug] checkmarkClippingResolved=true")
-            print("[PredictionCardLayoutDebug] finalCardHeight=winner:\(PredictionCardMetrics.matchupHeight),score:\(PredictionCardMetrics.scoreHeight)")
-            print("[ScorePredictionDebug] aggregateLoaded=\(!resolvedSummary.topScorePredictions.isEmpty)")
-            print("[ScorePredictionDebug] aggregateTotal=\(resolvedSummary.scorePredictionTotal)")
-            if let topScore = resolvedSummary.topScorePredictions.first, !topScore.isOther {
-                print("[ScorePredictionDebug] topScore=\(topScore.homeScore ?? 0)-\(topScore.awayScore ?? 0):\(topScore.percent)")
+            if VenueGameCardDiagnostics.enabled {
+                print("[PredictionUIDebug] homeTeam=\(teams.home)")
+                print("[PredictionUIDebug] awayTeam=\(teams.away)")
+                print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home) ?? "none")")
+                print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away) ?? "none")")
+                print("[PredictionUIDebug] teamType=home:\(teamDebugType(teams.home)),away:\(teamDebugType(teams.away))")
+                print("[PredictionUIDebug] countryFlagApplied=home:\(CountryFlagHelper.flag(for: teams.home) != nil),away:\(CountryFlagHelper.flag(for: teams.away) != nil)")
+                print("[PredictionUILayoutDebug] sport=\(sportType)")
+                print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+                print("[PredictionUILayoutDebug] firstScoreRowLayout=true")
+                print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
+                print("[PredictionHeaderLayoutDebug] compactHeaderEnabled=true")
+                print("[PredictionHeaderLayoutDebug] inlineMatchupApplied=true")
+                print("[PredictionUIDebug] inlineScorePredictionRowRemoved=true")
+                print("[ScorePredictionDebug] inlineModeEnabled=true")
+                print("[PredictionCardLayoutDebug] equalCardSizeApplied=true")
+                print("[PredictionCardLayoutDebug] compactCardSizingApplied=true")
+                print("[PredictionCardLayoutDebug] cardWidth=flexEqual")
+                print("[PredictionCardLayoutDebug] cardHeight=winner:\(PredictionCardMetrics.matchupHeight),score:\(PredictionCardMetrics.scoreHeight)")
+                print("[PredictionCardLayoutDebug] controlsRecentered=true")
+                print("[PredictionCardLayoutDebug] bottomPaddingAdjusted=true")
+                print("[PredictionCardLayoutDebug] touchTargetsValidated=true")
+                print("[PredictionCardLayoutDebug] restoredVerticalBreathingRoom=true")
+                print("[PredictionCardLayoutDebug] checkmarkClippingResolved=true")
+                print("[PredictionCardLayoutDebug] finalCardHeight=winner:\(PredictionCardMetrics.matchupHeight),score:\(PredictionCardMetrics.scoreHeight)")
+                print("[ScorePredictionDebug] aggregateLoaded=\(!resolvedSummary.topScorePredictions.isEmpty)")
+                print("[ScorePredictionDebug] aggregateTotal=\(resolvedSummary.scorePredictionTotal)")
+                if let topScore = resolvedSummary.topScorePredictions.first, !topScore.isOther {
+                    print("[ScorePredictionDebug] topScore=\(topScore.homeScore ?? 0)-\(topScore.awayScore ?? 0):\(topScore.percent)")
+                }
             }
 #endif
         }
@@ -705,11 +709,15 @@ struct VenueEventPredictionModule: View {
             print("[PredictionUIDebug] selectedWinner=\(value)")
         } else if type == .firstScoreTeam {
             print("[PredictionUIDebug] selectedFirstScore=\(value)")
-            print("[PredictionUILayoutDebug] selectedFirstScore=\(value)")
-            print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
+            if VenueGameCardDiagnostics.enabled {
+                print("[PredictionUILayoutDebug] selectedFirstScore=\(value)")
+                print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
+            }
         }
-        print("[PredictionUILayoutDebug] selectedOption=\(value)")
-        print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+        if VenueGameCardDiagnostics.enabled {
+            print("[PredictionUILayoutDebug] selectedOption=\(value)")
+            print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+        }
 #endif
 
         Task {
@@ -854,7 +862,9 @@ struct VenueEventPredictionModule: View {
             }
             if !selectedFirstScore.isEmpty {
                 print("[PredictionUIDebug] selectedFirstScore=\(selectedFirstScore)")
-                print("[PredictionUILayoutDebug] selectedFirstScore=\(selectedFirstScore)")
+                if VenueGameCardDiagnostics.enabled {
+                    print("[PredictionUILayoutDebug] selectedFirstScore=\(selectedFirstScore)")
+                }
             }
             if let selectedHomeScore, let selectedAwayScore {
                 print("[ScorePredictionDebug] loadedExistingScore=\(selectedHomeScore)-\(selectedAwayScore)")

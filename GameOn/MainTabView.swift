@@ -103,7 +103,8 @@ struct MainTabView: View {
                 DiscoverScreen(
                     viewModel: viewModel,
                     chatViewModel: chatViewModel,
-                    isCalendarOverlayPresented: $discoverCalendarOverlayPresented
+                    isCalendarOverlayPresented: $discoverCalendarOverlayPresented,
+                    isDiscoverTabSelected: selectedTab == .discover
                 )
             }
 

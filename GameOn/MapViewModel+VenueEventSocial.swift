@@ -550,7 +550,9 @@ extension MapViewModel {
         profiles.insert(current, at: 0)
         goingProfilesByVenueEventID[venueEventID] = profiles
 #if DEBUG
-        print("[GoingAvatarDebug] optimisticAvatarAdded=true")
+        if VenueGameCardDiagnostics.enabled {
+            print("[GoingAvatarDebug] optimisticAvatarAdded=true")
+        }
 #endif
     }
 

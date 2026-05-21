@@ -2,6 +2,22 @@ import Foundation
 import Supabase
 
 /// Public-safe profile payload returned by the friend suggestions RPC.
+struct FriendSuggestionMutualFanAvatar: Identifiable, Decodable, Hashable, Sendable {
+    let userID: UUID
+    let displayName: String?
+    let avatarURL: String?
+    let avatarThumbnailURL: String?
+
+    var id: UUID { userID }
+
+    private enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case displayName = "display_name"
+        case avatarURL = "avatar_url"
+        case avatarThumbnailURL = "avatar_thumbnail_url"
+    }
+}
+
 struct FriendSuggestionProfile: Identifiable, Decodable, Hashable, Sendable {
     let userID: UUID
     let email: String?
@@ -14,6 +30,8 @@ struct FriendSuggestionProfile: Identifiable, Decodable, Hashable, Sendable {
     let sharedFavoriteTeamsCount: Int
     let sharedEventInterestCount: Int
     let sharedPickupGameCount: Int
+    let mutualFriendCount: Int
+    let mutualFriendAvatars: [FriendSuggestionMutualFanAvatar]
     let score: Double
     let reasonType: String?
     let reasonLabel: String?
@@ -33,6 +51,8 @@ struct FriendSuggestionProfile: Identifiable, Decodable, Hashable, Sendable {
         case sharedFavoriteTeamsCount = "shared_favorite_teams_count"
         case sharedEventInterestCount = "shared_event_interest_count"
         case sharedPickupGameCount = "shared_pickup_game_count"
+        case mutualFriendCount = "mutual_friend_count"
+        case mutualFriendAvatars = "mutual_friend_avatars"
         case score
         case reasonType = "reason_type"
         case reasonLabel = "reason_label"
@@ -53,6 +73,8 @@ struct FriendSuggestionProfile: Identifiable, Decodable, Hashable, Sendable {
         sharedFavoriteTeamsCount = Self.decodeIntIfPresent(from: container, forKey: .sharedFavoriteTeamsCount) ?? 0
         sharedEventInterestCount = Self.decodeIntIfPresent(from: container, forKey: .sharedEventInterestCount) ?? 0
         sharedPickupGameCount = Self.decodeIntIfPresent(from: container, forKey: .sharedPickupGameCount) ?? 0
+        mutualFriendCount = Self.decodeIntIfPresent(from: container, forKey: .mutualFriendCount) ?? 0
+        mutualFriendAvatars = (try? container.decodeIfPresent([FriendSuggestionMutualFanAvatar].self, forKey: .mutualFriendAvatars)) ?? []
         score = Self.decodeDoubleIfPresent(from: container, forKey: .score) ?? 0
         reasonType = try container.decodeIfPresent(String.self, forKey: .reasonType)
         reasonLabel = try container.decodeIfPresent(String.self, forKey: .reasonLabel)
@@ -118,6 +140,16 @@ struct FriendSuggestionProfile: Identifiable, Decodable, Hashable, Sendable {
         }
         return nil
     }
+
+    var reasonSignalsDebugDescription: String {
+        var signals: [String] = []
+        if mutualFriendCount > 0 { signals.append("mutual_fans:\(mutualFriendCount)") }
+        if sharedFavoriteTeamsCount > 0 { signals.append("same_team:\(sharedFavoriteTeamsCount)") }
+        if sharedEventInterestCount > 0 { signals.append("same_watch_party:\(sharedEventInterestCount)") }
+        if sharedPickupGameCount > 0 { signals.append("same_pickup_game:\(sharedPickupGameCount)") }
+        if let reasonType, !reasonType.isEmpty { signals.append("primary:\(reasonType)") }
+        return signals.isEmpty ? "none" : signals.joined(separator: ",")
+    }
 }
 
 /// Service-only wrapper for profile friend suggestions. UI and friendship flows remain separate.
@@ -168,6 +200,11 @@ final class FriendSuggestionsService {
 
             #if DEBUG
             print("[FriendSuggestionsService] fetch success count=\(rows.count)")
+            for row in rows {
+                print("[FriendSuggestionsDebug] mutualFriendCount=\(row.mutualFriendCount) user_id=\(row.userID.uuidString.lowercased())")
+                print("[FriendSuggestionsDebug] reasonSignals=\(row.reasonSignalsDebugDescription) user_id=\(row.userID.uuidString.lowercased())")
+                print("[FriendSuggestionsDebug] rankingScore=\(row.score) user_id=\(row.userID.uuidString.lowercased())")
+            }
             #endif
 
             return rows

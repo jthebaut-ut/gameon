@@ -3,6 +3,10 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
+private enum WatchingExpiredVenueGameDiagnostics {
+    static let enabled = false
+}
+
 struct FollowingScreen: View {
     @ObservedObject var viewModel: MapViewModel
     @EnvironmentObject private var chatViewModel: ChatViewModel
@@ -77,17 +81,22 @@ struct FollowingScreen: View {
             guard isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
             await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
-            await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+            await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "goingTabActivation")
         }
         .sheet(item: $pickupDetailNav, onDismiss: {
-            Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing() }
+            Task {
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing(
+                    forceRefresh: true,
+                    reason: "pickupDetailDismiss"
+                )
+            }
         }) { token in
             DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canFanUsePickupGamesUI else { return }
-            Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing() }
+            Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "foreground") }
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             Task { await syncFollowingAfterAuthChange() }
@@ -293,7 +302,10 @@ struct FollowingScreen: View {
             }
             .refreshable {
                 await viewModel.refreshFollowingTabDataGlobally()
-                await viewModel.performPickupFollowingJoinListRefresh(isUserPull: true)
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing(
+                    forceRefresh: true,
+                    reason: "pullToRefresh"
+                )
                 logFollowingMyPickupGames(action: "pullToRefresh")
                 logGoingHubDebug(reason: "pullToRefresh")
             }
@@ -378,7 +390,7 @@ struct FollowingScreen: View {
     private func watchingVenueGameIsCompleted(_ item: FollowingGoingDisplayItem) -> Bool {
         let completed = VenueGameExpiration.isWatchingCompleted(row: item.venueEvent)
 #if DEBUG
-        if completed {
+        if completed, WatchingExpiredVenueGameDiagnostics.enabled {
             VenueGameExpiration.logAuditOncePerEvaluation(row: item.venueEvent, eventID: item.id)
             print("[WatchingExpiredVenueGame] detected event_id=\(item.id.uuidString.lowercased())")
         }
@@ -931,7 +943,10 @@ struct FollowingScreen: View {
 
     private func reloadFollowingDataForCurrentUser() async {
         await viewModel.refreshFollowingTabDataGlobally()
-        await viewModel.loadMyPickupGameJoinRequestsForFollowing()
+        await viewModel.loadMyPickupGameJoinRequestsForFollowing(
+            forceRefresh: true,
+            reason: "authOrInitialReload"
+        )
     }
 
 #if DEBUG
