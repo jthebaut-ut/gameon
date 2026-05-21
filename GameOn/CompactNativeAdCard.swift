@@ -2,6 +2,11 @@ import GoogleMobileAds
 import SwiftUI
 import UIKit
 
+enum CompactNativeAdLayout {
+    static let preferredHeight: CGFloat = 98
+    static let minimumRequestDimension: CGFloat = 32
+}
+
 // MARK: - SwiftUI host (no ad assets outside NativeAdView)
 
 /// Compact in-feed native ad for venue comment threads (AdMob native format).
@@ -66,7 +71,7 @@ struct CompactNativeAdCard: View {
                     }
                 )
                 .frame(maxWidth: .infinity)
-                .frame(height: adLoaded ? CompactNativeAdHostView.preferredHeight : 0)
+                .frame(height: CompactNativeAdLayout.preferredHeight)
                 .background(Color.clear)
                 .opacity(adLoaded ? 1 : 0)
                 .allowsHitTesting(adLoaded)
@@ -190,6 +195,11 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
         func loadIfNeeded(adUnitID: String, slotIndex: Int, layoutWidth: CGFloat) {
             guard adLoader == nil, nativeAd == nil else { return }
+            guard isHostTabVisible else {
+                teardown()
+                return
+            }
+            let requestLayoutWidth = max(layoutWidth, CompactNativeAdLayout.minimumRequestDimension)
 
             AdDebugDiagnostics.logViewSnapshot(
                 phase: "preRequest",
@@ -197,9 +207,9 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
                 placement: placement,
                 unitID: adUnitID,
                 view: hostView,
-                adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+                adSize: CGSize(width: requestLayoutWidth, height: CompactNativeAdHostView.preferredHeight),
                 slotSize: nil,
-                layoutWidth: layoutWidth,
+                layoutWidth: requestLayoutWidth,
                 hostTabRaw: hostTabRaw,
                 extra: [
                     "slotIndex": "\(slotIndex)",
@@ -223,9 +233,9 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
                 format: "native",
                 placement: placement,
                 unitID: adUnitID,
-                adSize: CGSize(width: layoutWidth, height: CompactNativeAdHostView.preferredHeight),
+                adSize: CGSize(width: requestLayoutWidth, height: CompactNativeAdHostView.preferredHeight),
                 slotSize: nil,
-                layoutWidth: layoutWidth,
+                layoutWidth: requestLayoutWidth,
                 extra: ["slotIndex": "\(slotIndex)", "rootVC": String(describing: type(of: root))]
             )
 
@@ -240,6 +250,10 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             loader.load(Request())
         }
 
+        private var isHostTabVisible: Bool {
+            !AdDebugContext.isTabOffscreenPreserved(tabRaw: hostTabRaw)
+        }
+
         func teardown() {
             hostView?.clearNativeAd()
             nativeAd = nil
@@ -250,6 +264,10 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         }
 
         func adLoader(_ adLoader: AdLoader, didReceive nativeAd: NativeAd) {
+            guard isHostTabVisible else {
+                teardown()
+                return
+            }
             self.nativeAd = nativeAd
             nativeAd.delegate = self
             hostView?.populate(with: nativeAd)
@@ -276,6 +294,10 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         }
 
         func adLoader(_ adLoader: AdLoader, didFailToReceiveAdWithError error: Error) {
+            guard isHostTabVisible else {
+                teardown()
+                return
+            }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
             AdDebugDiagnostics.logResponseFailure(
                 format: "native",
@@ -303,6 +325,10 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
 extension CompactNativeAdRepresentable.Coordinator: NativeAdDelegate {
     func nativeAdDidRecordImpression(_ nativeAd: NativeAd) {
+        guard !AdDebugContext.isTabOffscreenPreserved(tabRaw: hostTabRaw) else {
+            teardown()
+            return
+        }
         AdDebugDiagnostics.logEvent(
             event: "impressionRecorded",
             format: "native",
@@ -327,7 +353,7 @@ private enum CompactNativeAdError: LocalizedError {
 private final class CompactNativeAdHostView: NativeAdView {
     static let minIconSize: CGFloat = 40
     static let minCTAHeight: CGFloat = 36
-    static let preferredHeight: CGFloat = 98
+    static let preferredHeight: CGFloat = CompactNativeAdLayout.preferredHeight
     static let cornerRadius: CGFloat = 20
 
     private let chromeBackgroundView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))

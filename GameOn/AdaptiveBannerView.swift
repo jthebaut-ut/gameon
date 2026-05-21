@@ -181,6 +181,10 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
 
         func loadBannerIfNeeded(force: Bool, reason: String) {
             guard let banner else { return }
+            guard isHostTabVisible else {
+                detach()
+                return
+            }
 
             if banner.rootViewController == nil {
                 banner.rootViewController = AdMobRootViewController.topViewController()
@@ -224,6 +228,10 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             banner.load(Request())
         }
 
+        private var isHostTabVisible: Bool {
+            !AdDebugContext.isTabOffscreenPreserved(tabRaw: "discover")
+        }
+
         func detach() {
             banner?.delegate = nil
             banner?.isHidden = true
@@ -237,6 +245,10 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         }
 
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
+            guard isHostTabVisible else {
+                detach()
+                return
+            }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
             AdDebugDiagnostics.logResponseSuccess(
                 format: "banner",
@@ -261,6 +273,10 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         }
 
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
+            guard isHostTabVisible else {
+                detach()
+                return
+            }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
             AdDebugDiagnostics.logResponseFailure(
                 format: "banner",
@@ -284,6 +300,10 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         }
 
         func bannerViewDidRecordImpression(_ bannerView: BannerView) {
+            guard isHostTabVisible else {
+                detach()
+                return
+            }
             AdDebugDiagnostics.logEvent(
                 event: "impressionRecorded",
                 format: "banner",

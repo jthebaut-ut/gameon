@@ -1,6 +1,10 @@
 import CoreLocation
 import SwiftUI
 
+enum LiveRenderDiagnostics {
+    static let enabled = false
+}
+
 struct LiveScreen: View {
     private static let liveAutoRefreshIntervalNanoseconds: UInt64 = 15_000_000_000
 
@@ -135,9 +139,11 @@ struct LiveScreen: View {
             timeZoneOption: viewModel.selectedTimeZone
         )
 #if DEBUG
-        print("[LiveGameTimeDebug] rawStartTime=\(startTime)")
-        print("[LiveGameTimeDebug] userTimeZone=\(userSelectedTimeZone.identifier)")
-        print("[LiveGameTimeDebug] displayedStartTime=\(displayed)")
+        if LiveRenderDiagnostics.enabled {
+            print("[LiveGameTimeDebug] rawStartTime=\(startTime)")
+            print("[LiveGameTimeDebug] userTimeZone=\(userSelectedTimeZone.identifier)")
+            print("[LiveGameTimeDebug] displayedStartTime=\(displayed)")
+        }
 #endif
         return displayed
     }
@@ -2095,8 +2101,10 @@ struct LiveScreen: View {
             }
         let rendered = Array(qualified.prefix(6))
 #if DEBUG
-        print("[LiveCrowdDebug] candidates=\(rankedItems.count) qualified=\(qualified.count)")
-        print("[LiveCrowdDebug] rendered=\(rendered.map(\.id).joined(separator: ","))")
+        if LiveRenderDiagnostics.enabled {
+            print("[LiveCrowdDebug] candidates=\(rankedItems.count) qualified=\(qualified.count)")
+            print("[LiveCrowdDebug] rendered=\(rendered.map(\.id).joined(separator: ","))")
+        }
 #endif
         return rendered
     }
@@ -2438,8 +2446,10 @@ struct LiveScreen: View {
         friendsGoingCount: Int
     ) {
 #if DEBUG
-        print("[LiveTabDebug] venuesAndPickupTodayCount=\(venuesAndPickupTodayCount)")
-        print("[LiveTabDebug] friendsGoingCount=\(friendsGoingCount)")
+        if LiveRenderDiagnostics.enabled {
+            print("[LiveTabDebug] venuesAndPickupTodayCount=\(venuesAndPickupTodayCount)")
+            print("[LiveTabDebug] friendsGoingCount=\(friendsGoingCount)")
+        }
 #endif
     }
 
@@ -2459,7 +2469,9 @@ struct LiveScreen: View {
 
     private func logLivePolishSnapshot(visibleSectionCount: Int) {
 #if DEBUG
-        print("[LivePolishDebug] visibleSectionCount=\(visibleSectionCount)")
+        if LiveRenderDiagnostics.enabled {
+            print("[LivePolishDebug] visibleSectionCount=\(visibleSectionCount)")
+        }
 #endif
     }
 
@@ -2471,7 +2483,9 @@ struct LiveScreen: View {
 
     private func logLiveFeedRefresh(reason: String) {
 #if DEBUG
-        print("[LiveTabDebug] liveFeedRefresh=\(reason)")
+        if LiveRenderDiagnostics.enabled {
+            print("[LiveTabDebug] liveFeedRefresh=\(reason)")
+        }
 #endif
     }
 
@@ -2491,7 +2505,9 @@ struct LiveScreen: View {
 
     private func logLiveRankedItem(_ item: LiveFeedItem) {
 #if DEBUG
-        print("[LiveTabDebug] rankedVenueEvent=\(item.bar.name)|\(item.event.title)|score=\(item.score)")
+        if LiveRenderDiagnostics.enabled {
+            print("[LiveTabDebug] rankedVenueEvent=\(item.bar.name)|\(item.event.title)|score=\(item.score)")
+        }
 #endif
     }
 }

@@ -9,9 +9,16 @@ struct AppLanguage: Identifiable, Hashable {
     var id: String { code }
 }
 
+enum LocalizationDiagnostics {
+    static let enabled = false
+}
+
 enum L10n {
     static let appLanguageKey = "appLanguage"
     static let defaultLanguageCode = "en"
+#if DEBUG
+    private static var missingKeysLogged: Set<String> = []
+#endif
 
     static let supportedLanguages: [AppLanguage] = [
         AppLanguage(code: "en", nativeName: "English", englishName: "English", flag: "🇺🇸"),
@@ -45,18 +52,25 @@ enum L10n {
         let resolved = localized == key ? localizedString(key, languageCode: defaultLanguageCode) : localized
         let value = resolved == key ? key : resolved
 #if DEBUG
-        if VenueGameCardDiagnostics.enabled {
+        if LocalizationDiagnostics.enabled {
             print("[LocalizationDebug] localizedKeyUsed=\(key)")
         }
         if localized == key {
-            print("[LocalizationDebug] missingKey=\(key)")
+            logMissingKeyOnce(key)
         }
-        if shouldFallback {
+        if shouldFallback, LocalizationDiagnostics.enabled {
             print("[LocalizationDebug] fallbackToEnglish=true")
         }
 #endif
         return value
     }
+
+#if DEBUG
+    static func logMissingKeyOnce(_ key: String, prefix: String = "missingKey") {
+        guard missingKeysLogged.insert("\(prefix):\(key)").inserted else { return }
+        print("[LocalizationDebug] \(prefix)=\(key)")
+    }
+#endif
 
     private static func localizedString(_ key: String, languageCode: String) -> String {
         guard let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),

@@ -3,7 +3,7 @@ import CoreLocation
 import MapKit
 import SwiftUI
 
-private enum WatchingExpiredVenueGameDiagnostics {
+enum WatchingExpiredVenueGameDiagnostics {
     static let enabled = false
 }
 
@@ -1662,18 +1662,24 @@ struct FollowingScreen: View {
     private func clearWatchingVenueGame(_ item: FollowingGoingDisplayItem) async {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
 #if DEBUG
-        print("[WatchingExpiredVenueGame] clear tapped event_id=\(item.id.uuidString.lowercased())")
+        if WatchingExpiredVenueGameDiagnostics.enabled {
+            print("[WatchingExpiredVenueGame] clear tapped event_id=\(item.id.uuidString.lowercased())")
+        }
 #endif
         setInterestedOnlyLocally(item.id, false)
         let ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         if ok {
 #if DEBUG
-            print("[WatchingExpiredVenueGame] clear success event_id=\(item.id.uuidString.lowercased())")
+            if WatchingExpiredVenueGameDiagnostics.enabled {
+                print("[WatchingExpiredVenueGame] clear success event_id=\(item.id.uuidString.lowercased())")
+            }
 #endif
             viewModel.showSocialActionToast("Removed from I’m Going.")
         } else {
 #if DEBUG
-            print("[WatchingExpiredVenueGame] clear failed event_id=\(item.id.uuidString.lowercased()) error=removeInterestInVenueEvent")
+            if WatchingExpiredVenueGameDiagnostics.enabled {
+                print("[WatchingExpiredVenueGame] clear failed event_id=\(item.id.uuidString.lowercased()) error=removeInterestInVenueEvent")
+            }
 #endif
             viewModel.showSocialActionToast("Couldn't clear this game. Try again.")
         }

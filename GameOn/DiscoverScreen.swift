@@ -1529,9 +1529,15 @@ struct DiscoverScreen: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
 
-            discoverBottomAdStrip(layoutWidth: layoutWidth)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
+            Group {
+                if isDiscoverTabSelected {
+                    discoverBottomAdStrip(layoutWidth: layoutWidth)
+                } else {
+                    discoverBottomAdPlaceholder(layoutWidth: layoutWidth)
+                }
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 16)
 
             Color.clear
                 .frame(height: 66)
@@ -2837,11 +2843,7 @@ struct DiscoverScreen: View {
         )
 
         return Group {
-            if !isDiscoverTabSelected {
-                Color.clear
-                    .frame(width: bannerSize.width, height: bannerSize.height)
-                    .allowsHitTesting(false)
-            } else if discoverTopAdLoadFailed {
+            if discoverTopAdLoadFailed {
                 Color.clear
                     .frame(width: bannerSize.width, height: bannerSize.height)
                     .allowsHitTesting(false)
@@ -2890,6 +2892,13 @@ struct DiscoverScreen: View {
         .opacity(0.94)
         .zIndex(8)
         .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private func discoverBottomAdPlaceholder(layoutWidth: CGFloat) -> some View {
+        let bannerSize = discoverAdaptiveBannerSize(for: layoutWidth)
+        return Color.clear
+            .frame(width: bannerSize.width, height: bannerSize.height)
+            .allowsHitTesting(false)
     }
 
     private func discoverLogAdBannerDebug(availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {

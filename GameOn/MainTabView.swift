@@ -282,7 +282,9 @@ struct MainTabView: View {
         .onChange(of: selectedTabStorage) { _, newRaw in
             AdDebugContext.setVisibleTab(newRaw)
 #if DEBUG
-            print("[LiveTabDebug] selectedTab=\(newRaw)")
+            if LiveRenderDiagnostics.enabled {
+                print("[LiveTabDebug] selectedTab=\(newRaw)")
+            }
 #endif
             guard let tab = AppTab(rawValue: newRaw) else { return }
             mountTab(tab, reason: "selectedTabStorage")

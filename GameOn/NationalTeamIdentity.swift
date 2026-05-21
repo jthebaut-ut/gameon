@@ -65,7 +65,7 @@ enum NationalTeamCopy {
             return localized
         }
 #if DEBUG
-        print("[LocalizationDebug] missingNationalTeamKey=\(key)")
+        L10n.logMissingKeyOnce(key, prefix: "missingNationalTeamKey")
 #endif
         return fallback
     }
@@ -98,7 +98,7 @@ enum NationalTeamCopy {
 
         if trimmed.contains("_") {
 #if DEBUG
-            print("[LocalizationDebug] missingNationalTeamKey=\(trimmed)")
+            L10n.logMissingKeyOnce(trimmed, prefix: "missingNationalTeamKey")
 #endif
             return fallback
         }

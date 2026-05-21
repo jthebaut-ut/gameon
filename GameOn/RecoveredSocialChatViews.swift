@@ -326,16 +326,26 @@ struct FriendsTabView: View {
                 }
             }
         case .nativeAd:
-            CompactNativeAdCard(
-                placement: "chat.inboxFeed",
-                hostTabRaw: "chat",
-                slotIndex: ChatInboxAdPlacement.nativeAdSlotIndex,
-                layoutWidth: max(280, layoutWidth)
-            )
-            .frame(maxWidth: .infinity)
-            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
+            if isTabSelected {
+                CompactNativeAdCard(
+                    placement: "chat.inboxFeed",
+                    hostTabRaw: "chat",
+                    slotIndex: ChatInboxAdPlacement.nativeAdSlotIndex,
+                    layoutWidth: max(280, layoutWidth)
+                )
+                .frame(maxWidth: .infinity)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            } else {
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: CompactNativeAdLayout.preferredHeight)
+                    .allowsHitTesting(false)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+            }
         }
     }
 

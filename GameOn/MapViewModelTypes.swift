@@ -251,6 +251,7 @@ nonisolated enum VenueGameExpiration {
 
 #if DEBUG
     static func logAuditOncePerEvaluation(row: VenueEventRow, eventID: UUID?) {
+        guard WatchingExpiredVenueGameDiagnostics.enabled else { return }
         let fieldSummary: String = {
             var parts: [String] = []
             if row.scheduled_start_at != nil { parts.append("scheduled_start_at") }
