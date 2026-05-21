@@ -9,6 +9,7 @@ struct LiveScreen: View {
     @ObservedObject var chatViewModel: ChatViewModel
     @Binding var selectedTab: MainTabView.AppTab
 
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
@@ -346,7 +347,7 @@ struct LiveScreen: View {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                Text("Refresh")
+                Text(L10n.t("refresh", languageCode: appLanguageRaw))
                     .font(.caption.weight(.bold))
             }
             .foregroundStyle(FGColor.accentGreen)

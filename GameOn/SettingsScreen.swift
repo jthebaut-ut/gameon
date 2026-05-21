@@ -113,6 +113,7 @@ private enum ProfileSettingsRoute: Hashable {
     case liveActivitySharing
     case notifications
     case timeZone
+    case language
     case appearance
     case support
     case communityGuidelines
@@ -160,11 +161,16 @@ struct SettingsScreen: View {
     @StateObject private var addLocationSheetFormState = AddLocationSheetFormState()
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
     @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireFaceIDForPrivateChat = false
 
     private var appearancePreference: FanGeoAppearancePreference {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
+    }
+
+    private var selectedAppLanguage: AppLanguage {
+        L10n.language(for: appLanguageRaw)
     }
 
     private var privateChatFaceIDBinding: Binding<Bool> {
@@ -434,7 +440,7 @@ struct SettingsScreen: View {
 
                                     Button { venueOwnerDashboardSheet = .manageVenue } label: {
                                         settingsRow(
-                                            title: "Venue Details",
+                                            title: L10n.t("venue_details", languageCode: appLanguageRaw),
                                             subtitle: "Photos, amenities, and venue profile.",
                                             systemImage: "photo.on.rectangle.angled"
                                         )
@@ -516,7 +522,7 @@ struct SettingsScreen: View {
             .listSectionSpacing(10)
             .scrollContentBackground(.hidden)
             .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
-            .navigationTitle("Profile")
+            .navigationTitle(L10n.t("profile", languageCode: appLanguageRaw))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -797,14 +803,14 @@ struct SettingsScreen: View {
             .listSectionSpacing(10)
             .scrollContentBackground(.hidden)
             .background(SettingsPremiumChrome.screenBackground(colorScheme).ignoresSafeArea())
-            .navigationTitle("Settings")
+            .navigationTitle(L10n.t("settings", languageCode: appLanguageRaw))
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: ProfileSettingsRoute.self) { route in
                 profileSettingsDestination(route)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { showProfileSettingsSheet = false }
+                    Button(L10n.t("close", languageCode: appLanguageRaw)) { showProfileSettingsSheet = false }
                 }
             }
         }
@@ -837,6 +843,9 @@ struct SettingsScreen: View {
                 }
                 .navigationTitle("Time Zone")
                 .navigationBarTitleDisplayMode(.inline)
+
+        case .language:
+            FanGeoLanguageSelectionView(selectionRaw: $appLanguageRaw)
 
         case .appearance:
             FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
@@ -1172,6 +1181,26 @@ struct SettingsScreen: View {
                     settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock", showsChevron: true)
                 }
                 .buttonStyle(.plain)
+
+                settingsRowDivider()
+
+                Button {
+                    profileSettingsPath.append(ProfileSettingsRoute.language)
+                } label: {
+                    settingsRow(
+                        title: L10n.t("language", languageCode: appLanguageRaw),
+                        subtitle: selectedAppLanguage.nativeName,
+                        systemImage: "globe.americas.fill",
+                        showsChevron: true
+                    )
+                }
+                .buttonStyle(.plain)
+                .onAppear {
+#if DEBUG
+                    print("[LocalizationDebug] languageSettingVisible=true")
+                    print("[LocalizationDebug] selectedLanguage=\(selectedAppLanguage.code)")
+#endif
+                }
 
                 settingsRowDivider()
 

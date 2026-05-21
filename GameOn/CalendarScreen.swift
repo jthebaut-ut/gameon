@@ -8,6 +8,7 @@ struct CalendarScreen: View {
     @Binding var selectedTab: MainTabView.AppTab
     /// False while Calendar is preserved off-screen (defers tab-only pickup refresh at launch).
     var isCalendarTabSelected: Bool = false
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @Environment(\.colorScheme) private var calendarColorScheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showDatePicker = false
@@ -233,7 +234,7 @@ struct CalendarScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Calendar")
+            Text(L10n.t("calendar", languageCode: appLanguageRaw))
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundStyle(.primary)

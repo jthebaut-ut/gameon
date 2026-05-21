@@ -20,6 +20,7 @@ struct MapVenuePreviewCard: View {
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
     @State private var fanFeatureBlockedMessage: String?
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     private var visibleLivePresenceProfiles: [UserProfileRow] {
         profiles.filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
     }
@@ -208,7 +209,7 @@ struct MapVenuePreviewCard: View {
     
         HStack {
             Button(action: onDirections) {
-                Label("Directions", systemImage: "map.fill")
+                Label(L10n.t("directions", languageCode: appLanguageRaw), systemImage: "map.fill")
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -218,7 +219,7 @@ struct MapVenuePreviewCard: View {
             }
 
             Button(action: onDetails) {
-                Text("Details")
+                Text(L10n.t("details", languageCode: appLanguageRaw))
                     .fontWeight(.bold)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -338,7 +339,7 @@ struct MapVenuePreviewCard: View {
                     HStack(spacing: 5) {
                         Image(systemName: "checkmark")
                             .font(.caption.weight(.bold))
-                        Text("Going")
+                        Text(L10n.t("going", languageCode: appLanguageRaw))
                             .font(.caption.weight(.bold))
                     }
                     .foregroundStyle(.black)

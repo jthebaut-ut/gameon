@@ -67,6 +67,7 @@ struct ProfileIdentityCard: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedIdentityField: IdentityField?
 
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @AppStorage(FavoriteTeamsStore.primaryTeamIDAppStorageKey) private var primaryFavoriteTeamIDRaw: String = ""
     @State private var showFavoriteTeamsPicker = false
@@ -1068,7 +1069,7 @@ struct ProfileIdentityCard: View {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(FGColor.accentYellow)
-            Text("My Team")
+            Text(L10n.t("my_team", languageCode: appLanguageRaw))
                 .font(.system(size: 9, weight: .heavy, design: .rounded))
                 .foregroundStyle(FGColor.accentYellow)
                 .textCase(.uppercase)
@@ -1552,7 +1553,7 @@ struct ProfileIdentityCard: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Open To")
+                    Text(L10n.t("open_to", languageCode: appLanguageRaw))
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme))
                         .textCase(.uppercase)
@@ -1632,7 +1633,7 @@ struct ProfileIdentityCard: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Favorite Teams")
+                    Text(L10n.t("favorite_teams", languageCode: appLanguageRaw))
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .foregroundStyle(FGColor.mutedText(colorScheme))
                         .textCase(.uppercase)
@@ -1827,7 +1828,7 @@ struct ProfileIdentityCard: View {
             HStack(spacing: 5) {
                 Image(systemName: "trophy.fill")
                     .font(.system(size: 10, weight: .heavy))
-                Text("My Team")
+                Text(L10n.t("my_team", languageCode: appLanguageRaw))
                     .font(.system(size: 10.5, weight: .heavy, design: .rounded))
                     .textCase(.uppercase)
                     .tracking(0.45)

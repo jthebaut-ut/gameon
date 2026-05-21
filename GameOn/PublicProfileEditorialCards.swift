@@ -225,6 +225,7 @@ private struct PublicProfileHeroWidthKey: PreferenceKey {
 struct PublicProfileEditorialHero: View {
     let data: PublicUserProfileData
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @State private var containerWidth: CGFloat = 0
 
     private var avatarDiameter: CGFloat {
@@ -370,7 +371,7 @@ struct PublicProfileEditorialHero: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("My Team")
+                Text(L10n.t("my_team", languageCode: appLanguageRaw))
                     .font(.system(size: 9, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentYellow.opacity(0.96))
                     .textCase(.uppercase)
@@ -551,6 +552,7 @@ struct PublicProfileGridOpenToCard: View {
 struct PublicProfileFavoriteTeamsCard: View {
     let data: PublicUserProfileData
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     private var shownTeams: [FavoriteTeam] {
         data.orderedFavoriteTeamsForPublicProfile
@@ -560,7 +562,7 @@ struct PublicProfileFavoriteTeamsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 PublicProfileEditorialSectionTitle(
-                    "Favorite Teams",
+                    L10n.t("favorite_teams", languageCode: appLanguageRaw),
                     subtitle: shownTeams.isEmpty ? "Teams this fan follows" : "\(shownTeams.count) selected",
                     accent: FGColor.accentGreen
                 )
@@ -615,7 +617,7 @@ struct PublicProfileFavoriteTeamsCard: View {
                 HStack(spacing: 4) {
                     Image(systemName: "trophy.fill")
                         .font(.system(size: 11, weight: .heavy))
-                    Text("My Team")
+                    Text(L10n.t("my_team", languageCode: appLanguageRaw))
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
                 }
                 .foregroundStyle(FGColor.accentYellow.opacity(0.96))
@@ -910,6 +912,7 @@ struct PublicProfileSocialActionBar: View {
     let onFriendAction: () -> Void
     let onPoke: () -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     var body: some View {
         HStack(spacing: 10) {
@@ -928,7 +931,7 @@ struct PublicProfileSocialActionBar: View {
         case .hidden:
             EmptyView()
         case .messageFriend:
-            actionCapsule(title: "Message", icon: "message.fill", filled: true, disabled: isFriendActionInFlight, action: onFriendAction)
+            actionCapsule(title: L10n.t("message", languageCode: appLanguageRaw), icon: "message.fill", filled: true, disabled: isFriendActionInFlight, action: onFriendAction)
         case .requestFriendship:
             actionCapsule(title: "Add Friend", icon: "person.badge.plus", filled: true, disabled: isFriendActionInFlight, action: onFriendAction)
         case .friendshipRequested:

@@ -5,6 +5,7 @@ struct FavoriteTeamsPickerSheet: View {
     @Binding var selectedIDs: Set<String>
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     @State private var sportFilter: FavoriteTeamSport = FavoriteTeamCatalog.defaultSport
     @State private var categoryFilter: String? = FavoriteTeamCatalog.defaultCategoryID(for: FavoriteTeamCatalog.defaultSport)
@@ -76,7 +77,7 @@ struct FavoriteTeamsPickerSheet: View {
             .searchable(text: $searchText, prompt: "Search favorites")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button(L10n.t("done", languageCode: appLanguageRaw)) { dismiss() }
                         .fontWeight(.semibold)
                 }
             }

@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct WatchZoneApp: App {
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     init() {
         GoogleMobileAdsBootstrap.startIfNeeded()
@@ -20,6 +21,7 @@ struct WatchZoneApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(appearancePreference.colorScheme)
+                .environment(\.locale, Locale(identifier: L10n.normalizedLanguageCode(appLanguageRaw)))
                 .onAppear {
                     #if DEBUG
                     print("[LaunchPathDebug] WatchZoneAppMounted=true")

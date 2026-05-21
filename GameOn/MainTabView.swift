@@ -13,6 +13,7 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
 
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = false
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
@@ -42,6 +43,10 @@ struct MainTabView: View {
                 selectedTabStorage = newTab.rawValue
             }
         )
+    }
+
+    private func localized(_ key: String) -> String {
+        L10n.t(key, languageCode: appLanguageRaw)
     }
 
     enum AppTab: String, CaseIterable {
@@ -552,9 +557,9 @@ struct MainTabView: View {
             Spacer()
 
             HStack(spacing: 6) {
-                tabButton(.discover, title: "Discover", icon: "map.fill")
+                tabButton(.discover, title: localized("discover"), icon: "map.fill")
 
-                tabButton(.live, title: "Live", icon: "dot.radiowaves.left.and.right", glow: FGColor.accentGreen)
+                tabButton(.live, title: localized("live"), icon: "dot.radiowaves.left.and.right", glow: FGColor.accentGreen)
 
                 calendarTabButton()
 
@@ -695,7 +700,7 @@ struct MainTabView: View {
                 HStack(spacing: 5) {
                     chatTabMessageIconWithUnreadBadge
                     if selectedTab == .chat {
-                        Text("Chat")
+                        Text(localized("chat"))
                     }
                 }
                 .font(.caption)
@@ -784,7 +789,7 @@ struct MainTabView: View {
                     Image(systemName: "calendar")
 
                     if selectedTab == .calendar {
-                        Text("Calendar")
+                        Text(localized("calendar"))
                     }
                 }
                 .font(.caption)
@@ -811,7 +816,7 @@ struct MainTabView: View {
                     Image(systemName: "heart.fill")
 
                     if selectedTab == .following {
-                        Text("Going")
+                        Text(localized("going"))
                     }
                 }
                 .font(.caption)
@@ -880,11 +885,11 @@ struct MainTabView: View {
 
     private var accountTabTitle: String {
         if viewModel.isVenueOwnerLoggedIn {
-            return "Business"
+            return localized("business")
         }
 
         if viewModel.isLoggedIn {
-            return "Account"
+            return localized("profile")
         }
 
         return "Login"

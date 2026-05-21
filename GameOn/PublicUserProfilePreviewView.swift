@@ -7,6 +7,7 @@ struct PublicUserProfilePreviewView: View {
     @EnvironmentObject private var chatViewModel: ChatViewModel
     var onDismiss: () -> Void = {}
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     @State private var profile: PublicUserProfileData?
     @State private var isLoading = true
@@ -53,7 +54,7 @@ struct PublicUserProfilePreviewView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { onDismiss() }
+                    Button(L10n.t("done", languageCode: appLanguageRaw)) { onDismiss() }
                 }
             }
         }
@@ -158,9 +159,9 @@ struct PublicUserProfilePreviewView: View {
 
     private var pokeButtonTitle: String {
         if pokeJustSucceeded { return "Poked!" }
-        if let pokeSummary, pokeSummary.viewerCanPokeNow { return "Poke" }
+        if let pokeSummary, pokeSummary.viewerCanPokeNow { return L10n.t("poke", languageCode: appLanguageRaw) }
         if pokeSummary != nil { return "Soon" }
-        return "Poke"
+        return L10n.t("poke", languageCode: appLanguageRaw)
     }
 
     private var pokeButtonIcon: String {
