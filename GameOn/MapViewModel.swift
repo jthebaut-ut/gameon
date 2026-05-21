@@ -16,6 +16,10 @@ final class MapViewModel: ObservableObject {
         didSet {
             guard !Calendar.current.isDate(oldValue, inSameDayAs: selectedDate) else { return }
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "selectedDate")
+#if DEBUG
+            print("[VenueGameCardStoreDebug] initialTrigger source=selectedDate")
+#endif
+            scheduleInitialVenueGameCardGoingRefresh(reason: "selectedDate")
         }
     }
     /// Bottom-tab Calendar only (never drives Discover map date).
@@ -27,10 +31,24 @@ final class MapViewModel: ObservableObject {
         didSet {
             guard oldValue != selectedSport else { return }
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "selectedSport")
+#if DEBUG
+            print("[VenueGameCardStoreDebug] initialTrigger source=selectedSport")
+#endif
+            scheduleInitialVenueGameCardGoingRefresh(reason: "selectedSport")
         }
     }
     @Published var selectedEvent: SportsEvent?
-    @Published var selectedBar: BarVenue?
+    @Published var selectedBar: BarVenue? {
+        didSet {
+            guard oldValue?.id != selectedBar?.id else { return }
+#if DEBUG
+            print("[VenueGameCardStoreDebug] initialTrigger source=selectedBar")
+#endif
+            scheduleInitialVenueGameCardGoingRefresh(
+                reason: selectedBar == nil ? "selectedBarCleared" : "selectedBar"
+            )
+        }
+    }
     @Published var searchText: String = ""
     /// Debounced copy of ``searchText`` for Discover map/event filtering and live venue suggestions (see ``MapViewModel+DiscoverSearch``).
     @Published var debouncedDiscoverSearchText: String = "" {
@@ -176,6 +194,10 @@ final class MapViewModel: ObservableObject {
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventInterestCounts")
         }
     }
+    @Published var venueGameCardGoingSnapshots: [UUID: VenueGameCardGoingSnapshot] = [:]
+    var venueGameCardInitialGoingRefreshTask: Task<Void, Never>?
+    var venueGameCardInitialGoingRefreshLastIDs: [UUID] = []
+    let venueGameCardGoingSnapshotTTL: TimeInterval = 25
     @Published var venueEventPredictionSummaries: [UUID: VenueEventPredictionSummary] = [:]
     var venueEventPredictionRealtimeTasks: [UUID: Task<Void, Never>] = [:]
     var venueEventPredictionRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
@@ -418,6 +440,10 @@ final class MapViewModel: ObservableObject {
         didSet {
             scheduleFanChatAppLevelRealtimeForLoadedVenueEvents()
             scheduleDiscoverMapRenderSnapshotRebuild(reason: "venueEventRows")
+#if DEBUG
+            print("[VenueGameCardStoreDebug] initialTrigger source=venueEventRows")
+#endif
+            scheduleInitialVenueGameCardGoingRefresh(reason: "venueEventRows")
         }
     }
     @Published private(set) var discoverMapRenderSnapshot = DiscoverMapRenderSnapshot.empty

@@ -90,9 +90,9 @@ extension MapViewModel {
             bars.append(bar)
         }
         if let refreshed = bars.first(where: { $0.id == keepId }) {
-            selectedBar = refreshed
+            selectVenueForPreview(refreshed, source: "followingMapNavigation")
         } else {
-            selectedBar = bar
+            selectVenueForPreview(bar, source: "followingMapNavigation")
         }
 
 #if DEBUG

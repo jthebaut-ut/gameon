@@ -10,17 +10,24 @@ extension MapViewModel {
             forceRefresh: forceRefresh
         )
         for (eventID, summary) in summaries {
+            #if DEBUG
+            let oldSummary = venueEventPredictionSummaries[eventID]
+            print("[RealtimeChainDebug] uiStateUpdated table=venue_event_predictions key=\(eventID.uuidString.lowercased()).totalCount oldValue=\(oldSummary?.totalCount ?? -1) newValue=\(summary.totalCount)")
+            print("[RealtimeChainDebug] uiStateUpdated table=venue_event_predictions key=\(eventID.uuidString.lowercased()).winnerPercent oldValue=\(oldSummary?.winnerPercent ?? -1) newValue=\(summary.winnerPercent ?? -1)")
+            #endif
             venueEventPredictionSummaries[eventID] = summary
         }
     }
 
     func refreshVenueEventPredictionSummary(eventID: UUID) async {
         #if DEBUG
+        print("[RealtimeChainDebug] refreshStarted table=venue_event_predictions key=\(eventID.uuidString.lowercased())")
         print("[PredictionRealtimeDebug] aggregateRefreshStarted eventId=\(eventID.uuidString.lowercased())")
         #endif
         VenueEventPredictionService.shared.invalidate(eventID: eventID)
         await loadVenueEventPredictionSummaries(eventIDs: [eventID], forceRefresh: true)
         #if DEBUG
+        print("[RealtimeChainDebug] refreshSucceeded table=venue_event_predictions key=\(eventID.uuidString.lowercased())")
         print("[PredictionRealtimeDebug] aggregateRefreshSucceeded eventId=\(eventID.uuidString.lowercased())")
         #endif
     }
@@ -59,10 +66,25 @@ extension MapViewModel {
             )
 
             do {
+                #if DEBUG
+                print("[RealtimePublicationVerify] expected table=venue_event_predictions publication=supabase_realtime migration=20260731_0030")
+                print("[RealtimeChainDebug] subscribeRequested table=venue_event_predictions channel=\(channel.topic) filter=venue_event_id.eq.\(eventID.uuidString.lowercased())")
+                #endif
                 try await channel.subscribeWithError()
-                for await _ in changes {
+                #if DEBUG
+                print("[RealtimeChainDebug] subscribeReady table=venue_event_predictions channel=\(channel.topic)")
+                #endif
+                for await action in changes {
                     if Task.isCancelled { break }
                     #if DEBUG
+                    let eventType: String
+                    switch action {
+                    case .insert: eventType = "insert"
+                    case .update: eventType = "update"
+                    case .delete: eventType = "delete"
+                    }
+                    print("[RealtimeChainDebug] eventReceived table=venue_event_predictions eventType=\(eventType) rowId=unknown subscribedEventId=\(eventID.uuidString.lowercased())")
+                    print("[RealtimeChainDebug] eventMatchedCurrentView table=venue_event_predictions matched=true key=\(eventID.uuidString.lowercased()) reason=channelFilteredByVenueEventID")
                     print("[PredictionRealtimeDebug] updateReceived eventId=\(eventID.uuidString.lowercased())")
                     #endif
                     self.scheduleVenueEventPredictionRealtimeRefresh(eventID: eventID)
@@ -70,6 +92,7 @@ extension MapViewModel {
             } catch is CancellationError {
             } catch {
                 #if DEBUG
+                print("[RealtimeChainDebug] subscribeFailed table=venue_event_predictions error=\(error.localizedDescription)")
                 print("[PredictionRealtimeDebug] subscribeFailed eventId=\(eventID.uuidString.lowercased()) error=\(error.localizedDescription)")
                 #endif
             }
@@ -100,6 +123,9 @@ extension MapViewModel {
 
     private func scheduleVenueEventPredictionRealtimeRefresh(eventID: UUID) {
         venueEventPredictionRealtimeRefreshTasks[eventID]?.cancel()
+        #if DEBUG
+        print("[RealtimeChainDebug] refreshQueued table=venue_event_predictions reason=realtime_event key=\(eventID.uuidString.lowercased())")
+        #endif
         venueEventPredictionRealtimeRefreshTasks[eventID] = Task { @MainActor [weak self] in
             do {
                 try await Task.sleep(nanoseconds: 250_000_000)

@@ -339,8 +339,7 @@ extension MapViewModel {
             if let hold = discoverRemotePreviewHoldVenueId, hold != bar.id {
                 discoverRemotePreviewHoldVenueId = nil
             }
-            selectedPickupGameForMap = nil
-            selectedBar = bar
+            selectVenueForPreview(bar, source: "centerMap")
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
         cameraPosition = .region(
@@ -363,8 +362,7 @@ extension MapViewModel {
             if let hold = discoverRemotePreviewHoldVenueId, hold != selectedBar.id {
                 discoverRemotePreviewHoldVenueId = nil
             }
-            selectedPickupGameForMap = nil
-            self.selectedBar = selectedBar
+            selectVenueForPreview(selectedBar, source: "centerMapCoordinate")
         }
         let spanVal = min(max(visibleLatitudeDelta * 0.35, 0.04), 0.35)
         cameraPosition = .region(

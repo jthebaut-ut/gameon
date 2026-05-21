@@ -678,11 +678,14 @@ extension MapViewModel {
             let idList = ids.map { $0.uuidString.lowercased() }.joined(separator: ",")
             print("[FanChatRealtimeDelayDebug] appSubscribeStart eventIds=\(idList)")
             print("[FanChatRealtimeDelayDebug] filterMode=app_in")
+            print("[RealtimePublicationVerify] expected table=venue_event_vibes publication=supabase_realtime migration=20260731_0030")
+            print("[RealtimeChainDebug] subscribeRequested table=venue_event_vibes channel=\(channel.topic) filter=venue_event_id.in trackedCount=\(ids.count)")
             RealtimeHealthDiagnostics.log("channelName=\(channel.topic)")
             RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channel.topic)")
             #endif
             try await channel.subscribeWithError()
             #if DEBUG
+            print("[RealtimeChainDebug] subscribeReady table=venue_event_vibes channel=\(channel.topic)")
             print("[FanChatRealtimeFixDebug] appLevelSubscribe eventIds=\(idList)")
             print("[FanChatRealtimeDelayDebug] appSubscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000))")
             RealtimeHealthDiagnostics.log("subscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000)) channelName=\(channel.topic)")
@@ -692,6 +695,7 @@ extension MapViewModel {
                 fanChatAppLevelRealtimeChannel = nil
             }
 #if DEBUG
+            print("[RealtimeChainDebug] subscribeFailed table=venue_event_vibes error=\(error.localizedDescription)")
             RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
 #endif
             return
@@ -721,9 +725,17 @@ extension MapViewModel {
         _ stream: AsyncStream<AnyAction>,
         trackedEventIDs: [UUID]
     ) async {
-        for await _ in stream {
+        for await action in stream {
             if Task.isCancelled { break }
 #if DEBUG
+            let eventType: String
+            switch action {
+            case .insert: eventType = "insert"
+            case .update: eventType = "update"
+            case .delete: eventType = "delete"
+            }
+            print("[RealtimeChainDebug] eventReceived table=venue_event_vibes eventType=\(eventType) rowId=unknown")
+            print("[RealtimeChainDebug] eventMatchedCurrentView table=venue_event_vibes matched=unknown reason=existingListenerRefreshesTrackedEventsWithoutDecodingPayload trackedCount=\(trackedEventIDs.count)")
             print("[CrowdReactionDebug] realtimeReceived=true")
 #endif
             scheduleCrowdReactionVibeRealtimeRefresh(eventIDs: trackedEventIDs)
@@ -734,6 +746,9 @@ extension MapViewModel {
     private func scheduleCrowdReactionVibeRealtimeRefresh(eventIDs: [UUID]) {
         let ids = Array(Set(eventIDs))
         fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask?.cancel()
+        #if DEBUG
+        print("[RealtimeChainDebug] refreshQueued table=venue_event_vibes reason=realtime_event trackedCount=\(ids.count)")
+        #endif
         fanUpdatesStore.crowdReactionVibeRealtimeRefreshTask = Task { @MainActor [weak self] in
             do {
                 try await Task.sleep(nanoseconds: 300_000_000)
@@ -2182,6 +2197,11 @@ extension MapViewModel {
     // Fetches aggregate vibe tallies and the current user’s selections for one event.
     func loadVibes(for venueEventID: UUID) async {
         do {
+            #if DEBUG
+            let previousCounts = await MainActor.run { venueEventVibeCounts[venueEventID] ?? [:] }
+            let previousTotal = previousCounts.values.reduce(0, +)
+            print("[RealtimeChainDebug] refreshStarted table=venue_event_vibes key=\(venueEventID.uuidString.lowercased())")
+            #endif
             let rows: [VenueEventVibeRow] = try await supabase
                 .from("venue_event_vibes")
                 .select("venue_event_id,user_email,vibe_type")
@@ -2211,6 +2231,8 @@ extension MapViewModel {
                 myVenueEventVibes[venueEventID] = myVibes
                 fanUpdatesVibePrefetchedAt[venueEventID] = Date()
 #if DEBUG
+                let newTotal = counts.values.reduce(0, +)
+                print("[RealtimeChainDebug] uiStateUpdated table=venue_event_vibes key=\(venueEventID.uuidString.lowercased()).totalVibes oldValue=\(previousTotal) newValue=\(newTotal)")
                 for reaction in VenueCrowdReactionCatalog.reactions {
                     let key = VenueCrowdReactionCatalog.countKey(for: reaction.id)
                     if let count = counts[key] {
@@ -2220,9 +2242,15 @@ extension MapViewModel {
 #endif
             }
 
+            #if DEBUG
+            print("[RealtimeChainDebug] refreshSucceeded table=venue_event_vibes key=\(venueEventID.uuidString.lowercased())")
+            #endif
             DebugLogGate.debug("LOADED VIBES: \(counts)")
 
         } catch {
+            #if DEBUG
+            print("[RealtimeChainDebug] refreshFailed table=venue_event_vibes error=\(error.localizedDescription)")
+            #endif
             logVenueEventSocialLoadError("ERROR LOADING VIBES:", loadCancelledTag: "vibes", error: error)
         }
     }

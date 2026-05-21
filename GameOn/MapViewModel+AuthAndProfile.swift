@@ -248,6 +248,10 @@ extension MapViewModel {
         recentlyConfirmedVenueEventNotGoingAt = [:]
         venueEventInterestIDs = []
         venueEventInterestCounts = [:]
+        venueGameCardInitialGoingRefreshTask?.cancel()
+        venueGameCardInitialGoingRefreshTask = nil
+        venueGameCardInitialGoingRefreshLastIDs = []
+        venueGameCardGoingSnapshots = [:]
         socialActionToastDismissTask?.cancel()
         socialActionToastDismissTask = nil
         socialActionToastText = nil

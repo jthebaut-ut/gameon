@@ -167,6 +167,16 @@ struct VenueEventPredictionModule: View {
             }
 #endif
         }
+        .onChange(of: resolvedSummary.totalCount) { oldValue, newValue in
+#if DEBUG
+            print("[RealtimeChainDebug] uiStateUpdated table=venue_event_predictions key=\(venueEventID.uuidString.lowercased()).predictionModuleTotal oldValue=\(oldValue) newValue=\(newValue)")
+#endif
+        }
+        .onChange(of: resolvedSummary.winnerPercent) { oldValue, newValue in
+#if DEBUG
+            print("[RealtimeChainDebug] uiStateUpdated table=venue_event_predictions key=\(venueEventID.uuidString.lowercased()).predictionModuleWinnerPercent oldValue=\(oldValue ?? -1) newValue=\(newValue ?? -1)")
+#endif
+        }
         .onDisappear {
             scoreSaveTask?.cancel()
             Task { await onStopRealtime?() }

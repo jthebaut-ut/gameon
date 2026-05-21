@@ -239,7 +239,7 @@ private extension MapViewModel {
     func updateSelectedVenuePhotoStateFromLoadedBars(_ loadedBars: [BarVenue]) {
         guard let selected = selectedBar,
               let refreshed = loadedBars.first(where: { $0.id == selected.id }) else { return }
-        selectedBar = refreshed
+        selectVenueForPreview(refreshed, source: "loadedBarsSelectedVenueRefresh")
     }
 
     func invalidateDiscoverImageCacheForChangedVenuePhotos(newBars: [BarVenue]) async {

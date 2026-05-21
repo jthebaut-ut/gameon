@@ -3670,6 +3670,11 @@ extension MapViewModel {
 
             await MainActor.run {
                 for id in unique {
+                    #if DEBUG
+                    let oldValue = venueEventInterestCounts[id] ?? 0
+                    let newValue = counts[id] ?? 0
+                    print("[RealtimeChainDebug] uiStateUpdated table=venue_event_interests key=\(id.uuidString.lowercased()).ownerAnalyticsCount oldValue=\(oldValue) newValue=\(newValue)")
+                    #endif
                     venueEventInterestCounts[id] = counts[id] ?? 0
                 }
             }

@@ -649,7 +649,7 @@ struct DiscoverScreen: View {
                 let bar = viewModel.bars.first(where: { $0.id == venueId })
                     ?? viewModel.followingTabSavedVenues.first(where: { $0.id == venueId })
                 guard let bar else { return }
-                viewModel.selectedBar = bar
+                viewModel.selectVenueForPreview(bar, source: "discoverFocusVenue")
                 showVenueDetails = true
             }
         }
@@ -768,7 +768,7 @@ struct DiscoverScreen: View {
         let fromFiltered = viewModel.filteredBars.first(where: { $0.id == venueID })
         guard let bar = fromBars ?? fromFiltered else { return }
         withAnimation(.spring()) {
-            viewModel.selectedBar = bar
+            viewModel.selectVenueForPreview(bar, source: "resumeAfterFanLogin")
         }
     }
 
@@ -3714,6 +3714,15 @@ struct DiscoverScreen: View {
 #endif
     }
 
+    private func logVenueGameCardStoreRender(state: VenueGameCardState?) {
+#if DEBUG
+        guard let state else { return }
+        print("[VenueGameCardStoreDebug] phase=renderFromMirror")
+        print("[VenueGameCardStoreDebug] render eventId=\(state.input.venueEventID.uuidString.lowercased())")
+        print("[VenueGameCardStoreDebug] renderUsingMirror=true")
+#endif
+    }
+
     @ViewBuilder
     private func liveEnergyChips(_ energy: FanGeoLiveEnergy) -> some View {
         if energy.compactChips.isEmpty {
@@ -3856,15 +3865,43 @@ struct DiscoverScreen: View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
 
-        let alreadyInterested = viewModel.userIsGoingToVenueGame(
+        let predictionVisibility = venuePredictionVisibility(
+            bar: bar,
+            event: event,
+            venueEventID: venueEventID
+        )
+        let cardState = venueEventID.map { eventID in
+            viewModel.venueGameCardState(
+                input: VenueGameCardInput(
+                    venueEventID: eventID,
+                    barID: bar.id,
+                    title: gameTitle,
+                    date: event.date,
+                    sport: event.sport,
+                    eventTime: event.time,
+                    homeTeam: predictionVisibility.teams?.home,
+                    awayTeam: predictionVisibility.teams?.away,
+                    scheduledStartAt: nil
+                ),
+                friendUserIDs: acceptedFriendUserIDs
+            )
+        }
+        let alreadyInterested = cardState?.isCurrentUserGoing ?? viewModel.userIsGoingToVenueGame(
             bar: bar,
             gameTitle: gameTitle,
             venueEventID: venueEventID
         )
-
-        let energy = viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
-        let previewEnergy = venueEventID.map {
-            venuePreviewEnergy(for: $0, energy: energy)
+        let energy = cardState?.liveEnergy ?? viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
+        let previewEnergy = venueEventID.map { eventID in
+            if let cardState {
+                venuePreviewEnergy(
+                    for: eventID,
+                    energy: cardState.liveEnergy,
+                    counts: cardState.miniStats.vibeCounts
+                )
+            } else {
+                venuePreviewEnergy(for: eventID, energy: energy)
+            }
         }
         let previewEnergyPalette = venueGamePreviewEnergyPalette(previewEnergy)
         let previewEnergyTint = previewEnergy.map { energyAccentColor(for: $0.score) } ?? FGColor.accentBlue
@@ -3874,11 +3911,9 @@ struct DiscoverScreen: View {
         let previewEnergyGlow = previewEnergy?.isHighEnergy == true
             ? previewEnergyTint.opacity(colorScheme == .dark ? 0.22 : 0.14)
             : Color.clear
-        let predictionVisibility = venuePredictionVisibility(
-            bar: bar,
-            event: event,
-            venueEventID: venueEventID
-        )
+#if DEBUG
+        let _ = logVenueGameCardStoreRender(state: cardState)
+#endif
 
         return VStack(alignment: .leading, spacing: 13) {
             HStack(alignment: .top, spacing: 11) {
@@ -3916,16 +3951,15 @@ struct DiscoverScreen: View {
             }
 
             HStack(alignment: .center, spacing: 10) {
-                let socialProfiles = energy.socialPresenceProfiles
-                let avatarProfiles = viewModel.goingAvatarProfiles(
+                let avatarProfiles = cardState?.goingAvatarProfiles ?? viewModel.goingAvatarProfiles(
                     for: venueEventID,
-                    fallbackProfiles: socialProfiles,
+                    fallbackProfiles: energy.socialPresenceProfiles,
                     currentUserGoing: alreadyInterested
                 )
                 let visibleAvatarCount = avatarProfiles
                     .filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
                     .count
-                let displayGoingCount = max(energy.goingCount, alreadyInterested ? 1 : 0, visibleAvatarCount)
+                let displayGoingCount = cardState?.goingCount ?? max(energy.goingCount, alreadyInterested ? 1 : 0, visibleAvatarCount)
                 let emptyGoingPromptVisible = displayGoingCount == 0 && !alreadyInterested
                 let goingText = alreadyInterested || displayGoingCount > 0
                     ? perGameGoingLine(venueEventID: venueEventID, count: displayGoingCount)
@@ -3950,12 +3984,15 @@ struct DiscoverScreen: View {
             if let predictionEventID = predictionVisibility.eventID,
                predictionVisibility.shouldRender,
                let teams = predictionVisibility.teams {
+                let predictionSummary = predictionEventID == cardState?.input.venueEventID
+                    ? cardState?.predictionSummary
+                    : viewModel.venueEventPredictionSummaries[predictionEventID]
                 venueGamePredictionInset {
                     VenueEventPredictionModule(
                         venueEventID: predictionEventID,
                         teams: teams,
                         sportType: predictionVisibility.sportType,
-                        summary: viewModel.venueEventPredictionSummaries[predictionEventID],
+                        summary: predictionSummary,
                         isLocked: predictionVisibility.isLocked,
                         onOpen: { type in
                             openDiscoverPredictionSheet(
@@ -4009,9 +4046,15 @@ struct DiscoverScreen: View {
                     .padding(.vertical, 1)
                 venueGameCardSocialActionRow(
                     venueEventID: venueEventID,
-                    previewEnergy: previewEnergy
+                    previewEnergy: previewEnergy,
+                    fanChatCount: cardState?.fanChatCount
+                        ?? viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
                 )
-                venuePreviewInteractionStrip(venueEventID: venueEventID)
+                if let miniStats = cardState?.miniStats {
+                    venuePreviewInteractionStrip(venueEventID: venueEventID, miniStats: miniStats)
+                } else {
+                    venuePreviewInteractionStrip(venueEventID: venueEventID)
+                }
             }
         }
         .padding(.horizontal, 13)
@@ -4470,10 +4513,11 @@ struct DiscoverScreen: View {
 
     private func venueGameCardSocialActionRow(
         venueEventID: UUID,
-        previewEnergy: VenueGamePreviewEnergy?
+        previewEnergy: VenueGamePreviewEnergy?,
+        fanChatCount: Int? = nil
     ) -> some View {
         let source = "discoverVenueGameCard"
-        let commentCount = viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
+        let commentCount = fanChatCount ?? viewModel.fanUpdatesDisplayCommentCount(for: venueEventID)
         let _ = logFanChatEntryUXRendered(source: source, eventId: venueEventID, count: commentCount)
         let _ = logFanReactionRemovedFromVenueCard()
 
@@ -4706,6 +4750,30 @@ struct DiscoverScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private func venuePreviewInteractionStrip(
+        venueEventID: UUID,
+        miniStats: VenueGameCardMiniStats
+    ) -> some View {
+        let counts = miniStats.vibeCounts
+        let selected = miniStats.selectedVibes
+        let _ = logFanUpdatesStoreMigrationDebug()
+        let _ = logVenueMiniStatsDebug(eventId: venueEventID, counts: counts)
+
+        return HStack(spacing: 6) {
+            ForEach(venuePreviewMiniStats) { stat in
+                venuePreviewMiniStatChip(
+                    stat,
+                    venueEventID: venueEventID,
+                    counts: counts,
+                    selected: selected
+                )
+            }
+        }
+        .padding(.top, 1)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private func venuePreviewMiniStatChip(
         _ stat: VenuePreviewMiniStat,
         venueEventID: UUID,
@@ -4788,6 +4856,14 @@ struct DiscoverScreen: View {
 
     private func venuePreviewEnergy(for venueEventID: UUID, energy: FanGeoLiveEnergy) -> VenueGamePreviewEnergy {
         let counts = fanUpdatesStore.venueEventVibeCounts[venueEventID] ?? [:]
+        return venuePreviewEnergy(for: venueEventID, energy: energy, counts: counts)
+    }
+
+    private func venuePreviewEnergy(
+        for venueEventID: UUID,
+        energy: FanGeoLiveEnergy,
+        counts: [String: Int]
+    ) -> VenueGamePreviewEnergy {
         let previewEnergy = VenueGamePreviewEnergy.evaluate(
             fireCount: counts["packed"] ?? 0,
             seatsCount: counts["seats_open"] ?? 0,

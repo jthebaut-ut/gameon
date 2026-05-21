@@ -513,6 +513,8 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
         print("[ChatRealtime] inbox scope: postgresChange unfiltered; user-visible events rely on RLS.")
         print("[RealtimeSubscriptionDebug] inboxFilter=none reason=avoid_stale_conversation_snapshot vm=\(instanceDebugID)")
+        print("[RealtimePublicationVerify] expected table=conversation_read_state publication=supabase_realtime migration=20260731_0030")
+        print("[RealtimeChainDebug] subscribeRequested table=conversation_read_state channel=\(channel.topic) filter=none")
         RealtimeHealthDiagnostics.log("channelName=\(channel.topic)")
         RealtimeHealthDiagnostics.log("subscribeStart=true channelName=\(channel.topic)")
 #endif
@@ -526,6 +528,7 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
             print("[RealtimeSubscriptionDebug] inboxSubscribed vm=\(instanceDebugID) user=\(me.uuidString.lowercased()) filtered=\(inboxRealtimeUsesConversationFilter)")
             print("[DMRealtimeLatencyDebug] realtimeSubscribed conversationId=inbox channel=\(channel.topic)")
+            print("[RealtimeChainDebug] subscribeReady table=conversation_read_state channel=\(channel.topic)")
             RealtimeHealthDiagnostics.log("subscribeReady elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - subscribeStartedAt) * 1000)) channelName=\(channel.topic)")
 #endif
 #if DEBUG
@@ -551,6 +554,7 @@ final class ChatViewModel: ObservableObject {
             print("[DMRealtime] inbox listener error: \(error)")
 #endif
 #if DEBUG
+            print("[RealtimeChainDebug] subscribeFailed table=conversation_read_state error=\(error.localizedDescription)")
             RealtimeHealthDiagnostics.log("subscribeError=\(error.localizedDescription) channelName=\(channel.topic)")
 #endif
         }
@@ -566,6 +570,16 @@ final class ChatViewModel: ObservableObject {
             if Task.isCancelled { break }
             switch action {
             case .insert, .update, .delete:
+                #if DEBUG
+                let eventType: String
+                switch action {
+                case .insert: eventType = "insert"
+                case .update: eventType = "update"
+                case .delete: eventType = "delete"
+                }
+                print("[RealtimeChainDebug] eventReceived table=conversation_read_state eventType=\(eventType) rowId=unknown")
+                print("[RealtimeChainDebug] eventMatchedCurrentView table=conversation_read_state matched=unknown reason=unfilteredBadgeListenerReliesOnRLS")
+                #endif
                 scheduleDebouncedUnreadDirectMessageRPCRefresh()
             }
         }
@@ -632,6 +646,9 @@ final class ChatViewModel: ObservableObject {
 
     /// Coalesces server unread recount RPC after local patches (low latency).
     private func scheduleDebouncedUnreadDirectMessageRPCRefresh() {
+        #if DEBUG
+        print("[RealtimeChainDebug] refreshQueued table=conversation_read_state reason=debounced_unread_rpc")
+        #endif
         requestBadgeRecalculation(reason: "debounced_unread_rpc", delayNanoseconds: 110_000_000)
     }
 
@@ -989,11 +1006,15 @@ final class ChatViewModel: ObservableObject {
             return
         }
         let prior = unreadDirectMessageCount
+        #if DEBUG
+        print("[RealtimeChainDebug] refreshStarted table=conversation_read_state key=unreadDirectMessageCount")
+        #endif
         guard let n = try? await directChatService.fetchUnreadDirectMessageCount(currentUserId: me) else {
             return
         }
         await setUnreadDirectMessageCountAndSyncAppIcon(n, source: "rpc_total_refresh")
 #if DEBUG
+        print("[RealtimeChainDebug] refreshSucceeded table=conversation_read_state key=unreadDirectMessageCount")
         print("[UnreadBadgeDebug] conversationId=rpc_total_refresh")
         print("[UnreadBadgeDebug] oldUnread=\(prior)")
         print("[UnreadBadgeDebug] newUnread=\(n)")
@@ -1679,6 +1700,7 @@ final class ChatViewModel: ObservableObject {
         let oldValue = unreadDirectMessageCount
         unreadDirectMessageCount = clamped
 #if DEBUG
+        print("[RealtimeChainDebug] uiStateUpdated table=conversation_read_state key=unreadDirectMessageCount oldValue=\(oldValue) newValue=\(clamped)")
         print("[UnreadStateDebug] source=\(source) oldTotal=\(oldValue) newTotal=\(clamped) vm=\(instanceDebugID)")
         print("[BadgeSyncDebug] unread total=\(clamped)")
         print("[BadgeSyncDebug] tab badge updated")

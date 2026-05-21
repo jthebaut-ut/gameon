@@ -56,11 +56,23 @@ extension MapViewModel {
     private func scheduleDebouncedVenueOwnerAnalyticsRefresh(trackedEventIDs: [UUID]) {
         venueOwnerAnalyticsDebounceTask?.cancel()
         let snapshot = trackedEventIDs
+        #if DEBUG
+        print("[RealtimeChainDebug] refreshQueued table=venue_event_interests reason=owner_analytics_realtime trackedCount=\(snapshot.count)")
+        print("[RealtimeChainDebug] refreshQueued table=venue_event_vibes reason=owner_analytics_realtime trackedCount=\(snapshot.count)")
+        #endif
         venueOwnerAnalyticsDebounceTask = Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(nanoseconds: 380_000_000)
             guard !Task.isCancelled else { return }
+            #if DEBUG
+            print("[RealtimeChainDebug] refreshStarted table=venue_event_interests key=ownerAnalytics")
+            print("[RealtimeChainDebug] refreshStarted table=venue_event_vibes key=ownerAnalytics")
+            #endif
             await self.applyVenueOwnerRealtimeEngagementRefresh(trackedEventIDs: snapshot)
+            #if DEBUG
+            print("[RealtimeChainDebug] refreshSucceeded table=venue_event_interests key=ownerAnalytics")
+            print("[RealtimeChainDebug] refreshSucceeded table=venue_event_vibes key=ownerAnalytics")
+            #endif
         }
     }
 
@@ -93,30 +105,54 @@ extension MapViewModel {
         )
 
         do {
+            #if DEBUG
+            print("[RealtimePublicationVerify] expected table=venue_event_interests publication=supabase_realtime migration=20260731_0030")
+            print("[RealtimePublicationVerify] expected table=venue_event_vibes publication=supabase_realtime migration=20260731_0030")
+            print("[RealtimeChainDebug] subscribeRequested table=venue_event_interests channel=\(channel.topic) filter=venue_event_id.in trackedCount=\(ids.count)")
+            print("[RealtimeChainDebug] subscribeRequested table=venue_event_vibes channel=\(channel.topic) filter=venue_event_id.in trackedCount=\(ids.count)")
+            #endif
             try await channel.subscribeWithError()
+            #if DEBUG
+            print("[RealtimeChainDebug] subscribeReady table=venue_event_interests channel=\(channel.topic)")
+            print("[RealtimeChainDebug] subscribeReady table=venue_event_vibes channel=\(channel.topic)")
+            #endif
         } catch {
             if venueOwnerAnalyticsRealtimeChannel === channel {
                 venueOwnerAnalyticsRealtimeChannel = nil
             }
+            #if DEBUG
+            print("[RealtimeChainDebug] subscribeFailed table=venue_event_interests error=\(error.localizedDescription)")
+            print("[RealtimeChainDebug] subscribeFailed table=venue_event_vibes error=\(error.localizedDescription)")
+            #endif
             return
         }
 
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                await self.consumeVenueOwnerRealtimeAnyStream(interestStream, trackedEventIDs: ids)
+                await self.consumeVenueOwnerRealtimeAnyStream(interestStream, tableName: "venue_event_interests", trackedEventIDs: ids)
             }
             group.addTask {
-                await self.consumeVenueOwnerRealtimeAnyStream(commentsStream, trackedEventIDs: ids)
+                await self.consumeVenueOwnerRealtimeAnyStream(commentsStream, tableName: "venue_event_comments", trackedEventIDs: ids)
             }
             group.addTask {
-                await self.consumeVenueOwnerRealtimeAnyStream(vibesStream, trackedEventIDs: ids)
+                await self.consumeVenueOwnerRealtimeAnyStream(vibesStream, tableName: "venue_event_vibes", trackedEventIDs: ids)
             }
         }
     }
 
-    private func consumeVenueOwnerRealtimeAnyStream(_ stream: AsyncStream<AnyAction>, trackedEventIDs: [UUID]) async {
-        for await _ in stream {
+    private func consumeVenueOwnerRealtimeAnyStream(_ stream: AsyncStream<AnyAction>, tableName: String, trackedEventIDs: [UUID]) async {
+        for await action in stream {
             guard !Task.isCancelled else { break }
+            #if DEBUG
+            let eventType: String
+            switch action {
+            case .insert: eventType = "insert"
+            case .update: eventType = "update"
+            case .delete: eventType = "delete"
+            }
+            print("[RealtimeChainDebug] eventReceived table=\(tableName) eventType=\(eventType) rowId=unknown")
+            print("[RealtimeChainDebug] eventMatchedCurrentView table=\(tableName) matched=unknown reason=ownerAnalyticsRefreshesTrackedEvents trackedCount=\(trackedEventIDs.count)")
+            #endif
             await MainActor.run {
                 self.scheduleDebouncedVenueOwnerAnalyticsRefresh(trackedEventIDs: trackedEventIDs)
             }

@@ -354,7 +354,8 @@ extension MapViewModel {
             isInterested: targetGoing,
             refreshFollowing: false,
             applyOptimistic: false,
-            manageWriteInFlight: false
+            manageWriteInFlight: false,
+            schedulePostWriteRefreshes: false
         )
 
         if !ok {
@@ -389,8 +390,7 @@ extension MapViewModel {
             }
         }
 
-        scheduleDeferredVisibleVenueEventInterestsReload()
-        scheduleDeferredFollowingTabGoingReconcile(venueEventID: wireEventID)
+        await refreshVenueGameCardGoingState(venueEventID: wireEventID)
 
         if targetGoing {
             await addGameToCalendar(
@@ -737,7 +737,8 @@ extension MapViewModel {
         isInterested: Bool,
         refreshFollowing: Bool = true,
         applyOptimistic: Bool = true,
-        manageWriteInFlight: Bool = true
+        manageWriteInFlight: Bool = true,
+        schedulePostWriteRefreshes: Bool = true
     ) async -> Bool {
         let normalizedEventId = normalizedVenueEventWireId(venueEventID)
         if manageWriteInFlight, venueEventInterestWriteInFlightIDs.contains(venueEventID) {
@@ -860,23 +861,25 @@ extension MapViewModel {
             }
         }
 
-        if refreshFollowing {
-            Task { @MainActor in
+        if schedulePostWriteRefreshes {
+            if refreshFollowing {
+                Task { @MainActor in
 #if DEBUG
-                if self.hasAuthenticatedVenueOwnerSession {
-                    print("[FollowingState] business attendance change event=\(venueEventID.uuidString)")
-                }
+                    if self.hasAuthenticatedVenueOwnerSession {
+                        print("[FollowingState] business attendance change event=\(venueEventID.uuidString)")
+                    }
 #endif
-                await self.loadGoingUserProfiles(for: venueEventID)
-                self.refreshFollowingInterestDerivedSnapshotsForUI()
+                    await self.loadGoingUserProfiles(for: venueEventID)
+                    self.refreshFollowingInterestDerivedSnapshotsForUI()
+                }
+                scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
+            } else {
+                Task { @MainActor in
+                    await self.loadGoingUserProfiles(for: venueEventID)
+                }
+                scheduleDeferredVisibleVenueEventInterestsReload()
+                scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
             }
-            scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
-        } else {
-            Task { @MainActor in
-                await self.loadGoingUserProfiles(for: venueEventID)
-            }
-            scheduleDeferredVisibleVenueEventInterestsReload()
-            scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
         }
 
         if isInterested, !snapshot.wasAlreadyInterested, let uid = await MainActor.run(body: { currentUserAuthId }) {

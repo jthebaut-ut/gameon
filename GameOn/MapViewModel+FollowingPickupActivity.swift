@@ -226,6 +226,9 @@ extension MapViewModel {
         )
 
         do {
+            #if DEBUG
+            print("[RealtimePublicationVerify] expected table=pickup_games publication=supabase_realtime migration=20260731_0030")
+            #endif
             try await channel.subscribeWithError()
         } catch {
             if pickupFollowingRealtimeChannel === channel {
