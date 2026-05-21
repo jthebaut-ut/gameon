@@ -64,6 +64,7 @@ struct ProfileIdentityCard: View {
     @EnvironmentObject private var chatViewModel: ChatViewModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focusedIdentityField: IdentityField?
 
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
@@ -92,6 +93,10 @@ struct ProfileIdentityCard: View {
     @State private var suggestedFansMessage: String?
     @State private var sendingSuggestedFanRequestIds: Set<UUID> = []
     @State private var profileStatsCounts: ProfileStatsCounts?
+    @State private var animatedTrophyTeamID: String?
+    @State private var demotedTrophyTeamID: String?
+    @State private var trophyShimmerProgress: CGFloat = -0.6
+    @State private var trophyAnimationTask: Task<Void, Never>?
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -1063,16 +1068,16 @@ struct ProfileIdentityCard: View {
             Image(systemName: "trophy.fill")
                 .font(.system(size: 11, weight: .heavy))
                 .foregroundStyle(FGColor.accentYellow)
+            Text("My Team")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.accentYellow)
+                .textCase(.uppercase)
+                .tracking(0.6)
             Text(team.shortCode?.isEmpty == false ? team.shortCode! : team.name)
                 .font(.system(size: 12, weight: .heavy, design: .rounded))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
-            Text("Trophy Team")
-                .font(.system(size: 9, weight: .heavy, design: .rounded))
-                .foregroundStyle(FGColor.accentYellow)
-                .textCase(.uppercase)
-                .tracking(0.6)
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
@@ -1088,6 +1093,8 @@ struct ProfileIdentityCard: View {
         .onAppear {
 #if DEBUG
             print("[FavoriteTeamsDebug] primaryTeamDisplayed=\(team.id)")
+            print("[FavoriteTeamsDebug] userFacingPrimaryLabel=MyTeam")
+            print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
 #endif
         }
     }
@@ -1686,35 +1693,49 @@ struct ProfileIdentityCard: View {
 
     private func favoriteTeamSocialCard(team: FavoriteTeam) -> some View {
         let isPrimary = team.id == primaryFavoriteTeamID
+        let isAnimatingSelection = animatedTrophyTeamID == team.id
+        let isAnimatingDemotion = demotedTrophyTeamID == team.id && !isPrimary
+        let sportAccent = sportAccentColor(for: team.sport.chipTitle)
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 PremiumTeamIdentityOrb(team: team, diameter: 62)
                 Spacer(minLength: 0)
-                trophyTeamButton(team: team, isPrimary: isPrimary)
+                trophyTeamButton(
+                    team: team,
+                    isPrimary: isPrimary,
+                    isAnimatingSelection: isAnimatingSelection
+                )
 
                 removeFavoriteTeamButton(team: team)
             }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(team.name)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-                    .minimumScaleFactor(0.75)
+            VStack(alignment: .leading, spacing: isPrimary ? 3 : 1) {
+                if isPrimary {
+                    primaryFavoriteTeamCardLabel(team)
+                } else {
+                    Text(team.name)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.75)
+                }
 
                 favoriteTeamCardSportBadge(team: team)
 
-                HStack(spacing: 5) {
-                    Image(systemName: isPrimary ? "trophy.fill" : "trophy")
-                        .font(.system(size: 10, weight: .heavy))
-                    Text(isPrimary ? "Trophy Team" : "Tap trophy for #1")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .lineLimit(1)
+                if !isPrimary {
+                    HStack(spacing: 5) {
+                        Image(systemName: "trophy")
+                            .font(.system(size: 10, weight: .heavy))
+                        Text("Make My Team")
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Color.white.opacity(0.70))
+                    .padding(.top, 6)
+                    .animation(trophyVisualTransitionAnimation, value: isPrimary)
                 }
-                .foregroundStyle(isPrimary ? FGColor.accentYellow : Color.white.opacity(0.70))
-                .padding(.top, 6)
             }
 
             Spacer(minLength: 0)
@@ -1749,27 +1770,103 @@ struct ProfileIdentityCard: View {
                         )
                 }
         }
+        .overlay(alignment: .topLeading) {
+            favoriteTeamSportAccentStripe(color: sportAccent, cornerRadius: 24)
+        }
+        .overlay {
+            if isAnimatingSelection && !reduceMotion {
+                trophySelectionShimmer(cornerRadius: 24)
+            }
+        }
         .shadow(
             color: isPrimary
                 ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.26 : 0.20)
+                : isAnimatingDemotion
+                    ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.10 : 0.08)
                 : team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.16),
-            radius: isPrimary ? 18 : 14,
+            radius: isPrimary ? 18 : isAnimatingDemotion ? 15 : 14,
             y: isPrimary ? 9 : 8
         )
+        .animation(trophyVisualTransitionAnimation, value: isPrimary)
+        .animation(trophyVisualTransitionAnimation, value: isAnimatingDemotion)
         .onAppear {
 #if DEBUG
             print("[FavoriteTeamsDebug] favoriteTeamsCount=\(selectedTeams.count)")
+            print("[FavoriteTeamsDebug] sportAccentRendered sport=\(team.sport.chipTitle)")
+            print("[FavoriteTeamsDebug] sportAccentColorApplied=true")
 #endif
         }
     }
 
-    private func trophyTeamButton(team: FavoriteTeam, isPrimary: Bool) -> some View {
+    private func favoriteTeamSportAccentStripe(color: Color, cornerRadius: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            color.opacity(colorScheme == .dark ? 0.62 : 0.50),
+                            color.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                            Color.white.opacity(0.02),
+                            Color.clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 3)
+                .shadow(color: color.opacity(colorScheme == .dark ? 0.30 : 0.18), radius: 8, y: 2)
+            Spacer(minLength: 0)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func primaryFavoriteTeamCardLabel(_ team: FavoriteTeam) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 5) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 10, weight: .heavy))
+                Text("My Team")
+                    .font(.system(size: 10.5, weight: .heavy, design: .rounded))
+                    .textCase(.uppercase)
+                    .tracking(0.45)
+            }
+            .foregroundStyle(FGColor.accentYellow)
+
+            Text(team.name)
+                .font(.system(size: 15.5, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.72)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] userFacingPrimaryLabel=MyTeam")
+            print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
+#endif
+        }
+    }
+
+    private func trophyTeamButton(
+        team: FavoriteTeam,
+        isPrimary: Bool,
+        isAnimatingSelection: Bool
+    ) -> some View {
         Button {
             promoteTrophyTeam(team)
         } label: {
-            Image(systemName: isPrimary ? "trophy.fill" : "trophy")
+            ZStack {
+                Image(systemName: "trophy")
+                    .opacity(isPrimary ? 0 : 1)
+                    .foregroundStyle(Color.white.opacity(0.78))
+                Image(systemName: "trophy.fill")
+                    .opacity(isPrimary ? 1 : 0)
+                    .foregroundStyle(FGColor.accentYellow)
+            }
                 .font(.system(size: 14, weight: .heavy))
-                .foregroundStyle(isPrimary ? FGColor.accentYellow : Color.white.opacity(0.78))
                 .frame(width: 30, height: 30)
                 .background {
                     Circle()
@@ -1783,10 +1880,13 @@ struct ProfileIdentityCard: View {
                         }
                 }
                 .shadow(color: isPrimary ? FGColor.accentYellow.opacity(0.45) : .clear, radius: 8, y: 2)
+                .scaleEffect(isAnimatingSelection && !reduceMotion ? 1.13 : 1.0)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isPrimary ? "\(team.name) is your Trophy Team" : "Make \(team.name) your Trophy Team")
+        .animation(trophyVisualTransitionAnimation, value: isPrimary)
+        .animation(trophyPulseAnimation, value: isAnimatingSelection)
+        .accessibilityLabel(isPrimary ? "\(team.name) is My Team" : "Make \(team.name) My Team")
         .accessibilityHint(isPrimary ? "Only one favorite team can be primary" : "Promotes this favorite team to primary")
     }
 
@@ -1862,7 +1962,9 @@ struct ProfileIdentityCard: View {
         print("[FavoriteTeamsDebug] previousTrophyTeamCleared=\(previousPrimary != nil)")
 #endif
 
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+        startTrophySelectionAnimation(teamID: team.id, previousPrimaryID: previousPrimary)
+
+        withAnimation(trophyVisualTransitionAnimation) {
             primaryFavoriteTeamIDRaw = team.id
         }
 
@@ -1875,6 +1977,90 @@ struct ProfileIdentityCard: View {
                 }
             }
         }
+    }
+
+    private var trophyVisualTransitionAnimation: Animation {
+        reduceMotion
+            ? .easeInOut(duration: 0.24)
+            : .spring(response: 0.34, dampingFraction: 0.82)
+    }
+
+    private var trophyPulseAnimation: Animation {
+        reduceMotion
+            ? .easeInOut(duration: 0.20)
+            : .spring(response: 0.26, dampingFraction: 0.58)
+    }
+
+    private func startTrophySelectionAnimation(teamID: String, previousPrimaryID: String?) {
+        trophyAnimationTask?.cancel()
+        trophyShimmerProgress = -0.6
+
+#if DEBUG
+        print("[FavoriteTeamsDebug] trophyAnimationStarted teamId=\(teamID)")
+        if previousPrimaryID != nil {
+            print("[FavoriteTeamsDebug] previousTrophyDemotedAnimated=true")
+        }
+#endif
+
+        withAnimation(trophyPulseAnimation) {
+            animatedTrophyTeamID = teamID
+            demotedTrophyTeamID = previousPrimaryID
+        }
+
+        if !reduceMotion {
+            withAnimation(.easeInOut(duration: 0.42)) {
+                trophyShimmerProgress = 1.35
+            }
+        }
+
+        let durationSeconds = reduceMotion ? 0.28 : 0.46
+        trophyAnimationTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(durationSeconds * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(trophyVisualTransitionAnimation) {
+                    animatedTrophyTeamID = nil
+                    demotedTrophyTeamID = nil
+                }
+                trophyShimmerProgress = -0.6
+                trophyAnimationTask = nil
+#if DEBUG
+                print("[FavoriteTeamsDebug] trophyAnimationCompleted teamId=\(teamID)")
+#endif
+            }
+        }
+    }
+
+    private func trophySelectionShimmer(cornerRadius: CGFloat) -> some View {
+        GeometryReader { proxy in
+            let width = max(proxy.size.width, 1)
+            let shimmerWidth = max(width * 0.36, 46)
+
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.0),
+                            FGColor.accentYellow.opacity(0.18),
+                            Color.white.opacity(0.24),
+                            Color.white.opacity(0.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: shimmerWidth, height: proxy.size.height * 1.45)
+                .rotationEffect(.degrees(14))
+                .offset(
+                    x: -width + trophyShimmerProgress * (width + shimmerWidth),
+                    y: -proxy.size.height * 0.18
+                )
+                .blendMode(.screen)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func favoriteTeamCardSportBadge(team: FavoriteTeam) -> some View {

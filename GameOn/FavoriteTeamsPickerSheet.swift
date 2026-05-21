@@ -89,7 +89,7 @@ struct FavoriteTeamsPickerSheet: View {
                 Text("Choose your favorites")
                     .font(FGTypography.body.weight(.semibold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick your favorite teams. Choose one Trophy Team later.")
+                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick your favorite teams. Choose My Team later.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
@@ -262,6 +262,7 @@ struct FavoriteTeamsPickerSheet: View {
 
     private func teamRow(_ team: FavoriteTeam) -> some View {
         let isSelected = selectedIDs.contains(team.id)
+        let sportAccent = sportAccentColor(for: team.sport.chipTitle)
         return Button {
             if isSelected {
                 selectedIDs.remove(team.id)
@@ -288,6 +289,15 @@ struct FavoriteTeamsPickerSheet: View {
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
+            .overlay(alignment: .leading) {
+                if isSelected {
+                    Capsule(style: .continuous)
+                        .fill(sportAccent.opacity(colorScheme == .dark ? 0.72 : 0.55))
+                        .frame(width: 3)
+                        .shadow(color: sportAccent.opacity(colorScheme == .dark ? 0.28 : 0.16), radius: 5, x: 1)
+                        .offset(x: -8)
+                }
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(team.name), \(isSelected ? "selected" : "not selected")")
@@ -307,13 +317,17 @@ struct FavoriteTeamsPickerSheet: View {
         .background {
             if isSelected {
                 Capsule(style: .continuous)
-                    .fill(team.sport.accentColor.opacity(colorScheme == .dark ? 0.16 : 0.10))
+                    .fill(sportAccentColor(for: team.sport.chipTitle).opacity(colorScheme == .dark ? 0.16 : 0.10))
             }
         }
         .onAppear {
 #if DEBUG
             print("[FavoriteTeamsDebug] sportIconRendered sport=\(team.sport.chipTitle)")
             print("[FavoriteTeamsDebug] favoriteTeamCardSportIconVisible=true")
+            if isSelected {
+                print("[FavoriteTeamsDebug] sportAccentRendered sport=\(team.sport.chipTitle)")
+                print("[FavoriteTeamsDebug] sportAccentColorApplied=true")
+            }
 #endif
         }
     }

@@ -108,6 +108,47 @@ func sportIcon(for sportName: String) -> String {
     return "🏟️"
 }
 
+func sportAccentColor(for sportName: String) -> Color {
+    let normalized = sportName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if normalized.contains("soccer") || normalized.contains("mls") || normalized.contains("premier") {
+        return Color(red: 0.18, green: 0.74, blue: 0.38)
+    }
+    if normalized.contains("basketball") || normalized.contains("nba") {
+        return Color(red: 0.96, green: 0.48, blue: 0.12)
+    }
+    if normalized.contains("football") || normalized.contains("nfl") {
+        return Color(red: 0.68, green: 0.46, blue: 0.20)
+    }
+    if normalized.contains("baseball") || normalized.contains("mlb") {
+        return Color(red: 0.82, green: 0.16, blue: 0.22)
+    }
+    if normalized.contains("hockey") || normalized.contains("nhl") {
+        return Color(red: 0.20, green: 0.78, blue: 0.96)
+    }
+    if normalized.contains("golf") {
+        return Color(red: 0.05, green: 0.62, blue: 0.35)
+    }
+    if normalized.contains("tennis") {
+        return Color(red: 0.72, green: 0.90, blue: 0.14)
+    }
+    if normalized.contains("combat") || normalized.contains("mma") || normalized.contains("ufc") || normalized.contains("boxing") {
+        return Color(red: 0.76, green: 0.12, blue: 0.14)
+    }
+    if normalized.contains("racing") || normalized.contains("formula") || normalized.contains("f1") {
+        return Color(red: 0.92, green: 0.10, blue: 0.14)
+    }
+    if normalized.contains("volleyball") {
+        return Color(red: 0.94, green: 0.34, blue: 0.28)
+    }
+    if normalized.contains("cricket") {
+        return Color(red: 0.10, green: 0.68, blue: 0.54)
+    }
+    if normalized.contains("rugby") {
+        return Color(red: 0.48, green: 0.18, blue: 0.13)
+    }
+    return Color(red: 0.12, green: 0.64, blue: 0.72)
+}
+
 enum FavoriteTeamKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case team = "team"
     case nationalTeam = "national_team"

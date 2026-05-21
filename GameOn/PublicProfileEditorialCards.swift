@@ -370,7 +370,7 @@ struct PublicProfileEditorialHero: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Trophy Team")
+                Text("My Team")
                     .font(.system(size: 9, weight: .heavy, design: .rounded))
                     .foregroundStyle(FGColor.accentYellow.opacity(0.96))
                     .textCase(.uppercase)
@@ -396,6 +396,12 @@ struct PublicProfileEditorialHero: View {
                     Capsule(style: .continuous)
                         .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.34 : 0.22), lineWidth: 1)
                 }
+        }
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] userFacingPrimaryLabel=MyTeam")
+            print("[FavoriteTeamsDebug] primaryTeamDisplayUpdated=true")
+#endif
         }
         .shadow(color: FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: 9, y: 3)
     }
@@ -590,6 +596,7 @@ struct PublicProfileFavoriteTeamsCard: View {
         let rowFill = isPrimary
             ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.10 : 0.06)
             : team.badgeColor.opacity(colorScheme == .dark ? 0.14 : 0.08)
+        let sportAccent = sportAccentColor(for: team.sport.chipTitle)
 
         return HStack(spacing: 10) {
             FavoriteTeamLogoBadge(team: team, diameter: 34)
@@ -608,7 +615,7 @@ struct PublicProfileFavoriteTeamsCard: View {
                 HStack(spacing: 4) {
                     Image(systemName: "trophy.fill")
                         .font(.system(size: 11, weight: .heavy))
-                    Text("Trophy")
+                    Text("My Team")
                         .font(.system(size: 10, weight: .heavy, design: .rounded))
                 }
                 .foregroundStyle(FGColor.accentYellow.opacity(0.96))
@@ -638,6 +645,37 @@ struct PublicProfileFavoriteTeamsCard: View {
                         )
                 }
         }
+        .overlay(alignment: .topLeading) {
+            publicFavoriteTeamSportAccent(color: sportAccent)
+        }
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] sportAccentRendered sport=\(team.sport.chipTitle)")
+            print("[FavoriteTeamsDebug] sportAccentColorApplied=true")
+#endif
+        }
+    }
+
+    private func publicFavoriteTeamSportAccent(color: Color) -> some View {
+        VStack(spacing: 0) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            color.opacity(colorScheme == .dark ? 0.52 : 0.40),
+                            color.opacity(colorScheme == .dark ? 0.16 : 0.11),
+                            Color.clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 2)
+            Spacer(minLength: 0)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private func publicFavoriteTeamSportBadge(_ team: FavoriteTeam) -> some View {
