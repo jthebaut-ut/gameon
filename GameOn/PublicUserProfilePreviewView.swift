@@ -104,6 +104,9 @@ struct PublicUserProfilePreviewView: View {
                 )
             }
 
+            PublicProfileFavoriteTeamsCard(data: data)
+                .frame(maxWidth: .infinity)
+
             PublicProfileTwoColumnGrid(data: data, colorScheme: colorScheme)
 
             if data.organizerStats?.hasPublicOrganizerRatings == true || data.pickupHostedCount > 0 {

@@ -161,7 +161,7 @@ struct SettingsScreen: View {
     /// Which pending claim row is running ``performPendingClaimRefresh(claimId:)`` (nil = idle).
     @State private var pendingRefreshingClaimId: UUID?
     @AppStorage(FanGeoAppearancePreference.appStorageKey) private var appearancePreferenceRaw = FanGeoAppearancePreference.system.rawValue
-    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireFaceIDForPrivateChat = true
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireFaceIDForPrivateChat = false
 
     private var appearancePreference: FanGeoAppearancePreference {
         FanGeoAppearancePreference(rawValue: appearancePreferenceRaw) ?? .system
@@ -530,6 +530,7 @@ struct SettingsScreen: View {
                 }
             }
             .onAppear {
+                print("[FaceIDSettingsDebug] defaultPrivateChatFaceID=false")
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
                 Task {
                     await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: true)
@@ -3313,7 +3314,7 @@ private struct SettingsUserSection: View {
 // MARK: - Private chat (local device lock)
 
 private struct SettingsPrivateChatDeviceAuthCard: View {
-    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = true
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = false
 
     private var requireFaceIDBinding: Binding<Bool> {
         Binding(

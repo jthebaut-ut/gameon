@@ -67,6 +67,7 @@ struct ProfileIdentityCard: View {
     @FocusState private var focusedIdentityField: IdentityField?
 
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
+    @AppStorage(FavoriteTeamsStore.primaryTeamIDAppStorageKey) private var primaryFavoriteTeamIDRaw: String = ""
     @State private var showFavoriteTeamsPicker = false
     @State private var showHandleSetup = false
     @State private var showIdentityEditor = false
@@ -99,6 +100,8 @@ struct ProfileIdentityCard: View {
     private static let incomingPokesLiveRefreshIntervalSeconds = 20
     private static let incomingPokesLiveRefreshIntervalNs: UInt64 =
         UInt64(incomingPokesLiveRefreshIntervalSeconds) * 1_000_000_000
+    private static let favoriteTeamsCarouselHeight: CGFloat = 178
+    private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 24
 
     private let profilePokesService = ProfilePokesService()
     private let friendSuggestionsService = FriendSuggestionsService()
@@ -138,6 +141,19 @@ struct ProfileIdentityCard: View {
 
     private var selectedIDSet: Set<String> {
         Set(FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw))
+    }
+
+    private var selectedTeamIDs: [String] {
+        FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw)
+    }
+
+    private var primaryFavoriteTeamID: String? {
+        FavoriteTeamsStore.normalizedPrimaryTeamID(primaryFavoriteTeamIDRaw, within: selectedTeamIDs)
+    }
+
+    private var primaryFavoriteTeam: FavoriteTeam? {
+        guard let primaryFavoriteTeamID else { return nil }
+        return selectedTeams.first { $0.id == primaryFavoriteTeamID }
     }
 
     private var displayName: String {
@@ -326,9 +342,11 @@ struct ProfileIdentityCard: View {
                         get: { selectedIDSet },
                         set: { newSet in
                             let sorted = Array(newSet).sorted()
+                            let nextPrimary = FavoriteTeamsStore.normalizedPrimaryTeamID(primaryFavoriteTeamIDRaw, within: sorted)
                             favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(sorted)
+                            primaryFavoriteTeamIDRaw = nextPrimary ?? ""
                             Task {
-                                await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sorted)
+                                await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sorted, primaryTeamID: nextPrimary)
                             }
                         }
                     )
@@ -982,6 +1000,10 @@ struct ProfileIdentityCard: View {
                             .font(.system(size: 12.5, weight: .semibold, design: .rounded))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
+
+                        if let primaryFavoriteTeam {
+                            trophyTeamHeaderBadge(primaryFavoriteTeam)
+                        }
                     }
                     .contentShape(Rectangle())
                 }
@@ -1034,6 +1056,40 @@ struct ProfileIdentityCard: View {
         .padding(.vertical, 5)
         .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
         .clipShape(Capsule())
+    }
+
+    private func trophyTeamHeaderBadge(_ team: FavoriteTeam) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: "trophy.fill")
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(FGColor.accentYellow)
+            Text(team.shortCode?.isEmpty == false ? team.shortCode! : team.name)
+                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+            Text("Trophy Team")
+                .font(.system(size: 9, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.accentYellow)
+                .textCase(.uppercase)
+                .tracking(0.6)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background {
+            Capsule(style: .continuous)
+                .fill(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.16 : 0.11))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.30 : 0.22), lineWidth: 1)
+                }
+        }
+        .shadow(color: FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: 9, y: 3)
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] primaryTeamDisplayed=\(team.id)")
+#endif
+        }
     }
 
     private var profileHeroPokesBadgeVisible: Bool {
@@ -1566,7 +1622,7 @@ struct ProfileIdentityCard: View {
     // MARK: - Favorite teams
 
     private var favoriteTeamsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Favorite Teams")
@@ -1601,9 +1657,16 @@ struct ProfileIdentityCard: View {
 
             if selectedTeams.isEmpty {
                 addTeamSocialCard
+                    .frame(height: Self.favoriteTeamsCarouselHeight, alignment: .topLeading)
             } else {
                 favoriteTeamsCardRow
             }
+        }
+        .padding(.bottom, Self.favoriteTeamsHomeCrowdBottomSpacing)
+        .onAppear {
+#if DEBUG
+            print("[ProfileLayoutDebug] favoriteTeamsHomeCrowdSpacingFixed=true")
+#endif
         }
     }
 
@@ -1618,16 +1681,17 @@ struct ProfileIdentityCard: View {
             }
             .padding(.vertical, 1)
         }
+        .frame(height: Self.favoriteTeamsCarouselHeight, alignment: .topLeading)
     }
 
     private func favoriteTeamSocialCard(team: FavoriteTeam) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let isPrimary = team.id == primaryFavoriteTeamID
+
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 8) {
                 PremiumTeamIdentityOrb(team: team, diameter: 62)
                 Spacer(minLength: 0)
-                Image(systemName: "star.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color.white.opacity(0.86))
+                trophyTeamButton(team: team, isPrimary: isPrimary)
 
                 removeFavoriteTeamButton(team: team)
             }
@@ -1640,10 +1704,17 @@ struct ProfileIdentityCard: View {
                     .truncationMode(.tail)
                     .minimumScaleFactor(0.75)
 
-                Text(team.sport.chipTitle)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.78))
-                    .lineLimit(1)
+                favoriteTeamCardSportBadge(team: team)
+
+                HStack(spacing: 5) {
+                    Image(systemName: isPrimary ? "trophy.fill" : "trophy")
+                        .font(.system(size: 10, weight: .heavy))
+                    Text(isPrimary ? "Trophy Team" : "Tap trophy for #1")
+                        .font(.system(size: 10, weight: .heavy, design: .rounded))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(isPrimary ? FGColor.accentYellow : Color.white.opacity(0.70))
+                .padding(.top, 6)
             }
 
             Spacer(minLength: 0)
@@ -1678,7 +1749,45 @@ struct ProfileIdentityCard: View {
                         )
                 }
         }
-        .shadow(color: team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.16), radius: 14, y: 8)
+        .shadow(
+            color: isPrimary
+                ? FGColor.accentYellow.opacity(colorScheme == .dark ? 0.26 : 0.20)
+                : team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.16),
+            radius: isPrimary ? 18 : 14,
+            y: isPrimary ? 9 : 8
+        )
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] favoriteTeamsCount=\(selectedTeams.count)")
+#endif
+        }
+    }
+
+    private func trophyTeamButton(team: FavoriteTeam, isPrimary: Bool) -> some View {
+        Button {
+            promoteTrophyTeam(team)
+        } label: {
+            Image(systemName: isPrimary ? "trophy.fill" : "trophy")
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(isPrimary ? FGColor.accentYellow : Color.white.opacity(0.78))
+                .frame(width: 30, height: 30)
+                .background {
+                    Circle()
+                        .fill(isPrimary ? FGColor.accentYellow.opacity(0.18) : Color.black.opacity(0.18))
+                        .overlay {
+                            Circle()
+                                .strokeBorder(
+                                    isPrimary ? FGColor.accentYellow.opacity(0.64) : Color.white.opacity(0.22),
+                                    lineWidth: 1
+                                )
+                        }
+                }
+                .shadow(color: isPrimary ? FGColor.accentYellow.opacity(0.45) : .clear, radius: 8, y: 2)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isPrimary ? "\(team.name) is your Trophy Team" : "Make \(team.name) your Trophy Team")
+        .accessibilityHint(isPrimary ? "Only one favorite team can be primary" : "Promotes this favorite team to primary")
     }
 
     private func removeFavoriteTeamButton(team: FavoriteTeam) -> some View {
@@ -1708,15 +1817,21 @@ struct ProfileIdentityCard: View {
         print("[FavoriteTeamsProfile] remove tapped team_id=\(team.id)")
 #endif
         let previousIDs = FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw)
+        let previousPrimary = primaryFavoriteTeamID
         let nextIDs = previousIDs.filter { $0 != team.id }
         guard nextIDs.count != previousIDs.count else { return }
+        let nextPrimary = FavoriteTeamsStore.normalizedPrimaryTeamID(
+            previousPrimary == team.id ? nil : previousPrimary,
+            within: nextIDs
+        )
 
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(nextIDs)
+            primaryFavoriteTeamIDRaw = nextPrimary ?? ""
         }
 
         Task {
-            let didSync = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: nextIDs)
+            let didSync = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: nextIDs, primaryTeamID: nextPrimary)
             if didSync {
 #if DEBUG
                 print("[FavoriteTeamsProfile] remove success team_id=\(team.id)")
@@ -1727,10 +1842,64 @@ struct ProfileIdentityCard: View {
             await MainActor.run {
                 withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
                     favoriteTeamIDsRaw = FavoriteTeamsStore.encodeIDs(previousIDs)
+                    primaryFavoriteTeamIDRaw = previousPrimary ?? ""
                 }
             }
 #if DEBUG
             print("[FavoriteTeamsProfile] remove failed team_id=\(team.id) error=sync_failed")
+#endif
+        }
+    }
+
+    private func promoteTrophyTeam(_ team: FavoriteTeam) {
+        let ids = FavoriteTeamsStore.decodeIDs(from: favoriteTeamIDsRaw)
+        guard ids.contains(team.id) else { return }
+        let previousPrimary = primaryFavoriteTeamID
+        guard previousPrimary != team.id else { return }
+
+#if DEBUG
+        print("[FavoriteTeamsDebug] trophyTeamSelected teamId=\(team.id)")
+        print("[FavoriteTeamsDebug] previousTrophyTeamCleared=\(previousPrimary != nil)")
+#endif
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            primaryFavoriteTeamIDRaw = team.id
+        }
+
+        Task {
+            let didSync = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: ids, primaryTeamID: team.id)
+            guard !didSync else { return }
+            await MainActor.run {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                    primaryFavoriteTeamIDRaw = previousPrimary ?? ""
+                }
+            }
+        }
+    }
+
+    private func favoriteTeamCardSportBadge(team: FavoriteTeam) -> some View {
+        HStack(spacing: 5) {
+            Text(sportIcon(for: team.sport.chipTitle))
+                .font(.system(size: 13))
+            Text(team.sport.chipTitle)
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .lineLimit(1)
+        }
+        .foregroundStyle(.white.opacity(0.84))
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background {
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.13))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.75)
+                }
+        }
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] sportIconRendered sport=\(team.sport.chipTitle)")
+            print("[FavoriteTeamsDebug] favoriteTeamCardSportIconVisible=true")
 #endif
         }
     }

@@ -208,6 +208,10 @@ final class MapViewModel: ObservableObject {
         get { fanUpdatesStore.venueEventCommentsRealtimeSubscribeStartedAt }
         set { fanUpdatesStore.venueEventCommentsRealtimeSubscribeStartedAt = newValue }
     }
+    var venueEventCommentsRealtimeLastEventAt: [UUID: Date] {
+        get { fanUpdatesStore.venueEventCommentsRealtimeLastEventAt }
+        set { fanUpdatesStore.venueEventCommentsRealtimeLastEventAt = newValue }
+    }
     var venueEventCommentRealtimeReceivedServerIDs: Set<UUID> {
         get { fanUpdatesStore.venueEventCommentRealtimeReceivedServerIDs }
         set { fanUpdatesStore.venueEventCommentRealtimeReceivedServerIDs = newValue }
@@ -227,6 +231,30 @@ final class MapViewModel: ObservableObject {
     var fanChatAutoRefreshInFlightIDs: Set<UUID> {
         get { fanUpdatesStore.fanChatAutoRefreshInFlightIDs }
         set { fanUpdatesStore.fanChatAutoRefreshInFlightIDs = newValue }
+    }
+    var venueEventCommentReactionRealtimeTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.venueEventCommentReactionRealtimeTasks }
+        set { fanUpdatesStore.venueEventCommentReactionRealtimeTasks = newValue }
+    }
+    var venueEventCommentReactionRealtimeChannels: [UUID: RealtimeChannelV2] {
+        get { fanUpdatesStore.venueEventCommentReactionRealtimeChannels }
+        set { fanUpdatesStore.venueEventCommentReactionRealtimeChannels = newValue }
+    }
+    var venueEventCommentReactionRealtimeReadyIDs: Set<UUID> {
+        get { fanUpdatesStore.venueEventCommentReactionRealtimeReadyIDs }
+        set { fanUpdatesStore.venueEventCommentReactionRealtimeReadyIDs = newValue }
+    }
+    var venueEventCommentReactionRealtimeTrackedCommentIDs: [UUID: [UUID]] {
+        get { fanUpdatesStore.venueEventCommentReactionRealtimeTrackedCommentIDs }
+        set { fanUpdatesStore.venueEventCommentReactionRealtimeTrackedCommentIDs = newValue }
+    }
+    var venueEventCommentReactionDebounceTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.venueEventCommentReactionDebounceTasks }
+        set { fanUpdatesStore.venueEventCommentReactionDebounceTasks = newValue }
+    }
+    var venueEventCommentReactionFallbackPollTasks: [UUID: Task<Void, Never>] {
+        get { fanUpdatesStore.venueEventCommentReactionFallbackPollTasks }
+        set { fanUpdatesStore.venueEventCommentReactionFallbackPollTasks = newValue }
     }
     var venueEventCommentDebugSendTapDatesByLocalID: [UUID: Date] {
         get { fanUpdatesStore.venueEventCommentDebugSendTapDatesByLocalID }
@@ -555,6 +583,10 @@ final class MapViewModel: ObservableObject {
     var fanUpdatesVibePrefetchedAt: [UUID: Date] {
         get { fanUpdatesStore.fanUpdatesVibePrefetchedAt }
         set { fanUpdatesStore.fanUpdatesVibePrefetchedAt = newValue }
+    }
+    var venueEventCommentReactionLastRefreshAt: [UUID: Date] {
+        get { fanUpdatesStore.venueEventCommentReactionLastRefreshAt }
+        set { fanUpdatesStore.venueEventCommentReactionLastRefreshAt = newValue }
     }
     var fanUpdatesGoingProfilePrefetchedAt: [UUID: Date] = [:]
 

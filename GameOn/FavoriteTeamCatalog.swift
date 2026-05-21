@@ -67,6 +67,47 @@ enum FavoriteTeamSport: String, CaseIterable, Identifiable, Codable, Hashable {
     }
 }
 
+func sportIcon(for sportName: String) -> String {
+    let normalized = sportName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    if normalized.contains("soccer") || normalized.contains("mls") || normalized.contains("premier") {
+        return "⚽️"
+    }
+    if normalized.contains("basketball") || normalized.contains("nba") {
+        return "🏀"
+    }
+    if normalized.contains("football") || normalized.contains("nfl") {
+        return "🏈"
+    }
+    if normalized.contains("baseball") || normalized.contains("mlb") {
+        return "⚾️"
+    }
+    if normalized.contains("hockey") || normalized.contains("nhl") {
+        return "🏒"
+    }
+    if normalized.contains("tennis") {
+        return "🎾"
+    }
+    if normalized.contains("golf") {
+        return "⛳️"
+    }
+    if normalized.contains("combat") || normalized.contains("mma") || normalized.contains("ufc") || normalized.contains("boxing") {
+        return "🥊"
+    }
+    if normalized.contains("racing") || normalized.contains("formula") || normalized.contains("f1") {
+        return "🏎️"
+    }
+    if normalized.contains("volleyball") {
+        return "🏐"
+    }
+    if normalized.contains("cricket") {
+        return "🏏"
+    }
+    if normalized.contains("rugby") {
+        return "🏉"
+    }
+    return "🏟️"
+}
+
 enum FavoriteTeamKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case team = "team"
     case nationalTeam = "national_team"
@@ -755,6 +796,7 @@ enum FavoriteTeamLiveMatcher {
 
 enum FavoriteTeamsStore {
     static let appStorageKey = "gameon.profile.favoriteTeamIDs"
+    static let primaryTeamIDAppStorageKey = "gameon.profile.primaryFavoriteTeamID"
 
     static func decodeIDs(from raw: String) -> [String] {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -779,5 +821,22 @@ enum FavoriteTeamsStore {
 
     static func writeToAppStorage(_ ids: [String]) {
         UserDefaults.standard.set(encodeIDs(ids), forKey: appStorageKey)
+    }
+
+    static func normalizedPrimaryTeamID(_ raw: String?, within ids: [String]) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty, ids.contains(trimmed), FavoriteTeamCatalog.team(id: trimmed) != nil else {
+            return ids.first { FavoriteTeamCatalog.team(id: $0) != nil }
+        }
+        return trimmed
+    }
+
+    static func writePrimaryTeamIDToAppStorage(_ teamID: String?) {
+        let trimmed = teamID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            UserDefaults.standard.removeObject(forKey: primaryTeamIDAppStorageKey)
+        } else {
+            UserDefaults.standard.set(trimmed, forKey: primaryTeamIDAppStorageKey)
+        }
     }
 }

@@ -374,7 +374,8 @@ struct FanGeoIdentitySetupView: View {
         if mode == .complete, !favoriteTeamIDs.isEmpty {
             let sortedIDs = favoriteTeamIDs.sorted()
             FavoriteTeamsStore.writeToAppStorage(sortedIDs)
-            _ = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sortedIDs)
+            FavoriteTeamsStore.writePrimaryTeamIDToAppStorage(sortedIDs.first)
+            _ = await viewModel.syncFavoriteTeamsToSupabase(teamIDs: sortedIDs, primaryTeamID: sortedIDs.first)
         }
 
         print("[SignupProfileDebug] profileSaveSuccess")

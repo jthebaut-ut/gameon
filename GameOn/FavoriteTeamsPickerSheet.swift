@@ -3,7 +3,6 @@ import SwiftUI
 /// Sheet to pick favorite teams from the local ``FavoriteTeamCatalog``.
 struct FavoriteTeamsPickerSheet: View {
     @Binding var selectedIDs: Set<String>
-    var maximumSelectionCount: Int = 2
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
@@ -61,6 +60,17 @@ struct FavoriteTeamsPickerSheet: View {
                 .scrollContentBackground(.hidden)
             }
             .fanGeoScreenBackground()
+            .onAppear {
+#if DEBUG
+                print("[FavoriteTeamsDebug] unlimitedFavoritesEnabled=true")
+                print("[FavoriteTeamsDebug] selectedFavoriteTeamsCount=\(selectedIDs.count)")
+#endif
+            }
+            .onChange(of: selectedIDs) { _, newValue in
+#if DEBUG
+                print("[FavoriteTeamsDebug] selectedFavoriteTeamsCount=\(newValue.count)")
+#endif
+            }
             .navigationTitle("Favorites")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search favorites")
@@ -79,7 +89,7 @@ struct FavoriteTeamsPickerSheet: View {
                 Text("Choose your favorites")
                     .font(FGTypography.body.weight(.semibold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick up to \(maximumSelectionCount).")
+                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick your favorite teams. Choose one Trophy Team later.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
@@ -252,11 +262,10 @@ struct FavoriteTeamsPickerSheet: View {
 
     private func teamRow(_ team: FavoriteTeam) -> some View {
         let isSelected = selectedIDs.contains(team.id)
-        let selectionLimitReached = selectedIDs.count >= maximumSelectionCount && !isSelected
         return Button {
             if isSelected {
                 selectedIDs.remove(team.id)
-            } else if !selectionLimitReached {
+            } else {
                 selectedIDs.insert(team.id)
             }
         } label: {
@@ -268,24 +277,45 @@ struct FavoriteTeamsPickerSheet: View {
                         .font(FGTypography.body.weight(.semibold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .multilineTextAlignment(.leading)
-                    Text(teamMetadataLine(team))
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    pickerTeamSportMetadata(team: team, isSelected: isSelected)
                 }
 
                 Spacer(minLength: 0)
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.mutedText(colorScheme).opacity(selectionLimitReached ? 0.45 : 1))
+                    .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.mutedText(colorScheme))
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
-            .opacity(selectionLimitReached ? 0.52 : 1)
         }
         .buttonStyle(.plain)
-        .disabled(selectionLimitReached)
         .accessibilityLabel("\(team.name), \(isSelected ? "selected" : "not selected")")
+    }
+
+    private func pickerTeamSportMetadata(team: FavoriteTeam, isSelected: Bool) -> some View {
+        HStack(spacing: 6) {
+            Text(sportIcon(for: team.sport.chipTitle))
+                .font(.system(size: 13))
+            Text(teamMetadataLine(team))
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+        }
+        .padding(.horizontal, isSelected ? 7 : 0)
+        .padding(.vertical, isSelected ? 3 : 0)
+        .background {
+            if isSelected {
+                Capsule(style: .continuous)
+                    .fill(team.sport.accentColor.opacity(colorScheme == .dark ? 0.16 : 0.10))
+            }
+        }
+        .onAppear {
+#if DEBUG
+            print("[FavoriteTeamsDebug] sportIconRendered sport=\(team.sport.chipTitle)")
+            print("[FavoriteTeamsDebug] favoriteTeamCardSportIconVisible=true")
+#endif
+        }
     }
 
     private func teamMetadataLine(_ team: FavoriteTeam) -> String {

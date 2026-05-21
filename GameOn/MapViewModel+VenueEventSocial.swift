@@ -179,7 +179,8 @@ extension MapViewModel {
             interestCounts: venueEventInterestCounts,
             followingInterestIDs: followingTabUserVenueEventInterestIDs,
             followingInterestCounts: followingTabGoingInterestCounts,
-            followingItems: followingTabGoingItems
+            followingItems: followingTabGoingItems,
+            goingProfiles: goingProfilesByVenueEventID
         )
 
         applyOptimisticVenueGameGoingUI(
@@ -208,6 +209,7 @@ extension MapViewModel {
         let followingInterestIDs: Set<UUID>
         let followingInterestCounts: [UUID: Int]
         let followingItems: [FollowingGoingDisplayItem]
+        let goingProfiles: [UUID: [UserProfileRow]]
     }
 
     @MainActor
@@ -247,7 +249,8 @@ extension MapViewModel {
         previousInterestCounts: [UUID: Int],
         previousFollowingInterestIDs: Set<UUID>,
         previousFollowingInterestCounts: [UUID: Int],
-        previousFollowingItems: [FollowingGoingDisplayItem]
+        previousFollowingItems: [FollowingGoingDisplayItem],
+        previousGoingProfiles: [UUID: [UserProfileRow]]
     ) {
         if let venueEventID {
             venueEventInterestWriteInFlightIDs.remove(venueEventID)
@@ -260,6 +263,7 @@ extension MapViewModel {
         followingTabUserVenueEventInterestIDs = previousFollowingInterestIDs
         followingTabGoingInterestCounts = previousFollowingInterestCounts
         followingTabGoingItems = previousFollowingItems
+        goingProfilesByVenueEventID = previousGoingProfiles
         if restoreGoing {
             markInterested(in: bar, gameTitle: gameTitle)
         } else {
@@ -291,7 +295,8 @@ extension MapViewModel {
                     previousInterestCounts: rollbackSnapshot.interestCounts,
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
-                    previousFollowingItems: rollbackSnapshot.followingItems
+                    previousFollowingItems: rollbackSnapshot.followingItems,
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles
                 )
                 showSocialActionToast("Please log in with a FanGeo account to mark yourself as going.")
             }
@@ -310,7 +315,8 @@ extension MapViewModel {
                     previousInterestCounts: rollbackSnapshot.interestCounts,
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
-                    previousFollowingItems: rollbackSnapshot.followingItems
+                    previousFollowingItems: rollbackSnapshot.followingItems,
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles
                 )
                 showSocialActionToast("Couldn't find this game yet. Try again in a moment.")
             }
@@ -368,7 +374,8 @@ extension MapViewModel {
                     previousInterestCounts: rollbackSnapshot.interestCounts,
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
-                    previousFollowingItems: rollbackSnapshot.followingItems
+                    previousFollowingItems: rollbackSnapshot.followingItems,
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles
                 )
                 showSocialActionToast("Couldn't update your game plan.")
             }
@@ -503,11 +510,64 @@ extension MapViewModel {
     }
 
     @MainActor
+    private func currentUserGoingProfileRow() -> UserProfileRow? {
+        guard let id = currentUserAuthId else { return nil }
+        let email = OwnerBusinessEmail.normalized(currentUserEmail)
+        let displayName = currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let handle = currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        return UserProfileRow(
+            id: id,
+            email: email.isEmpty ? nil : email,
+            display_name: displayName.isEmpty ? nil : displayName,
+            username: handle.isEmpty ? nil : handle,
+            bio: nil,
+            avatar_url: ImageDisplayURL.canonicalStorageURLString(currentUserAvatarURL),
+            avatar_thumbnail_url: ImageDisplayURL.canonicalStorageURLString(currentUserAvatarThumbnailURL),
+            is_business_account: false,
+            admin_status: "active",
+            live_visibility_enabled: true,
+            live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
+            selected_live_visibility_friend_ids: nil,
+            discoverable_by_fans: true,
+            created_at: nil
+        )
+    }
+
+    private func userProfileRow(_ lhs: UserProfileRow, matchesCurrentUserProfile rhs: UserProfileRow) -> Bool {
+        if let lhsID = lhs.id, let rhsID = rhs.id, lhsID == rhsID {
+            return true
+        }
+        let lhsEmail = OwnerBusinessEmail.normalized(lhs.email ?? "")
+        let rhsEmail = OwnerBusinessEmail.normalized(rhs.email ?? "")
+        return OwnerBusinessEmail.isValidStrict(lhsEmail) && lhsEmail == rhsEmail
+    }
+
+    @MainActor
+    private func addCurrentUserGoingAvatarProfileIfPossible(for venueEventID: UUID) {
+        guard let current = currentUserGoingProfileRow() else { return }
+        var profiles = goingProfilesByVenueEventID[venueEventID] ?? []
+        profiles.removeAll { userProfileRow($0, matchesCurrentUserProfile: current) }
+        profiles.insert(current, at: 0)
+        goingProfilesByVenueEventID[venueEventID] = profiles
+#if DEBUG
+        print("[GoingAvatarDebug] optimisticAvatarAdded=true")
+#endif
+    }
+
+    @MainActor
+    private func removeCurrentUserGoingAvatarProfile(for venueEventID: UUID) {
+        guard let current = currentUserGoingProfileRow() else { return }
+        var profiles = goingProfilesByVenueEventID[venueEventID] ?? []
+        profiles.removeAll { userProfileRow($0, matchesCurrentUserProfile: current) }
+        goingProfilesByVenueEventID[venueEventID] = profiles
+    }
+
+    @MainActor
     private func optimisticRemoveFollowingTabGoingItem(venueEventID: UUID) {
         let wireId = normalizedVenueEventWireId(venueEventID)
         let hadItem = followingTabGoingItems.contains { $0.id == venueEventID }
         followingTabGoingItems.removeAll { $0.id == venueEventID }
-        goingProfilesByVenueEventID.removeValue(forKey: venueEventID)
+        removeCurrentUserGoingAvatarProfile(for: venueEventID)
         if venueEventInterestCounts[venueEventID] != nil {
             venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 0), 0)
             followingTabGoingInterestCounts[venueEventID] = venueEventInterestCounts[venueEventID]
@@ -605,11 +665,13 @@ extension MapViewModel {
                 venueEventInterestCounts[venueEventID, default: 0] += 1
                 followingTabUserVenueEventInterestIDs.insert(venueEventID)
             }
+            addCurrentUserGoingAvatarProfileIfPossible(for: venueEventID)
         } else {
             guard wasInterested else { return }
             venueEventInterestIDs.remove(venueEventID)
             venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 0) - 1, 0)
             followingTabUserVenueEventInterestIDs.remove(venueEventID)
+            removeCurrentUserGoingAvatarProfile(for: venueEventID)
         }
 
         reconcileFollowingGoingDisplayAfterInterestMutation(
@@ -704,6 +766,7 @@ extension MapViewModel {
             previousFollowingInterestIDs: Set<UUID>,
             previousFollowingInterestCounts: [UUID: Int],
             previousFollowingItems: [FollowingGoingDisplayItem],
+            previousGoingProfiles: [UUID: [UserProfileRow]],
             wasAlreadyInterested: Bool
         ) in
             (
@@ -712,6 +775,7 @@ extension MapViewModel {
                 followingTabUserVenueEventInterestIDs,
                 followingTabGoingInterestCounts,
                 followingTabGoingItems,
+                goingProfilesByVenueEventID,
                 venueEventInterestIDs.contains(venueEventID)
                     || followingTabUserVenueEventInterestIDs.contains(venueEventID)
             )
@@ -769,6 +833,7 @@ extension MapViewModel {
                     followingTabUserVenueEventInterestIDs = snapshot.previousFollowingInterestIDs
                     followingTabGoingInterestCounts = snapshot.previousFollowingInterestCounts
                     followingTabGoingItems = snapshot.previousFollowingItems
+                    goingProfilesByVenueEventID = snapshot.previousGoingProfiles
                     if manageWriteInFlight {
                         venueEventInterestWriteInFlightIDs.remove(venueEventID)
                     }
@@ -807,6 +872,9 @@ extension MapViewModel {
             }
             scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
         } else {
+            Task { @MainActor in
+                await self.loadGoingUserProfiles(for: venueEventID)
+            }
             scheduleDeferredVisibleVenueEventInterestsReload()
             scheduleDeferredFollowingTabGoingReconcile(venueEventID: venueEventID)
         }
@@ -856,6 +924,25 @@ extension MapViewModel {
         guard canUseFanSocialFeatures else { return [] }
         return (goingProfilesByVenueEventID[venueEventID] ?? [])
             .filter { $0.isFanVisibleForLivePresence(to: currentUserAuthId) }
+    }
+
+    func goingAvatarProfiles(
+        for venueEventID: UUID?,
+        fallbackProfiles: [UserProfileRow],
+        currentUserGoing: Bool
+    ) -> [UserProfileRow] {
+        guard canUseFanSocialFeatures else { return [] }
+        var profiles = venueEventID.flatMap { goingProfilesByVenueEventID[$0] } ?? []
+        if profiles.isEmpty {
+            profiles = fallbackProfiles
+        }
+        if currentUserGoing, let current = currentUserGoingProfileRow() {
+            profiles = profiles.filter { !userProfileRow($0, matchesCurrentUserProfile: current) }
+            profiles.insert(current, at: 0)
+        } else if let current = currentUserGoingProfileRow() {
+            profiles = profiles.filter { !userProfileRow($0, matchesCurrentUserProfile: current) }
+        }
+        return profiles
     }
 
     func venueEventLookupKey(for bar: BarVenue, gameTitle: String) -> String {
@@ -947,8 +1034,11 @@ extension MapViewModel {
 
             guard !emails.isEmpty else {
                 await MainActor.run {
-                    goingUserProfiles = []
-                    goingProfilesByVenueEventID[venueEventID] = []
+                    let profiles = isInterestedInVenueEvent(venueEventID)
+                        ? currentUserGoingProfileRow().map { [$0] } ?? []
+                        : []
+                    goingUserProfiles = profiles
+                    goingProfilesByVenueEventID[venueEventID] = profiles
                     fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
                 }
                 return
@@ -956,13 +1046,16 @@ extension MapViewModel {
 
             let profileRows = try await SocialIdentityService().fetchUserProfileRows(forEmails: emails)
 
-            let fanPresenceRows = profileRows.filter {
-                $0.isFanVisibleForLivePresence(to: currentUserAuthId)
-            }
-
             await MainActor.run {
-                goingUserProfiles = fanPresenceRows
-                goingProfilesByVenueEventID[venueEventID] = profileRows
+                var mergedProfileRows = profileRows
+                if isInterestedInVenueEvent(venueEventID), let current = currentUserGoingProfileRow() {
+                    mergedProfileRows.removeAll { userProfileRow($0, matchesCurrentUserProfile: current) }
+                    mergedProfileRows.insert(current, at: 0)
+                }
+                goingUserProfiles = mergedProfileRows.filter {
+                    $0.isFanVisibleForLivePresence(to: currentUserAuthId)
+                }
+                goingProfilesByVenueEventID[venueEventID] = mergedProfileRows
                 fanUpdatesGoingProfilePrefetchedAt[venueEventID] = Date()
             }
 
@@ -1042,7 +1135,11 @@ extension MapViewModel {
 
             let now = Date()
             for eventID in idsToFetch {
-                let eventProfiles = (emailsByEventID[eventID] ?? []).compactMap { profilesByEmail[$0] }
+                var eventProfiles = (emailsByEventID[eventID] ?? []).compactMap { profilesByEmail[$0] }
+                if isInterestedInVenueEvent(eventID), let current = currentUserGoingProfileRow() {
+                    eventProfiles.removeAll { userProfileRow($0, matchesCurrentUserProfile: current) }
+                    eventProfiles.insert(current, at: 0)
+                }
                 goingProfilesByVenueEventID[eventID] = eventProfiles
                 fanUpdatesGoingProfilePrefetchedAt[eventID] = now
             }

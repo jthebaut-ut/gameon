@@ -3657,12 +3657,24 @@ struct DiscoverScreen: View {
         guard let venueEventID else {
             return count > 0 ? "\(count) people are going" : "Be the first to go"
         }
-        if count <= 0 { return "Be the first to go" }
         let im = viewModel.isInterestedInVenueEvent(venueEventID)
+        if count <= 0 { return im ? "You're going" : "Be the first to go" }
         if im {
             return count == 1 ? "You're going" : "You and \(count - 1) others are going"
         }
         return "\(count) people are going"
+    }
+
+    private func logGoingAvatarDebug(
+        currentUserGoing: Bool,
+        avatarStackCount: Int,
+        emptyGoingPromptVisible: Bool
+    ) {
+#if DEBUG
+        print("[GoingAvatarDebug] currentUserGoing=\(currentUserGoing)")
+        print("[GoingAvatarDebug] avatarStackCount=\(avatarStackCount)")
+        print("[GoingAvatarDebug] emptyGoingPromptVisible=\(emptyGoingPromptVisible)")
+#endif
     }
 
     @ViewBuilder
@@ -3858,15 +3870,28 @@ struct DiscoverScreen: View {
 
             HStack(alignment: .center, spacing: 10) {
                 let socialProfiles = energy.socialPresenceProfiles
-                if !socialProfiles.isEmpty {
-                    GoingAvatarStack(profiles: socialProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 26)
-                } else if let venueEventID {
-                    let fallbackProfiles = viewModel.goingProfiles(for: venueEventID)
-                    if !fallbackProfiles.isEmpty {
-                        GoingAvatarStack(profiles: fallbackProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 26)
-                    }
+                let avatarProfiles = viewModel.goingAvatarProfiles(
+                    for: venueEventID,
+                    fallbackProfiles: socialProfiles,
+                    currentUserGoing: alreadyInterested
+                )
+                let visibleAvatarCount = avatarProfiles
+                    .filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
+                    .count
+                let displayGoingCount = max(energy.goingCount, alreadyInterested ? 1 : 0, visibleAvatarCount)
+                let emptyGoingPromptVisible = displayGoingCount == 0 && !alreadyInterested
+                let goingText = alreadyInterested || displayGoingCount > 0
+                    ? perGameGoingLine(venueEventID: venueEventID, count: displayGoingCount)
+                    : "Be the first to go"
+                let _ = logGoingAvatarDebug(
+                    currentUserGoing: alreadyInterested,
+                    avatarStackCount: visibleAvatarCount,
+                    emptyGoingPromptVisible: emptyGoingPromptVisible
+                )
+                if !avatarProfiles.isEmpty {
+                    GoingAvatarStack(profiles: avatarProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 26)
                 }
-                Text(energy.socialPresenceLabel ?? energy.friendPresenceLabel ?? perGameGoingLine(venueEventID: venueEventID, count: energy.goingCount))
+                Text(goingText)
                     .font(FGTypography.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(FGColor.primaryText(colorScheme))

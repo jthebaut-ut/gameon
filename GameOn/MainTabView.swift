@@ -13,7 +13,7 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @SceneStorage("selectedMainTab") private var selectedTabStorage: String = AppTab.discover.rawValue
 
-    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = true
+    @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = false
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
     @State private var showBlockingFanIdentitySetup = false
@@ -86,6 +86,7 @@ struct MainTabView: View {
             .onAppear {
                 guard !didRunInitialPrivateChatTabGate else { return }
                 didRunInitialPrivateChatTabGate = true
+                print("[FaceIDSettingsDebug] defaultPrivateChatFaceID=false")
                 print("[PrivateChatSecurityDebug] requireFaceIDSetting=\(requireDeviceAuthForPrivateChat)")
                 Task { await enforcePrivateChatGateOnLaunchIfNeeded() }
             }

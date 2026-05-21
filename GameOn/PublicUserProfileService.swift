@@ -21,6 +21,7 @@ struct PublicUserProfileData {
     let reputation: FanReputationProfile
     let organizerStats: PickupCreatorPublicRatingStats?
     let favoriteTeams: [FavoriteTeam]
+    let primaryFavoriteTeamID: String?
     let isBusinessAccount: Bool
     /// True when `user_profiles` row was loaded from network or cache (not purely synthetic).
     let hasResolvedIdentity: Bool
@@ -130,6 +131,7 @@ enum PublicUserProfileService {
         let avatar_thumbnail_url: String?
         let member_since: String?
         let favorite_team_ids: [String]?
+        let primary_favorite_team_id: String?
         let mutual_fans_count: Int?
         let shared_teams_count: Int?
         let venue_count: Int?
@@ -165,6 +167,7 @@ enum PublicUserProfileService {
             avatar_thumbnail_url = try? c.decode(String.self, forKey: .avatar_thumbnail_url)
             member_since = try? c.decode(String.self, forKey: .member_since)
             favorite_team_ids = try? c.decode([String].self, forKey: .favorite_team_ids)
+            primary_favorite_team_id = try? c.decode(String.self, forKey: .primary_favorite_team_id)
             mutual_fans_count = try? c.decode(Int.self, forKey: .mutual_fans_count)
             shared_teams_count = try? c.decode(Int.self, forKey: .shared_teams_count)
             venue_count = try? c.decode(Int.self, forKey: .venue_count)
@@ -215,6 +218,7 @@ enum PublicUserProfileService {
             case avatar_thumbnail_url
             case member_since
             case favorite_team_ids
+            case primary_favorite_team_id
             case mutual_fans_count
             case shared_teams_count
             case venue_count
@@ -368,7 +372,18 @@ enum PublicUserProfileService {
         userId: UUID,
         cachedProfile: UserProfileRow?
     ) async -> PublicUserProfileData {
-        let teamIDs = rpc.favorite_team_ids ?? []
+        var teamIDs = rpc.favorite_team_ids ?? []
+        let rpcPrimaryRaw = rpc.primary_favorite_team_id?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        var primaryTeamID: String? = !rpcPrimaryRaw.isEmpty && teamIDs.contains(rpcPrimaryRaw)
+            ? rpcPrimaryRaw
+            : nil
+        if primaryTeamID == nil, !teamIDs.isEmpty {
+            let selection = await fetchPublicFavoriteTeamSelection(userId: userId)
+            if !selection.teamIDs.isEmpty {
+                teamIDs = selection.teamIDs
+                primaryTeamID = selection.primaryTeamID
+            }
+        }
         let favoriteTeams = FavoriteTeamsStore.resolvedTeams(fromIDs: teamIDs)
 
         let resolvedBio = resolveProfileBio(rpcBio: rpc.bio, cachedBio: cachedProfile?.bio)
@@ -410,6 +425,7 @@ enum PublicUserProfileService {
             fanXP: FanXPState.rookie,
             organizerStats: organizerStats,
             favoriteTeams: favoriteTeams,
+            primaryFavoriteTeamID: primaryTeamID,
             isBusinessAccount: false,
             hasResolvedIdentity: true,
             isPubliclyVisible: true,
@@ -478,6 +494,7 @@ enum PublicUserProfileService {
             reputation: FanReputationEngine.evaluate(FanReputationSignals(fanXP: .rookie)),
             organizerStats: nil,
             favoriteTeams: [],
+            primaryFavoriteTeamID: nil,
             isBusinessAccount: false,
             hasResolvedIdentity: false,
             isPubliclyVisible: false,
@@ -517,7 +534,8 @@ enum PublicUserProfileService {
 
         let (fanXP, _) = await loadPublicXP(userId: userId)
         let organizerStats = await fetchOrganizerStats(userId: userId)
-        let favoriteTeams = await fetchPublicFavoriteTeams(userId: userId)
+        let favoriteSelection = await fetchPublicFavoriteTeamSelection(userId: userId)
+        let favoriteTeams = FavoriteTeamsStore.resolvedTeams(fromIDs: favoriteSelection.teamIDs)
         let isBusiness = await resolveIsBusinessAccount(userId: userId, profileRow: row)
         let discoverable = row?.discoverableByFans ?? true
 
@@ -543,6 +561,7 @@ enum PublicUserProfileService {
             fanXP: fanXP,
             organizerStats: organizerStats,
             favoriteTeams: favoriteTeams,
+            primaryFavoriteTeamID: favoriteSelection.primaryTeamID,
             isBusinessAccount: isBusiness,
             hasResolvedIdentity: profileQuerySuccess,
             isPubliclyVisible: true,
@@ -703,9 +722,8 @@ enum PublicUserProfileService {
         return (FanXPState.rookie, false)
     }
 
-    private static func fetchPublicFavoriteTeams(userId: UUID) async -> [FavoriteTeam] {
-        let ids = await FavoriteTeamsSyncService.fetchTeamIDs(userId: userId)
-        return FavoriteTeamsStore.resolvedTeams(fromIDs: ids)
+    private static func fetchPublicFavoriteTeamSelection(userId: UUID) async -> FavoriteTeamsSyncService.FavoriteTeamSelection {
+        await FavoriteTeamsSyncService.fetchTeamSelection(userId: userId)
     }
 
     private static func resolveProfileBio(rpcBio: String?, cachedBio: String?) -> String? {
@@ -721,6 +739,7 @@ enum PublicUserProfileService {
         fanXP: FanXPState,
         organizerStats: PickupCreatorPublicRatingStats?,
         favoriteTeams: [FavoriteTeam],
+        primaryFavoriteTeamID: String?,
         isBusinessAccount: Bool,
         hasResolvedIdentity: Bool,
         isPubliclyVisible: Bool,
@@ -785,6 +804,11 @@ enum PublicUserProfileService {
             reputation: reputation,
             organizerStats: organizerStats,
             favoriteTeams: favoriteTeams,
+            primaryFavoriteTeamID: {
+                let raw = primaryFavoriteTeamID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !raw.isEmpty, favoriteTeams.contains(where: { $0.id == raw }) else { return nil }
+                return raw
+            }(),
             isBusinessAccount: isBusinessAccount,
             hasResolvedIdentity: hasResolvedIdentity,
             isPubliclyVisible: isPubliclyVisible,

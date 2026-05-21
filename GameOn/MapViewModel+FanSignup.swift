@@ -305,8 +305,9 @@ extension MapViewModel {
             let sorted = profile.favoriteTeamIDs.sorted()
             await MainActor.run {
                 FavoriteTeamsStore.writeToAppStorage(sorted)
+                FavoriteTeamsStore.writePrimaryTeamIDToAppStorage(sorted.first)
             }
-            let synced = await syncFavoriteTeamsToSupabase(teamIDs: sorted)
+            let synced = await syncFavoriteTeamsToSupabase(teamIDs: sorted, primaryTeamID: sorted.first)
             print("[SignupUX] favoriteTeamsSaved count=\(sorted.count) synced=\(synced)")
         } else {
             print("[SignupUX] favoriteTeamsSaved count=0")

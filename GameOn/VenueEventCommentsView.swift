@@ -293,13 +293,17 @@ struct VenueEventCommentsView: View {
         }
         .onDisappear {
             viewModel.cancelFanChatReceiverRefreshBurst(for: venueEventID)
-            Task { await viewModel.stopVenueEventCommentsRealtime(for: venueEventID) }
+            Task {
+                await viewModel.stopVenueEventCommentReactionRefresh(for: venueEventID)
+                await viewModel.stopVenueEventCommentsRealtime(for: venueEventID)
+            }
         }
         .onChange(of: comments.count) { _, _ in
             if showNativeAdsInFeed {
                 discoverLogVenueCommentsAdPlacement()
             }
             Task {
+                await viewModel.syncVenueEventCommentReactionsRealtime(for: venueEventID)
                 let emails = comments.compactMap { $0.user_email }
                 await viewModel.loadUserProfilesForEmails(emails)
                 await refreshCommentFriendshipIfNeeded()
@@ -547,6 +551,7 @@ struct VenueEventCommentsView: View {
                     scheduleNativeAdsAfterCommentsRender()
                 }
                 await loadCommentProfilesAndFriendshipChips()
+                await viewModel.syncVenueEventCommentReactionsRealtime(for: venueEventID)
             }
         } else {
             commentsHasOlder = await viewModel.loadCommentsFirstPage(for: venueEventID, logFullSheetLoad: true)
@@ -558,6 +563,7 @@ struct VenueEventCommentsView: View {
             )
             scheduleNativeAdsAfterCommentsRender()
             await loadCommentProfilesAndFriendshipChips()
+            await viewModel.syncVenueEventCommentReactionsRealtime(for: venueEventID)
         }
     }
 
@@ -580,20 +586,8 @@ struct VenueEventCommentsView: View {
 
     @MainActor
     private func runFanUpdatesAutoRefreshLoop() async {
-        enum FanUpdatesAutoRefreshValidation {
-            static let fanUpdatesAutoRefreshEnabled = true
-        }
-
-        guard FanUpdatesAutoRefreshValidation.fanUpdatesAutoRefreshEnabled else {
-            #if DEBUG
-            print("[FanChatAutoRefreshDebug] enabled=false reason=realtimeValidation")
-            print("[FanChatAutoRefreshDebug] skipped reason=disabledForValidation")
-            #endif
-            return
-        }
-
         #if DEBUG
-        print("[FanChatAutoRefreshDebug] enabled=true reason=realtimeStillFallbackUsed")
+        print("[FanChatAutoRefreshDebug] enabled=true reason=realtimeFirstFallback")
         print("[FanChatAutoRefreshDebug] started eventId=\(venueEventID.uuidString.lowercased())")
         #endif
         defer {
@@ -603,9 +597,47 @@ struct VenueEventCommentsView: View {
             #endif
         }
 
+        var realtimeGraceElapsed = false
         while !Task.isCancelled {
             #if DEBUG
             print("[FanChatAutoRefreshDebug] tick eventId=\(venueEventID.uuidString.lowercased())")
+            #endif
+
+            let realtimeHealthy = viewModel.fanChatRealtimeIsHealthy(for: venueEventID)
+            #if DEBUG
+            print("[FanChatPerfDebug] realtimeHealthy=\(realtimeHealthy)")
+            #endif
+
+            if realtimeHealthy {
+                realtimeGraceElapsed = false
+                #if DEBUG
+                print("[FanChatPerfDebug] pollingMode=realtime")
+                print("[FanChatPerfDebug] pollingSkipped reason=realtimeHealthy")
+                #endif
+                do {
+                    try await Task.sleep(nanoseconds: viewModel.fanChatHealthyPollIntervalNanoseconds())
+                } catch {
+                    return
+                }
+                continue
+            }
+
+            if !realtimeGraceElapsed {
+                #if DEBUG
+                print("[FanChatPerfDebug] pollingMode=grace")
+                #endif
+                realtimeGraceElapsed = true
+                do {
+                    try await Task.sleep(nanoseconds: viewModel.fanChatRealtimeGracePeriodNanoseconds())
+                } catch {
+                    return
+                }
+                continue
+            }
+
+            #if DEBUG
+            print("[FanChatPerfDebug] pollingMode=fallback")
+            print("[FanChatPerfDebug] fallbackPollInterval=2.5")
             #endif
 
             if fanUpdatesRefreshInFlight {
@@ -622,7 +654,7 @@ struct VenueEventCommentsView: View {
             }
 
             do {
-                try await Task.sleep(nanoseconds: 1_000_000_000)
+                try await Task.sleep(nanoseconds: viewModel.fanChatFallbackPollIntervalNanoseconds())
             } catch {
                 return
             }
@@ -683,6 +715,7 @@ struct VenueEventCommentsView: View {
             beforeId: oid
         )
         commentsHasOlder = more
+        await viewModel.syncVenueEventCommentReactionsRealtime(for: venueEventID)
     }
 
     /// One friendship refresh for all visible comment authors (batched in ``ChatViewModel``).
@@ -1132,6 +1165,7 @@ struct VenueEventCommentsView: View {
             return
         }
         await loadCommentProfilesAndFriendshipChips()
+        await viewModel.syncVenueEventCommentReactionsRealtime(for: venueEventID)
         if Task.isCancelled {
             logFanUpdatesBottomRefreshCancelledSilently()
             return

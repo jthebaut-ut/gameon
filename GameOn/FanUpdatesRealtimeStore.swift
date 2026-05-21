@@ -20,10 +20,17 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var venueEventCommentsRealtimeListenerTokens: [UUID: UUID] = [:]
     var venueEventCommentsRealtimeReadyIDs: Set<UUID> = []
     var venueEventCommentsRealtimeSubscribeStartedAt: [UUID: CFAbsoluteTime] = [:]
+    var venueEventCommentsRealtimeLastEventAt: [UUID: Date] = [:]
     var venueEventCommentRealtimeReceivedServerIDs: Set<UUID> = []
     var venueEventCommentRealtimeFallbackTasks: [UUID: Task<Void, Never>] = [:]
     var fanChatReceiverRefreshBurstTasks: [UUID: Task<Void, Never>] = [:]
     var fanChatAutoRefreshInFlightIDs: Set<UUID> = []
+    var venueEventCommentReactionRealtimeTasks: [UUID: Task<Void, Never>] = [:]
+    var venueEventCommentReactionRealtimeChannels: [UUID: RealtimeChannelV2] = [:]
+    var venueEventCommentReactionRealtimeReadyIDs: Set<UUID> = []
+    var venueEventCommentReactionRealtimeTrackedCommentIDs: [UUID: [UUID]] = [:]
+    var venueEventCommentReactionDebounceTasks: [UUID: Task<Void, Never>] = [:]
+    var venueEventCommentReactionFallbackPollTasks: [UUID: Task<Void, Never>] = [:]
     var fanChatAppLevelRealtimeTask: Task<Void, Never>?
     var fanChatAppLevelRealtimeChannel: RealtimeChannelV2?
     var fanChatAppLevelRealtimeTrackedEventIDs: [UUID] = []
@@ -35,6 +42,7 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     var fanUpdatesVibePrefetchTasks: [UUID: Task<Void, Never>] = [:]
     var fanUpdatesCommentPrefetchedAt: [UUID: Date] = [:]
     var fanUpdatesVibePrefetchedAt: [UUID: Date] = [:]
+    var venueEventCommentReactionLastRefreshAt: [UUID: Date] = [:]
     var venueEventVibeWriteInFlightKeys: Set<String> = []
     var venueEventCommentLikeWriteInFlightIDs: Set<UUID> = []
 
