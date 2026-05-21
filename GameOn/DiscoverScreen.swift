@@ -3085,14 +3085,7 @@ struct DiscoverScreen: View {
 
                     Button {
                         FGInteractionHaptics.selection()
-#if DEBUG
-                        print("[VenuePreviewDismissDebug] topCloseTapped=true")
-#endif
-                        withAnimation(.spring()) {
-                            viewModel.selectedBar = nil
-                            viewModel.clearDiscoverRemotePreviewHold()
-                            pendingResumeVenueIDAfterLogin = nil
-                        }
+                        closeVenuePreview()
                     } label: {
                         Image(systemName: "xmark")
                             .font(.subheadline.weight(.bold))
@@ -3130,11 +3123,18 @@ struct DiscoverScreen: View {
             print("[VenueFeatureDebug] propagatedToDiscover=true")
             print("[VenueFeatureDebug] discoverCardFeatureChipsRemoved=true")
             print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
-            print("[VenuePreviewDismissDebug] restoredTopCloseButton=true")
             if bar.hasBusinessVerifiedFeatures {
                 print("[VenueFeatureDebug] approvedBusinessVenueFeaturesVerified=true")
             }
 #endif
+        }
+    }
+
+    private func closeVenuePreview() {
+        withAnimation(.spring()) {
+            viewModel.selectedBar = nil
+            viewModel.clearDiscoverRemotePreviewHold()
+            pendingResumeVenueIDAfterLogin = nil
         }
     }
 

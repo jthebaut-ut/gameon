@@ -83,6 +83,7 @@ struct PublicProfileOpenToChipGrid: View {
 struct SelfProfileOpenToPreviewGrid: View {
     let items: [PublicProfileOpenToItem]
     let onRemove: (PublicProfileOpenToItem) -> Void
+    let onAdd: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
@@ -101,6 +102,8 @@ struct SelfProfileOpenToPreviewGrid: View {
                         .padding(5)
                 }
             }
+
+            addOpenToButton
         }
     }
 
@@ -163,6 +166,46 @@ struct SelfProfileOpenToPreviewGrid: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Remove \(item.title) from Open To")
+    }
+
+    private var addOpenToButton: some View {
+        Button(action: onAdd) {
+            VStack(spacing: 6) {
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(height: 26)
+
+                Text("Add")
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 4)
+            .background {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10),
+                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.88)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.30 : 0.24), lineWidth: 0.85)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add Open To")
     }
 }
 

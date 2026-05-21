@@ -1854,13 +1854,16 @@ struct ProfileIdentityCard: View {
             }
 
             if previewItems.isEmpty {
-                Text("Add sports, watch parties, or meetups you're open to.")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-                    .padding(.vertical, 4)
+                SelfProfileOpenToPreviewGrid(items: []) {
+                    quickRemoveOpenToItem($0)
+                } onAdd: {
+                    showFanIdentityEditor = true
+                }
             } else {
                 SelfProfileOpenToPreviewGrid(items: previewItems) { item in
                     quickRemoveOpenToItem(item)
+                } onAdd: {
+                    showFanIdentityEditor = true
                 }
             }
         }
