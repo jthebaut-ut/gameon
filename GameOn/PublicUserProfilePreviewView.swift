@@ -105,6 +105,16 @@ struct PublicUserProfilePreviewView: View {
                 )
             }
 
+            if let nationalTeam = data.nationalTeam {
+                NationalTeamIdentityCard(identity: nationalTeam)
+                    .frame(maxWidth: .infinity)
+                    .onAppear {
+#if DEBUG
+                        print("[NationalTeamDebug] publicProfileNationalTeamDisplayed=true")
+#endif
+                    }
+            }
+
             PublicProfileFavoriteTeamsCard(data: data)
                 .frame(maxWidth: .infinity)
 

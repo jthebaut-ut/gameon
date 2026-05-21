@@ -446,6 +446,7 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserIsBusinessAccount: Bool = false
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
+    @Published var currentUserNationalTeam: NationalTeamIdentity?
     @Published var currentUserLiveVisibilityEnabled: Bool = true
     @Published var currentUserLiveVisibilityMode: LiveVisibilityMode = .allFriends
     @Published var currentUserSelectedLiveVisibilityFriendIDs: Set<UUID> = []

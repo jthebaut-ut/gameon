@@ -22,6 +22,7 @@ struct PublicUserProfileData {
     let organizerStats: PickupCreatorPublicRatingStats?
     let favoriteTeams: [FavoriteTeam]
     let primaryFavoriteTeamID: String?
+    let nationalTeam: NationalTeamIdentity?
     let isBusinessAccount: Bool
     /// True when `user_profiles` row was loaded from network or cache (not purely synthetic).
     let hasResolvedIdentity: Bool
@@ -65,7 +66,7 @@ struct PublicProfileMutualFanAvatar: Equatable, Identifiable {
 
 enum PublicUserProfileService {
     private static let profileSelect =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
@@ -142,6 +143,10 @@ enum PublicUserProfileService {
         let fan_identity_preferences: FanIdentityPreferences?
         let shared_team_ids: [String]?
         let home_crowd_venue: HomeCrowdVenueSummary?
+        let national_team_country_code: String?
+        let national_team_country_name: String?
+        let national_team_flag: String?
+        let national_team_supporter_label: String?
 
         struct MutualFanRow: Decodable {
             let user_id: UUID?
@@ -176,6 +181,10 @@ enum PublicUserProfileService {
             mutual_fan_avatars = try? c.decode([MutualFanRow].self, forKey: .mutual_fan_avatars)
             venue_cards = try? c.decode([VenueCardRow].self, forKey: .venue_cards)
             shared_team_ids = try? c.decode([String].self, forKey: .shared_team_ids)
+            national_team_country_code = try? c.decode(String.self, forKey: .national_team_country_code)
+            national_team_country_name = try? c.decode(String.self, forKey: .national_team_country_name)
+            national_team_flag = try? c.decode(String.self, forKey: .national_team_flag)
+            national_team_supporter_label = try? c.decode(String.self, forKey: .national_team_supporter_label)
             if c.contains(.home_crowd_venue) {
                 if (try? c.decodeNil(forKey: .home_crowd_venue)) == true {
                     home_crowd_venue = nil
@@ -229,6 +238,10 @@ enum PublicUserProfileService {
             case fan_identity_preferences
             case shared_team_ids
             case home_crowd_venue
+            case national_team_country_code
+            case national_team_country_name
+            case national_team_flag
+            case national_team_supporter_label
         }
     }
 
@@ -404,7 +417,11 @@ enum PublicUserProfileService {
             live_visibility_enabled: true,
             live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
             selected_live_visibility_friend_ids: [],
-            discoverable_by_fans: true
+            discoverable_by_fans: true,
+            national_team_country_code: rpc.national_team_country_code,
+            national_team_country_name: rpc.national_team_country_name,
+            national_team_flag: rpc.national_team_flag,
+            national_team_supporter_label: rpc.national_team_supporter_label
         )
 
         let organizerStats = await fetchOrganizerStats(userId: userId)
@@ -495,6 +512,7 @@ enum PublicUserProfileService {
             organizerStats: nil,
             favoriteTeams: [],
             primaryFavoriteTeamID: nil,
+            nationalTeam: nil,
             isBusinessAccount: false,
             hasResolvedIdentity: false,
             isPubliclyVisible: false,
@@ -809,6 +827,7 @@ enum PublicUserProfileService {
                 guard !raw.isEmpty, favoriteTeams.contains(where: { $0.id == raw }) else { return nil }
                 return raw
             }(),
+            nationalTeam: row?.nationalTeamIdentity,
             isBusinessAccount: isBusinessAccount,
             hasResolvedIdentity: hasResolvedIdentity,
             isPubliclyVisible: isPubliclyVisible,

@@ -66,6 +66,8 @@ struct VenueOwnerDashboardView: View {
     @State private var gameTitle = ""
     @State private var gameTeam1 = ""
     @State private var gameTeam2 = ""
+    @State private var gameTeam1Selection = ManualVenueTeamSelection(name: "", type: .custom, countryCode: nil)
+    @State private var gameTeam2Selection = ManualVenueTeamSelection(name: "", type: .custom, countryCode: nil)
     @State private var lastGeneratedGameTitle = ""
     @State private var titleManuallyEdited = false
     @State private var gameLeague = ""
@@ -2591,14 +2593,39 @@ struct VenueOwnerDashboardView: View {
 
     private var manualStructuredTeamsFields: some View {
         VStack(alignment: .leading, spacing: 8) {
-            field(L10n.t("team_1", languageCode: appLanguageRaw), text: Binding(
+            ManualTeamAutocompleteView(
+                title: L10n.t("team_1", languageCode: appLanguageRaw),
+                text: Binding(
                 get: { gameTeam1 },
                 set: { updateManualGameTeam1($0) }
-            ))
-            field(L10n.t("team_2", languageCode: appLanguageRaw), text: Binding(
+                ),
+                sportName: viewModel.ownerVenuePrimarySport,
+                showSoccerCountryChips: Self.normalizedPredictionManualGameSport(viewModel.ownerVenuePrimarySport) == "soccer",
+                onTextChanged: { query in
+                    updateManualGameTeam1(query)
+                    logManualTeamAutocompleteQuery(query)
+                },
+                onSelection: { selection in
+                    applyManualGameTeamSelection(selection, teamIndex: 1)
+                }
+            )
+
+            ManualTeamAutocompleteView(
+                title: L10n.t("team_2", languageCode: appLanguageRaw),
+                text: Binding(
                 get: { gameTeam2 },
                 set: { updateManualGameTeam2($0) }
-            ))
+                ),
+                sportName: viewModel.ownerVenuePrimarySport,
+                showSoccerCountryChips: Self.normalizedPredictionManualGameSport(viewModel.ownerVenuePrimarySport) == "soccer",
+                onTextChanged: { query in
+                    updateManualGameTeam2(query)
+                    logManualTeamAutocompleteQuery(query)
+                },
+                onSelection: { selection in
+                    applyManualGameTeamSelection(selection, teamIndex: 2)
+                }
+            )
         }
         .onAppear {
             synchronizeManualGameTitleWithTeams()
@@ -2616,12 +2643,47 @@ struct VenueOwnerDashboardView: View {
 
     private func updateManualGameTeam1(_ newValue: String) {
         gameTeam1 = newValue
+        gameTeam1Selection = ManualVenueTeamResolver.resolve(newValue)
+        logManualGameCountryDetection(gameTeam1Selection)
         synchronizeManualGameTitleWithTeams()
     }
 
     private func updateManualGameTeam2(_ newValue: String) {
         gameTeam2 = newValue
+        gameTeam2Selection = ManualVenueTeamResolver.resolve(newValue)
+        logManualGameCountryDetection(gameTeam2Selection)
         synchronizeManualGameTitleWithTeams()
+    }
+
+    private func applyManualGameTeamSelection(_ selection: ManualVenueTeamSelection, teamIndex: Int) {
+        if teamIndex == 1 {
+            gameTeam1 = selection.name
+            gameTeam1Selection = selection
+        } else {
+            gameTeam2 = selection.name
+            gameTeam2Selection = selection
+        }
+#if DEBUG
+        print("[BusinessManualGameDebug] teamSuggestionSelected name=\(selection.name) type=\(selection.type.rawValue)")
+        if selection.type == .custom {
+            print("[BusinessManualGameDebug] customTeamUsed=\(selection.name)")
+        }
+#endif
+        logManualGameCountryDetection(selection)
+        synchronizeManualGameTitleWithTeams()
+    }
+
+    private func logManualTeamAutocompleteQuery(_ query: String) {
+#if DEBUG
+        print("[BusinessManualGameDebug] teamAutocompleteQuery=\(query)")
+#endif
+    }
+
+    private func logManualGameCountryDetection(_ selection: ManualVenueTeamSelection) {
+#if DEBUG
+        guard selection.type == .country, let code = selection.countryCode else { return }
+        print("[BusinessManualGameDebug] countryDetected code=\(code)")
+#endif
     }
 
     private func handleManualGamePredictionSportChanged() {
@@ -2660,6 +2722,14 @@ struct VenueOwnerDashboardView: View {
         print("[BusinessManualGameDebug] requiresTeams=\(manualGameRequiresStructuredTeams)")
         print("[BusinessManualGameDebug] team1=\(trimmedManualTeam1)")
         print("[BusinessManualGameDebug] team2=\(trimmedManualTeam2)")
+        print("[BusinessManualGameDebug] team1Type=\(gameTeam1Selection.type.rawValue) countryCode=\(gameTeam1Selection.countryCode ?? "none")")
+        print("[BusinessManualGameDebug] team2Type=\(gameTeam2Selection.type.rawValue) countryCode=\(gameTeam2Selection.countryCode ?? "none")")
+        if gameTeam1Selection.type == .custom, !trimmedManualTeam1.isEmpty {
+            print("[BusinessManualGameDebug] customTeamUsed=\(trimmedManualTeam1)")
+        }
+        if gameTeam2Selection.type == .custom, !trimmedManualTeam2.isEmpty {
+            print("[BusinessManualGameDebug] customTeamUsed=\(trimmedManualTeam2)")
+        }
         print("[BusinessManualGameDebug] generatedTitle=\(generated)")
         print("[BusinessManualGameDebug] titleManuallyEdited=\(titleManuallyEdited)")
 #endif
@@ -2701,6 +2771,8 @@ struct VenueOwnerDashboardView: View {
         gameTitle = choice.title
         gameTeam1 = choice.homeTeam
         gameTeam2 = choice.awayTeam
+        gameTeam1Selection = ManualVenueTeamResolver.resolve(choice.homeTeam)
+        gameTeam2Selection = ManualVenueTeamResolver.resolve(choice.awayTeam)
         lastGeneratedGameTitle = choice.title
         titleManuallyEdited = false
         viewModel.ownerVenuePrimarySport = choice.sport
@@ -2801,6 +2873,8 @@ struct VenueOwnerDashboardView: View {
             gameLeague = match.league
             gameTeam1 = match.homeTeam
             gameTeam2 = match.awayTeam
+            gameTeam1Selection = ManualVenueTeamResolver.resolve(match.homeTeam)
+            gameTeam2Selection = ManualVenueTeamResolver.resolve(match.awayTeam)
             importedExternalGameID = match.id
             importedExternalSource = externalSource
             importedExternalLeague = match.league.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : match.league
@@ -3152,6 +3226,8 @@ struct VenueOwnerDashboardView: View {
         gameTitle = ""
         gameTeam1 = ""
         gameTeam2 = ""
+        gameTeam1Selection = ManualVenueTeamSelection(name: "", type: .custom, countryCode: nil)
+        gameTeam2Selection = ManualVenueTeamSelection(name: "", type: .custom, countryCode: nil)
         lastGeneratedGameTitle = ""
         titleManuallyEdited = false
         gameLeague = ""

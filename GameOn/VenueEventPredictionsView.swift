@@ -64,10 +64,9 @@ struct VenueEventPredictionModule: View {
                 value: resolvedSummary.scoreMode ?? "Tap to predict"
             )
 
-            predictionVotingSection(
+            firstScoreMatchupSection(
                 title: "Which team scores first?",
                 icon: "bolt.fill",
-                options: firstScoreOptions,
                 type: .firstScoreTeam
             )
         }
@@ -101,8 +100,12 @@ struct VenueEventPredictionModule: View {
             print("[PredictionUIDebug] awayTeam=\(teams.away)")
             print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home) ?? "none")")
             print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away) ?? "none")")
+            print("[PredictionUIDebug] teamType=home:\(teamDebugType(teams.home)),away:\(teamDebugType(teams.away))")
+            print("[PredictionUIDebug] countryFlagApplied=home:\(CountryFlagHelper.flag(for: teams.home) != nil),away:\(CountryFlagHelper.flag(for: teams.away) != nil)")
             print("[PredictionUILayoutDebug] sport=\(sportType)")
             print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+            print("[PredictionUILayoutDebug] firstScoreRowLayout=true")
+            print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
 #endif
         }
     }
@@ -110,6 +113,13 @@ struct VenueEventPredictionModule: View {
     private var predictionCountText: String {
         let count = resolvedSummary.totalCount
         return count == 1 ? "1 prediction" : "\(count) predictions"
+    }
+
+    private func teamDebugType(_ team: String) -> String {
+        if CountryFlagHelper.isCountry(team) { return "country" }
+        return FavoriteTeamCatalog.searchTeams(team).contains { candidate in
+            candidate.kind == .team && candidate.name.caseInsensitiveCompare(team) == .orderedSame
+        } ? "club" : "custom"
     }
 
     private var winnerOptions: [PredictionVotingOption] {
@@ -156,11 +166,12 @@ struct VenueEventPredictionModule: View {
         "home=\(winnerMatchupOptions.home.percent),away=\(winnerMatchupOptions.away.percent),draw=\(drawOption.percent)"
     }
 
-    private var firstScoreOptions: [PredictionVotingOption] {
-        [
-            option(for: teams.home, type: .firstScoreTeam),
-            option(for: teams.away, type: .firstScoreTeam)
-        ]
+    private var firstScoreMatchupOptions: (home: PredictionVotingOption, away: PredictionVotingOption) {
+        (option(for: teams.home, type: .firstScoreTeam), option(for: teams.away, type: .firstScoreTeam))
+    }
+
+    private var firstScorePercentagesDebugDescription: String {
+        "home=\(firstScoreMatchupOptions.home.percent),away=\(firstScoreMatchupOptions.away.percent)"
     }
 
     private func option(for team: String, type: VenueEventPredictionType) -> PredictionVotingOption {
@@ -181,7 +192,7 @@ struct VenueEventPredictionModule: View {
         return PredictionVotingOption(
             value: team,
             title: displayName,
-            subtitle: type == .firstScoreTeam ? "\(displayName) scores first" : nil,
+            subtitle: nil,
             flag: CountryFlagHelper.flag(for: team),
             percent: percent,
             avatars: avatars
@@ -263,6 +274,44 @@ struct VenueEventPredictionModule: View {
         }
     }
 
+    private func firstScoreMatchupSection(
+        title: String,
+        icon: String,
+        type: VenueEventPredictionType
+    ) -> some View {
+        let options = firstScoreMatchupOptions
+        return VStack(alignment: .leading, spacing: 9) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            HStack(alignment: .center, spacing: 8) {
+                PredictionMatchupTeamCard(
+                    option: options.home,
+                    isSelected: selectedValue(for: type) == options.home.value,
+                    isSaving: savingSelectionKey == selectionKey(type: type, value: options.home.value),
+                    colorScheme: colorScheme
+                ) {
+                    vote(type: type, value: options.home.value)
+                }
+
+                Text("VS")
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 2)
+
+                PredictionMatchupTeamCard(
+                    option: options.away,
+                    isSelected: selectedValue(for: type) == options.away.value,
+                    isSaving: savingSelectionKey == selectionKey(type: type, value: options.away.value),
+                    colorScheme: colorScheme
+                ) {
+                    vote(type: type, value: options.away.value)
+                }
+            }
+        }
+    }
+
     private func selectedValue(for type: VenueEventPredictionType) -> String {
         switch type {
         case .winner:
@@ -300,6 +349,8 @@ struct VenueEventPredictionModule: View {
             print("[PredictionUIDebug] selectedWinner=\(value)")
         } else if type == .firstScoreTeam {
             print("[PredictionUIDebug] selectedFirstScore=\(value)")
+            print("[PredictionUILayoutDebug] selectedFirstScore=\(value)")
+            print("[PredictionUILayoutDebug] firstScorePercentages=\(firstScorePercentagesDebugDescription)")
         }
         print("[PredictionUILayoutDebug] selectedOption=\(value)")
         print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
@@ -335,6 +386,7 @@ struct VenueEventPredictionModule: View {
             }
             if !selectedFirstScore.isEmpty {
                 print("[PredictionUIDebug] selectedFirstScore=\(selectedFirstScore)")
+                print("[PredictionUILayoutDebug] selectedFirstScore=\(selectedFirstScore)")
             }
 #endif
         } catch {
@@ -520,7 +572,7 @@ struct VenueEventPredictionSheet: View {
             return PredictionVotingOption(
                 value: team,
                 title: displayName,
-                subtitle: predictionType == .firstScoreTeam ? "\(displayName) scores first" : nil,
+                subtitle: nil,
                 flag: CountryFlagHelper.flag(for: team),
                 percent: 0,
                 avatars: []

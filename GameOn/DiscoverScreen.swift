@@ -40,12 +40,49 @@ private enum PickupGameMapMarkerActivity {
     }
 }
 
+private struct MapSportChipIconGlyph: View {
+    let sport: String
+    let emojiSize: CGFloat
+    let symbolSize: CGFloat
+    let frameSize: CGFloat
+    var fallbackColor: Color = Color.white.opacity(0.94)
+
+    private var visual: SportFilterCatalog.ChipVisual {
+        SportFilterCatalog.resolve(sport)
+    }
+
+    private var usesEmoji: Bool {
+        !visual.emoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var isNeutralFallback: Bool {
+        !usesEmoji && visual.systemImage == "sportscourt.fill"
+    }
+
+    var body: some View {
+        Group {
+            if usesEmoji {
+                Text(visual.emoji)
+                    .font(.system(size: emojiSize))
+                    .baselineOffset(-emojiSize * 0.03)
+                    .minimumScaleFactor(0.82)
+                    .lineLimit(1)
+            } else {
+                Image(systemName: visual.systemImage)
+                    .font(.system(size: symbolSize, weight: .semibold, design: .rounded))
+                    .foregroundStyle(isNeutralFallback ? fallbackColor : visual.accent)
+            }
+        }
+        .frame(width: frameSize, height: frameSize)
+        .accessibilityHidden(true)
+    }
+}
+
 private struct PickupGameMapMarker: View {
-    let systemImage: String
     let sport: String
     let accentColor: Color
     let markerType: String
-    let usingColoredIcon: Bool
+    let reusedSportChipIcon: Bool
     let activity: PickupGameMapMarkerActivity
     var demandBadgeText: String?
     var isSelected = false
@@ -100,15 +137,15 @@ private struct PickupGameMapMarker: View {
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.34 : 0.24), radius: isSelected ? 10 : 7, y: isSelected ? 6 : 4)
 
             Circle()
-                .fill((usingColoredIcon ? accentColor : Color.white).opacity(usingColoredIcon ? 0.18 : 0.10))
+                .fill((reusedSportChipIcon ? accentColor : Color.white).opacity(reusedSportChipIcon ? 0.18 : 0.10))
                 .frame(width: baseSize * 0.68, height: baseSize * 0.68)
 
-            Image(systemName: systemImage)
-                .symbolRenderingMode(usingColoredIcon ? .hierarchical : .monochrome)
-                .font(.system(size: glyphSize, weight: .heavy))
-                .foregroundStyle(usingColoredIcon ? accentColor : Color.white.opacity(0.94))
-                .frame(width: baseSize * 0.70, height: baseSize * 0.70)
-                .accessibilityHidden(true)
+            MapSportChipIconGlyph(
+                sport: sport,
+                emojiSize: glyphSize,
+                symbolSize: glyphSize * 0.78,
+                frameSize: baseSize * 0.70
+            )
 
             if let count, isCluster {
                 Text("\(count)")
@@ -154,8 +191,8 @@ private struct PickupGameMapMarker: View {
             pulse = activity != .low
             demandBadgeVisible = demandBadgeText != nil && !isCluster
 #if DEBUG
+            print("[MapSportIconDebug] reusedSportChipIcon=\(reusedSportChipIcon)")
             print("[MapSportIconDebug] sport=\(sport)")
-            print("[MapSportIconDebug] usingColoredIcon=\(usingColoredIcon)")
             print("[MapSportIconDebug] markerType=\(markerType)")
 #endif
         }
@@ -326,8 +363,6 @@ struct DiscoverScreen: View {
     @State private var clusterForSheet: VenueCluster?
     /// After opening Account from the Discover gate, restore this venue once fan login succeeds.
     @State private var pendingResumeVenueIDAfterLogin: UUID?
-    /// Per-venue preview: local filter for the game list (does not change global map filters).
-    @State private var venuePreviewGameFilter: VenuePreviewGameFilter = .all
     /// Bumps when returning to foreground so map user-dot visibility refreshes after Settings changes.
     @State private var discoverMapLocationAuthVersion = 0
     @State private var discoverLocationHint: String?
@@ -353,20 +388,6 @@ struct DiscoverScreen: View {
     private let discoverLightGlassCornerRadius: CGFloat = 28
     private let mapUtilityStackSpacing: CGFloat = 8
     private let discoverFilterRowSpacing: CGFloat = 6
-
-    private enum VenuePreviewGameFilter: Int, CaseIterable, Identifiable {
-        case all
-        case going
-
-        var id: Int { rawValue }
-
-        var segmentTitle: String {
-            switch self {
-            case .all: return "All"
-            case .going: return "Going"
-            }
-        }
-    }
 
     private struct VenuePreviewMiniStat: Identifiable {
         let id: String
@@ -646,7 +667,6 @@ struct DiscoverScreen: View {
                 ForEach(cluster.bars.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) { bar in
                     Button {
                         clusterForSheet = nil
-                        venuePreviewGameFilter = .all
                         withAnimation(.spring()) {
                             viewModel.centerMap(on: bar)
                         }
@@ -742,7 +762,6 @@ struct DiscoverScreen: View {
         let fromFiltered = viewModel.filteredBars.first(where: { $0.id == venueID })
         guard let bar = fromBars ?? fromFiltered else { return }
         withAnimation(.spring()) {
-            venuePreviewGameFilter = .all
             viewModel.selectedBar = bar
         }
     }
@@ -884,19 +903,14 @@ struct DiscoverScreen: View {
         if let selectedVenueEvent {
             return [selectedVenueEvent]
         }
-        let filtered = gamesFilteredForVenuePreview(
-            bar: bar,
-            gamesToday: gamesToday,
-            filter: venuePreviewGameFilter
-        )
-        return Array(filtered.prefix(12))
+        return Array(gamesToday.prefix(12))
     }
 
     private func visibleVenuePreviewSocialPrefetchKey(bar: BarVenue, events: [SportsEvent]) -> String {
         let eventKey = events
             .map { "\($0.id)|\($0.title)|\(Int($0.date.timeIntervalSince1970))" }
             .joined(separator: ",")
-        return "\(bar.id.uuidString.lowercased())|\(viewModel.selectedSport)|\(venuePreviewGameFilter.rawValue)|\(eventKey)"
+        return "\(bar.id.uuidString.lowercased())|\(viewModel.selectedSport)|\(eventKey)"
     }
 
     private func prefetchVisibleVenueSocialData(bar: BarVenue, events: [SportsEvent]) async {
@@ -1101,7 +1115,6 @@ struct DiscoverScreen: View {
 
         Button {
             FGInteractionHaptics.selection()
-            venuePreviewGameFilter = .all
             withAnimation(.spring()) {
                 viewModel.clearPickupMapSelection()
                 viewModel.centerMap(on: bar)
@@ -1411,7 +1424,6 @@ struct DiscoverScreen: View {
                         Button {
                             dismissDiscoverSearchKeyboard()
                             withAnimation(.spring()) {
-                                venuePreviewGameFilter = .all
                                 viewModel.selectVenueFromDiscoverSearchResult(bar)
                             }
                         } label: {
@@ -1628,8 +1640,7 @@ struct DiscoverScreen: View {
                 text: $viewModel.searchText,
                 onClear: { dismissDiscoverSearchKeyboard() },
                 onSubmit: {
-                    dismissDiscoverSearchKeyboard()
-                    viewModel.searchMapLocation()
+                    submitDiscoverSearchFromReturn()
                 },
                 submitLabel: .search,
                 textInputAutocapitalization: .words,
@@ -2120,6 +2131,28 @@ struct DiscoverScreen: View {
 
     private func dismissDiscoverSearchKeyboard() {
         isSearchFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    private func submitDiscoverSearchFromReturn() {
+        dismissDiscoverSearchKeyboard()
+        Task { @MainActor in
+            let addressSearchMovedMap = await viewModel.submitDiscoverAddressSearchFromReturn()
+            guard addressSearchMovedMap else { return }
+            dismissDiscoverSearchKeyboard()
+#if DEBUG
+            print("[DiscoverSearchDebug] keyboardDismissedAfterAddressSearch=true")
+#endif
+            if viewModel.discoverMapContentMode == .pickupGames {
+                await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+            } else {
+                await viewModel.loadVenuesFromSupabase()
+            }
+            scheduleDiscoverWeatherRefresh(force: true)
+#if DEBUG
+            print("[DiscoverSearchDebug] mapReloadAfterAddressSearch=true")
+#endif
+        }
     }
 
     private func openDiscoverDatePicker() {
@@ -2352,24 +2385,20 @@ struct DiscoverScreen: View {
         return .low
     }
 
-    private func pickupMarkerSportIcon(for sport: String) -> String {
-        viewModel.iconForSport(sport)
-    }
-
-    private func mapSportIconUsesColoredIcon(_ sport: String) -> Bool {
+    private func mapSportIconReusesSportChipIcon(_ sport: String) -> Bool {
         let trimmed = sport.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
-        return viewModel.iconForSport(trimmed) != "sportscourt.fill"
+        return !SportFilterCatalog.resolve(trimmed).emoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func mapSportIconTint(for sport: String) -> Color {
-        mapSportIconUsesColoredIcon(sport) ? viewModel.colorForSport(sport) : Color.white.opacity(0.94)
+        mapSportIconReusesSportChipIcon(sport) ? SportFilterCatalog.resolve(sport).accent : Color.white.opacity(0.94)
     }
 
     private func logMapSportIconDebug(sport: String, markerType: String) {
 #if DEBUG
+        print("[MapSportIconDebug] reusedSportChipIcon=\(mapSportIconReusesSportChipIcon(sport))")
         print("[MapSportIconDebug] sport=\(sport)")
-        print("[MapSportIconDebug] usingColoredIcon=\(mapSportIconUsesColoredIcon(sport))")
         print("[MapSportIconDebug] markerType=\(markerType)")
 #endif
     }
@@ -2386,11 +2415,10 @@ struct DiscoverScreen: View {
             }
         } label: {
             PickupGameMapMarker(
-                systemImage: pickupMarkerSportIcon(for: row.sport),
                 sport: row.sport,
                 accentColor: viewModel.colorForSport(row.sport),
                 markerType: "pickup",
-                usingColoredIcon: mapSportIconUsesColoredIcon(row.sport),
+                reusedSportChipIcon: mapSportIconReusesSportChipIcon(row.sport),
                 activity: pickupMarkerActivity(for: row),
                 demandBadgeText: badgeValue,
                 isSelected: isSelected
@@ -2411,11 +2439,10 @@ struct DiscoverScreen: View {
             }
         } label: {
             PickupGameMapMarker(
-                systemImage: pickupMarkerSportIcon(for: sportHint ?? ""),
                 sport: sportHint ?? "",
                 accentColor: viewModel.colorForSport(sportHint ?? ""),
                 markerType: "pickupCluster",
-                usingColoredIcon: mapSportIconUsesColoredIcon(sportHint ?? ""),
+                reusedSportChipIcon: mapSportIconReusesSportChipIcon(sportHint ?? ""),
                 activity: pickupMarkerActivity(for: cluster.rows),
                 isCluster: true,
                 count: cluster.count
@@ -3000,7 +3027,7 @@ struct DiscoverScreen: View {
             : FGColor.accentGreen.opacity(0.09)
     }
     
-    /// Venue image, name, address, actions, rating, and experience — stays fixed while games scroll (sports are per game card only).
+    /// Venue image, name, address, actions, rating, and experience — scrolls with game content.
     @ViewBuilder
     private func venuePreviewCardStaticHeader(bar: BarVenue) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -3205,24 +3232,24 @@ struct DiscoverScreen: View {
         )
 
         return VStack(alignment: .leading, spacing: 12) {
-            venuePreviewCardStaticHeader(bar: resolved)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 12) {
+                    venuePreviewCardStaticHeader(bar: resolved)
 
-            Rectangle()
-                .fill(FGColor.divider(colorScheme))
-                .frame(height: 1)
+                    Rectangle()
+                        .fill(FGColor.divider(colorScheme))
+                        .frame(height: 1)
 
-            if let selectedEvent = selectedVenueEvent {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 12) {
+                    if let selectedEvent = selectedVenueEvent {
                         selectedEventSection(bar: resolved, selectedEvent: selectedEvent)
+                    } else {
+                        gamesListSection(bar: resolved, gamesToday: gamesToday)
                     }
-                    .padding(.bottom, 4)
                 }
-                .frame(maxHeight: 292)
-                .clipped()
-            } else {
-                gamesListSection(bar: resolved, gamesToday: gamesToday)
+                .padding(.bottom, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .scrollBounceBehavior(.basedOnSize)
 
             venuePreviewActionRow(bar: resolved)
         }
@@ -3244,14 +3271,17 @@ struct DiscoverScreen: View {
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.14), radius: colorScheme == .dark ? 24 : 16, x: 0, y: colorScheme == .dark ? 14 : 9)
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, x: 0, y: 2)
-        .onChange(of: viewModel.selectedBar?.id) { oldId, newId in
-            guard oldId != newId else { return }
-            venuePreviewGameFilter = .all
-        }
         .task(id: visibleSocialPrefetchKey) {
             await viewModel.prefetchDiscoverVenueImages(for: resolved, includeMenu: false)
             guard viewModel.canViewDiscoverDetails() else { return }
             await prefetchVisibleVenueSocialData(bar: resolved, events: visibleSocialPrefetchEvents)
+        }
+        .onAppear {
+#if DEBUG
+            print("[VenuePreviewScrollDebug] fullCardContentScrollable=true")
+            print("[VenuePreviewScrollDebug] bottomActionsPinned=true")
+            print("[VenuePreviewScrollDebug] removedAllGoingTabs=true")
+#endif
         }
     }
 
@@ -3364,22 +3394,15 @@ struct DiscoverScreen: View {
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
-        let filtered = gamesFilteredForVenuePreview(bar: bar, gamesToday: gamesToday, filter: venuePreviewGameFilter)
-
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                venuePreviewGameFilterPicker
-
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: FGSpacing.xs) {
+                VStack(alignment: .leading, spacing: FGSpacing.xs) {
                         if viewModel.isLoadingEvents && gamesToday.isEmpty {
                             loadingVenueGamesView
                         } else if gamesToday.isEmpty {
                             venuePreviewNoGamesForSelectedDayView(bar: bar)
-                        } else if filtered.isEmpty {
-                            venueGameFilterEmptyView()
                         } else {
-                            ForEach(Array(filtered.prefix(12)), id: \.id) { event in
+                            ForEach(Array(gamesToday.prefix(12)), id: \.id) { event in
                                 if viewModel.isGuestDiscoverMode {
                                     guestVenueGamePreviewRow(bar: bar, event: event) {
                                         showVenueDetails = true
@@ -3389,12 +3412,9 @@ struct DiscoverScreen: View {
                                 }
                             }
                         }
-                    }
-                    .padding(.bottom, 4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: 248)
-                .clipped()
+                .padding(.bottom, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if viewModel.isRefreshingDiscoverEvents && !gamesToday.isEmpty {
@@ -3402,109 +3422,6 @@ struct DiscoverScreen: View {
                     .controlSize(.small)
                     .padding(.trailing, 2)
             }
-        }
-        .animation(.easeInOut(duration: 0.18), value: venuePreviewGameFilter)
-    }
-
-    private var venuePreviewGameFilterPicker: some View {
-        HStack(spacing: FGSpacing.xs) {
-            ForEach(VenuePreviewGameFilter.allCases) { mode in
-                let isOn = venuePreviewGameFilter == mode
-                Button {
-                    FGInteractionHaptics.selection()
-                    withAnimation(.easeInOut(duration: 0.18)) {
-                        venuePreviewGameFilter = mode
-                    }
-                } label: {
-                    VStack(spacing: 3) {
-                        Text(mode.segmentTitle)
-                            .font(FGTypography.metadata.weight(isOn ? .bold : .semibold))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                        Capsule(style: .continuous)
-                            .fill(isOn ? FGColor.accentBlue : Color.clear)
-                            .frame(height: 2)
-                    }
-                        .padding(.horizontal, FGSpacing.md)
-                        .padding(.vertical, 6)
-                        .foregroundStyle(isOn ? FGColor.accentBlue : discoverPreviewSecondaryTextColor)
-                        .background {
-                            Capsule(style: .continuous)
-                                .fill(
-                                    isOn
-                                        ? AnyShapeStyle(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.13))
-                                        : AnyShapeStyle(Color.clear)
-                                )
-                        }
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .strokeBorder(isOn ? FGColor.accentBlue.opacity(0.36) : Color.clear, lineWidth: 1)
-                        }
-                }
-                .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
-            }
-        }
-        .padding(.horizontal, 3)
-        .padding(.vertical, 3)
-        .background {
-            Capsule(style: .continuous)
-                .fill(discoverPreviewControlBackground)
-        }
-        .overlay(
-            Capsule(style: .continuous)
-                .strokeBorder(discoverPreviewControlBorder, lineWidth: 1)
-        )
-        .fixedSize(horizontal: true, vertical: false)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    /// Local optimistic key and/or server-backed venue_event_interests row.
-    private func venuePreviewCurrentUserIsGoing(bar: BarVenue, game: SportsEvent) -> Bool {
-        viewModel.userIsGoingToVenueGame(
-            bar: bar,
-            gameTitle: game.title,
-            venueEventID: viewModel.cachedVenueEventID(for: bar, gameTitle: game.title)
-        )
-    }
-
-    private func gamesFilteredForVenuePreview(
-        bar: BarVenue,
-        gamesToday: [SportsEvent],
-        filter: VenuePreviewGameFilter
-    ) -> [SportsEvent] {
-        let goingGames = gamesToday.filter {
-            venuePreviewCurrentUserIsGoing(bar: bar, game: $0)
-        }
-#if DEBUG
-        print("[VenuePreviewFilterDebug] selectedFilter=\(filter.segmentTitle)")
-        print("[VenuePreviewFilterDebug] allCount=\(gamesToday.count)")
-        print("[VenuePreviewFilterDebug] goingCount=\(goingGames.count)")
-#endif
-        switch filter {
-        case .all:
-            return gamesToday
-
-        case .going:
-            return goingGames
-        }
-    }
-
-    private func venueGameFilterEmptyView() -> some View {
-        HStack(spacing: FGSpacing.sm) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .foregroundStyle(FGColor.mutedText(colorScheme))
-            Text("No games match this filter.")
-                .font(FGTypography.caption)
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-        }
-        .padding(.horizontal, FGSpacing.md)
-        .padding(.vertical, FGSpacing.sm)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(discoverPreviewInnerSurface)
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                .strokeBorder(discoverPreviewControlBorder.opacity(colorScheme == .dark ? 0.9 : 0.7), lineWidth: 1)
         }
     }
 
@@ -4615,24 +4532,26 @@ struct DiscoverScreen: View {
     private func simpleMapPin(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
         let sport = gamesToday.first?.sport ?? bar.primarySport
         let tint = mapSportIconTint(for: sport)
-        let usesColor = mapSportIconUsesColoredIcon(sport)
+        let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
 
-        return Image(systemName: viewModel.iconForSport(sport))
-            .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
-            .font(.system(size: 19, weight: .heavy))
-            .foregroundStyle(tint)
+        return MapSportChipIconGlyph(
+            sport: sport,
+            emojiSize: 24,
+            symbolSize: 18,
+            frameSize: 40
+        )
             .frame(width: 40, height: 40)
             .background {
                 ZStack {
                     Circle().fill(Color.black).shadow(radius: 5)
                     Circle()
-                        .fill(usesColor ? tint.opacity(0.22) : Color.white.opacity(0.08))
+                        .fill(reusedSportChipIcon ? tint.opacity(0.22) : Color.white.opacity(0.08))
                         .frame(width: 31, height: 31)
                 }
             }
             .overlay {
                 Circle()
-                    .strokeBorder((usesColor ? tint : Color.white).opacity(0.34), lineWidth: 1)
+                    .strokeBorder((reusedSportChipIcon ? tint : Color.white).opacity(0.34), lineWidth: 1)
                     .padding(4)
             }
             .onAppear {
@@ -4665,15 +4584,16 @@ struct DiscoverScreen: View {
 
         let sport = gamesToday.first?.sport ?? bar.primarySport
         let sportTint = mapSportIconTint(for: sport)
-        let usesColor = mapSportIconUsesColoredIcon(sport)
+        let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
 
         return HStack(spacing: 6) {
-            Image(systemName: viewModel.iconForSport(sport))
-                .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
-                .font(.system(size: 16, weight: .heavy))
-                .foregroundStyle(sportTint)
-                .frame(width: 22, height: 22)
-                .background(Circle().fill((usesColor ? sportTint : Color.white).opacity(0.16)))
+            MapSportChipIconGlyph(
+                sport: sport,
+                emojiSize: 18,
+                symbolSize: 15,
+                frameSize: 22
+            )
+            .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
 
             if hasLiveNow {
                 Text("LIVE")
@@ -4750,11 +4670,13 @@ struct DiscoverScreen: View {
             HStack(spacing: -6) {
                 ForEach(gamesToday.prefix(3), id: \.id) { game in
                     let sportTint = mapSportIconTint(for: game.sport)
-                    let usesColor = mapSportIconUsesColoredIcon(game.sport)
-                    Image(systemName: viewModel.iconForSport(game.sport))
-                        .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
-                        .font(.system(size: 18, weight: .heavy))
-                        .foregroundStyle(sportTint)
+                    let reusedSportChipIcon = mapSportIconReusesSportChipIcon(game.sport)
+                    MapSportChipIconGlyph(
+                        sport: game.sport,
+                        emojiSize: 22,
+                        symbolSize: 17,
+                        frameSize: 36
+                    )
                         .frame(width: 36, height: 36)
                         .background {
                             ZStack {
@@ -4768,13 +4690,13 @@ struct DiscoverScreen: View {
                                     .fill(Color.black)
                                     .shadow(radius: 5)
                                 Circle()
-                                    .fill((usesColor ? sportTint : Color.white).opacity(0.16))
+                                    .fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16))
                                     .padding(6)
                             }
                         }
                         .overlay {
                             Circle()
-                                .strokeBorder((usesColor ? sportTint : Color.white).opacity(0.30), lineWidth: 1)
+                                .strokeBorder((reusedSportChipIcon ? sportTint : Color.white).opacity(0.30), lineWidth: 1)
                                 .padding(3)
                         }
                         .onAppear {
@@ -4836,13 +4758,15 @@ struct DiscoverScreen: View {
                let sport = dominantSport,
                maxEnergy > 0 {
                 let sportTint = mapSportIconTint(for: sport)
-                let usesColor = mapSportIconUsesColoredIcon(sport)
-                Image(systemName: viewModel.iconForSport(sport))
-                    .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
-                    .font(.system(size: 16, weight: .heavy))
-                    .foregroundStyle(sportTint)
+                let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
+                MapSportChipIconGlyph(
+                    sport: sport,
+                    emojiSize: 20,
+                    symbolSize: 15,
+                    frameSize: 26
+                )
                     .padding(5)
-                    .background(Circle().fill((usesColor ? sportTint : Color.white).opacity(0.16)))
+                    .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
                     .onAppear {
                         logMapSportIconDebug(sport: sport, markerType: "venueCluster")
                     }

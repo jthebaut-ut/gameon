@@ -71,6 +71,7 @@ struct ProfileIdentityCard: View {
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
     @AppStorage(FavoriteTeamsStore.primaryTeamIDAppStorageKey) private var primaryFavoriteTeamIDRaw: String = ""
     @State private var showFavoriteTeamsPicker = false
+    @State private var showNationalTeamPicker = false
     @State private var showHandleSetup = false
     @State private var showIdentityEditor = false
     @State private var showFanIdentityEditor = false
@@ -286,6 +287,9 @@ struct ProfileIdentityCard: View {
 
                 heroBlock
 
+                nationalTeamSection
+                    .padding(.horizontal, 16)
+
                 if canShowOwnerPokesHighlights {
                     pokesHighlightsSection
                         .padding(.horizontal, 16)
@@ -359,6 +363,13 @@ struct ProfileIdentityCard: View {
                         }
                     )
                 )
+            }
+            .sheet(isPresented: $showNationalTeamPicker) {
+                NationalTeamPickerSheet(currentIdentity: viewModel.currentUserNationalTeam) { identity in
+                    Task { await saveNationalTeamIdentity(identity) }
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
             }
             .sheet(isPresented: $showPokesHistorySheet) {
                 pokesHistorySheet
@@ -1695,6 +1706,71 @@ struct ProfileIdentityCard: View {
                 return
             }
             print("[FanIdentityOpenTo] quickRemoveSaved")
+        }
+    }
+
+    // MARK: - National Team
+
+    private var nationalTeamSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(NationalTeamCopy.text("national_team", languageCode: appLanguageRaw))
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme))
+                        .textCase(.uppercase)
+                        .tracking(0.7)
+                    Text(NationalTeamCopy.text("national_team_subtitle", languageCode: appLanguageRaw))
+                        .font(.system(size: 10, weight: .medium, design: .rounded))
+                        .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let identity = viewModel.currentUserNationalTeam {
+                NationalTeamIdentityCard(identity: identity, showsEditAffordance: true) {
+                    openNationalTeamPicker()
+                }
+            } else {
+                Button {
+                    openNationalTeamPicker()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flag.fill")
+                            .font(.system(size: 15, weight: .bold))
+                        Text(NationalTeamCopy.text("choose_national_team", languageCode: appLanguageRaw))
+                            .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundStyle(FGColor.accentGreen)
+                    .padding(13)
+                    .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.09))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .onAppear {
+#if DEBUG
+            print("[NationalTeamDebug] profileSectionVisible=true")
+#endif
+        }
+    }
+
+    private func openNationalTeamPicker() {
+        showNationalTeamPicker = true
+#if DEBUG
+        print("[NationalTeamDebug] pickerOpened=true")
+#endif
+    }
+
+    private func saveNationalTeamIdentity(_ identity: NationalTeamIdentity) async {
+        if let err = await viewModel.saveNationalTeamIdentity(identity) {
+            await MainActor.run {
+                viewModel.showSocialActionToast(err, isError: true)
+            }
         }
     }
 

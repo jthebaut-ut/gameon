@@ -47,6 +47,10 @@ enum CountryFlagHelper {
         regionCode(for: teamName).map(flagEmoji)
     }
 
+    static func countryCode(for teamName: String) -> String? {
+        regionCode(for: teamName)
+    }
+
     static func isCountry(_ teamName: String) -> Bool {
         regionCode(for: teamName) != nil
     }
@@ -60,6 +64,21 @@ enum CountryFlagHelper {
         return localized?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
             ? localized!
             : teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func countrySuggestions(matching query: String, languageCode: String? = nil) -> [(name: String, code: String, flag: String)] {
+        let normalizedQuery = normalize(query)
+        let localeIdentifier = L10n.normalizedLanguageCode(languageCode ?? UserDefaults.standard.string(forKey: L10n.appLanguageKey))
+        return aliasesByRegionCode.keys.sorted().compactMap { code in
+            let localized = Locale(identifier: localeIdentifier).localizedString(forRegionCode: code) ?? code
+            let aliases = aliasesByRegionCode[code] ?? []
+            guard normalizedQuery.isEmpty
+                    || normalize(localized).contains(normalizedQuery)
+                    || aliases.contains(where: { normalize($0).contains(normalizedQuery) }) else {
+                return nil
+            }
+            return (name: localized, code: code, flag: flagEmoji(forRegionCode: code))
+        }
     }
 
     private static func regionCode(for teamName: String) -> String? {

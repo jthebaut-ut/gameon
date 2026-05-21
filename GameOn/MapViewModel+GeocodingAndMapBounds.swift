@@ -474,6 +474,77 @@ extension MapViewModel {
         }
     }
 
+    func submitDiscoverAddressSearchFromReturn() async -> Bool {
+        discoverSearchDebounceTask?.cancel()
+        discoverSearchDebounceTask = nil
+
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            venueSearchResults = []
+            debouncedDiscoverSearchText = ""
+            return false
+        }
+
+        let kind = discoverMapSearchKind(for: q)
+#if DEBUG
+        print("[DiscoverSearchDebug] addressSearchSubmitted query=\(q)")
+#endif
+
+        isDiscoverVenueSearchLoading = true
+        defer { isDiscoverVenueSearchLoading = false }
+
+        if kind == .globalPlace, let coord = await geocodeAddress(q) {
+            applySuccessfulDiscoverAddressSearch(coordinate: coord)
+            return true
+        }
+
+        let localOrdered = kind == .appContentRegionBound
+            ? await discoverRegionBoundAppContentSearchOrderedDetached(query: q)
+            : []
+        let remoteMatches = await fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: false)
+        var seen = Set(localOrdered.map(\.id))
+        var merged: [BarVenue] = localOrdered
+        for bar in remoteMatches where seen.insert(bar.id).inserted {
+            merged.append(bar)
+        }
+
+        if kind == .appContentRegionBound, merged.isEmpty, let coord = await geocodeAddress(q) {
+            applySuccessfulDiscoverAddressSearch(coordinate: coord)
+            return true
+        }
+
+        debouncedDiscoverSearchText = q
+        venueSearchResults = merged
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+        discoverPickupClustersCacheKey = nil
+        discoverPickupClustersCache = nil
+        return false
+    }
+
+    private func applySuccessfulDiscoverAddressSearch(coordinate: CLLocationCoordinate2D) {
+        selectedBar = nil
+        selectedEvent = nil
+        selectedPickupGameForMap = nil
+        discoverRemotePreviewHoldVenueId = nil
+        venueSearchResults = []
+        searchText = ""
+        debouncedDiscoverSearchText = ""
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+        discoverPickupClustersCacheKey = nil
+        discoverPickupClustersCache = nil
+        cameraPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+            )
+        )
+#if DEBUG
+        print("[DiscoverSearchDebug] addressSearchClearedAfterSubmit=true")
+#endif
+    }
+
     func geocodeAddress(_ address: String) async -> CLLocationCoordinate2D? {
         guard let request = MKGeocodingRequest(addressString: address) else { return nil }
         do {
