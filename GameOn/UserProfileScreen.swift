@@ -85,7 +85,12 @@ struct UserProfileScreen: View {
                 editedUsername = viewModel.currentUserUsername
                 editedBio = limitedBio(viewModel.currentUserBio)
             }
-            .onChange(of: editedUsername) { _, _ in
+            .onChange(of: editedUsername) { _, newValue in
+                let normalized = FanGeoHandleRules.normalizeForStorage(newValue)
+                if normalized != newValue {
+                    editedUsername = normalized
+                    return
+                }
                 scheduleHandleAvailabilityCheck()
             }
             .onChange(of: editedBio) { _, newValue in
@@ -157,7 +162,7 @@ struct UserProfileScreen: View {
         FGCard {
             FGSectionHeader(
                 "@handle",
-                subtitle: "Your unique public username for friend search."
+                subtitle: "Your unique public FanGeo handle for friend search."
             )
 
             HStack(spacing: 4) {
@@ -179,9 +184,10 @@ struct UserProfileScreen: View {
             }
 
             if !handleStatusMessage.isEmpty {
-                Text(handleStatusMessage)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(handleStatusIsPositive ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                HandleAvailabilityStatusLabel(
+                    message: handleStatusMessage,
+                    isPositive: handleStatusIsPositive
+                )
             }
         }
     }
@@ -190,7 +196,7 @@ struct UserProfileScreen: View {
         FGCard {
             FGSectionHeader(
                 "Display name",
-                subtitle: "Shown across FanGeo and matched case-insensitively for uniqueness."
+                subtitle: "Shown across FanGeo. Display names do not need to be unique."
             )
 
             TextField("Name", text: $editedDisplayName)
@@ -397,6 +403,7 @@ struct UserProfileScreen: View {
         }
         if let issue = FanGeoHandleRules.validate(editedUsername) {
             await MainActor.run { message = FanGeoHandleRules.validationMessage(for: issue) }
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return
         }
         let nextBio = limitedBio(editedBio)
@@ -427,23 +434,30 @@ struct UserProfileScreen: View {
         if raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return
         }
+        let stored = FanGeoHandleRules.normalizeForStorage(raw)
+        print("[HandleValidationDebug] normalizedHandle=\(stored)")
         if let issue = FanGeoHandleRules.validate(raw) {
-            handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            handleStatusMessage = "Invalid handle: \(FanGeoHandleRules.validationMessage(for: issue))"
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return
         }
 
+        handleStatusMessage = "Checking availability..."
         availabilityTask = Task {
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
+            print("[HandleValidationDebug] availabilityCheck=\(stored)")
             guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
             await MainActor.run {
                 guard !Task.isCancelled else { return }
+                print("[HandleValidationDebug] handleAvailable=\(available)")
                 if available {
-                    handleStatusMessage = "Handle available."
+                    handleStatusMessage = "Available"
                     handleStatusIsPositive = true
                 } else {
-                    handleStatusMessage = "That handle is already taken."
+                    handleStatusMessage = "Already taken"
                     handleStatusIsPositive = false
+                    print("[HandleValidationDebug] handleRejected reason=already_taken")
                 }
             }
         }

@@ -167,13 +167,10 @@ struct FanSignupView: View {
                         .foregroundStyle(FGColor.mutedText(colorScheme))
 
                     if !handleStatusMessage.isEmpty {
-                        Text(handleStatusMessage)
-                            .font(FGTypography.caption)
-                            .foregroundStyle(
-                                handleStatusIsPositive
-                                    ? FGColor.accentGreen
-                                    : (handleIsConfirmedAvailable ? FGColor.secondaryText(colorScheme) : .red)
-                            )
+                        HandleAvailabilityStatusLabel(
+                            message: handleStatusMessage,
+                            isPositive: handleStatusIsPositive
+                        )
                     }
                 }
             }
@@ -404,25 +401,32 @@ struct FanSignupView: View {
         handleStatusIsPositive = false
         handleIsConfirmedAvailable = false
 
+        let stored = FanGeoHandleRules.normalizeForStorage(handleDraft)
+        print("[HandleValidationDebug] normalizedHandle=\(stored)")
+
         if let issue = FanGeoHandleRules.validate(handleDraft) {
-            handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            handleStatusMessage = "Invalid handle: \(FanGeoHandleRules.validationMessage(for: issue))"
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return
         }
 
-        let stored = FanGeoHandleRules.normalizeForStorage(handleDraft)
+        handleStatusMessage = "Checking availability..."
         availabilityTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
+            print("[HandleValidationDebug] availabilityCheck=\(stored)")
             guard let available = await viewModel.checkUsernameAvailableForSignup(handleDraft) else { return }
             guard !Task.isCancelled else { return }
             print("[SignupUX] handleCheck username=\(stored) available=\(available)")
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             if available {
-                handleStatusMessage = "Handle available."
+                handleStatusMessage = "Available"
                 handleStatusIsPositive = true
                 handleIsConfirmedAvailable = true
             } else {
-                handleStatusMessage = "That handle is already taken."
+                handleStatusMessage = "Already taken"
                 handleIsConfirmedAvailable = false
+                print("[HandleValidationDebug] handleRejected reason=already_taken")
             }
         }
     }
@@ -460,6 +464,7 @@ struct FanSignupView: View {
         if let issue = FanGeoHandleRules.validate(handleDraft) {
             errorMessage = FanGeoHandleRules.validationMessage(for: issue)
             print("[SignupUX] submitFailed step=validation error=handle")
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return false
         }
 

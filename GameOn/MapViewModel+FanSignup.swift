@@ -30,7 +30,11 @@ extension MapViewModel {
     /// Pre-auth @handle availability (signup form). Uses `check_username_available_for_registration` when not signed in.
     func checkUsernameAvailableForSignup(_ rawHandle: String) async -> Bool? {
         let stored = FanGeoHandleRules.normalizeForStorage(rawHandle)
-        guard FanGeoHandleRules.validate(rawHandle) == nil else { return false }
+        print("[HandleValidationDebug] normalizedHandle=\(stored)")
+        guard FanGeoHandleRules.validate(rawHandle) == nil else {
+            print("[HandleValidationDebug] handleRejected reason=invalid")
+            return false
+        }
 
         if (try? await supabase.auth.session) != nil {
             return await checkUsernameAvailable(rawHandle)
@@ -41,6 +45,7 @@ extension MapViewModel {
         }
 
         do {
+            print("[HandleValidationDebug] availabilityCheck=\(stored)")
             let available: Bool = try await supabase
                 .rpc(
                     "check_username_available_for_registration",
@@ -48,6 +53,7 @@ extension MapViewModel {
                 )
                 .execute()
                 .value
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             return available
         } catch {
             print("[SignupUX] submitFailed step=handleCheck error=\(error.localizedDescription)")
@@ -107,6 +113,7 @@ extension MapViewModel {
         }
 
         if let issue = FanGeoHandleRules.validate(profile.handle) {
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -118,7 +125,9 @@ extension MapViewModel {
         let storedHandle = FanGeoHandleRules.normalizeForStorage(profile.handle)
         if let available = await checkUsernameAvailableForSignup(profile.handle) {
             print("[SignupUX] handleCheck username=\(storedHandle) available=\(available)")
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             guard available else {
+                print("[HandleValidationDebug] handleRejected reason=already_taken")
                 return FanSignupSubmitOutcome(
                     succeeded: false,
                     failureStep: .validation,
@@ -263,7 +272,9 @@ extension MapViewModel {
         if let available = await checkUsernameAvailable(profile.handle) {
             let stored = FanGeoHandleRules.normalizeForStorage(profile.handle)
             print("[SignupUX] handleCheck username=\(stored) available=\(available)")
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             guard available else {
+                print("[HandleValidationDebug] handleRejected reason=already_taken")
                 return "That handle is already taken."
             }
         } else {

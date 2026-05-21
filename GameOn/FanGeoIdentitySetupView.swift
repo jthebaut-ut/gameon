@@ -207,7 +207,7 @@ struct FanGeoIdentitySetupView: View {
 
     private var handleSection: some View {
         VStack(alignment: .leading, spacing: FGSpacing.sm) {
-            FGSectionHeader("@handle", subtitle: "Required — 3–24 characters; letters, numbers, _ or .")
+            FGSectionHeader("@handle", subtitle: "Required — 3–20 characters; letters, numbers, _ or .")
             HStack(spacing: 4) {
                 Text("@")
                     .font(FGTypography.body.weight(.semibold))
@@ -220,13 +220,10 @@ struct FanGeoIdentitySetupView: View {
             .fanGeoInputFieldStyle()
 
             if !handleStatusMessage.isEmpty {
-                Text(handleStatusMessage)
-                    .font(FGTypography.caption)
-                    .foregroundStyle(
-                        handleStatusIsPositive
-                            ? FGColor.accentGreen
-                            : (handleIsConfirmedAvailable ? FGColor.secondaryText(colorScheme) : .red)
-                    )
+                HandleAvailabilityStatusLabel(
+                    message: handleStatusMessage,
+                    isPositive: handleStatusIsPositive
+                )
             }
         }
         .fanGeoGlassCard()
@@ -273,28 +270,35 @@ struct FanGeoIdentitySetupView: View {
         handleIsConfirmedAvailable = false
 
         let raw = handleDraft
+        let stored = FanGeoHandleRules.normalizeForStorage(raw)
+        print("[HandleValidationDebug] normalizedHandle=\(stored)")
+
         if let issue = FanGeoHandleRules.validate(raw) {
-            handleStatusMessage = FanGeoHandleRules.validationMessage(for: issue)
+            handleStatusMessage = "Invalid handle: \(FanGeoHandleRules.validationMessage(for: issue))"
             print("[SignupProfileDebug] validationError field=handle")
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return
         }
 
-        let stored = FanGeoHandleRules.normalizeForStorage(raw)
+        handleStatusMessage = "Checking availability..."
         availabilityTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled else { return }
+            print("[HandleValidationDebug] availabilityCheck=\(stored)")
             guard let available = await viewModel.checkUsernameAvailable(raw) else { return }
             guard !Task.isCancelled else { return }
             print("[SignupProfileDebug] handleCheck username=\(stored) available=\(available)")
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             if available {
-                handleStatusMessage = "Handle available."
+                handleStatusMessage = "Available"
                 handleStatusIsPositive = true
                 handleIsConfirmedAvailable = true
             } else {
-                handleStatusMessage = "That handle is already taken."
+                handleStatusMessage = "Already taken"
                 handleStatusIsPositive = false
                 handleIsConfirmedAvailable = false
                 print("[SignupProfileDebug] validationError field=handle")
+                print("[HandleValidationDebug] handleRejected reason=already_taken")
             }
         }
     }
@@ -329,6 +333,7 @@ struct FanGeoIdentitySetupView: View {
         if let issue = FanGeoHandleRules.validate(handleDraft) {
             errorMessage = FanGeoHandleRules.validationMessage(for: issue)
             print("[SignupProfileDebug] validationError field=handle")
+            print("[HandleValidationDebug] handleRejected reason=\(issue)")
             return
         }
 
@@ -338,11 +343,13 @@ struct FanGeoIdentitySetupView: View {
             return
         }
         print("[SignupProfileDebug] handleCheck username=\(storedHandle) available=\(available)")
+        print("[HandleValidationDebug] handleAvailable=\(available)")
         guard available else {
-            handleStatusMessage = "That handle is already taken."
+            handleStatusMessage = "Already taken"
             handleStatusIsPositive = false
             handleIsConfirmedAvailable = false
             print("[SignupProfileDebug] validationError field=handle")
+            print("[HandleValidationDebug] handleRejected reason=already_taken")
             return
         }
 

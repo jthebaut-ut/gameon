@@ -3368,13 +3368,7 @@ struct DiscoverScreen: View {
                         if viewModel.isLoadingEvents && gamesToday.isEmpty {
                             loadingVenueGamesView
                         } else if gamesToday.isEmpty {
-                            if bar.games.isEmpty, !viewModel.isLoadingEvents {
-                                Text("No games listed yet.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                venuePreviewNoGamesForDateView
-                            }
+                            venuePreviewNoGamesForSelectedDayView(bar: bar)
                         } else if filtered.isEmpty {
                             venueGameFilterEmptyView()
                         } else {
@@ -3507,13 +3501,31 @@ struct DiscoverScreen: View {
         }
     }
 
-    private var venuePreviewNoGamesForDateView: some View {
-        HStack(spacing: FGSpacing.sm) {
+    private func venuePreviewNoGamesForSelectedDayView(bar: BarVenue) -> some View {
+        let selectedDayLabel = venuePreviewSelectedDayLabel(for: viewModel.selectedDate)
+        let nextAvailableGame = venuePreviewNextAvailableGame(for: bar)
+
+        return HStack(alignment: .top, spacing: FGSpacing.sm) {
             Image(systemName: "calendar.badge.exclamationmark")
                 .foregroundStyle(FGColor.mutedText(colorScheme))
-            Text("No games scheduled for this date.")
-                .font(FGTypography.caption)
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("No games listed for \(selectedDayLabel).")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                if let nextAvailableGame {
+                    Text("Next available game: \(nextAvailableGame.title) · \(nextAvailableGame.dateText) · \(nextAvailableGame.timeText)")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Check back soon.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+            }
         }
         .padding(FGSpacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -3523,6 +3535,98 @@ struct DiscoverScreen: View {
             RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
                 .strokeBorder(discoverPreviewControlBorder.opacity(colorScheme == .dark ? 0.9 : 0.7), lineWidth: 1)
         }
+        .onAppear {
+#if DEBUG
+            print("[VenueCardEmptyStateDebug] selectedDay=\(selectedDayLabel)")
+            print("[VenueCardEmptyStateDebug] noGamesForSelectedDay=true")
+            if let nextAvailableGame {
+                print("[VenueCardEmptyStateDebug] nextAvailableGame=\(nextAvailableGame.title) · \(nextAvailableGame.dateText) · \(nextAvailableGame.timeText)")
+            } else {
+                print("[VenueCardEmptyStateDebug] nextAvailableGame=none")
+            }
+#endif
+        }
+    }
+
+    private func venuePreviewSelectedDayLabel(for date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            return "Today"
+        }
+        if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        }
+        return date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    private func venuePreviewDateLabel(for date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    private func venuePreviewTimeLabel(for date: Date, fallback: String?) -> String {
+        let fallback = fallback?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !fallback.isEmpty, fallback.lowercased() != "time tbd" {
+            return fallback
+        }
+        return date.formatted(date: .omitted, time: .shortened)
+    }
+
+    private func venuePreviewNextAvailableGame(for bar: BarVenue) -> (title: String, dateText: String, timeText: String)? {
+        let calendar = Calendar.current
+        let selectedDayStart = calendar.startOfDay(for: viewModel.selectedDate)
+        let earliestFutureDay = calendar.date(byAdding: .day, value: 1, to: selectedDayStart) ?? selectedDayStart
+        let barName = bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sportFilter = viewModel.selectedSport
+
+        let candidates = viewModel.venueEventRows.compactMap { row -> (title: String, start: Date, timeText: String)? in
+            let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "active"
+            guard status == "active" else { return nil }
+            guard VenueGameExpiration.isActiveOnDiscoverSurfaces(row: row) else { return nil }
+            if sportFilter != "All" {
+                let rowSport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard rowSport == sportFilter else { return nil }
+            }
+
+            let matchesVenue: Bool
+            if let venueID = row.venue_id {
+                matchesVenue = venueID == bar.id
+            } else {
+                let venueName = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                matchesVenue = !venueName.isEmpty && venueName.caseInsensitiveCompare(barName) == .orderedSame
+            }
+            guard matchesVenue else { return nil }
+
+            guard let start = VenueGameExpiration.scheduledStartDate(for: row),
+                  start >= earliestFutureDay else { return nil }
+            let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !title.isEmpty else { return nil }
+            return (title, start, venuePreviewTimeLabel(for: start, fallback: row.event_time))
+        }
+        .sorted { $0.start < $1.start }
+
+        if let next = candidates.first {
+            return (
+                title: next.title,
+                dateText: venuePreviewDateLabel(for: next.start),
+                timeText: next.timeText
+            )
+        }
+
+        let eventCandidates = viewModel.events
+            .filter { event in
+                event.league == "Venue Event"
+                    && event.date >= earliestFutureDay
+                    && (sportFilter == "All" || event.sport == sportFilter)
+                    && bar.games.contains(event.title)
+            }
+            .sorted { $0.date < $1.date }
+
+        guard let next = eventCandidates.first else { return nil }
+        return (
+            title: next.title,
+            dateText: venuePreviewDateLabel(for: next.date),
+            timeText: venuePreviewTimeLabel(for: next.date, fallback: next.time)
+        )
     }
     
     private func trendingScore(for venueEventID: UUID, goingCount: Int) -> Int {

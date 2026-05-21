@@ -599,7 +599,7 @@ final class FriendshipService {
             .from("user_profiles")
             .select(fanSelect)
             .eq("admin_status", value: "active")
-            .eq("username", value: n)
+            .ilike("username", pattern: n)
             .limit(24)
             .execute()
             .value) ?? []
@@ -887,7 +887,7 @@ final class FriendshipService {
             .from("user_profiles")
             .select(lookupSelect)
             .eq("admin_status", value: "active")
-            .eq("username", value: n)
+            .ilike("username", pattern: n)
             .limit(24)
             .execute()
             .value) ?? []

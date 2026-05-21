@@ -1257,7 +1257,11 @@ extension MapViewModel {
     /// Checks whether a @handle is available for the signed-in user (`check_username_available` RPC).
     func checkUsernameAvailable(_ rawHandle: String) async -> Bool? {
         let stored = FanGeoHandleRules.normalizeForStorage(rawHandle)
-        guard FanGeoHandleRules.validate(rawHandle) == nil else { return false }
+        print("[HandleValidationDebug] normalizedHandle=\(stored)")
+        guard FanGeoHandleRules.validate(rawHandle) == nil else {
+            print("[HandleValidationDebug] handleRejected reason=invalid")
+            return false
+        }
 
         let session: Session
         do {
@@ -1272,6 +1276,7 @@ extension MapViewModel {
         }
 
         do {
+            print("[HandleValidationDebug] availabilityCheck=\(stored)")
             let available: Bool = try await supabase
                 .rpc(
                     "check_username_available",
@@ -1282,6 +1287,7 @@ extension MapViewModel {
 #if DEBUG
             print("[HandleAvailabilityDebug] handle=\(stored) available=\(available)")
 #endif
+            print("[HandleValidationDebug] handleAvailable=\(available)")
             return available
         } catch {
 #if DEBUG
@@ -1378,40 +1384,22 @@ extension MapViewModel {
             finalDisplayName = displayName
         }
 
-        if Self.normalizedDisplayNameForUniqueness(finalDisplayName) != nil {
-            struct RpcParams: Encodable {
-                let p_display_name: String
-                let p_exclude_user_id: UUID
-            }
-            do {
-                let available: Bool = try await supabase
-                    .rpc(
-                        "check_display_name_normalized_available",
-                        params: RpcParams(p_display_name: finalDisplayName, p_exclude_user_id: authId)
-                    )
-                    .execute()
-                    .value
-                if available == false {
-                    return "This display name is already taken. Please choose another."
-                }
-            } catch {
-#if DEBUG
-                print("[ProfileSave] display name availability RPC failed:", error)
-#endif
-                return "Could not verify whether this name is available. Please try again."
-            }
-        }
-
         if let username {
             if let issue = FanGeoHandleRules.validate(username) {
+                print("[HandleValidationDebug] handleRejected reason=\(issue)")
                 return FanGeoHandleRules.validationMessage(for: issue)
             }
             let stored = FanGeoHandleRules.normalizeForStorage(username)
+            print("[HandleValidationDebug] normalizedHandle=\(stored)")
             guard !stored.isEmpty else {
+                print("[HandleValidationDebug] handleRejected reason=empty")
                 return "Choose a @handle."
             }
             if let available = await checkUsernameAvailable(stored) {
-                if !available { return "That handle is already taken." }
+                if !available {
+                    print("[HandleValidationDebug] handleRejected reason=already_taken")
+                    return "That handle is already taken."
+                }
             } else {
                 return "Could not verify whether this handle is available. Please try again."
             }
@@ -1533,6 +1521,7 @@ extension MapViewModel {
             print("[ProfileBioDebug] saveBio=\(finalBioToSave ?? "")")
             print("[ProfileBioDebug] savedUserProfilesBio=\(finalBioToSave ?? "")")
 #endif
+            print("[HandleValidationDebug] profileSaved handle=\(finalUsernameToSave.map { FanGeoHandleRules.displayHandle(stored: $0) } ?? "nil")")
             print("USER PROFILE SAVED")
             return nil
 
@@ -1540,9 +1529,6 @@ extension MapViewModel {
             print("ERROR SAVING USER PROFILE:", error)
             if Self.isDuplicateUsernameConstraintViolation(error) {
                 return "That handle is already taken."
-            }
-            if Self.isDuplicateDisplayNameConstraintViolation(error) {
-                return "This display name is already taken. Please choose another."
             }
             return "Couldn’t save your profile. Please try again."
         }
@@ -1886,28 +1872,14 @@ extension MapViewModel {
         refreshFollowingInterestDerivedSnapshotsForUI()
     }
 
-    /// Same normalization as ``display_name_normalized`` in Postgres: `lower(trim)`; empty → unavailable for uniqueness checks.
-    private static func normalizedDisplayNameForUniqueness(_ raw: String) -> String? {
-        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return s.isEmpty ? nil : s
-    }
-
-    private static func isDuplicateDisplayNameConstraintViolation(_ error: Error) -> Bool {
-        let d = error.localizedDescription.lowercased()
-        let isDup = d.contains("23505") || d.contains("duplicate key")
-        guard isDup else { return false }
-        return d.contains("display_name_normalized")
-            || d.contains("uq_user_profiles_display_name_normalized")
-            || d.contains("avatar_name_normalized")
-            || d.contains("uq_user_profiles_avatar_name_normalized")
-    }
-
     private static func isDuplicateUsernameConstraintViolation(_ error: Error) -> Bool {
         let d = error.localizedDescription.lowercased()
         let isDup = d.contains("23505") || d.contains("duplicate key")
         guard isDup else { return false }
         return d.contains("username")
             || d.contains("uq_user_profiles_username_lower")
+            || d.contains("handle")
+            || d.contains("idx_user_profiles_handle_unique")
     }
 
     /// Uploads full + thumbnail JPEGs to `user-avatars` under `{auth_user_uuid}/` (RLS: first path segment must equal `auth.uid()`).
