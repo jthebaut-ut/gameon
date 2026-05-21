@@ -889,10 +889,19 @@ struct VenueDetailView: View {
                 VenueEventPredictionModule(
                     venueEventID: eventID,
                     teams: teams,
+                    sportType: game.sport,
                     summary: venuePredictionSummaries[eventID],
                     isLocked: game.predictionsLocked,
                     onOpen: { type in
                         openPredictionSheet(eventID: eventID, teams: teams, type: type, isLocked: game.predictionsLocked)
+                    },
+                    onQuickVote: { type, value in
+                        await quickSavePrediction(
+                            eventID: eventID,
+                            type: type,
+                            value: value,
+                            isLocked: game.predictionsLocked
+                        )
                     },
                     onLockedTap: {
                         predictionClosedMessage = "Predictions closed for this game."
@@ -1039,6 +1048,46 @@ struct VenueDetailView: View {
             teams: teams,
             predictionType: type
         )
+    }
+
+    @MainActor
+    private func quickSavePrediction(
+        eventID: UUID,
+        type: VenueEventPredictionType,
+        value: String,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            predictionClosedMessage = "Predictions closed for this game."
+            return false
+        }
+        guard showsFanOnlyActionButtons else {
+            onFanFeatureBlocked?("venuePrediction")
+            return false
+        }
+        do {
+            switch type {
+            case .winner:
+                try await VenueEventPredictionService.shared.upsertPrediction(
+                    venueEventId: eventID,
+                    predictionType: .winner,
+                    predictedWinner: value
+                )
+            case .firstScoreTeam:
+                try await VenueEventPredictionService.shared.upsertPrediction(
+                    venueEventId: eventID,
+                    predictionType: .firstScoreTeam,
+                    predictedFirstScoreTeam: value
+                )
+            case .score:
+                return false
+            }
+            await onRefreshVenuePredictionSummary?(eventID)
+            return true
+        } catch {
+            predictionClosedMessage = error.localizedDescription
+            return false
+        }
     }
 
     private func compactHeroBadge(_ title: String, tint: Color) -> some View {

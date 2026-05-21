@@ -1110,7 +1110,7 @@ struct ProfileIdentityCard: View {
         HStack(spacing: 5) {
             Image(systemName: reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill")
                 .font(.system(size: 9.5, weight: .bold))
-            Text(reputation.title.uppercased())
+            Text(localizedReputationTitle(reputation.title).uppercased())
                 .font(.system(size: 9.5, weight: .bold, design: .rounded))
                 .tracking(0.55)
                 .lineLimit(1)
@@ -1120,6 +1120,19 @@ struct ProfileIdentityCard: View {
         .padding(.vertical, 5)
         .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.11))
         .clipShape(Capsule())
+    }
+
+    private func localizedReputationTitle(_ title: String) -> String {
+        switch title {
+        case "Rookie Fan":
+            return L10n.t("rookie_fan", languageCode: appLanguageRaw)
+        case "Venue Regular":
+            return L10n.t("venue_regular", languageCode: appLanguageRaw)
+        case "Home Crowd":
+            return L10n.t("home_crowd", languageCode: appLanguageRaw)
+        default:
+            return title
+        }
     }
 
     private func trophyTeamHeaderBadge(_ team: FavoriteTeam) -> some View {
@@ -2210,6 +2223,7 @@ private struct ProfileSuggestedFansSection: View {
     let onDismiss: (FriendSuggestionProfile) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -2228,13 +2242,13 @@ private struct ProfileSuggestedFansSection: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("Suggested Fans")
+            Text(L10n.t("suggested_fans", languageCode: appLanguageRaw))
                 .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme))
                 .textCase(.uppercase)
                 .tracking(0.7)
 
-            Text("Fans near you with shared teams, venues, or pickup games")
+            Text(L10n.t("suggested_fans_subtitle", languageCode: appLanguageRaw))
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.82))
         }
@@ -2252,7 +2266,7 @@ private struct ProfileSuggestedFansSection: View {
             }
             .padding(.vertical, 1)
         }
-        .accessibilityLabel("Loading suggested fans")
+        .accessibilityLabel(L10n.t("suggested_fans", languageCode: appLanguageRaw))
     }
 
     private var emptyState: some View {
@@ -2393,7 +2407,7 @@ private struct ProfileSuggestedFansSection: View {
     }
 
     private func reasonPill(for suggestion: FriendSuggestionProfile) -> some View {
-        Text(safeReasonLabel(for: suggestion))
+        Text(localizedReasonLabel(safeReasonLabel(for: suggestion)))
             .font(.system(size: 9.5, weight: .bold, design: .rounded))
             .foregroundStyle(FGColor.accentGreen)
             .lineLimit(1)
@@ -2524,6 +2538,27 @@ private struct ProfileSuggestedFansSection: View {
             if suggestion.sharedEventInterestCount > 0 { return "Same watch party" }
             if suggestion.sharedFavoriteTeamsCount > 0 { return "Same team" }
             return suggestion.score >= 400 ? "High reputation" : "Active fan"
+        }
+    }
+
+    private func localizedReasonLabel(_ label: String) -> String {
+        switch label {
+        case "Same pickup game":
+            return L10n.t("same_pickup_game", languageCode: appLanguageRaw)
+        case "Same watch party":
+            return L10n.t("same_watch_party", languageCode: appLanguageRaw)
+        case "Same team":
+            return L10n.t("same_team", languageCode: appLanguageRaw)
+        case "Same venue":
+            return L10n.t("same_venue", languageCode: appLanguageRaw)
+        case "Mutual friends":
+            return L10n.t("mutual_friends", languageCode: appLanguageRaw)
+        case "High reputation":
+            return L10n.t("high_reputation", languageCode: appLanguageRaw)
+        case "Active fan":
+            return L10n.t("active_fan", languageCode: appLanguageRaw)
+        default:
+            return label
         }
     }
 

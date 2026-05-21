@@ -29,10 +29,14 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
     let totalCount: Int
     let winnerLeader: String?
     let winnerPercent: Int?
+    let winnerPercents: [String: Int]
     let scoreMode: String?
     let firstScoreLeader: String?
     let firstScorePercent: Int?
+    let firstScorePercents: [String: Int]
     let participantAvatars: [VenuePredictionParticipantAvatar]
+    let winnerAvatarsByOption: [String: [VenuePredictionParticipantAvatar]]
+    let firstScoreAvatarsByOption: [String: [VenuePredictionParticipantAvatar]]
 
     static func empty(eventID: UUID) -> VenueEventPredictionSummary {
         VenueEventPredictionSummary(
@@ -40,10 +44,14 @@ struct VenueEventPredictionSummary: Equatable, Sendable {
             totalCount: 0,
             winnerLeader: nil,
             winnerPercent: nil,
+            winnerPercents: [:],
             scoreMode: nil,
             firstScoreLeader: nil,
             firstScorePercent: nil,
-            participantAvatars: []
+            firstScorePercents: [:],
+            participantAvatars: [],
+            winnerAvatarsByOption: [:],
+            firstScoreAvatarsByOption: [:]
         )
     }
 }
@@ -254,23 +262,45 @@ final class VenueEventPredictionService {
             values: winnerRows.compactMap { trimmed($0.predicted_winner) },
             denominator: winnerRows.count
         )
+        let winnerPercents = optionPercents(
+            values: winnerRows.compactMap { trimmed($0.predicted_winner) },
+            denominator: winnerRows.count
+        )
         let scoreMode = modeScore(rows: scoreRows)
         let firstScore = leaderPercent(
+            values: firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) },
+            denominator: firstScoreRows.count
+        )
+        let firstScorePercents = optionPercents(
             values: firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) },
             denominator: firstScoreRows.count
         )
         let avatars = recentParticipantIDs(from: rows)
             .compactMap { avatarsByUserID[$0] }
             .prefix(3)
+        let winnerAvatars = avatarsByOption(
+            rows: winnerRows,
+            value: { trimmed($0.predicted_winner) },
+            avatarsByUserID: avatarsByUserID
+        )
+        let firstScoreAvatars = avatarsByOption(
+            rows: firstScoreRows,
+            value: { trimmed($0.predicted_first_score_team) },
+            avatarsByUserID: avatarsByUserID
+        )
         return VenueEventPredictionSummary(
             venueEventID: eventID,
             totalCount: rows.count,
             winnerLeader: winner?.label,
             winnerPercent: winner?.percent,
+            winnerPercents: winnerPercents,
             scoreMode: scoreMode,
             firstScoreLeader: firstScore?.label,
             firstScorePercent: firstScore?.percent,
-            participantAvatars: Array(avatars)
+            firstScorePercents: firstScorePercents,
+            participantAvatars: Array(avatars),
+            winnerAvatarsByOption: winnerAvatars,
+            firstScoreAvatarsByOption: firstScoreAvatars
         )
     }
 
@@ -311,6 +341,30 @@ final class VenueEventPredictionService {
         }) else { return nil }
         let percent = Int((Double(top.value.count) / Double(denominator) * 100).rounded())
         return (top.key, percent)
+    }
+
+    private static func optionPercents(values: [String], denominator: Int) -> [String: Int] {
+        guard denominator > 0 else { return [:] }
+        return Dictionary(grouping: values, by: { $0 }).mapValues { rows in
+            Int((Double(rows.count) / Double(denominator) * 100).rounded())
+        }
+    }
+
+    private static func avatarsByOption(
+        rows: [VenueEventPredictionRow],
+        value: (VenueEventPredictionRow) -> String?,
+        avatarsByUserID: [UUID: VenuePredictionParticipantAvatar]
+    ) -> [String: [VenuePredictionParticipantAvatar]] {
+        Dictionary(grouping: rows, by: { value($0) ?? "" }).reduce(into: [:]) { result, entry in
+            guard !entry.key.isEmpty else { return }
+            var seen = Set<UUID>()
+            result[entry.key] = entry.value
+                .sorted { ($0.updated_at ?? $0.created_at ?? "") > ($1.updated_at ?? $1.created_at ?? "") }
+                .compactMap { row in
+                    guard seen.insert(row.user_id).inserted else { return nil }
+                    return avatarsByUserID[row.user_id]
+                }
+        }
     }
 
     private static func modeScore(rows: [VenueEventPredictionRow]) -> String? {

@@ -452,7 +452,7 @@ struct SettingsScreen: View {
 
                                         Button { venueOwnerDashboardSheet = .manageGames } label: {
                                             settingsRow(
-                                                title: "Manage Games",
+                                                title: L10n.t("manage_games", languageCode: appLanguageRaw),
                                                 subtitle: "Schedule or cancel games.",
                                                 systemImage: "sportscourt"
                                             )
@@ -463,7 +463,7 @@ struct SettingsScreen: View {
 
                                         Button { venueOwnerDashboardSheet = .statistics } label: {
                                             settingsRow(
-                                                title: "Statistics",
+                                                title: L10n.t("statistics", languageCode: appLanguageRaw),
                                                 subtitle: "Analytics and game history.",
                                                 systemImage: "chart.bar"
                                             )
@@ -833,7 +833,7 @@ struct SettingsScreen: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
             }
-            .navigationTitle("Notifications")
+            .navigationTitle(L10n.t("notifications", languageCode: appLanguageRaw))
             .navigationBarTitleDisplayMode(.inline)
 
         case .timeZone:
@@ -841,7 +841,7 @@ struct SettingsScreen: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
                 }
-                .navigationTitle("Time Zone")
+                .navigationTitle(L10n.t("time_zone", languageCode: appLanguageRaw))
                 .navigationBarTitleDisplayMode(.inline)
 
         case .language:
@@ -849,7 +849,7 @@ struct SettingsScreen: View {
 
         case .appearance:
             FanGeoAppearanceSelectionView(selectionRaw: $appearancePreferenceRaw)
-                .navigationTitle("Appearance")
+                .navigationTitle(L10n.t("appearance", languageCode: appLanguageRaw))
                 .navigationBarTitleDisplayMode(.inline)
 
         case .support:
@@ -1141,8 +1141,8 @@ struct SettingsScreen: View {
 
     private var privateChatFaceIDSettingsRow: some View {
         settingsToggleRow(
-            title: "Require Face ID for Private Chat",
-            subtitle: "When enabled, FanGeo asks for Face ID before opening private messages.",
+            title: L10n.t("require_face_id_private_chat", languageCode: appLanguageRaw),
+            subtitle: L10n.t("private_chat_face_id_description", languageCode: appLanguageRaw),
             systemImage: "faceid",
             isOn: privateChatFaceIDBinding,
             isUpdating: false,
@@ -1161,14 +1161,14 @@ struct SettingsScreen: View {
                 Button {
                     profileSettingsPath.append(ProfileSettingsRoute.notifications)
                 } label: {
-                    settingsRow(title: "Notifications", subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge", showsChevron: true)
+                    settingsRow(title: L10n.t("notifications", languageCode: appLanguageRaw), subtitle: notificationSettingsStore.notifyBeforeGame ? "On" : "Off", systemImage: "bell.badge", showsChevron: true)
                 }
                 .buttonStyle(.plain)
             }
             .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16))
             .listRowBackground(Color.clear)
         } header: {
-            settingsSectionHeader("Notifications")
+            settingsSectionHeader(L10n.t("notifications", languageCode: appLanguageRaw))
         }
     }
 
@@ -1178,7 +1178,7 @@ struct SettingsScreen: View {
                 Button {
                     profileSettingsPath.append(ProfileSettingsRoute.timeZone)
                 } label: {
-                    settingsRow(title: "Time Zone", subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock", showsChevron: true)
+                    settingsRow(title: L10n.t("time_zone", languageCode: appLanguageRaw), subtitle: viewModel.selectedTimeZone.rawValue, systemImage: "clock", showsChevron: true)
                 }
                 .buttonStyle(.plain)
 
@@ -1208,7 +1208,7 @@ struct SettingsScreen: View {
                     profileSettingsPath.append(ProfileSettingsRoute.appearance)
                 } label: {
                     settingsRow(
-                        title: "Appearance",
+                        title: L10n.t("appearance", languageCode: appLanguageRaw),
                         subtitle: appearancePreference.displayName,
                         systemImage: "circle.lefthalf.filled",
                         showsChevron: true
@@ -1230,8 +1230,8 @@ struct SettingsScreen: View {
                     profileSettingsPath.append(ProfileSettingsRoute.support)
                 } label: {
                     settingsRow(
-                        title: "Support",
-                        subtitle: "Message the FanGeo team.",
+                        title: L10n.t("support", languageCode: appLanguageRaw),
+                        subtitle: L10n.t("message_fangeo_team", languageCode: appLanguageRaw),
                         systemImage: "envelope.open.fill",
                         showsChevron: true
                     )
@@ -1244,8 +1244,8 @@ struct SettingsScreen: View {
                     profileSettingsPath.append(ProfileSettingsRoute.communityGuidelines)
                 } label: {
                     settingsRow(
-                        title: SettingsLegalDocumentKind.communityGuidelines.title,
-                        subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
+                        title: L10n.t("community_guidelines", languageCode: appLanguageRaw),
+                        subtitle: L10n.t("community_rules_fangeo", languageCode: appLanguageRaw),
                         systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage,
                         showsChevron: true
                     )
@@ -1258,8 +1258,8 @@ struct SettingsScreen: View {
                     profileSettingsPath.append(ProfileSettingsRoute.trustSafety)
                 } label: {
                     settingsRow(
-                        title: SettingsLegalDocumentKind.safetyReporting.title,
-                        subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
+                        title: L10n.t("trust_safety", languageCode: appLanguageRaw),
+                        subtitle: L10n.t("fangeo_reviews_reports", languageCode: appLanguageRaw),
                         systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage,
                         showsChevron: true
                     )
@@ -1678,6 +1678,7 @@ struct SettingsScreen: View {
             activeChats: settingsBusinessDashboardActiveChats,
             predictions: settingsBusinessDashboardPredictions,
             atmosphereRating: settingsBusinessDashboardAtmosphereRating,
+            gameSectionContext: settingsBusinessDashboardGameSectionContext,
             games: settingsBusinessDashboardGameItems
         )
     }
@@ -1768,14 +1769,28 @@ struct SettingsScreen: View {
         return String(format: "%.1f", rating)
     }
 
-    private var settingsBusinessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+    private var settingsBusinessDashboardGameSectionContext: BusinessVenueDashboardGameSectionContext {
+        BusinessVenueDashboardGameSectionResolver.resolve(
+            gameDates: settingsBusinessDashboardUpcomingRows.map(\.start),
+            calendar: Calendar.current
+        )
+    }
+
+    private var settingsBusinessDashboardUpcomingRows: [(row: VenueEventRow, start: Date)] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let todayRows = inlineBusinessDashboardGames.filter { row in
-            guard let day = settingsBusinessDashboardGameDay(row) else { return false }
-            return calendar.isDate(day, inSameDayAs: today)
+        return inlineBusinessDashboardGames.compactMap { row in
+            guard let start = settingsBusinessDashboardGameStartDate(row),
+                  calendar.startOfDay(for: start) >= today else {
+                return nil
+            }
+            return (row, start)
         }
-        let sourceRows = todayRows.isEmpty ? Array(inlineBusinessDashboardGames.prefix(3)) : todayRows
+        .sorted { $0.start < $1.start }
+    }
+
+    private var settingsBusinessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+        let sourceRows = Array(settingsBusinessDashboardUpcomingRows.prefix(3).map(\.row))
 
         return sourceRows.compactMap { row in
             guard let id = row.id else { return nil }
@@ -1815,6 +1830,13 @@ struct SettingsScreen: View {
         return time.isEmpty ? "Time TBD" : time
     }
 
+    private func settingsBusinessDashboardGameStartDate(_ row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start
+        }
+        return settingsBusinessDashboardGameDay(row)
+    }
+
     private func settingsBusinessDashboardGameDay(_ row: VenueEventRow) -> Date? {
         if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
             return start
@@ -1832,7 +1854,7 @@ struct SettingsScreen: View {
     private func settingsBusinessDashboardEnergy(score: Int) -> (label: String, tint: Color) {
         if score >= 30 { return ("High energy", FGColor.accentGreen) }
         if score >= 8 { return ("Building", FGColor.accentYellow) }
-        return ("Normal", FGColor.accentBlue)
+        return (L10n.t("normal", languageCode: appLanguageRaw), FGColor.accentBlue)
     }
 
     private func refreshSettingsInlineBusinessDashboard() async {
@@ -2068,12 +2090,12 @@ struct SettingsScreen: View {
             .filter { !$0.isEmpty }
         guard let raw = raws.sorted().first else { return nil }
         guard let date = settingsParseSupabaseTimestamptz(raw) else {
-            return "Member since \(raw)"
+            return String(format: L10n.t("member_since_format", languageCode: appLanguageRaw), raw)
         }
         let f = DateFormatter()
         f.dateStyle = .medium
         f.timeStyle = .none
-        return "Member since \(f.string(from: date))"
+        return String(format: L10n.t("member_since_format", languageCode: appLanguageRaw), f.string(from: date))
     }
 
     private func settingsSocialToastBanner(text: String, isError: Bool) -> some View {
@@ -2751,6 +2773,7 @@ private struct SettingsProfileHero: View {
     var venueOwnerOnDismissSheetsAfterLogout: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     private var isBusinessProfile: Bool {
         viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
@@ -2830,7 +2853,7 @@ private struct SettingsProfileHero: View {
 
     /// Prefer venue-owner label when both flags are true (defensive; login paths normally keep them exclusive).
     private var accountTypeBadgeText: String {
-        isBusinessProfile ? "Official venue dashboard" : "User account"
+        isBusinessProfile ? L10n.t("official_venue_dashboard", languageCode: appLanguageRaw) : "User account"
     }
 
     private var activityBadgeText: String {
@@ -2861,7 +2884,7 @@ private struct SettingsProfileHero: View {
 
     private var businessStatusLabel: String {
         if viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved {
-            return "VERIFIED VENUE"
+            return L10n.t("verified_venue", languageCode: appLanguageRaw).uppercased()
         }
         return "BUSINESS ACCOUNT"
     }
@@ -3004,7 +3027,7 @@ private struct SettingsProfileHero: View {
                     accountTypeCapsule
                     activityCapsule
                     if isBusinessProfile {
-                        heroGlassPill(title: "Venue Owner Account", accent: FGColor.accentBlue)
+                        heroGlassPill(title: L10n.t("venue_owner_account", languageCode: appLanguageRaw), accent: FGColor.accentBlue)
                     }
                 }
             }
@@ -3132,10 +3155,11 @@ private struct SettingsGeneralSection: View {
 
 private struct SettingsTimeZoneCard: View {
     @ObservedObject var viewModel: MapViewModel
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Time Zone")
+            Text(L10n.t("time_zone", languageCode: appLanguageRaw))
                 .font(.subheadline)
                 .fontWeight(.semibold)
 
@@ -3143,7 +3167,7 @@ private struct SettingsTimeZoneCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Picker("Time Zone", selection: $viewModel.selectedTimeZone) {
+            Picker(L10n.t("time_zone", languageCode: appLanguageRaw), selection: $viewModel.selectedTimeZone) {
                 ForEach(TimeZoneOption.allCases) { option in
                     Text("\(option.rawValue) (\(option.abbreviation))")
                         .tag(option)
@@ -3364,6 +3388,7 @@ private struct SettingsUserSection: View {
 
 private struct SettingsPrivateChatDeviceAuthCard: View {
     @AppStorage(PrivateChatSecuritySettings.requireFaceIDSettingKey) private var requireDeviceAuthForPrivateChat = false
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     private var requireFaceIDBinding: Binding<Bool> {
         Binding(
@@ -3381,10 +3406,10 @@ private struct SettingsPrivateChatDeviceAuthCard: View {
                 .font(.headline)
                 .fontWeight(.bold)
 
-            Toggle("Require Face ID for Private Chat", isOn: requireFaceIDBinding)
+            Toggle(L10n.t("require_face_id_private_chat", languageCode: appLanguageRaw), isOn: requireFaceIDBinding)
                 .font(.subheadline)
 
-            Text("When enabled, FanGeo asks for Face ID before opening private messages.")
+            Text(L10n.t("private_chat_face_id_description", languageCode: appLanguageRaw))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

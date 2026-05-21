@@ -42,7 +42,10 @@ private enum PickupGameMapMarkerActivity {
 
 private struct PickupGameMapMarker: View {
     let systemImage: String
+    let sport: String
     let accentColor: Color
+    let markerType: String
+    let usingColoredIcon: Bool
     let activity: PickupGameMapMarkerActivity
     var demandBadgeText: String?
     var isSelected = false
@@ -54,7 +57,7 @@ private struct PickupGameMapMarker: View {
     @State private var demandBadgeVisible = false
 
     private var baseSize: CGFloat { isCluster ? 44 : 48 }
-    private var glyphSize: CGFloat { isCluster ? 21 : 24 }
+    private var glyphSize: CGFloat { isCluster ? 23 : 27 }
     private var scale: CGFloat {
         if isSelected { return 1.20 }
         return isCluster ? 0.94 : 1.0
@@ -96,11 +99,15 @@ private struct PickupGameMapMarker: View {
                 }
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.34 : 0.24), radius: isSelected ? 10 : 7, y: isSelected ? 6 : 4)
 
+            Circle()
+                .fill((usingColoredIcon ? accentColor : Color.white).opacity(usingColoredIcon ? 0.18 : 0.10))
+                .frame(width: baseSize * 0.68, height: baseSize * 0.68)
+
             Image(systemName: systemImage)
-                .symbolRenderingMode(.monochrome)
+                .symbolRenderingMode(usingColoredIcon ? .hierarchical : .monochrome)
                 .font(.system(size: glyphSize, weight: .heavy))
-                .foregroundStyle(.white)
-                .frame(width: baseSize * 0.64, height: baseSize * 0.64)
+                .foregroundStyle(usingColoredIcon ? accentColor : Color.white.opacity(0.94))
+                .frame(width: baseSize * 0.70, height: baseSize * 0.70)
                 .accessibilityHidden(true)
 
             if let count, isCluster {
@@ -146,6 +153,11 @@ private struct PickupGameMapMarker: View {
         .onAppear {
             pulse = activity != .low
             demandBadgeVisible = demandBadgeText != nil && !isCluster
+#if DEBUG
+            print("[MapSportIconDebug] sport=\(sport)")
+            print("[MapSportIconDebug] usingColoredIcon=\(usingColoredIcon)")
+            print("[MapSportIconDebug] markerType=\(markerType)")
+#endif
         }
         .onChange(of: activity) { _, next in
             pulse = next != .low
@@ -297,6 +309,7 @@ struct DiscoverScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @FocusState private var isSearchFocused: Bool
     @State private var showVenueDetails = false
     @State private var showDatePicker = false
@@ -2340,39 +2353,25 @@ struct DiscoverScreen: View {
     }
 
     private func pickupMarkerSportIcon(for sport: String) -> String {
-        let key = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        switch key {
-        case "soccer", "mls", "premier league":
-            return "soccerball"
-        case "basketball", "nba":
-            return "basketball.fill"
-        case "tennis":
-            return "tennisball.fill"
-        case "baseball", "mlb":
-            return "baseball.fill"
-        case "softball":
-            return "baseball.fill"
-        case "football", "american football", "nfl":
-            return "football.fill"
-        case "hockey", "ice hockey", "nhl":
-            return "hockey.puck.fill"
-        case "volleyball":
-            return "volleyball.fill"
-        case "cricket":
-            return "cricket.ball.fill"
-        case "rugby":
-            return "rugbyball.fill"
-        case "golf":
-            return "figure.golf"
-        case "pickleball":
-            return "figure.pickleball"
-        case "ping pong", "pingpong", "table tennis", "tabletennis":
-            return "figure.table.tennis"
-        case "lacrosse":
-            return "figure.lacrosse"
-        default:
-            return viewModel.iconForSport(sport)
-        }
+        viewModel.iconForSport(sport)
+    }
+
+    private func mapSportIconUsesColoredIcon(_ sport: String) -> Bool {
+        let trimmed = sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return viewModel.iconForSport(trimmed) != "sportscourt.fill"
+    }
+
+    private func mapSportIconTint(for sport: String) -> Color {
+        mapSportIconUsesColoredIcon(sport) ? viewModel.colorForSport(sport) : Color.white.opacity(0.94)
+    }
+
+    private func logMapSportIconDebug(sport: String, markerType: String) {
+#if DEBUG
+        print("[MapSportIconDebug] sport=\(sport)")
+        print("[MapSportIconDebug] usingColoredIcon=\(mapSportIconUsesColoredIcon(sport))")
+        print("[MapSportIconDebug] markerType=\(markerType)")
+#endif
     }
 
     private func pickupGameMapPinButton(row: PickupGameRow) -> some View {
@@ -2388,7 +2387,10 @@ struct DiscoverScreen: View {
         } label: {
             PickupGameMapMarker(
                 systemImage: pickupMarkerSportIcon(for: row.sport),
+                sport: row.sport,
                 accentColor: viewModel.colorForSport(row.sport),
+                markerType: "pickup",
+                usingColoredIcon: mapSportIconUsesColoredIcon(row.sport),
                 activity: pickupMarkerActivity(for: row),
                 demandBadgeText: badgeValue,
                 isSelected: isSelected
@@ -2410,7 +2412,10 @@ struct DiscoverScreen: View {
         } label: {
             PickupGameMapMarker(
                 systemImage: pickupMarkerSportIcon(for: sportHint ?? ""),
+                sport: sportHint ?? "",
                 accentColor: viewModel.colorForSport(sportHint ?? ""),
+                markerType: "pickupCluster",
+                usingColoredIcon: mapSportIconUsesColoredIcon(sportHint ?? ""),
                 activity: pickupMarkerActivity(for: cluster.rows),
                 isCluster: true,
                 count: cluster.count
@@ -3513,17 +3518,17 @@ struct DiscoverScreen: View {
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("No games listed for \(selectedDayLabel).")
+                Text(String(format: L10n.t("no_games_listed_for_format", languageCode: appLanguageRaw), selectedDayLabel))
                     .font(FGTypography.caption.weight(.semibold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
 
                 if let nextAvailableGame {
-                    Text("Next available game: \(nextAvailableGame.title) · \(nextAvailableGame.dateText) · \(nextAvailableGame.timeText)")
+                    Text(String(format: L10n.t("next_available_game_format", languageCode: appLanguageRaw), nextAvailableGame.title, nextAvailableGame.dateText, nextAvailableGame.timeText))
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text("Check back soon.")
+                    Text(L10n.t("check_back_soon", languageCode: appLanguageRaw))
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
@@ -3657,14 +3662,18 @@ struct DiscoverScreen: View {
     
     private func perGameGoingLine(venueEventID: UUID?, count: Int) -> String {
         guard let venueEventID else {
-            return count > 0 ? "\(count) people are going" : "Be the first to go"
+            return count > 0
+                ? String(format: L10n.t("going_count_format", languageCode: appLanguageRaw), "\(count)")
+                : L10n.t("be_first_to_go", languageCode: appLanguageRaw)
         }
         let im = viewModel.isInterestedInVenueEvent(venueEventID)
-        if count <= 0 { return im ? "You're going" : "Be the first to go" }
+        if count <= 0 { return im ? L10n.t("im_going", languageCode: appLanguageRaw) : L10n.t("be_first_to_go", languageCode: appLanguageRaw) }
         if im {
-            return count == 1 ? "You're going" : "You and \(count - 1) others are going"
+            return count == 1
+                ? L10n.t("im_going", languageCode: appLanguageRaw)
+                : String(format: L10n.t("going_count_format", languageCode: appLanguageRaw), "\(count)")
         }
-        return "\(count) people are going"
+        return String(format: L10n.t("going_count_format", languageCode: appLanguageRaw), "\(count)")
     }
 
     private func logGoingAvatarDebug(
@@ -3884,7 +3893,7 @@ struct DiscoverScreen: View {
                 let emptyGoingPromptVisible = displayGoingCount == 0 && !alreadyInterested
                 let goingText = alreadyInterested || displayGoingCount > 0
                     ? perGameGoingLine(venueEventID: venueEventID, count: displayGoingCount)
-                    : "Be the first to go"
+                    : L10n.t("be_first_to_go", languageCode: appLanguageRaw)
                 let _ = logGoingAvatarDebug(
                     currentUserGoing: alreadyInterested,
                     avatarStackCount: visibleAvatarCount,
@@ -3908,6 +3917,7 @@ struct DiscoverScreen: View {
                 VenueEventPredictionModule(
                     venueEventID: predictionEventID,
                     teams: teams,
+                    sportType: predictionVisibility.sportType,
                     summary: viewModel.venueEventPredictionSummaries[predictionEventID],
                     isLocked: predictionVisibility.isLocked,
                     onOpen: { type in
@@ -3915,6 +3925,14 @@ struct DiscoverScreen: View {
                             eventID: predictionEventID,
                             teams: teams,
                             type: type,
+                            isLocked: predictionVisibility.isLocked
+                        )
+                    },
+                    onQuickVote: { type, value in
+                        await quickSaveDiscoverPrediction(
+                            eventID: predictionEventID,
+                            type: type,
+                            value: value,
                             isLocked: predictionVisibility.isLocked
                         )
                     },
@@ -3984,6 +4002,51 @@ struct DiscoverScreen: View {
             teams: teams,
             predictionType: type
         )
+    }
+
+    @MainActor
+    private func quickSaveDiscoverPrediction(
+        eventID: UUID,
+        type: VenueEventPredictionType,
+        value: String,
+        isLocked: Bool
+    ) async -> Bool {
+        guard !isLocked else {
+            fanFeatureGateAlertMessage = "Predictions closed for this game."
+            return false
+        }
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return false
+        }
+        guard viewModel.canUseFanSocialFeatures else {
+            viewModel.logBusinessUserGateBlocked(action: "venuePrediction")
+            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            return false
+        }
+        do {
+            switch type {
+            case .winner:
+                try await VenueEventPredictionService.shared.upsertPrediction(
+                    venueEventId: eventID,
+                    predictionType: .winner,
+                    predictedWinner: value
+                )
+            case .firstScoreTeam:
+                try await VenueEventPredictionService.shared.upsertPrediction(
+                    venueEventId: eventID,
+                    predictionType: .firstScoreTeam,
+                    predictedFirstScoreTeam: value
+                )
+            case .score:
+                return false
+            }
+            await viewModel.refreshVenueEventPredictionSummary(eventID: eventID)
+            return true
+        } catch {
+            fanFeatureGateAlertMessage = error.localizedDescription
+            return false
+        }
     }
 
     private func venuePredictionVisibility(
@@ -4282,7 +4345,8 @@ struct DiscoverScreen: View {
         source: String,
         commentCount: Int
     ) -> some View {
-        let title = commentCount > 0 ? "Fan Chat · \(commentCount)" : "Fan Chat"
+        let baseTitle = L10n.t("fan_chat", languageCode: appLanguageRaw)
+        let title = commentCount > 0 ? "\(baseTitle) · \(commentCount)" : baseTitle
         let tint = FGColor.accentBlue
         let fill = tint.opacity(colorScheme == .dark ? 0.20 : 0.12)
 
@@ -4323,8 +4387,8 @@ struct DiscoverScreen: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             commentCount > 0
-                ? "Open Fan Chat, \(commentCount) comments"
-                : "Open Fan Chat"
+                ? "\(L10n.t("fan_chat", languageCode: appLanguageRaw)), \(commentCount) comments"
+                : L10n.t("fan_chat", languageCode: appLanguageRaw)
         )
     }
 
@@ -4550,12 +4614,30 @@ struct DiscoverScreen: View {
     
     private func simpleMapPin(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
         let sport = gamesToday.first?.sport ?? bar.primarySport
+        let tint = mapSportIconTint(for: sport)
+        let usesColor = mapSportIconUsesColoredIcon(sport)
 
         return Image(systemName: viewModel.iconForSport(sport))
-            .font(.system(size: 16, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: 38, height: 38)
-            .background(Circle().fill(Color.black).shadow(radius: 5))
+            .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
+            .font(.system(size: 19, weight: .heavy))
+            .foregroundStyle(tint)
+            .frame(width: 40, height: 40)
+            .background {
+                ZStack {
+                    Circle().fill(Color.black).shadow(radius: 5)
+                    Circle()
+                        .fill(usesColor ? tint.opacity(0.22) : Color.white.opacity(0.08))
+                        .frame(width: 31, height: 31)
+                }
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder((usesColor ? tint : Color.white).opacity(0.34), lineWidth: 1)
+                    .padding(4)
+            }
+            .onAppear {
+                logMapSportIconDebug(sport: sport, markerType: "venue")
+            }
     }
 
     private func noGameScheduledMapPin() -> some View {
@@ -4581,20 +4663,29 @@ struct DiscoverScreen: View {
         let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
         let hasLiveNow = hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
 
+        let sport = gamesToday.first?.sport ?? bar.primarySport
+        let sportTint = mapSportIconTint(for: sport)
+        let usesColor = mapSportIconUsesColoredIcon(sport)
+
         return HStack(spacing: 6) {
-            Image(systemName: viewModel.iconForSport(gamesToday.first?.sport ?? bar.primarySport))
-                .font(.system(size: 14, weight: .bold))
+            Image(systemName: viewModel.iconForSport(sport))
+                .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundStyle(sportTint)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill((usesColor ? sportTint : Color.white).opacity(0.16)))
 
             if hasLiveNow {
                 Text("LIVE")
                     .font(.caption2.weight(.heavy))
+                    .foregroundStyle(.white)
             } else if liveScore > 0 {
                 Text("\(liveScoreEmoji(for: liveScore)) \(liveScore)")
                     .font(.caption2)
                     .fontWeight(.bold)
+                    .foregroundStyle(.white)
             }
         }
-        .foregroundStyle(.white)
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background {
@@ -4609,6 +4700,9 @@ struct DiscoverScreen: View {
                     .fill(Color.black)
                     .shadow(radius: 5)
             }
+        }
+        .onAppear {
+            logMapSportIconDebug(sport: sport, markerType: "venue")
         }
     }
     
@@ -4655,10 +4749,13 @@ struct DiscoverScreen: View {
             let liveScore = liveScore ?? liveActivityScore(for: bar, gamesToday: gamesToday)
             HStack(spacing: -6) {
                 ForEach(gamesToday.prefix(3), id: \.id) { game in
+                    let sportTint = mapSportIconTint(for: game.sport)
+                    let usesColor = mapSportIconUsesColoredIcon(game.sport)
                     Image(systemName: viewModel.iconForSport(game.sport))
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
+                        .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
+                        .font(.system(size: 18, weight: .heavy))
+                        .foregroundStyle(sportTint)
+                        .frame(width: 36, height: 36)
                         .background {
                             ZStack {
                                 if hasLiveNow || liveScore >= livePulseThreshold {
@@ -4670,7 +4767,18 @@ struct DiscoverScreen: View {
                                 Circle()
                                     .fill(Color.black)
                                     .shadow(radius: 5)
+                                Circle()
+                                    .fill((usesColor ? sportTint : Color.white).opacity(0.16))
+                                    .padding(6)
                             }
+                        }
+                        .overlay {
+                            Circle()
+                                .strokeBorder((usesColor ? sportTint : Color.white).opacity(0.30), lineWidth: 1)
+                                .padding(3)
+                        }
+                        .onAppear {
+                            logMapSportIconDebug(sport: game.sport, markerType: "venue")
                         }
                 }
             }
@@ -4727,11 +4835,17 @@ struct DiscoverScreen: View {
             if case .gameScheduled = displayState,
                let sport = dominantSport,
                maxEnergy > 0 {
+                let sportTint = mapSportIconTint(for: sport)
+                let usesColor = mapSportIconUsesColoredIcon(sport)
                 Image(systemName: viewModel.iconForSport(sport))
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(viewModel.colorForSport(sport))
+                    .symbolRenderingMode(usesColor ? .hierarchical : .monochrome)
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundStyle(sportTint)
                     .padding(5)
-                    .background(Circle().fill(Color.white.opacity(0.95)))
+                    .background(Circle().fill((usesColor ? sportTint : Color.white).opacity(0.16)))
+                    .onAppear {
+                        logMapSportIconDebug(sport: sport, markerType: "venueCluster")
+                    }
             } else if case .noGameScheduled = displayState {
                 Image(systemName: "building.2.fill")
                     .font(.system(size: 13, weight: .semibold))

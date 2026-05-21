@@ -1,0 +1,95 @@
+import Foundation
+
+enum CountryFlagHelper {
+    private static let aliasesByRegionCode: [String: [String]] = [
+        "AR": ["argentina"],
+        "AU": ["australia"],
+        "BE": ["belgium", "belgië", "belgique"],
+        "BR": ["brazil", "brasil"],
+        "CA": ["canada"],
+        "CL": ["chile"],
+        "CN": ["china", "pr china"],
+        "CO": ["colombia"],
+        "CR": ["costa rica"],
+        "DE": ["germany", "deutschland"],
+        "DK": ["denmark"],
+        "EC": ["ecuador"],
+        "EG": ["egypt"],
+        "ES": ["spain", "españa"],
+        "FR": ["france"],
+        "GB": ["great britain", "britain", "uk", "united kingdom", "england", "scotland", "wales"],
+        "HR": ["croatia"],
+        "IT": ["italy", "italia"],
+        "JP": ["japan"],
+        "KR": ["south korea", "korea", "republic of korea"],
+        "MA": ["morocco"],
+        "MX": ["mexico", "méxico"],
+        "NL": ["netherlands", "holland"],
+        "PL": ["poland", "polska"],
+        "PT": ["portugal"],
+        "RS": ["serbia"],
+        "RU": ["russia"],
+        "SA": ["saudi arabia"],
+        "SN": ["senegal"],
+        "US": ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america", "america"],
+        "UY": ["uruguay"]
+    ]
+
+    private static let regionCodeByAlias: [String: String] = {
+        aliasesByRegionCode.reduce(into: [String: String]()) { result, entry in
+            for alias in entry.value {
+                result[normalize(alias)] = entry.key
+            }
+        }
+    }()
+
+    static func flag(for teamName: String) -> String? {
+        regionCode(for: teamName).map(flagEmoji)
+    }
+
+    static func isCountry(_ teamName: String) -> Bool {
+        regionCode(for: teamName) != nil
+    }
+
+    static func displayName(for teamName: String, languageCode: String? = nil) -> String {
+        guard let regionCode = regionCode(for: teamName) else {
+            return teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let localeIdentifier = L10n.normalizedLanguageCode(languageCode ?? UserDefaults.standard.string(forKey: L10n.appLanguageKey))
+        let localized = Locale(identifier: localeIdentifier).localizedString(forRegionCode: regionCode)
+        return localized?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? localized!
+            : teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func regionCode(for teamName: String) -> String? {
+        let normalized = normalize(teamName)
+        guard !normalized.isEmpty else { return nil }
+        if let direct = regionCodeByAlias[normalized] {
+            return direct
+        }
+        return regionCodeByAlias.first { alias, _ in
+            normalized == alias || normalized.hasSuffix(" \(alias)")
+        }?.value
+    }
+
+    private static func normalize(_ value: String) -> String {
+        value
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .replacingOccurrences(of: "&", with: " and ")
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
+    private static func flagEmoji(forRegionCode regionCode: String) -> String {
+        regionCode
+            .uppercased()
+            .unicodeScalars
+            .compactMap { UnicodeScalar(127397 + $0.value) }
+            .map(String.init)
+            .joined()
+    }
+}

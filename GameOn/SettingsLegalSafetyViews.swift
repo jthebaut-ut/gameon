@@ -164,6 +164,7 @@ struct SettingsLegalDocumentSheet: View {
     var embedsInNavigationStack = true
     var showsCloseButton = true
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     @ViewBuilder
     var body: some View {
@@ -221,7 +222,7 @@ struct SettingsLegalDocumentSheet: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
         }
-        .navigationTitle(document.title)
+        .navigationTitle(localizedDocumentTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if showsCloseButton {
@@ -229,6 +230,17 @@ struct SettingsLegalDocumentSheet: View {
                     Button("Close") { dismiss() }
                 }
             }
+        }
+    }
+
+    private var localizedDocumentTitle: String {
+        switch document {
+        case .communityGuidelines:
+            return L10n.t("community_guidelines", languageCode: appLanguageRaw)
+        case .safetyReporting:
+            return L10n.t("trust_safety", languageCode: appLanguageRaw)
+        default:
+            return document.title
         }
     }
 }

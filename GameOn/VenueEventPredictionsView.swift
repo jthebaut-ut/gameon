@@ -1,24 +1,31 @@
 import SwiftUI
+import UIKit
 
 struct VenueEventPredictionModule: View {
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     let venueEventID: UUID
     let teams: VenueEventPredictionTeams
+    var sportType: String = ""
     let summary: VenueEventPredictionSummary?
     var isLocked = false
     let onOpen: (VenueEventPredictionType) -> Void
+    var onQuickVote: ((VenueEventPredictionType, String) async -> Bool)? = nil
     var onLockedTap: (() -> Void)? = nil
+    @State private var selectedWinner = ""
+    @State private var selectedFirstScore = ""
+    @State private var savingSelectionKey: String?
 
     private var resolvedSummary: VenueEventPredictionSummary {
         summary ?? .empty(eventID: venueEventID)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: FGSpacing.sm) {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
             HStack(spacing: FGSpacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Before the game")
+                    Text(L10n.t("before_the_game", languageCode: appLanguageRaw))
                         .font(FGTypography.caption.weight(.bold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                     Text(teams.displayMatchup)
@@ -44,33 +51,59 @@ struct VenueEventPredictionModule: View {
                     .foregroundStyle(FGColor.mutedText(colorScheme))
             }
 
-            VStack(spacing: 7) {
-                predictionTile(
-                    type: .winner,
-                    icon: "trophy.fill",
-                    title: "Who wins?",
-                    value: winnerValue
-                )
-                predictionTile(
-                    type: .score,
-                    icon: "target",
-                    title: "Score prediction",
-                    value: resolvedSummary.scoreMode ?? "Add yours"
-                )
-                predictionTile(
-                    type: .firstScoreTeam,
-                    icon: "bolt.fill",
-                    title: "First to score",
-                    value: firstScoreValue
-                )
-            }
+            winnerMatchupSection(
+                title: "Who wins?",
+                icon: "trophy.fill",
+                type: .winner
+            )
+
+            predictionTile(
+                type: .score,
+                icon: "target",
+                title: "Score prediction",
+                value: resolvedSummary.scoreMode ?? "Tap to predict"
+            )
+
+            predictionVotingSection(
+                title: "Which team scores first?",
+                icon: "bolt.fill",
+                options: firstScoreOptions,
+                type: .firstScoreTeam
+            )
         }
-        .padding(FGSpacing.sm)
-        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.08))
-        .clipShape(RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous))
+        .padding(FGSpacing.md)
+        .background {
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                            FGColor.accentGreen.opacity(colorScheme == .dark ? 0.10 : 0.06)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
         .overlay {
-            RoundedRectangle(cornerRadius: FGRadius.small, style: .continuous)
-                .strokeBorder(FGColor.accentBlue.opacity(0.16), lineWidth: 1)
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.24 : 0.18), lineWidth: 1)
+        }
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.06), radius: 12, y: 5)
+        .task(id: venueEventID) {
+            await loadUserPrediction()
+        }
+        .onAppear {
+#if DEBUG
+            print("[PredictionUIDebug] homeTeam=\(teams.home)")
+            print("[PredictionUIDebug] awayTeam=\(teams.away)")
+            print("[PredictionUIDebug] homeFlag=\(CountryFlagHelper.flag(for: teams.home) ?? "none")")
+            print("[PredictionUIDebug] awayFlag=\(CountryFlagHelper.flag(for: teams.away) ?? "none")")
+            print("[PredictionUILayoutDebug] sport=\(sportType)")
+            print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+#endif
         }
     }
 
@@ -79,18 +112,236 @@ struct VenueEventPredictionModule: View {
         return count == 1 ? "1 prediction" : "\(count) predictions"
     }
 
-    private var winnerValue: String {
-        guard let leader = resolvedSummary.winnerLeader, let percent = resolvedSummary.winnerPercent else {
-            return "Add yours"
-        }
-        return "\(leader) \(percent)%"
+    private var winnerOptions: [PredictionVotingOption] {
+        let matchupOptions = [
+            option(for: teams.home, type: .winner),
+            option(for: teams.away, type: .winner)
+        ]
+        guard isSoccerPrediction else { return matchupOptions }
+        return [
+            matchupOptions[0],
+            PredictionVotingOption(
+                value: "Draw",
+                title: "Draw",
+                subtitle: nil,
+                flag: nil,
+                percent: resolvedSummary.winnerPercents["Draw"] ?? 0,
+                avatars: resolvedSummary.winnerAvatarsByOption["Draw"] ?? []
+            ),
+            matchupOptions[1]
+        ]
     }
 
-    private var firstScoreValue: String {
-        guard let leader = resolvedSummary.firstScoreLeader, let percent = resolvedSummary.firstScorePercent else {
-            return "Add yours"
+    private var winnerMatchupOptions: (home: PredictionVotingOption, away: PredictionVotingOption) {
+        (option(for: teams.home, type: .winner), option(for: teams.away, type: .winner))
+    }
+
+    private var drawOption: PredictionVotingOption {
+        PredictionVotingOption(
+            value: "Draw",
+            title: "Draw",
+            subtitle: nil,
+            flag: nil,
+            percent: resolvedSummary.winnerPercents["Draw"] ?? 0,
+            avatars: resolvedSummary.winnerAvatarsByOption["Draw"] ?? []
+        )
+    }
+
+    private var isSoccerPrediction: Bool {
+        let normalized = sportType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.contains("soccer") || normalized.contains("football") && normalized.contains("association")
+    }
+
+    private var winnerPercentagesDebugDescription: String {
+        "home=\(winnerMatchupOptions.home.percent),away=\(winnerMatchupOptions.away.percent),draw=\(drawOption.percent)"
+    }
+
+    private var firstScoreOptions: [PredictionVotingOption] {
+        [
+            option(for: teams.home, type: .firstScoreTeam),
+            option(for: teams.away, type: .firstScoreTeam)
+        ]
+    }
+
+    private func option(for team: String, type: VenueEventPredictionType) -> PredictionVotingOption {
+        let displayName = CountryFlagHelper.displayName(for: team, languageCode: appLanguageRaw)
+        let percent: Int
+        let avatars: [VenuePredictionParticipantAvatar]
+        switch type {
+        case .winner:
+            percent = resolvedSummary.winnerPercents[team] ?? 0
+            avatars = resolvedSummary.winnerAvatarsByOption[team] ?? []
+        case .firstScoreTeam:
+            percent = resolvedSummary.firstScorePercents[team] ?? 0
+            avatars = resolvedSummary.firstScoreAvatarsByOption[team] ?? []
+        case .score:
+            percent = 0
+            avatars = []
         }
-        return "\(leader) \(percent)%"
+        return PredictionVotingOption(
+            value: team,
+            title: displayName,
+            subtitle: type == .firstScoreTeam ? "\(displayName) scores first" : nil,
+            flag: CountryFlagHelper.flag(for: team),
+            percent: percent,
+            avatars: avatars
+        )
+    }
+
+    private func predictionVotingSection(
+        title: String,
+        icon: String,
+        options: [PredictionVotingOption],
+        type: VenueEventPredictionType
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            VStack(spacing: 8) {
+                ForEach(options) { option in
+                    PredictionOptionVotingCard(
+                        option: option,
+                        isSelected: selectedValue(for: type) == option.value,
+                        isSaving: savingSelectionKey == selectionKey(type: type, value: option.value),
+                        colorScheme: colorScheme
+                    ) {
+                        vote(type: type, value: option.value)
+                    }
+                }
+            }
+        }
+    }
+
+    private func winnerMatchupSection(
+        title: String,
+        icon: String,
+        type: VenueEventPredictionType
+    ) -> some View {
+        let options = winnerMatchupOptions
+        return VStack(alignment: .leading, spacing: 9) {
+            Label(title, systemImage: icon)
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            HStack(alignment: .center, spacing: 8) {
+                PredictionMatchupTeamCard(
+                    option: options.home,
+                    isSelected: selectedValue(for: type) == options.home.value,
+                    isSaving: savingSelectionKey == selectionKey(type: type, value: options.home.value),
+                    colorScheme: colorScheme
+                ) {
+                    vote(type: type, value: options.home.value)
+                }
+
+                Text("VS")
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 2)
+
+                PredictionMatchupTeamCard(
+                    option: options.away,
+                    isSelected: selectedValue(for: type) == options.away.value,
+                    isSaving: savingSelectionKey == selectionKey(type: type, value: options.away.value),
+                    colorScheme: colorScheme
+                ) {
+                    vote(type: type, value: options.away.value)
+                }
+            }
+
+            if isSoccerPrediction {
+                PredictionDrawChip(
+                    option: drawOption,
+                    isSelected: selectedValue(for: type) == drawOption.value,
+                    isSaving: savingSelectionKey == selectionKey(type: type, value: drawOption.value),
+                    colorScheme: colorScheme
+                ) {
+                    vote(type: type, value: drawOption.value)
+                }
+            }
+        }
+    }
+
+    private func selectedValue(for type: VenueEventPredictionType) -> String {
+        switch type {
+        case .winner:
+            return selectedWinner
+        case .firstScoreTeam:
+            return selectedFirstScore
+        case .score:
+            return ""
+        }
+    }
+
+    private func vote(type: VenueEventPredictionType, value: String) {
+        guard !isLocked else {
+            onLockedTap?()
+            return
+        }
+        guard let onQuickVote else {
+            onOpen(type)
+            return
+        }
+
+        let previousWinner = selectedWinner
+        let previousFirstScore = selectedFirstScore
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+            if type == .winner {
+                selectedWinner = value
+            } else if type == .firstScoreTeam {
+                selectedFirstScore = value
+            }
+            savingSelectionKey = selectionKey(type: type, value: value)
+        }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+#if DEBUG
+        if type == .winner {
+            print("[PredictionUIDebug] selectedWinner=\(value)")
+        } else if type == .firstScoreTeam {
+            print("[PredictionUIDebug] selectedFirstScore=\(value)")
+        }
+        print("[PredictionUILayoutDebug] selectedOption=\(value)")
+        print("[PredictionUILayoutDebug] percentages=\(winnerPercentagesDebugDescription)")
+#endif
+
+        Task {
+            let didSave = await onQuickVote(type, value)
+            await MainActor.run {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    savingSelectionKey = nil
+                    if !didSave {
+                        selectedWinner = previousWinner
+                        selectedFirstScore = previousFirstScore
+                    }
+                }
+            }
+        }
+    }
+
+    private func selectionKey(type: VenueEventPredictionType, value: String) -> String {
+        "\(type.rawValue)|\(value)"
+    }
+
+    @MainActor
+    private func loadUserPrediction() async {
+        do {
+            let prediction = try await VenueEventPredictionService.shared.fetchUserPrediction(venueEventId: venueEventID)
+            selectedWinner = prediction.winner ?? ""
+            selectedFirstScore = prediction.firstScoreTeam ?? ""
+#if DEBUG
+            if !selectedWinner.isEmpty {
+                print("[PredictionUIDebug] selectedWinner=\(selectedWinner)")
+            }
+            if !selectedFirstScore.isEmpty {
+                print("[PredictionUIDebug] selectedFirstScore=\(selectedFirstScore)")
+            }
+#endif
+        } catch {
+#if DEBUG
+            print("[PredictionUIDebug] userPredictionLoadSkipped=\(error.localizedDescription)")
+#endif
+        }
     }
 
     private var participantAvatars: some View {
@@ -148,6 +399,7 @@ struct VenueEventPredictionModule: View {
 struct VenueEventPredictionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     let venueEventID: UUID
     let teams: VenueEventPredictionTeams
@@ -169,7 +421,7 @@ struct VenueEventPredictionSheet: View {
         case .score:
             return "Score prediction"
         case .firstScoreTeam:
-            return "First team to score"
+            return "Which team scores first?"
         }
     }
 
@@ -195,14 +447,21 @@ struct VenueEventPredictionSheet: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: FGSpacing.sm) {
+                if predictionType == .score {
+                    HStack(spacing: FGSpacing.sm) {
+                        FGSecondaryButton(title: "Remove", systemImage: "trash") {
+                            Task { await deletePrediction() }
+                        }
+                        .disabled(isSaving)
+
+                        FGPrimaryButton(title: isSaving ? "Saving..." : "Save", systemImage: "checkmark") {
+                            Task { await savePrediction() }
+                        }
+                        .disabled(isSaving || isLoading)
+                    }
+                } else {
                     FGSecondaryButton(title: "Remove", systemImage: "trash") {
                         Task { await deletePrediction() }
-                    }
-                    .disabled(isSaving)
-
-                    FGPrimaryButton(title: isSaving ? "Saving..." : "Save", systemImage: "checkmark") {
-                        Task { await savePrediction() }
                     }
                     .disabled(isSaving || isLoading)
                 }
@@ -227,25 +486,24 @@ struct VenueEventPredictionSheet: View {
         switch predictionType {
         case .winner, .firstScoreTeam:
             VStack(spacing: FGSpacing.sm) {
-                ForEach(teams.options, id: \.self) { team in
-                    Button {
-                        selectedTeam = team
-                    } label: {
-                        HStack {
-                            Text(team)
-                                .font(FGTypography.body.weight(.semibold))
-                            Spacer()
-                            if selectedTeam == team {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(FGColor.accentBlue)
-                            }
+                ForEach(sheetVotingOptions) { option in
+                    PredictionOptionVotingCard(
+                        option: option,
+                        isSelected: selectedTeam == option.value,
+                        isSaving: isSaving && selectedTeam == option.value,
+                        colorScheme: colorScheme
+                    ) {
+                        selectedTeam = option.value
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+#if DEBUG
+                        if predictionType == .winner {
+                            print("[PredictionUIDebug] selectedWinner=\(option.value)")
+                        } else {
+                            print("[PredictionUIDebug] selectedFirstScore=\(option.value)")
                         }
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .padding()
-                        .background(selectedTeam == team ? FGColor.accentBlue.opacity(0.12) : FGColor.cardBackground(colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+#endif
+                        Task { await savePrediction() }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         case .score:
@@ -254,6 +512,26 @@ struct VenueEventPredictionSheet: View {
                 scoreStepper(team: teams.away, score: $awayScore)
             }
         }
+    }
+
+    private var sheetVotingOptions: [PredictionVotingOption] {
+        let teamOptions = teams.options.map { team in
+            let displayName = CountryFlagHelper.displayName(for: team, languageCode: appLanguageRaw)
+            return PredictionVotingOption(
+                value: team,
+                title: displayName,
+                subtitle: predictionType == .firstScoreTeam ? "\(displayName) scores first" : nil,
+                flag: CountryFlagHelper.flag(for: team),
+                percent: 0,
+                avatars: []
+            )
+        }
+        guard predictionType == .winner else { return teamOptions }
+        return [
+            teamOptions[0],
+            PredictionVotingOption(value: "Draw", title: "Draw", subtitle: nil, flag: nil, percent: 0, avatars: []),
+            teamOptions[1]
+        ]
     }
 
     private func scoreStepper(team: String, score: Binding<Int>) -> some View {
@@ -347,6 +625,228 @@ struct VenueEventPredictionSheet: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+}
+
+private struct PredictionVotingOption: Identifiable, Equatable {
+    let value: String
+    let title: String
+    let subtitle: String?
+    let flag: String?
+    let percent: Int
+    let avatars: [VenuePredictionParticipantAvatar]
+
+    var id: String { value }
+}
+
+private struct PredictionMatchupTeamCard: View {
+    let option: PredictionVotingOption
+    let isSelected: Bool
+    let isSaving: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 7) {
+                if let flag = option.flag {
+                    Text(flag)
+                        .font(.system(size: 30))
+                        .frame(height: 32)
+                }
+
+                Text(option.title)
+                    .font(.system(size: 14.5, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+                    .frame(maxWidth: .infinity)
+
+                Text("\(option.percent)%")
+                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                    .monospacedDigit()
+
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(FGColor.accentGreen)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: option.flag == nil ? 106 : 124)
+            .background(cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? FGColor.accentGreen.opacity(0.76) : FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.13),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
+            }
+            .shadow(
+                color: (isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.16 : 0.08),
+                radius: isSelected ? 16 : 8,
+                y: isSelected ? 7 : 3
+            )
+            .scaleEffect(isSelected ? 1.025 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.76), value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var cardBackground: some ShapeStyle {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.09 : 0.94),
+                (isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.18 : 0.09)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+private struct PredictionDrawChip: View {
+    let option: PredictionVotingOption
+    let isSelected: Bool
+    let isSaving: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Text(option.title)
+                    .font(.caption.weight(.heavy))
+                Text("\(option.percent)%")
+                    .font(.caption.weight(.black))
+                    .monospacedDigit()
+                if isSaving {
+                    ProgressView()
+                        .controlSize(.mini)
+                } else if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption.weight(.bold))
+                }
+            }
+            .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity)
+            .background((isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.14 : 0.08))
+            .clipShape(Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder((isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(0.28), lineWidth: 1)
+            }
+            .scaleEffect(isSelected ? 1.012 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct PredictionOptionVotingCard: View {
+    let option: PredictionVotingOption
+    let isSelected: Bool
+    let isSaving: Bool
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                if let flag = option.flag {
+                    Text(flag)
+                        .font(.system(size: 26))
+                        .frame(width: 34)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(option.title)
+                        .font(.system(size: 15.5, weight: .heavy, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+
+                    if let subtitle = option.subtitle {
+                        Text(subtitle)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
+
+                    if !option.avatars.isEmpty {
+                        HStack(spacing: -7) {
+                            ForEach(option.avatars.prefix(3)) { avatar in
+                                VenuePredictionAvatarView(avatar: avatar)
+                            }
+                        }
+                        .padding(.top, 1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 5) {
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.mini)
+                    } else if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundStyle(FGColor.accentGreen)
+                    }
+
+                    Text("\(option.percent)%")
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
+                        .monospacedDigit()
+                }
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? FGColor.accentGreen.opacity(0.72) : FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.12),
+                        lineWidth: isSelected ? 1.4 : 1
+                    )
+            }
+            .shadow(
+                color: (isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.16 : 0.08),
+                radius: isSelected ? 14 : 8,
+                y: isSelected ? 6 : 3
+            )
+            .scaleEffect(isSelected ? 1.015 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private var cardBackground: some ShapeStyle {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.08 : 0.92),
+                (isSelected ? FGColor.accentGreen : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.16 : 0.08)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
 

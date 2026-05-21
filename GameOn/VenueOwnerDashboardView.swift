@@ -59,6 +59,7 @@ struct VenueOwnerDashboardView: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     @State private var selectedSection: VenueDashboardSection = .overview
 
@@ -161,7 +162,9 @@ struct VenueOwnerDashboardView: View {
         case importLive = "Import From Live Games"
     }
 
-    private static let manualPredictionTeamValidationMessage = "Add both teams so fans can make predictions."
+    private var manualPredictionTeamValidationMessage: String {
+        L10n.t("add_both_teams_predictions", languageCode: appLanguageRaw)
+    }
 
     @State private var manageGamesListTab: ManageGamesListTab = .scheduled
     @State private var gameCreationMode: BusinessGameCreationMode = .manual
@@ -672,6 +675,7 @@ struct VenueOwnerDashboardView: View {
             activeChats: businessDashboardActiveChats,
             predictions: businessDashboardPredictions,
             atmosphereRating: businessDashboardAtmosphereRating,
+            gameSectionContext: businessDashboardGameSectionContext,
             games: businessDashboardGameItems
         )
     }
@@ -752,14 +756,28 @@ struct VenueOwnerDashboardView: View {
         return String(format: "%.1f", rating)
     }
 
-    private var businessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+    private var businessDashboardGameSectionContext: BusinessVenueDashboardGameSectionContext {
+        BusinessVenueDashboardGameSectionResolver.resolve(
+            gameDates: businessDashboardUpcomingRows.map(\.start),
+            calendar: Calendar.current
+        )
+    }
+
+    private var businessDashboardUpcomingRows: [(row: VenueEventRow, start: Date)] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let todayRows = myVenueGamesForManage.filter { row in
-            guard let day = venueOwnerGameDay(row) else { return false }
-            return calendar.isDate(day, inSameDayAs: today)
+        return myVenueGamesForManage.compactMap { row in
+            guard let start = businessDashboardGameStartDate(row),
+                  calendar.startOfDay(for: start) >= today else {
+                return nil
+            }
+            return (row, start)
         }
-        let sourceRows = todayRows.isEmpty ? Array(myVenueGamesForManage.prefix(3)) : todayRows
+        .sorted { $0.start < $1.start }
+    }
+
+    private var businessDashboardGameItems: [BusinessVenueDashboardGameItem] {
+        let sourceRows = Array(businessDashboardUpcomingRows.prefix(3).map(\.row))
 
         return sourceRows.compactMap { row in
             guard let id = row.id else { return nil }
@@ -793,10 +811,17 @@ struct VenueOwnerDashboardView: View {
         return time.isEmpty ? "Time TBD" : time
     }
 
+    private func businessDashboardGameStartDate(_ row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+            return start
+        }
+        return venueOwnerGameDay(row)
+    }
+
     private func businessDashboardEnergy(score: Int) -> (label: String, tint: Color) {
         if score >= 30 { return ("High energy", FGColor.accentGreen) }
         if score >= 8 { return ("Building", FGColor.accentYellow) }
-        return ("Normal", FGColor.accentBlue)
+        return (L10n.t("normal", languageCode: appLanguageRaw), FGColor.accentBlue)
     }
 
     private func openBusinessDashboardGames(tab: ManageGamesListTab) {
@@ -2477,7 +2502,7 @@ struct VenueOwnerDashboardView: View {
             }
 
             if manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid {
-                Text(Self.manualPredictionTeamValidationMessage)
+                Text(manualPredictionTeamValidationMessage)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(FGColor.dangerRed)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -2566,11 +2591,11 @@ struct VenueOwnerDashboardView: View {
 
     private var manualStructuredTeamsFields: some View {
         VStack(alignment: .leading, spacing: 8) {
-            field("Team 1", text: Binding(
+            field(L10n.t("team_1", languageCode: appLanguageRaw), text: Binding(
                 get: { gameTeam1 },
                 set: { updateManualGameTeam1($0) }
             ))
-            field("Team 2", text: Binding(
+            field(L10n.t("team_2", languageCode: appLanguageRaw), text: Binding(
                 get: { gameTeam2 },
                 set: { updateManualGameTeam2($0) }
             ))
@@ -2996,7 +3021,7 @@ struct VenueOwnerDashboardView: View {
 
         if requiresStructuredTeams, manualTeam1.isEmpty || manualTeam2.isEmpty {
             await MainActor.run {
-                manageGamesError = Self.manualPredictionTeamValidationMessage
+                manageGamesError = manualPredictionTeamValidationMessage
                 manageGamesFeedback = ""
                 logBusinessManualGameTeamDebug()
             }

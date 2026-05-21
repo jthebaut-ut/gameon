@@ -41,10 +41,17 @@ enum L10n {
     static func t(_ key: String, languageCode: String? = nil) -> String {
         let code = normalizedLanguageCode(languageCode ?? UserDefaults.standard.string(forKey: appLanguageKey))
         let localized = localizedString(key, languageCode: code)
+        let shouldFallback = localized == key && code != defaultLanguageCode
         let resolved = localized == key ? localizedString(key, languageCode: defaultLanguageCode) : localized
         let value = resolved == key ? key : resolved
 #if DEBUG
         print("[LocalizationDebug] localizedKeyUsed=\(key)")
+        if localized == key {
+            print("[LocalizationDebug] missingKey=\(key)")
+        }
+        if shouldFallback {
+            print("[LocalizationDebug] fallbackToEnglish=true")
+        }
 #endif
         return value
     }

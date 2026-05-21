@@ -6,6 +6,7 @@ struct VenueEventCommentsSheet: View {
     let venueEventID: UUID
 
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
     private var headerSubtitle: String {
         guard let row = viewModel.venueEventRows.first(where: { $0.id == venueEventID }) else {
@@ -48,7 +49,7 @@ struct VenueEventCommentsSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(sheetRootBackground)
-            .navigationTitle("Fan Updates")
+            .navigationTitle(L10n.t("fan_updates", languageCode: appLanguageRaw))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(sheetRootBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)

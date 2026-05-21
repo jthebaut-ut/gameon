@@ -347,11 +347,24 @@ struct PublicProfileEditorialHero: View {
                 )
             }
             PublicProfileHeroStatCard(
-                value: data.reputation.title,
-                label: "Fan reputation",
+                value: localizedReputationTitle(data.reputation.title),
+                label: L10n.t("fan_reputation", languageCode: appLanguageRaw),
                 icon: data.reputation.privileges.isVerifiedOrganizer ? "checkmark.seal.fill" : "bolt.heart.fill",
                 tint: FGColor.accentGreen
             )
+        }
+    }
+
+    private func localizedReputationTitle(_ title: String) -> String {
+        switch title {
+        case "Rookie Fan":
+            return L10n.t("rookie_fan", languageCode: appLanguageRaw)
+        case "Venue Regular":
+            return L10n.t("venue_regular", languageCode: appLanguageRaw)
+        case "Home Crowd":
+            return L10n.t("home_crowd", languageCode: appLanguageRaw)
+        default:
+            return title
         }
     }
 
