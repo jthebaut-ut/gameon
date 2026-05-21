@@ -77,6 +77,7 @@ struct VenueOwnerFeatureToggleTile: View {
                 Image(systemName: icon)
                     .font(.title2)
                     .foregroundStyle(isOn ? FGColor.accentGreen : FGColor.mutedText(colorScheme))
+                    .frame(width: 28, height: 26)
 
                 Text(label)
                     .font(FGTypography.caption.weight(.semibold))
@@ -87,8 +88,8 @@ struct VenueOwnerFeatureToggleTile: View {
                     .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 2)
+            .padding(.vertical, 7)
+            .padding(.horizontal, 4)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -106,7 +107,16 @@ struct AddLocationVenueFeaturesGrid: View {
     @Binding var hasProjector: Bool
     @Binding var petFriendly: Bool
     @Binding var parkingAvailable: Bool
+    @Binding var easyParking: Bool
     @Binding var familyFriendly: Bool
+    @Binding var handicapParking: Bool
+    @Binding var liveMusic: Bool
+    @Binding var poolTables: Bool
+    @Binding var rooftop: Bool
+    @Binding var djNights: Bool
+    @Binding var karaoke: Bool
+    @Binding var cocktails: Bool
+    @Binding var craftBeer: Bool
 
     var maxScreenCount: Int = 40
     @Environment(\.colorScheme) private var colorScheme
@@ -129,11 +139,19 @@ struct AddLocationVenueFeaturesGrid: View {
                 VenueOwnerScreensFeatureTile(totalScreens: $screenCount, minScreens: 1, maxScreens: maxScreenCount)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.foodDrinks.iconName, label: VenueFeatureDefinitions.foodDrinks.label, isOn: $servesFood)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.wifi.iconName, label: VenueFeatureDefinitions.wifi.label, isOn: $hasWifi)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.patio.iconName, label: VenueFeatureDefinitions.patio.label, isOn: $hasGarden)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.projector.iconName, label: VenueFeatureDefinitions.projector.label, isOn: $hasProjector)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.petFriendly.iconName, label: VenueFeatureDefinitions.petFriendly.label, isOn: $petFriendly)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.parkingAvailable.iconName, label: VenueFeatureDefinitions.parkingAvailable.label, isOn: $parkingAvailable)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.patio.iconName, label: VenueFeatureDefinitions.patio.label, isOn: $hasGarden)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.rooftop.iconName, label: VenueFeatureDefinitions.rooftop.label, isOn: $rooftop)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.liveMusic.iconName, label: VenueFeatureDefinitions.liveMusic.label, isOn: $liveMusic)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.djNights.iconName, label: VenueFeatureDefinitions.djNights.label, isOn: $djNights)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.karaoke.iconName, label: VenueFeatureDefinitions.karaoke.label, isOn: $karaoke)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.poolTables.iconName, label: VenueFeatureDefinitions.poolTables.label, isOn: $poolTables)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.craftBeer.iconName, label: VenueFeatureDefinitions.craftBeer.label, isOn: $craftBeer)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.cocktails.iconName, label: VenueFeatureDefinitions.cocktails.label, isOn: $cocktails)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.familyFriendly.iconName, label: VenueFeatureDefinitions.familyFriendly.label, isOn: $familyFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.petFriendly.iconName, label: VenueFeatureDefinitions.petFriendly.label, isOn: $petFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.easyParking.iconName, label: VenueFeatureDefinitions.easyParking.label, isOn: $easyParking)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.handicapParking.iconName, label: VenueFeatureDefinitions.handicapParking.label, isOn: $handicapParking)
             }
         }
         .padding(12)

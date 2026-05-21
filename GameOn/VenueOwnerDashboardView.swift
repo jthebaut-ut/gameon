@@ -87,6 +87,14 @@ struct VenueOwnerDashboardView: View {
     @State private var hasParkingAvailable = false
     @State private var hasEasyParking = false
     @State private var isFamilyFriendly = false
+    @State private var hasHandicapParking = false
+    @State private var hasLiveMusic = false
+    @State private var hasPoolTables = false
+    @State private var hasRooftop = false
+    @State private var hasDJNights = false
+    @State private var hasKaraoke = false
+    @State private var hasCocktails = false
+    @State private var hasCraftBeer = false
     @State private var totalScreens = 1
     @State private var profileSaveMessage = ""
     @State private var venueStreetAddress = ""
@@ -394,6 +402,7 @@ struct VenueOwnerDashboardView: View {
                     hasGarden = saved.has_garden ?? false
                     hasProjector = saved.has_projector ?? false
                     isPetFriendly = saved.pet_friendly ?? false
+                    syncModernFeatureToggles(from: saved.features ?? "")
                 }
             } else {
                 await MainActor.run {
@@ -904,7 +913,7 @@ struct VenueOwnerDashboardView: View {
             BusinessPhoneNumberField(dialISO: $viewModel.ownerVenuePhoneDialISO, localNumber: $viewModel.ownerVenuePhone)
             field("Website", text: $viewModel.ownerVenueWebsite)
             field("Short Description", text: $viewModel.ownerVenueDescription)
-            field("Features: Big Screens, Patio, Sound On", text: $viewModel.ownerVenueFeatures)
+            field("Features: Big Screens, Terrace, Sound On", text: $viewModel.ownerVenueFeatures)
 
             VStack(alignment: .leading, spacing: 28) {
                 venueOwnerVenueFeaturesCard()
@@ -944,6 +953,10 @@ struct VenueOwnerDashboardView: View {
                     viewModel.ownerVenueAddress = venueStreetAddress
                     viewModel.ownerVenueAddressLine2 = venueAddressLine2
                     viewModel.ownerVenueCountry = venueCountry
+                    viewModel.ownerVenueFeatures = selectedVenueFeaturesLine()
+#if DEBUG
+                    print("[VenueFeatureDebug] selectedFeatures=\(viewModel.ownerVenueFeatures)")
+#endif
                     Task {
                         let success = await viewModel.saveVenueProfile(
                             streetAddress: venueStreetAddress,
@@ -981,6 +994,7 @@ struct VenueOwnerDashboardView: View {
                                 hasGarden = saved.has_garden ?? false
                                 hasProjector = saved.has_projector ?? false
                                 isPetFriendly = saved.pet_friendly ?? false
+                                syncModernFeatureToggles(from: saved.features ?? "")
                                 syncDisplayedVenuePhotoURLsFromViewModel()
                             }
                         }
@@ -1065,17 +1079,55 @@ struct VenueOwnerDashboardView: View {
                 VenueOwnerScreensFeatureTile(totalScreens: $totalScreens)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.foodDrinks.iconName, label: VenueFeatureDefinitions.foodDrinks.label, isOn: $hasFood)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.wifi.iconName, label: VenueFeatureDefinitions.wifi.label, isOn: $hasWifi)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.patio.iconName, label: VenueFeatureDefinitions.patio.label, isOn: $hasGarden)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.projector.iconName, label: VenueFeatureDefinitions.projector.label, isOn: $hasProjector)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.petFriendly.iconName, label: VenueFeatureDefinitions.petFriendly.label, isOn: $isPetFriendly)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.parkingAvailable.iconName, label: VenueFeatureDefinitions.parkingAvailable.label, isOn: $hasParkingAvailable)
-                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.easyParking.iconName, label: VenueFeatureDefinitions.easyParking.label, isOn: $hasEasyParking)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.patio.iconName, label: VenueFeatureDefinitions.patio.label, isOn: $hasGarden)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.rooftop.iconName, label: VenueFeatureDefinitions.rooftop.label, isOn: $hasRooftop)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.liveMusic.iconName, label: VenueFeatureDefinitions.liveMusic.label, isOn: $hasLiveMusic)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.djNights.iconName, label: VenueFeatureDefinitions.djNights.label, isOn: $hasDJNights)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.karaoke.iconName, label: VenueFeatureDefinitions.karaoke.label, isOn: $hasKaraoke)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.poolTables.iconName, label: VenueFeatureDefinitions.poolTables.label, isOn: $hasPoolTables)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.craftBeer.iconName, label: VenueFeatureDefinitions.craftBeer.label, isOn: $hasCraftBeer)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.cocktails.iconName, label: VenueFeatureDefinitions.cocktails.label, isOn: $hasCocktails)
                 VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.familyFriendly.iconName, label: VenueFeatureDefinitions.familyFriendly.label, isOn: $isFamilyFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.petFriendly.iconName, label: VenueFeatureDefinitions.petFriendly.label, isOn: $isPetFriendly)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.easyParking.iconName, label: VenueFeatureDefinitions.easyParking.label, isOn: $hasEasyParking)
+                VenueOwnerFeatureToggleTile(icon: VenueFeatureDefinitions.handicapParking.iconName, label: VenueFeatureDefinitions.handicapParking.label, isOn: $hasHandicapParking)
             }
         }
         .padding(12)
         .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func syncModernFeatureToggles(from rawFeatures: String) {
+        hasRooftop = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.rooftop)
+        hasLiveMusic = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.liveMusic)
+        hasDJNights = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.djNights)
+        hasKaraoke = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.karaoke)
+        hasPoolTables = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.poolTables)
+        hasCocktails = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.cocktails)
+        hasCraftBeer = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.craftBeer)
+        hasHandicapParking = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.handicapParking)
+        hasParkingAvailable = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.parkingAvailable)
+        hasEasyParking = hasParkingAvailable || venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.easyParking)
+        isFamilyFriendly = venueRawFeaturesContain(rawFeatures, definition: VenueFeatureDefinitions.familyFriendly)
+    }
+
+    private func selectedVenueFeaturesLine() -> String {
+        venueMergedRawFeaturesLine(
+            existingRawFeatures: viewModel.ownerVenueFeatures,
+            familyFriendly: isFamilyFriendly,
+            parkingAvailable: hasParkingAvailable,
+            easyParking: hasEasyParking,
+            handicapParking: hasHandicapParking,
+            liveMusic: hasLiveMusic,
+            poolTables: hasPoolTables,
+            rooftop: hasRooftop,
+            djNights: hasDJNights,
+            karaoke: hasKaraoke,
+            cocktails: hasCocktails,
+            craftBeer: hasCraftBeer
+        )
     }
 
     private let usStates = [

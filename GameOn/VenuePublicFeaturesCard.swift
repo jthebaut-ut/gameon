@@ -19,5 +19,10 @@ struct VenuePublicFeaturesCard: View {
         .padding(12)
         .background(Color.gray.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .onAppear {
+#if DEBUG
+            print("[VenueFeatureDebug] propagatedToVenueDetail=true")
+#endif
+        }
     }
 }

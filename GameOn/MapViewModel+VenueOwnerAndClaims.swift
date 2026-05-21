@@ -283,6 +283,15 @@ extension MapViewModel {
             petFriendly: loc.petFriendly,
             familyFriendly: loc.familyFriendly,
             parkingAvailable: loc.parkingAvailable,
+            easyParking: loc.easyParking,
+            handicapParking: loc.handicapParking,
+            liveMusic: loc.liveMusic,
+            poolTables: loc.poolTables,
+            rooftop: loc.rooftop,
+            djNights: loc.djNights,
+            karaoke: loc.karaoke,
+            cocktails: loc.cocktails,
+            craftBeer: loc.craftBeer,
             coverPhotoURL: coverURL,
             menuPhotoURL: menuPublic,
             latitude: loc.latitude,
@@ -2580,6 +2589,11 @@ extension MapViewModel {
             ).trimmingCharacters(in: .whitespacesAndNewlines)
 
             let identityLocked = venueCoreIdentityLockedForSelectedVenue()
+#if DEBUG
+            print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
+            print("[VenueFeatureDebug] businessSelectedFeatures=\(ownerVenueFeatures)")
+            print("[VenueFeatureDebug] sqlNeeded=false")
+#endif
 
             if identityLocked, let venueId = ownerVenueDatabaseId {
 #if DEBUG
@@ -2780,11 +2794,18 @@ extension MapViewModel {
 
             print("VENUE PROFILE SAVED")
             await loadVenuesFromSupabase(forceRefresh: true)
+#if DEBUG
+            print("[VenueFeatureDebug] propagatedToDiscover=true")
+#endif
             if let saved = await loadVenueProfile() {
                 await MainActor.run {
                     updateManagedVenueProfileCaches(saved)
                     applyVenueProfileRowToOwnerState(saved)
                 }
+#if DEBUG
+                print("[VenueFeatureDebug] selectedFeatures=\(saved.features ?? "")")
+                print("[VenueFeatureDebug] businessSelectedFeatures=\(saved.features ?? "")")
+#endif
                 print("[VenuePhotoSaveDebug] savedDatabasePhotoURL=\(saved.cover_photo_url ?? "")")
             }
             return true

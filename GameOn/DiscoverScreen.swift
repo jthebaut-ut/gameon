@@ -3082,6 +3082,16 @@ struct DiscoverScreen: View {
                 .buttonStyle(.plain)
             }
         }
+        .onAppear {
+#if DEBUG
+            print("[VenueFeatureDebug] propagatedToDiscover=true")
+            print("[VenueFeatureDebug] discoverCardFeatureChipsRemoved=true")
+            print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
+            if bar.hasBusinessVerifiedFeatures {
+                print("[VenueFeatureDebug] approvedBusinessVenueFeaturesVerified=true")
+            }
+#endif
+        }
     }
 
     private func discoverHomeCrowdHeroButton(bar: BarVenue) -> some View {
@@ -3602,7 +3612,7 @@ struct DiscoverScreen: View {
             }
         } label: {
             HStack(alignment: .center, spacing: 12) {
-                SportArtworkIconView(sport: event.sport, diameter: 42)
+                venueGameSportIconWithLabel(sport: event.sport)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(event.title)
@@ -3641,6 +3651,55 @@ struct DiscoverScreen: View {
         .buttonStyle(.plain)
     }
 
+    private func venueGameSportIconWithLabel(sport: String) -> some View {
+        let label = venueGameSportDisplayLabel(sport)
+        let tint = viewModel.colorForSport(sport)
+
+        return VStack(spacing: 3) {
+            SportArtworkIconView(sport: sport, diameter: 42)
+
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(tint)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(width: 54, alignment: .top)
+        .onAppear {
+#if DEBUG
+            print("[VenueGameCardDebug] sportLabelRendered=\(label)")
+            print("[VenueGameCardDebug] sportIconAndLabelVisible=true")
+#endif
+        }
+    }
+
+    private func venueGameSportDisplayLabel(_ sport: String) -> String {
+        let trimmed = sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = trimmed.lowercased()
+        switch key {
+        case "nba", "basketball":
+            return "Basketball"
+        case "mls", "premier league", "soccer":
+            return "Soccer"
+        case "nfl", "football", "american football":
+            return "Football"
+        case "mlb", "baseball":
+            return "Baseball"
+        case "nhl", "hockey", "ice hockey":
+            return "Hockey"
+        case "ufc", "mma", "combat sports":
+            return "MMA"
+        case "tennis":
+            return "Tennis"
+        case "formula 1", "formula1", "formula one", "f1", "racing":
+            return "Formula 1"
+        default:
+            return trimmed.isEmpty ? "Sports" : trimmed
+        }
+    }
+
     private func gameInterestRow(bar: BarVenue, event: SportsEvent) -> some View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
@@ -3671,7 +3730,7 @@ struct DiscoverScreen: View {
 
         return VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .top, spacing: 11) {
-                SportArtworkIconView(sport: event.sport, diameter: 42)
+                venueGameSportIconWithLabel(sport: event.sport)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(event.title)

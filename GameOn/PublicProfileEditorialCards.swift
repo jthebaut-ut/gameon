@@ -160,6 +160,20 @@ extension PublicUserProfileData {
     var editorialOpenToItems: [PublicProfileOpenToItem] {
         Array(openToItems.prefix(PublicProfileContentBuilder.maxPublicOpenToItems))
     }
+
+    var primaryFavoriteTeam: FavoriteTeam? {
+        favoriteTeams.first
+    }
+
+    var publicFavoriteSports: [FavoriteTeamSport] {
+        var seen = Set<FavoriteTeamSport>()
+        var sports: [FavoriteTeamSport] = []
+        for team in favoriteTeams where !seen.contains(team.sport) {
+            seen.insert(team.sport)
+            sports.append(team.sport)
+        }
+        return sports
+    }
 }
 
 // MARK: - Two-column grid (mock layout)
@@ -177,6 +191,9 @@ struct PublicProfileTwoColumnGrid: View {
             .frame(maxWidth: .infinity)
 
             PublicProfileGridOpenToCard(items: data.editorialOpenToItems)
+                .frame(maxWidth: .infinity)
+
+            PublicProfileFavoriteSportsCard(data: data)
                 .frame(maxWidth: .infinity)
 
             PublicProfileGridMutualFansCard(
@@ -260,8 +277,8 @@ struct PublicProfileEditorialHero: View {
                             .lineLimit(2)
                     }
 
-                    if !data.favoriteTeams.isEmpty {
-                        heroFavoriteTeamsRow
+                    if let primaryTeam = data.primaryFavoriteTeam {
+                        heroPrimaryFavoriteTeam(primaryTeam)
                             .padding(.top, 2)
                     }
                 }
@@ -304,6 +321,11 @@ struct PublicProfileEditorialHero: View {
         }
         .onPreferenceChange(PublicProfileHeroWidthKey.self) { containerWidth = $0 }
         .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.editorialCardRadius)
+        .onAppear {
+#if DEBUG
+            print("[FavoriteSportsProfileDebug] primaryFavoriteTeam=\(data.primaryFavoriteTeam?.name ?? "")")
+#endif
+        }
     }
 
     private var heroStatColumn: some View {
@@ -325,11 +347,37 @@ struct PublicProfileEditorialHero: View {
         }
     }
 
-    private var heroFavoriteTeamsRow: some View {
-        HStack(spacing: 5) {
-            ForEach(data.favoriteTeams.prefix(5)) { team in
-                FavoriteTeamLogoBadge(team: team, diameter: 26)
+    private func heroPrimaryFavoriteTeam(_ team: FavoriteTeam) -> some View {
+        HStack(spacing: 9) {
+            FavoriteTeamLogoBadge(team: team, diameter: 38)
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("Favorite Team")
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .textCase(.uppercase)
+                        .tracking(0.6)
+                }
+                .foregroundStyle(team.badgeColor.opacity(0.94))
+
+                Text(team.name)
+                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(team.badgeColor.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(team.badgeColor.opacity(colorScheme == .dark ? 0.30 : 0.18), lineWidth: 1)
+                }
         }
     }
 
@@ -470,6 +518,148 @@ struct PublicProfileGridOpenToCard: View {
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 188, alignment: .topLeading)
         .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
+    }
+}
+
+// MARK: - Favorite Sports
+
+struct PublicProfileFavoriteSportsCard: View {
+    let data: PublicUserProfileData
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var sports: [FavoriteTeamSport] {
+        data.publicFavoriteSports
+    }
+
+    private var shownTeams: [FavoriteTeam] {
+        Array(data.favoriteTeams.prefix(2))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                PublicProfileEditorialSectionTitle(
+                    "Favorite Sports",
+                    subtitle: "What this fan follows",
+                    accent: FGColor.accentGreen
+                )
+                Spacer(minLength: 0)
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(FGColor.accentYellow.opacity(0.92))
+            }
+
+            if sports.isEmpty && shownTeams.isEmpty {
+                emptyFavoriteSportsState
+            } else {
+                if !sports.isEmpty {
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 104), spacing: 8)],
+                        alignment: .leading,
+                        spacing: 8
+                    ) {
+                        ForEach(sports, id: \.self) { sport in
+                            sportChip(sport)
+                        }
+                    }
+                }
+
+                if !shownTeams.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Favorite Teams")
+                            .font(.system(size: 10, weight: .heavy, design: .rounded))
+                            .foregroundStyle(FGColor.mutedText(colorScheme))
+                            .textCase(.uppercase)
+                            .tracking(0.8)
+
+                        VStack(spacing: 8) {
+                            ForEach(shownTeams) { team in
+                                favoriteTeamRow(team)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .publicProfileEditorialCard(cornerRadius: PublicProfileSheetLayout.gridCardRadius)
+        .onAppear {
+#if DEBUG
+            print("[FavoriteSportsProfileDebug] favoriteSportsCount=\(sports.count)")
+            print("[FavoriteSportsProfileDebug] favoriteTeamsShown=\(shownTeams.count)")
+            print("[FavoriteSportsProfileDebug] cardVisible=true")
+#endif
+        }
+    }
+
+    private func sportChip(_ sport: FavoriteTeamSport) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: sport.catalogSymbol)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(sport.accentColor)
+                .frame(width: 18)
+
+            Text(sport.chipTitle)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 34)
+        .background {
+            Capsule(style: .continuous)
+                .fill(sport.accentColor.opacity(colorScheme == .dark ? 0.17 : 0.10))
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(sport.accentColor.opacity(colorScheme == .dark ? 0.26 : 0.16), lineWidth: 1)
+                }
+        }
+    }
+
+    private func favoriteTeamRow(_ team: FavoriteTeam) -> some View {
+        HStack(spacing: 10) {
+            FavoriteTeamLogoBadge(team: team, diameter: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(team.name)
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+                Text(team.sport.chipTitle)
+                    .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Image(systemName: "star.circle.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(FGColor.accentYellow.opacity(0.92))
+        }
+        .padding(9)
+        .background {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(team.badgeColor.opacity(colorScheme == .dark ? 0.14 : 0.08))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(team.badgeColor.opacity(colorScheme == .dark ? 0.24 : 0.14), lineWidth: 1)
+                }
+        }
+    }
+
+    private var emptyFavoriteSportsState: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "sportscourt.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.72))
+            Text("No favorite sports shared yet.")
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .padding(.vertical, 10)
     }
 }
 

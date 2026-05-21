@@ -516,6 +516,15 @@ struct AddLocationClaimForm: Sendable {
     let petFriendly: Bool
     let familyFriendly: Bool
     let parkingAvailable: Bool
+    let easyParking: Bool
+    let handicapParking: Bool
+    let liveMusic: Bool
+    let poolTables: Bool
+    let rooftop: Bool
+    let djNights: Bool
+    let karaoke: Bool
+    let cocktails: Bool
+    let craftBeer: Bool
     let coverPhotoURL: String
     let menuPhotoURL: String
     let latitude: Double?
@@ -542,6 +551,15 @@ struct AddLocationClaimForm: Sendable {
         petFriendly: Bool,
         familyFriendly: Bool,
         parkingAvailable: Bool,
+        easyParking: Bool = false,
+        handicapParking: Bool = false,
+        liveMusic: Bool = false,
+        poolTables: Bool = false,
+        rooftop: Bool = false,
+        djNights: Bool = false,
+        karaoke: Bool = false,
+        cocktails: Bool = false,
+        craftBeer: Bool = false,
         coverPhotoURL: String,
         menuPhotoURL: String,
         latitude: Double? = nil,
@@ -567,6 +585,15 @@ struct AddLocationClaimForm: Sendable {
         self.petFriendly = petFriendly
         self.familyFriendly = familyFriendly
         self.parkingAvailable = parkingAvailable
+        self.easyParking = easyParking
+        self.handicapParking = handicapParking
+        self.liveMusic = liveMusic
+        self.poolTables = poolTables
+        self.rooftop = rooftop
+        self.djNights = djNights
+        self.karaoke = karaoke
+        self.cocktails = cocktails
+        self.craftBeer = craftBeer
         self.coverPhotoURL = coverPhotoURL
         self.menuPhotoURL = menuPhotoURL
         self.latitude = latitude
@@ -576,15 +603,20 @@ struct AddLocationClaimForm: Sendable {
 
     /// Human-readable feature line stored in ``venue_claims.venue_features`` (schema has no separate columns for parking / family).
     func mergedVenueFeaturesLine() -> String {
-        var bits: [String] = []
-        if servesFood { bits.append(VenueFeatureDefinitions.foodDrinks.label) }
-        if hasWifi { bits.append(VenueFeatureDefinitions.wifi.label) }
-        if hasGarden { bits.append(VenueFeatureDefinitions.patio.label) }
-        if hasProjector { bits.append(VenueFeatureDefinitions.projector.label) }
-        if petFriendly { bits.append(VenueFeatureDefinitions.petFriendly.label) }
-        if familyFriendly { bits.append(VenueFeatureDefinitions.familyFriendly.label) }
-        if parkingAvailable { bits.append(VenueFeatureDefinitions.parkingAvailable.label) }
-        return bits.joined(separator: " · ")
+        venueMergedRawFeaturesLine(
+            existingRawFeatures: "",
+            familyFriendly: familyFriendly,
+            parkingAvailable: parkingAvailable,
+            easyParking: easyParking,
+            handicapParking: handicapParking,
+            liveMusic: liveMusic,
+            poolTables: poolTables,
+            rooftop: rooftop,
+            djNights: djNights,
+            karaoke: karaoke,
+            cocktails: cocktails,
+            craftBeer: craftBeer
+        )
     }
 }
 

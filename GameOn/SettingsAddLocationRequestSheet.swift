@@ -32,6 +32,15 @@ final class AddLocationSheetFormState: ObservableObject {
     @Published var petFriendly = false
     @Published var familyFriendly = false
     @Published var parkingAvailable = false
+    @Published var easyParking = false
+    @Published var handicapParking = false
+    @Published var liveMusic = false
+    @Published var poolTables = false
+    @Published var rooftop = false
+    @Published var djNights = false
+    @Published var karaoke = false
+    @Published var cocktails = false
+    @Published var craftBeer = false
     @Published var coverPhotoURL = ""
     @Published var menuPhotoURL = ""
     @Published var displayedCoverPhotoURL = ""
@@ -66,6 +75,15 @@ final class AddLocationSheetFormState: ObservableObject {
         petFriendly = false
         familyFriendly = false
         parkingAvailable = false
+        easyParking = false
+        handicapParking = false
+        liveMusic = false
+        poolTables = false
+        rooftop = false
+        djNights = false
+        karaoke = false
+        cocktails = false
+        craftBeer = false
         coverPhotoURL = ""
         menuPhotoURL = ""
         displayedCoverPhotoURL = ""
@@ -244,7 +262,16 @@ struct AddBusinessLocationRequestSheet: View {
                             hasProjector: $form.hasProjector,
                             petFriendly: $form.petFriendly,
                             parkingAvailable: $form.parkingAvailable,
+                            easyParking: $form.easyParking,
                             familyFriendly: $form.familyFriendly,
+                            handicapParking: $form.handicapParking,
+                            liveMusic: $form.liveMusic,
+                            poolTables: $form.poolTables,
+                            rooftop: $form.rooftop,
+                            djNights: $form.djNights,
+                            karaoke: $form.karaoke,
+                            cocktails: $form.cocktails,
+                            craftBeer: $form.craftBeer,
                             maxScreenCount: 40
                         )
                     }
@@ -486,12 +513,24 @@ struct AddBusinessLocationRequestSheet: View {
             petFriendly: form.petFriendly,
             familyFriendly: form.familyFriendly,
             parkingAvailable: form.parkingAvailable,
+            easyParking: form.easyParking,
+            handicapParking: form.handicapParking,
+            liveMusic: form.liveMusic,
+            poolTables: form.poolTables,
+            rooftop: form.rooftop,
+            djNights: form.djNights,
+            karaoke: form.karaoke,
+            cocktails: form.cocktails,
+            craftBeer: form.craftBeer,
             coverPhotoURL: form.coverPhotoURL,
             menuPhotoURL: form.menuPhotoURL,
             latitude: form.latitude,
             longitude: form.longitude,
             formattedAddress: form.formattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : form.formattedAddress
         )
+#if DEBUG
+        print("[VenueFeatureDebug] selectedFeatures=\(claim.mergedVenueFeaturesLine())")
+#endif
 
         let err = await viewModel.submitAddLocationClaim(form: claim)
 

@@ -140,7 +140,15 @@ nonisolated struct BarVenue: Identifiable, Equatable {
 
     /// Linked to a verified business account — amenity columns are treated as owner-confirmed true/false.
     var hasBusinessVerifiedFeatures: Bool {
-        businessId != nil
+        if businessId != nil { return true }
+        let activeOrLegacy = (adminStatus ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard activeOrLegacy.isEmpty || activeOrLegacy == "active" else { return false }
+        let candidates = [ownerEmail, venueOwnerEmailRaw, businessOwnerEmailRaw]
+        return candidates.contains { raw in
+            OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(raw ?? ""))
+        }
     }
 
     /// Seeded/imported community map venue (no business owner on file).

@@ -22,7 +22,7 @@ private let discoverVenueRowSelectColumns =
 
 private enum DiscoverVenueFastPinSelect {
     nonisolated static let columns =
-        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,screen_count,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
+        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
         ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 

@@ -3,6 +3,7 @@ import SwiftUI
 /// Sheet to pick favorite teams from the local ``FavoriteTeamCatalog``.
 struct FavoriteTeamsPickerSheet: View {
     @Binding var selectedIDs: Set<String>
+    var maximumSelectionCount: Int = 2
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
@@ -78,7 +79,7 @@ struct FavoriteTeamsPickerSheet: View {
                 Text("Choose your favorites")
                     .font(FGTypography.body.weight(.semibold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list.")
+                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick up to \(maximumSelectionCount).")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
@@ -251,10 +252,11 @@ struct FavoriteTeamsPickerSheet: View {
 
     private func teamRow(_ team: FavoriteTeam) -> some View {
         let isSelected = selectedIDs.contains(team.id)
+        let selectionLimitReached = selectedIDs.count >= maximumSelectionCount && !isSelected
         return Button {
             if isSelected {
                 selectedIDs.remove(team.id)
-            } else {
+            } else if !selectionLimitReached {
                 selectedIDs.insert(team.id)
             }
         } label: {
@@ -275,12 +277,14 @@ struct FavoriteTeamsPickerSheet: View {
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.mutedText(colorScheme))
+                    .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.mutedText(colorScheme).opacity(selectionLimitReached ? 0.45 : 1))
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
+            .opacity(selectionLimitReached ? 0.52 : 1)
         }
         .buttonStyle(.plain)
+        .disabled(selectionLimitReached)
         .accessibilityLabel("\(team.name), \(isSelected ? "selected" : "not selected")")
     }
 

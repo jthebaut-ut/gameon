@@ -32,13 +32,6 @@ struct MapVenuePreviewCard: View {
         return goingCount == 1 ? "1 fan going" : "\(goingCount) fans going"
     }
 
-    private var previewFeatureSummary: String {
-        venueFeaturesForDisplay(bar)
-            .prefix(3)
-            .map(\.label)
-            .joined(separator: " • ")
-    }
-
     private var discoverCardCoverURLString: String? {
         ImageDisplayURL.forList(thumbnail: bar.coverPhotoThumbnailURL, full: bar.coverPhotoURL)
     }
@@ -125,10 +118,6 @@ struct MapVenuePreviewCard: View {
                     Text(goingCount == 1 ? "👥 1 fan going" : "👥 \(goingCount) fans going")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.red)
-                    
-                    Text(previewFeatureSummary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                 }
             }
             
@@ -284,6 +273,7 @@ struct MapVenuePreviewCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .onAppear {
             logDiscoverCardPhotoDebug(urlString: coverURLString)
+            logVenueFeatureCardPropagation()
         }
     }
 
@@ -293,6 +283,17 @@ struct MapVenuePreviewCard: View {
         print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
         print("[VenuePhotoDisplayDebug] usingThumbnail=\(discoverCardUsesThumbnail)")
         print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")
+#endif
+    }
+
+    private func logVenueFeatureCardPropagation() {
+#if DEBUG
+        print("[VenueFeatureDebug] propagatedToVenueCard=true")
+        print("[VenueFeatureDebug] discoverCardFeatureChipsRemoved=true")
+        print("[VenueFeatureDebug] sourceOfTruth=venues.features,venues.screen_count,venues.serves_food,venues.has_wifi,venues.has_garden,venues.has_projector,venues.pet_friendly")
+        if bar.hasBusinessVerifiedFeatures {
+            print("[VenueFeatureDebug] approvedBusinessVenueFeaturesVerified=true")
+        }
 #endif
     }
 

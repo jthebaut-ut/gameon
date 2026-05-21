@@ -124,6 +124,28 @@ struct LiveScreen: View {
         return LiveSportVisualType.allCases.filter { present.contains($0) }
     }
 
+    private var userSelectedTimeZone: TimeZone {
+        TimeZone(identifier: viewModel.selectedTimeZone.identifier) ?? .current
+    }
+
+    private func formattedLocalGameStartTime(_ startTime: Date, includeLocalPrefix: Bool = false) -> String {
+        let timeZone = userSelectedTimeZone
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "h:mm a"
+        let time = formatter.string(from: startTime)
+        let abbreviation = timeZone.abbreviation(for: startTime) ?? viewModel.selectedTimeZone.abbreviation
+        let label = includeLocalPrefix ? "Local \(abbreviation)" : abbreviation
+        let displayed = "\(time) (\(label))"
+#if DEBUG
+        print("[LiveGameTimeDebug] rawStartTime=\(startTime)")
+        print("[LiveGameTimeDebug] userTimeZone=\(timeZone.identifier)")
+        print("[LiveGameTimeDebug] displayedStartTime=\(displayed)")
+#endif
+        return displayed
+    }
+
     private var shouldAutoRefreshLiveMatches: Bool {
         selectedTab == .live && scenePhase == .active
     }
@@ -754,7 +776,7 @@ struct LiveScreen: View {
             return "Starts in \(soonMinutes) min"
         }
         if let match {
-            return "Starts \(match.startTime.formatted(date: .omitted, time: .shortened))"
+            return "Starts \(formattedLocalGameStartTime(match.startTime))"
         }
         return "Starting soon"
     }
@@ -1150,7 +1172,7 @@ struct LiveScreen: View {
             }
 
             HStack(spacing: 10) {
-                Text("\(sportType.displayLabel) · Started \(match.startTime.formatted(date: .omitted, time: .shortened))")
+                Text("\(sportType.displayLabel) · Started \(formattedLocalGameStartTime(match.startTime))")
                     .font(FGTypography.metadata)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .lineLimit(1)
@@ -1589,7 +1611,7 @@ struct LiveScreen: View {
 
     private func pickupStartDisplay(for row: PickupGameRow) -> String {
         guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return "Today" }
-        return start.formatted(date: .omitted, time: .shortened)
+        return formattedLocalGameStartTime(start)
     }
 
     private func liveFriendsSection(items: [LiveFeedItem]) -> some View {

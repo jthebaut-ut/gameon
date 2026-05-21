@@ -48,6 +48,7 @@ struct BusinessVenueDashboardOverviewView: View {
 #if DEBUG
             print("[BusinessDashboardCleanup] removedDarkFanLevelCard=true")
             print("[BusinessDashboardDebug] addVenueQuickActionVisible=true")
+            print("[BusinessDashboardLayoutDebug] quickActionOrderUpdated=true")
 #endif
         }
     }
@@ -59,14 +60,14 @@ struct BusinessVenueDashboardOverviewView: View {
                 .foregroundStyle(FGColor.primaryText(colorScheme))
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     BusinessVenueDashboardActionCard(title: "Venue Details", systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
+                    BusinessVenueDashboardActionCard(title: "Add Venue", systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
                     BusinessVenueDashboardActionCard(title: "Manage Games", systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
                     BusinessVenueDashboardActionCard(title: "Statistics", systemImage: "chart.bar.xaxis", tint: Color.orange, action: onAnalytics)
                     BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
-                    BusinessVenueDashboardActionCard(title: "Add Venue", systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
                 }
-                .padding(.vertical, 2)
+                .padding(.vertical, 3)
             }
         }
     }

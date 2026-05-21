@@ -2092,6 +2092,9 @@ extension MapViewModel {
     func sendPasswordResetEmail(_ email: String, accountKind: PasswordResetAccountKind) async {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
 #if DEBUG
+        if case .fan = accountKind {
+            print("[FanPasswordResetDebug] resetEmail=\(trimmed)")
+        }
         if case .venueOwner = accountKind {
             print("[BusinessPasswordResetDebug] resetEmail=\(trimmed)")
         }
@@ -2100,8 +2103,11 @@ extension MapViewModel {
             await MainActor.run {
                 switch accountKind {
                 case .fan:
-                    userPasswordResetError = "Enter an email address."
+                    userPasswordResetError = "Enter your email first."
                     userPasswordResetMessage = ""
+#if DEBUG
+                    print("[FanPasswordResetDebug] resetError=Enter your email first.")
+#endif
                 case .venueOwner:
                     venuePasswordResetError = "Enter your business email first."
                     venuePasswordResetMessage = ""
@@ -2118,8 +2124,11 @@ extension MapViewModel {
             await MainActor.run {
                 switch accountKind {
                 case .fan:
-                    userPasswordResetMessage = "Check your email for a reset link."
+                    userPasswordResetMessage = "Password reset link sent. Check your email."
                     userPasswordResetError = ""
+#if DEBUG
+                    print("[FanPasswordResetDebug] resetLinkSent=true")
+#endif
                 case .venueOwner:
                     venuePasswordResetMessage = "Password reset link sent. Check your email."
                     venuePasswordResetError = ""
@@ -2134,6 +2143,9 @@ extension MapViewModel {
                 case .fan:
                     userPasswordResetMessage = ""
                     userPasswordResetError = error.localizedDescription
+#if DEBUG
+                    print("[FanPasswordResetDebug] resetError=\(error.localizedDescription)")
+#endif
                 case .venueOwner:
                     venuePasswordResetMessage = ""
                     venuePasswordResetError = error.localizedDescription

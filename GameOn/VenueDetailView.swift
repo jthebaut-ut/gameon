@@ -180,6 +180,8 @@ struct VenueDetailView: View {
         print("[VenueFeaturesDebug] disabledFeatures=\(disabledLabels)")
         print("[VenueFeaturesDebug] unknownFeatures=\(unknownLabels)")
         print("[VenueFeaturesDebug] renderedFeatureLabels=\(renderedItems.map(\.label).joined(separator: " | "))")
+        print("[VenueFeatureDebug] propagatedToVenueDetail=true")
+        print("[VenueFeatureDebug] venueDetailsShowsFullFeatureGrid=true")
 #endif
     }
 

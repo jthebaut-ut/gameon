@@ -173,6 +173,9 @@ struct SettingsScreen: View {
             set: { newValue in
                 requireFaceIDForPrivateChat = newValue
                 print("[PrivateChatSecurityDebug] settingChanged=\(newValue)")
+                if isBusinessAccountProfileContext {
+                    print("[BusinessPrivacySettingsDebug] faceIDToggleChanged=\(newValue)")
+                }
             }
         )
     }
@@ -215,6 +218,10 @@ struct SettingsScreen: View {
 
     private var canShowLiveActivitySharing: Bool {
         viewModel.canUseFanSocialFeatures && !isBusinessAccountForLiveSharing
+    }
+
+    private var canShowPrivateChatFaceIDSetting: Bool {
+        viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn || viewModel.hasAuthenticatedVenueOwnerSession
     }
 
     /// Full Supabase sign-out for business sessions (same pipeline as fan logout: clears tokens, explicit-logout marker, and owner UI state).
@@ -1063,21 +1070,14 @@ struct SettingsScreen: View {
 
     @ViewBuilder
     private func profileSettingsPrivacySection() -> some View {
-        if viewModel.isLoggedIn || canShowLiveActivitySharing {
+        if canShowPrivateChatFaceIDSetting || canShowLiveActivitySharing {
             Section {
                 settingsSectionCard {
-                    if viewModel.isLoggedIn {
-                        settingsToggleRow(
-                            title: "Require Face ID for Private Chat",
-                            subtitle: "When enabled, FanGeo asks for Face ID before opening private messages.",
-                            systemImage: "faceid",
-                            isOn: privateChatFaceIDBinding,
-                            isUpdating: false,
-                            tint: FGColor.accentBlue
-                        )
+                    if canShowPrivateChatFaceIDSetting {
+                        privateChatFaceIDSettingsRow
                     }
 
-                    if viewModel.isLoggedIn && canShowLiveActivitySharing {
+                    if canShowPrivateChatFaceIDSetting && canShowLiveActivitySharing {
                         settingsRowDivider()
                     }
 
@@ -1106,6 +1106,22 @@ struct SettingsScreen: View {
             } header: {
                 settingsSectionHeader("Privacy & Security")
             }
+        }
+    }
+
+    private var privateChatFaceIDSettingsRow: some View {
+        settingsToggleRow(
+            title: "Require Face ID for Private Chat",
+            subtitle: "When enabled, FanGeo asks for Face ID before opening private messages.",
+            systemImage: "faceid",
+            isOn: privateChatFaceIDBinding,
+            isUpdating: false,
+            tint: FGColor.accentBlue
+        )
+        .onAppear {
+            guard isBusinessAccountProfileContext else { return }
+            print("[BusinessPrivacySettingsDebug] faceIDToggleVisible=true")
+            print("[BusinessPrivacySettingsDebug] usingSharedFaceIDSetting=true")
         }
     }
 
@@ -2523,8 +2539,6 @@ private struct SettingsUserAuthSheet: View {
                     password: $password,
                     onCreateAccount: { showRegisterMode = true }
                 )
-
-                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
             }
             .padding(.horizontal, FGSpacing.lg)
             .padding(.bottom, FGSpacing.md)
@@ -3288,10 +3302,6 @@ private struct SettingsUserSection: View {
                 onCreateAccount: { showRegisterMode = true }
             )
 
-            if !showRegisterMode {
-                SettingsFanPasswordResetCard(viewModel: viewModel, loginEmail: $email)
-            }
-
             if viewModel.isLoggedIn {
                 SettingsPrivateChatDeviceAuthCard()
                 SettingsFanAccountSecurityCard(viewModel: viewModel)
@@ -3490,6 +3500,7 @@ private struct SettingsFanLoginCard: View {
     @Binding var email: String
     @Binding var password: String
     var onCreateAccount: () -> Void
+    @State private var showFanPasswordResetSheet = false
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -3539,6 +3550,21 @@ private struct SettingsFanLoginCard: View {
                 SecureField("Password", text: $password)
                     .fanGeoInputFieldStyle()
 
+                Button {
+#if DEBUG
+                    print("[FanPasswordResetDebug] forgotPasswordTapped=true")
+#endif
+                    viewModel.userPasswordResetMessage = ""
+                    viewModel.userPasswordResetError = ""
+                    showFanPasswordResetSheet = true
+                } label: {
+                    Text("Forgot password?")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+
                 FGPrimaryButton(title: "Login") {
                     Task {
                         await viewModel.loginUser(email: email, password: password)
@@ -3564,6 +3590,16 @@ private struct SettingsFanLoginCard: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .sheet(isPresented: $showFanPasswordResetSheet) {
+            SettingsFanPasswordResetSheet(
+                viewModel: viewModel,
+                loginEmail: email,
+                isPresented: $showFanPasswordResetSheet
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
     }
 }
@@ -3638,6 +3674,72 @@ private struct SettingsFanPasswordResetCard: View {
                     tint: FGColor.dangerRed,
                     systemImage: "xmark.circle.fill"
                 )
+            }
+        }
+    }
+}
+
+private struct SettingsFanPasswordResetSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    let loginEmail: String
+    @Binding var isPresented: Bool
+    @State private var resetEmail = ""
+    @State private var isSending = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: FGSpacing.md) {
+                FGSectionHeader(
+                    "Reset password",
+                    subtitle: "We’ll email a secure link to reset your FanGeo fan account password."
+                )
+
+                TextField("Email", text: $resetEmail)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .fanGeoInputFieldStyle()
+
+                FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
+                    Task {
+                        isSending = true
+                        await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .fan)
+                        isSending = false
+                    }
+                }
+
+                if !viewModel.userPasswordResetMessage.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: "Reset link sent",
+                        message: viewModel.userPasswordResetMessage,
+                        tint: FGColor.accentGreen,
+                        systemImage: "checkmark.circle.fill"
+                    )
+                }
+
+                if !viewModel.userPasswordResetError.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: "Reset unavailable",
+                        message: viewModel.userPasswordResetError,
+                        tint: FGColor.dangerRed,
+                        systemImage: "xmark.circle.fill"
+                    )
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(FGSpacing.lg)
+            .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+            .navigationTitle("Reset password")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(viewModel.userPasswordResetMessage.isEmpty ? "Cancel" : "Done") {
+                        isPresented = false
+                    }
+                }
+            }
+            .onAppear {
+                resetEmail = loginEmail.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
     }
@@ -4322,6 +4424,15 @@ private struct SettingsVenueOwnerCard: View {
     @State private var signupPetFriendly = false
     @State private var signupFamilyFriendly = false
     @State private var signupParking = false
+    @State private var signupEasyParking = false
+    @State private var signupHandicapParking = false
+    @State private var signupLiveMusic = false
+    @State private var signupPoolTables = false
+    @State private var signupRooftop = false
+    @State private var signupDJNights = false
+    @State private var signupKaraoke = false
+    @State private var signupCocktails = false
+    @State private var signupCraftBeer = false
     @State private var signupCoverPicker: PhotosPickerItem?
     @State private var signupMenuPicker: PhotosPickerItem?
     @State private var signupCoverData: Data?
@@ -4476,12 +4587,24 @@ private struct SettingsVenueOwnerCard: View {
                                 petFriendly: signupPetFriendly,
                                 familyFriendly: signupFamilyFriendly,
                                 parkingAvailable: signupParking,
+                                easyParking: signupEasyParking,
+                                handicapParking: signupHandicapParking,
+                                liveMusic: signupLiveMusic,
+                                poolTables: signupPoolTables,
+                                rooftop: signupRooftop,
+                                djNights: signupDJNights,
+                                karaoke: signupKaraoke,
+                                cocktails: signupCocktails,
+                                craftBeer: signupCraftBeer,
                                 coverPhotoURL: "",
                                 menuPhotoURL: "",
                                 latitude: signupLatitude,
                                 longitude: signupLongitude,
                                 formattedAddress: signupFormattedAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : signupFormattedAddress
                             )
+#if DEBUG
+                            print("[VenueFeatureDebug] selectedFeatures=\(form.mergedVenueFeaturesLine())")
+#endif
                             let payload = BusinessOwnerSignupPayload(
                                 businessDisplayName: signupBusinessName,
                                 firstLocation: form
@@ -4598,6 +4721,15 @@ private struct SettingsVenueOwnerCard: View {
                 signupPetFriendly = false
                 signupFamilyFriendly = false
                 signupParking = false
+                signupEasyParking = false
+                signupHandicapParking = false
+                signupLiveMusic = false
+                signupPoolTables = false
+                signupRooftop = false
+                signupDJNights = false
+                signupKaraoke = false
+                signupCocktails = false
+                signupCraftBeer = false
                 signupCoverPicker = nil
                 signupMenuPicker = nil
                 signupCoverData = nil
@@ -4694,7 +4826,16 @@ private struct SettingsVenueOwnerCard: View {
             hasProjector: $signupHasProjector,
             petFriendly: $signupPetFriendly,
             parkingAvailable: $signupParking,
+            easyParking: $signupEasyParking,
             familyFriendly: $signupFamilyFriendly,
+            handicapParking: $signupHandicapParking,
+            liveMusic: $signupLiveMusic,
+            poolTables: $signupPoolTables,
+            rooftop: $signupRooftop,
+            djNights: $signupDJNights,
+            karaoke: $signupKaraoke,
+            cocktails: $signupCocktails,
+            craftBeer: $signupCraftBeer,
             maxScreenCount: 40
         )
 
