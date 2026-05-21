@@ -451,7 +451,7 @@ extension MapViewModel {
             }
 
             let localOrdered = await self.discoverRegionBoundAppContentSearchOrderedDetached(query: q)
-            let remoteMatches = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: true)
+            let remoteMatches = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: false)
             var seen = Set(localOrdered.map(\.id))
             var merged: [BarVenue] = localOrdered
             for b in remoteMatches where seen.insert(b.id).inserted {

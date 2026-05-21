@@ -403,10 +403,10 @@ struct FollowingScreen: View {
     }
 
     private var goingVenueTabsGroup: some View {
-        goingTabbedPanel(title: "Venue Games", subtitle: "Watch parties, sports bars, saved venues, and friends watching later.") {
+        goingTabbedPanel(title: "Venue Games", subtitle: "Venue games, sports bars, saved venues, and friends going later.") {
             GameOnSegmentedControl(
                 tabs: [
-                    GameOnSegmentedTab(id: GoingVenueTab.games, title: "Watching", tint: FGColor.accentGreen),
+                    GameOnSegmentedTab(id: GoingVenueTab.games, title: "I’m Going", systemImage: "checkmark.circle.fill", tint: FGColor.accentGreen, accessibilityLabel: "I’m Going venue games"),
                     GameOnSegmentedTab(id: GoingVenueTab.saved, title: "Saved", systemImage: "heart.fill", tint: FGColor.accentGreen)
                 ],
                 selection: $selectedGoingVenueTab
@@ -422,6 +422,12 @@ struct FollowingScreen: View {
             }
             .id(selectedGoingVenueTab)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+        .onAppear {
+#if DEBUG
+            print("[GoingTabDebug] renamedWatchingTabToImGoing=true")
+            print("[GoingTabDebug] imGoingTabVisible=true")
+#endif
         }
     }
 
@@ -522,7 +528,7 @@ struct FollowingScreen: View {
             )
             goingHubMetricPill(
                 value: viewModel.followingTabGoingItems.count,
-                label: "Watching",
+                label: "I’m Going",
                 tint: Color.orange
             )
             goingHubMetricPill(
@@ -729,9 +735,9 @@ struct FollowingScreen: View {
         VStack(alignment: .leading, spacing: 14) {
             if goingVenueGameItems.isEmpty {
                 emptyCard(
-                    icon: "sportscourt.fill",
-                    title: "No watch plans yet.",
-                    subtitle: "Mark a venue game as Going to see it here."
+                    icon: "checkmark.circle.fill",
+                    title: "No games yet",
+                    subtitle: "Venue games you join will appear here."
                 )
             } else {
                 VStack(spacing: 12) {
@@ -981,7 +987,7 @@ struct FollowingScreen: View {
 
     private func goingStructureEmptySections() -> [String] {
         var sections: [String] = []
-        if goingVenueGameItems.isEmpty { sections.append("Games") }
+        if goingVenueGameItems.isEmpty { sections.append("I’m Going") }
         if viewModel.followingTabSavedVenues.isEmpty { sections.append("Saved") }
         if viewModel.myPickupGameJoinRequestCards.isEmpty { sections.append("Playing") }
         if viewModel.myPickupGamesForSettings.isEmpty { sections.append("Hosting") }
@@ -1574,7 +1580,7 @@ struct FollowingScreen: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Clear completed game from Watching")
+                    .accessibilityLabel("Clear completed game from I’m Going")
                 } else {
                     HStack(alignment: .center, spacing: 10) {
                         GoingAvatarStack(profiles: viewModel.goingProfiles(for: item.id), viewerUserID: viewModel.currentUserAuthId)
@@ -1649,7 +1655,7 @@ struct FollowingScreen: View {
 #if DEBUG
             print("[WatchingExpiredVenueGame] clear success event_id=\(item.id.uuidString.lowercased())")
 #endif
-            viewModel.showSocialActionToast("Removed from Watching.")
+            viewModel.showSocialActionToast("Removed from I’m Going.")
         } else {
 #if DEBUG
             print("[WatchingExpiredVenueGame] clear failed event_id=\(item.id.uuidString.lowercased()) error=removeInterestInVenueEvent")

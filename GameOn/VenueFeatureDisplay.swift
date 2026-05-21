@@ -381,8 +381,21 @@ struct VenueFeatureGrid: View {
                             .strokeBorder(unknownTint.opacity(0.35), lineWidth: 1)
                     }
                 }
+                .overlay {
+                    if item.availability == .unavailable {
+                        unavailableFeatureSlashOverlay()
+                    }
+                }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel(for: item))
+                .onAppear {
+#if DEBUG
+                    if item.availability == .unavailable {
+                        print("[VenueFeaturesDebug] unavailableFeatureRendered=\(item.label)")
+                        print("[VenueFeaturesDebug] unavailableOverlayApplied=true")
+                    }
+#endif
+                }
             }
         }
         .onAppear {
@@ -410,5 +423,23 @@ struct VenueFeatureGrid: View {
         case .unknown: state = "unverified"
         }
         return "\(item.label), \(state)"
+    }
+
+    private func unavailableFeatureSlashOverlay() -> some View {
+        let slashTint = Color(red: 1.0, green: 0.35, blue: 0.37).opacity(colorScheme == .dark ? 0.72 : 0.64)
+        return GeometryReader { proxy in
+            Path { path in
+                let insetX = max(14, proxy.size.width * 0.20)
+                let insetY = max(12, proxy.size.height * 0.18)
+                path.move(to: CGPoint(x: insetX, y: insetY))
+                path.addLine(to: CGPoint(x: proxy.size.width - insetX, y: proxy.size.height - insetY))
+            }
+            .stroke(
+                slashTint,
+                style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round)
+            )
+            .shadow(color: slashTint.opacity(0.16), radius: 2, x: 0, y: 1)
+        }
+        .allowsHitTesting(false)
     }
 }

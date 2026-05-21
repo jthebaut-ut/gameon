@@ -223,7 +223,13 @@ extension MapViewModel {
 
             switch kind {
             case .appContentRegionBound:
-                merged = await self.discoverRegionBoundAppContentSearchOrderedDetached(query: q)
+                let localOrdered = await self.discoverRegionBoundAppContentSearchOrderedDetached(query: q)
+                let remoteMatches = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: false)
+                var seen = Set(localOrdered.map(\.id))
+                merged = localOrdered
+                for bar in remoteMatches where seen.insert(bar.id).inserted {
+                    merged.append(bar)
+                }
             case .globalPlace:
                 if q.count >= 2 {
                     merged = await self.fetchDiscoverVenueSearchBars(query: q, useViewportTextSearchBounds: false)
@@ -319,8 +325,7 @@ extension MapViewModel {
         bars.first { $0.id == bar.id } ?? bar
     }
 
-    /// Ensures a venue opened from Supabase text search stays in ``bars`` so map reloads and ``pruneSelectionIfNeededAfterFilterChange()`` do not drop the preview.
-    /// No-game venues from search use ``discoverRemotePreviewHoldVenueId`` instead and are **not** merged (they must not join the default pin dataset).
+    /// Ensures a venue opened from Supabase text search stays in ``bars`` so map reloads, pin rendering, and ``pruneSelectionIfNeededAfterFilterChange()`` keep the preview.
     func mergeDiscoverSearchVenueIntoBarsIfMissing(_ bar: BarVenue) {
         if bars.contains(where: { $0.id == bar.id }) { return }
         bars.append(bar)
@@ -331,19 +336,15 @@ extension MapViewModel {
     /// Dynamic search result: clear query, select canonical venue, center map (``centerMap(on:)`` sets ``selectedBar``).
     func selectVenueFromDiscoverSearchResult(_ bar: BarVenue) {
         let inBars = bars.contains(where: { $0.id == bar.id })
-        if !bar.games.isEmpty {
-            mergeDiscoverSearchVenueIntoBarsIfMissing(bar)
-        }
+        mergeDiscoverSearchVenueIntoBarsIfMissing(bar)
         let canonical = canonicalBarForDiscover(bar)
 
         if bar.games.isEmpty && !inBars {
-            discoverRemotePreviewHoldVenueId = canonical.id
 #if DEBUG
             print("[VenueSearch] selected remote venue id=\(canonical.id.uuidString) name=\(canonical.name)")
 #endif
-        } else {
-            discoverRemotePreviewHoldVenueId = nil
         }
+        discoverRemotePreviewHoldVenueId = nil
 
         clearDiscoverVenueSearchForSelection()
 #if DEBUG

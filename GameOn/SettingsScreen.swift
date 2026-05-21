@@ -5275,12 +5275,31 @@ struct BusinessLocationVenuePicker: View {
         case dashboard
     }
 
+    private enum ManagedVenueSelectorStatus {
+        case approved
+        case pending
+        case rejected
+    }
+
+    private struct ManagedVenueSelectorRow: Identifiable {
+        let id: String
+        let venueID: UUID?
+        let claimID: UUID?
+        let title: String
+        let subtitle: String
+        let statusNote: String?
+        let status: ManagedVenueSelectorStatus
+        let venueRow: VenueProfileRow?
+    }
+
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
     var chrome: Chrome = .settings
     /// When set (Settings), shown as the last menu action to submit a new business location for review.
     var onRequestAddNewLocation: (() -> Void)?
     @State private var showVenueListSheet = false
+    @State private var isRefreshingVenueSelector = false
+    @State private var venueSelectorNotice: String?
 
     init(viewModel: MapViewModel, chrome: Chrome = .settings, onRequestAddNewLocation: (() -> Void)? = nil) {
         self.viewModel = viewModel
@@ -5297,13 +5316,50 @@ struct BusinessLocationVenuePicker: View {
         }
     }
 
+    private var managedVenueSelectorRows: [ManagedVenueSelectorRow] {
+        let approvedRows = viewModel.managedVenuesForOwner().compactMap { row -> ManagedVenueSelectorRow? in
+            guard let id = row.id else { return nil }
+            return ManagedVenueSelectorRow(
+                id: "venue-\(id.uuidString)",
+                venueID: id,
+                claimID: nil,
+                title: venueDisplayName(for: row),
+                subtitle: venueLocationSubtitle(for: row).isEmpty ? "Approved location for listings, games, and analytics." : venueLocationSubtitle(for: row),
+                statusNote: nil,
+                status: .approved,
+                venueRow: row
+            )
+        }
+        let approvedVenueIDs = Set(approvedRows.compactMap(\.venueID))
+        let pendingRows = viewModel.pendingVenueClaimsForSettings.compactMap { claim -> ManagedVenueSelectorRow? in
+            if let venueID = claim.venue_id, approvedVenueIDs.contains(venueID) { return nil }
+            return managedVenueSelectorClaimRow(claim, status: .pending)
+        }
+        let rejectedRows = viewModel.rejectedVenueClaimsForSettings.compactMap { claim -> ManagedVenueSelectorRow? in
+            if let venueID = claim.venue_id, approvedVenueIDs.contains(venueID) { return nil }
+            return managedVenueSelectorClaimRow(claim, status: .rejected)
+        }
+        return approvedRows + pendingRows + rejectedRows
+    }
+
     private var selectedVenueRow: VenueProfileRow? {
         let selectedId = viewModel.ownerVenueDatabaseId ?? venuePairs.first?.0
         guard let selectedId else { return viewModel.managedVenuesForOwner().first }
         return viewModel.managedVenuesForOwner().first(where: { $0.id == selectedId }) ?? viewModel.managedVenuesForOwner().first
     }
 
+    private var selectedManagedVenueSelectorRow: ManagedVenueSelectorRow? {
+        if let selectedId = viewModel.ownerVenueDatabaseId,
+           let selected = managedVenueSelectorRows.first(where: { $0.venueID == selectedId }) {
+            return selected
+        }
+        return managedVenueSelectorRows.first
+    }
+
     private var selectedVenueLabel: String {
+        if let selected = selectedManagedVenueSelectorRow {
+            return selected.title
+        }
         let id = viewModel.ownerVenueDatabaseId ?? venuePairs.first?.0
         if let id, let name = venuePairs.first(where: { $0.0 == id })?.1 {
             return name
@@ -5312,6 +5368,9 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private var selectedVenueSubtitle: String {
+        if let selected = selectedManagedVenueSelectorRow {
+            return selected.statusNote ?? selected.subtitle
+        }
         if let row = selectedVenueRow {
             let locationLine = venueLocationSubtitle(for: row)
             if !locationLine.isEmpty {
@@ -5340,6 +5399,34 @@ struct BusinessLocationVenuePicker: View {
         return row.address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
+    private func venueClaimLocationSubtitle(for claim: VenueClaimPendingSettingsRow) -> String {
+        let city = claim.venue_city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let region = claim.venue_state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let country = claim.venue_country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let locationLine = [city, region, country].filter { !$0.isEmpty }.joined(separator: ", ")
+        if !locationLine.isEmpty { return locationLine }
+        return claim.venue_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private func managedVenueSelectorClaimRow(
+        _ claim: VenueClaimPendingSettingsRow,
+        status: ManagedVenueSelectorStatus
+    ) -> ManagedVenueSelectorRow {
+        let name = claim.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let location = venueClaimLocationSubtitle(for: claim)
+        let title = name.isEmpty ? "Submitted location" : name
+        return ManagedVenueSelectorRow(
+            id: "claim-\(claim.id.uuidString)-\(statusTitle(for: status))",
+            venueID: claim.venue_id,
+            claimID: claim.id,
+            title: title,
+            subtitle: location.isEmpty ? "Business location" : location,
+            statusNote: status == .pending ? "Waiting for admin approval" : "Review rejected",
+            status: status,
+            venueRow: nil
+        )
+    }
+
     private func venueStatusTitle(for row: VenueProfileRow?) -> String? {
         let raw = row?.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if raw.isEmpty || raw == "active" { return "Approved" }
@@ -5353,6 +5440,28 @@ struct BusinessLocationVenuePicker: View {
         if raw.contains("pending") || raw.contains("review") { return FGColor.accentYellow }
         if raw.contains("reject") || raw.contains("archive") { return FGColor.dangerRed }
         return FGColor.accentBlue
+    }
+
+    private func statusTitle(for status: ManagedVenueSelectorStatus) -> String {
+        switch status {
+        case .approved:
+            return "Approved"
+        case .pending:
+            return "Pending"
+        case .rejected:
+            return "Rejected"
+        }
+    }
+
+    private func statusTint(for status: ManagedVenueSelectorStatus) -> Color {
+        switch status {
+        case .approved:
+            return FGColor.accentGreen
+        case .pending:
+            return .orange
+        case .rejected:
+            return FGColor.dangerRed
+        }
     }
 
     private var settingsPickerLabel: String {
@@ -5524,6 +5633,17 @@ struct BusinessLocationVenuePicker: View {
             .clipShape(Capsule(style: .continuous))
     }
 
+    private func managedVenueStatusBadge(status: ManagedVenueSelectorStatus) -> some View {
+        let tint = statusTint(for: status)
+        return Text(statusTitle(for: status))
+            .font(FGTypography.metadata.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
+            .clipShape(Capsule(style: .continuous))
+    }
+
     private var dashboardChromeSelectorButton: some View {
         Button {
 #if DEBUG
@@ -5555,7 +5675,7 @@ struct BusinessLocationVenuePicker: View {
                             .lineLimit(1)
                             .truncationMode(.tail)
 
-                        managedVenueStatusBadge(row: selectedVenueRow)
+                        managedVenueStatusBadge(status: selectedManagedVenueSelectorRow?.status ?? .approved)
                     }
 
                     Text(selectedVenueSubtitle)
@@ -5593,7 +5713,11 @@ struct BusinessLocationVenuePicker: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    ForEach(viewModel.managedVenuesForOwner().compactMap { $0.id == nil ? nil : $0 }, id: \.id) { row in
+                    if let venueSelectorNotice {
+                        managedVenueSelectorStatusBanner(venueSelectorNotice)
+                    }
+
+                    ForEach(managedVenueSelectorRows) { row in
                         managedVenueSheetRow(row)
                     }
 
@@ -5610,6 +5734,17 @@ struct BusinessLocationVenuePicker: View {
             .navigationTitle("Managed venues")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        Task {
+                            await refreshManagedVenueSelector()
+                        }
+                    } label: {
+                        Label(isRefreshingVenueSelector ? "Refreshing" : "Refresh", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isRefreshingVenueSelector)
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
                         showVenueListSheet = false
@@ -5617,13 +5752,46 @@ struct BusinessLocationVenuePicker: View {
                 }
             }
             .fanGeoScreenBackground()
+            .onAppear {
+#if DEBUG
+                print("[BusinessVenueSelectorDebug] pendingVenuesVisible count=\(viewModel.pendingVenueClaimsForSettings.count)")
+#endif
+            }
         }
     }
 
-    private func managedVenueSheetRow(_ row: VenueProfileRow) -> some View {
-        let isSelected = row.id == viewModel.ownerVenueDatabaseId
+    private func managedVenueSelectorStatusBanner(_ message: String) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: isRefreshingVenueSelector ? "arrow.clockwise" : "info.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(isRefreshingVenueSelector ? FGColor.accentBlue : .orange)
+            Text(message)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, FGSpacing.md)
+        .padding(.vertical, 10)
+        .background((isRefreshingVenueSelector ? FGColor.accentBlue : Color.orange).opacity(colorScheme == .dark ? 0.14 : 0.09))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func managedVenueSheetRow(_ row: ManagedVenueSelectorRow) -> some View {
+        let isSelected = row.status == .approved && row.venueID == viewModel.ownerVenueDatabaseId
+        let tint = statusTint(for: row.status)
         return Button {
-            guard let id = row.id else { return }
+            guard row.status == .approved, let id = row.venueID else {
+                if row.status == .pending {
+                    venueSelectorNotice = "This venue is waiting for admin approval."
+#if DEBUG
+                    print("[BusinessVenueSelectorDebug] pendingVenueTapped id=\(row.claimID?.uuidString ?? row.venueID?.uuidString ?? "nil")")
+#endif
+                } else {
+                    venueSelectorNotice = "This venue request was rejected."
+                }
+                return
+            }
 #if DEBUG
             print("[BusinessVenueSelectorDebug] venueSelected id=\(id.uuidString)")
 #endif
@@ -5635,26 +5803,33 @@ struct BusinessLocationVenuePicker: View {
             HStack(spacing: FGSpacing.md) {
                 ZStack {
                     RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                        .fill(venueStatusTint(for: row).opacity(colorScheme == .dark ? 0.18 : 0.12))
+                        .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.12))
                     Image(systemName: "building.2")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(venueStatusTint(for: row))
+                        .foregroundStyle(tint)
                 }
                 .frame(width: 42, height: 42)
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(venueDisplayName(for: row))
+                        Text(row.title)
                             .font(FGTypography.cardTitle)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .lineLimit(1)
-                        managedVenueStatusBadge(row: row)
+                        managedVenueStatusBadge(status: row.status)
                     }
 
-                    Text(venueLocationSubtitle(for: row).isEmpty ? "Business location" : venueLocationSubtitle(for: row))
+                    Text(row.subtitle)
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(1)
+
+                    if let note = row.statusNote {
+                        Text(note)
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(tint)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -5669,6 +5844,32 @@ struct BusinessLocationVenuePicker: View {
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+
+    private func refreshManagedVenueSelector() async {
+        let shouldRefresh = await MainActor.run { () -> Bool in
+            guard !isRefreshingVenueSelector else { return false }
+            isRefreshingVenueSelector = true
+            venueSelectorNotice = "Refreshing managed venues..."
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] refreshTapped=true")
+#endif
+            return true
+        }
+        guard shouldRefresh else { return }
+
+        await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        await viewModel.refreshPendingVenueClaimsForSettings()
+        await viewModel.refreshVenueClaimStatusLineFromDatabase()
+
+        await MainActor.run {
+            isRefreshingVenueSelector = false
+            venueSelectorNotice = "Managed venues refreshed."
+#if DEBUG
+            print("[BusinessVenueSelectorDebug] refreshCompleted=true")
+            print("[BusinessVenueSelectorDebug] pendingVenuesVisible count=\(viewModel.pendingVenueClaimsForSettings.count)")
+#endif
+        }
     }
 
     private var addNewVenueSheetButton: some View {
@@ -5721,7 +5922,7 @@ struct BusinessLocationVenuePicker: View {
 
     var body: some View {
         Group {
-            if venuePairs.isEmpty {
+            if venuePairs.isEmpty && managedVenueSelectorRows.isEmpty {
                 switch chrome {
                 case .settings:
                     settingsChromePickerStack()

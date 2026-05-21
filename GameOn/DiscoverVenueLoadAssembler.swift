@@ -128,6 +128,9 @@ enum DiscoverVenueLoadAssembler {
             guard let latitude = row.latitude, let longitude = row.longitude else {
 #if DEBUG
                 print("[DiscoverVisibilityDebug] venue=\(name) skipped map pin (missing latitude/longitude in DB)")
+                if let id = row.id {
+                    print("[ApprovedVenueVisibilityDebug] missingCoordinates id=\(id.uuidString)")
+                }
 #endif
                 return nil
             }

@@ -815,15 +815,13 @@ struct VenueEventCommentsView: View {
                     .fixedSize(horizontal: true, vertical: false)
                 }
 
-                HStack(alignment: .top, spacing: 10) {
-                    Text(comment.comment ?? "")
-                        .font(.subheadline)
-                        .foregroundStyle(primaryLabelColor)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                Text(comment.comment ?? "")
+                    .font(.subheadline)
+                    .foregroundStyle(primaryLabelColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    commentLikeControl(for: comment)
-                }
+                commentReactionControls(for: comment)
 
             }
         }
@@ -836,54 +834,89 @@ struct VenueEventCommentsView: View {
         )
     }
 
-    private func commentLikeHeartPresentation(isLiked: Bool, likeCount: Int) -> (symbol: String, color: Color) {
-        if isLiked {
-            return ("heart.fill", Color.red.opacity(0.92))
+    @ViewBuilder
+    private func commentReactionControls(for comment: VenueEventCommentRow) -> some View {
+        if let commentID = comment.serverCommentID {
+            let canToggleReaction = viewModel.isAuthenticatedForSocialFeatures && viewModel.canUseFanSocialFeatures
+
+            HStack(spacing: 6) {
+                commentReactionButton(
+                    commentID: commentID,
+                    type: .up,
+                    count: comment.upReactionCount,
+                    selected: comment.viewerReaction == .up,
+                    canToggle: canToggleReaction
+                )
+
+                commentReactionButton(
+                    commentID: commentID,
+                    type: .down,
+                    count: comment.downReactionCount,
+                    selected: comment.viewerReaction == .down,
+                    canToggle: canToggleReaction
+                )
+            }
+            .padding(.top, 2)
         }
-        if likeCount >= 1 {
-            return ("heart", Color.red.opacity(0.92))
-        }
-        let neutral = fanUpdatesIsDark ? Color.white.opacity(0.55) : Color.primary.opacity(0.38)
-        return ("heart", neutral)
     }
 
-    @ViewBuilder
-    private func commentLikeControl(for comment: VenueEventCommentRow) -> some View {
-        if let commentID = comment.serverCommentID {
-            let canToggleLike = viewModel.isAuthenticatedForSocialFeatures && viewModel.canUseFanSocialFeatures
-            let isLiked = comment.isLikedByCurrentUser
-            let likeCount = comment.likeCount
-            let heart = commentLikeHeartPresentation(isLiked: isLiked, likeCount: likeCount)
-
-            Button {
-                guard canToggleLike else { return }
-                FGInteractionHaptics.selection()
-                Task { await viewModel.toggleCommentLike(commentId: commentID) }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: heart.symbol)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(heart.color)
-
-                    if likeCount > 0 {
-                        Text("\(likeCount)")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(Color.red.opacity(0.92))
-                            .contentTransition(.numericText())
-                    }
-                }
-                .frame(minWidth: 44, minHeight: 44, alignment: .topTrailing)
-                .contentShape(Rectangle())
+    private func commentReactionButton(
+        commentID: UUID,
+        type: FanChatCommentReactionType,
+        count: Int,
+        selected: Bool,
+        canToggle: Bool
+    ) -> some View {
+        let symbol = type == .up ? "hand.thumbsup.fill" : "hand.thumbsdown.fill"
+        let label = type == .up ? "thumbs up" : "thumbs down"
+        let selectedTint: Color = {
+            switch type {
+            case .up:
+                return FGColor.accentGreen
+            case .down:
+                return Color(red: 0.95, green: 0.38, blue: 0.26)
             }
-            .buttonStyle(.plain)
-            .disabled(!canToggleLike)
-            .opacity(canToggleLike || likeCount > 0 ? 1 : 0.72)
-            .animation(.easeOut(duration: 0.16), value: isLiked)
-            .animation(.easeOut(duration: 0.16), value: likeCount)
-            .accessibilityLabel(isLiked ? "Unlike fan update" : "Like fan update")
-            .accessibilityValue(likeCount == 1 ? "1 like" : "\(likeCount) likes")
-            .accessibilityHint(canToggleLike ? "Toggles your like on this update" : "Sign in as a fan to like updates")
+        }()
+        let neutralTint = fanUpdatesIsDark ? Color.white.opacity(0.54) : Color.primary.opacity(0.44)
+        let tint = selected ? selectedTint : neutralTint
+
+        return Button {
+            guard canToggle else { return }
+            FGInteractionHaptics.selection()
+            Task { await viewModel.toggleCommentReaction(commentId: commentID, type: type) }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(tint)
+
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(tint)
+                        .contentTransition(.numericText())
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(selected ? selectedTint.opacity(fanUpdatesIsDark ? 0.18 : 0.12) : Color.clear)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(selected ? selectedTint.opacity(0.38) : cardBorderColor.opacity(0.8), lineWidth: 1)
+            )
+            .contentShape(Capsule(style: .continuous))
         }
+        .buttonStyle(.plain)
+        .disabled(!canToggle)
+        .opacity(canToggle || count > 0 ? 1 : 0.72)
+        .animation(.easeOut(duration: 0.16), value: selected)
+        .animation(.easeOut(duration: 0.16), value: count)
+        .accessibilityLabel(selected ? "Remove \(label) reaction" : "React with \(label)")
+        .accessibilityValue(count == 1 ? "1 reaction" : "\(count) reactions")
+        .accessibilityHint(canToggle ? "Toggles your \(label) reaction on this update" : "Sign in as a fan to react to updates")
     }
 
     @ViewBuilder

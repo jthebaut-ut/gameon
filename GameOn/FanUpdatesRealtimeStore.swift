@@ -11,7 +11,9 @@ final class FanUpdatesRealtimeStore: ObservableObject {
     @Published var venueEventCommentPreviewCounts: [UUID: Int] = [:]
     @Published var venueEventCommentPreviews: [UUID: [VenueEventCommentRow]] = [:]
     @Published var venueEventCommentLikeCountsByID: [UUID: Int] = [:]
+    @Published var venueEventCommentDownReactionCountsByID: [UUID: Int] = [:]
     @Published var venueEventCommentIDsLikedByCurrentUser: Set<UUID> = []
+    @Published var venueEventCommentViewerReactionsByID: [UUID: FanChatCommentReactionType] = [:]
 
     var venueEventCommentsRealtimeTasks: [UUID: Task<Void, Never>] = [:]
     var venueEventCommentsRealtimeChannels: [UUID: RealtimeChannelV2] = [:]

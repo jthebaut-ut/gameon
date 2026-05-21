@@ -281,9 +281,17 @@ final class MapViewModel: ObservableObject {
         get { fanUpdatesStore.venueEventCommentLikeCountsByID }
         set { fanUpdatesStore.venueEventCommentLikeCountsByID = newValue }
     }
+    var venueEventCommentDownReactionCountsByID: [UUID: Int] {
+        get { fanUpdatesStore.venueEventCommentDownReactionCountsByID }
+        set { fanUpdatesStore.venueEventCommentDownReactionCountsByID = newValue }
+    }
     var venueEventCommentIDsLikedByCurrentUser: Set<UUID> {
         get { fanUpdatesStore.venueEventCommentIDsLikedByCurrentUser }
         set { fanUpdatesStore.venueEventCommentIDsLikedByCurrentUser = newValue }
+    }
+    var venueEventCommentViewerReactionsByID: [UUID: FanChatCommentReactionType] {
+        get { fanUpdatesStore.venueEventCommentViewerReactionsByID }
+        set { fanUpdatesStore.venueEventCommentViewerReactionsByID = newValue }
     }
     var venueEventCommentLikeWriteInFlightIDs: Set<UUID> {
         get { fanUpdatesStore.venueEventCommentLikeWriteInFlightIDs }

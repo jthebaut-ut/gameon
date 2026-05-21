@@ -1237,6 +1237,10 @@ extension MapViewModel {
             }
 #if DEBUG
             print("[AddLocation] pending claims count=\(filteredPending.count) rejected=\(filteredRejected.count)")
+            for row in filteredPending {
+                let id = row.venue_id?.uuidString ?? row.id.uuidString
+                print("[ApprovedVenueVisibilityDebug] hiddenPendingVenue id=\(id)")
+            }
 #endif
         } catch {
             print("ERROR LOADING PENDING VENUE CLAIMS:", error)
@@ -1911,6 +1915,52 @@ extension MapViewModel {
 #endif
     }
 
+    private func approvedManagedVenueIsActive(_ row: VenueProfileRow) -> Bool {
+        let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        return status.isEmpty || status == "active"
+    }
+
+    private func approvedManagedVenueHasValidCoordinates(_ row: VenueProfileRow) -> Bool {
+        guard let latitude = row.latitude, let longitude = row.longitude else { return false }
+        return CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
+    }
+
+    private func backfillApprovedManagedVenueCoordinatesIfNeeded(_ rows: [VenueProfileRow]) async -> Set<UUID> {
+        var patched: Set<UUID> = []
+        for row in rows where approvedManagedVenueIsActive(row) {
+            guard let venueId = row.id else { continue }
+            guard !approvedManagedVenueHasValidCoordinates(row) else { continue }
+#if DEBUG
+            print("[ApprovedVenueVisibilityDebug] missingCoordinates id=\(venueId.uuidString)")
+#endif
+            let query = BusinessVenueAddressFormatter.geocodeQuery(
+                line1: row.address ?? "",
+                line2: row.address_line2 ?? "",
+                locality: row.city ?? "",
+                region: row.state ?? row.region ?? "",
+                postalCode: row.zip_code ?? row.postal_code ?? "",
+                countryCode: row.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+            )
+            guard !query.isEmpty, let coord = await geocodeAddress(query) else { continue }
+            do {
+                try await supabase
+                    .from("venues")
+                    .update(VenueCoordinatesPatch(latitude: coord.latitude, longitude: coord.longitude))
+                    .eq("id", value: venueId.uuidString.lowercased())
+                    .execute()
+                patched.insert(venueId)
+#if DEBUG
+                print("[VenueCoordBackfill] approved venue id=\(venueId.uuidString.lowercased()) geocoded lat=\(coord.latitude) lon=\(coord.longitude)")
+#endif
+            } catch {
+#if DEBUG
+                print("[VenueCoordBackfill] approved venue update failed id=\(venueId.uuidString):", error)
+#endif
+            }
+        }
+        return patched
+    }
+
     /// Loads `businesses` for ``venueOwnerEmail``, then `venues` with `business_id` in those ids; legacy email-only venues when the business-linked set is empty.
     func refreshOwnedBusinessesAndVenuesAfterOwnerLogin() async {
         let emailTrimmed = await MainActor.run { () -> String in
@@ -1937,6 +1987,7 @@ extension MapViewModel {
         }
 
         do {
+            let previousApprovedVenueIds = Set(managedVenuesForOwner().compactMap(\.id))
             let authUid = await MainActor.run { currentUserAuthId }
 
             var businessesFromEmail: [BusinessRow] = []
@@ -2064,6 +2115,9 @@ extension MapViewModel {
             let mergedVenues = Self.dedupeVenueProfileRowsPreservingOrder(
                 venueRowsByBusiness + emailVenueRows + venueRowsByOwnerUser + claimLinkedVenues
             )
+            let approvedManagedVenueIds = Set(mergedVenues.compactMap(\.id))
+            let newlyApprovedManagedVenueIds = approvedManagedVenueIds.subtracting(previousApprovedVenueIds)
+            let coordinateBackfilledVenueIds = await backfillApprovedManagedVenueCoordinatesIfNeeded(mergedVenues)
 
             await MainActor.run {
                 ownedBusinesses = resolvedBusinesses
@@ -2091,6 +2145,9 @@ extension MapViewModel {
                 print("[ManagedVenuesDebug] rowsReturned=\(mergedVenues.count)")
                 print("[ManagedVenuesDebug] venueIds=\(managedIds.isEmpty ? "(none)" : managedIds)")
                 print("[ManagedVenuesDebug] selectedVenueId=\(sel)")
+                for id in approvedManagedVenueIds {
+                    print("[ApprovedVenueVisibilityDebug] managedVenueApproved id=\(id.uuidString)")
+                }
 #endif
                 applySelectedVenueAfterBusinessLoad()
             }
@@ -2128,6 +2185,10 @@ extension MapViewModel {
                 print("[BusinessRefresh] locationStatus=\(businessSettingsLocationStatusSubtitle())")
             }
 #endif
+            if !approvedManagedVenueIds.isEmpty,
+               (!newlyApprovedManagedVenueIds.isEmpty || !coordinateBackfilledVenueIds.isEmpty || hasAuthenticatedVenueOwnerSession) {
+                await refreshDiscoverPublicVisibilityAfterApprovedVenueStatusChange()
+            }
         } catch {
 #if DEBUG
             print("[BusinessPhaseB1] load failed:", error)

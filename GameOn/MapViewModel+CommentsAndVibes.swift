@@ -184,16 +184,18 @@ extension MapViewModel {
             created_at: row.created_at,
             is_moderation_hidden: row.is_moderation_hidden,
             delivery_state: deliveryState,
-            likeCount: row.likeCount,
-            isLikedByCurrentUser: row.isLikedByCurrentUser
+            upReactionCount: row.upReactionCount,
+            downReactionCount: row.downReactionCount,
+            viewerReaction: row.viewerReaction
         )
     }
 
-    private func venueEventCommentRowWithCurrentLikeMetadata(_ row: VenueEventCommentRow) -> VenueEventCommentRow {
+    private func venueEventCommentRowWithCurrentReactionMetadata(_ row: VenueEventCommentRow) -> VenueEventCommentRow {
         guard let commentID = row.serverCommentID else { return row }
-        return row.withLikeMetadata(
-            likeCount: venueEventCommentLikeCountsByID[commentID] ?? row.likeCount,
-            isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+        return row.withReactionMetadata(
+            upCount: venueEventCommentLikeCountsByID[commentID] ?? row.upReactionCount,
+            downCount: venueEventCommentDownReactionCountsByID[commentID] ?? row.downReactionCount,
+            viewerReaction: venueEventCommentViewerReactionsByID[commentID]
         )
     }
 
@@ -275,7 +277,7 @@ extension MapViewModel {
         preferredLocalID: UUID? = nil,
         source: String
     ) {
-        let row = venueEventCommentRowWithCurrentLikeMetadata(row)
+        let row = venueEventCommentRowWithCurrentReactionMetadata(row)
         guard !row.isHiddenFromThread else { return }
         var list = venueEventComments[venueEventID] ?? []
         if let serverID = row.serverCommentID,
@@ -851,7 +853,7 @@ extension MapViewModel {
             logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
             return nil
         }
-        await loadCommentLikes(for: venueEventID)
+        await loadCommentReactions(for: venueEventID)
         if Task.isCancelled {
             logFanUpdatesRefreshCancelledSilentlyIfNeeded(debugTag: debugTag, venueEventID: venueEventID)
             return nil
@@ -888,8 +890,8 @@ extension MapViewModel {
             venueEventID: venueEventID,
             mergeSource: "auto_refresh"
         )
-        // Refresh like counts for all visible sheet comments every tick (not only when new rows merge).
-        await loadCommentLikes(for: venueEventID)
+        // Refresh reaction counts for all visible sheet comments every tick (not only when new rows merge).
+        await loadCommentReactions(for: venueEventID)
         #if DEBUG
         print("[FanChatAutoRefreshDebug] merged newRows=\(stats?.newRowsMerged ?? 0)")
         #endif
@@ -1287,26 +1289,26 @@ extension MapViewModel {
         }
     }
 
-    /// Batch-loads like counts and current-user liked state for visible fan update comments.
-    func loadCommentLikes(for venueEventID: UUID) async {
+    /// Batch-loads thumbs-up/down counts and current-user reaction state for visible fan update comments.
+    func loadCommentReactions(for venueEventID: UUID) async {
         let ids = await MainActor.run {
             venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? []
         }
         let uniqueIDs = Array(Set(ids)).sorted { $0.uuidString < $1.uuidString }
 
-        print("[FanChatLikesDebug] refreshStart eventId=\(venueEventID.uuidString.lowercased())")
-        print("[FanChatLikesDebug] commentCount=\(uniqueIDs.count)")
+        print("[FanChatReactionDebug] reactionSummaryLoadStart eventId=\(venueEventID.uuidString.lowercased())")
+        print("[FanChatReactionDebug] commentCount=\(uniqueIDs.count)")
 
         guard !uniqueIDs.isEmpty else {
             await MainActor.run {
-                applyVenueEventCommentLikeMetadata(
+                applyVenueEventCommentReactionMetadata(
                     venueEventID: venueEventID,
-                    counts: [:],
-                    likedIDs: []
+                    upCounts: [:],
+                    downCounts: [:],
+                    viewerReactions: [:]
                 )
             }
-            print("[FanChatLikesDebug] likesLoaded count=0")
-            print("[FanChatLikesDebug] likedByViewer count=0")
+            print("[FanChatReactionDebug] reactionSummaryLoaded count=0")
             return
         }
 
@@ -1314,24 +1316,90 @@ extension MapViewModel {
         do {
             userID = try await supabase.auth.session.user.id
         } catch {
-            print("[FanChatLikesDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
+            print("[FanChatReactionDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
             await MainActor.run {
-                applyVenueEventCommentLikeMetadata(
+                applyVenueEventCommentReactionMetadata(
                     venueEventID: venueEventID,
-                    counts: [:],
-                    likedIDs: []
+                    upCounts: [:],
+                    downCounts: [:],
+                    viewerReactions: [:]
                 )
             }
-            print("[FanChatLikesDebug] likesLoaded count=0")
-            print("[FanChatLikesDebug] likedByViewer count=0")
+            print("[FanChatReactionDebug] reactionSummaryLoaded count=0")
             return
         }
 
-        var counts: [UUID: Int] = [:]
-        var likedIDs: Set<UUID> = []
+        var upCounts: [UUID: Int] = [:]
+        var downCounts: [UUID: Int] = [:]
+        var viewerReactions: [UUID: FanChatCommentReactionType] = [:]
 
         do {
             for chunk in FanCommentLikesBatchLoad.chunked(uniqueIDs, size: FanCommentLikesBatchLoad.inQueryChunk) {
+                let rows: [VenueEventCommentReactionRow] = try await supabase
+                    .from("venue_event_comment_reactions")
+                    .select("comment_id,user_id,reaction_type")
+                    .in("comment_id", values: chunk)
+                    .execute()
+                    .value
+
+                for row in rows {
+                    guard let commentID = row.comment_id,
+                          let reaction = fanChatCommentReactionType(from: row.reaction_type) else {
+                        continue
+                    }
+                    switch reaction {
+                    case .up:
+                        upCounts[commentID, default: 0] += 1
+                    case .down:
+                        downCounts[commentID, default: 0] += 1
+                    }
+                    if row.user_id == userID {
+                        viewerReactions[commentID] = reaction
+                    }
+                }
+            }
+
+            let totalReactions = upCounts.values.reduce(0, +) + downCounts.values.reduce(0, +)
+            await MainActor.run {
+                applyVenueEventCommentReactionMetadata(
+                    venueEventID: venueEventID,
+                    upCounts: upCounts,
+                    downCounts: downCounts,
+                    viewerReactions: viewerReactions
+                )
+            }
+
+            print("[FanChatReactionDebug] migrationNeeded=false")
+            print("[FanChatReactionDebug] legacyLikesMigrated=false")
+            print("[FanChatReactionDebug] reactionSummaryLoaded count=\(totalReactions)")
+        } catch {
+            print("[FanChatReactionDebug] migrationNeeded=true")
+            print("[FanChatReactionDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
+            await loadLegacyCommentLikesAsUpReactions(
+                venueEventID: venueEventID,
+                commentIDs: uniqueIDs,
+                userID: userID,
+                originalError: error
+            )
+        }
+    }
+
+    private func fanChatCommentReactionType(from raw: String?) -> FanChatCommentReactionType? {
+        guard let raw else { return nil }
+        return FanChatCommentReactionType(rawValue: raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+    }
+
+    private func loadLegacyCommentLikesAsUpReactions(
+        venueEventID: UUID,
+        commentIDs: [UUID],
+        userID: UUID,
+        originalError: Error
+    ) async {
+        var upCounts: [UUID: Int] = [:]
+        var viewerReactions: [UUID: FanChatCommentReactionType] = [:]
+
+        do {
+            for chunk in FanCommentLikesBatchLoad.chunked(commentIDs, size: FanCommentLikesBatchLoad.inQueryChunk) {
                 let rows: [VenueEventCommentLikeRow] = try await supabase
                     .from("venue_event_comment_likes")
                     .select("comment_id,user_id")
@@ -1341,48 +1409,56 @@ extension MapViewModel {
 
                 for row in rows {
                     guard let commentID = row.comment_id else { continue }
-                    counts[commentID, default: 0] += 1
+                    upCounts[commentID, default: 0] += 1
                     if row.user_id == userID {
-                        likedIDs.insert(commentID)
+                        viewerReactions[commentID] = .up
                     }
                 }
             }
 
-            let totalLikes = counts.values.reduce(0, +)
+            let totalLegacyLikes = upCounts.values.reduce(0, +)
             await MainActor.run {
-                applyVenueEventCommentLikeMetadata(
+                applyVenueEventCommentReactionMetadata(
                     venueEventID: venueEventID,
-                    counts: counts,
-                    likedIDs: likedIDs
+                    upCounts: upCounts,
+                    downCounts: [:],
+                    viewerReactions: viewerReactions
                 )
             }
 
-            print("[FanChatLikesDebug] likesLoaded count=\(totalLikes)")
-            print("[FanChatLikesDebug] likedByViewer count=\(likedIDs.count)")
+            print("[FanChatReactionDebug] legacyLikesMigrated=false")
+            print("[FanChatReactionDebug] reactionSummaryLoaded count=\(totalLegacyLikes)")
         } catch {
-            print("[FanChatLikesDebug] refreshError eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
+            print("[FanChatReactionDebug] legacyFallbackFailed eventId=\(venueEventID.uuidString.lowercased()) error=\(error.localizedDescription)")
             logVenueEventSocialLoadError(
-                "ERROR LOADING FAN COMMENT LIKES:",
-                loadCancelledTag: "fan_comment_likes",
-                error: error
+                "ERROR LOADING FAN COMMENT REACTIONS:",
+                loadCancelledTag: "fan_comment_reactions",
+                error: originalError
             )
         }
     }
 
     @MainActor
-    private func applyVenueEventCommentLikeMetadata(
+    private func applyVenueEventCommentReactionMetadata(
         venueEventID: UUID,
-        counts: [UUID: Int],
-        likedIDs: Set<UUID>
+        upCounts: [UUID: Int],
+        downCounts: [UUID: Int],
+        viewerReactions: [UUID: FanChatCommentReactionType]
     ) {
         let visibleIDs = Set(venueEventComments[venueEventID]?.compactMap(\.serverCommentID) ?? [])
         for id in visibleIDs {
             if venueEventCommentLikeWriteInFlightIDs.contains(id) {
-                print("[FanChatLikesDebug] optimisticPreserved commentId=\(id.uuidString.lowercased())")
+                print("[FanChatReactionDebug] optimisticPreserved commentId=\(id.uuidString.lowercased())")
                 continue
             }
-            venueEventCommentLikeCountsByID[id] = counts[id] ?? 0
-            if likedIDs.contains(id) {
+            venueEventCommentLikeCountsByID[id] = upCounts[id] ?? 0
+            venueEventCommentDownReactionCountsByID[id] = downCounts[id] ?? 0
+            if let viewerReaction = viewerReactions[id] {
+                venueEventCommentViewerReactionsByID[id] = viewerReaction
+            } else {
+                venueEventCommentViewerReactionsByID.removeValue(forKey: id)
+            }
+            if viewerReactions[id] == .up {
                 venueEventCommentIDsLikedByCurrentUser.insert(id)
             } else {
                 venueEventCommentIDsLikedByCurrentUser.remove(id)
@@ -1393,26 +1469,42 @@ extension MapViewModel {
         venueEventComments[venueEventID] = rows.map { row in
             guard let commentID = row.serverCommentID else { return row }
             if venueEventCommentLikeWriteInFlightIDs.contains(commentID) {
-                return row.withLikeMetadata(
-                    likeCount: venueEventCommentLikeCountsByID[commentID] ?? row.likeCount,
-                    isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+                return row.withReactionMetadata(
+                    upCount: venueEventCommentLikeCountsByID[commentID] ?? row.upReactionCount,
+                    downCount: venueEventCommentDownReactionCountsByID[commentID] ?? row.downReactionCount,
+                    viewerReaction: venueEventCommentViewerReactionsByID[commentID]
                 )
             }
-            return row.withLikeMetadata(
-                likeCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
-                isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+            return row.withReactionMetadata(
+                upCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
+                downCount: venueEventCommentDownReactionCountsByID[commentID] ?? 0,
+                viewerReaction: venueEventCommentViewerReactionsByID[commentID]
             )
         }
     }
 
     @MainActor
-    private func applyLocalVenueEventCommentLikeState(commentID: UUID, isLiked: Bool) {
-        let currentCount = venueEventCommentLikeCountsByID[commentID] ?? 0
-        venueEventCommentLikeCountsByID[commentID] = isLiked ? currentCount + 1 : max(0, currentCount - 1)
-        if isLiked {
+    private func applyLocalVenueEventCommentReactionState(commentID: UUID, reaction: FanChatCommentReactionType?) {
+        let previousReaction = venueEventCommentViewerReactionsByID[commentID]
+        guard previousReaction != reaction else { return }
+
+        if previousReaction == .up {
+            venueEventCommentLikeCountsByID[commentID] = max(0, (venueEventCommentLikeCountsByID[commentID] ?? 0) - 1)
+        } else if previousReaction == .down {
+            venueEventCommentDownReactionCountsByID[commentID] = max(0, (venueEventCommentDownReactionCountsByID[commentID] ?? 0) - 1)
+        }
+
+        if reaction == .up {
+            venueEventCommentLikeCountsByID[commentID] = (venueEventCommentLikeCountsByID[commentID] ?? 0) + 1
             venueEventCommentIDsLikedByCurrentUser.insert(commentID)
+            venueEventCommentViewerReactionsByID[commentID] = .up
+        } else if reaction == .down {
+            venueEventCommentDownReactionCountsByID[commentID] = (venueEventCommentDownReactionCountsByID[commentID] ?? 0) + 1
+            venueEventCommentIDsLikedByCurrentUser.remove(commentID)
+            venueEventCommentViewerReactionsByID[commentID] = .down
         } else {
             venueEventCommentIDsLikedByCurrentUser.remove(commentID)
+            venueEventCommentViewerReactionsByID.removeValue(forKey: commentID)
         }
 
         for venueEventID in venueEventComments.keys {
@@ -1420,22 +1512,21 @@ extension MapViewModel {
                   rows.contains(where: { $0.serverCommentID == commentID }) else { continue }
             venueEventComments[venueEventID] = rows.map { row in
                 guard row.serverCommentID == commentID else { return row }
-                return row.withLikeMetadata(
-                    likeCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
-                    isLikedByCurrentUser: venueEventCommentIDsLikedByCurrentUser.contains(commentID)
+                return row.withReactionMetadata(
+                    upCount: venueEventCommentLikeCountsByID[commentID] ?? 0,
+                    downCount: venueEventCommentDownReactionCountsByID[commentID] ?? 0,
+                    viewerReaction: venueEventCommentViewerReactionsByID[commentID]
                 )
             }
         }
     }
 
-    /// Inserts or deletes the signed-in user's like row for a fan update comment.
-    func toggleCommentLike(commentId: UUID) async {
-        #if DEBUG
-        print("[FanCommentLikes] toggle start comment_id=\(commentId.uuidString.lowercased())")
-        #endif
+    /// Inserts, updates, or removes the signed-in user's up/down reaction for a fan update comment.
+    func toggleCommentReaction(commentId: UUID, type: FanChatCommentReactionType) async {
+        print("[FanChatReactionDebug] reactionTapped type=\(type.rawValue)")
 
         guard canUseFanSocialFeatures else {
-            logBusinessUserGateBlocked(action: "toggleCommentLike")
+            logBusinessUserGateBlocked(action: "toggleCommentReaction")
             return
         }
 
@@ -1444,64 +1535,91 @@ extension MapViewModel {
             userID = try await supabase.auth.session.user.id
         } catch {
             #if DEBUG
-            print("[FanCommentLikes] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
+            print("[FanChatReactionDebug] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
             #endif
             return
         }
 
         guard !venueEventCommentLikeWriteInFlightIDs.contains(commentId) else { return }
 
-        let wasLiked = venueEventCommentIDsLikedByCurrentUser.contains(commentId)
-        let previousCount = venueEventCommentLikeCountsByID[commentId] ?? 0
+        let previousReaction = venueEventCommentViewerReactionsByID[commentId]
+        let nextReaction: FanChatCommentReactionType? = previousReaction == type ? nil : type
+        let previousUpCount = venueEventCommentLikeCountsByID[commentId] ?? 0
+        let previousDownCount = venueEventCommentDownReactionCountsByID[commentId] ?? 0
         let previousLikedIDs = venueEventCommentIDsLikedByCurrentUser
+        let previousViewerReactions = venueEventCommentViewerReactionsByID
         let previousRows = venueEventComments
 
         venueEventCommentLikeWriteInFlightIDs.insert(commentId)
-        applyLocalVenueEventCommentLikeState(commentID: commentId, isLiked: !wasLiked)
+        applyLocalVenueEventCommentReactionState(commentID: commentId, reaction: nextReaction)
 
         do {
-            if wasLiked {
+            if let nextReaction {
+                if previousReaction == nil {
+                    let insert = VenueEventCommentReactionInsert(
+                        comment_id: commentId,
+                        user_id: userID,
+                        reaction_type: nextReaction.rawValue
+                    )
+
+                    do {
+                        try await supabase
+                            .from("venue_event_comment_reactions")
+                            .insert(insert)
+                            .execute()
+                    } catch {
+                        guard Self.isCommentLikeUniqueViolation(error) else { throw error }
+                        let update = VenueEventCommentReactionUpdate(
+                            reaction_type: nextReaction.rawValue,
+                            updated_at: VenueEventCommentsQuery.isoTimestamp(Date())
+                        )
+                        try await supabase
+                            .from("venue_event_comment_reactions")
+                            .update(update)
+                            .eq("comment_id", value: commentId.uuidString)
+                            .eq("user_id", value: userID.uuidString)
+                            .execute()
+                    }
+                } else {
+                    let update = VenueEventCommentReactionUpdate(
+                        reaction_type: nextReaction.rawValue,
+                        updated_at: VenueEventCommentsQuery.isoTimestamp(Date())
+                    )
+                    try await supabase
+                        .from("venue_event_comment_reactions")
+                        .update(update)
+                        .eq("comment_id", value: commentId.uuidString)
+                        .eq("user_id", value: userID.uuidString)
+                        .execute()
+                }
+                print("[FanChatReactionDebug] reactionUpserted type=\(nextReaction.rawValue)")
+            } else {
                 try await supabase
-                    .from("venue_event_comment_likes")
+                    .from("venue_event_comment_reactions")
                     .delete()
                     .eq("comment_id", value: commentId.uuidString)
                     .eq("user_id", value: userID.uuidString)
                     .execute()
-            } else {
-                let insert = VenueEventCommentLikeInsert(
-                    comment_id: commentId,
-                    user_id: userID
-                )
-
-                try await supabase
-                    .from("venue_event_comment_likes")
-                    .insert(insert)
-                    .execute()
+                print("[FanChatReactionDebug] reactionRemoved type=\(type.rawValue)")
             }
 
             venueEventCommentLikeWriteInFlightIDs.remove(commentId)
-
-            #if DEBUG
-            print("[FanCommentLikes] toggle success comment_id=\(commentId.uuidString.lowercased()) liked=\(!wasLiked)")
-            #endif
         } catch {
-            if !wasLiked, Self.isCommentLikeUniqueViolation(error) {
-                venueEventCommentLikeWriteInFlightIDs.remove(commentId)
-                #if DEBUG
-                print("[FanCommentLikes] toggle success comment_id=\(commentId.uuidString.lowercased()) liked=true")
-                #endif
-                return
-            }
-
-            venueEventCommentLikeCountsByID[commentId] = previousCount
+            venueEventCommentLikeCountsByID[commentId] = previousUpCount
+            venueEventCommentDownReactionCountsByID[commentId] = previousDownCount
             venueEventCommentIDsLikedByCurrentUser = previousLikedIDs
+            venueEventCommentViewerReactionsByID = previousViewerReactions
             venueEventComments = previousRows
             venueEventCommentLikeWriteInFlightIDs.remove(commentId)
 
             #if DEBUG
-            print("[FanCommentLikes] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
+            print("[FanChatReactionDebug] toggle failed comment_id=\(commentId.uuidString.lowercased()) error=\(error)")
             #endif
         }
+    }
+
+    func toggleCommentLike(commentId: UUID) async {
+        await toggleCommentReaction(commentId: commentId, type: .up)
     }
 
     private static func isCommentReportUniqueViolation(_ error: Error) -> Bool {
@@ -1975,7 +2093,7 @@ extension MapViewModel {
             }
 
             await loadCurrentUserCommentReportFlags(for: venueEventID)
-            await loadCommentLikes(for: venueEventID)
+            await loadCommentReactions(for: venueEventID)
 
             let hasMore = rowsRaw.count >= VenueEventCommentsPagination.initialLimit
             #if DEBUG
@@ -2023,7 +2141,7 @@ extension MapViewModel {
             }
 
             await loadCurrentUserCommentReportFlags(for: venueEventID)
-            await loadCommentLikes(for: venueEventID)
+            await loadCommentReactions(for: venueEventID)
 
             let hasMore = rowsRaw.count >= VenueEventCommentsPagination.pageLimit
             #if DEBUG

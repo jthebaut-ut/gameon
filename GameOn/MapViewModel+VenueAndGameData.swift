@@ -432,6 +432,10 @@ private extension MapViewModel {
 
 extension MapViewModel {
 
+    func refreshDiscoverPublicVisibilityAfterApprovedVenueStatusChange() async {
+        await refreshDiscoverAfterApprovedVenueStatusChange()
+    }
+
     nonisolated private static func discoverCoreSnapshotFileURL() -> URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? FileManager.default.temporaryDirectory
@@ -616,6 +620,36 @@ extension MapViewModel {
         guard dropCount > 0 else { return }
         for index in 0..<dropCount {
             discoverViewportVenueRowsCache.removeValue(forKey: sorted[index].0)
+        }
+    }
+
+    func invalidateDiscoverVisibilityCachesAfterApprovedVenueRefresh() {
+        discoverViewportVenueRowsCache.removeAll()
+        discoverVenueEventsFetchCache = nil
+        discoverSelectedDayVenueEventsCache.removeAll()
+        venueGameCalendarDotDatesCache.removeAll()
+        discoverCurrentVisibleVenueRows = []
+        discoverCurrentVisibleVenueIds = []
+        discoverCurrentVisibleOwnerEmails = []
+        discoverCurrentVisibleVenueNames = []
+        discoverClusteredBarsCacheKey = nil
+        discoverClusteredBarsCache = nil
+        discoverSearchDebounceTask?.cancel()
+        discoverSearchDebounceTask = nil
+        venueSearchResults = []
+        debouncedDiscoverSearchText = ""
+#if DEBUG
+        print("[ApprovedVenueVisibilityDebug] discoverCacheInvalidatedAfterApproval=true")
+        print("[ApprovedVenueVisibilityDebug] searchCacheInvalidatedAfterApproval=true")
+#endif
+    }
+
+    func refreshDiscoverAfterApprovedVenueStatusChange() async {
+        invalidateDiscoverVisibilityCachesAfterApprovedVenueRefresh()
+        await loadVenuesFromSupabase(forceRefresh: true)
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !q.isEmpty {
+            scheduleDiscoverSearchDebounce()
         }
     }
 
@@ -2420,6 +2454,21 @@ extension MapViewModel {
             .value
     }
 
+    private func fetchVenueRowsForDiscoverTextSearchGlobal(
+        orFilter: String,
+        limit: Int = 60
+    ) async throws -> [VenueRow] {
+        try await supabase
+            .from("venues")
+            .select(discoverVenueRowSelectColumns)
+            .or(discoverVenueActiveLegacySafeOrFilter)
+            .or(orFilter)
+            .order("venue_name", ascending: true)
+            .limit(limit)
+            .execute()
+            .value
+    }
+
     /// Supabase `venues` text search (active only), scoped to map bounds first, then Utah-wide fallback. Omits `venue_events`; games are filled later by the normal Discover pipeline when present.
     /// - Parameter useViewportTextSearchBounds: When `true`, tries the current map viewport first, then Utah fallback when empty. When `false`, uses Utah-wide bounds only (place-style search not tied to the visible map).
     func fetchDiscoverVenueSearchBars(query: String, useViewportTextSearchBounds: Bool = true) async -> [BarVenue] {
@@ -2442,27 +2491,19 @@ extension MapViewModel {
             #endif
             if useViewportTextSearchBounds {
                 if rows.isEmpty {
-                    let fb = DiscoverVenueSearchFallbackBounds.self
-                    rows = try await fetchVenueRowsForDiscoverTextSearch(
-                        bounds: (fb.minLat, fb.maxLat, fb.minLon, fb.maxLon),
-                        orFilter: orFilter
-                    )
+                    rows = try await fetchVenueRowsForDiscoverTextSearchGlobal(orFilter: orFilter)
                     #if DEBUG
-                    print("[VenueSearch] remote Utah fallback results count=\(rows.count)")
+                    print("[VenueSearch] remote active fallback results count=\(rows.count)")
                     #endif
                 } else {
                     #if DEBUG
-                    print("[VenueSearch] remote Utah fallback results count=0")
+                    print("[VenueSearch] remote active fallback results count=0")
                     #endif
                 }
             } else {
-                let fb = DiscoverVenueSearchFallbackBounds.self
-                rows = try await fetchVenueRowsForDiscoverTextSearch(
-                    bounds: (fb.minLat, fb.maxLat, fb.minLon, fb.maxLon),
-                    orFilter: orFilter
-                )
+                rows = try await fetchVenueRowsForDiscoverTextSearchGlobal(orFilter: orFilter)
                 #if DEBUG
-                print("[VenueSearch] remote global-bounds (Utah-wide) results count=\(rows.count)")
+                print("[VenueSearch] remote global-active results count=\(rows.count)")
                 #endif
             }
 
@@ -2492,6 +2533,19 @@ extension MapViewModel {
                 print("[DiscoverSearchDebug] null-latitude name search failed:", error)
 #endif
             }
+
+#if DEBUG
+            let approvedManagedIds = Set(managedVenuesForOwner().compactMap(\.id))
+            for row in mergedUnique {
+                guard let id = row.id else { continue }
+                if row.latitude == nil || row.longitude == nil {
+                    print("[ApprovedVenueVisibilityDebug] missingCoordinates id=\(id.uuidString)")
+                }
+                if approvedManagedIds.contains(id) {
+                    print("[ApprovedVenueVisibilityDebug] searchQueryIncludedApprovedVenue id=\(id.uuidString)")
+                }
+            }
+#endif
 
             let (mapped, _) = await Task.detached(priority: .userInitiated) { () -> ([BarVenue], [String: UUID]) in
                 DiscoverVenueLoadAssembler.buildMappedBars(venueRows: mergedUnique, fetchedVenueEventRows: [])
@@ -2589,6 +2643,18 @@ extension MapViewModel {
                 discoverDebugLogPublicVenueRowsForDiscover(venueRowsForContext, window: windowForDiscoverLog)
 #endif
             }
+#if DEBUG
+            let approvedManagedIdsForDiscover = Set(managedVenuesForOwner().compactMap(\.id))
+            for row in venueRowsForContext {
+                guard let id = row.id else { continue }
+                if row.latitude == nil || row.longitude == nil {
+                    print("[ApprovedVenueVisibilityDebug] missingCoordinates id=\(id.uuidString)")
+                }
+                if approvedManagedIdsForDiscover.contains(id) {
+                    print("[ApprovedVenueVisibilityDebug] discoverQueryIncludedApprovedVenue id=\(id.uuidString)")
+                }
+            }
+#endif
 
             let selectedDay = DiscoverVenueGameDateFormatting.sqlDate.string(from: selectedDate)
             let supplementVenueIds = try await discoverSupplementVenueIdsFromSelectedDayEvents(
