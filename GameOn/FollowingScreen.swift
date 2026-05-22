@@ -172,18 +172,18 @@ struct FollowingScreen: View {
                 }
             }
         }
-        .alert("Cancel this pickup game?", isPresented: Binding(
+        .alert(followingMyPickupDeleteAlertTitle, isPresented: Binding(
             get: { followingMyPickupDeleteTarget != nil },
             set: { if !$0 { followingMyPickupDeleteTarget = nil } }
         )) {
             Button("Keep game", role: .cancel) { followingMyPickupDeleteTarget = nil }
-            Button("Cancel game", role: .destructive) {
+            Button(followingMyPickupDeleteButtonTitle, role: .destructive) {
                 guard let row = followingMyPickupDeleteTarget else { return }
                 followingMyPickupDeleteTarget = nil
                 Task { await performFollowingMyPickupDelete(row) }
             }
         } message: {
-            Text("Players who requested or joined will be notified.")
+            Text(followingMyPickupDeleteAlertMessage)
         }
         .overlay(alignment: .bottom) {
             if let text = followingMyPickupBanner, !text.isEmpty {
@@ -218,6 +218,28 @@ struct FollowingScreen: View {
         } catch {
             viewModel.showSocialActionToast(error.localizedDescription, isError: true)
         }
+    }
+
+    private var followingMyPickupDeleteTargetIsExpired: Bool {
+        guard let row = followingMyPickupDeleteTarget,
+              let deadline = row.pickupHistoryClientCleanupDeadline() else {
+            return false
+        }
+        return followingMyPickupClockTick >= deadline
+    }
+
+    private var followingMyPickupDeleteAlertTitle: String {
+        followingMyPickupDeleteTargetIsExpired ? "Clear expired pickup game?" : "Cancel this pickup game?"
+    }
+
+    private var followingMyPickupDeleteButtonTitle: String {
+        followingMyPickupDeleteTargetIsExpired ? "Clear expired" : "Cancel game"
+    }
+
+    private var followingMyPickupDeleteAlertMessage: String {
+        followingMyPickupDeleteTargetIsExpired
+            ? "This removes the expired hosted pickup game from your active Hosting list."
+            : "Players who requested or joined will be notified."
     }
 
     // MARK: - Logged out

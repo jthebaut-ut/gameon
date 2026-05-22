@@ -465,6 +465,43 @@ struct SettingsPickupMyGameListCard: View {
         Self.computeStatus(row: row, pendingJoinCount: pendingJoinCount, now: now)
     }
 
+    private var isExpiredClearing: Bool {
+        status == .expiredClearing
+    }
+
+    private var usesExpiredArchivedStyle: Bool {
+        isFollowingCompact && isExpiredClearing
+    }
+
+    private var cardTextOpacity: Double {
+        usesExpiredArchivedStyle ? 0.62 : 1
+    }
+
+    private var cardPrimaryTextColor: Color {
+        usesExpiredArchivedStyle
+            ? FGColor.secondaryText(colorScheme)
+            : FGColor.primaryText(colorScheme)
+    }
+
+    private var cardBackgroundStyle: AnyShapeStyle {
+        if usesExpiredArchivedStyle {
+            let fill = colorScheme == .dark
+                ? Color.white.opacity(0.035)
+                : Color(.systemGray6).opacity(0.98)
+            return AnyShapeStyle(fill)
+        }
+        return AnyShapeStyle(.ultraThinMaterial)
+    }
+
+    private var cardStrokeColor: Color {
+        if usesExpiredArchivedStyle {
+            return colorScheme == .dark
+                ? Color.white.opacity(0.08)
+                : Color.black.opacity(0.055)
+        }
+        return Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08)
+    }
+
     private var gameStarted: Bool {
         row.hasPickupGameStarted(now: now)
     }
@@ -531,17 +568,20 @@ struct SettingsPickupMyGameListCard: View {
         let shape = RoundedRectangle(cornerRadius: isFollowingCompact ? 16 : 24, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: isFollowingCompact ? 10 : 14) {
-                PickupGameStartedSportGlyphFrame(showStarted: gameStarted) {
+                PickupGameStartedSportGlyphFrame(showStarted: gameStarted && !usesExpiredArchivedStyle) {
                     SportArtworkIconView(sport: row.sport, diameter: isFollowingCompact ? 44 : 50)
                 }
+                .saturation(usesExpiredArchivedStyle ? 0 : 1)
+                .opacity(usesExpiredArchivedStyle ? 0.48 : 1)
 
                 VStack(alignment: .leading, spacing: isFollowingCompact ? 4 : 6) {
                     HStack(alignment: .top, spacing: 10) {
                         Text(row.title)
                             .font(isFollowingCompact ? .headline.weight(.bold) : .title3.weight(.bold))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .foregroundStyle(cardPrimaryTextColor)
                             .lineLimit(isFollowingCompact ? 2 : 3)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .opacity(cardTextOpacity)
 
                         Text(status.pillTitle)
                             .font(.caption.weight(.semibold))
@@ -564,7 +604,7 @@ struct SettingsPickupMyGameListCard: View {
                         PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id))
                     }
 
-                    if pendingJoinCount > 0 {
+                    if pendingJoinCount > 0, !usesExpiredArchivedStyle {
                         Button(action: onManageRequests) {
                             HStack(spacing: 8) {
                                 Image(systemName: "person.crop.circle.badge.clock")
@@ -573,6 +613,7 @@ struct SettingsPickupMyGameListCard: View {
                                 Text(pendingJoinCount == 1 ? "1 player waiting" : "\(pendingJoinCount) players waiting")
                                     .font(isFollowingCompact ? .caption.weight(.semibold) : .subheadline.weight(.semibold))
                                     .foregroundStyle(Color.orange)
+                                    .opacity(cardTextOpacity)
                                 Spacer(minLength: 0)
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 12, weight: .semibold))
@@ -597,7 +638,8 @@ struct SettingsPickupMyGameListCard: View {
             VStack(alignment: .leading, spacing: isFollowingCompact ? 8 : 10) {
                 if let dateTimeLine {
                     SettingsPickupCardMetaRow(systemImage: "calendar", title: "When", value: dateTimeLine)
-                    if gameStarted {
+                        .opacity(cardTextOpacity)
+                    if gameStarted && !usesExpiredArchivedStyle {
                         HStack(alignment: .center, spacing: 10) {
                             Image(systemName: "play.circle.fill")
                                 .font(.system(size: 14, weight: .semibold))
@@ -610,29 +652,36 @@ struct SettingsPickupMyGameListCard: View {
                 }
                 if let locationLine {
                     SettingsPickupCardMetaRow(systemImage: "mappin.and.ellipse", title: "Location", value: locationLine)
+                        .opacity(cardTextOpacity)
                 }
                 SettingsPickupCardMetaRow(systemImage: "person.3", title: "Players", value: playersSummaryLine)
-                PickupOrganizerApprovedRosterStripView(
-                    viewModel: viewModel,
-                    game: row,
-                    colorScheme: colorScheme,
-                    approvedUserIds: approvedJoinerUserIds,
-                    onAvatarTapped: { uid in
-                        viewModel.presentPublicProfile(
-                            userId: uid,
-                            context: "pickup_roster_avatar",
-                            activeSheet: "settings_pickup_games"
-                        )
-                    }
-                )
+                    .opacity(cardTextOpacity)
+                if !usesExpiredArchivedStyle {
+                    PickupOrganizerApprovedRosterStripView(
+                        viewModel: viewModel,
+                        game: row,
+                        colorScheme: colorScheme,
+                        approvedUserIds: approvedJoinerUserIds,
+                        onAvatarTapped: { uid in
+                            viewModel.presentPublicProfile(
+                                userId: uid,
+                                context: "pickup_roster_avatar",
+                                activeSheet: "settings_pickup_games"
+                            )
+                        }
+                    )
+                }
                 if !isFollowingCompact {
                     SettingsPickupCardMetaRow(systemImage: "chart.bar", title: "Skill", value: row.skillLevelEnum.displayTitle)
+                        .opacity(cardTextOpacity)
                     SettingsPickupCardMetaRow(
                         systemImage: row.playEnvironmentEnum == .indoor ? "house.fill" : (row.playEnvironmentEnum == .outdoor ? "sun.max.fill" : "arrow.left.arrow.right"),
                         title: "Play",
                         value: row.playEnvironmentEnum.shortLabel
                     )
+                    .opacity(cardTextOpacity)
                     SettingsPickupCardMetaRow(systemImage: row.is_free ? "gift.fill" : "dollarsign.circle", title: "Cost", value: row.entryFeeDisplayLine)
+                        .opacity(cardTextOpacity)
                 }
             }
             .padding(.top, 6)
@@ -660,7 +709,7 @@ struct SettingsPickupMyGameListCard: View {
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
 
-                if !withdrawnJoinRows.isEmpty {
+                if !withdrawnJoinRows.isEmpty, !usesExpiredArchivedStyle {
                     VStack(alignment: .leading, spacing: isFollowingCompact ? 6 : 10) {
                         Text("Can’t make it")
                             .font(.subheadline.weight(.semibold))
@@ -678,23 +727,25 @@ struct SettingsPickupMyGameListCard: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(action: onEdit) {
-                        Label(gameStarted ? "Manage" : "Edit", systemImage: "pencil")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
+                    if !(isFollowingCompact && isExpiredClearing) {
+                        Button(action: onEdit) {
+                            Label(gameStarted ? "Manage" : "Edit", systemImage: "pencil")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(FGColor.accentBlue)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(FGColor.accentBlue)
 
                     Button(role: .destructive, action: onDelete) {
-                        Label("Cancel game", systemImage: "trash")
+                        Label(isFollowingCompact && isExpiredClearing ? "Clear expired" : "Cancel game", systemImage: "trash")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
                 }
 
-                if isFollowingCompact, let onOpenDetails {
+                if isFollowingCompact, !isExpiredClearing, let onOpenDetails {
                     Button(action: onOpenDetails) {
                         Label("Details & cleanup", systemImage: "ellipsis.circle")
                             .font(.subheadline.weight(.semibold))
@@ -725,11 +776,16 @@ struct SettingsPickupMyGameListCard: View {
             }
         }
         .padding(isFollowingCompact ? 14 : 18)
-        .background(.ultraThinMaterial, in: shape)
+        .background(cardBackgroundStyle, in: shape)
         .overlay(
-            shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.08), lineWidth: 1)
+            shape.strokeBorder(cardStrokeColor, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.42 : 0.1), radius: isFollowingCompact ? 8 : 14, x: 0, y: isFollowingCompact ? 3 : 6)
+        .shadow(
+            color: Color.black.opacity(usesExpiredArchivedStyle ? (colorScheme == .dark ? 0.18 : 0.035) : (colorScheme == .dark ? 0.42 : 0.1)),
+            radius: isFollowingCompact ? (usesExpiredArchivedStyle ? 4 : 8) : 14,
+            x: 0,
+            y: isFollowingCompact ? (usesExpiredArchivedStyle ? 1 : 3) : 6
+        )
         .accessibilityElement(children: .contain)
         .onAppear {
             let actions = gameStarted ? "manage_players,roster_capacity_only" : "full_edit,delete,manage_requests"

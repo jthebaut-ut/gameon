@@ -72,20 +72,10 @@ struct VenueOwnerDashboardView: View {
     @State private var lastGeneratedGameTitle = ""
     @State private var titleManuallyEdited = false
     @State private var gameLeague = ""
-    @State private var gameSpecial = ""
-    @State private var soundOn = true
-    @State private var coverCharge = ""
     @State private var seating = ""
-    @State private var teamFanbase = ""
     @State private var socialCoordination = ""
     @State private var gameDate = Date()
     @State private var gameStartTime = Date()
-    @State private var numberOfTVs = 1
-    @State private var crowdLevel = "Moderate"
-    @State private var liveOccupancy = "Open seats"
-    @State private var reservationsAvailable = false
-    @State private var waitlistAvailable = false
-    @State private var showSpecialsFields = false
     @State private var hasFood = false
     @State private var hasWifi = false
     @State private var hasGarden = false
@@ -166,6 +156,10 @@ struct VenueOwnerDashboardView: View {
         case importLive = "Import From Live Games"
     }
 
+    private enum DashboardScrollTarget {
+        static let addGameFormFields = "venue-owner-add-game-form-fields"
+    }
+
     private var manualPredictionTeamValidationMessage: String {
         L10n.t("add_both_teams_predictions", languageCode: appLanguageRaw)
     }
@@ -192,6 +186,9 @@ struct VenueOwnerDashboardView: View {
     @State private var showSchedulePicker = false
     @State private var schedulePickerDate = Date()
     @State private var importGamesDate = Date()
+    @State private var importGamesBrowserExpanded = true
+    @State private var importGamesCalendarExpanded = false
+    @State private var addGameFormScrollRequestID = 0
     @State private var importGamesSportFilter = "All"
     @State private var importGamesMatches: [LiveMatch] = []
     @State private var isLoadingImportGames = false
@@ -289,44 +286,53 @@ struct VenueOwnerDashboardView: View {
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+        ScrollViewReader { scrollProxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
 
-                if effectiveSection != .overview {
-                    header
-                }
+                    if effectiveSection != .overview {
+                        header
+                    }
 
-                if entryPoint == .allTabs {
-                    sectionPicker
-                }
+                    if entryPoint == .allTabs {
+                        sectionPicker
+                    }
 
-                Group {
-                    switch effectiveSection {
-                    case .overview:
-                        businessDashboardOverviewSection
-                    case .profile:
-                        profileSection
-                    case .games:
-                        if venueOwnerGamesAndAnalyticsLocked {
-                            venueOwnerPendingApprovalCard
-                        } else {
-                            gamesSection
-                        }
-                    case .analytics:
-                        if venueOwnerGamesAndAnalyticsLocked {
-                            venueOwnerPendingApprovalCard
-                        } else {
-                            venueAnalyticsSection
+                    Group {
+                        switch effectiveSection {
+                        case .overview:
+                            businessDashboardOverviewSection
+                        case .profile:
+                            profileSection
+                        case .games:
+                            if venueOwnerGamesAndAnalyticsLocked {
+                                venueOwnerPendingApprovalCard
+                            } else {
+                                gamesSection
+                            }
+                        case .analytics:
+                            if venueOwnerGamesAndAnalyticsLocked {
+                                venueOwnerPendingApprovalCard
+                            } else {
+                                venueAnalyticsSection
+                            }
                         }
                     }
+                    // Force a fresh subtree when the entry point or active tab changes so a prior section’s
+                    // SwiftUI state cannot remain mounted under the venue profile editor sheet.
+                    .id("\(String(describing: entryPoint))-\(effectiveSection.rawValue)")
                 }
-                // Force a fresh subtree when the entry point or active tab changes so a prior section’s
-                // SwiftUI state cannot remain mounted under the venue profile editor sheet.
-                .id("\(String(describing: entryPoint))-\(effectiveSection.rawValue)")
+                .padding()
             }
-            .padding()
-        }
         .background(FGAdaptiveSurface.sheetRoot)
+        .onChange(of: addGameFormScrollRequestID) { _, _ in
+            guard effectiveSection == .games, manageGamesListTab == .add else { return }
+            DispatchQueue.main.async {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    scrollProxy.scrollTo(DashboardScrollTarget.addGameFormFields, anchor: .top)
+                }
+            }
+        }
         .onChange(of: viewModel.ownerVenueDatabaseId) { _, newId in
 #if DEBUG
             print("[ManageGamesDebug] ownerVenueDatabaseId changed → \(newId?.uuidString ?? "nil")")
@@ -554,6 +560,7 @@ struct VenueOwnerDashboardView: View {
                     showAddLocationSheet = false
                 }
             }
+        }
         }
     }
     
@@ -2147,8 +2154,18 @@ struct VenueOwnerDashboardView: View {
         gameTeam2.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var manualStructuredTeamsHaveBothTeams: Bool {
+        !trimmedManualTeam1.isEmpty
+            && !trimmedManualTeam2.isEmpty
+    }
+
+    private var manualStructuredTeamsAreDuplicate: Bool {
+        manualStructuredTeamsHaveBothTeams
+            && trimmedManualTeam1.localizedCaseInsensitiveCompare(trimmedManualTeam2) == .orderedSame
+    }
+
     private var manualStructuredTeamsAreValid: Bool {
-        !trimmedManualTeam1.isEmpty && !trimmedManualTeam2.isEmpty
+        manualStructuredTeamsHaveBothTeams && !manualStructuredTeamsAreDuplicate
     }
 
     private var saveGameListingDisabled: Bool {
@@ -2166,7 +2183,7 @@ struct VenueOwnerDashboardView: View {
 
     private static func predictionSupportedManualGameSport(_ sport: String) -> Bool {
         switch normalizedPredictionManualGameSport(sport) {
-        case "soccer", "baseball", "football", "hockey":
+        case "soccer", "basketball", "baseball", "football", "hockey":
             return true
         default:
             return false
@@ -2176,6 +2193,7 @@ struct VenueOwnerDashboardView: View {
     private static func normalizedPredictionManualGameSport(_ sport: String) -> String {
         let lowered = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if lowered.contains("soccer") { return "soccer" }
+        if lowered.contains("basketball") || lowered == "nba" { return "basketball" }
         if lowered.contains("baseball") || lowered == "mlb" { return "baseball" }
         if lowered.contains("football") || lowered == "nfl" { return "football" }
         if lowered.contains("hockey") || lowered == "nhl" { return "hockey" }
@@ -2195,7 +2213,10 @@ struct VenueOwnerDashboardView: View {
 #endif
             if newValue == .importLive {
                 importGamesDate = gameDate
-                Task { await fetchImportGames(forceRefresh: false) }
+                importGamesBrowserExpanded = !importedFromAPI
+                if importGamesBrowserExpanded {
+                    Task { await fetchImportGames(forceRefresh: false) }
+                }
             } else {
                 clearImportedGameMetadata()
             }
@@ -2218,22 +2239,32 @@ struct VenueOwnerDashboardView: View {
                 }
             }
 
-            DatePicker(
-                "Game day",
-                selection: $importGamesDate,
-                in: minimumSelectableGameCalendarDate...Date.distantFuture,
-                displayedComponents: .date
-            )
-            .font(.subheadline.weight(.semibold))
-            .padding()
-            .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .onChange(of: importGamesDate) { _, newDate in
-#if DEBUG
-                print("[BusinessGameImportDebug] selectedDate=\(Self.debugDateFormatter.string(from: newDate))")
-#endif
-                Task { await fetchImportGames(forceRefresh: true) }
+            if importedFromAPI && !importGamesBrowserExpanded {
+                importedLiveGameSummaryCard
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                importLiveGamesBrowser
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
+        }
+        .animation(.easeInOut(duration: 0.24), value: importGamesBrowserExpanded)
+        .padding()
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.orange.opacity(0.20), lineWidth: 1)
+        )
+        .task {
+            if importGamesBrowserExpanded {
+                await fetchImportGames(forceRefresh: false)
+            }
+        }
+    }
+
+    private var importLiveGamesBrowser: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            importGamesDateSelector
 
             importSportFilterChips
 
@@ -2271,16 +2302,166 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
-        .padding()
-        .background(FGAdaptiveSurface.controlFill)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.orange.opacity(0.20), lineWidth: 1)
-        )
-        .task {
-            await fetchImportGames(forceRefresh: false)
+    }
+
+    private var importGamesDateSelector: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.20)) {
+                    importGamesCalendarExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.orange)
+                        .accessibilityHidden(true)
+
+                    Text("Game day")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Spacer(minLength: 8)
+
+                    Text(Self.dateFormatter.string(from: importGamesDate))
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(Color.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Capsule(style: .continuous))
+
+                    Image(systemName: importGamesCalendarExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Select import game day")
+
+            if importGamesCalendarExpanded {
+                DatePicker(
+                    "Game day",
+                    selection: $importGamesDate,
+                    in: minimumSelectableGameCalendarDate...Date.distantFuture,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .labelsHidden()
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+                .background(FGAdaptiveSurface.sheetRoot.opacity(0.72))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
+        .onChange(of: importGamesDate) { _, newDate in
+#if DEBUG
+            print("[BusinessGameImportDebug] selectedDate=\(Self.debugDateFormatter.string(from: newDate))")
+#endif
+            withAnimation(.easeInOut(duration: 0.20)) {
+                importGamesCalendarExpanded = false
+            }
+            Task { await fetchImportGames(forceRefresh: true) }
+        }
+    }
+
+    private var importedLiveGameSummaryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.green.opacity(0.16))
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Color.green)
+                }
+                .frame(width: 42, height: 42)
+                .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Imported Game")
+                        .font(.caption.weight(.heavy))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.green)
+
+                    Text(importedLiveGameSummaryTitle)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+
+                    Text(importedLiveGameSummaryCompetitionLine)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Text("\(Self.dateFormatter.string(from: gameStartTime)) • \(Self.timeFormatter.string(from: gameStartTime))")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    importGamesBrowserExpanded = true
+                }
+                if importGamesMatches.isEmpty {
+                    Task { await fetchImportGames(forceRefresh: false) }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.caption.weight(.bold))
+                    Text("Change Game")
+                        .font(.caption.weight(.heavy))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.orange.opacity(0.14))
+                .foregroundStyle(Color.orange)
+                .clipShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.sheetRoot.opacity(0.74))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.green.opacity(0.24), lineWidth: 1)
+        )
+    }
+
+    private var importedLiveGameSummaryTitle: String {
+        let title = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !title.isEmpty { return title }
+
+        let teams = [
+            importedHomeTeam?.trimmingCharacters(in: .whitespacesAndNewlines),
+            importedAwayTeam?.trimmingCharacters(in: .whitespacesAndNewlines)
+        ]
+        .compactMap { $0 }
+        .filter { !$0.isEmpty }
+
+        return teams.isEmpty ? "Imported game" : teams.joined(separator: " vs ")
+    }
+
+    private var importedLiveGameSummaryCompetitionLine: String {
+        let sport = viewModel.ownerVenuePrimarySport.trimmingCharacters(in: .whitespacesAndNewlines)
+        let league = gameLeague.trimmingCharacters(in: .whitespacesAndNewlines)
+        let importedLeague = importedExternalLeague?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let parts = [
+            sport.isEmpty ? "Sports" : sport,
+            !league.isEmpty ? league : importedLeague
+        ].filter { !$0.isEmpty }
+
+        return parts.joined(separator: " • ")
     }
 
     private var availableImportSports: [String] {
@@ -2506,6 +2687,7 @@ struct VenueOwnerDashboardView: View {
     private var addGameFormFields: some View {
         Group {
             field("Game title, example: France vs Brazil", text: gameTitleBinding)
+                .id(DashboardScrollTarget.addGameFormFields)
                 .onAppear {
 #if DEBUG
                     print("[ManageGamesAddPane] title appear")
@@ -2569,28 +2751,6 @@ struct VenueOwnerDashboardView: View {
 #endif
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Remove game data after")
-                    .font(.subheadline.weight(.semibold))
-                Text("Fan comments, vibes, and attendance rows are deleted; you keep a short summary in History.")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Picker("Retention hours", selection: $cleanupDelayHours) {
-                    ForEach(VenueOwnerGameDataRetentionHours.standardOptions, id: \.self) { h in
-                        Text(VenueOwnerGameDataRetentionHours.longLabel(for: h)).tag(h)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-            .padding()
-            .background(FGAdaptiveSurface.controlFill)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .onAppear {
-#if DEBUG
-                print("[ManageGamesAddPane] cleanup appear")
-#endif
-            }
-
             GameSportSearchablePickerDashboardCard(selection: $viewModel.ownerVenuePrimarySport)
                 .onAppear {
 #if DEBUG
@@ -2607,7 +2767,7 @@ struct VenueOwnerDashboardView: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
-            if manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid {
+            if manualGameRequiresStructuredTeams && !manualStructuredTeamsHaveBothTeams {
                 Text(manualPredictionTeamValidationMessage)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(FGColor.dangerRed)
@@ -2615,63 +2775,17 @@ struct VenueOwnerDashboardView: View {
                     .padding(.horizontal, 4)
                 }
 
+            if manualGameRequiresStructuredTeams && manualStructuredTeamsAreDuplicate {
+                Text("Team 1 and Team 2 must be different.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.dangerRed)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 4)
+            }
+
             field("League / competition (optional)", text: $gameLeague)
 
-            Toggle("Audio / sound will be ON", isOn: $soundOn)
-                .fontWeight(.semibold)
-                .padding()
-                .background(FGAdaptiveSurface.controlFill)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            Stepper("TVs showing this game: \(numberOfTVs)", value: $numberOfTVs, in: 1...50)
-                .fontWeight(.semibold)
-                .padding()
-                .background(FGAdaptiveSurface.controlFill)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-
-            field("Team fanbase, example: France fans, Brazil fans, Arsenal supporters", text: $teamFanbase)
-            field("Cover charge, example: No cover, $10 after 7 PM", text: $coverCharge)
-
-            Picker("Crowd Level", selection: $crowdLevel) {
-                Text("Light").tag("Light")
-                Text("Moderate").tag("Moderate")
-                Text("Packed").tag("Packed")
-            }
-            .pickerStyle(.segmented)
-
-            Picker("Live Occupancy", selection: $liveOccupancy) {
-                Text("Open seats").tag("Open seats")
-                Text("Filling up").tag("Filling up")
-                Text("Standing room").tag("Standing room")
-            }
-            .pickerStyle(.segmented)
-
-            Toggle("Reservations required", isOn: $reservationsAvailable)
-                .fontWeight(.semibold)
-
-            Toggle("Waitlist available", isOn: $waitlistAvailable)
-                .fontWeight(.semibold)
-
-            Button {
-                withAnimation(.spring()) {
-                    showSpecialsFields.toggle()
-                }
-            } label: {
-                HStack {
-                    Text(showSpecialsFields ? "Hide Specials" : "Add Drink/Food Specials")
-                        .fontWeight(.bold)
-                    Spacer()
-                    Image(systemName: showSpecialsFields ? "chevron.up" : "chevron.down")
-                }
-                .padding()
-                .background(FGAdaptiveSurface.controlFill)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-            }
-
-            if showSpecialsFields {
-                field("Drink special", text: $gameSpecial)
-                field("Cover charge", text: $coverCharge)
-            }
+            addGameCleanupDelayCard
 
             Button {
 #if DEBUG
@@ -2695,6 +2809,30 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private var addGameCleanupDelayCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Remove game data after")
+                .font(.subheadline.weight(.semibold))
+            Text("Fan comments, vibes, and attendance rows are deleted; you keep a short summary in History.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Picker("Retention hours", selection: $cleanupDelayHours) {
+                ForEach(VenueOwnerGameDataRetentionHours.standardOptions, id: \.self) { h in
+                    Text(VenueOwnerGameDataRetentionHours.longLabel(for: h)).tag(h)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
+        .padding()
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .onAppear {
+#if DEBUG
+            print("[ManageGamesAddPane] cleanup appear")
+#endif
+        }
+    }
+
     private var manualStructuredTeamsFields: some View {
         VStack(alignment: .leading, spacing: 8) {
             ManualTeamAutocompleteView(
@@ -2704,7 +2842,7 @@ struct VenueOwnerDashboardView: View {
                 set: { updateManualGameTeam1($0) }
                 ),
                 sportName: viewModel.ownerVenuePrimarySport,
-                showSoccerCountryChips: Self.normalizedPredictionManualGameSport(viewModel.ownerVenuePrimarySport) == "soccer",
+                unavailableTeamName: trimmedManualTeam2,
                 onTextChanged: { query in
                     updateManualGameTeam1(query)
                     logManualTeamAutocompleteQuery(query)
@@ -2721,7 +2859,7 @@ struct VenueOwnerDashboardView: View {
                 set: { updateManualGameTeam2($0) }
                 ),
                 sportName: viewModel.ownerVenuePrimarySport,
-                showSoccerCountryChips: Self.normalizedPredictionManualGameSport(viewModel.ownerVenuePrimarySport) == "soccer",
+                unavailableTeamName: trimmedManualTeam1,
                 onTextChanged: { query in
                     updateManualGameTeam2(query)
                     logManualTeamAutocompleteQuery(query)
@@ -2760,6 +2898,8 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func applyManualGameTeamSelection(_ selection: ManualVenueTeamSelection, teamIndex: Int) {
+        let otherTeam = teamIndex == 1 ? trimmedManualTeam2 : trimmedManualTeam1
+        guard otherTeam.isEmpty || selection.name.localizedCaseInsensitiveCompare(otherTeam) != .orderedSame else { return }
         if teamIndex == 1 {
             gameTeam1 = selection.name
             gameTeam1Selection = selection
@@ -2985,6 +3125,9 @@ struct VenueOwnerDashboardView: View {
             importedHomeTeam = match.homeTeam
             importedAwayTeam = match.awayTeam
             importedFromAPI = true
+            importGamesBrowserExpanded = false
+            importGamesCalendarExpanded = false
+            addGameFormScrollRequestID += 1
             manageGamesError = ""
             manageGamesFeedback = "Game details imported — review and save."
         }
@@ -3206,6 +3349,16 @@ struct VenueOwnerDashboardView: View {
             return
         }
 
+        if requiresStructuredTeams,
+           manualTeam1.localizedCaseInsensitiveCompare(manualTeam2) == .orderedSame {
+            await MainActor.run {
+                manageGamesError = "Team 1 and Team 2 must be different."
+                manageGamesFeedback = ""
+                logBusinessManualGameTeamDebug()
+            }
+            return
+        }
+
         guard !trimmedTitle.isEmpty else {
             await MainActor.run {
                 manageGamesError = "Enter a game title before saving."
@@ -3232,17 +3385,17 @@ struct VenueOwnerDashboardView: View {
                 sport: viewModel.ownerVenuePrimarySport,
                 gameDate: gameDate,
                 gameStartTime: gameStartTime,
-                soundOn: soundOn,
-                teamFanbase: teamFanbase,
+                soundOn: true,
+                teamFanbase: "",
                 gameLeague: gameLeague,
-                crowdLevel: crowdLevel,
-                liveOccupancy: liveOccupancy,
+                crowdLevel: "Moderate",
+                liveOccupancy: "Open seats",
                 seating: seating,
-                numberOfTVs: numberOfTVs,
-                gameSpecial: gameSpecial,
-                coverCharge: coverCharge,
-                reservationsAvailable: reservationsAvailable,
-                waitlistAvailable: waitlistAvailable,
+                numberOfTVs: 1,
+                gameSpecial: "",
+                coverCharge: "",
+                reservationsAvailable: false,
+                waitlistAvailable: false,
                 cleanupDelayHours: cleanupDelayHours,
                 externalGameID: importedFromAPI ? importedExternalGameID : nil,
                 externalSource: importedFromAPI ? importedExternalSource : nil,
@@ -3335,19 +3488,9 @@ struct VenueOwnerDashboardView: View {
         lastGeneratedGameTitle = ""
         titleManuallyEdited = false
         gameLeague = ""
-        gameSpecial = ""
-        soundOn = true
-        coverCharge = ""
         seating = ""
-        teamFanbase = ""
         socialCoordination = ""
         initializeAddGameScheduleFromDefaults()
-        numberOfTVs = 1
-        crowdLevel = "Moderate"
-        liveOccupancy = "Open seats"
-        reservationsAvailable = false
-        waitlistAvailable = false
-        showSpecialsFields = false
         cleanupDelayHours = VenueOwnerGameDataRetentionHours.defaultPickerHours
         clearImportedGameMetadata()
     }
@@ -3359,6 +3502,8 @@ struct VenueOwnerDashboardView: View {
         importedHomeTeam = nil
         importedAwayTeam = nil
         importedFromAPI = false
+        importGamesBrowserExpanded = true
+        importGamesCalendarExpanded = false
     }
 
     private func refreshAnalyticsGameHistory() async {

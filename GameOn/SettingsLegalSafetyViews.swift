@@ -38,7 +38,7 @@ enum SettingsLegalDocumentKind: String, Identifiable, Hashable {
     }
 
     /// Placeholder date shown on every sheet (update when policies are revised).
-    static let lastUpdatedDisplay = "May 9, 2026"
+    static let lastUpdatedDisplay = "May 21, 2026"
 
     var draftSections: [SettingsLegalContentSection] {
         switch self {

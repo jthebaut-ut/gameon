@@ -17,17 +17,6 @@ struct ManualVenueTeamSelection: Equatable {
     }
 }
 
-private struct ManualVenueTeamSuggestion: Identifiable {
-    let id: String
-    let title: String
-    let subtitle: String
-    let type: ManualVenueTeamType
-    let countryCode: String?
-    let flag: String?
-    let symbol: String?
-    let tint: Color
-}
-
 enum ManualVenueTeamResolver {
     static func resolve(_ raw: String) -> ManualVenueTeamSelection {
         let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -42,6 +31,13 @@ enum ManualVenueTeamResolver {
             candidate.kind == .team && matches(candidate, query: name)
         }) {
             return ManualVenueTeamSelection(name: team.name, type: .club, countryCode: nil)
+        }
+        if let providerSelection = SportsTeamPickerData.exactOption(named: name) {
+            return ManualVenueTeamSelection(
+                name: providerSelection.displayName,
+                type: providerSelection.mode == .countries ? .country : .club,
+                countryCode: providerSelection.themeHint
+            )
         }
         return ManualVenueTeamSelection(name: name, type: .custom, countryCode: nil)
     }
@@ -67,203 +63,330 @@ struct ManualTeamAutocompleteView: View {
     let title: String
     @Binding var text: String
     let sportName: String
-    let showSoccerCountryChips: Bool
+    let unavailableTeamName: String
     let onTextChanged: (String) -> Void
     let onSelection: (ManualVenueTeamSelection) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.isEnabled) private var isEnabled
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
-    @State private var showMoreCountryChips = false
+    @State private var pickerMode: TeamPickerMode = .countries
+    @State private var pickerSearchText = ""
+    @State private var isPickerPresented = false
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var isSoccerContext: Bool {
-        sportName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased().contains("soccer")
+    private var trimmedPickerSearchText: String {
+        pickerSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var suggestions: [ManualVenueTeamSuggestion] {
-        let query = trimmedText
-        let countrySuggestions = CountryFlagHelper.countrySuggestions(matching: query)
-            .prefix(6)
-            .map { country in
-                ManualVenueTeamSuggestion(
-                    id: "country-\(country.code)",
-                    title: country.name,
-                    subtitle: L10n.t("Country", languageCode: appLanguageRaw),
-                    type: .country,
-                    countryCode: country.code,
-                    flag: country.flag,
-                    symbol: nil,
-                    tint: FGColor.accentGreen
-                )
-            }
-
-        let teamSuggestions = FavoriteTeamCatalog.searchTeams(query)
-            .filter { $0.kind == .team }
-            .prefix(6)
-            .map { team in
-                ManualVenueTeamSuggestion(
-                    id: "club-\(team.id)",
-                    title: team.name,
-                    subtitle: team.league,
-                    type: .club,
-                    countryCode: nil,
-                    flag: nil,
-                    symbol: team.fallbackSymbol,
-                    tint: team.badgeColor
-                )
-            }
-
-        var merged = isSoccerContext
-            ? Array(countrySuggestions) + Array(teamSuggestions)
-            : Array(teamSuggestions) + Array(countrySuggestions)
-        if !query.isEmpty,
-           !merged.contains(where: { $0.title.caseInsensitiveCompare(query) == .orderedSame }) {
-            merged.append(
-                ManualVenueTeamSuggestion(
-                    id: "custom-\(query.lowercased())",
-                    title: query,
-                    subtitle: L10n.t("use_custom_team", languageCode: appLanguageRaw),
-                    type: .custom,
-                    countryCode: nil,
-                    flag: nil,
-                    symbol: "text.cursor",
-                    tint: FGColor.accentBlue
-                )
-            )
-        }
-        return merged
+    private var regionGroups: [TeamPickerRegionGroup] {
+        SportsTeamPickerData.regionGroups(
+            sportName: sportName,
+            mode: pickerMode,
+            query: pickerSearchText
+        )
     }
 
-    private var quickCountries: [(name: String, code: String, flag: String)] {
-        let primary = ["USA", "Mexico", "France", "Brazil", "Argentina"]
-        let more = ["Belgium", "Spain", "Germany", "Portugal", "England", "Italy"]
-        let names = showMoreCountryChips ? primary + more : primary
-        return names.compactMap { name in
-            guard let code = CountryFlagHelper.countryCode(for: name),
-                  let flag = CountryFlagHelper.flag(for: name) else { return nil }
-            return (name: CountryFlagHelper.displayName(for: name), code: code, flag: flag)
+    private var customSuggestion: TeamPickerOption? {
+        let query = trimmedPickerSearchText
+        guard !query.isEmpty else { return nil }
+        let merged = regionGroups.flatMap { $0.groups }.flatMap(\.options)
+        if merged.contains(where: { $0.displayName.caseInsensitiveCompare(query) == .orderedSame }) {
+            return nil
         }
+        return TeamPickerOption(
+            id: "custom-\(query.lowercased())",
+            displayName: query,
+            shortName: nil,
+            sport: TeamPickerSport.resolve(sportName),
+            mode: pickerMode,
+            region: "Custom",
+            leagueGroup: L10n.t("use_custom_team", languageCode: appLanguageRaw),
+            emoji: "✎",
+            themeHint: "custom"
+        )
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
 
-            HStack(spacing: 9) {
-                if let flag = CountryFlagHelper.flag(for: trimmedText) {
-                    Text(flag)
-                        .font(.title3)
-                } else {
-                    Image(systemName: "magnifyingglass")
+            teamInputRow
+        }
+        .onAppear {
+            pickerMode = SportsTeamPickerData.preferredMode(for: sportName)
+        }
+        .onChange(of: sportName) { _, newSport in
+            pickerMode = SportsTeamPickerData.preferredMode(for: newSport)
+        }
+        .sheet(isPresented: $isPickerPresented) {
+            NavigationStack {
+                pickerSheetContent
+                    .navigationTitle(title)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") {
+                                isPickerPresented = false
+                            }
+                        }
+                    }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var teamInputRow: some View {
+        HStack(spacing: 9) {
+            TextField("Search or enter team/country name", text: Binding(
+                get: { text },
+                set: { value in
+                    onTextChanged(value)
+                }
+            ))
+            .textInputAutocapitalization(.words)
+            .autocorrectionDisabled(false)
+            .font(.subheadline.weight(.semibold))
+
+            if !trimmedText.isEmpty {
+                Button {
+                    onTextChanged("")
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear \(title)")
+            }
 
-                TextField(L10n.t("search_country_or_team", languageCode: appLanguageRaw), text: Binding(
-                    get: { text },
-                    set: { value in
-                        onTextChanged(value)
+            Divider()
+                .frame(height: 22)
+
+            Button {
+                openPicker()
+            } label: {
+                Image(systemName: "globe.americas.fill")
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(FGColor.accentGreen)
+                    .frame(width: 30, height: 34)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open \(title) team picker")
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, minHeight: 48)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(
+                    trimmedText.isEmpty ? FGColor.divider(colorScheme).opacity(0.45) : FGColor.accentGreen.opacity(0.34),
+                    lineWidth: 1
+                )
+        }
+    }
+
+    private var pickerSheetContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            modePicker
+
+            pickerSearchBar
+
+            if !trimmedText.isEmpty {
+                selectedTeamSummary
+            }
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    groupedChipSections
+
+                    if let customSuggestion {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Custom")
+                                .font(.caption2.weight(.heavy))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            suggestionButton(customSuggestion)
+                        }
                     }
-                ))
+                }
+                .padding(.bottom, 20)
+            }
+        }
+        .padding()
+        .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+        .onAppear {
+            pickerSearchText = trimmedText
+        }
+    }
+
+    private var pickerSearchBar: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "magnifyingglass")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+            TextField("Search country or team", text: $pickerSearchText)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled(false)
                 .font(.subheadline.weight(.semibold))
-            }
-            .padding()
-            .background(FGAdaptiveSurface.controlFill)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-            if showSoccerCountryChips {
-                quickCountryChips
-            }
-
-            if isEnabled && !trimmedText.isEmpty && !suggestions.isEmpty {
-                VStack(spacing: 6) {
-                    ForEach(suggestions.prefix(8)) { suggestion in
-                        suggestionButton(suggestion)
-                    }
-                }
-                .padding(8)
-                .background(FGAdaptiveSurface.sheetRoot.opacity(colorScheme == .dark ? 0.58 : 0.84))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
-        }
-    }
-
-    private var quickCountryChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 7) {
-                ForEach(quickCountries, id: \.code) { country in
-                    Button {
-                        select(
-                            ManualVenueTeamSuggestion(
-                                id: "quick-\(country.code)",
-                                title: country.name,
-                                subtitle: L10n.t("Country", languageCode: appLanguageRaw),
-                                type: .country,
-                                countryCode: country.code,
-                                flag: country.flag,
-                                symbol: nil,
-                                tint: FGColor.accentGreen
-                            )
-                        )
-                    } label: {
-                        Text("\(country.flag) \(country.name)")
-                            .font(.caption.weight(.bold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.11))
-                            .clipShape(Capsule(style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-
+            if !trimmedPickerSearchText.isEmpty {
                 Button {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
-                        showMoreCountryChips.toggle()
-                    }
+                    pickerSearchText = ""
                 } label: {
-                    Text(showMoreCountryChips ? L10n.t("less", languageCode: appLanguageRaw) : L10n.t("more_plus", languageCode: appLanguageRaw))
+                    Image(systemName: "xmark.circle.fill")
                         .font(.caption.weight(.bold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.11))
-                        .clipShape(Capsule(style: .continuous))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.vertical, 1)
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func openPicker() {
+        pickerMode = SportsTeamPickerData.preferredMode(for: sportName)
+        pickerSearchText = trimmedText
+        isPickerPresented = true
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 2) {
+            ForEach(TeamPickerMode.allCases) { mode in
+                Button {
+                    withAnimation(.spring(response: 0.22, dampingFraction: 0.86)) {
+                        pickerMode = mode
+                    }
+                } label: {
+                    Text(mode.rawValue)
+                        .font(.caption2.weight(.heavy))
+                        .foregroundStyle(pickerMode == mode ? Color.white : FGColor.secondaryText(colorScheme))
+                        .padding(.horizontal, 8)
+                        .frame(height: 30)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(pickerMode == mode ? FGColor.accentGreen : Color.clear)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(Capsule(style: .continuous))
+    }
+
+    private var selectedTeamSummary: some View {
+        HStack(spacing: 8) {
+            Text(selectedIcon(for: trimmedText))
+                .font(.caption.weight(.bold))
+            Text("Selected: \(trimmedText)")
+                .font(.caption.weight(.bold))
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Button {
+                onTextChanged("")
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.08))
+        .clipShape(Capsule(style: .continuous))
+    }
+
+    private var groupedChipSections: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(regionGroups) { region in
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(region.title)
+                        .font(.subheadline.weight(.heavy))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                    ForEach(region.groups) { group in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(group.title)
+                                .font(.caption2.weight(.heavy))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 7) {
+                                    ForEach(group.options) { option in
+                                        teamChip(option)
+                                    }
+                                }
+                                .padding(.vertical, 1)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private func suggestionButton(_ suggestion: ManualVenueTeamSuggestion) -> some View {
-        Button {
-            select(suggestion)
+    private func teamChip(_ option: TeamPickerOption) -> some View {
+        let selected = isSelected(option)
+        let unavailable = isUnavailable(option)
+        let tint = tint(for: option)
+        return Button {
+            select(option)
+        } label: {
+            HStack(spacing: 5) {
+                if let emoji = option.emoji {
+                    Text(emoji)
+                        .font(.caption)
+                }
+                Text(option.displayName)
+                    .font(.caption.weight(.bold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(selected ? Color.white : tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(selected ? tint : tint.opacity(colorScheme == .dark ? 0.16 : 0.09))
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(selected ? 0.85 : 0.22), lineWidth: selected ? 1.3 : 1)
+            }
+            .opacity(unavailable ? 0.38 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(unavailable)
+    }
+
+    private func suggestionButton(_ option: TeamPickerOption) -> some View {
+        let unavailable = isUnavailable(option)
+        let tint = tint(for: option)
+        return Button {
+            select(option)
         } label: {
             HStack(spacing: 10) {
-                if let flag = suggestion.flag {
-                    Text(flag)
+                if let emoji = option.emoji {
+                    Text(emoji)
                         .font(.title3)
-                        .frame(width: 26)
-                } else if let symbol = suggestion.symbol {
-                    Image(systemName: symbol)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(suggestion.tint)
                         .frame(width: 26)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(suggestion.type == .custom ? String(format: L10n.t("use_custom_team_format", languageCode: appLanguageRaw), suggestion.title) : suggestion.title)
+                    Text(String(format: L10n.t("use_custom_team_format", languageCode: appLanguageRaw), option.displayName))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(1)
-                    Text(suggestion.subtitle)
+                    Text(option.leagueGroup)
                         .font(.caption2)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
@@ -272,19 +395,52 @@ struct ManualTeamAutocompleteView: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .background(suggestion.tint.opacity(colorScheme == .dark ? 0.13 : 0.08))
+            .background(tint.opacity(colorScheme == .dark ? 0.13 : 0.08))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .opacity(unavailable ? 0.42 : 1)
         }
         .buttonStyle(.plain)
+        .disabled(unavailable)
     }
 
-    private func select(_ suggestion: ManualVenueTeamSuggestion) {
+    private func select(_ option: TeamPickerOption) {
+        guard !isUnavailable(option) else { return }
         let selection = ManualVenueTeamSelection(
-            name: suggestion.title,
-            type: suggestion.type,
-            countryCode: suggestion.countryCode
+            name: option.displayName,
+            type: selectionType(for: option),
+            countryCode: option.mode == .countries ? option.themeHint : nil
         )
         text = selection.name
+        pickerSearchText = selection.name
         onSelection(selection)
+        isPickerPresented = false
+    }
+
+    private func isSelected(_ option: TeamPickerOption) -> Bool {
+        trimmedText.localizedCaseInsensitiveCompare(option.displayName) == .orderedSame
+    }
+
+    private func isUnavailable(_ option: TeamPickerOption) -> Bool {
+        let other = unavailableTeamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !other.isEmpty else { return false }
+        return other.localizedCaseInsensitiveCompare(option.displayName) == .orderedSame
+    }
+
+    private func selectionType(for option: TeamPickerOption) -> ManualVenueTeamType {
+        if option.themeHint == "custom" { return .custom }
+        return option.mode == .countries ? .country : .club
+    }
+
+    private func tint(for option: TeamPickerOption) -> Color {
+        if option.themeHint == "custom" { return FGColor.accentBlue }
+        if option.mode == .countries { return FGColor.accentGreen }
+        return sportAccentColor(for: sportName)
+    }
+
+    private func selectedIcon(for name: String) -> String {
+        if let flag = CountryFlagHelper.flag(for: name) {
+            return flag
+        }
+        return pickerMode == .teams ? "✓" : "🌍"
     }
 }
