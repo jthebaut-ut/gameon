@@ -245,6 +245,7 @@ export async function ensureVenueForApprovedClaim(
     const updateRow: Record<string, unknown> = {
       ...payload,
       business_id: biz || null,
+      origin_type: "community",
     }
     logVenuePayloadKeys("update", updateRow)
 
@@ -284,6 +285,7 @@ export async function ensureVenueForApprovedClaim(
     id: crypto.randomUUID(),
     ...payload,
     business_id: biz || null,
+    origin_type: "business",
   }
   logVenuePayloadKeys("insert", insertRow)
 

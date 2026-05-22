@@ -61,6 +61,7 @@ struct VenueOwnerDashboardView: View {
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
 
     @State private var selectedSection: VenueDashboardSection = .overview
 
@@ -108,6 +109,9 @@ struct VenueOwnerDashboardView: View {
     @State private var selectedMenuPhoto: PhotosPickerItem?
     @State private var showVenuePinPicker = false
     @State private var showVenueSupporterPicker = false
+    @State private var showDeleteVenueConfirmation = false
+    @State private var isDeletingVenue = false
+    @State private var venueDeleteError = ""
     /// URLs used only for Bar/Menu previews (may include `?v=` / `&v=` cache bust). Supabase / viewModel URLs stay clean.
     @State private var displayedCoverPhotoURL = ""
     @State private var displayedMenuPhotoURL = ""
@@ -401,33 +405,37 @@ struct VenueOwnerDashboardView: View {
             Task { await loadVenueAnalytics() }
         }
         .task(id: viewModel.ownerVenueDatabaseId) {
+            let managed = await MainActor.run { viewModel.managedVenuesForOwner() }
+            guard !managed.isEmpty else {
+                await MainActor.run {
+#if DEBUG
+                    print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+                    viewModel.clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: viewModel.ownerVenueDatabaseId)
+                    clearLocalVenueProfileFieldsForEmptyState()
+                }
+                return
+            }
+
+            guard let selectedVenueID = await MainActor.run(body: { viewModel.ownerVenueDatabaseId }),
+                  managed.contains(where: { $0.id == selectedVenueID }) else {
+                await MainActor.run {
+                    let stale = viewModel.ownerVenueDatabaseId
+                    viewModel.clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: stale)
+                    clearLocalVenueProfileFieldsForEmptyState()
+                }
+                return
+            }
+
             if let saved = await viewModel.loadVenueProfile() {
                 await MainActor.run {
                     viewModel.applyVenueProfileRowToOwnerState(saved)
-
-                    venueStreetAddress = saved.address ?? ""
-                    venueAddressLine2 = saved.address_line2 ?? ""
-                    venueCity = saved.city ?? ""
-                    venueState = saved.state ?? ""
-                    venueZipCode = saved.zip_code ?? ""
-                    venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
-                    venueLatitude = saved.latitude
-                    venueLongitude = saved.longitude
-                    venueFormattedAddress = saved.formatted_address ?? ""
-
-                    totalScreens = saved.screen_count ?? 1
-                    hasFood = saved.serves_food ?? false
-                    hasWifi = saved.has_wifi ?? false
-                    hasGarden = saved.has_garden ?? false
-                    hasProjector = saved.has_projector ?? false
-                    isPetFriendly = saved.pet_friendly ?? false
-                    syncModernFeatureToggles(from: saved.features ?? "")
+                    applyVenueProfileToLocalEditorFields(saved)
                 }
             } else {
                 await MainActor.run {
-                    if viewModel.managedVenuesForOwner().isEmpty {
-                        viewModel.ownerVenueDatabaseId = nil
-                    }
+                    viewModel.clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: selectedVenueID)
+                    clearLocalVenueProfileFieldsForEmptyState()
                     if viewModel.pendingClaimVenueID != nil {
                         let street = viewModel.ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines)
                         if venueStreetAddress.isEmpty, !street.isEmpty {
@@ -482,6 +490,16 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
             print("[InternationalAddressDebug] selectedCountry=\(BusinessLocationCountryPolicy.normalizedStoredCountryCode(newCountry))")
 #endif
+        }
+        .alert(venueRemovalConfirmationTitle, isPresented: $showDeleteVenueConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button(venueRemovalActionTitle, role: .destructive) {
+                Task {
+                    await performDeleteSelectedVenue()
+                }
+            }
+        } message: {
+            Text(venueRemovalConfirmationMessage)
         }
         .sheet(isPresented: $showVenuePinPicker) {
             BusinessVenueLocationPinPickerView(
@@ -665,14 +683,10 @@ struct VenueOwnerDashboardView: View {
                 }
             },
             onMenu: {
-                withAnimation(.spring()) {
-                    selectedSection = .profile
-                }
+                openBusinessDashboardVenueDetailsOrAddVenue()
             },
             onAddGame: {
-                withAnimation(.spring()) {
-                    selectedSection = .profile
-                }
+                openBusinessDashboardVenueDetailsOrAddVenue()
             },
             onAddVenue: {
                 openAddLocationFromBusinessDashboard()
@@ -703,7 +717,7 @@ struct VenueOwnerDashboardView: View {
             venueName: businessDashboardVenueName,
             locationLine: businessDashboardLocationLine,
             isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
-            managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
+            managedVenueCount: viewModel.managedVenuesForOwner().count,
             venuePhotoURL: nil,
             venuePhotoThumbnailURL: nil,
             fansGoing: businessDashboardFansGoing,
@@ -862,6 +876,13 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func openBusinessDashboardGames(tab: ManageGamesListTab) {
+        guard !viewModel.managedVenuesForOwner().isEmpty else {
+#if DEBUG
+            print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+            openAddLocationFromBusinessDashboard()
+            return
+        }
         guard !venueOwnerGamesAndAnalyticsLocked else { return }
         clearManageGamesBanners()
         manageGamesListTab = tab
@@ -870,6 +891,19 @@ struct VenueOwnerDashboardView: View {
         }
         withAnimation(.spring()) {
             selectedSection = .games
+        }
+    }
+
+    private func openBusinessDashboardVenueDetailsOrAddVenue() {
+        guard !viewModel.managedVenuesForOwner().isEmpty else {
+#if DEBUG
+            print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+            openAddLocationFromBusinessDashboard()
+            return
+        }
+        withAnimation(.spring()) {
+            selectedSection = .profile
         }
     }
 
@@ -934,6 +968,55 @@ struct VenueOwnerDashboardView: View {
         venueLongitude = draft.longitude
         venueFormattedAddress = draft.formattedAddress ?? draft.displayAddress
     }
+
+    @MainActor
+    private func applyVenueProfileToLocalEditorFields(_ saved: VenueProfileRow) {
+        venueStreetAddress = saved.address ?? ""
+        venueAddressLine2 = saved.address_line2 ?? ""
+        venueCity = saved.city ?? ""
+        venueState = saved.state ?? ""
+        venueZipCode = saved.zip_code ?? ""
+        venueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
+        venueLatitude = saved.latitude
+        venueLongitude = saved.longitude
+        venueFormattedAddress = saved.formatted_address ?? ""
+
+        totalScreens = saved.screen_count ?? 1
+        hasFood = saved.serves_food ?? false
+        hasWifi = saved.has_wifi ?? false
+        hasGarden = saved.has_garden ?? false
+        hasProjector = saved.has_projector ?? false
+        isPetFriendly = saved.pet_friendly ?? false
+        syncModernFeatureToggles(from: saved.features ?? "")
+        syncDisplayedVenuePhotoURLsFromViewModel()
+    }
+
+    @MainActor
+    private func clearLocalVenueProfileFieldsForEmptyState() {
+        venueStreetAddress = ""
+        venueAddressLine2 = ""
+        venueCity = ""
+        venueState = ""
+        venueZipCode = ""
+        venueCountry = BusinessLocationCountryPolicy.defaultCountryCode
+        venueLatitude = nil
+        venueLongitude = nil
+        venueFormattedAddress = ""
+        totalScreens = 1
+        hasFood = false
+        hasWifi = false
+        hasGarden = false
+        hasProjector = false
+        isPetFriendly = false
+        displayedCoverPhotoURL = ""
+        displayedMenuPhotoURL = ""
+        selectedCoverPhoto = nil
+        selectedMenuPhoto = nil
+        myVenueGamesForManage = []
+        manageGamesListLoading = false
+        manageGamesRefreshInFlight = false
+        clearManageGamesBanners()
+    }
     
     private var profileSection: some View {
         dashboardCard(
@@ -942,6 +1025,9 @@ struct VenueOwnerDashboardView: View {
                 ? "Editable items save to the venue selected above."
                 : "Basic listing information"
         ) {
+            if shouldShowVenueDetailsEmptyState {
+                noVenueYetEmptyState
+            } else {
             if venueCoreIdentityLocked {
                 venueFanGeoVerifiedExplainerCard()
             }
@@ -1084,7 +1170,198 @@ struct VenueOwnerDashboardView: View {
                     .foregroundStyle(.green)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
+
+            if !venueDeleteError.isEmpty {
+                Text(venueDeleteError)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.dangerRed)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+
+            deleteVenueDangerZone
+            }
         }
+    }
+
+    private var shouldShowVenueDetailsEmptyState: Bool {
+        guard let selectedVenueID = viewModel.ownerVenueDatabaseId else { return true }
+        return !viewModel.managedVenuesForOwner().contains { $0.id == selectedVenueID }
+    }
+
+    private var selectedManagedVenueForRemoval: VenueProfileRow? {
+        guard let selectedVenueID = viewModel.ownerVenueDatabaseId else { return nil }
+        return viewModel.managedVenuesForOwner().first { $0.id == selectedVenueID }
+    }
+
+    private var selectedVenueIsCommunityClaim: Bool {
+        selectedManagedVenueForRemoval?.origin_type?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "community"
+    }
+
+    private var venueRemovalActionTitle: String {
+        selectedVenueIsCommunityClaim ? "Remove From My Business" : "Delete Venue"
+    }
+
+    private var venueRemovalProgressTitle: String {
+        selectedVenueIsCommunityClaim ? "Removing From My Business..." : "Deleting Venue..."
+    }
+
+    private var venueRemovalConfirmationTitle: String {
+        selectedVenueIsCommunityClaim ? "Remove venue from your business?" : "Delete Venue?"
+    }
+
+    private var venueRemovalTint: Color {
+        selectedVenueIsCommunityClaim ? .orange : FGColor.dangerRed
+    }
+
+    private var noVenueYetEmptyState: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+            .frame(width: 52, height: 52)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("No venue yet")
+                    .font(.headline.weight(.heavy))
+                    .foregroundStyle(.primary)
+                Text("Add your first venue to manage details and games.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                openAddLocationFromBusinessDashboard()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.subheadline.weight(.bold))
+                    Text("Add Venue")
+                        .font(.subheadline.weight(.heavy))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(FGColor.accentGreen)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color(.separator).opacity(0.35), lineWidth: 1)
+        )
+        .onAppear {
+            if viewModel.managedVenuesForOwner().isEmpty {
+#if DEBUG
+                print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+            }
+        }
+    }
+
+    private var deleteVenueDangerZone: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+                .padding(.vertical, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(venueRemovalActionTitle)
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(venueRemovalTint)
+                Text(selectedVenueIsCommunityClaim
+                    ? "Remove your ownership, photos, games, and business details from this venue."
+                    : "Permanently remove this venue, its games, fan chats, attendance, reactions, saved-venue links, stats, and uploaded venue photos. This does not delete the business account.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button {
+                venueDeleteError = ""
+                showDeleteVenueConfirmation = true
+            } label: {
+                HStack(spacing: 8) {
+                    if isDeletingVenue {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                    } else {
+                        Image(systemName: selectedVenueIsCommunityClaim ? "arrow.uturn.left.circle.fill" : "trash.fill")
+                            .font(.caption.weight(.heavy))
+                    }
+                    Text(isDeletingVenue ? venueRemovalProgressTitle : venueRemovalActionTitle)
+                        .font(.subheadline.weight(.heavy))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(venueRemovalTint)
+                .foregroundStyle(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: venueRemovalTint.opacity(colorScheme == .dark ? 0.24 : 0.18), radius: 10, y: 4)
+            }
+            .buttonStyle(.plain)
+            .disabled(isDeletingVenue || viewModel.ownerVenueDatabaseId == nil)
+            .opacity(viewModel.ownerVenueDatabaseId == nil ? 0.55 : 1)
+            .accessibilityHint(selectedVenueIsCommunityClaim
+                ? "Releases this venue back to the community marketplace."
+                : "Permanently deletes only this venue and linked venue data.")
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(venueRemovalTint.opacity(0.24), lineWidth: 1)
+        )
+    }
+
+    private var venueRemovalConfirmationMessage: String {
+        if selectedVenueIsCommunityClaim {
+            return "This removes your ownership, photos, games, and business details from this venue and returns it to the FanGeo community marketplace so another business can claim it."
+        }
+        return "This permanently deletes the venue and all linked content."
+    }
+
+    @MainActor
+    private func performDeleteSelectedVenue() async {
+        guard let venueId = viewModel.ownerVenueDatabaseId else {
+            venueDeleteError = "Select a venue first."
+            return
+        }
+
+        isDeletingVenue = true
+        venueDeleteError = ""
+        profileSaveMessage = ""
+
+        do {
+            let result = try await viewModel.releaseOrDeleteBusinessVenue(venueId: venueId)
+            profileSaveMessage = result.releasedCommunityVenue ? "Venue released successfully." : "Venue deleted successfully."
+            syncDisplayedVenuePhotoURLsFromViewModel()
+            selectedCoverPhoto = nil
+            selectedMenuPhoto = nil
+
+            if entryPoint == .profileEditor {
+                try? await Task.sleep(nanoseconds: 450_000_000)
+                dismiss()
+            } else if effectiveSection == .profile {
+                selectedSection = .overview
+            }
+        } catch {
+            venueDeleteError = error.localizedDescription
+        }
+
+        isDeletingVenue = false
     }
 
     private func venueSupporterCountryEditor() -> some View {

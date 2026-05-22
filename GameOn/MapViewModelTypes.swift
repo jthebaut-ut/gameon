@@ -446,6 +446,8 @@ struct VenueProfileRow: Decodable {
     let business_id: UUID?
     /// Duplicate-protection identity key used for safe venue dedupe / merge logic.
     let venue_identity_key: String?
+    /// `community` venues are released back to marketplace; `business` venues may be hard-deleted.
+    let origin_type: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
     let supporter_country: String?
@@ -492,6 +494,8 @@ struct VenueRow: Decodable {
     let business_id: UUID?
     /// Duplicate-protection identity key used for safe venue dedupe / merge logic.
     let venue_identity_key: String?
+    /// `community` venues are released back to marketplace; `business` venues may be hard-deleted.
+    let origin_type: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
     let supporter_country: String?

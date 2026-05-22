@@ -156,6 +156,10 @@ struct BusinessVenueDashboardOverviewView: View {
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
 
+    private var hasManagedVenues: Bool {
+        data.managedVenueCount > 0
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             quickActions
@@ -178,11 +182,13 @@ struct BusinessVenueDashboardOverviewView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
                     BusinessVenueDashboardActionCard(title: L10n.t("add_venue", languageCode: appLanguageRaw), systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
-                    BusinessVenueDashboardActionCard(title: L10n.t("manage_games", languageCode: appLanguageRaw), systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
-                    BusinessVenueDashboardActionCard(title: L10n.t("statistics", languageCode: appLanguageRaw), systemImage: "chart.bar.xaxis", tint: Color.orange, action: onAnalytics)
-                    BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
+                    if hasManagedVenues {
+                        BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
+                        BusinessVenueDashboardActionCard(title: L10n.t("manage_games", languageCode: appLanguageRaw), systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
+                        BusinessVenueDashboardActionCard(title: L10n.t("statistics", languageCode: appLanguageRaw), systemImage: "chart.bar.xaxis", tint: Color.orange, action: onAnalytics)
+                        BusinessVenueDashboardActionCard(title: "Flagged Comments", systemImage: "exclamationmark.bubble", tint: Color.gray, action: onCommentsReports)
+                    }
                 }
                 .padding(.vertical, 3)
             }
@@ -203,9 +209,11 @@ struct BusinessVenueDashboardOverviewView: View {
                     .font(FGTypography.cardTitle.weight(.bold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                 Spacer()
-                Button(L10n.t("view_all", languageCode: appLanguageRaw), action: onViewAllGames)
-                    .font(FGTypography.caption.weight(.bold))
-                    .foregroundStyle(FGColor.accentBlue)
+                if hasManagedVenues {
+                    Button(L10n.t("view_all", languageCode: appLanguageRaw), action: onViewAllGames)
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
             }
 
             VStack(spacing: 0) {
@@ -234,19 +242,22 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private var emptyTonightState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(data.gameSectionContext.label.title(languageCode: appLanguageRaw))
+            Text(hasManagedVenues ? data.gameSectionContext.label.title(languageCode: appLanguageRaw) : "No venue yet")
                 .font(FGTypography.cardTitle)
                 .foregroundStyle(FGColor.primaryText(colorScheme))
-            Text("Add a game to turn this dashboard into a live fan hub.")
+            Text(hasManagedVenues ? "Add a game to turn this dashboard into a live fan hub." : "Add your first venue to manage details and games.")
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
-            Button(action: onTonightGames) {
-                Label(L10n.t("manage_games", languageCode: appLanguageRaw), systemImage: "sportscourt")
+            Button(action: hasManagedVenues ? onTonightGames : handleAddVenueTapped) {
+                Label(
+                    hasManagedVenues ? L10n.t("manage_games", languageCode: appLanguageRaw) : L10n.t("add_venue", languageCode: appLanguageRaw),
+                    systemImage: hasManagedVenues ? "sportscourt" : "plus.circle.fill"
+                )
                     .font(FGTypography.caption.weight(.bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
-            .background(FGColor.brandGradient)
+                    .background(FGColor.brandGradient)
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)

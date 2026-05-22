@@ -438,7 +438,7 @@ struct SettingsScreen: View {
 
                                     settingsRowDivider()
 
-                                    Button { venueOwnerDashboardSheet = .manageVenue } label: {
+                                    Button { openBusinessVenueToolRoute(.manageVenue) } label: {
                                         settingsRow(
                                             title: L10n.t("venue_details", languageCode: appLanguageRaw),
                                             subtitle: "Photos, amenities, and venue profile.",
@@ -450,7 +450,7 @@ struct SettingsScreen: View {
                                     if settingsVenueClaimApprovedForStatusRow() {
                                         settingsRowDivider()
 
-                                        Button { venueOwnerDashboardSheet = .manageGames } label: {
+                                        Button { openBusinessVenueToolRoute(.manageGames) } label: {
                                             settingsRow(
                                                 title: L10n.t("manage_games", languageCode: appLanguageRaw),
                                                 subtitle: "Schedule or cancel games.",
@@ -647,7 +647,7 @@ struct SettingsScreen: View {
                 viewModel: viewModel,
                 venuePassword: $venuePassword,
                 showVenueRegisterMode: $showVenueRegisterMode,
-                onRequestVenueProfileDashboard: { venueOwnerDashboardSheet = .manageVenue }
+                onRequestVenueProfileDashboard: { openBusinessVenueToolRoute(.manageVenue) }
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
@@ -1627,16 +1627,16 @@ struct SettingsScreen: View {
                 showReportedCommentsSheet = true
             },
             onMenu: {
-                venueOwnerDashboardSheet = .manageVenue
+                openBusinessVenueToolRoute(.manageVenue)
             },
             onAddGame: {
-                venueOwnerDashboardSheet = .manageVenue
+                openBusinessVenueToolRoute(.manageVenue)
             },
             onAddVenue: {
                 openAddLocationFromBusinessDashboard()
             },
             onTonightGames: {
-                venueOwnerDashboardSheet = .manageGames
+                openBusinessVenueToolRoute(.manageGames)
             },
             onPredictions: {
                 venueOwnerDashboardSheet = .statistics
@@ -1648,7 +1648,7 @@ struct SettingsScreen: View {
                 showReportedCommentsSheet = true
             },
             onViewAllGames: {
-                venueOwnerDashboardSheet = .manageGames
+                openBusinessVenueToolRoute(.manageGames)
             }
         )
         .onAppear {
@@ -1671,7 +1671,7 @@ struct SettingsScreen: View {
             venueName: settingsBusinessDashboardVenueName,
             locationLine: settingsBusinessDashboardLocationLine,
             isVerified: viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved,
-            managedVenueCount: max(1, viewModel.managedVenuesForOwner().count),
+            managedVenueCount: viewModel.managedVenuesForOwner().count,
             venuePhotoURL: nil,
             venuePhotoThumbnailURL: nil,
             fansGoing: settingsBusinessDashboardFansGoing,
@@ -2167,6 +2167,22 @@ struct SettingsScreen: View {
         addLocationSubmitBanner = nil
         addLocationSheetFormState.reset(reason: "open")
         showAddLocationSheet = true
+    }
+
+    private func openBusinessVenueToolRoute(_ route: VenueOwnerDashboardSheetRoute) {
+        switch route {
+        case .manageVenue, .manageGames:
+            guard !viewModel.managedVenuesForOwner().isEmpty else {
+#if DEBUG
+                print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+                openAddLocationFromBusinessDashboard()
+                return
+            }
+            venueOwnerDashboardSheet = route
+        case .businessDashboard, .statistics:
+            venueOwnerDashboardSheet = route
+        }
     }
 
     private func openAddLocationFromBusinessDashboard() {

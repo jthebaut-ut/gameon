@@ -7,6 +7,90 @@ private struct VenueEventAdminArchivePatch: Encodable {
     let admin_status: String
 }
 
+private struct ReleaseOrDeleteBusinessVenueParams: Encodable {
+    let p_venue_id: UUID
+}
+
+struct BusinessVenueReleaseOrDeleteResult: Decodable {
+    let ok: Bool
+    let action: String?
+    let venue_retained: Bool?
+    let claim_released: Bool?
+    let business_fields_cleared: Bool?
+    let storage_paths_returned: Int?
+    let venue_id: UUID?
+    let business_id: UUID?
+    let deleted_event_ids: [UUID]?
+    let deleted_storage_paths: [String]?
+
+    var releasedCommunityVenue: Bool {
+        venue_retained == true || normalizedAction == "release"
+    }
+
+    var normalizedAction: String {
+        action?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
+private struct BusinessVenueDeletionLocalSnapshot {
+    let ownerVenueDatabaseId: UUID?
+    let ownedBusinessVenues: [VenueProfileRow]
+    let legacyOwnerVenuesForEmailFallback: [VenueProfileRow]
+    let bars: [BarVenue]
+    let selectedBar: BarVenue?
+    let selectedEvent: SportsEvent?
+    let followingTabSavedVenues: [BarVenue]
+    let favoriteVenueIDs: Set<UUID>
+    let followingTabGoingItems: [FollowingGoingDisplayItem]
+    let followingTabGoingInterestCounts: [UUID: Int]
+    let venueEventRows: [VenueEventRow]
+    let venueEventIDsByKey: [String: UUID]
+    let venueEventInterestIDs: Set<UUID>
+    let venueEventInterestCounts: [UUID: Int]
+    let goingProfilesByVenueEventID: [UUID: [UserProfileRow]]
+    let venueEventPredictionSummaries: [UUID: VenueEventPredictionSummary]
+    let ownerVenueName: String
+    let ownerVenueAddress: String
+    let ownerVenueAddressLine2: String
+    let ownerVenueCity: String
+    let ownerVenueState: String
+    let ownerVenueZipCode: String
+    let ownerVenueCountry: String
+    let ownerVenuePhoneDialISO: String
+    let ownerVenuePhone: String
+    let ownerVenueWebsite: String
+    let ownerVenueDescription: String
+    let ownerVenueFeatures: String
+    let ownerVenueSupporterCountry: String
+    let ownerVenueScreenCount: Int
+    let ownerVenueServesFood: Bool
+    let ownerVenueHasWifi: Bool
+    let ownerVenueHasGarden: Bool
+    let ownerVenueHasProjector: Bool
+    let ownerVenuePetFriendly: Bool
+    let venueCoverPhotoURL: String
+    let venueMenuPhotoURL: String
+    let venueCoverPhotoThumbnailURL: String
+    let venueMenuPhotoThumbnailURL: String
+}
+
+private enum BusinessVenueDeletionError: LocalizedError {
+    case notSignedIn
+    case missingVenue
+    case serverRejected
+
+    var errorDescription: String? {
+        switch self {
+        case .notSignedIn:
+            return "Sign in as the business owner to manage this venue."
+        case .missingVenue:
+            return "Select a venue first."
+        case .serverRejected:
+            return "The venue change did not complete. Please try again."
+        }
+    }
+}
+
 // Venue-owner auth, `venue_claims` workflow, venue profile CRUD in `venues`, photo uploads, and related listings.
 
 extension MapViewModel {
@@ -1276,6 +1360,7 @@ extension MapViewModel {
     private static func isPendingUnapprovedClaimStatus(_ status: String?) -> Bool {
         let s = status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
         if isApprovedClaimStatus(status) { return false }
+        if s == "released" { return false }
         if s.contains("reject") { return false }
         return true
     }
@@ -1318,7 +1403,37 @@ extension MapViewModel {
 
     private struct VenueClaimVenueLinkRow: Decodable {
         let venue_id: UUID?
+        let business_id: UUID?
         let approval_status: String?
+    }
+
+    /// Businesses referenced by approved claims for this owner. Covers community venues where
+    /// `venues.business_id` / `venues.owner_email` remain nil and ownership lives only on `venue_claims`.
+    private func loadBusinessesLinkedFromApprovedClaims(ownerEmail: String) async throws -> [BusinessRow] {
+        let ownerEmailNorm = OwnerBusinessEmail.normalized(ownerEmail)
+        guard OwnerBusinessEmail.isValidStrict(ownerEmailNorm) else { return [] }
+
+        let links: [VenueClaimVenueLinkRow] = try await supabase
+            .from("venue_claims")
+            .select("venue_id,business_id,approval_status")
+            .eq("owner_email", value: ownerEmailNorm)
+            .limit(120)
+            .execute()
+            .value
+
+        let businessIds = Array(Set(links.compactMap { row -> UUID? in
+            guard Self.isApprovedClaimStatus(row.approval_status) else { return nil }
+            return row.business_id
+        }))
+        guard !businessIds.isEmpty else { return [] }
+
+        return try await supabase
+            .from("businesses")
+            .select("id,display_name,owner_email,owner_user_id,admin_status,created_at")
+            .in("id", values: businessIds.map(\.uuidString))
+            .eq("admin_status", value: "active")
+            .execute()
+            .value
     }
 
     /// Venues referenced by approved claims: by `owner_email`, then by `business_id` for loaded businesses (covers email drift).
@@ -1329,7 +1444,7 @@ extension MapViewModel {
         if OwnerBusinessEmail.isValidStrict(ownerEmailNorm) {
             let links: [VenueClaimVenueLinkRow] = try await supabase
                 .from("venue_claims")
-                .select("venue_id,approval_status")
+                .select("venue_id,business_id,approval_status")
                 .eq("owner_email", value: ownerEmailNorm)
                 .limit(120)
                 .execute()
@@ -1344,7 +1459,7 @@ extension MapViewModel {
             let idStrings = businessIds.map(\.uuidString)
             let links: [VenueClaimVenueLinkRow] = try await supabase
                 .from("venue_claims")
-                .select("venue_id,approval_status")
+                .select("venue_id,business_id,approval_status")
                 .in("business_id", values: idStrings)
                 .limit(120)
                 .execute()
@@ -1887,6 +2002,348 @@ extension MapViewModel {
         print("[VenuePhotoSaveDebug] cacheUpdatedPhotoURL=\(saved.cover_photo_url ?? "")")
     }
 
+    @MainActor
+    func clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: UUID?) {
+        let venueToken = deletedSelectedVenue?.uuidString.lowercased() ?? "nil"
+#if DEBUG
+        print("[VenueOwnerEmptyStateDebug] clearedDeletedSelectedVenue=\(venueToken)")
+#endif
+        ownerVenueDatabaseId = nil
+        persistSelectedVenueId(nil)
+        clearSelectedVenueDraftFieldsAfterDeletion()
+    }
+
+    /// Business self-service release/delete for one managed venue. The RPC does the database work transactionally;
+    /// local UI is removed optimistically and restored if the RPC fails.
+    func releaseOrDeleteBusinessVenue(venueId: UUID) async throws -> BusinessVenueReleaseOrDeleteResult {
+        guard hasAuthenticatedVenueOwnerSession else {
+            throw BusinessVenueDeletionError.notSignedIn
+        }
+
+        let modeDebug = await MainActor.run {
+            let rawOrigin = (ownedBusinessVenues + legacyOwnerVenuesForEmailFallback)
+                .first { $0.id == venueId }?
+                .origin_type?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            let originType = rawOrigin == "community" ? "community" : "business"
+            return (
+                originType: originType,
+                action: originType == "community" ? "release" : "hardDelete"
+            )
+        }
+#if DEBUG
+        print("[VenueDeleteModeDebug] originType=\(modeDebug.originType) action=\(modeDebug.action)")
+#endif
+
+        let eventIDsBeforeRPC = await MainActor.run {
+            Set(venueEventRows.compactMap { row -> UUID? in
+                guard row.venue_id == venueId else { return nil }
+                return row.id
+            })
+        }
+
+        await stopVenueOwnerAnalyticsRealtime()
+        await removeAllVenueEventCommentsRealtimeListeners()
+        for eventID in eventIDsBeforeRPC {
+            await stopVenueEventPredictionRealtime(for: eventID)
+        }
+
+        let snapshot = await MainActor.run {
+            applyOptimisticBusinessVenueDeletion(venueId: venueId, deletedEventIDs: eventIDsBeforeRPC)
+        }
+
+        let response: BusinessVenueReleaseOrDeleteResult
+        do {
+            response = try await supabase
+                .rpc(
+                    "release_or_delete_business_venue",
+                    params: ReleaseOrDeleteBusinessVenueParams(p_venue_id: venueId)
+                )
+                .execute()
+                .value
+        } catch {
+            await MainActor.run {
+                restoreBusinessVenueDeletionSnapshot(snapshot)
+            }
+            throw error
+        }
+
+        guard response.ok else {
+            await MainActor.run {
+                restoreBusinessVenueDeletionSnapshot(snapshot)
+            }
+            throw BusinessVenueDeletionError.serverRejected
+        }
+
+#if DEBUG
+        if response.releasedCommunityVenue {
+            print("[VenueReleaseVerify] venueRetained=\(response.venue_retained == true)")
+            print("[VenueReleaseVerify] claimReleased=\(response.claim_released == true)")
+            print("[VenueReleaseVerify] businessFieldsCleared=\(response.business_fields_cleared == true)")
+            print("[VenueReleaseVerify] storagePathsReturned=\(response.storage_paths_returned ?? response.deleted_storage_paths?.count ?? 0)")
+        }
+#endif
+
+        await deleteBusinessVenueStorageObjectsBestEffort(paths: response.deleted_storage_paths ?? [])
+
+        let deletedEventIDs = eventIDsBeforeRPC.union(Set(response.deleted_event_ids ?? []))
+        for eventID in deletedEventIDs {
+            await stopVenueEventPredictionRealtime(for: eventID)
+            await stopVenueEventCommentReactionRefresh(for: eventID)
+            await stopVenueEventCommentsRealtime(for: eventID)
+        }
+
+        let deletedURLs = await MainActor.run {
+            finalizeLocalBusinessVenueDeletion(venueId: venueId, deletedEventIDs: deletedEventIDs)
+        }
+        await DiscoverMapImageCache.shared.invalidate(urls: deletedURLs)
+
+        await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        await loadVenuesFromSupabase(forceRefresh: true)
+        return response
+    }
+
+    private func deleteBusinessVenueStorageObjectsBestEffort(paths: [String]) async {
+        let deletedStoragePaths = paths.filter { !$0.isEmpty }
+        guard !deletedStoragePaths.isEmpty else { return }
+
+#if DEBUG
+        for path in deletedStoragePaths {
+            print("[VenueDeleteStorageDebug] deletingPath=\(path)")
+        }
+#endif
+        do {
+            try await supabase.storage
+                .from("venue-photos")
+                .remove(paths: deletedStoragePaths)
+#if DEBUG
+            print("[VenueDeleteStorageCleanup] removed count=\(deletedStoragePaths.count)")
+#endif
+        } catch {
+#if DEBUG
+            print("[VenueDeleteStorageCleanup] failed count=\(deletedStoragePaths.count) error=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    @MainActor
+    private func applyOptimisticBusinessVenueDeletion(
+        venueId: UUID,
+        deletedEventIDs: Set<UUID>
+    ) -> BusinessVenueDeletionLocalSnapshot {
+        let snapshot = BusinessVenueDeletionLocalSnapshot(
+            ownerVenueDatabaseId: ownerVenueDatabaseId,
+            ownedBusinessVenues: ownedBusinessVenues,
+            legacyOwnerVenuesForEmailFallback: legacyOwnerVenuesForEmailFallback,
+            bars: bars,
+            selectedBar: selectedBar,
+            selectedEvent: selectedEvent,
+            followingTabSavedVenues: followingTabSavedVenues,
+            favoriteVenueIDs: favoriteVenueIDs,
+            followingTabGoingItems: followingTabGoingItems,
+            followingTabGoingInterestCounts: followingTabGoingInterestCounts,
+            venueEventRows: venueEventRows,
+            venueEventIDsByKey: venueEventIDsByKey,
+            venueEventInterestIDs: venueEventInterestIDs,
+            venueEventInterestCounts: venueEventInterestCounts,
+            goingProfilesByVenueEventID: goingProfilesByVenueEventID,
+            venueEventPredictionSummaries: venueEventPredictionSummaries,
+            ownerVenueName: ownerVenueName,
+            ownerVenueAddress: ownerVenueAddress,
+            ownerVenueAddressLine2: ownerVenueAddressLine2,
+            ownerVenueCity: ownerVenueCity,
+            ownerVenueState: ownerVenueState,
+            ownerVenueZipCode: ownerVenueZipCode,
+            ownerVenueCountry: ownerVenueCountry,
+            ownerVenuePhoneDialISO: ownerVenuePhoneDialISO,
+            ownerVenuePhone: ownerVenuePhone,
+            ownerVenueWebsite: ownerVenueWebsite,
+            ownerVenueDescription: ownerVenueDescription,
+            ownerVenueFeatures: ownerVenueFeatures,
+            ownerVenueSupporterCountry: ownerVenueSupporterCountry,
+            ownerVenueScreenCount: ownerVenueScreenCount,
+            ownerVenueServesFood: ownerVenueServesFood,
+            ownerVenueHasWifi: ownerVenueHasWifi,
+            ownerVenueHasGarden: ownerVenueHasGarden,
+            ownerVenueHasProjector: ownerVenueHasProjector,
+            ownerVenuePetFriendly: ownerVenuePetFriendly,
+            venueCoverPhotoURL: venueCoverPhotoURL,
+            venueMenuPhotoURL: venueMenuPhotoURL,
+            venueCoverPhotoThumbnailURL: venueCoverPhotoThumbnailURL,
+            venueMenuPhotoThumbnailURL: venueMenuPhotoThumbnailURL
+        )
+
+        removeVenueFromLocalCollections(venueId: venueId, deletedEventIDs: deletedEventIDs)
+        applySelectedVenueAfterBusinessLoad()
+        if ownerVenueDatabaseId == nil {
+            clearSelectedVenueDraftFieldsAfterDeletion()
+        }
+        return snapshot
+    }
+
+    @MainActor
+    private func restoreBusinessVenueDeletionSnapshot(_ snapshot: BusinessVenueDeletionLocalSnapshot) {
+        ownerVenueDatabaseId = snapshot.ownerVenueDatabaseId
+        ownedBusinessVenues = snapshot.ownedBusinessVenues
+        legacyOwnerVenuesForEmailFallback = snapshot.legacyOwnerVenuesForEmailFallback
+        bars = snapshot.bars
+        selectedBar = snapshot.selectedBar
+        selectedEvent = snapshot.selectedEvent
+        followingTabSavedVenues = snapshot.followingTabSavedVenues
+        favoriteVenueIDs = snapshot.favoriteVenueIDs
+        followingTabGoingItems = snapshot.followingTabGoingItems
+        followingTabGoingInterestCounts = snapshot.followingTabGoingInterestCounts
+        venueEventRows = snapshot.venueEventRows
+        venueEventIDsByKey = snapshot.venueEventIDsByKey
+        venueEventInterestIDs = snapshot.venueEventInterestIDs
+        venueEventInterestCounts = snapshot.venueEventInterestCounts
+        goingProfilesByVenueEventID = snapshot.goingProfilesByVenueEventID
+        venueEventPredictionSummaries = snapshot.venueEventPredictionSummaries
+        ownerVenueName = snapshot.ownerVenueName
+        ownerVenueAddress = snapshot.ownerVenueAddress
+        ownerVenueAddressLine2 = snapshot.ownerVenueAddressLine2
+        ownerVenueCity = snapshot.ownerVenueCity
+        ownerVenueState = snapshot.ownerVenueState
+        ownerVenueZipCode = snapshot.ownerVenueZipCode
+        ownerVenueCountry = snapshot.ownerVenueCountry
+        ownerVenuePhoneDialISO = snapshot.ownerVenuePhoneDialISO
+        ownerVenuePhone = snapshot.ownerVenuePhone
+        ownerVenueWebsite = snapshot.ownerVenueWebsite
+        ownerVenueDescription = snapshot.ownerVenueDescription
+        ownerVenueFeatures = snapshot.ownerVenueFeatures
+        ownerVenueSupporterCountry = snapshot.ownerVenueSupporterCountry
+        ownerVenueScreenCount = snapshot.ownerVenueScreenCount
+        ownerVenueServesFood = snapshot.ownerVenueServesFood
+        ownerVenueHasWifi = snapshot.ownerVenueHasWifi
+        ownerVenueHasGarden = snapshot.ownerVenueHasGarden
+        ownerVenueHasProjector = snapshot.ownerVenueHasProjector
+        ownerVenuePetFriendly = snapshot.ownerVenuePetFriendly
+        venueCoverPhotoURL = snapshot.venueCoverPhotoURL
+        venueMenuPhotoURL = snapshot.venueMenuPhotoURL
+        venueCoverPhotoThumbnailURL = snapshot.venueCoverPhotoThumbnailURL
+        venueMenuPhotoThumbnailURL = snapshot.venueMenuPhotoThumbnailURL
+        persistSelectedVenueId(snapshot.ownerVenueDatabaseId)
+    }
+
+    @MainActor
+    private func finalizeLocalBusinessVenueDeletion(
+        venueId: UUID,
+        deletedEventIDs: Set<UUID>
+    ) -> [URL] {
+        let deletedURLs = deletedVenueImageURLs(venueId: venueId)
+        removeVenueFromLocalCollections(venueId: venueId, deletedEventIDs: deletedEventIDs)
+        removeLocalVenueRating(venueID: venueId)
+        applySelectedVenueAfterBusinessLoad()
+        if ownerVenueDatabaseId == nil {
+            clearSelectedVenueDraftFieldsAfterDeletion()
+        }
+        return deletedURLs
+    }
+
+    @MainActor
+    private func removeVenueFromLocalCollections(venueId: UUID, deletedEventIDs: Set<UUID>) {
+        ownedBusinessVenues.removeAll { $0.id == venueId }
+        legacyOwnerVenuesForEmailFallback.removeAll { $0.id == venueId }
+        bars.removeAll { $0.id == venueId }
+        followingTabSavedVenues.removeAll { $0.id == venueId }
+        favoriteVenueIDs.remove(venueId)
+        if selectedBar?.id == venueId {
+            selectedBar = nil
+            clearDiscoverRemotePreviewHold()
+        }
+        if let selectedEventID = selectedEvent?.id, deletedEventIDs.contains(selectedEventID) {
+            selectedEvent = nil
+        }
+
+        let loadedDeletedEventIDs = Set(venueEventRows.compactMap { row -> UUID? in
+            guard row.venue_id == venueId else { return nil }
+            return row.id
+        })
+        let eventIDs = deletedEventIDs.union(loadedDeletedEventIDs)
+        venueEventRows.removeAll { row in
+            row.venue_id == venueId || row.id.map { eventIDs.contains($0) } == true
+        }
+        venueEventIDsByKey = venueEventIDsByKey.filter { !eventIDs.contains($0.value) }
+        followingTabGoingItems.removeAll { item in
+            eventIDs.contains(item.id) || item.bar.id == venueId
+        }
+        for eventID in eventIDs {
+            followingTabGoingInterestCounts.removeValue(forKey: eventID)
+            venueEventInterestIDs.remove(eventID)
+            venueEventInterestCounts.removeValue(forKey: eventID)
+            venueEventInterestWriteInFlightIDs.remove(eventID)
+            venueEventInterestPendingTargets.removeValue(forKey: eventID)
+            recentlyConfirmedVenueEventGoingAt.removeValue(forKey: eventID)
+            recentlyConfirmedVenueEventNotGoingAt.removeValue(forKey: eventID)
+            goingProfilesByVenueEventID.removeValue(forKey: eventID)
+            venueEventPredictionSummaries.removeValue(forKey: eventID)
+            venueEventComments.removeValue(forKey: eventID)
+            venueEventVibeCounts.removeValue(forKey: eventID)
+            myVenueEventVibes.removeValue(forKey: eventID)
+        }
+    }
+
+    @MainActor
+    private func deletedVenueImageURLs(venueId: UUID) -> [URL] {
+        let managedRow = (ownedBusinessVenues + legacyOwnerVenuesForEmailFallback).first { $0.id == venueId }
+        let bar = bars.first { $0.id == venueId }
+        let rawURLs = [
+            managedRow?.cover_photo_url,
+            managedRow?.menu_photo_url,
+            managedRow?.cover_photo_thumbnail_url,
+            managedRow?.menu_photo_thumbnail_url,
+            bar?.coverPhotoURL,
+            bar?.menuPhotoURL,
+            bar?.coverPhotoThumbnailURL,
+            bar?.menuPhotoThumbnailURL,
+            ownerVenueDatabaseId == venueId ? venueCoverPhotoURL : nil,
+            ownerVenueDatabaseId == venueId ? venueMenuPhotoURL : nil,
+            ownerVenueDatabaseId == venueId ? venueCoverPhotoThumbnailURL : nil,
+            ownerVenueDatabaseId == venueId ? venueMenuPhotoThumbnailURL : nil
+        ]
+
+        var seen = Set<String>()
+        return rawURLs.compactMap { raw -> URL? in
+            let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !trimmed.isEmpty, seen.insert(trimmed).inserted else { return nil }
+            return URL(string: trimmed)
+        }
+    }
+
+    @MainActor
+    private func clearSelectedVenueDraftFieldsAfterDeletion() {
+        ownerVenueName = ""
+        ownerVenueAddress = ""
+        ownerVenueAddressLine2 = ""
+        ownerVenueCity = ""
+        ownerVenueState = ""
+        ownerVenueZipCode = ""
+        ownerVenueCountry = BusinessLocationCountryPolicy.defaultCountryCode
+        ownerVenuePhoneDialISO = BusinessPhoneFields.defaultISO
+        ownerVenuePhone = ""
+        ownerVenueWebsite = ""
+        ownerVenueDescription = ""
+        ownerVenueFeatures = ""
+        ownerVenueSupporterCountry = ""
+        ownerVenueScreenCount = 1
+        ownerVenueServesFood = false
+        ownerVenueHasWifi = false
+        ownerVenueHasGarden = false
+        ownerVenueHasProjector = false
+        ownerVenuePetFriendly = false
+        venueCoverPhotoURL = ""
+        venueMenuPhotoURL = ""
+        venueCoverPhotoThumbnailURL = ""
+        venueMenuPhotoThumbnailURL = ""
+        pendingVenueCoverPhotoVenueID = nil
+        pendingVenueCoverPhotoURL = nil
+        pendingVenueCoverPhotoThumbnailURL = nil
+        pendingVenueMenuPhotoVenueID = nil
+        pendingVenueMenuPhotoURL = nil
+        pendingVenueMenuPhotoThumbnailURL = nil
+    }
+
     func updateVenueSupporterCountry(_ country: String?) async -> Bool {
         let normalized = VenueSupporterCountryMode.normalizedStorageValue(country)
         let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
@@ -2055,7 +2512,10 @@ extension MapViewModel {
                     .value
             }
 
-            let businesses = Self.dedupeBusinessRowsPreservingOrder(businessesFromEmail + businessesFromUser)
+            let claimLinkedBusinesses = try await loadBusinessesLinkedFromApprovedClaims(ownerEmail: emailTrimmed)
+            let businesses = Self.dedupeBusinessRowsPreservingOrder(
+                businessesFromEmail + businessesFromUser + claimLinkedBusinesses
+            )
 
             var archivedFromEmail: [BusinessRow] = []
             if OwnerBusinessEmail.isValidStrict(emailTrimmed) {
@@ -2195,16 +2655,28 @@ extension MapViewModel {
                 applySelectedVenueAfterBusinessLoad()
             }
 
-            let profile = await loadVenueProfile()
-            await MainActor.run {
-                if let p = profile {
-                    applyVenueProfileRowToOwnerState(p)
+            let loadedProfileExists: Bool
+            if mergedVenues.isEmpty {
+                await MainActor.run {
+#if DEBUG
+                    print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+                    clearSelectedVenueProfileForEmptyState(deletedSelectedVenue: nil)
                 }
+                loadedProfileExists = false
+            } else {
+                let profile = await loadVenueProfile()
+                await MainActor.run {
+                    if let p = profile {
+                        applyVenueProfileRowToOwnerState(p)
+                    }
+                }
+                loadedProfileExists = profile != nil
             }
 #if DEBUG
-            print("[BusinessPhaseB2] loaded selected venue profile=\(profile != nil)")
+            print("[BusinessPhaseB2] loaded selected venue profile=\(loadedProfileExists)")
 #endif
-            let games = await loadMyVenueGames()
+            let games: [VenueEventRow] = mergedVenues.isEmpty ? [] : await loadMyVenueGames()
 #if DEBUG
             print("[BusinessPhaseB2] loaded games for selected venue count=\(games.count)")
 #endif

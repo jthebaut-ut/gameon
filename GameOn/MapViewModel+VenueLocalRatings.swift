@@ -23,6 +23,13 @@ extension MapViewModel {
         Self.encodeUUIDIntDict(venueRatingContributionCount, key: Self.venueRatingSaveCountsKey)
     }
 
+    func removeLocalVenueRating(venueID: UUID) {
+        venueUserStarRatings.removeValue(forKey: venueID)
+        venueRatingContributionCount.removeValue(forKey: venueID)
+        Self.encodeUUIDIntDict(venueUserStarRatings, key: Self.venueStarsDefaultsKey)
+        Self.encodeUUIDIntDict(venueRatingContributionCount, key: Self.venueRatingSaveCountsKey)
+    }
+
     /// Returns the locally saved star rating when a real client-side value exists.
     func mergedDisplayRating(for bar: BarVenue) -> Double? {
         guard let stars = venueUserStarRatings[bar.id] else { return nil }
