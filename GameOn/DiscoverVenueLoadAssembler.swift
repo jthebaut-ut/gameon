@@ -248,7 +248,7 @@ enum DiscoverVenueLoadAssembler {
                 return nil
             }
             return SportsEvent(
-                id: UUID(),
+                id: row.id ?? UUID(),
                 title: title,
                 sport: sport,
                 league: "Venue Event",

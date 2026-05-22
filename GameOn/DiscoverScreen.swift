@@ -362,6 +362,9 @@ struct DiscoverScreen: View {
     @State private var predictionSheet: DiscoverPredictionSheetContext?
     @State private var showVenueRatingSheet = false
     @State private var fanFeatureGateAlertMessage: String?
+    @State private var venuePreviewFanZoneCache: [String: VenuePreviewFanZoneData] = [:]
+    @State private var venuePreviewFanZoneRefreshInFlightKeys: Set<String> = []
+    @State private var venuePreviewFanZoneSavingKeys: Set<String> = []
     @State private var mapVenueReloadTask: Task<Void, Never>?
     @State private var lastMapVenueReloadRegion: MKCoordinateRegion?
     /// Multi-venue map cluster: sheet lists venues after tap (zoom runs first).
@@ -423,13 +426,32 @@ struct DiscoverScreen: View {
     }
 
     private struct VenuePreviewFanZoneData {
+        let cacheKey: String
         let venueID: UUID
         let vibeTargetEventID: UUID?
+        let eventIDs: [UUID]
         let fireCount: Int
         let seatingCount: Int
         let tvCount: Int
         let audioCount: Int
         let crowdCount: Int
+        let selectedVibes: Set<String>
+        let savingVibes: Set<String>
+        let isFromCache: Bool
+
+        var fingerprint: String {
+            [
+                cacheKey,
+                vibeTargetEventID?.uuidString.lowercased() ?? "nil",
+                eventIDs.map { $0.uuidString.lowercased() }.joined(separator: ","),
+                "\(fireCount)",
+                "\(seatingCount)",
+                "\(tvCount)",
+                "\(audioCount)",
+                "\(crowdCount)",
+                selectedVibes.sorted().joined(separator: ",")
+            ].joined(separator: "|")
+        }
     }
 
     private struct VenuePreviewFanZoneBlockView: View {
@@ -440,6 +462,8 @@ struct DiscoverScreen: View {
         let tvCount: Int
         let audioCount: Int
         let crowdCount: Int
+        let selectedVibes: Set<String>
+        let savingVibes: Set<String>
         let isVotingEnabled: Bool
         let onVote: (_ debugType: String, _ vibeType: String) -> Void
 
@@ -462,8 +486,8 @@ struct DiscoverScreen: View {
                         vibeChip(symbol: "🔥", count: fireCount, tint: FGColor.dangerRed, debugType: "fire", vibeType: "packed")
                         vibeChip(symbol: "🪑", count: seatingCount, tint: FGColor.accentGreen, debugType: "seating", vibeType: "seats_open")
                         vibeChip(symbol: "📺", count: tvCount, tint: FGColor.accentBlue, debugType: "tv", vibeType: "tv_visible")
-                        vibeChip(symbol: "🔊", count: audioCount, tint: FGColor.accentYellow, debugType: "audio", vibeType: "audio_on")
-                        vibeChip(symbol: "👥", count: crowdCount, tint: FGColor.accentGreen, debugType: "crowd", vibeType: "crowd")
+                        vibeChip(symbol: "🔊", count: audioCount, tint: Color.orange, debugType: "audio", vibeType: "audio_on")
+                        vibeChip(symbol: "👥", count: crowdCount, tint: Color(red: 0.00, green: 0.58, blue: 0.72), debugType: "crowd", vibeType: "crowd")
                     }
                     .padding(.horizontal, 1)
                 }
@@ -533,33 +557,47 @@ struct DiscoverScreen: View {
         }
 
         private func vibeChip(symbol: String, count: Int, tint: Color, debugType: String, vibeType: String) -> some View {
-            Button {
+            let isSelected = selectedVibes.contains(vibeType)
+            let isSaving = savingVibes.contains(vibeType)
+            let fillOpacity = isSelected ? (colorScheme == .dark ? 0.86 : 0.82) : (colorScheme == .dark ? 0.10 : 0.055)
+            let strokeOpacity = isSelected ? 0.95 : (colorScheme == .dark ? 0.22 : 0.16)
+            let textColor = isSelected ? Color.white : tint.opacity(colorScheme == .dark ? 0.90 : 0.78)
+
+            return Button {
                 onVote(debugType, vibeType)
             } label: {
                 HStack(spacing: 5) {
-                    Text(symbol)
-                        .font(.system(size: 17))
+                    if isSaving {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .tint(textColor)
+                    } else {
+                        Text(symbol)
+                            .font(.system(size: 17))
+                    }
                     Text("\(safeCount(count))")
                         .font(.subheadline.weight(.heavy))
                         .monospacedDigit()
-                        .foregroundStyle(tint)
+                        .foregroundStyle(textColor)
                 }
                 .padding(.horizontal, 12)
                 .frame(minWidth: 58, minHeight: 38)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(tint.opacity(colorScheme == .dark ? 0.17 : 0.10))
+                        .fill(tint.opacity(fillOpacity))
                         .allowsHitTesting(false)
                 }
                 .overlay {
                     Capsule(style: .continuous)
-                        .strokeBorder(tint.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 1)
+                        .strokeBorder(tint.opacity(strokeOpacity), lineWidth: isSelected ? 1.4 : 1)
                         .allowsHitTesting(false)
                 }
+                .shadow(color: isSelected ? tint.opacity(colorScheme == .dark ? 0.34 : 0.22) : .clear, radius: 8, y: 3)
                 .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.965, hapticOnPress: false))
-            .opacity(isVotingEnabled ? 1 : 0.72)
+            .disabled(isSaving)
+            .opacity(isVotingEnabled ? 1 : 0.54)
             .accessibilityLabel("\(symbol) \(safeCount(count)) votes")
         }
 
@@ -3673,6 +3711,7 @@ struct DiscoverScreen: View {
         bar: BarVenue,
         gamesToday: [SportsEvent]
     ) -> VenuePreviewFanZoneData {
+        let cacheKey = venuePreviewFanZoneCacheKey(venueID: bar.id, date: viewModel.selectedDate)
         var eventIDs: [UUID] = []
         var seenEventIDs = Set<UUID>()
 
@@ -3691,8 +3730,12 @@ struct DiscoverScreen: View {
         var tvCount = 0
         var audioCount = 0
         var crowdCount = 0
+        var hasLoadedVibeState = false
 
         for eventID in eventIDs {
+            if fanUpdatesStore.venueEventVibeCounts[eventID] != nil || fanUpdatesStore.myVenueEventVibes[eventID] != nil {
+                hasLoadedVibeState = true
+            }
             let counts = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
             fireCount += max(0, counts["packed"] ?? 0)
             seatingCount += max(0, counts["seats_open"] ?? 0)
@@ -3702,14 +3745,47 @@ struct DiscoverScreen: View {
         }
 
         let targetEventID = eventIDs.first
+        let selectedVibes = targetEventID.flatMap { fanUpdatesStore.myVenueEventVibes[$0] } ?? []
+        let savingVibes = venuePreviewFanZoneSavingVibes(cacheKey: cacheKey)
+        if (!savingVibes.isEmpty || !hasLoadedVibeState), let cached = venuePreviewFanZoneCache[cacheKey] {
+#if DEBUG
+            print("[VenueVibeLoadDebug] cacheHit venueId=\(bar.id.uuidString.lowercased()) date=\(venuePreviewFanZoneDateString(for: viewModel.selectedDate))")
+#endif
+            return VenuePreviewFanZoneData(
+                cacheKey: cacheKey,
+                venueID: bar.id,
+                vibeTargetEventID: cached.vibeTargetEventID,
+                eventIDs: cached.eventIDs,
+                fireCount: cached.fireCount,
+                seatingCount: cached.seatingCount,
+                tvCount: cached.tvCount,
+                audioCount: cached.audioCount,
+                crowdCount: cached.crowdCount,
+                selectedVibes: cached.selectedVibes,
+                savingVibes: savingVibes,
+                isFromCache: true
+            )
+        }
+
+#if DEBUG
+        if !hasLoadedVibeState {
+            print("[VenueVibeLoadDebug] cacheMiss venueId=\(bar.id.uuidString.lowercased()) date=\(venuePreviewFanZoneDateString(for: viewModel.selectedDate))")
+        }
+#endif
+
         return VenuePreviewFanZoneData(
+            cacheKey: cacheKey,
             venueID: bar.id,
             vibeTargetEventID: targetEventID,
+            eventIDs: eventIDs,
             fireCount: fireCount,
             seatingCount: seatingCount,
             tvCount: tvCount,
             audioCount: audioCount,
-            crowdCount: crowdCount
+            crowdCount: crowdCount,
+            selectedVibes: selectedVibes,
+            savingVibes: savingVibes,
+            isFromCache: false
         )
     }
 
@@ -3720,9 +3796,12 @@ struct DiscoverScreen: View {
             tvCount: data.tvCount,
             audioCount: data.audioCount,
             crowdCount: data.crowdCount,
+            selectedVibes: data.selectedVibes,
+            savingVibes: data.savingVibes,
             isVotingEnabled: data.vibeTargetEventID != nil,
             onVote: { debugType, vibeType in
                 venuePreviewToggleVenueLevelVibe(
+                    data: data,
                     venueID: data.venueID,
                     eventID: data.vibeTargetEventID,
                     debugType: debugType,
@@ -3731,9 +3810,127 @@ struct DiscoverScreen: View {
             }
         )
         .zIndex(5)
+        .onAppear {
+            venuePreviewStoreFanZoneCacheIfNeeded(data)
+            venuePreviewRefreshVenueFanZoneVibesIfNeeded(data)
+        }
+        .onChange(of: data.fingerprint) { _, _ in
+            venuePreviewStoreFanZoneCacheIfNeeded(data)
+        }
     }
 
-    private func venuePreviewToggleVenueLevelVibe(venueID: UUID, eventID: UUID?, debugType: String, vibeType: String) {
+    private func venuePreviewFanZoneDateString(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func venuePreviewFanZoneCacheKey(venueID: UUID, date: Date) -> String {
+        "\(venueID.uuidString.lowercased())|\(venuePreviewFanZoneDateString(for: date))"
+    }
+
+    private func venuePreviewFanZoneSavingKey(cacheKey: String, vibeType: String) -> String {
+        "\(cacheKey)|\(vibeType)"
+    }
+
+    private func venuePreviewFanZoneSavingVibes(cacheKey: String) -> Set<String> {
+        let prefix = "\(cacheKey)|"
+        return Set(venuePreviewFanZoneSavingKeys.compactMap { raw in
+            raw.hasPrefix(prefix) ? String(raw.dropFirst(prefix.count)) : nil
+        })
+    }
+
+    private func venuePreviewStoreFanZoneCacheIfNeeded(_ data: VenuePreviewFanZoneData) {
+        guard !data.isFromCache else { return }
+        venuePreviewFanZoneCache[data.cacheKey] = VenuePreviewFanZoneData(
+            cacheKey: data.cacheKey,
+            venueID: data.venueID,
+            vibeTargetEventID: data.vibeTargetEventID,
+            eventIDs: data.eventIDs,
+            fireCount: data.fireCount,
+            seatingCount: data.seatingCount,
+            tvCount: data.tvCount,
+            audioCount: data.audioCount,
+            crowdCount: data.crowdCount,
+            selectedVibes: data.selectedVibes,
+            savingVibes: [],
+            isFromCache: false
+        )
+    }
+
+    private func venuePreviewRefreshVenueFanZoneVibesIfNeeded(_ data: VenuePreviewFanZoneData) {
+        guard !data.eventIDs.isEmpty else { return }
+        guard !venuePreviewFanZoneRefreshInFlightKeys.contains(data.cacheKey) else { return }
+        venuePreviewFanZoneRefreshInFlightKeys.insert(data.cacheKey)
+#if DEBUG
+        print("[VenueVibeLoadDebug] refreshStarted venueId=\(data.venueID.uuidString.lowercased())")
+#endif
+        Task { @MainActor in
+            for eventID in data.eventIDs {
+                await viewModel.loadVibes(for: eventID)
+            }
+            venuePreviewFanZoneRefreshInFlightKeys.remove(data.cacheKey)
+#if DEBUG
+            print("[VenueVibeLoadDebug] refreshFinished venueId=\(data.venueID.uuidString.lowercased())")
+#endif
+        }
+    }
+
+    private func venuePreviewApplyOptimisticVenueFanZoneVibe(
+        data: VenuePreviewFanZoneData,
+        vibeType: String,
+        selected: Bool
+    ) {
+        venuePreviewFanZoneSavingKeys.insert(venuePreviewFanZoneSavingKey(cacheKey: data.cacheKey, vibeType: vibeType))
+        var selectedVibes = data.selectedVibes
+        var fireCount = data.fireCount
+        var seatingCount = data.seatingCount
+        var tvCount = data.tvCount
+        var audioCount = data.audioCount
+        var crowdCount = data.crowdCount
+        let delta = selected ? 1 : -1
+
+        if selected {
+            selectedVibes.insert(vibeType)
+        } else {
+            selectedVibes.remove(vibeType)
+        }
+
+        switch vibeType {
+        case "packed":
+            fireCount = max(0, fireCount + delta)
+        case "seats_open":
+            seatingCount = max(0, seatingCount + delta)
+        case "tv_visible":
+            tvCount = max(0, tvCount + delta)
+        case "audio_on":
+            audioCount = max(0, audioCount + delta)
+        case "crowd":
+            crowdCount = max(0, crowdCount + delta)
+        default:
+            break
+        }
+
+        venuePreviewFanZoneCache[data.cacheKey] = VenuePreviewFanZoneData(
+            cacheKey: data.cacheKey,
+            venueID: data.venueID,
+            vibeTargetEventID: data.vibeTargetEventID,
+            eventIDs: data.eventIDs,
+            fireCount: fireCount,
+            seatingCount: seatingCount,
+            tvCount: tvCount,
+            audioCount: audioCount,
+            crowdCount: crowdCount,
+            selectedVibes: selectedVibes,
+            savingVibes: venuePreviewFanZoneSavingVibes(cacheKey: data.cacheKey),
+            isFromCache: false
+        )
+    }
+
+    private func venuePreviewToggleVenueLevelVibe(data: VenuePreviewFanZoneData, venueID: UUID, eventID: UUID?, debugType: String, vibeType: String) {
 #if DEBUG
         print("[VenueVibeTapDebug] tapped type=\(debugType) venueId=\(venueID.uuidString.lowercased())")
 #endif
@@ -3748,8 +3945,27 @@ struct DiscoverScreen: View {
             fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
             return
         }
+        let previous = venuePreviewFanZoneCache[data.cacheKey] ?? data
+        let nextSelected = !data.selectedVibes.contains(vibeType)
+        venuePreviewApplyOptimisticVenueFanZoneVibe(data: data, vibeType: vibeType, selected: nextSelected)
+#if DEBUG
+        print("[VenueVibeTapDebug] optimisticApplied vibe=\(vibeType) selected=\(nextSelected)")
+#endif
         Task {
-            await viewModel.toggleVibe(for: eventID, vibeType: vibeType)
+            let success = await viewModel.toggleVibe(for: eventID, vibeType: vibeType)
+            await MainActor.run {
+                venuePreviewFanZoneSavingKeys.remove(venuePreviewFanZoneSavingKey(cacheKey: data.cacheKey, vibeType: vibeType))
+                if success {
+#if DEBUG
+                    print("[VenueVibeTapDebug] saveSuccess vibe=\(vibeType)")
+#endif
+                } else {
+                    venuePreviewFanZoneCache[data.cacheKey] = previous
+#if DEBUG
+                    print("[VenueVibeTapDebug] rollback vibe=\(vibeType)")
+#endif
+                }
+            }
         }
     }
 
@@ -3884,8 +4100,9 @@ struct DiscoverScreen: View {
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
-        let stableEvents = Array(gamesToday.prefix(12))
+        let stableEvents = Array(venuePreviewOrderedGames(bar: bar, gamesToday: gamesToday).prefix(12))
         let stableItems = venuePreviewStableGameItems(for: stableEvents, selectedVenueID: bar.id)
+        let _ = logVenueGameOrderDebug(events: stableEvents, bar: bar)
 
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
@@ -4658,6 +4875,79 @@ struct DiscoverScreen: View {
             let stableID = duplicateIDs.contains(event.id) ? "\(uuidText)-\(index)" : uuidText
             return VenuePreviewStableGameItem(id: stableID, index: index, event: event)
         }
+    }
+
+    private func venuePreviewOrderedGames(bar: BarVenue, gamesToday: [SportsEvent]) -> [SportsEvent] {
+        gamesToday.sorted { lhs, rhs in
+            let left = venuePreviewGameOrderComponents(bar: bar, event: lhs)
+            let right = venuePreviewGameOrderComponents(bar: bar, event: rhs)
+
+            if let leftCreatedAt = left.createdAt,
+               let rightCreatedAt = right.createdAt,
+               leftCreatedAt != rightCreatedAt {
+                return leftCreatedAt < rightCreatedAt
+            }
+
+            if left.eventID != right.eventID {
+                return left.eventID < right.eventID
+            }
+
+            let titleCompare = left.title.localizedCaseInsensitiveCompare(right.title)
+            if titleCompare != .orderedSame {
+                return titleCompare == .orderedAscending
+            }
+
+            return left.originalID < right.originalID
+        }
+    }
+
+    private func venuePreviewGameOrderComponents(
+        bar: BarVenue,
+        event: SportsEvent
+    ) -> (createdAt: String?, eventID: String, title: String, originalID: String) {
+        let row = venuePreviewOrderRow(bar: bar, event: event)
+        let createdAt = trimmedNonEmpty(row?.created_at)
+        let stableEventID = row?.id?.uuidString.lowercased()
+            ?? viewModel.cachedVenueEventID(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines))?.uuidString.lowercased()
+            ?? event.id.uuidString.lowercased()
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (createdAt, stableEventID, title, event.id.uuidString.lowercased())
+    }
+
+    private func venuePreviewOrderRow(bar: BarVenue, event: SportsEvent) -> VenueEventRow? {
+        if let eventID = viewModel.cachedVenueEventID(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines)),
+           let row = viewModel.venueEventRows.first(where: { $0.id == eventID }) {
+            return row
+        }
+
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let eventDay = venuePreviewOrderSQLDayString(for: event.date)
+        return viewModel.venueEventRows.first { row in
+            guard venueEventRowMatchesDiscoverVenue(row, bar: bar) else { return false }
+            guard trimmedNonEmpty(row.event_title)?.caseInsensitiveCompare(title) == .orderedSame else { return false }
+            if let rowDay = trimmedNonEmpty(row.event_date) {
+                return rowDay == eventDay
+            }
+            return true
+        }
+    }
+
+    private func venuePreviewOrderSQLDayString(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func logVenueGameOrderDebug(events: [SportsEvent], bar: BarVenue) {
+#if DEBUG
+        let ids = events.map {
+            venuePreviewGameOrderComponents(bar: bar, event: $0).eventID
+        }.joined(separator: ",")
+        print("[VenueGameOrderDebug] order=createdAt eventIds=\(ids)")
+#endif
     }
 
     private func venuePreviewNoGamesForSelectedDayView(bar: BarVenue) -> some View {

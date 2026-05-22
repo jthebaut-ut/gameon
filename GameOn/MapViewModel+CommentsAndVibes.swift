@@ -2343,21 +2343,22 @@ extension MapViewModel {
     }
 
     // Inserts or deletes a single vibe row for the signed-in user or venue owner.
-    func toggleVibe(for venueEventID: UUID, vibeType: String) async {
+    @discardableResult
+    func toggleVibe(for venueEventID: UUID, vibeType: String) async -> Bool {
         guard canUseFanSocialFeatures else {
             logBusinessUserGateBlocked(action: "toggleVibe")
-            return
+            return false
         }
         let email = await strictNormalizedSessionEmailForSocialTables()
             ?? OwnerBusinessEmail.normalized(!currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail)
 
         guard OwnerBusinessEmail.isValidStrict(email) else {
             DebugLogGate.debug("LOGIN REQUIRED TO VOTE VIBE")
-            return
+            return false
         }
 
         let inFlightKey = "\(venueEventID.uuidString)|\(vibeType)"
-        guard !venueEventVibeWriteInFlightKeys.contains(inFlightKey) else { return }
+        guard !venueEventVibeWriteInFlightKeys.contains(inFlightKey) else { return true }
 
         let alreadySelected = myVenueEventVibes[venueEventID]?.contains(vibeType) ?? false
         let previousCounts = venueEventVibeCounts[venueEventID] ?? [:]
@@ -2390,12 +2391,14 @@ extension MapViewModel {
 
             venueEventVibeWriteInFlightKeys.remove(inFlightKey)
             await loadVibes(for: venueEventID)
+            return true
 
         } catch {
             venueEventVibeCounts[venueEventID] = previousCounts
             myVenueEventVibes[venueEventID] = previousMyVibes
             venueEventVibeWriteInFlightKeys.remove(inFlightKey)
             print("ERROR TOGGLING VIBE:", error)
+            return false
         }
     }
 

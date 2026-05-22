@@ -1640,7 +1640,7 @@ extension MapViewModel {
 
         let t0 = Date()
         var byID: [UUID: VenueEventRow] = [:]
-        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,admin_status,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api"
+        let selectCols = "id,venue_id,owner_email,venue_name,event_title,sport,home_team,away_team,event_date,event_time,admin_status,scheduled_start_at,cleanup_delay_hours,purge_after_at,external_league,external_game_id,external_source,imported_from_api,created_at"
         let chunkSize = 80
 
         func mergeRows(_ rows: [VenueEventRow]) {
