@@ -93,7 +93,7 @@ BEGIN
       WHERE EXISTS (
         SELECT 1
         FROM public.venue_claims vc
-        WHERE vc.venue_id = v.id
+        WHERE vc.venue_id::text = v.id::text
           AND lower(btrim(coalesce(vc.approval_status, ''))) = 'approved'
           AND vc.created_at > v.created_at
       )
@@ -161,7 +161,9 @@ DECLARE
   v_email text := lower(btrim(coalesce(auth.jwt() ->> 'email', '')));
   v_venue public.venues%ROWTYPE;
   v_event_ids uuid[] := ARRAY[]::uuid[];
+  v_event_id_texts text[] := ARRAY[]::text[];
   v_comment_ids uuid[] := ARRAY[]::uuid[];
+  v_comment_id_texts text[] := ARRAY[]::text[];
   v_storage_paths text[] := ARRAY[]::text[];
   v_counts jsonb := '{}'::jsonb;
   v_count integer := 0;
@@ -187,7 +189,7 @@ BEGIN
   SELECT *
     INTO v_venue
   FROM public.venues
-  WHERE id = p_venue_id
+  WHERE id::text = p_venue_id::text
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -204,7 +206,7 @@ BEGIN
     OR EXISTS (
       SELECT 1
       FROM public.businesses b
-      WHERE b.id = v_venue.business_id
+      WHERE b.id::text = v_venue.business_id::text
         AND coalesce(lower(btrim(b.admin_status)), 'active') = 'active'
         AND (
           (b.owner_user_id IS NOT NULL AND b.owner_user_id = v_uid)
@@ -217,8 +219,8 @@ BEGIN
     OR EXISTS (
       SELECT 1
       FROM public.venue_claims vc
-      LEFT JOIN public.businesses b ON b.id = vc.business_id
-      WHERE vc.venue_id = p_venue_id
+      LEFT JOIN public.businesses b ON b.id::text = vc.business_id::text
+      WHERE vc.venue_id::text = p_venue_id::text
         AND lower(btrim(coalesce(vc.approval_status, ''))) = 'approved'
         AND (
           (
@@ -243,19 +245,21 @@ BEGIN
   SELECT coalesce(array_agg(id), ARRAY[]::uuid[])
     INTO v_event_ids
   FROM public.venue_events ve
-  WHERE ve.venue_id = p_venue_id
+  WHERE ve.venue_id::text = p_venue_id::text
      OR (
        ve.venue_id IS NULL
        AND btrim(coalesce(v_venue.owner_email, '')) <> ''
        AND lower(btrim(coalesce(ve.owner_email, ''))) = lower(btrim(v_venue.owner_email))
        AND lower(btrim(coalesce(ve.venue_name, ''))) = lower(btrim(coalesce(v_venue.venue_name, '')))
      );
+  v_event_id_texts := ARRAY(SELECT unnest(v_event_ids)::text);
 
   IF cardinality(v_event_ids) > 0 THEN
     SELECT coalesce(array_agg(id), ARRAY[]::uuid[])
       INTO v_comment_ids
     FROM public.venue_event_comments
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
+    v_comment_id_texts := ARRAY(SELECT unnest(v_comment_ids)::text);
   END IF;
 
   SELECT coalesce(array_agg(DISTINCT path), ARRAY[]::text[])
@@ -300,17 +304,17 @@ BEGIN
 
   IF cardinality(v_comment_ids) > 0 THEN
     DELETE FROM public.venue_event_comment_reactions
-    WHERE comment_id = ANY(v_comment_ids);
+    WHERE comment_id::text = ANY(v_comment_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_comment_reactions', v_count);
 
     DELETE FROM public.venue_event_comment_likes
-    WHERE comment_id = ANY(v_comment_ids);
+    WHERE comment_id::text = ANY(v_comment_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_comment_likes', v_count);
 
     DELETE FROM public.comment_reports
-    WHERE comment_id = ANY(v_comment_ids);
+    WHERE comment_id::text = ANY(v_comment_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('comment_reports_by_comment', v_count);
   ELSE
@@ -323,38 +327,38 @@ BEGIN
 
   IF cardinality(v_event_ids) > 0 THEN
     DELETE FROM public.comment_reports
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('comment_reports_by_event', v_count);
 
     DELETE FROM public.venue_event_predictions
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_predictions', v_count);
 
     DELETE FROM public.venue_event_comments
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_comments', v_count);
 
     DELETE FROM public.venue_event_vibes
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_vibes', v_count);
 
     DELETE FROM public.venue_event_interests
-    WHERE venue_event_id = ANY(v_event_ids);
+    WHERE venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_event_interests', v_count);
 
     DELETE FROM public.business_game_history
-    WHERE venue_id = p_venue_id
-       OR original_venue_event_id = ANY(v_event_ids);
+    WHERE venue_id::text = p_venue_id::text
+       OR original_venue_event_id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('business_game_history', v_count);
 
     DELETE FROM public.venue_events
-    WHERE id = ANY(v_event_ids);
+    WHERE id::text = ANY(v_event_id_texts);
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_events', v_count);
   ELSE
@@ -369,7 +373,7 @@ BEGIN
     );
 
     DELETE FROM public.business_game_history
-    WHERE venue_id = p_venue_id;
+    WHERE venue_id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := jsonb_set(v_counts, '{business_game_history}', to_jsonb(v_count), true);
   END IF;
@@ -379,7 +383,7 @@ BEGIN
     SET venue_id = NULL,
         business_id = NULL,
         approval_status = 'released'
-    WHERE venue_id = p_venue_id
+    WHERE venue_id::text = p_venue_id::text
       AND lower(btrim(coalesce(approval_status, ''))) = 'approved';
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_claim_release_count := v_count;
@@ -406,14 +410,14 @@ BEGIN
         menu_photo_thumbnail_url = NULL,
         admin_status = 'active',
         origin_type = 'community'
-    WHERE id = p_venue_id;
+    WHERE id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venues_released', v_count);
 
     SELECT EXISTS (
       SELECT 1
       FROM public.venues v
-      WHERE v.id = p_venue_id
+      WHERE v.id::text = p_venue_id::text
         AND lower(btrim(coalesce(v.origin_type, ''))) = 'community'
         AND lower(btrim(coalesce(v.admin_status, 'active'))) = 'active'
     )
@@ -424,7 +428,7 @@ BEGIN
       AND NOT EXISTS (
         SELECT 1
         FROM public.venue_claims vc
-        WHERE vc.venue_id = p_venue_id
+        WHERE vc.venue_id::text = p_venue_id::text
           AND lower(btrim(coalesce(vc.approval_status, ''))) = 'approved'
       )
     )
@@ -433,7 +437,7 @@ BEGIN
     SELECT EXISTS (
       SELECT 1
       FROM public.venues v
-      WHERE v.id = p_venue_id
+      WHERE v.id::text = p_venue_id::text
         AND v.business_id IS NULL
         AND v.owner_user_id IS NULL
         AND v.owner_email IS NULL
@@ -454,31 +458,31 @@ BEGIN
     END IF;
   ELSE
     DELETE FROM public.favorite_venues
-    WHERE venue_id = p_venue_id;
+    WHERE venue_id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('favorite_venues', v_count);
 
     UPDATE public.user_profiles
     SET home_crowd_venue_id = NULL,
         home_crowd_set_at = NULL
-    WHERE home_crowd_venue_id = p_venue_id;
+    WHERE home_crowd_venue_id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('home_crowd_profiles_unlinked', v_count);
 
     DELETE FROM public.venue_reports
-    WHERE venue_id = p_venue_id;
+    WHERE venue_id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_reports', v_count);
 
     UPDATE public.venue_claims
     SET venue_id = NULL,
         business_id = NULL
-    WHERE venue_id = p_venue_id;
+    WHERE venue_id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venue_claims_unlinked', v_count);
 
     DELETE FROM public.venues
-    WHERE id = p_venue_id;
+    WHERE id::text = p_venue_id::text;
     GET DIAGNOSTICS v_count = ROW_COUNT;
     v_counts := v_counts || jsonb_build_object('venues', v_count);
   END IF;

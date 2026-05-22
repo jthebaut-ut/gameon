@@ -193,7 +193,8 @@ enum DiscoverVenueLoadAssembler {
                 venueOwnerEmailRaw: row.owner_email,
                 businessOwnerEmailRaw: row.businesses?.owner_email,
                 contactEmailRaw: nil,
-                supporterCountry: row.supporter_country
+                supporterCountry: row.supporter_country,
+                originType: row.origin_type
             )
         }
 

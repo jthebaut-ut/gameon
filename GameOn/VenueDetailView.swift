@@ -170,6 +170,16 @@ struct VenueDetailView: View {
         venueFeaturesForDisplay(bar)
     }
 
+    private var shouldShowUnverifiedVenueFeaturesState: Bool {
+        guard bar.isUnclaimedCommunityVenue, !isBusinessConfirmed else { return false }
+        switch businessClaimStatus {
+        case .approved, .alreadyClaimedByOtherBusiness:
+            return false
+        case .unclaimed, .pendingReview, .rejected:
+            return true
+        }
+    }
+
     private func logVenueFeaturesDebug(renderedItems: [VenueFeatureDisplayItem]) {
 #if DEBUG
         let enabledLabels = renderedItems
@@ -1790,25 +1800,16 @@ struct VenueDetailView: View {
         let items = venueFeatureItems
 
         return FGCard {
-            FGSectionHeader(
-                "Venue features",
-                subtitle: bar.isCommunityVenue
-                    ? "Amenities are unverified for this community venue"
-                    : "What makes this spot easy to choose"
-            )
+            if shouldShowUnverifiedVenueFeaturesState {
+                VenueUnverifiedFeaturesState()
+            } else {
+                FGSectionHeader(
+                    "Venue features",
+                    subtitle: "What makes this spot easy to choose"
+                )
 
-            if bar.isCommunityVenue {
-                HStack(spacing: 6) {
-                    Image(systemName: "building.2.crop.circle")
-                        .font(.caption.weight(.semibold))
-                    Text("Community venue · unverified features")
-                        .font(FGTypography.caption.weight(.semibold))
-                }
-                .foregroundStyle(FGColor.secondaryText(colorScheme))
-                .padding(.bottom, 4)
+                VenueFeatureGrid(items: items)
             }
-
-            VenueFeatureGrid(items: items)
         }
         .onAppear {
             logVenueFeaturesDebug(renderedItems: items)

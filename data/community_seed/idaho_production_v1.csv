@@ -1,0 +1,19 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+idaho_production_v1,1,state_curated_idaho_v1,big_als_meridian,Big Al's Meridian,1900 N Eagle Rd,Meridian,ID,83646,USA,43.6223552,-116.3506796,(208) 780-6118,https://www.ilovebigals.com/
+idaho_production_v1,2,state_curated_idaho_v1,curb_meridian,The Curb Bar & Grill,1760 S Meridian Rd #100,Meridian,ID,83642,USA,43.5889952,-116.3931516,(208) 855-0202,https://curbbarandgrill.com/
+idaho_production_v1,3,state_curated_idaho_v1,twin_peaks_boise,Twin Peaks Boise,7751 W Spectrum St,Boise,ID,83709,USA,43.5873166,-116.2786388,(208) 321-4861,https://twinpeaksrestaurant.com/locations/boise-id
+idaho_production_v1,4,state_curated_idaho_v1,bww_boise,Buffalo Wild Wings Boise,777 W Main St Suite 130,Boise,ID,83702,USA,43.6154246,-116.2032272,(208) 429-6355,https://www.buffalowildwings.com/locations/us/id/boise/777-west-main-street-suite-130/sports-bar-1465
+idaho_production_v1,5,state_curated_idaho_v1,bww_meridian,Buffalo Wild Wings Meridian,3223 E Louise Dr,Meridian,ID,83642,USA,43.6029519,-116.3536574,(208) 288-5485,https://www.buffalowildwings.com/locations/us/id/meridian/3223-e-louise-dr/sports-bar-1240
+idaho_production_v1,6,state_curated_idaho_v1,bww_nampa,Buffalo Wild Wings Nampa,2101 N Cassia St #2111,Nampa,ID,83651,USA,43.6033772,-116.6079250,(208) 463-9453,https://www.buffalowildwings.com/
+idaho_production_v1,7,state_curated_idaho_v1,double_tap_boise,Double Tap Pub,409 S 8th St,Boise,ID,83702,USA,43.6132214,-116.2065660,(208) 364-7800,https://doubletapboise.com/
+idaho_production_v1,8,state_curated_idaho_v1,legends_boise,Legends Pub & Grill Boise,7609 W Overland Rd Ste 100,Boise,ID,83709,USA,43.5901858,-116.2770036,(208) 377-1819,https://legendsboise.com/
+idaho_production_v1,9,state_curated_idaho_v1,burger_n_brew_boise,Burger N Brew,4295 W State St,Boise,ID,83703,USA,43.6446405,-116.2426690,(208) 345-7700,https://www.burgernbrew.com/
+idaho_production_v1,10,state_curated_idaho_v1,el_tejano_boise,El Tejano Tex-Mex,855 W Broad St Ste 250,Boise,ID,83702,USA,43.6136101,-116.2063717,(208) 861-7215,https://www.eltejanoboise.net/
+idaho_production_v1,11,state_curated_idaho_v1,liga_boise,Liga Boise,204 N Capitol Blvd Suite 10,Boise,ID,83702,USA,43.6158358,-116.2014336,(208) 286-2144,https://downtownboise.org/go/liga-boise
+idaho_production_v1,12,state_curated_idaho_v1,firehouse_nampa,Firehouse Sports Pub,1515 N Midland Blvd,Nampa,ID,83651,USA,43.5979467,-116.5932629,(208) 463-0167,https://www.menupix.com/boise/restaurants/380165690/Firehouse-Sports-Pub-Nampa-ID
+idaho_production_v1,13,state_curated_idaho_v1,getaway_nampa,Getaway Bar & Grill,512 12th Ave Rd,Nampa,ID,83686,USA,43.5643393,-116.5727702,(208) 467-5739,https://getawaybarandgrill.com/
+idaho_production_v1,14,state_curated_idaho_v1,four_t_nampa,4T Sports Bar,112 13th Ave S,Nampa,ID,83651,USA,43.5778913,-116.5588336,(208) 936-4190,https://4tsportsbar.com/
+idaho_production_v1,15,state_curated_idaho_v1,hooligans_boise,Hooligan's Pub,10704 W Overland Rd,Boise,ID,83709,USA,43.5907303,-116.3161421,(208) 376-9800,https://www.hooliganspubboise.com/
+idaho_production_v1,16,state_curated_idaho_v1,brixx_boise,Brixx Craft House,7700 W State St Ste 100,Boise,ID,83714,USA,43.6706884,-116.2826242,(208) 608-5474,https://www.brixxcrafthouse.com/
+idaho_production_v1,17,state_curated_idaho_v1,rudys_south_meridian,Rudy's Pub & Grill South Meridian,2310 E Overland Rd,Meridian,ID,83642,USA,43.5907565,-116.3647399,(208) 884-4453,https://rudyspubgrill.com/
+idaho_production_v1,18,state_curated_idaho_v1,rudys_north_meridian,Rudy's Pub & Grill North Meridian,3035 W McMillan Rd,Meridian,ID,83642,USA,43.6473934,-116.4317754,(208) 887-3721,https://rudyspubgrill.com/

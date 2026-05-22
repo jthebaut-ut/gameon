@@ -144,7 +144,8 @@ extension MapViewModel {
             venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
             businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
             contactEmailRaw: bar.contactEmailRaw,
-            supporterCountry: bar.supporterCountry
+            supporterCountry: bar.supporterCountry,
+            originType: bar.originType
         )
     }
 }

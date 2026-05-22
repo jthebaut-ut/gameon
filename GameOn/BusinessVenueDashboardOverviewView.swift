@@ -13,6 +13,8 @@ struct BusinessVenueDashboardData: Equatable {
     let atmosphereRating: String
     let gameSectionContext: BusinessVenueDashboardGameSectionContext
     let games: [BusinessVenueDashboardGameItem]
+    let approvedVenues: [BusinessVenueDashboardApprovedVenueItem]
+    let pendingVenues: [BusinessVenueDashboardPendingVenueItem]
 }
 
 struct BusinessVenueDashboardGameSectionContext: Equatable {
@@ -86,6 +88,18 @@ struct BusinessVenueDashboardGameItem: Identifiable, Equatable {
     let energyTint: Color
 }
 
+struct BusinessVenueDashboardApprovedVenueItem: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let locationLine: String
+}
+
+struct BusinessVenueDashboardPendingVenueItem: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let submittedDateText: String
+}
+
 enum BusinessVenueDashboardGameDateTimeFormatter {
     static func compactLabel(
         startDate: Date?,
@@ -155,6 +169,8 @@ struct BusinessVenueDashboardOverviewView: View {
     let onAnalytics: () -> Void
     let onCommentsReports: () -> Void
     let onViewAllGames: () -> Void
+    let onRefreshVenues: () -> Void
+    let showsManagedVenuesSection: Bool
 
     private var hasManagedVenues: Bool {
         data.managedVenueCount > 0
@@ -164,6 +180,9 @@ struct BusinessVenueDashboardOverviewView: View {
         VStack(alignment: .leading, spacing: 16) {
             quickActions
             tonightSection
+            if showsManagedVenuesSection {
+                managedVenuesSection
+            }
         }
         .onAppear {
 #if DEBUG
@@ -238,6 +257,150 @@ struct BusinessVenueDashboardOverviewView: View {
             }
         }
         .onAppear(perform: logUpcomingLabelDebug)
+    }
+
+    private var managedVenuesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Text("Managed venues")
+                    .font(FGTypography.cardTitle.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                Spacer(minLength: 0)
+                Button(action: onRefreshVenues) {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+                .buttonStyle(.plain)
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                venueStatusGroup(
+                    title: "Approved venues",
+                    emptyText: "No approved venues yet",
+                    tint: FGColor.accentGreen
+                ) {
+                    ForEach(data.approvedVenues) { venue in
+                        approvedVenueRow(venue)
+                    }
+                }
+
+                Divider()
+                    .overlay(FGColor.divider(colorScheme))
+
+                venueStatusGroup(
+                    title: "Pending venues",
+                    emptyText: "No pending venues",
+                    tint: .orange
+                ) {
+                    ForEach(data.pendingVenues) { venue in
+                        pendingVenueRow(venue)
+                    }
+                }
+            }
+            .padding(12)
+            .background(FGColor.cardBackground(colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func venueStatusGroup<Content: View>(
+        title: String,
+        emptyText: String,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 7, height: 7)
+                Text(title)
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .textCase(.uppercase)
+            }
+
+            if (title == "Approved venues" && data.approvedVenues.isEmpty)
+                || (title == "Pending venues" && data.pendingVenues.isEmpty) {
+                Text(emptyText)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.vertical, 4)
+            } else {
+                content()
+            }
+        }
+    }
+
+    private func approvedVenueRow(_ venue: BusinessVenueDashboardApprovedVenueItem) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            statusIcon(systemName: "checkmark.seal.fill", tint: FGColor.accentGreen)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(venue.name)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                Text(venue.locationLine.isEmpty ? "Approved" : "\(venue.locationLine) • Approved")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            statusPill("Approved", tint: FGColor.accentGreen)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func pendingVenueRow(_ venue: BusinessVenueDashboardPendingVenueItem) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            statusIcon(systemName: "hourglass.circle.fill", tint: .orange)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(venue.name)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                Text("Pending approval • \(venue.submittedDateText)")
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            Button(action: onRefreshVenues) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(width: 28, height: 28)
+                    .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Refresh venue status")
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func statusIcon(systemName: String, tint: Color) -> some View {
+        Image(systemName: systemName)
+            .font(.caption.weight(.bold))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(tint)
+            .frame(width: 22, height: 22)
+    }
+
+    private func statusPill(_ title: String, tint: Color) -> some View {
+        Text(title)
+            .font(FGTypography.metadata.weight(.bold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.10))
+            .clipShape(Capsule(style: .continuous))
     }
 
     private var emptyTonightState: some View {

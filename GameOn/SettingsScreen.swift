@@ -616,8 +616,10 @@ struct SettingsScreen: View {
         .onChange(of: viewModel.hasAuthenticatedVenueOwnerSession) { _, isBusiness in
             if !isBusiness {
                 venueOwnerDashboardSheet = nil
+                showVenueOwnerPasswordResetSheet = false
                 showReportedCommentsSheet = false
                 showAddLocationSheet = false
+                showDeleteVenueOwnerSheet = false
             }
         }
         .onChange(of: venueOwnerDashboardSheet) { _, newRoute in
@@ -1649,7 +1651,11 @@ struct SettingsScreen: View {
             },
             onViewAllGames: {
                 openBusinessVenueToolRoute(.manageGames)
-            }
+            },
+            onRefreshVenues: {
+                Task { await refreshSettingsManagedVenuesSection() }
+            },
+            showsManagedVenuesSection: true
         )
         .onAppear {
             logSettingsInlineBusinessDashboardDebug()
@@ -1679,7 +1685,9 @@ struct SettingsScreen: View {
             predictions: settingsBusinessDashboardPredictions,
             atmosphereRating: settingsBusinessDashboardAtmosphereRating,
             gameSectionContext: settingsBusinessDashboardGameSectionContext,
-            games: settingsBusinessDashboardGameItems
+            games: settingsBusinessDashboardGameItems,
+            approvedVenues: settingsBusinessDashboardApprovedVenueItems,
+            pendingVenues: settingsBusinessDashboardPendingVenueItems
         )
     }
 
@@ -1690,6 +1698,35 @@ struct SettingsScreen: View {
             return selected
         }
         return managedVenues.first
+    }
+
+    private var settingsBusinessDashboardApprovedVenueItems: [BusinessVenueDashboardApprovedVenueItem] {
+        let pendingVenueIDs = Set(viewModel.pendingVenueClaimsForSettings.compactMap(\.venue_id))
+        return viewModel.managedVenuesForOwner()
+            .compactMap { row -> BusinessVenueDashboardApprovedVenueItem? in
+                guard let id = row.id, !pendingVenueIDs.contains(id) else { return nil }
+                let name = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let city = row.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let state = row.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                return BusinessVenueDashboardApprovedVenueItem(
+                    id: id,
+                    name: name.isEmpty ? "Approved venue" : name,
+                    locationLine: [city, state].filter { !$0.isEmpty }.joined(separator: ", ")
+                )
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    private var settingsBusinessDashboardPendingVenueItems: [BusinessVenueDashboardPendingVenueItem] {
+        viewModel.pendingVenueClaimsForSettings
+            .map { claim in
+                BusinessVenueDashboardPendingVenueItem(
+                    id: claim.id,
+                    name: settingsPendingClaimTitle(claim),
+                    submittedDateText: settingsPendingClaimSubmittedDateText(claim)
+                )
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
     private var settingsBusinessDashboardVenueName: String {
@@ -1878,6 +1915,12 @@ struct SettingsScreen: View {
             inlineBusinessDashboardGames = rows
             logSettingsInlineBusinessDashboardDebug()
         }
+    }
+
+    private func refreshSettingsManagedVenuesSection() async {
+        await viewModel.refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+        await viewModel.refreshPendingVenueClaimsForSettings()
+        await refreshSettingsInlineBusinessDashboard()
     }
 
     private func logSettingsInlineBusinessDashboardDebug() {
@@ -2158,6 +2201,16 @@ struct SettingsScreen: View {
         return line.isEmpty ? nil : line
     }
 
+    private func settingsPendingClaimSubmittedDateText(_ claim: VenueClaimPendingSettingsRow) -> String {
+        guard let raw = claim.created_at?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return "Submitted date unavailable"
+        }
+        guard let date = SupabaseTimestampParsing.parseTimestamptz(raw) ?? settingsParseSupabaseTimestamptz(raw) else {
+            return "Submitted \(String(raw.prefix(10)))"
+        }
+        return "Submitted \(date.formatted(.dateTime.month(.abbreviated).day().year()))"
+    }
+
     /// Presents add-location sheet with a blank form (used from Current managed venue menu).
     private func openAddLocationFromPicker() {
 #if DEBUG
@@ -2354,30 +2407,165 @@ private struct SettingsVenueOwnerDeletionSheet: View {
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var confirmationText: String = ""
-    @State private var confirmPassword: String = ""
+    @State private var preview: BusinessAccountDeletionPreview?
+    @State private var isLoadingPreview: Bool = false
     @State private var isDeleting: Bool = false
     @State private var errorMessage: String = ""
     @State private var successMessage: String = ""
     @State private var didSucceed: Bool = false
 
+    private var targetBusinessId: UUID? {
+        viewModel.currentBusinessIdForAddLocation() ?? viewModel.ownedBusinesses.first?.id
+    }
+
     private var canDelete: Bool {
         confirmationText.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == "DELETE"
+            && preview != nil
+    }
+
+    private var groupedPreviewEvents: [(venueName: String, events: [BusinessAccountDeletionPreviewEvent])] {
+        guard let preview else { return [] }
+        let grouped = Dictionary(grouping: preview.gamesEventsToRemove, by: \.displayVenueName)
+        return grouped
+            .map { venueName, events in
+                (
+                    venueName: venueName,
+                    events: events.sorted { lhs, rhs in
+                        let lhsStart = lhs.scheduledStartAt ?? ""
+                        let rhsStart = rhs.scheduledStartAt ?? ""
+                        if lhsStart != rhsStart { return lhsStart < rhsStart }
+                        let lhsDate = lhs.eventDate ?? ""
+                        let rhsDate = rhs.eventDate ?? ""
+                        if lhsDate != rhsDate { return lhsDate < rhsDate }
+                        let lhsTime = lhs.eventTime ?? ""
+                        let rhsTime = rhs.eventTime ?? ""
+                        if lhsTime != rhsTime { return lhsTime < rhsTime }
+                        return lhs.displayTitle.localizedCaseInsensitiveCompare(rhs.displayTitle) == .orderedAscending
+                    }
+                )
+            }
+            .sorted { $0.venueName.localizedCaseInsensitiveCompare($1.venueName) == .orderedAscending }
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deleting your venue owner account permanently removes your venue owner access and associated venue-owner data.")
+                    Text("Business-created venues will be permanently deleted. Community venues you claimed will stay on the map but will be removed from your business and returned to the FanGeo community marketplace.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("What will be deleted") {
-                    deletionRow("Venue owner profile + access")
-                    deletionRow("Venue photos/menu uploads owned by this account")
-                    deletionRow("Venue events/listings owned by this account where applicable")
-                    deletionRow("Venue claims and pending reviews linked to this owner")
+                if isLoadingPreview {
+                    Section("Deletion preview") {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Loading deletion preview...")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } else if let preview {
+                    Section("Counts") {
+                        countRow("Business venues to delete", preview.businessVenueCount)
+                        countRow("Community venues to release", preview.communityVenueCount)
+                        countRow("Games/events to remove", preview.eventCount)
+                        countRow("Photos to remove", preview.photoCount)
+                        countRow("Pending claims to cancel", preview.pendingClaimCount)
+                    }
+
+                    Section("Business-created venues") {
+                        if preview.businessVenuesToDelete.isEmpty {
+                            Text("No business-created venues will be deleted.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(preview.businessVenuesToDelete) { venue in
+                                previewVenueRow(
+                                    name: venue.displayName,
+                                    label: venue.label ?? "Will be deleted",
+                                    tint: FGColor.dangerRed
+                                )
+                            }
+                        }
+                    }
+
+                    Section("Community venues") {
+                        if preview.communityVenuesToRelease.isEmpty {
+                            Text("No community venues will be released.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(preview.communityVenuesToRelease) { venue in
+                                previewVenueRow(
+                                    name: venue.displayName,
+                                    label: venue.label ?? "Will be returned to FanGeo community",
+                                    tint: .orange
+                                )
+                            }
+                        }
+                    }
+
+                    Section("Games/events to remove") {
+                        let groupedEvents = groupedPreviewEvents
+                        if groupedEvents.isEmpty {
+                            Text("No games or events will be removed.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(groupedEvents, id: \.venueName) { group in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(group.venueName)
+                                        .font(.subheadline.weight(.bold))
+                                    ForEach(group.events) { event in
+                                        previewEventRow(event)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
+
+                    Section("Pending venues/claims") {
+                        if preview.pendingBusinessVenuesToDelete.isEmpty,
+                           preview.pendingCommunityClaimsToCancel.isEmpty {
+                            Text("No pending venues or claims will be cancelled.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            if !preview.pendingBusinessVenuesToDelete.isEmpty {
+                                Text("Pending business venues to delete")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                                ForEach(preview.pendingBusinessVenuesToDelete) { venue in
+                                    previewVenueRow(
+                                        name: venue.displayName,
+                                        label: venue.label ?? "Pending business venue to delete",
+                                        tint: FGColor.dangerRed.opacity(0.88)
+                                    )
+                                }
+                            }
+
+                            if !preview.pendingCommunityClaimsToCancel.isEmpty {
+                                Text("Pending community claims to cancel")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                                ForEach(preview.pendingCommunityClaimsToCancel) { venue in
+                                    previewVenueRow(
+                                        name: venue.displayName,
+                                        label: venue.label ?? "Pending community claim to cancel",
+                                        tint: .orange
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Section("Deletion preview") {
+                        Text("Preview unavailable. Close and try again.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Confirm") {
@@ -2385,9 +2573,7 @@ private struct SettingsVenueOwnerDeletionSheet: View {
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
 
-                    SecureField("Confirm password (optional)", text: $confirmPassword)
-
-                    Text("Password re-auth is not currently enforced in-app. TODO: add re-auth via Supabase if required.")
+                    Text("Actual deletion only happens after tapping Delete Business Account. Loading this preview does not delete anything.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2415,17 +2601,17 @@ private struct SettingsVenueOwnerDeletionSheet: View {
                         HStack {
                             Spacer()
                             if isDeleting { ProgressView() }
-                            Text(isDeleting ? "Deleting..." : "Delete Venue Owner Account")
+                            Text(isDeleting ? "Deleting..." : "Delete Business Account")
                             Spacer()
                         }
                     }
-                    .disabled(!canDelete || isDeleting || didSucceed)
+                    .disabled(!canDelete || isLoadingPreview || isDeleting || didSucceed)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
             }
-            .navigationTitle("Delete Venue Owner")
+            .navigationTitle("Delete business account?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -2433,32 +2619,123 @@ private struct SettingsVenueOwnerDeletionSheet: View {
                         .disabled(isDeleting)
                 }
             }
+            .task(id: targetBusinessId) {
+                await loadPreview()
+            }
         }
     }
 
     @ViewBuilder
-    private func deletionRow(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "minus.circle.fill")
-                .symbolRenderingMode(.hierarchical)
+    private func countRow(_ title: String, _ count: Int) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text("\(count)")
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(.secondary)
-            Text(text)
-                .font(.subheadline)
+        }
+    }
+
+    @ViewBuilder
+    private func previewVenueRow(name: String, label: String, tint: Color) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "building.2.crop.circle")
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(tint)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(name)
+                    .font(.subheadline.weight(.semibold))
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(tint)
+            }
         }
         .padding(.vertical, 2)
     }
 
+    @ViewBuilder
+    private func previewEventRow(_ event: BusinessAccountDeletionPreviewEvent) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(event.displayTitle)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
+            Text(previewEventMetadata(event))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.leading, 10)
+        .padding(.vertical, 2)
+    }
+
+    private func previewEventMetadata(_ event: BusinessAccountDeletionPreviewEvent) -> String {
+        let league = event.league?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let sport = event.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let date = event.eventDate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let time = event.eventTime?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let scheduled = event.scheduledStartAt?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let status = event.status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let dateTime = [date, time].filter { !$0.isEmpty }.joined(separator: " · ")
+        var parts = [String]()
+        if !sport.isEmpty { parts.append(sport) }
+        if !league.isEmpty { parts.append(league) }
+        if !dateTime.isEmpty {
+            parts.append(dateTime)
+        } else if !scheduled.isEmpty {
+            parts.append(scheduled)
+        }
+        if !status.isEmpty { parts.append(status.capitalized) }
+        return parts.isEmpty ? "Event details unavailable" : parts.joined(separator: " • ")
+    }
+
+    private func loadPreview() async {
+        guard let businessId = targetBusinessId else {
+            await MainActor.run {
+                preview = nil
+                errorMessage = "No active business account was found."
+            }
+            return
+        }
+
+        await MainActor.run {
+            isLoadingPreview = true
+            errorMessage = ""
+            successMessage = ""
+            preview = nil
+        }
+        defer {
+            Task { @MainActor in isLoadingPreview = false }
+        }
+
+        do {
+            let loaded = try await viewModel.businessAccountDeletionPreview(businessId: businessId)
+            await MainActor.run {
+                preview = loaded
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
     private func runDelete() async {
+        guard let businessId = targetBusinessId else {
+            errorMessage = "No active business account was found."
+            return
+        }
+
         isDeleting = true
         defer { isDeleting = false }
         errorMessage = ""
         successMessage = ""
 
         do {
-            try await viewModel.requestPermanentVenueOwnerAccountDeletion()
+            _ = try await viewModel.deleteBusinessAccountCascade(businessId: businessId)
             await MainActor.run {
-                successMessage = "Your venue owner account was deleted and you have been signed out."
+                successMessage = "Business account deleted."
                 didSucceed = true
+                confirmationText = ""
             }
         } catch {
             await MainActor.run {
@@ -2797,6 +3074,14 @@ private struct SettingsProfileHero: View {
         viewModel.venueOwnerMode || viewModel.isVenueOwnerLoggedIn || viewModel.currentUserIsBusinessAccount
     }
 
+    private var managedVenueCount: Int {
+        viewModel.managedVenuesForOwner().count
+    }
+
+    private var businessHasManagedVenues: Bool {
+        managedVenueCount > 0
+    }
+
     private var selectedVenueForHero: VenueProfileRow? {
         let managed = viewModel.managedVenuesForOwner()
         if let id = viewModel.ownerVenueDatabaseId,
@@ -2857,8 +3142,6 @@ private struct SettingsProfileHero: View {
             if let venueName = trimmedNonEmpty(selectedVenueForHero?.venue_name) {
                 return venueName
             }
-            let ownerVenue = viewModel.ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !ownerVenue.isEmpty { return ownerVenue }
             return venueOwnerBusinessHeroTitle
         }
         let current = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2876,22 +3159,25 @@ private struct SettingsProfileHero: View {
 
     private var activityBadgeText: String {
         if isBusinessProfile {
-            let managedCount = viewModel.managedVenuesForOwner().count
-            return managedCount == 1 ? "1 managed venue" : "\(managedCount) managed venues"
+            return managedVenueCount == 1 ? "1 managed venue" : "\(managedVenueCount) managed venues"
         }
         let favoritesCount = viewModel.favoriteVenueIDs.count
         return favoritesCount == 1 ? "1 saved venue" : "\(favoritesCount) saved venues"
     }
 
     private var activityBadgeTint: Color {
-        isBusinessProfile ? FGColor.accentGreen : FGColor.accentYellow
+        if isBusinessProfile {
+            return businessHasManagedVenues ? FGColor.accentGreen : FGColor.accentBlue
+        }
+        return FGColor.accentYellow
     }
 
     private var businessLocationLine: String? {
         guard isBusinessProfile else { return nil }
-        let city = selectedVenueForHero?.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? viewModel.ownerVenueCity.trimmingCharacters(in: .whitespacesAndNewlines)
-        let state = selectedVenueForHero?.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? viewModel.ownerVenueState.trimmingCharacters(in: .whitespacesAndNewlines)
-        let country = selectedVenueForHero?.country.map(BusinessLocationCountryPolicy.countryName(for:)) ?? ""
+        guard let venue = selectedVenueForHero else { return nil }
+        let city = venue.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let state = venue.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let country = venue.country.map(BusinessLocationCountryPolicy.countryName(for:)) ?? ""
         let parts = [city, state, country].filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
@@ -2901,10 +3187,16 @@ private struct SettingsProfileHero: View {
     }
 
     private var businessStatusLabel: String {
-        if viewModel.venueCoreIdentityLockedForSelectedVenue() || viewModel.venueIsApproved {
+        if businessHeroShowsVerifiedVenue {
             return L10n.t("verified_venue", languageCode: appLanguageRaw).uppercased()
         }
         return "BUSINESS ACCOUNT"
+    }
+
+    private var businessHeroShowsVerifiedVenue: Bool {
+        isBusinessProfile
+            && selectedVenueForHero != nil
+            && viewModel.businessSettingsLocationChrome() == .approved
     }
 
     private var accountTypeCapsule: some View {
@@ -2991,7 +3283,7 @@ private struct SettingsProfileHero: View {
                                 .foregroundStyle(.white)
                                 .lineLimit(2)
 
-                            if isBusinessProfile {
+                            if businessHeroShowsVerifiedVenue {
                                 Image(systemName: "checkmark.seal.fill")
                                     .font(.headline.weight(.bold))
                                     .symbolRenderingMode(.hierarchical)
@@ -3112,19 +3404,29 @@ private struct SettingsProfileHero: View {
     }
 
     private var businessAccountLabel: some View {
-        Label(businessStatusLabel, systemImage: "shield.checkered")
+        Label(businessStatusLabel, systemImage: businessHeroShowsVerifiedVenue ? "shield.checkered" : "building.2.fill")
             .font(.caption.weight(.black))
             .foregroundStyle(.white)
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
             .background(
                 LinearGradient(
-                    colors: [FGColor.accentGreen.opacity(0.95), FGColor.accentBlue.opacity(0.85)],
+                    colors: businessHeroShowsVerifiedVenue
+                        ? [FGColor.accentGreen.opacity(0.95), FGColor.accentBlue.opacity(0.85)]
+                        : [FGColor.accentBlue.opacity(0.86), Color.white.opacity(0.16)],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
             .clipShape(Capsule())
+    }
+
+    private func logBusinessProfileHeaderIfZeroVenues() {
+#if DEBUG
+        guard isBusinessProfile, managedVenueCount == 0 else { return }
+        print("[BusinessProfileHeaderDebug] clearedStaleVenueHeader=true")
+        print("[BusinessProfileHeaderDebug] managedVenueCount=0")
+#endif
     }
 
     var body: some View {
@@ -3141,6 +3443,10 @@ private struct SettingsProfileHero: View {
                     print("[BusinessDashboardCleanup] forcedBusinessIconHero=true")
                 }
 #endif
+                logBusinessProfileHeaderIfZeroVenues()
+            }
+            .onChange(of: managedVenueCount) { _, _ in
+                logBusinessProfileHeaderIfZeroVenues()
             }
     }
 }

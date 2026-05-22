@@ -1158,7 +1158,8 @@ extension MapViewModel {
                     venue_state: claim.venue_state,
                     venue_country: claim.venue_country,
                     approval_status: inserted.approval_status,
-                    rejection_acknowledged_at: nil
+                    rejection_acknowledged_at: nil,
+                    created_at: inserted.created_at
                 )
 
                 pendingVenueClaimsForSettings.removeAll { existing in
@@ -1298,7 +1299,7 @@ extension MapViewModel {
         do {
             let rows: [VenueClaimPendingSettingsRow] = try await supabase
                 .from("venue_claims")
-                .select("id,business_id,venue_id,venue_name,venue_address,venue_address_line2,venue_city,venue_state,venue_country,approval_status,rejection_acknowledged_at")
+                .select("id,business_id,venue_id,venue_name,venue_address,venue_address_line2,venue_city,venue_state,venue_country,approval_status,rejection_acknowledged_at,created_at")
                 .eq("owner_email", value: email)
                 .order("created_at", ascending: false)
                 .limit(80)
@@ -2010,7 +2011,18 @@ extension MapViewModel {
 #endif
         ownerVenueDatabaseId = nil
         persistSelectedVenueId(nil)
+        clearStaleBusinessProfileVenueHeaderState()
+    }
+
+    @MainActor
+    private func clearStaleBusinessProfileVenueHeaderState() {
         clearSelectedVenueDraftFieldsAfterDeletion()
+        venueIsApproved = false
+        venueClaimStatus = pendingVenueClaimsForSettings.isEmpty ? "Not submitted" : "Pending Review"
+#if DEBUG
+        print("[BusinessProfileHeaderDebug] clearedStaleVenueHeader=true")
+        print("[BusinessProfileHeaderDebug] managedVenueCount=\(managedVenuesForOwner().count)")
+#endif
     }
 
     /// Business self-service release/delete for one managed venue. The RPC does the database work transactionally;
@@ -2177,7 +2189,7 @@ extension MapViewModel {
         removeVenueFromLocalCollections(venueId: venueId, deletedEventIDs: deletedEventIDs)
         applySelectedVenueAfterBusinessLoad()
         if ownerVenueDatabaseId == nil {
-            clearSelectedVenueDraftFieldsAfterDeletion()
+            clearStaleBusinessProfileVenueHeaderState()
         }
         return snapshot
     }
@@ -2236,7 +2248,7 @@ extension MapViewModel {
         removeLocalVenueRating(venueID: venueId)
         applySelectedVenueAfterBusinessLoad()
         if ownerVenueDatabaseId == nil {
-            clearSelectedVenueDraftFieldsAfterDeletion()
+            clearStaleBusinessProfileVenueHeaderState()
         }
         return deletedURLs
     }
@@ -2993,7 +3005,8 @@ extension MapViewModel {
                         venue_state: trimmedState,
                         venue_country: trimmedCountry,
                         approval_status: inserted.approval_status,
-                        rejection_acknowledged_at: nil
+                        rejection_acknowledged_at: nil,
+                        created_at: inserted.created_at
                     )
                     pendingVenueClaimsForSettings.removeAll { existing in
                         existing.venue_id == linkedVenueId

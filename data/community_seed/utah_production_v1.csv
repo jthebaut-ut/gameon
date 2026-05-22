@@ -1,0 +1,11 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+utah_production_v1,1,state_curated_utah_v1,green_pig_pub_slc,The Green Pig Pub,31 E 400 S,Salt Lake City,UT,84111,USA,40.7608888,-111.8898720,(801) 532-7441,https://thegreenpigpub.com/
+utah_production_v1,2,state_curated_utah_v1,flanker_slc,Flanker Kitchen + Sporting Club,6 N Rio Grande St Suite 35,Salt Lake City,UT,84101,USA,40.7698102,-111.9036691,(801) 683-7070,https://www.flankerslc.com/
+utah_production_v1,3,state_curated_utah_v1,legends_downtown_slc,Legend's Pub & Grill Downtown,677 S 200 W,Salt Lake City,UT,84101,USA,40.7544967,-111.8964400,(801) 355-3598,https://www.whylegends.com/
+utah_production_v1,4,state_curated_utah_v1,legends_southtown_sandy,Legend's Pub & Grill Southtown,10631 S Holiday Park Dr,Sandy,UT,84070,USA,40.5580877,-111.8952592,(801) 679-1749,https://www.whylegends.com/
+utah_production_v1,5,state_curated_utah_v1,the_break_downtown_slc,The Break Downtown,140 S 300 W,Salt Lake City,UT,84101,USA,40.7664848,-111.9001207,(801) 364-0156,https://thebreakdowntown.com/
+utah_production_v1,6,state_curated_utah_v1,the_break_west_valley,The Break West Valley,3396 Decker Lake Dr,West Valley City,UT,84119,USA,40.6986234,-111.9478414,(385) 259-0475,https://thebreakwestvalley.com/
+utah_production_v1,7,state_curated_utah_v1,the_break_daybreak_south_jordan,The Break Daybreak,11274 S Kestrel Rise Rd,South Jordan,UT,84009,USA,40.5466111,-112.0024424,(801) 987-3354,https://thebreakgrill.com/
+utah_production_v1,8,state_curated_utah_v1,big_willies_slc,BIG Willies,1717 S Main St,Salt Lake City,UT,84115,USA,40.7331630,-111.8904368,(801) 463-4996,https://bigwillieslounge.com/
+utah_production_v1,9,state_curated_utah_v1,ice_haus_murray,Ice Haus,7 E 4800 S,Murray,UT,84107,USA,40.6669420,-111.8911030,(801) 266-2127,https://icehausbar.com/
+utah_production_v1,10,state_curated_utah_v1,bout_time_bluffdale,Bout Time Pub & Grub Bluffdale,475 W 14600 S,Bluffdale,UT,84065,USA,40.4860692,-111.9067945,(801) 878-7036,https://www.bouttimepub.com/location/bluffdale-utah/

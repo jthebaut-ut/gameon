@@ -4165,40 +4165,50 @@ struct DiscoverScreen: View {
         let card = ZStack(alignment: .bottomLeading) {
                 ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
 
-                HStack {
+                HStack(alignment: .bottom) {
                     venuePreviewTeamOrb(theme: homeTheme, isLeading: true)
-                        .offset(x: -18, y: -8)
                     Spacer(minLength: 0)
                     venuePreviewTeamOrb(theme: awayTheme, isLeading: false)
-                        .offset(x: 18, y: -8)
                 }
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 22)
+                .padding(.bottom, 14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
 
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     HStack {
                         venuePreviewSportBadge(sport: event.sport, league: event.league)
                         Spacer()
                     }
 
-                    VStack(spacing: 0) {
-                        venuePreviewHeroTeamTitle(homeTheme.uppercaseTitle, theme: homeTheme, alignment: .leading)
+                    Spacer(minLength: 10)
+
+                    VStack(spacing: 7) {
+                        venuePreviewHeroTeamTitle(homeTheme.uppercaseTitle, theme: homeTheme)
                         Text("VS")
-                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundStyle(.white.opacity(0.92))
                             .shadow(color: .black.opacity(0.36), radius: 6, y: 3)
-                        venuePreviewHeroTeamTitle(awayTheme.uppercaseTitle, theme: awayTheme, alignment: .trailing)
+                        venuePreviewHeroTeamTitle(awayTheme.uppercaseTitle, theme: awayTheme)
                     }
                     .frame(maxWidth: .infinity)
+
+                    Spacer(minLength: 8)
 
                     Text(venuePreviewGameDateTimeText(for: event))
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.92))
                         .shadow(color: .black.opacity(0.32), radius: 5, y: 2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .allowsTightening(true)
+
+                    Spacer(minLength: 52)
                 }
                 .padding(18)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 214)
+            .frame(height: 230)
             .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
@@ -4267,14 +4277,12 @@ struct DiscoverScreen: View {
                     Spacer(minLength: 0)
                 }
 
-                Text(matchup.hasResolvedTeams ? "\(homeTheme.uppercaseTitle) vs \(awayTheme.uppercaseTitle)" : event.title.uppercased())
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .tracking(0.3)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.36), radius: 8, y: 3)
-                    .shadow(color: .black.opacity(0.44), radius: 5, y: 3)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.68)
+                venuePreviewCompactTitleText(
+                    matchup: matchup,
+                    eventTitle: event.title,
+                    homeTheme: homeTheme,
+                    awayTheme: awayTheme
+                )
 
                 Text(venuePreviewGameDateTimeText(for: event))
                     .font(FGTypography.caption.weight(.bold))
@@ -4597,17 +4605,45 @@ struct DiscoverScreen: View {
         return title.isEmpty ? "Game" : title
     }
 
-    private func venuePreviewHeroTeamTitle(_ title: String, theme: TeamTheme, alignment: TextAlignment) -> some View {
-        Text(title)
-            .font(.system(size: title.count > 10 ? 31 : 38, weight: .black, design: .rounded))
-            .tracking(0.8)
-            .multilineTextAlignment(alignment)
-            .minimumScaleFactor(0.64)
+    private func venuePreviewHeroTeamTitle(_ title: String, theme: TeamTheme) -> some View {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayTitle = trimmedTitle.isEmpty ? "TEAM" : trimmedTitle
+        let titleLength = displayTitle.count
+        let fontSize: CGFloat = titleLength > 24 ? 27 : (titleLength > 16 ? 31 : 36)
+
+        return Text(displayTitle)
+            .font(.system(size: fontSize, weight: .black, design: .rounded))
+            .tracking(titleLength > 18 ? 0.35 : 0.7)
+            .multilineTextAlignment(.center)
             .lineLimit(1)
+            .minimumScaleFactor(0.55)
+            .allowsTightening(true)
             .foregroundStyle(ThemeGradientBuilder.textGradient(for: theme))
             .shadow(color: theme.accent.opacity(0.42), radius: 10, y: 3)
             .shadow(color: .black.opacity(0.45), radius: 5, y: 3)
-            .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private func venuePreviewCompactTitleText(
+        matchup: VenuePreviewMatchup,
+        eventTitle: String,
+        homeTheme: TeamTheme,
+        awayTheme: TeamTheme
+    ) -> some View {
+        let title = eventTitle.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let text = matchup.hasResolvedTeams
+            ? Text(homeTheme.uppercaseTitle).foregroundColor(homeTheme.textColorHint ?? homeTheme.accentColor)
+                + Text(" vs ").foregroundColor(.white.opacity(0.88))
+                + Text(awayTheme.uppercaseTitle).foregroundColor(awayTheme.textColorHint ?? awayTheme.accentColor)
+            : Text(title.isEmpty ? "GAME" : title).foregroundColor(.white)
+
+        return text
+            .font(.system(size: 24, weight: .black, design: .rounded))
+            .tracking(0.3)
+            .shadow(color: .black.opacity(0.36), radius: 8, y: 3)
+            .shadow(color: .black.opacity(0.44), radius: 5, y: 3)
+            .lineLimit(2)
+            .minimumScaleFactor(0.68)
     }
 
     private func venuePreviewSportBadge(sport: String, league: String, compact: Bool = false) -> some View {
@@ -4641,14 +4677,14 @@ struct DiscoverScreen: View {
 
             if let flag = theme.flag {
                 Text(flag)
-                    .font(.system(size: 48))
+                    .font(.system(size: 34))
             } else {
                 Text(String(theme.displayName.prefix(2)).uppercased())
-                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .font(.system(size: 21, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
         }
-        .frame(width: 96, height: 96)
+        .frame(width: 74, height: 74)
         .accessibilityHidden(true)
     }
 

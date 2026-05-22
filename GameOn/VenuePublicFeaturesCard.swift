@@ -10,11 +10,15 @@ struct VenuePublicFeaturesCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Venue Features")
-                .font(.headline)
-                .fontWeight(.bold)
+            if bar.isUnclaimedCommunityVenue {
+                VenueUnverifiedFeaturesState()
+            } else {
+                Text("Venue Features")
+                    .font(.headline)
+                    .fontWeight(.bold)
 
-            VenueFeatureGrid(items: items)
+                VenueFeatureGrid(items: items)
+            }
         }
         .padding(12)
         .background(Color.gray.opacity(0.08))

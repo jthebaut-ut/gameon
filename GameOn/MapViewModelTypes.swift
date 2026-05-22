@@ -802,6 +802,7 @@ struct VenueClaimPendingSettingsRow: Decodable, Identifiable, Equatable {
     let venue_country: String?
     let approval_status: String?
     let rejection_acknowledged_at: String?
+    let created_at: String?
 }
 
 struct ApprovedVenueOwnershipSummary: Equatable {

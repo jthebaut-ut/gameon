@@ -75,6 +75,8 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     let contactEmailRaw: String?
     /// Optional venue-owned tournament supporter setting (e.g. "Mexico", "United States").
     let supporterCountry: String?
+    /// `public.venues.origin_type`: community rows have unverified public identity until claimed.
+    let originType: String?
 
     init(
         id: UUID = UUID(),
@@ -105,7 +107,8 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         venueOwnerEmailRaw: String? = nil,
         businessOwnerEmailRaw: String? = nil,
         contactEmailRaw: String? = nil,
-        supporterCountry: String? = nil
+        supporterCountry: String? = nil,
+        originType: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -136,6 +139,7 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         self.businessOwnerEmailRaw = businessOwnerEmailRaw
         self.contactEmailRaw = contactEmailRaw
         self.supporterCountry = supporterCountry
+        self.originType = originType
     }
 
     static func == (lhs: BarVenue, rhs: BarVenue) -> Bool {
@@ -158,6 +162,11 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     /// Seeded/imported community map venue (no business owner on file).
     var isCommunityVenue: Bool {
         !hasBusinessVerifiedFeatures
+    }
+
+    var isUnclaimedCommunityVenue: Bool {
+        originType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "community"
+            && !hasBusinessVerifiedFeatures
     }
 }
 

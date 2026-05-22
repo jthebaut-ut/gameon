@@ -15,14 +15,14 @@ private let discoverVenueBusinessEmbedSelectSuffix =
     ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 
 private let discoverVenueRowSelectColumns =
-    "id,owner_email,business_id,venue_identity_key,admin_status,supporter_country,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features," +
+    "id,owner_email,business_id,venue_identity_key,origin_type,admin_status,supporter_country,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features," +
     "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
     "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
     discoverVenueBusinessEmbedSelectSuffix
 
 private enum DiscoverVenueFastPinSelect {
     nonisolated static let columns =
-        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,admin_status,supporter_country,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
+        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,origin_type,admin_status,supporter_country,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
         ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 
@@ -99,6 +99,7 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
     let businessOwnerEmailRaw: String?
     let contactEmailRaw: String?
     let supporterCountry: String?
+    let originType: String?
 
     init(bar: BarVenue) {
         id = bar.id
@@ -131,6 +132,7 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
         businessOwnerEmailRaw = bar.businessOwnerEmailRaw
         contactEmailRaw = bar.contactEmailRaw
         supporterCountry = bar.supporterCountry
+        originType = bar.originType
     }
 
     func toBarVenue() -> BarVenue {
@@ -163,7 +165,8 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
             venueOwnerEmailRaw: venueOwnerEmailRaw,
             businessOwnerEmailRaw: businessOwnerEmailRaw,
             contactEmailRaw: contactEmailRaw,
-            supporterCountry: supporterCountry
+            supporterCountry: supporterCountry,
+            originType: originType
         )
     }
 }
@@ -2140,7 +2143,8 @@ extension MapViewModel {
                     venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
                     businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
                     contactEmailRaw: bar.contactEmailRaw,
-                    supporterCountry: bar.supporterCountry
+                    supporterCountry: bar.supporterCountry,
+                    originType: bar.originType
                 )
             }
         }
@@ -2215,7 +2219,8 @@ extension MapViewModel {
                     venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
                     businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
                     contactEmailRaw: bar.contactEmailRaw,
-                    supporterCountry: bar.supporterCountry
+                    supporterCountry: bar.supporterCountry,
+                    originType: bar.originType
                 )
             }
         }

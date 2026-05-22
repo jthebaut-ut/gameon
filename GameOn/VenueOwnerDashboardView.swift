@@ -705,7 +705,9 @@ struct VenueOwnerDashboardView: View {
             },
             onViewAllGames: {
                 openBusinessDashboardGames(tab: .scheduled)
-            }
+            },
+            onRefreshVenues: {},
+            showsManagedVenuesSection: false
         )
         .onAppear {
             logBusinessDashboardDebug()
@@ -725,7 +727,9 @@ struct VenueOwnerDashboardView: View {
             predictions: businessDashboardPredictions,
             atmosphereRating: businessDashboardAtmosphereRating,
             gameSectionContext: businessDashboardGameSectionContext,
-            games: businessDashboardGameItems
+            games: businessDashboardGameItems,
+            approvedVenues: [],
+            pendingVenues: []
         )
     }
 

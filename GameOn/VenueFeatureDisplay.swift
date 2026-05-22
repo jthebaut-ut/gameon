@@ -233,19 +233,21 @@ private func venueBoolFeatureAvailability(_ value: Bool?) -> VenueFeatureAvailab
     switch value {
     case true:
         return .available
-    case false, nil:
+    case false:
         return .unavailable
+    case nil:
+        return .unknown
     }
 }
 
 private func venueScreenAvailability(_ screenCount: Int?) -> VenueFeatureAvailability {
-    guard let screenCount else { return .unavailable }
+    guard let screenCount else { return .unknown }
     return screenCount > 0 ? .available : .unavailable
 }
 
 private func venueRawTokenFeatureAvailability(isPresent: Bool, bar: BarVenue) -> VenueFeatureAvailability {
     if isPresent { return .available }
-    return .unavailable
+    return .unknown
 }
 
 private func venueRawFeatureTokens(_ rawFeatures: String?) -> [String] {
@@ -315,6 +317,35 @@ private func venueNormalizeFeatureText(_ value: String) -> String {
         .trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
+struct VenueUnverifiedFeaturesState: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: FGSpacing.xs) {
+            Text("Venue features")
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            Text("Amenities have not been verified yet.")
+                .font(FGTypography.body.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            Text("Features will appear after a business claims and updates this venue.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FGSpacing.md)
+        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.07))
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.22 : 0.16), lineWidth: 1)
+        }
+    }
+}
+
 struct VenueFeatureGrid: View {
     let items: [VenueFeatureDisplayItem]
     var columns: [GridItem] = [
@@ -330,29 +361,26 @@ struct VenueFeatureGrid: View {
             ForEach(items) { item in
                 let activeTint = FGColor.accentGreen
                 let unavailableTint = FGColor.mutedText(colorScheme)
-                let unknownTint = FGColor.secondaryText(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.82)
                 let iconColor: Color = {
                     switch item.availability {
                     case .available: return activeTint
                     case .unavailable: return unavailableTint
-                    case .unknown: return unknownTint
+                    case .unknown: return unavailableTint
                     }
                 }()
                 let textColor: Color = {
                     switch item.availability {
                     case .available: return FGColor.primaryText(colorScheme)
                     case .unavailable: return FGColor.secondaryText(colorScheme)
-                    case .unknown: return unknownTint
+                    case .unknown: return FGColor.secondaryText(colorScheme)
                     }
                 }()
                 let backgroundFill: Color = {
                     switch item.availability {
                     case .available:
                         return activeTint.opacity(colorScheme == .dark ? 0.10 : 0.07)
-                    case .unavailable:
-                        return Color.clear
-                    case .unknown:
-                        return Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.04)
+                    case .unavailable, .unknown:
+                        return Color.primary.opacity(colorScheme == .dark ? 0.055 : 0.045)
                     }
                 }()
 
@@ -364,7 +392,7 @@ struct VenueFeatureGrid: View {
 
                     Text(item.label)
                         .font(FGTypography.caption.weight(.semibold))
-                        .foregroundStyle(textColor.opacity(item.availability == .unavailable ? 0.78 : 1))
+                        .foregroundStyle(textColor.opacity(item.availability == .available ? 1 : 0.78))
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
@@ -375,24 +403,13 @@ struct VenueFeatureGrid: View {
                 .padding(.vertical, 7)
                 .background(backgroundFill)
                 .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
-                .overlay {
-                    if item.availability == .unknown {
-                        RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
-                            .strokeBorder(unknownTint.opacity(0.35), lineWidth: 1)
-                    }
-                }
-                .overlay {
-                    if item.availability == .unavailable {
-                        unavailableFeatureSlashOverlay()
-                    }
-                }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel(for: item))
                 .onAppear {
 #if DEBUG
                     if item.availability == .unavailable {
                         print("[VenueFeaturesDebug] unavailableFeatureRendered=\(item.label)")
-                        print("[VenueFeaturesDebug] unavailableOverlayApplied=true")
+                        print("[VenueFeaturesDebug] unavailableDisabledTileApplied=true")
                     }
 #endif
                 }
@@ -423,23 +440,5 @@ struct VenueFeatureGrid: View {
         case .unknown: state = "unverified"
         }
         return "\(item.label), \(state)"
-    }
-
-    private func unavailableFeatureSlashOverlay() -> some View {
-        let slashTint = Color(red: 1.0, green: 0.35, blue: 0.37).opacity(colorScheme == .dark ? 0.72 : 0.64)
-        return GeometryReader { proxy in
-            Path { path in
-                let insetX = max(14, proxy.size.width * 0.20)
-                let insetY = max(12, proxy.size.height * 0.18)
-                path.move(to: CGPoint(x: insetX, y: insetY))
-                path.addLine(to: CGPoint(x: proxy.size.width - insetX, y: proxy.size.height - insetY))
-            }
-            .stroke(
-                slashTint,
-                style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round)
-            )
-            .shadow(color: slashTint.opacity(0.16), radius: 2, x: 0, y: 1)
-        }
-        .allowsHitTesting(false)
     }
 }

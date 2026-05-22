@@ -23,11 +23,19 @@ enum ThemeGradientBuilder {
 
     private static func stadiumBaseColors(home: TeamTheme, away: TeamTheme) -> [Color] {
         let darkNavy = Color(red: 0.015, green: 0.025, blue: 0.08)
+        if home.usesFallback && away.usesFallback {
+            return safeFallbackColors(darkNavy: darkNavy)
+        }
+
         return [
+            home.primaryColor.opacity(0.92),
+            home.secondaryColor.opacity(0.82),
+            home.accentColor.opacity(0.58),
+            darkNavy.opacity(0.96),
             darkNavy,
-            home.accent.opacity(0.86),
-            away.accent.opacity(0.78),
-            darkNavy
+            away.accentColor.opacity(0.58),
+            away.secondaryColor.opacity(0.82),
+            away.primaryColor.opacity(0.92)
         ]
     }
 
@@ -42,4 +50,12 @@ enum ThemeGradientBuilder {
         return [theme.accent, .white]
     }
 
+    private static func safeFallbackColors(darkNavy: Color) -> [Color] {
+        let fallback = TeamTheme.fallback
+        let base = fallback.colors.isEmpty ? CountryTheme.fallback.colors : fallback.colors
+        guard !base.isEmpty else {
+            return [darkNavy, Color(red: 0.18, green: 0.08, blue: 0.46), Color(red: 0.19, green: 0.42, blue: 0.88)]
+        }
+        return base
+    }
 }
