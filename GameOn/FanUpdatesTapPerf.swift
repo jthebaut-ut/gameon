@@ -4,6 +4,12 @@ import UIKit
 /// Identifiable sheet token for Fan Updates (immediate presentation).
 struct FanUpdatesSheetEvent: Identifiable, Equatable {
     let id: UUID
+    let title: String?
+
+    init(id: UUID, title: String? = nil) {
+        self.id = id
+        self.title = title
+    }
 }
 
 enum FanUpdatesTapPerf {

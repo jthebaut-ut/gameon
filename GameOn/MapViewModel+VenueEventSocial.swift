@@ -55,8 +55,11 @@ extension MapViewModel {
     @MainActor
     func userIsGoingToVenueGame(bar: BarVenue, gameTitle: String, venueEventID: UUID?) -> Bool {
         let trimmed = normalizedVenueGameTitle(gameTitle)
+        guard let venueEventID else {
+            return isInterested(in: bar, gameTitle: trimmed)
+        }
+        if let pendingTarget = venueEventInterestPendingTargets[venueEventID] { return pendingTarget }
         if isInterested(in: bar, gameTitle: trimmed) { return true }
-        guard let venueEventID else { return false }
         if isRecentlyConfirmedVenueEventNotGoing(venueEventID) { return false }
         if isInterestedInVenueEvent(venueEventID) { return true }
         if venueEventInterestWriteInFlightIDs.contains(venueEventID) { return true }
@@ -132,6 +135,9 @@ extension MapViewModel {
     ) {
         let trimmed = normalizedVenueGameTitle(gameTitle)
         let eventIdRaw = knownVenueEventID.map { normalizedVenueEventWireId($0) } ?? "nil"
+#if DEBUG
+        print("[GoingResponsivenessDebug] tapReceived eventId=\(eventIdRaw)")
+#endif
         print(
             "[GoingButtonDebug] tap source=\(source) eventIdRaw=\(eventIdRaw) venueId=\(bar.id.uuidString.lowercased()) title=\(trimmed)"
         )
@@ -163,6 +169,9 @@ extension MapViewModel {
 
         if let resolvedCacheID, venueEventInterestWriteInFlightIDs.contains(resolvedCacheID) {
             print("[GoingButtonDebug] blocked reason=pending eventId=\(normalizedVenueEventWireId(resolvedCacheID))")
+#if DEBUG
+            print("[GoingResponsivenessDebug] duplicateTapIgnored eventId=\(normalizedVenueEventWireId(resolvedCacheID))")
+#endif
             return
         }
 
@@ -173,6 +182,9 @@ extension MapViewModel {
             wasGoing = isInterested(in: bar, gameTitle: trimmed)
         }
         let targetGoing = !wasGoing
+#if DEBUG
+        print("[GoingToggleDebug] tap eventId=\(eventIdRaw) oldState=\(wasGoing) newState=\(targetGoing)")
+#endif
 
         let rollbackSnapshot = VenueGameGoingRollbackSnapshot(
             interestIDs: venueEventInterestIDs,
@@ -180,7 +192,8 @@ extension MapViewModel {
             followingInterestIDs: followingTabUserVenueEventInterestIDs,
             followingInterestCounts: followingTabGoingInterestCounts,
             followingItems: followingTabGoingItems,
-            goingProfiles: goingProfilesByVenueEventID
+            goingProfiles: goingProfilesByVenueEventID,
+            pendingTargets: venueEventInterestPendingTargets
         )
 
         applyOptimisticVenueGameGoingUI(
@@ -210,6 +223,7 @@ extension MapViewModel {
         let followingInterestCounts: [UUID: Int]
         let followingItems: [FollowingGoingDisplayItem]
         let goingProfiles: [UUID: [UserProfileRow]]
+        let pendingTargets: [UUID: Bool]
     }
 
     @MainActor
@@ -225,6 +239,7 @@ extension MapViewModel {
             removeInterested(in: bar, gameTitle: gameTitle)
         }
         if let venueEventID {
+            venueEventInterestPendingTargets[venueEventID] = isGoing
             venueEventInterestWriteInFlightIDs.insert(venueEventID)
             applyLocalVenueEventInterestState(
                 venueEventID: venueEventID,
@@ -234,6 +249,9 @@ extension MapViewModel {
             print(
                 "[GoingButtonDebug] optimisticUpdate eventId=\(normalizedVenueEventWireId(venueEventID)) going=\(isGoing)"
             )
+#if DEBUG
+            print("[GoingResponsivenessDebug] optimisticApplied eventId=\(normalizedVenueEventWireId(venueEventID)) state=\(isGoing)")
+#endif
         } else {
             print("[GoingButtonDebug] optimisticUpdate eventId=nil going=\(isGoing)")
         }
@@ -250,13 +268,18 @@ extension MapViewModel {
         previousFollowingInterestIDs: Set<UUID>,
         previousFollowingInterestCounts: [UUID: Int],
         previousFollowingItems: [FollowingGoingDisplayItem],
-        previousGoingProfiles: [UUID: [UserProfileRow]]
+        previousGoingProfiles: [UUID: [UserProfileRow]],
+        previousPendingTargets: [UUID: Bool]
     ) {
         if let venueEventID {
             venueEventInterestWriteInFlightIDs.remove(venueEventID)
+            venueEventInterestPendingTargets.removeValue(forKey: venueEventID)
             print(
                 "[GoingTabSyncDebug] rollback eventId=\(normalizedVenueEventWireId(venueEventID))"
             )
+#if DEBUG
+            print("[GoingResponsivenessDebug] rollback eventId=\(normalizedVenueEventWireId(venueEventID))")
+#endif
         }
         venueEventInterestIDs = previousInterestIDs
         venueEventInterestCounts = previousInterestCounts
@@ -264,6 +287,7 @@ extension MapViewModel {
         followingTabGoingInterestCounts = previousFollowingInterestCounts
         followingTabGoingItems = previousFollowingItems
         goingProfilesByVenueEventID = previousGoingProfiles
+        venueEventInterestPendingTargets = previousPendingTargets
         if restoreGoing {
             markInterested(in: bar, gameTitle: gameTitle)
         } else {
@@ -285,6 +309,9 @@ extension MapViewModel {
     ) async {
         guard let interestEmail = await resolvedInterestMutationEmail() else {
             print("[GoingButtonDebug] blocked reason=noEmail source=\(source)")
+#if DEBUG
+            print("[GoingToggleDebug] saveFailed eventId=\(cachedVenueEventID.map { normalizedVenueEventWireId($0) } ?? "nil") error=noInterestEmail")
+#endif
             await MainActor.run {
                 rollbackOptimisticVenueGameGoingUI(
                     bar: bar,
@@ -296,7 +323,8 @@ extension MapViewModel {
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
                     previousFollowingItems: rollbackSnapshot.followingItems,
-                    previousGoingProfiles: rollbackSnapshot.goingProfiles
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles,
+                    previousPendingTargets: rollbackSnapshot.pendingTargets
                 )
                 showSocialActionToast("Please log in with a FanGeo account to mark yourself as going.")
             }
@@ -305,6 +333,9 @@ extension MapViewModel {
 
         guard let wireEventID = await venueEventID(for: bar, gameTitle: gameTitle, on: eventDate) ?? cachedVenueEventID else {
             print("[GoingButtonDebug] blocked reason=noEventId source=\(source) title=\(gameTitle)")
+#if DEBUG
+            print("[GoingToggleDebug] saveFailed eventId=nil error=noVenueEventID")
+#endif
             await MainActor.run {
                 rollbackOptimisticVenueGameGoingUI(
                     bar: bar,
@@ -316,7 +347,8 @@ extension MapViewModel {
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
                     previousFollowingItems: rollbackSnapshot.followingItems,
-                    previousGoingProfiles: rollbackSnapshot.goingProfiles
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles,
+                    previousPendingTargets: rollbackSnapshot.pendingTargets
                 )
                 showSocialActionToast("Couldn't find this game yet. Try again in a moment.")
             }
@@ -325,9 +357,11 @@ extension MapViewModel {
 
         if cachedVenueEventID != wireEventID {
             await MainActor.run {
+                venueEventInterestPendingTargets[wireEventID] = targetGoing
                 if targetGoing {
                     if let cachedVenueEventID {
                         venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+                        venueEventInterestPendingTargets.removeValue(forKey: cachedVenueEventID)
                         venueEventInterestIDs.remove(cachedVenueEventID)
                     }
                     venueEventInterestWriteInFlightIDs.insert(wireEventID)
@@ -349,6 +383,9 @@ extension MapViewModel {
             }
         }
 
+#if DEBUG
+        print("[GoingResponsivenessDebug] requestStarted eventId=\(normalizedVenueEventWireId(wireEventID))")
+#endif
         let ok = await setVenueEventInterest(
             venueEventID: wireEventID,
             isInterested: targetGoing,
@@ -361,10 +398,16 @@ extension MapViewModel {
         if !ok {
             await MainActor.run {
                 venueEventInterestWriteInFlightIDs.remove(wireEventID)
+                venueEventInterestPendingTargets.removeValue(forKey: wireEventID)
                 if let cachedVenueEventID, cachedVenueEventID != wireEventID {
                     venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+                    venueEventInterestPendingTargets.removeValue(forKey: cachedVenueEventID)
                 }
             }
+#if DEBUG
+            print("[GoingToggleDebug] saveFailed eventId=\(normalizedVenueEventWireId(wireEventID)) error=setVenueEventInterestReturnedFalse")
+            print("[GoingResponsivenessDebug] requestFinished eventId=\(normalizedVenueEventWireId(wireEventID)) success=false")
+#endif
             await MainActor.run {
                 rollbackOptimisticVenueGameGoingUI(
                     bar: bar,
@@ -376,7 +419,8 @@ extension MapViewModel {
                     previousFollowingInterestIDs: rollbackSnapshot.followingInterestIDs,
                     previousFollowingInterestCounts: rollbackSnapshot.followingInterestCounts,
                     previousFollowingItems: rollbackSnapshot.followingItems,
-                    previousGoingProfiles: rollbackSnapshot.goingProfiles
+                    previousGoingProfiles: rollbackSnapshot.goingProfiles,
+                    previousPendingTargets: rollbackSnapshot.pendingTargets
                 )
                 showSocialActionToast("Couldn't update your game plan.")
             }
@@ -385,10 +429,20 @@ extension MapViewModel {
 
         await MainActor.run {
             venueEventInterestWriteInFlightIDs.remove(wireEventID)
+            venueEventInterestPendingTargets.removeValue(forKey: wireEventID)
             if let cachedVenueEventID, cachedVenueEventID != wireEventID {
                 venueEventInterestWriteInFlightIDs.remove(cachedVenueEventID)
+                venueEventInterestPendingTargets.removeValue(forKey: cachedVenueEventID)
             }
+            reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: wireEventID, discoverBar: bar)
+            refreshFollowingInterestDerivedSnapshotsForUI()
         }
+#if DEBUG
+        print("[GoingToggleDebug] saveSuccess eventId=\(normalizedVenueEventWireId(wireEventID))")
+        print("[GoingResponsivenessDebug] requestFinished eventId=\(normalizedVenueEventWireId(wireEventID)) success=true")
+#endif
+
+        scheduleDeferredFollowingTabGoingReconcile(venueEventID: wireEventID, reason: "venueGameGoingToggle")
 
         await refreshVenueGameCardGoingState(venueEventID: wireEventID)
 
@@ -441,25 +495,27 @@ extension MapViewModel {
             || followingTabUserVenueEventInterestIDs.contains(venueEventID)
         let keep = hasServer
             || localOnly.contains(venueEventID)
-            || venueEventInterestWriteInFlightIDs.contains(venueEventID)
+            || (venueEventInterestWriteInFlightIDs.contains(venueEventID) && venueEventInterestPendingTargets[venueEventID] != false)
             || isRecentlyConfirmedVenueEventGoing(venueEventID)
+        let resolvedKeep = venueEventInterestPendingTargets[venueEventID] ?? keep
 
         if let (bar, title) = snapshot {
             let key = venueEventInterestKey(for: bar, gameTitle: title)
-            if keep {
+            if resolvedKeep {
                 interestedVenueEventKeys.insert(key)
-            } else if !venueEventInterestWriteInFlightIDs.contains(venueEventID),
-                      !isRecentlyConfirmedVenueEventGoing(venueEventID) {
+            } else if venueEventInterestPendingTargets[venueEventID] == false
+                        || (!venueEventInterestWriteInFlightIDs.contains(venueEventID)
+                            && !isRecentlyConfirmedVenueEventGoing(venueEventID)) {
                 interestedVenueEventKeys.remove(key)
             }
-        } else if let discoverBar, keep {
+        } else if let discoverBar, resolvedKeep {
             let title = discoverBar.games.first ?? ""
             if !title.isEmpty {
                 interestedVenueEventKeys.insert(venueEventInterestKey(for: discoverBar, gameTitle: title))
             }
         }
 
-        if keep {
+        if resolvedKeep {
             optimisticAddFollowingTabGoingItem(venueEventID: venueEventID, discoverBar: discoverBar ?? snapshot?.0)
         } else {
             optimisticRemoveFollowingTabGoingItem(venueEventID: venueEventID)
@@ -503,8 +559,7 @@ extension MapViewModel {
         )
         var items = followingTabGoingItems
         items.append(item)
-        items.sort { $0.id.uuidString < $1.id.uuidString }
-        followingTabGoingItems = items
+        followingTabGoingItems = Self.sortFollowingGoingItemsChronologically(items)
         print("[GoingTabSyncDebug] optimisticAdd eventId=\(wireId) count=\(followingTabGoingItems.count)")
         refreshFollowingInterestDerivedSnapshotsForUI()
     }
@@ -635,9 +690,12 @@ extension MapViewModel {
         )
     }
 
-    private func scheduleDeferredFollowingTabGoingReconcile(venueEventID: UUID) {
+    private func scheduleDeferredFollowingTabGoingReconcile(venueEventID: UUID, reason: String = "deferredReconcile") {
         let wireId = normalizedVenueEventWireId(venueEventID)
         print("[GoingTabSyncDebug] reconcileScheduled eventId=\(wireId)")
+#if DEBUG
+        print("[GoingTabSyncDebug] refreshTriggered reason=\(reason)")
+#endif
         followingTabGoingReconcileTask?.cancel()
         followingTabGoingReconcileTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -663,15 +721,27 @@ extension MapViewModel {
 
         if isInterested {
             if !wasInterested {
+                let existingCount = max(
+                    venueEventInterestCounts[venueEventID] ?? 0,
+                    followingTabGoingInterestCounts[venueEventID] ?? 0,
+                    venueGameCardSnapshotStore.snapshot(for: venueEventID)?.goingCount ?? 0
+                )
                 venueEventInterestIDs.insert(venueEventID)
-                venueEventInterestCounts[venueEventID, default: 0] += 1
+                venueEventInterestCounts[venueEventID] = existingCount + 1
+                followingTabGoingInterestCounts[venueEventID] = existingCount + 1
                 followingTabUserVenueEventInterestIDs.insert(venueEventID)
             }
             addCurrentUserGoingAvatarProfileIfPossible(for: venueEventID)
         } else {
             guard wasInterested else { return }
+            let existingCount = max(
+                venueEventInterestCounts[venueEventID] ?? 0,
+                followingTabGoingInterestCounts[venueEventID] ?? 0,
+                venueGameCardSnapshotStore.snapshot(for: venueEventID)?.goingCount ?? 0
+            )
             venueEventInterestIDs.remove(venueEventID)
-            venueEventInterestCounts[venueEventID] = max((venueEventInterestCounts[venueEventID] ?? 0) - 1, 0)
+            venueEventInterestCounts[venueEventID] = max(existingCount - 1, 0)
+            followingTabGoingInterestCounts[venueEventID] = max(existingCount - 1, 0)
             followingTabUserVenueEventInterestIDs.remove(venueEventID)
             removeCurrentUserGoingAvatarProfile(for: venueEventID)
         }
@@ -679,6 +749,40 @@ extension MapViewModel {
         reconcileFollowingGoingDisplayAfterInterestMutation(
             venueEventID: venueEventID,
             discoverBar: discoverBar
+        )
+        applyOptimisticVenueGameCardSnapshot(venueEventID: venueEventID, isGoing: isInterested)
+    }
+
+    @MainActor
+    private func applyOptimisticVenueGameCardSnapshot(venueEventID: UUID, isGoing: Bool) {
+        let existing = venueGameCardSnapshotStore.snapshot(for: venueEventID)
+        let current = currentUserGoingProfileRow()
+        var profiles = goingProfilesByVenueEventID[venueEventID] ?? existing?.goingAvatarProfiles ?? []
+        if let current {
+            profiles.removeAll { userProfileRow($0, matchesCurrentUserProfile: current) }
+            if isGoing {
+                profiles.insert(current, at: 0)
+            }
+        }
+        goingProfilesByVenueEventID[venueEventID] = profiles
+
+        let localCount = max(
+            venueEventInterestCounts[venueEventID] ?? 0,
+            followingTabGoingInterestCounts[venueEventID] ?? 0,
+            profiles.filter { $0.isFanVisibleForLivePresence(to: currentUserAuthId) }.count,
+            isGoing ? 1 : 0
+        )
+
+        venueGameCardSnapshotStore.setSnapshot(
+            VenueGameCardGoingSnapshot(
+                isCurrentUserGoing: isGoing,
+                goingCount: localCount,
+                goingAvatarProfiles: profiles,
+                reconcileStatus: .optimistic,
+                lastGoingUpdatedAt: Date(),
+                lastAvatarUpdatedAt: Date()
+            ),
+            for: venueEventID
         )
     }
 
@@ -750,6 +854,9 @@ extension MapViewModel {
         guard canMarkGoing else {
             logBusinessUserGateBlocked(action: "markGoing")
             print("[GoingButtonDebug] blocked reason=businessUser eventId=\(normalizedEventId)")
+#if DEBUG
+            print("[GoingToggleDebug] saveFailed eventId=\(normalizedEventId) error=businessUser")
+#endif
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return false
         }
@@ -759,6 +866,9 @@ extension MapViewModel {
             print(
                 "[GoingButtonDebug] blocked reason=noEmail eventId=\(normalizedEventId) auth userId=\(auth.userId) email=\(auth.email)"
             )
+#if DEBUG
+            print("[GoingToggleDebug] saveFailed eventId=\(normalizedEventId) error=noInterestEmail")
+#endif
             print("USER MUST BE LOGGED IN TO MARK INTEREST")
             return false
         }
@@ -770,6 +880,7 @@ extension MapViewModel {
             previousFollowingInterestCounts: [UUID: Int],
             previousFollowingItems: [FollowingGoingDisplayItem],
             previousGoingProfiles: [UUID: [UserProfileRow]],
+            previousPendingTargets: [UUID: Bool],
             wasAlreadyInterested: Bool
         ) in
             (
@@ -779,6 +890,7 @@ extension MapViewModel {
                 followingTabGoingInterestCounts,
                 followingTabGoingItems,
                 goingProfilesByVenueEventID,
+                venueEventInterestPendingTargets,
                 venueEventInterestIDs.contains(venueEventID)
                     || followingTabUserVenueEventInterestIDs.contains(venueEventID)
             )
@@ -786,6 +898,7 @@ extension MapViewModel {
 
         if applyOptimistic {
             await MainActor.run {
+                venueEventInterestPendingTargets[venueEventID] = isInterested
                 if manageWriteInFlight {
                     venueEventInterestWriteInFlightIDs.insert(venueEventID)
                 }
@@ -837,10 +950,14 @@ extension MapViewModel {
                     followingTabGoingInterestCounts = snapshot.previousFollowingInterestCounts
                     followingTabGoingItems = snapshot.previousFollowingItems
                     goingProfilesByVenueEventID = snapshot.previousGoingProfiles
+                    venueEventInterestPendingTargets = snapshot.previousPendingTargets
                     if manageWriteInFlight {
                         venueEventInterestWriteInFlightIDs.remove(venueEventID)
                     }
                 }
+#if DEBUG
+                print("[GoingToggleDebug] saveFailed eventId=\(normalizedEventId) error=\(error.localizedDescription)")
+#endif
 #if DEBUG
                 if hasAuthenticatedVenueOwnerSession {
                     print("[FollowingState] business attendance save failed")
@@ -860,8 +977,13 @@ extension MapViewModel {
             applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
             if manageWriteInFlight {
                 venueEventInterestWriteInFlightIDs.remove(venueEventID)
+                venueEventInterestPendingTargets.removeValue(forKey: venueEventID)
+                reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
             }
         }
+#if DEBUG
+        print("[GoingToggleDebug] saveSuccess eventId=\(normalizedEventId)")
+#endif
 
         if schedulePostWriteRefreshes {
             if refreshFollowing {
@@ -1251,7 +1373,8 @@ extension MapViewModel {
     }
 
     func isInterestedInVenueEvent(_ venueEventID: UUID) -> Bool {
-        venueEventInterestIDs.contains(venueEventID)
+        if let pendingTarget = venueEventInterestPendingTargets[venueEventID] { return pendingTarget }
+        return venueEventInterestIDs.contains(venueEventID)
             || followingTabUserVenueEventInterestIDs.contains(venueEventID)
     }
 
@@ -1417,9 +1540,14 @@ extension MapViewModel {
 
                 if preserveLocalOptimistic {
                     pruneVenueEventInterestLocalReconcileGuards()
-                    let preserveInFlight = venueEventInterestWriteInFlightIDs
+                    let preserveInFlight = Set(venueEventInterestWriteInFlightIDs.filter {
+                        venueEventInterestPendingTargets[$0] != false
+                    })
+                    let removeInFlight = Set(venueEventInterestWriteInFlightIDs.filter {
+                        venueEventInterestPendingTargets[$0] == false
+                    })
                     let preserveConfirmedGoing = activeRecentlyConfirmedVenueEventGoingIDs()
-                    let preserveConfirmedNotGoing = activeRecentlyConfirmedVenueEventNotGoingIDs()
+                    let preserveConfirmedNotGoing = activeRecentlyConfirmedVenueEventNotGoingIDs().union(removeInFlight)
 
                     for eventID in preserveInFlight.union(preserveConfirmedGoing) {
                         if preserveConfirmedNotGoing.contains(eventID) { continue }
@@ -1446,6 +1574,7 @@ extension MapViewModel {
 
                     for eventID in preserveConfirmedNotGoing {
                         mergedIDs.remove(eventID)
+                        mergedCounts[eventID] = max((mergedCounts[eventID] ?? 0) - 1, 0)
                     }
 
                     for eventID in mergedIDs where preserveInFlight.contains(eventID) || preserveConfirmedGoing.contains(eventID) {

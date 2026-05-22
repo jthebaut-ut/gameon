@@ -8,6 +8,7 @@ enum CountryFlagHelper {
         "BR": ["brazil", "brasil"],
         "CA": ["canada"],
         "CL": ["chile"],
+        "CH": ["switzerland", "swiss"],
         "CN": ["china", "pr china"],
         "CO": ["colombia"],
         "CR": ["costa rica"],
@@ -25,12 +26,16 @@ enum CountryFlagHelper {
         "MA": ["morocco"],
         "MX": ["mexico", "méxico"],
         "NL": ["netherlands", "holland"],
+        "NO": ["norway"],
+        "PE": ["peru"],
         "PL": ["poland", "polska"],
         "PT": ["portugal"],
         "RS": ["serbia"],
         "RU": ["russia"],
         "SA": ["saudi arabia"],
+        "SE": ["sweden"],
         "SN": ["senegal"],
+        "TR": ["turkey", "turkiye", "türkiye"],
         "US": ["usa", "u.s.a.", "us", "u.s.", "united states", "united states of america", "america"],
         "UY": ["uruguay"]
     ]
@@ -61,9 +66,10 @@ enum CountryFlagHelper {
         }
         let localeIdentifier = L10n.normalizedLanguageCode(languageCode ?? UserDefaults.standard.string(forKey: L10n.appLanguageKey))
         let localized = Locale(identifier: localeIdentifier).localizedString(forRegionCode: regionCode)
-        return localized?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-            ? localized!
-            : teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedLocalized = localized?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedLocalized.isEmpty
+            ? teamName.trimmingCharacters(in: .whitespacesAndNewlines)
+            : trimmedLocalized
     }
 
     static func countrySuggestions(matching query: String, languageCode: String? = nil) -> [(name: String, code: String, flag: String)] {

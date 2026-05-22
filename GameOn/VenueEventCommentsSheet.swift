@@ -4,18 +4,32 @@ import SwiftUI
 struct VenueEventCommentsSheet: View {
     @ObservedObject var viewModel: MapViewModel
     let venueEventID: UUID
+    var title: String? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
 
+    private var headerTitle: String {
+        let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { return trimmed }
+        guard let row = viewModel.venueEventRows.first(where: { $0.id == venueEventID }) else {
+            return "Game Fan Chat"
+        }
+        let game = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return game.isEmpty ? "Game Fan Chat" : "\(game) Fan Chat"
+    }
+
     private var headerSubtitle: String {
         guard let row = viewModel.venueEventRows.first(where: { $0.id == venueEventID }) else {
             return ""
         }
-        let game = row.event_title ?? "Game"
         let venue = row.venue_name ?? "Venue"
-        return "\(game) · \(venue)"
+        let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return [venue, sport, time]
+            .filter { !$0.isEmpty }
+            .joined(separator: " · ")
     }
 
     private var sheetRootBackground: Color {
@@ -33,6 +47,14 @@ struct VenueEventCommentsSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
+                Text(headerTitle)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, headerSubtitle.isEmpty ? 8 : 2)
+
                 if !headerSubtitle.isEmpty {
                     Text(headerSubtitle)
                         .font(.subheadline)

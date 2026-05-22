@@ -282,19 +282,43 @@ enum FanGeoLiveEnergyTiming {
     static let startsSoonWindowMinutes = 60
     static let liveWindowHours = 4
 
-    static func parseScheduledStart(_ raw: String?) -> Date? {
+    private static let fractionalScheduledStartFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let plainScheduledStartFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let scheduledStartFormatterLock = NSLock()
+
+    static func parseScheduledStart(_ raw: String?, eventId: UUID? = nil) -> Date? {
         guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
             return nil
         }
 
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: raw) {
+        scheduledStartFormatterLock.lock()
+        defer { scheduledStartFormatterLock.unlock() }
+
+        if let date = fractionalScheduledStartFormatter.date(from: raw) {
             return date
         }
 
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        return plain.date(from: raw)
+        if let date = plainScheduledStartFormatter.date(from: raw) {
+            return date
+        }
+
+        logInvalidScheduledStart(raw, eventId: eventId)
+        return nil
+    }
+
+    private static func logInvalidScheduledStart(_ raw: String, eventId: UUID?) {
+#if DEBUG
+        print("[LiveEnergyCrashGuard] invalidScheduledStart=\(raw) eventId=\(eventId?.uuidString.lowercased() ?? "nil")")
+#endif
     }
 }

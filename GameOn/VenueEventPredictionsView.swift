@@ -334,13 +334,14 @@ struct VenueEventPredictionModule: View {
     }
 
     private var winnerOptions: [PredictionVotingOption] {
-        let matchupOptions = [
-            option(for: teams.home, type: .winner),
-            option(for: teams.away, type: .winner)
-        ]
-        guard isSoccerPrediction else { return matchupOptions }
+        let homeOption = option(for: teams.home, type: .winner)
+        let awayOption = option(for: teams.away, type: .winner)
+        let matchupOptions = [homeOption, awayOption]
+        guard isSoccerPrediction else {
+            return matchupOptions
+        }
         return [
-            matchupOptions[0],
+            homeOption,
             PredictionVotingOption(
                 value: "Draw",
                 title: "Draw",
@@ -349,7 +350,7 @@ struct VenueEventPredictionModule: View {
                 percent: resolvedSummary.winnerPercents["Draw"] ?? 0,
                 avatars: resolvedSummary.winnerAvatarsByOption["Draw"] ?? []
             ),
-            matchupOptions[1]
+            awayOption
         ]
     }
 
@@ -1069,11 +1070,15 @@ struct VenueEventPredictionSheet: View {
                 avatars: []
             )
         }
-        guard predictionType == .winner else { return teamOptions }
+        guard predictionType == .winner,
+              let firstTeamOption = teamOptions.first,
+              let secondTeamOption = teamOptions.dropFirst().first else {
+            return teamOptions
+        }
         return [
-            teamOptions[0],
+            firstTeamOption,
             PredictionVotingOption(value: "Draw", title: "Draw", subtitle: nil, flag: nil, percent: 0, avatars: []),
-            teamOptions[1]
+            secondTeamOption
         ]
     }
 

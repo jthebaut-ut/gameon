@@ -374,17 +374,30 @@ struct FollowingScreen: View {
     }
 
     private var goingVenueGameItems: [FollowingGoingDisplayItem] {
-        viewModel.followingTabGoingItems
+        let sorted = MapViewModel.sortFollowingGoingItemsChronologically(
+            viewModel.followingTabGoingItems
             .filter(\.isServerGoing)
-            .sorted { lhs, rhs in
-                let lhsExpired = watchingVenueGameIsCompleted(lhs)
-                let rhsExpired = watchingVenueGameIsCompleted(rhs)
-                if lhsExpired != rhsExpired { return !lhsExpired }
-                let lhsDate = lhs.venueEvent.event_date ?? ""
-                let rhsDate = rhs.venueEvent.event_date ?? ""
-                if lhsDate != rhsDate { return lhsDate > rhsDate }
-                return lhs.venueEvent.event_time ?? "" > rhs.venueEvent.event_time ?? ""
-            }
+        )
+        logGoingTabSortDebug(sorted)
+        return sorted
+    }
+
+    private func logGoingTabSortDebug(_ items: [FollowingGoingDisplayItem]) {
+#if DEBUG
+        let firstStart = items.first.map { goingTabSortDebugStartString(for: $0.venueEvent) } ?? "nil"
+        print("[GoingTabSortDebug] count=\(items.count) firstStart=\(firstStart)")
+#endif
+    }
+
+    private func goingTabSortDebugStartString(for row: VenueEventRow) -> String {
+        if let raw = row.scheduled_start_at?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !raw.isEmpty {
+            return raw
+        }
+        let date = row.event_date?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let combined = [date, time].filter { !$0.isEmpty }.joined(separator: " ")
+        return combined.isEmpty ? "nil" : combined
     }
 
     private func watchingVenueGameIsCompleted(_ item: FollowingGoingDisplayItem) -> Bool {

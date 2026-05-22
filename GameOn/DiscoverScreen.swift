@@ -379,6 +379,7 @@ struct DiscoverScreen: View {
     @State private var discoverWeather: DiscoverWeather?
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @State private var isDiscoverHomeCrowdToggleInFlight = false
+    @State private var venuePreviewDetailEvent: SportsEvent?
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
 
@@ -407,6 +408,164 @@ struct DiscoverScreen: View {
         let id: String
         let index: Int
         let event: SportsEvent
+    }
+
+    private struct VenuePreviewMatchup {
+        let home: String
+        let away: String
+        let hasResolvedTeams: Bool
+    }
+
+    private struct VenuePreviewIdentityBanner {
+        let rawIdentity: String?
+        let displayName: String
+        let flag: String?
+    }
+
+    private struct VenuePreviewFanZoneData {
+        let venueID: UUID
+        let vibeTargetEventID: UUID?
+        let fireCount: Int
+        let seatingCount: Int
+        let tvCount: Int
+        let audioCount: Int
+        let crowdCount: Int
+    }
+
+    private struct VenuePreviewFanZoneBlockView: View {
+        @Environment(\.colorScheme) private var colorScheme
+
+        let fireCount: Int
+        let seatingCount: Int
+        let tvCount: Int
+        let audioCount: Int
+        let crowdCount: Int
+        let isVotingEnabled: Bool
+        let onVote: (_ debugType: String, _ vibeType: String) -> Void
+
+        var body: some View {
+            VStack(alignment: .center, spacing: 10) {
+                HStack {
+                    Spacer(minLength: 0)
+                    fanZonePill(
+                        title: "🟢 Active Fan Zone",
+                        tint: FGColor.accentGreen,
+                        isEnabled: true,
+                        action: nil
+                    )
+                    .frame(maxWidth: 230)
+                    Spacer(minLength: 0)
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        vibeChip(symbol: "🔥", count: fireCount, tint: FGColor.dangerRed, debugType: "fire", vibeType: "packed")
+                        vibeChip(symbol: "🪑", count: seatingCount, tint: FGColor.accentGreen, debugType: "seating", vibeType: "seats_open")
+                        vibeChip(symbol: "📺", count: tvCount, tint: FGColor.accentBlue, debugType: "tv", vibeType: "tv_visible")
+                        vibeChip(symbol: "🔊", count: audioCount, tint: FGColor.accentYellow, debugType: "audio", vibeType: "audio_on")
+                        vibeChip(symbol: "👥", count: crowdCount, tint: FGColor.accentGreen, debugType: "crowd", vibeType: "crowd")
+                    }
+                    .padding(.horizontal, 1)
+                }
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .zIndex(6)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .allowsHitTesting(true)
+            .zIndex(5)
+            .background {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .allowsHitTesting(false)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.09),
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.16 : 0.38), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.06), radius: 14, y: 6)
+        }
+
+        private func fanZonePill(
+            title: String,
+            tint: Color,
+            isEnabled: Bool,
+            action: (() -> Void)?
+        ) -> some View {
+            Button {
+                action?()
+            } label: {
+                Text(title)
+                    .font(FGTypography.metadata.weight(.bold))
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                    .padding(.horizontal, 12)
+                    .frame(maxWidth: .infinity, minHeight: 42)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(tint.opacity(colorScheme == .dark ? 0.18 : 0.11))
+                    }
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(tint.opacity(colorScheme == .dark ? 0.34 : 0.24), lineWidth: 1)
+                    }
+                    .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(action == nil || !isEnabled)
+            .opacity(isEnabled ? 1 : 0.72)
+            .accessibilityLabel(title)
+        }
+
+        private func vibeChip(symbol: String, count: Int, tint: Color, debugType: String, vibeType: String) -> some View {
+            Button {
+                onVote(debugType, vibeType)
+            } label: {
+                HStack(spacing: 5) {
+                    Text(symbol)
+                        .font(.system(size: 17))
+                    Text("\(safeCount(count))")
+                        .font(.subheadline.weight(.heavy))
+                        .monospacedDigit()
+                        .foregroundStyle(tint)
+                }
+                .padding(.horizontal, 12)
+                .frame(minWidth: 58, minHeight: 38)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(tint.opacity(colorScheme == .dark ? 0.17 : 0.10))
+                        .allowsHitTesting(false)
+                }
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 1)
+                        .allowsHitTesting(false)
+                }
+                .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.965, hapticOnPress: false))
+            .opacity(isVotingEnabled ? 1 : 0.72)
+            .accessibilityLabel("\(symbol) \(safeCount(count)) votes")
+        }
+
+        private func safeCount(_ value: Int) -> Int {
+            max(0, value)
+        }
     }
 
     private struct VenueGameCardSnapshotObservedContent<Content: View>: View {
@@ -508,7 +667,8 @@ struct DiscoverScreen: View {
             )) { event in
                 VenueEventCommentsSheet(
                     viewModel: viewModel,
-                    venueEventID: event.id
+                    venueEventID: event.id,
+                    title: event.title
                 )
             }
             .sheet(item: $predictionSheet) { context in
@@ -612,6 +772,7 @@ struct DiscoverScreen: View {
             }
         }
         .onChange(of: viewModel.selectedDate) { _, _ in
+            venuePreviewDetailEvent = nil
             viewModel.pruneSelectionIfNeededAfterFilterChange()
         }
         .onChange(of: viewModel.searchText) { _, _ in
@@ -624,6 +785,9 @@ struct DiscoverScreen: View {
             if !stillVisible {
                 viewModel.clearSelectedEvent()
             }
+        }
+        .onChange(of: viewModel.selectedBar?.id) { _, _ in
+            venuePreviewDetailEvent = nil
         }
         .onChange(of: viewModel.discoverMapContentMode) { oldMode, newMode in
             if newMode != .venues {
@@ -872,6 +1036,33 @@ struct DiscoverScreen: View {
                 onStopVenuePredictionRealtime: { id in
                     await viewModel.stopVenueEventPredictionRealtime(for: id)
                 },
+                fanChatCommentCount: { id in
+                    viewModel.fanUpdatesDisplayCommentCount(for: id)
+                },
+                venueEventVibeCounts: { id in
+                    fanUpdatesStore.venueEventVibeCounts[id] ?? [:]
+                },
+                selectedVenueEventVibes: { id in
+                    fanUpdatesStore.myVenueEventVibes[id] ?? []
+                },
+                onOpenFanChat: { id in
+                    presentFanUpdatesSheet(venueEventID: id)
+                },
+                onToggleVenueEventVibe: { id, vibeType in
+                    guard viewModel.isAuthenticatedForSocialFeatures else {
+                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                        return
+                    }
+                    guard viewModel.canUseFanSocialFeatures else {
+                        viewModel.logBusinessUserGateBlocked(action: "toggleVibe")
+                        fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                        return
+                    }
+                    await viewModel.toggleVibe(for: id, vibeType: vibeType)
+                },
+                onPrefetchVenueEventSocialData: { id in
+                    viewModel.prefetchFanUpdatesCardSocialData(for: id)
+                },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),
                 onToggleHomeCrowd: {
@@ -916,12 +1107,21 @@ struct DiscoverScreen: View {
     }
 
     private func selectedEventForVenue(gamesToday: [SportsEvent]) -> SportsEvent? {
-        guard let selectedEvent = viewModel.selectedEvent else { return nil }
-        return gamesToday.first {
+        guard let selectedEvent = viewModel.selectedEvent else {
+            if gamesToday.isEmpty, let selectedBar = viewModel.selectedBar {
+                logVenueGameCardCrashGuard(reason: "selectedVenueEventNilNoGames", venue: selectedBar, event: nil)
+            }
+            return nil
+        }
+        let match = gamesToday.first {
             $0.title == selectedEvent.title &&
             $0.sport == selectedEvent.sport &&
             Calendar.current.isDate($0.date, inSameDayAs: selectedEvent.date)
         }
+        if match == nil, let selectedBar = viewModel.selectedBar {
+            logVenueGameCardCrashGuard(reason: "selectedVenueEventNotInVenueGames", venue: selectedBar, event: selectedEvent)
+        }
+        return match
     }
 
     private func visibleVenuePreviewEventsForSocialPrefetch(
@@ -931,6 +1131,9 @@ struct DiscoverScreen: View {
     ) -> [SportsEvent] {
         if let selectedVenueEvent {
             return [selectedVenueEvent]
+        }
+        if gamesToday.isEmpty {
+            logVenueGameCardCrashGuard(reason: "socialPrefetchEmptyGames", venue: bar, event: nil)
         }
         return Array(gamesToday.prefix(12))
     }
@@ -2971,7 +3174,7 @@ struct DiscoverScreen: View {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         guard !parts.isEmpty else { return "Location on map" }
-        if parts.count == 1 { return String(parts[0]) }
+        if parts.count == 1, let onlyPart = parts.first { return String(onlyPart) }
         return parts.suffix(2).joined(separator: ", ")
     }
 
@@ -3259,37 +3462,40 @@ struct DiscoverScreen: View {
             date: viewModel.selectedDate,
             sportFilter: viewModel.selectedSport
         )
-        let selectedVenueEvent = selectedEventForVenue(gamesToday: gamesToday)
-        let visibleSocialPrefetchEvents = visibleVenuePreviewEventsForSocialPrefetch(
-            bar: resolved,
-            gamesToday: gamesToday,
-            selectedVenueEvent: selectedVenueEvent
-        )
-        let visibleSocialPrefetchKey = visibleVenuePreviewSocialPrefetchKey(
-            bar: resolved,
-            events: visibleSocialPrefetchEvents
-        )
 
         return VStack(alignment: .leading, spacing: 12) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     venuePreviewCardStaticHeader(bar: resolved)
 
-                    if let supporter = VenueSupporterCountryMode.display(
-                        for: resolved.supporterCountry,
-                        languageCode: appLanguageRaw
-                    ) {
-                        venueSupporterBanner(supporter)
-                    }
-
                     Rectangle()
                         .fill(FGColor.divider(colorScheme))
                         .frame(height: 1)
 
-                    if let selectedEvent = selectedVenueEvent {
-                        selectedEventSection(bar: resolved, selectedEvent: selectedEvent)
+                    if let detailEvent = venuePreviewDetailEvent {
+                        venuePreviewGameDetail(bar: resolved, event: detailEvent)
                     } else {
-                        gamesListSection(bar: resolved, gamesToday: gamesToday)
+                        let identityBanner = venuePreviewIdentityBannerModel(bar: resolved, gamesToday: gamesToday)
+                        let fanZoneData = venuePreviewFanZoneData(bar: resolved, gamesToday: gamesToday)
+
+                        venuePreviewIdentityBanner(
+                            identityBanner
+                        )
+                        venuePreviewFanZoneBlock(fanZoneData)
+                            .zIndex(5)
+
+                        if !gamesToday.isEmpty {
+                            gamesListSection(bar: resolved, gamesToday: gamesToday)
+                                .zIndex(0)
+                        } else {
+                            Text("No games today")
+                                .font(FGTypography.cardTitle.weight(.bold))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(FGSpacing.md)
+                                .background(discoverPreviewInnerSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+                        }
                     }
                 }
                 .padding(.bottom, 4)
@@ -3317,16 +3523,10 @@ struct DiscoverScreen: View {
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.14), radius: colorScheme == .dark ? 24 : 16, x: 0, y: colorScheme == .dark ? 14 : 9)
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, x: 0, y: 2)
-        .task(id: visibleSocialPrefetchKey) {
-            await viewModel.prefetchDiscoverVenueImages(for: resolved, includeMenu: false)
-            guard viewModel.canViewDiscoverDetails() else { return }
-            await prefetchVisibleVenueSocialData(bar: resolved, events: visibleSocialPrefetchEvents)
-        }
         .onAppear {
 #if DEBUG
             print("[VenuePreviewScrollDebug] fullCardContentScrollable=true")
             print("[VenuePreviewScrollDebug] bottomActionsPinned=true")
-            print("[VenuePreviewScrollDebug] removedAllGoingTabs=true")
             print("[VenuePreviewStabilityDebug] closeButtonRemoved=true")
             print("[VenuePreviewStabilityDebug] swipeDismissConfirmedRemoved=true")
             print("[VenuePreviewStabilityDebug] gameCount=\(gamesToday.count)")
@@ -3334,7 +3534,225 @@ struct DiscoverScreen: View {
         }
     }
 
-    
+    private func venuePreviewInfoRow(icon: String, title: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Text(value)
+                    .font(FGTypography.caption)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(FGSpacing.md)
+        .background(discoverPreviewInnerSurface)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(discoverPreviewControlBorder.opacity(0.74), lineWidth: 1)
+        }
+    }
+
+    private func venuePreviewIdentityBannerModel(
+        bar: BarVenue,
+        gamesToday: [SportsEvent]
+    ) -> VenuePreviewIdentityBanner {
+        if let supporter = VenueSupporterCountryMode.display(for: bar.supporterCountry, languageCode: appLanguageRaw) {
+            return VenuePreviewIdentityBanner(
+                rawIdentity: supporter.storedCountry,
+                displayName: supporter.countryName,
+                flag: supporter.flag
+            )
+        }
+
+        for event in gamesToday {
+            let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
+            for identity in [matchup.home, matchup.away] {
+                let theme = TeamTheme.resolve(identity)
+                if !theme.usesFallback {
+                    return VenuePreviewIdentityBanner(
+                        rawIdentity: identity,
+                        displayName: theme.displayName,
+                        flag: theme.flag
+                    )
+                }
+            }
+        }
+
+        logVenueGameCardCrashGuard(reason: gamesToday.isEmpty ? "identityFallbackNoGames" : "identityFallbackNoCountryTheme", venue: bar, event: nil)
+        return VenuePreviewIdentityBanner(
+            rawIdentity: nil,
+            displayName: "FanGeo",
+            flag: "🏟️"
+        )
+    }
+
+    private func venuePreviewIdentityBanner(_ banner: VenuePreviewIdentityBanner) -> some View {
+        let theme = TeamTheme.resolve(banner.rawIdentity)
+        let fallbackTheme = TeamTheme.fallback
+        let flag = banner.flag ?? theme.flag
+        let initials = String(banner.displayName.prefix(2)).uppercased()
+
+        return HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.14 : 0.78))
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+
+                if let flag {
+                    Text(flag)
+                        .font(.system(size: 34))
+                        .shadow(color: .black.opacity(0.20), radius: 3, y: 2)
+                } else {
+                    Text(initials)
+                        .font(.system(size: 17, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                }
+            }
+            .frame(width: 54, height: 54)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(banner.displayName) Watch Spot")
+                    .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.70)
+                    .shadow(color: .black.opacity(0.34), radius: 4, y: 2)
+
+                Text("TOURNAMENT CROWD MODE")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.84))
+                    .tracking(0.6)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background {
+            ZStack {
+                ThemeGradientBuilder.stadiumBackground(home: theme, away: fallbackTheme)
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(colorScheme == .dark ? 0.10 : 0.02),
+                        Color.black.opacity(colorScheme == .dark ? 0.40 : 0.26)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.white.opacity(colorScheme == .dark ? 0.05 : 0.08))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
+        }
+        .shadow(color: theme.accent.opacity(colorScheme == .dark ? 0.30 : 0.18), radius: 16, y: 8)
+        .onAppear {
+#if DEBUG
+            print("[VenueSupporterBannerDebug] venueLevelBanner=true")
+            print("[VenueSupporterBannerDebug] identity=\(banner.rawIdentity ?? "fallback")")
+            print("[VenueSupporterDebug] supporterBannerVisible=true")
+#endif
+        }
+    }
+
+    private func venuePreviewFanZoneData(
+        bar: BarVenue,
+        gamesToday: [SportsEvent]
+    ) -> VenuePreviewFanZoneData {
+        var eventIDs: [UUID] = []
+        var seenEventIDs = Set<UUID>()
+
+        for event in gamesToday {
+            let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let eventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle),
+                  !seenEventIDs.contains(eventID) else {
+                continue
+            }
+            seenEventIDs.insert(eventID)
+            eventIDs.append(eventID)
+        }
+
+        var fireCount = 0
+        var seatingCount = 0
+        var tvCount = 0
+        var audioCount = 0
+        var crowdCount = 0
+
+        for eventID in eventIDs {
+            let counts = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
+            fireCount += max(0, counts["packed"] ?? 0)
+            seatingCount += max(0, counts["seats_open"] ?? 0)
+            tvCount += max(0, counts["tv_visible"] ?? 0)
+            audioCount += max(0, counts["audio_on"] ?? 0)
+            crowdCount += max(0, counts["crowd"] ?? 0)
+        }
+
+        let targetEventID = eventIDs.first
+        return VenuePreviewFanZoneData(
+            venueID: bar.id,
+            vibeTargetEventID: targetEventID,
+            fireCount: fireCount,
+            seatingCount: seatingCount,
+            tvCount: tvCount,
+            audioCount: audioCount,
+            crowdCount: crowdCount
+        )
+    }
+
+    private func venuePreviewFanZoneBlock(_ data: VenuePreviewFanZoneData) -> some View {
+        VenuePreviewFanZoneBlockView(
+            fireCount: data.fireCount,
+            seatingCount: data.seatingCount,
+            tvCount: data.tvCount,
+            audioCount: data.audioCount,
+            crowdCount: data.crowdCount,
+            isVotingEnabled: data.vibeTargetEventID != nil,
+            onVote: { debugType, vibeType in
+                venuePreviewToggleVenueLevelVibe(
+                    venueID: data.venueID,
+                    eventID: data.vibeTargetEventID,
+                    debugType: debugType,
+                    vibeType: vibeType
+                )
+            }
+        )
+        .zIndex(5)
+    }
+
+    private func venuePreviewToggleVenueLevelVibe(venueID: UUID, eventID: UUID?, debugType: String, vibeType: String) {
+#if DEBUG
+        print("[VenueVibeTapDebug] tapped type=\(debugType) venueId=\(venueID.uuidString.lowercased())")
+#endif
+        FGInteractionHaptics.softImpact()
+        guard let eventID else { return }
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return
+        }
+        guard viewModel.canUseFanSocialFeatures else {
+            viewModel.logBusinessUserGateBlocked(action: "toggleVenueLevelVibe")
+            fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+            return
+        }
+        Task {
+            await viewModel.toggleVibe(for: eventID, vibeType: vibeType)
+        }
+    }
+
     @ViewBuilder
     private func venueHeroImage(_ bar: BarVenue) -> some View {
         let heroURLString = safeVenueHeroImageURLString(for: bar)
@@ -3384,6 +3802,7 @@ struct DiscoverScreen: View {
               let host = components.host,
               !host.isEmpty,
               URL(string: trimmed) != nil else {
+            logVenueGameCardCrashGuard(reason: trimmed.isEmpty ? "venueHeroImageMissing" : "venueHeroImageInvalidURL", venue: bar, event: nil)
             return nil
         }
         return trimmed
@@ -3397,6 +3816,14 @@ struct DiscoverScreen: View {
         print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
         print("[VenuePhotoDisplayDebug] usingThumbnail=\(usingThumbnail)")
         print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")
+#endif
+    }
+
+    private func logVenueGameCardCrashGuard(reason: String, venue: BarVenue, event: SportsEvent?) {
+#if DEBUG
+        let venueName = venue.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let eventName = event?.title.trimmingCharacters(in: .whitespacesAndNewlines) ?? "nil"
+        print("[VenueGameCardCrashGuard] reason=\(reason) venue=\(venueName.isEmpty ? venue.id.uuidString.lowercased() : venueName) event=\(eventName.isEmpty ? "empty" : eventName)")
 #endif
     }
 
@@ -3453,22 +3880,7 @@ struct DiscoverScreen: View {
     
     
     private func selectedEventSection(bar: BarVenue, selectedEvent: SportsEvent) -> some View {
-        VStack(alignment: .leading, spacing: FGSpacing.sm) {
-            FGStatusPill(title: "Showing selected game", kind: .custom(tint: FGColor.accentBlue))
-            if viewModel.isGuestDiscoverMode {
-#if DEBUG
-                let _ = logVenuePreviewModeDebug(renderingFullGameCard: false, eventTitle: selectedEvent.title)
-#endif
-                guestVenueGamePreviewRow(bar: bar, event: selectedEvent) {
-                    showVenueDetails = true
-                }
-            } else {
-#if DEBUG
-                let _ = logVenuePreviewModeDebug(renderingFullGameCard: true, eventTitle: selectedEvent.title)
-#endif
-                gameInterestRow(bar: bar, event: selectedEvent)
-            }
-        }
+        venuePreviewGameDetail(bar: bar, event: selectedEvent)
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
@@ -3477,29 +3889,29 @@ struct DiscoverScreen: View {
 
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                VStack(alignment: .leading, spacing: 16) {
-                    if viewModel.isLoadingEvents && gamesToday.isEmpty {
-                        loadingVenueGamesView
-                    } else if gamesToday.isEmpty {
-                        venuePreviewNoGamesForSelectedDayView(bar: bar)
-                    } else {
+                Text("Games at this venue")
+                    .font(FGTypography.sectionTitle.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                if viewModel.isLoadingEvents && gamesToday.isEmpty {
+                    loadingVenueGamesView
+                } else if gamesToday.isEmpty {
+                    venuePreviewNoGamesForSelectedDayView(bar: bar)
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
                         ForEach(stableItems) { item in
-                            if viewModel.isGuestDiscoverMode {
 #if DEBUG
-                                let _ = logVenuePreviewModeDebug(renderingFullGameCard: false, eventTitle: item.event.title)
+                            let _ = logVenuePreviewModeDebug(renderingFullGameCard: true, eventTitle: item.event.title)
 #endif
-                                guestVenueGamePreviewRow(bar: bar, event: item.event) {
-                                    showVenueDetails = true
-                                }
+                            if item.index == 0 {
+                                venuePreviewHeroGameCard(bar: bar, event: item.event)
                             } else {
-#if DEBUG
-                                let _ = logVenuePreviewModeDebug(renderingFullGameCard: true, eventTitle: item.event.title)
-#endif
-                                gameInterestRow(bar: bar, event: item.event)
+                                venuePreviewCompactGameCard(bar: bar, event: item.event)
                             }
                         }
                     }
                 }
+            }
                 .padding(.bottom, 4)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .onAppear {
@@ -3510,13 +3922,720 @@ struct DiscoverScreen: View {
                     print("[VenuePreviewStabilityDebug] gameCount=\(gamesToday.count)")
 #endif
                 }
-            }
 
             if viewModel.isRefreshingDiscoverEvents && !gamesToday.isEmpty {
                 ProgressView()
                     .controlSize(.small)
                     .padding(.trailing, 2)
             }
+        }
+    }
+
+    private func venuePreviewHeroGameCard(
+        bar: BarVenue,
+        event: SportsEvent,
+        showsAttendanceFooter: Bool = true
+    ) -> some View {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
+        let homeTheme = TeamTheme.resolve(matchup.home)
+        let awayTheme = TeamTheme.resolve(matchup.away)
+        let attendancePresentation = showsAttendanceFooter
+            ? venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
+            : nil
+
+        let card = ZStack(alignment: .bottomLeading) {
+                ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
+
+                HStack {
+                    venuePreviewTeamOrb(theme: homeTheme, isLeading: true)
+                        .offset(x: -18, y: -8)
+                    Spacer(minLength: 0)
+                    venuePreviewTeamOrb(theme: awayTheme, isLeading: false)
+                        .offset(x: 18, y: -8)
+                }
+                .padding(.horizontal, 10)
+
+                VStack(spacing: 10) {
+                    HStack {
+                        venuePreviewSportBadge(sport: event.sport, league: event.league)
+                        Spacer()
+                    }
+
+                    VStack(spacing: 0) {
+                        venuePreviewHeroTeamTitle(homeTheme.uppercaseTitle, theme: homeTheme, alignment: .leading)
+                        Text("VS")
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundStyle(.white.opacity(0.92))
+                            .shadow(color: .black.opacity(0.36), radius: 6, y: 3)
+                        venuePreviewHeroTeamTitle(awayTheme.uppercaseTitle, theme: awayTheme, alignment: .trailing)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Text(venuePreviewGameDateTimeText(for: event))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .shadow(color: .black.opacity(0.32), radius: 5, y: 2)
+                }
+                .padding(18)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 214)
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.10), radius: 16, y: 8)
+            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.16), radius: 18, y: 10)
+            .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .onTapGesture {
+                FGInteractionHaptics.softImpact()
+                openVenuePreviewGameDetail(event)
+            }
+
+        return VStack(spacing: 0) {
+            card
+
+            if let presentation = attendancePresentation {
+                venuePreviewAttendanceFooter(
+                    bar: bar,
+                    event: event,
+                    venueEventID: presentation.venueEventID,
+                    chatTitle: "\(venuePreviewFanChatMatchupTitle(bar: bar, event: event)) Fan Chat",
+                    alreadyInterested: presentation.alreadyInterested,
+                    avatarProfiles: presentation.avatarProfiles,
+                    goingCount: presentation.goingCount,
+                    avatarDiameter: 30,
+                    textFont: FGTypography.caption.weight(.bold)
+                )
+            }
+        }
+    }
+
+    private func venuePreviewCompactGameCard(bar: BarVenue, event: SportsEvent) -> some View {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let presentation = venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
+        let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
+        let homeTheme = TeamTheme.resolve(matchup.home)
+        let awayTheme = TeamTheme.resolve(matchup.away)
+
+        let card = ZStack(alignment: .bottomLeading) {
+            ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
+
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.10),
+                    Color.black.opacity(0.34),
+                    Color.black.opacity(0.62)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            HStack(alignment: .center, spacing: 12) {
+                venuePreviewCompactTeamOrb(theme: homeTheme)
+                Spacer(minLength: 0)
+                venuePreviewCompactTeamOrb(theme: awayTheme)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .frame(maxHeight: .infinity, alignment: .top)
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    venuePreviewSportBadge(sport: event.sport, league: event.league)
+                    Spacer(minLength: 0)
+                }
+
+                Text(matchup.hasResolvedTeams ? "\(homeTheme.uppercaseTitle) vs \(awayTheme.uppercaseTitle)" : event.title.uppercased())
+                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .tracking(0.3)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.36), radius: 8, y: 3)
+                    .shadow(color: .black.opacity(0.44), radius: 5, y: 3)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.68)
+
+                Text(venuePreviewGameDateTimeText(for: event))
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(.white.opacity(0.88))
+            }
+            .padding(15)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 164)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 12, y: 6)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.13), radius: 14, y: 8)
+        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .onTapGesture {
+            FGInteractionHaptics.softImpact()
+            openVenuePreviewGameDetail(event)
+        }
+
+        return VStack(spacing: 0) {
+            card
+
+            venuePreviewAttendanceFooter(
+                bar: bar,
+                event: event,
+                venueEventID: presentation.venueEventID,
+                chatTitle: "\(venuePreviewFanChatMatchupTitle(bar: bar, event: event)) Fan Chat",
+                alreadyInterested: presentation.alreadyInterested,
+                avatarProfiles: presentation.avatarProfiles,
+                goingCount: presentation.goingCount,
+                avatarDiameter: 26,
+                textFont: FGTypography.caption.weight(.semibold)
+            )
+        }
+    }
+
+    private func venuePreviewAttendanceFooter(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?,
+        chatTitle: String,
+        alreadyInterested: Bool,
+        avatarProfiles: [UserProfileRow],
+        goingCount: Int,
+        avatarDiameter: CGFloat,
+        textFont: Font
+    ) -> some View {
+        HStack(spacing: 10) {
+            venuePreviewGoingFooterButton(
+                bar: bar,
+                event: event,
+                venueEventID: venueEventID,
+                alreadyInterested: alreadyInterested
+            )
+
+            Spacer(minLength: 8)
+
+            venuePreviewChatFooterButton(
+                venueEventID: venueEventID,
+                title: chatTitle
+            )
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 8) {
+                if !avatarProfiles.isEmpty {
+                    GoingAvatarStack(
+                        profiles: avatarProfiles,
+                        viewerUserID: viewModel.currentUserAuthId,
+                        diameter: avatarDiameter
+                    )
+                }
+
+                Text(venuePreviewGoingCountText(goingCount))
+                    .font(textFont)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.08))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.26 : 0.18), lineWidth: 1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 6)
+    }
+
+    private func venuePreviewChatFooterButton(venueEventID: UUID?, title: String) -> some View {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let chatTitle = trimmedTitle.isEmpty ? "Game Fan Chat" : trimmedTitle
+        let isDisabled = venueEventID == nil
+
+        return Button {
+            guard let venueEventID else { return }
+            FGInteractionHaptics.selection()
+            presentFanUpdatesSheet(venueEventID: venueEventID, title: chatTitle)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.caption.weight(.bold))
+                Text("Chat")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(FGColor.accentBlue)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.30 : 0.22), lineWidth: 1)
+            }
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.62 : 1)
+        .accessibilityLabel(chatTitle)
+    }
+
+    private func venuePreviewGoingFooterButton(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?,
+        alreadyInterested: Bool
+    ) -> some View {
+        let isPending = venueEventID.map { viewModel.isVenueEventInterestMutationInFlight($0) } ?? false
+        let isDisabled = venueEventID == nil || isPending
+        let fill = alreadyInterested
+            ? Color(red: 0.00, green: 0.62, blue: 0.27)
+            : FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.12)
+        let foreground = alreadyInterested ? Color.white : FGColor.accentGreen
+
+        return Button {
+            guard venueEventID != nil else { return }
+            FGInteractionHaptics.softImpact()
+            viewModel.toggleVenueGameGoingFromUI(
+                bar: bar,
+                gameTitle: event.title,
+                eventDate: event.date,
+                knownVenueEventID: venueEventID,
+                source: "discoverVenueGameCardFooter",
+                onRequiresLogin: {
+                    viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                },
+                onBusinessBlocked: {
+                    viewModel.logBusinessUserGateBlocked(action: "markGoing")
+                    fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                }
+            )
+        } label: {
+            HStack(spacing: 5) {
+                if isPending {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(foreground)
+                } else {
+                    Image(systemName: alreadyInterested ? "checkmark" : "plus")
+                        .font(.caption.weight(.black))
+                }
+                Text(alreadyInterested ? "Going" : "Going?")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 36)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(fill)
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.accentGreen.opacity(alreadyInterested ? 0.42 : 0.28), lineWidth: 1.2)
+            }
+            .shadow(color: alreadyInterested ? FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.18) : .clear, radius: 6, y: 2)
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.68 : 1)
+        .accessibilityLabel(alreadyInterested ? "Going" : "Mark as going")
+    }
+
+    private func venuePreviewGoingCountText(_ count: Int) -> String {
+        let safeCount = max(0, count)
+        return safeCount == 1 ? "1 going" : "\(safeCount) going"
+    }
+
+    private func venuePreviewCompactTeamOrb(theme: TeamTheme) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.35))
+
+            if let flag = theme.flag {
+                Text(flag)
+                    .font(.system(size: 30))
+            } else {
+                Text(String(theme.displayName.prefix(2)).uppercased())
+                    .font(.system(size: 15, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 58, height: 58)
+        .accessibilityHidden(true)
+    }
+
+    private func venuePreviewGameDetail(bar: BarVenue, event: SportsEvent) -> some View {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let predictionVisibility = venuePredictionVisibility(
+            bar: bar,
+            event: event,
+            venueEventID: venueEventID
+        )
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
+                    venuePreviewDetailEvent = nil
+                    if viewModel.selectedEvent?.id == event.id {
+                        viewModel.clearSelectedEvent()
+                    }
+                }
+            } label: {
+                Label("Back to games", systemImage: "chevron.left")
+                    .font(FGTypography.caption.weight(.bold))
+                    .foregroundStyle(FGColor.accentBlue)
+            }
+            .buttonStyle(.plain)
+
+            venuePreviewHeroGameCard(bar: bar, event: event, showsAttendanceFooter: false)
+                .onAppear {
+#if DEBUG
+                    print("[GoingCrashGuard] detailGoingDisabled=true eventId=\(venueEventID?.uuidString.lowercased() ?? "nil")")
+#endif
+                }
+
+            venuePreviewGameDetailPredictionCard(
+                visibility: predictionVisibility
+            )
+
+        }
+    }
+
+    @ViewBuilder
+    private func venuePreviewGameDetailPredictionCard(
+        visibility: DiscoverVenuePredictionVisibility
+    ) -> some View {
+        if let eventID = visibility.eventID,
+           let teams = visibility.teams,
+           venuePredictionSportIsSupported(visibility.sportType) {
+            VenueEventPredictionModule(
+                venueEventID: eventID,
+                teams: teams,
+                sportType: visibility.sportType,
+                summary: viewModel.venueEventPredictionSummaries[eventID],
+                isLocked: visibility.isLocked,
+                onOpen: { type in
+                    openDiscoverPredictionSheet(
+                        eventID: eventID,
+                        teams: teams,
+                        type: type,
+                        isLocked: visibility.isLocked
+                    )
+                },
+                onQuickVote: { type, value in
+                    await quickSaveDiscoverPrediction(
+                        eventID: eventID,
+                        type: type,
+                        value: value,
+                        isLocked: visibility.isLocked
+                    )
+                },
+                onQuickScoreSave: { homeScore, awayScore in
+                    await quickSaveDiscoverScorePrediction(
+                        eventID: eventID,
+                        homeScore: homeScore,
+                        awayScore: awayScore,
+                        isLocked: visibility.isLocked
+                    )
+                },
+                onQuickScoreClear: {
+                    await quickClearDiscoverScorePrediction(
+                        eventID: eventID,
+                        isLocked: visibility.isLocked
+                    )
+                },
+                onRefreshSummary: {
+                    await viewModel.refreshVenueEventPredictionSummary(eventID: eventID)
+                },
+                onLockedTap: {
+                    fanFeatureGateAlertMessage = "Predictions closed for this game."
+                }
+            )
+        }
+    }
+
+    private func venuePreviewFanChatMatchupTitle(bar: BarVenue, event: SportsEvent) -> String {
+        let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
+        if matchup.hasResolvedTeams {
+            return "\(matchup.home) vs \(matchup.away)"
+        }
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? "Game" : title
+    }
+
+    private func venuePreviewHeroTeamTitle(_ title: String, theme: TeamTheme, alignment: TextAlignment) -> some View {
+        Text(title)
+            .font(.system(size: title.count > 10 ? 31 : 38, weight: .black, design: .rounded))
+            .tracking(0.8)
+            .multilineTextAlignment(alignment)
+            .minimumScaleFactor(0.64)
+            .lineLimit(1)
+            .foregroundStyle(ThemeGradientBuilder.textGradient(for: theme))
+            .shadow(color: theme.accent.opacity(0.42), radius: 10, y: 3)
+            .shadow(color: .black.opacity(0.45), radius: 5, y: 3)
+            .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
+    }
+
+    private func venuePreviewSportBadge(sport: String, league: String, compact: Bool = false) -> some View {
+        let safeSport = sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displaySport = safeSport.isEmpty ? "SPORT" : safeSport
+        let displayLeague = league.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return HStack(spacing: 5) {
+            Image(systemName: viewModel.iconForSport(displaySport))
+                .font(.system(size: compact ? 9 : 11, weight: .bold, design: .rounded))
+            Text(venuePreviewSportLeagueLabel(sport: displaySport, league: displayLeague))
+                .font(.system(size: compact ? 9 : 11, weight: .black, design: .rounded))
+                .textCase(.uppercase)
+                .lineLimit(1)
+        }
+        .foregroundStyle(compact ? FGColor.accentBlue : .white.opacity(0.92))
+        .padding(.horizontal, compact ? 8 : 10)
+        .padding(.vertical, compact ? 5 : 7)
+        .background(compact ? FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10) : Color.white.opacity(0.16))
+        .clipShape(Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(compact ? FGColor.accentBlue.opacity(0.18) : Color.white.opacity(0.15), lineWidth: 1)
+        }
+    }
+
+    private func venuePreviewTeamOrb(theme: TeamTheme, isLeading: Bool) -> some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.35))
+
+            if let flag = theme.flag {
+                Text(flag)
+                    .font(.system(size: 48))
+            } else {
+                Text(String(theme.displayName.prefix(2)).uppercased())
+                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 96, height: 96)
+        .accessibilityHidden(true)
+    }
+
+    private func venuePreviewAttendancePresentation(
+        bar: BarVenue,
+        event: SportsEvent,
+        venueEventID: UUID?
+    ) -> (
+        venueEventID: UUID?,
+        alreadyInterested: Bool,
+        avatarProfiles: [UserProfileRow],
+        goingCount: Int
+    ) {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cardState = venueEventID.map { eventID in
+            viewModel.venueGameCardState(
+                input: VenueGameCardInput(
+                    venueEventID: eventID,
+                    barID: bar.id,
+                    title: gameTitle,
+                    date: event.date,
+                    sport: event.sport,
+                    eventTime: event.time,
+                    homeTeam: nil,
+                    awayTeam: nil,
+                    scheduledStartAt: nil
+                ),
+                friendUserIDs: acceptedFriendUserIDs
+            )
+        }
+        let alreadyInterested = viewModel.userIsGoingToVenueGame(
+            bar: bar,
+            gameTitle: gameTitle,
+            venueEventID: venueEventID
+        )
+        let localAvatarProfiles = viewModel.goingAvatarProfiles(
+            for: venueEventID,
+            fallbackProfiles: cardState?.goingAvatarProfiles ?? [],
+            currentUserGoing: alreadyInterested
+        )
+        let visibleAvatarCount = localAvatarProfiles
+            .filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
+            .count
+        let localInterestCount = venueEventID.map { eventID in
+            max(
+                viewModel.venueEventInterestCounts[eventID] ?? 0,
+                viewModel.followingTabGoingInterestCounts[eventID] ?? 0
+            )
+        } ?? 0
+        let hasLocalCount = venueEventID.map { eventID in
+            viewModel.venueEventInterestCounts[eventID] != nil
+                || viewModel.followingTabGoingInterestCounts[eventID] != nil
+                || viewModel.isVenueEventInterestMutationInFlight(eventID)
+                || viewModel.isRecentlyConfirmedVenueEventGoing(eventID)
+                || viewModel.isRecentlyConfirmedVenueEventNotGoing(eventID)
+        } ?? false
+        let snapshotCount = cardState?.goingCount ?? 0
+        let baseCount = hasLocalCount ? localInterestCount : snapshotCount
+        let goingCount = max(baseCount, visibleAvatarCount, alreadyInterested ? 1 : 0)
+
+        return (venueEventID, alreadyInterested, localAvatarProfiles, goingCount)
+    }
+
+    private func venuePreviewGamePresentation(
+        bar: BarVenue,
+        event: SportsEvent
+    ) -> (
+        venueEventID: UUID?,
+        predictionVisibility: DiscoverVenuePredictionVisibility,
+        cardState: VenueGameCardState?,
+        alreadyInterested: Bool,
+        avatarProfiles: [UserProfileRow],
+        goingCount: Int,
+        goingText: String
+    ) {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let predictionVisibility = venuePredictionVisibility(
+            bar: bar,
+            event: event,
+            venueEventID: venueEventID
+        )
+        let cardState = venueEventID.map { eventID in
+            viewModel.venueGameCardState(
+                input: VenueGameCardInput(
+                    venueEventID: eventID,
+                    barID: bar.id,
+                    title: gameTitle,
+                    date: event.date,
+                    sport: event.sport,
+                    eventTime: event.time,
+                    homeTeam: predictionVisibility.teams?.home,
+                    awayTeam: predictionVisibility.teams?.away,
+                    scheduledStartAt: nil
+                ),
+                friendUserIDs: acceptedFriendUserIDs
+            )
+        }
+        let alreadyInterested = cardState?.isCurrentUserGoing ?? viewModel.userIsGoingToVenueGame(
+            bar: bar,
+            gameTitle: gameTitle,
+            venueEventID: venueEventID
+        )
+        let energy = cardState?.liveEnergy ?? viewModel.liveEnergy(for: bar, event: event, friendUserIDs: acceptedFriendUserIDs)
+        let avatarProfiles = cardState?.goingAvatarProfiles ?? viewModel.goingAvatarProfiles(
+            for: venueEventID,
+            fallbackProfiles: energy.socialPresenceProfiles,
+            currentUserGoing: alreadyInterested
+        )
+        let visibleAvatarCount = avatarProfiles
+            .filter { $0.isFanVisibleForLivePresence(to: viewModel.currentUserAuthId) }
+            .count
+        let displayGoingCount = cardState?.goingCount ?? max(energy.goingCount, alreadyInterested ? 1 : 0, visibleAvatarCount)
+        let goingText = alreadyInterested || displayGoingCount > 0
+            ? perGameGoingLine(venueEventID: venueEventID, count: displayGoingCount)
+            : L10n.t("be_first_to_go", languageCode: appLanguageRaw)
+        return (venueEventID, predictionVisibility, cardState, alreadyInterested, avatarProfiles, displayGoingCount, goingText)
+    }
+
+    private func venuePreviewSafeMatchup(
+        bar: BarVenue,
+        event: SportsEvent
+    ) -> VenuePreviewMatchup {
+        let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let row = viewModel.cachedVenueEventRow(for: bar, gameTitle: title),
+           let home = trimmedNonEmpty(row.home_team),
+           let away = trimmedNonEmpty(row.away_team) {
+            return VenuePreviewMatchup(home: home, away: away, hasResolvedTeams: true)
+        }
+
+        if let parsed = parseMatchupTitle(title) {
+            return VenuePreviewMatchup(home: parsed.home, away: parsed.away, hasResolvedTeams: true)
+        }
+
+        if title.isEmpty {
+            logVenueGameCardCrashGuard(reason: "safeMatchupTitleMissing", venue: bar, event: event)
+            return VenuePreviewMatchup(home: "FanGeo", away: bar.name, hasResolvedTeams: false)
+        }
+
+        return VenuePreviewMatchup(home: title, away: bar.name, hasResolvedTeams: false)
+    }
+
+    private func venuePreviewMatchup(
+        bar: BarVenue,
+        event: SportsEvent,
+        predictionVisibility: DiscoverVenuePredictionVisibility
+    ) -> VenuePreviewMatchup {
+        if let teams = predictionVisibility.teams,
+           !teams.home.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !teams.away.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return VenuePreviewMatchup(home: teams.home, away: teams.away, hasResolvedTeams: true)
+        }
+
+        let trimmedTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else {
+            logVenueGameCardCrashGuard(reason: "eventTitleMissing", venue: bar, event: event)
+            return VenuePreviewMatchup(home: "FanGeo", away: bar.name, hasResolvedTeams: false)
+        }
+
+        let parsed = parseMatchupTitle(trimmedTitle)
+        if parsed == nil {
+            logVenueGameCardCrashGuard(reason: "matchupParseFallback", venue: bar, event: event)
+        }
+        return VenuePreviewMatchup(
+            home: parsed?.home ?? trimmedTitle,
+            away: parsed?.away ?? bar.name,
+            hasResolvedTeams: parsed != nil
+        )
+    }
+
+    private func parseMatchupTitle(_ title: String) -> (home: String, away: String)? {
+        let separators = [" vs. ", " vs ", " v. ", " v ", " at ", " @ "]
+        for separator in separators {
+            let parts = title.components(separatedBy: separator)
+            guard parts.count == 2,
+                  let firstPart = parts.first,
+                  let secondPart = parts.dropFirst().first else { continue }
+            let first = firstPart.trimmingCharacters(in: .whitespacesAndNewlines)
+            let second = secondPart.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !first.isEmpty && !second.isEmpty {
+                return (first, second)
+            }
+        }
+        return nil
+    }
+
+    private func venuePreviewSportLeagueLabel(sport: String, league: String) -> String {
+        let sportLabel = venueGameSportDisplayLabel(sport)
+        let league = league.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !league.isEmpty, league.lowercased() != "venue event" else { return sportLabel }
+        return "\(sportLabel) · \(league)"
+    }
+
+    private func venuePreviewGameDateTimeText(for event: SportsEvent) -> String {
+        "\(event.date.formatted(date: .abbreviated, time: .omitted)) · \(viewModel.displayTime(for: event))"
+    }
+
+    private func openVenuePreviewGameDetail(_ event: SportsEvent) {
+        guard !viewModel.isGuestDiscoverMode else {
+            showVenueDetails = true
+            return
+        }
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+            venuePreviewDetailEvent = event
         }
     }
 
@@ -4013,65 +5132,6 @@ struct DiscoverScreen: View {
                 Spacer(minLength: 0)
             }
 
-            if let predictionEventID = predictionVisibility.eventID,
-               predictionVisibility.shouldRender,
-               let teams = predictionVisibility.teams {
-                let predictionSummary = predictionEventID == cardState?.input.venueEventID
-                    ? cardState?.predictionSummary
-                    : viewModel.venueEventPredictionSummaries[predictionEventID]
-                venueGamePredictionInset {
-                    VenueEventPredictionModule(
-                        venueEventID: predictionEventID,
-                        teams: teams,
-                        sportType: predictionVisibility.sportType,
-                        summary: predictionSummary,
-                        isLocked: predictionVisibility.isLocked,
-                        onOpen: { type in
-                            openDiscoverPredictionSheet(
-                                eventID: predictionEventID,
-                                teams: teams,
-                                type: type,
-                                isLocked: predictionVisibility.isLocked
-                            )
-                        },
-                        onQuickVote: { type, value in
-                            await quickSaveDiscoverPrediction(
-                                eventID: predictionEventID,
-                                type: type,
-                                value: value,
-                                isLocked: predictionVisibility.isLocked
-                            )
-                        },
-                        onQuickScoreSave: { homeScore, awayScore in
-                            await quickSaveDiscoverScorePrediction(
-                                eventID: predictionEventID,
-                                homeScore: homeScore,
-                                awayScore: awayScore,
-                                isLocked: predictionVisibility.isLocked
-                            )
-                        },
-                        onQuickScoreClear: {
-                            await quickClearDiscoverScorePrediction(
-                                eventID: predictionEventID,
-                                isLocked: predictionVisibility.isLocked
-                            )
-                        },
-                        onRefreshSummary: {
-                            await viewModel.refreshVenueEventPredictionSummary(eventID: predictionEventID)
-                        },
-                        onStartRealtime: {
-                            await viewModel.startVenueEventPredictionRealtime(for: predictionEventID)
-                        },
-                        onStopRealtime: {
-                            await viewModel.stopVenueEventPredictionRealtime(for: predictionEventID)
-                        },
-                        onLockedTap: {
-                            fanFeatureGateAlertMessage = "Predictions closed for this game."
-                        }
-                    )
-                }
-            }
-
             if let venueEventID {
                 Divider()
                     .overlay(discoverPreviewControlBorder.opacity(colorScheme == .dark ? 0.72 : 0.46))
@@ -4414,7 +5474,7 @@ struct DiscoverScreen: View {
     }
 
     private func venuePredictionStartDate(for row: VenueEventRow) -> Date? {
-        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at, eventId: row.id) {
             return start
         }
 
@@ -4488,14 +5548,25 @@ struct DiscoverScreen: View {
     ) -> some View {
         let requiresLogin = !viewModel.isAuthenticatedForSocialFeatures
         let isBlocked = viewModel.isAuthenticatedForSocialFeatures && !viewModel.canMarkGoing
+        let missingVenueEventID = venueEventID == nil
         let isPending = venueEventID.map { viewModel.isVenueEventInterestMutationInFlight($0) } ?? false
         let title = requiresLogin ? "Log in" : "Going"
-        let tint = isBlocked ? Color.secondary : (alreadyInterested ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
-        let fill = isBlocked
+        let activeGoingFill = Color(red: 0.00, green: 0.62, blue: 0.27)
+        let activeGoingBorder = Color(red: 0.00, green: 0.38, blue: 0.16)
+        let isDisabled = isPending || missingVenueEventID
+        let tint = isBlocked || missingVenueEventID ? Color.secondary : (alreadyInterested ? Color.white : FGColor.primaryText(colorScheme))
+        let fill = isBlocked || missingVenueEventID
             ? Color.gray.opacity(0.16)
-            : (alreadyInterested ? FGColor.accentGreen.opacity(0.14) : discoverPreviewControlBackground)
+            : (alreadyInterested ? activeGoingFill : discoverPreviewControlBackground)
+        let border = isBlocked || missingVenueEventID
+            ? tint.opacity(0.18)
+            : (alreadyInterested ? activeGoingBorder.opacity(0.82) : tint.opacity(0.26))
+        let glow = alreadyInterested && !isBlocked && !missingVenueEventID
+            ? FGColor.accentGreen.opacity(colorScheme == .dark ? 0.42 : 0.30)
+            : Color.clear
 
         return Button {
+            guard !missingVenueEventID else { return }
             FGInteractionHaptics.softImpact()
             viewModel.toggleVenueGameGoingFromUI(
                 bar: bar,
@@ -4533,14 +5604,23 @@ struct DiscoverScreen: View {
             }
             .overlay {
                 Capsule(style: .continuous)
-                    .strokeBorder(tint.opacity(isBlocked ? 0.18 : 0.26), lineWidth: 1)
+                    .strokeBorder(border, lineWidth: alreadyInterested && !isBlocked && !missingVenueEventID ? 1.35 : 1)
             }
+            .overlay {
+                if alreadyInterested && !isBlocked && !missingVenueEventID {
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.28), lineWidth: 0.8)
+                        .padding(1)
+                }
+            }
+            .shadow(color: glow, radius: 8, x: 0, y: 3)
+            .shadow(color: alreadyInterested && !isBlocked && !missingVenueEventID ? Color.black.opacity(0.22) : .clear, radius: 4, x: 0, y: 2)
             .fixedSize(horizontal: true, vertical: false)
             .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
-        .disabled(isPending)
-        .opacity(isPending ? 0.72 : 1)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.72 : 1)
     }
 
     private func venueGameCardSocialActionRow(
@@ -4741,13 +5821,13 @@ struct DiscoverScreen: View {
         )
     }
 
-    private func presentFanUpdatesSheet(venueEventID: UUID) {
+    private func presentFanUpdatesSheet(venueEventID: UUID, title: String? = nil) {
         guard viewModel.isAuthenticatedForSocialFeatures else {
             viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
             return
         }
         FanUpdatesTapPerf.handleTap(eventId: venueEventID) {
-            fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID)
+            fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: venueEventID, title: title)
         }
     }
 

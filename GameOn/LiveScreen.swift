@@ -24,6 +24,7 @@ struct LiveScreen: View {
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
     @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
+    @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
 
     private struct LiveWatchSpotsPresentation: Identifiable {
         let id: String
@@ -174,6 +175,18 @@ struct LiveScreen: View {
             }
             .sheet(item: $liveWatchSpotsPresentation) { presentation in
                 liveWatchSpotsSheet(items: presentation.items)
+            }
+            .sheet(item: Binding(
+                get: {
+                    guard viewModel.isAuthenticatedForSocialFeatures else { return nil }
+                    return fanUpdatesSheetEvent
+                },
+                set: { fanUpdatesSheetEvent = $0 }
+            )) { event in
+                VenueEventCommentsSheet(
+                    viewModel: viewModel,
+                    venueEventID: event.id
+                )
             }
             .alert(
                 "FanGeo",
@@ -2351,6 +2364,39 @@ struct LiveScreen: View {
                 },
                 onStopVenuePredictionRealtime: { id in
                     await viewModel.stopVenueEventPredictionRealtime(for: id)
+                },
+                fanChatCommentCount: { id in
+                    viewModel.fanUpdatesDisplayCommentCount(for: id)
+                },
+                venueEventVibeCounts: { id in
+                    fanUpdatesStore.venueEventVibeCounts[id] ?? [:]
+                },
+                selectedVenueEventVibes: { id in
+                    fanUpdatesStore.myVenueEventVibes[id] ?? []
+                },
+                onOpenFanChat: { id in
+                    guard viewModel.isAuthenticatedForSocialFeatures else {
+                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                        return
+                    }
+                    FanUpdatesTapPerf.handleTap(eventId: id) {
+                        fanUpdatesSheetEvent = FanUpdatesSheetEvent(id: id)
+                    }
+                },
+                onToggleVenueEventVibe: { id, vibeType in
+                    guard viewModel.isAuthenticatedForSocialFeatures else {
+                        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+                        return
+                    }
+                    guard viewModel.canUseFanSocialFeatures else {
+                        viewModel.logBusinessUserGateBlocked(action: "toggleVibe")
+                        fanFeatureGateAlertMessage = BusinessFanGateCopy.actionTapBlocked
+                        return
+                    }
+                    await viewModel.toggleVibe(for: id, vibeType: vibeType)
+                },
+                onPrefetchVenueEventSocialData: { id in
+                    viewModel.prefetchFanUpdatesCardSocialData(for: id)
                 },
                 showsHomeCrowdControls: viewModel.canUseFanSocialFeatures,
                 isHomeCrowdVenue: viewModel.isHomeCrowdVenue(selectedBar.id),

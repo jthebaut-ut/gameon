@@ -107,9 +107,16 @@ extension MapViewModel {
 
             let mergedServerEventIDs = await MainActor.run { () -> Set<UUID> in
                 pruneVenueEventInterestLocalReconcileGuards()
+                let pendingGoing = Set(venueEventInterestWriteInFlightIDs.filter {
+                    venueEventInterestPendingTargets[$0] != false
+                })
+                let pendingNotGoing = Set(venueEventInterestWriteInFlightIDs.filter {
+                    venueEventInterestPendingTargets[$0] == false
+                })
                 let preserveGoing = activeRecentlyConfirmedVenueEventGoingIDs()
-                    .union(venueEventInterestWriteInFlightIDs)
+                    .union(pendingGoing)
                 let preserveNotGoing = activeRecentlyConfirmedVenueEventNotGoingIDs()
+                    .union(pendingNotGoing)
                 return serverEventIDs
                     .union(preserveGoing)
                     .subtracting(preserveNotGoing)
@@ -200,6 +207,8 @@ extension MapViewModel {
             let favoriteVenuesCount = followingTabSavedVenues.count
             let userGoingVenueEventsCount = mergedServerEventIDs.count
             let userInterestedVenueEventsCount = localInterestedOnly.subtracting(mergedServerEventIDs).count
+            goingItems = Self.sortFollowingGoingItemsChronologically(goingItems)
+
             let finalFollowingItemsCount = goingItems.count
 
             followingTabGoingItems = goingItems
@@ -410,5 +419,27 @@ extension MapViewModel {
 #if DEBUG
         print("[FollowingState] derived interest plans recomputed count=\(interestedPlans().count) goingRows=\(followingTabGoingItems.count)")
 #endif
+    }
+
+    static func sortFollowingGoingItemsChronologically(
+        _ items: [FollowingGoingDisplayItem],
+        now: Date = Date()
+    ) -> [FollowingGoingDisplayItem] {
+        items.sorted { lhs, rhs in
+            let lhsCompleted = VenueGameExpiration.isWatchingCompleted(row: lhs.venueEvent, now: now)
+            let rhsCompleted = VenueGameExpiration.isWatchingCompleted(row: rhs.venueEvent, now: now)
+            if lhsCompleted != rhsCompleted { return !lhsCompleted }
+
+            let lhsStart = VenueGameExpiration.scheduledStartDate(for: lhs.venueEvent) ?? .distantFuture
+            let rhsStart = VenueGameExpiration.scheduledStartDate(for: rhs.venueEvent) ?? .distantFuture
+            if lhsStart != rhsStart { return lhsStart < rhsStart }
+
+            let lhsTitle = lhs.venueEvent.event_title ?? lhs.bar.name
+            let rhsTitle = rhs.venueEvent.event_title ?? rhs.bar.name
+            if lhsTitle != rhsTitle {
+                return lhsTitle.localizedCaseInsensitiveCompare(rhsTitle) == .orderedAscending
+            }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
     }
 }

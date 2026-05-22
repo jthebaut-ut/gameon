@@ -63,6 +63,8 @@ final class MapViewModel: ObservableObject {
     var favoriteVenueWriteInFlightIDs: Set<UUID> = []
     /// Prevents overlapping going/interested writes for the same event while keeping the UI on the optimistic state.
     @Published var venueEventInterestWriteInFlightIDs: Set<UUID> = []
+    /// Target Going state for in-flight venue-event interest writes. Distinguishes add vs remove so optimistic un-going can hide immediately.
+    var venueEventInterestPendingTargets: [UUID: Bool] = [:]
     /// Short-lived local Going confirmations so Supabase reloads cannot flash the UI back to not-going.
     var recentlyConfirmedVenueEventGoingAt: [UUID: Date] = [:]
     /// Short-lived local not-going confirmations so reloads cannot re-add a deleted row before read replicas catch up.

@@ -22,7 +22,7 @@ extension MapViewModel {
     ) -> FanGeoLiveEnergy {
         let row = event.flatMap { cachedVenueEventRow(for: bar, gameTitle: $0.title) }
         let eventID = row?.id ?? event.flatMap { cachedVenueEventID(for: bar, gameTitle: $0.title) }
-        let startDate = row.flatMap { FanGeoLiveEnergyTiming.parseScheduledStart($0.scheduled_start_at) }
+        let startDate = row.flatMap { FanGeoLiveEnergyTiming.parseScheduledStart($0.scheduled_start_at, eventId: $0.id) }
             ?? event.flatMap { liveEnergyFallbackStartDate(for: $0) }
 
         let commentCount = eventID.map { fanUpdatesDisplayCommentCount(for: $0) } ?? 0
@@ -139,7 +139,7 @@ extension MapViewModel {
         let now = Date()
         return events.contains { event in
             guard let row = cachedVenueEventRow(for: bar, gameTitle: event.title),
-                  let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at) else {
+                  let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at, eventId: row.id) else {
                 return false
             }
             let liveEnd = start.addingTimeInterval(TimeInterval(FanGeoLiveEnergyTiming.liveWindowHours * 3600))
