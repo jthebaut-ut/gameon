@@ -137,6 +137,10 @@ extension MapViewModel {
         currentUserAvatarURL = ""
         currentUserAvatarThumbnailURL = ""
         currentUserNationalTeam = nil
+        isAuthSessionRestoringForProfilePresentation = false
+        isUserProfileLoadingForPresentation = false
+        hasLoadedUserProfileForPresentation = false
+        userProfileExistsForPresentation = false
         currentUserLiveVisibilityEnabled = true
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
@@ -499,6 +503,27 @@ extension MapViewModel {
         return candidate == local || candidate == emailLocalDisplayFallback(for: normalizedEmail).lowercased()
     }
 
+    @MainActor
+    private func resetProfilePresentationLoadStateForNewAuth() {
+        isUserProfileLoadingForPresentation = false
+        hasLoadedUserProfileForPresentation = false
+        userProfileExistsForPresentation = false
+    }
+
+    @MainActor
+    private func beginProfilePresentationLoad() {
+        isUserProfileLoadingForPresentation = true
+        hasLoadedUserProfileForPresentation = false
+        userProfileExistsForPresentation = false
+    }
+
+    @MainActor
+    private func finishProfilePresentationLoad(profileExists: Bool) {
+        userProfileExistsForPresentation = profileExists
+        hasLoadedUserProfileForPresentation = true
+        isUserProfileLoadingForPresentation = false
+    }
+
     /// Ensures `public.user_profiles` has a row with `id == auth.uid`; inserts a minimal row if missing. Does not use email as PK or random UUIDs.
     func ensureUserProfileExists() async {
         let session: Session
@@ -648,6 +673,7 @@ extension MapViewModel {
 
             await MainActor.run {
                 clearAuthenticatedSessionCaches()
+                resetProfilePresentationLoadStateForNewAuth()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
@@ -721,6 +747,7 @@ extension MapViewModel {
 
             await MainActor.run {
                 clearAuthenticatedSessionCaches()
+                resetProfilePresentationLoadStateForNewAuth()
                 currentUserEmail = fanEmail
                 currentUserDisplayName = ""
                 currentUserUsername = ""
@@ -913,6 +940,15 @@ extension MapViewModel {
 
     /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
     func bootstrapAuthSessionOnly() async {
+        await MainActor.run {
+            isAuthSessionRestoringForProfilePresentation = true
+        }
+        defer {
+            Task { @MainActor [weak self] in
+                self?.isAuthSessionRestoringForProfilePresentation = false
+            }
+        }
+
         if UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey) {
 #if DEBUG
             print("[Auth] startup session restore skipped due to explicit logout")
@@ -1134,6 +1170,9 @@ extension MapViewModel {
             return
         }
 
+        await MainActor.run {
+            beginProfilePresentationLoad()
+        }
         await ensureUserProfileExists()
         await loadUserProfile()
         await loadFanIdentityPreferencesFromProfile()
@@ -1162,7 +1201,12 @@ extension MapViewModel {
     // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).
     func loadUserProfile() async {
         if let session = try? await supabase.auth.session {
-            guard await checkCurrentUserAdminStatus() else { return }
+            guard await checkCurrentUserAdminStatus() else {
+                await MainActor.run {
+                    finishProfilePresentationLoad(profileExists: false)
+                }
+                return
+            }
 
             let authId = session.user.id
 #if DEBUG
@@ -1198,6 +1242,7 @@ extension MapViewModel {
                         currentUserDiscoverableByFans = profile.discoverableByFans
                         currentUserAuthId = authId
                         cacheCurrentUserProfileLocally()
+                        finishProfilePresentationLoad(profileExists: true)
                     }
 #if DEBUG
                     print("[ProfileDiscoverabilityDebug] loaded=\(profile.discoverableByFans)")
@@ -1208,6 +1253,9 @@ extension MapViewModel {
 #if DEBUG
                     print("[ProfilePersistenceDebug] existingProfileFound=false")
 #endif
+                    await MainActor.run {
+                        finishProfilePresentationLoad(profileExists: false)
+                    }
                     print("NO USER PROFILE FOUND")
                 }
 
@@ -1215,6 +1263,9 @@ extension MapViewModel {
 #if DEBUG
                 print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
 #endif
+                await MainActor.run {
+                    finishProfilePresentationLoad(profileExists: false)
+                }
                 print("ERROR LOADING USER PROFILE:", error)
             }
             return
@@ -1223,6 +1274,9 @@ extension MapViewModel {
         let email = !currentUserEmail.isEmpty ? currentUserEmail : venueOwnerEmail
 
         guard !email.isEmpty else {
+            await MainActor.run {
+                finishProfilePresentationLoad(profileExists: false)
+            }
             print("NO USER EMAIL FOR PROFILE LOAD")
             return
         }
@@ -1254,6 +1308,7 @@ extension MapViewModel {
                     currentUserSelectedLiveVisibilityFriendIDs = profile.selectedLiveVisibilityFriendIDs
                     currentUserDiscoverableByFans = profile.discoverableByFans
                     cacheCurrentUserProfileLocally()
+                    finishProfilePresentationLoad(profileExists: true)
                 }
 #if DEBUG
                 print("[ProfileDiscoverabilityDebug] loaded=\(profile.discoverableByFans)")
@@ -1264,6 +1319,9 @@ extension MapViewModel {
 #if DEBUG
                 print("[ProfilePersistenceDebug] existingProfileFound=false")
 #endif
+                await MainActor.run {
+                    finishProfilePresentationLoad(profileExists: false)
+                }
                 print("NO USER PROFILE FOUND")
             }
 
@@ -1271,6 +1329,9 @@ extension MapViewModel {
 #if DEBUG
             print("[ProfilePersistenceDebug] profileDecodeFailed=\(error.localizedDescription)")
 #endif
+            await MainActor.run {
+                finishProfilePresentationLoad(profileExists: false)
+            }
             print("ERROR LOADING USER PROFILE:", error)
         }
     }

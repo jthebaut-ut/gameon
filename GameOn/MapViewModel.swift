@@ -480,6 +480,10 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserAvatarURL: String = ""
     @Published var currentUserAvatarThumbnailURL: String = ""
     @Published var currentUserNationalTeam: NationalTeamIdentity?
+    @Published var isAuthSessionRestoringForProfilePresentation: Bool = false
+    @Published var isUserProfileLoadingForPresentation: Bool = false
+    @Published var hasLoadedUserProfileForPresentation: Bool = false
+    @Published var userProfileExistsForPresentation: Bool = false
     @Published var currentUserLiveVisibilityEnabled: Bool = true
     @Published var currentUserLiveVisibilityMode: LiveVisibilityMode = .allFriends
     @Published var currentUserSelectedLiveVisibilityFriendIDs: Set<UUID> = []
@@ -517,9 +521,27 @@ final class MapViewModel: ObservableObject {
     /// Blocks app entry until a new fan sets display name + @handle (empty profile row after signup).
     var needsBlockingFanIdentitySetup: Bool {
         guard isLoggedIn, !isVenueOwnerLoggedIn else { return false }
+        guard !isAuthSessionRestoringForProfilePresentation,
+              !isUserProfileLoadingForPresentation,
+              hasLoadedUserProfileForPresentation,
+              userProfileExistsForPresentation else { return false }
         let name = currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let handle = currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines)
         return name.isEmpty && handle.isEmpty
+    }
+
+    var profileEditPresentationEvaluationKey: String {
+        [
+            isLoggedIn ? "loggedIn" : "loggedOut",
+            isVenueOwnerLoggedIn ? "venueOwner" : "fan",
+            isAuthSessionRestoringForProfilePresentation ? "restoring" : "restored",
+            isUserProfileLoadingForPresentation ? "loading" : "notLoading",
+            hasLoadedUserProfileForPresentation ? "loaded" : "notLoaded",
+            userProfileExistsForPresentation ? "profileExists" : "profileMissing",
+            currentUserAuthId?.uuidString.lowercased() ?? "noAuthId",
+            currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "noName" : "hasName",
+            currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "noHandle" : "hasHandle"
+        ].joined(separator: "|")
     }
 
     /// True when no persisted @handle — existing users may still have a display name.

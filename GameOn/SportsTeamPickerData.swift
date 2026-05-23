@@ -64,6 +64,12 @@ struct TeamPickerRegionGroup: Identifiable, Hashable {
 }
 
 enum SportsTeamPickerData {
+    /// Canonical country/team options used by business game management. Fan favorite picking reuses this
+    /// so both flows speak the same sports identity vocabulary without adding network calls.
+    static var favoriteCatalogOptions: [TeamPickerOption] {
+        allOptions
+    }
+
     static func preferredMode(for sportName: String) -> TeamPickerMode {
         TeamPickerSport.resolve(sportName) == .soccer ? .countries : .teams
     }

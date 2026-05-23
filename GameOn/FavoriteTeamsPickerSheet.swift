@@ -9,8 +9,16 @@ struct FavoriteTeamsPickerSheet: View {
 
     @State private var sportFilter: FavoriteTeamSport = FavoriteTeamCatalog.defaultSport
     @State private var categoryFilter: String? = FavoriteTeamCatalog.defaultCategoryID(for: FavoriteTeamCatalog.defaultSport)
-    @State private var regionFilter: String? = nil
     @State private var searchText = ""
+
+    struct FavoritePickerTeamShelf: Identifiable {
+        let id: String
+        let title: String
+        let subtitle: String
+        let symbol: String
+        let accent: Color
+        let teams: [FavoriteTeam]
+    }
 
     private var isSearching: Bool {
         !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -20,19 +28,23 @@ struct FavoriteTeamsPickerSheet: View {
         FavoriteTeamCatalog.categories(for: sportFilter)
     }
 
-    private var availableRegions: [String] {
-        FavoriteTeamCatalog.regions(for: sportFilter, categoryID: categoryFilter)
-    }
-
     private var filteredTeams: [FavoriteTeam] {
         if isSearching {
             return FavoriteTeamCatalog.searchTeams(searchText)
         }
-        return FavoriteTeamCatalog.teams(sport: sportFilter, categoryID: categoryFilter, region: regionFilter)
+        return FavoriteTeamCatalog.teams(sport: sportFilter, categoryID: categoryFilter)
     }
 
     private var filteredSections: [(title: String, teams: [FavoriteTeam])] {
         FavoriteTeamCatalog.sectionGroups(for: filteredTeams)
+    }
+
+    private var teamShelves: [FavoritePickerTeamShelf] {
+        FavoriteTeamsPickerShelves.sections(
+            from: filteredTeams,
+            sport: sportFilter,
+            categoryID: categoryFilter
+        )
     }
 
     var body: some View {
@@ -40,25 +52,7 @@ struct FavoriteTeamsPickerSheet: View {
             VStack(spacing: 0) {
                 filterHeader
 
-                List {
-                    if filteredTeams.isEmpty {
-                        emptyStateRow
-                            .listRowBackground(Color.clear)
-                            .listRowSeparator(.hidden)
-                    } else {
-                        ForEach(filteredSections.indices, id: \.self) { index in
-                            let section = filteredSections[index]
-                            Section(section.title) {
-                                ForEach(section.teams) { team in
-                                    teamRow(team)
-                                        .listRowBackground(FGColor.cardBackground(colorScheme))
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
+                pickerResultsContent
             }
             .fanGeoScreenBackground()
             .onAppear {
@@ -66,11 +60,26 @@ struct FavoriteTeamsPickerSheet: View {
                 print("[FavoriteTeamsDebug] unlimitedFavoritesEnabled=true")
                 print("[FavoriteTeamsDebug] selectedFavoriteTeamsCount=\(selectedIDs.count)")
 #endif
+                logFavoriteTeamCatalogDebug()
+                logFavoritePickerUXDebug(searchResultsOverride: isSearching ? filteredTeams.count : nil)
             }
             .onChange(of: selectedIDs) { _, newValue in
 #if DEBUG
                 print("[FavoriteTeamsDebug] selectedFavoriteTeamsCount=\(newValue.count)")
 #endif
+                logFavoriteTeamCatalogDebug(selectedCountOverride: newValue.count)
+            }
+            .onChange(of: sportFilter) { _, _ in
+                logFavoriteTeamCatalogDebug()
+                logFavoritePickerUXDebug()
+            }
+            .onChange(of: categoryFilter) { _, _ in
+                logFavoriteTeamCatalogDebug()
+                logFavoritePickerUXDebug()
+            }
+            .onChange(of: searchText) { _, _ in
+                logFavoriteTeamCatalogDebug()
+                logFavoritePickerUXDebug(searchResultsOverride: isSearching ? filteredTeams.count : nil)
             }
             .navigationTitle("Favorites")
             .navigationBarTitleDisplayMode(.inline)
@@ -84,13 +93,64 @@ struct FavoriteTeamsPickerSheet: View {
         }
     }
 
+    @ViewBuilder
+    private var pickerResultsContent: some View {
+        if isSearching {
+            searchResultsList
+        } else {
+            teamShelvesScroll
+        }
+    }
+
+    private var searchResultsList: some View {
+        List {
+            if filteredTeams.isEmpty {
+                emptyStateRow
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            } else {
+                ForEach(filteredSections.indices, id: \.self) { index in
+                    let section = filteredSections[index]
+                    Section(section.title) {
+                        ForEach(section.teams) { team in
+                            teamRow(team)
+                                .listRowBackground(FGColor.cardBackground(colorScheme))
+                        }
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+
+    private var teamShelvesScroll: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 22) {
+                discoveryIntroRow
+
+                if filteredTeams.isEmpty {
+                    emptyStateRow
+                } else {
+                    ForEach(teamShelves) { shelf in
+                        teamShelfSection(shelf)
+                    }
+                }
+            }
+            .padding(.horizontal, FGSpacing.md)
+            .padding(.top, 12)
+            .padding(.bottom, 28)
+        }
+        .scrollIndicators(.hidden)
+    }
+
     private var filterHeader: some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Choose your favorites")
                     .font(FGTypography.body.weight(.semibold))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text(isSearching ? "Searching every sport, category, and region." : "Start with a sport, then narrow the list. Pick your favorite teams. Choose My Team later.")
+                Text(isSearching ? "Searching every sport, category, league, and region." : "Pick a sport and category. Teams appear below right away.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
             }
@@ -105,11 +165,6 @@ struct FavoriteTeamsPickerSheet: View {
                 }
             }
 
-            if !isSearching, availableRegions.count > 1 {
-                filterStep(title: "3. Region", subtitle: "Optional") {
-                    regionSelector
-                }
-            }
         }
         .padding(.horizontal, FGSpacing.md)
         .padding(.top, FGSpacing.md)
@@ -177,21 +232,6 @@ struct FavoriteTeamsPickerSheet: View {
         }
     }
 
-    private var regionSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(availableRegions, id: \.self) { region in
-                    filterChip(title: region, isSelected: regionFilter == region, accent: FGColor.accentBlue) {
-                        withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-                            regionFilter = regionFilter == region ? nil : region
-                        }
-                    }
-                }
-            }
-            .padding(.vertical, 2)
-        }
-    }
-
     private var emptyStateRow: some View {
         VStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
@@ -207,6 +247,119 @@ struct FavoriteTeamsPickerSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 36)
+    }
+
+    private var discoveryIntroRow: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(sportFilter.accentColor)
+                Text("Browse teams")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .textCase(.uppercase)
+                Spacer(minLength: 0)
+                Text("\(filteredTeams.count) options")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            Text("Swipe through leagues and regions. Tap a card to add or remove a favorite.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.76 : 0.92))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(sportFilter.accentColor.opacity(0.16), lineWidth: 1)
+        }
+    }
+
+    private func teamShelfSection(_ shelf: FavoritePickerTeamShelf) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(shelf.symbol)
+                    .font(.headline)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(shelf.title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(shelf.subtitle)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Text("\(shelf.teams.count)")
+                    .font(FGTypography.metadata.weight(.bold))
+                    .foregroundStyle(shelf.accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule(style: .continuous).fill(shelf.accent.opacity(colorScheme == .dark ? 0.18 : 0.10)))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 10) {
+                    ForEach(shelf.teams) { team in
+                        teamShelfCard(team, accent: shelf.accent)
+                    }
+                }
+                .padding(.horizontal, 1)
+                .padding(.vertical, 2)
+            }
+        }
+    }
+
+    private func teamShelfCard(_ team: FavoriteTeam, accent: Color) -> some View {
+        let isSelected = selectedIDs.contains(team.id)
+        return Button {
+            toggleTeam(team)
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                ZStack(alignment: .topTrailing) {
+                    FavoriteTeamLogoBadge(team: team, diameter: 52)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(isSelected ? FGColor.accentGreen : FGColor.secondaryText(colorScheme))
+                        .background(Circle().fill(FGColor.cardBackground(colorScheme)))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(team.name)
+                        .font(FGTypography.caption.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.86)
+                    Text(team.league)
+                        .font(FGTypography.metadata)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(width: 138, height: 146, alignment: .leading)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.92 : 0.98))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(isSelected ? accent.opacity(0.52) : FGColor.divider(colorScheme).opacity(0.40), lineWidth: isSelected ? 1.35 : 1)
+            }
+            .shadow(color: isSelected ? accent.opacity(0.14) : .black.opacity(colorScheme == .dark ? 0.16 : 0.05), radius: isSelected ? 10 : 6, y: isSelected ? 5 : 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(team.name), \(isSelected ? "selected" : "not selected")")
     }
 
     private func filterChip(title: String, isSelected: Bool, accent: Color, action: @escaping () -> Void) -> some View {
@@ -248,16 +401,12 @@ struct FavoriteTeamsPickerSheet: View {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
             sportFilter = sport
             categoryFilter = FavoriteTeamCatalog.defaultCategoryID(for: sport)
-            regionFilter = nil
         }
     }
 
     private func selectCategory(_ category: FavoriteTeamCategory) {
         withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
             categoryFilter = category.id
-            if let regionFilter, !FavoriteTeamCatalog.regions(for: sportFilter, categoryID: category.id).contains(regionFilter) {
-                self.regionFilter = nil
-            }
         }
     }
 
@@ -265,11 +414,7 @@ struct FavoriteTeamsPickerSheet: View {
         let isSelected = selectedIDs.contains(team.id)
         let sportAccent = sportAccentColor(for: team.sport.chipTitle)
         return Button {
-            if isSelected {
-                selectedIDs.remove(team.id)
-            } else {
-                selectedIDs.insert(team.id)
-            }
+            toggleTeam(team)
         } label: {
             HStack(spacing: 12) {
                 FavoriteTeamLogoBadge(team: team, diameter: 44)
@@ -302,6 +447,14 @@ struct FavoriteTeamsPickerSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(team.name), \(isSelected ? "selected" : "not selected")")
+    }
+
+    private func toggleTeam(_ team: FavoriteTeam) {
+        if selectedIDs.contains(team.id) {
+            selectedIDs.remove(team.id)
+        } else {
+            selectedIDs.insert(team.id)
+        }
     }
 
     private func pickerTeamSportMetadata(team: FavoriteTeam, isSelected: Bool) -> some View {
@@ -339,6 +492,135 @@ struct FavoriteTeamsPickerSheet: View {
         }
 
         return "\(team.sport.chipTitle) · \(team.region) · \(team.kind.displayTitle) · \(team.league)"
+    }
+
+    private func logFavoriteTeamCatalogDebug(selectedCountOverride: Int? = nil) {
+#if DEBUG
+        print("[FavoriteTeamCatalogDebug] source=businessGameManagement+fanFavorites")
+        print("[FavoriteTeamCatalogDebug] sport=\(sportFilter.rawValue)")
+        print("[FavoriteTeamCatalogDebug] category=\(categoryFilter ?? "nil")")
+        print("[FavoriteTeamCatalogDebug] region=shelf")
+        print("[FavoriteTeamCatalogDebug] query=\(searchText.trimmingCharacters(in: .whitespacesAndNewlines))")
+        print("[FavoriteTeamCatalogDebug] resultsCount=\(filteredTeams.count)")
+        print("[FavoriteTeamCatalogDebug] selectedCount=\(selectedCountOverride ?? selectedIDs.count)")
+#endif
+    }
+
+    private func logFavoritePickerUXDebug(expandedOverride: String? = nil, searchResultsOverride: Int? = nil) {
+#if DEBUG
+        print("[FavoritePickerUXDebug] expandedSection=\(expandedOverride ?? "shelfMode")")
+        print("[FavoritePickerUXDebug] visibleTeams=\(visibleShelfTeamCount)")
+        print("[FavoritePickerUXDebug] searchResults=\(searchResultsOverride ?? (isSearching ? filteredTeams.count : 0))")
+        print("[FavoritePickerUXDebug] hierarchyModeEnabled=false")
+#endif
+    }
+
+    private var visibleShelfTeamCount: Int {
+        guard !isSearching else { return filteredTeams.count }
+        return teamShelves.reduce(0) { total, shelf in total + shelf.teams.count }
+    }
+}
+
+private enum FavoriteTeamsPickerShelves {
+    static func sections(
+        from teams: [FavoriteTeam],
+        sport: FavoriteTeamSport,
+        categoryID: String?
+    ) -> [FavoriteTeamsPickerSheet.FavoritePickerTeamShelf] {
+        let groupedByShelf = Dictionary(grouping: teams, by: { shelfTitle(for: $0, categoryID: categoryID) })
+        return groupedByShelf.map { title, shelfTeams in
+            FavoriteTeamsPickerSheet.FavoritePickerTeamShelf(
+                id: title.favoritePickerID,
+                title: title,
+                subtitle: subtitle(for: title, teamCount: shelfTeams.count),
+                symbol: symbol(for: title),
+                accent: accent(for: title, sport: sport),
+                teams: shelfTeams.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            )
+        }
+        .sorted { lhs, rhs in
+            let order = shelfOrder(for: sport, categoryID: categoryID)
+            let left = order.firstIndex(of: lhs.title) ?? Int.max
+            let right = order.firstIndex(of: rhs.title) ?? Int.max
+            if left != right { return left < right }
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }
+    }
+
+    private static func shelfTitle(for team: FavoriteTeam, categoryID: String?) -> String {
+        if team.kind == .nationalTeam {
+            return "National Teams"
+        }
+        if team.kind == .player || team.kind == .driver || team.kind == .fighter {
+            return "Players"
+        }
+        if team.kind == .tournament {
+            return "Tournaments"
+        }
+        if categoryID?.contains("national") == true {
+            return "National Teams"
+        }
+        return team.region
+    }
+
+    private static func subtitle(for title: String, teamCount: Int) -> String {
+        let teamText = teamCount == 1 ? "1 favorite" : "\(teamCount) favorites"
+        return teamText
+    }
+
+    private static func symbol(for region: String) -> String {
+        let lowered = region.lowercased()
+        if lowered.contains("premier") || lowered.contains("liga") || lowered.contains("serie") || lowered.contains("bundesliga") || lowered.contains("ligue") { return "⚽️" }
+        if lowered.contains("mls") || lowered.contains("north america") { return "🌎" }
+        if lowered.contains("national") { return "🌍" }
+        if lowered.contains("nba") || lowered.contains("wnba") { return "🏀" }
+        if lowered.contains("nfl") || lowered.contains("football") { return "🏈" }
+        if lowered.contains("mlb") { return "⚾️" }
+        if lowered.contains("nhl") { return "🏒" }
+        if lowered.contains("national") { return "🏆" }
+        if lowered.contains("player") { return "⭐️" }
+        if lowered.contains("tournament") { return "🏆" }
+        return "🏟️"
+    }
+
+    private static func accent(for title: String, sport: FavoriteTeamSport) -> Color {
+        let lowered = title.lowercased()
+        if lowered.contains("europe") { return Color(red: 0.20, green: 0.42, blue: 0.90) }
+        if lowered.contains("north america") { return Color(red: 0.18, green: 0.66, blue: 0.40) }
+        if lowered.contains("south america") { return Color(red: 0.95, green: 0.56, blue: 0.16) }
+        if lowered.contains("asia") { return Color(red: 0.74, green: 0.22, blue: 0.72) }
+        if lowered.contains("africa") { return Color(red: 0.86, green: 0.46, blue: 0.16) }
+        return sport.accentColor
+    }
+
+    private static func shelfOrder(for sport: FavoriteTeamSport, categoryID: String?) -> [String] {
+        if categoryID?.contains("national") == true {
+            return ["National Teams"]
+        }
+        switch sport {
+        case .soccer:
+            return ["Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1", "MLS", "Liga MX", "National Teams", "Brazil Serie A", "Argentina Primera Division", "Libertadores-level clubs", "J1 League", "Saudi Pro League", "K League", "Players", "Tournaments"]
+        case .basketball:
+            return ["NBA", "WNBA", "College Basketball", "National Teams", "Players", "Tournaments"]
+        case .football:
+            return ["NFL", "College Football", "Players", "Tournaments"]
+        case .baseball:
+            return ["MLB", "National Teams", "Players", "Tournaments"]
+        case .hockey:
+            return ["NHL", "National Teams", "Players", "Tournaments"]
+        default:
+            return ["Players", "Tournaments"]
+        }
+    }
+}
+
+private extension String {
+    var favoritePickerID: String {
+        folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: "-")
+            .lowercased()
     }
 }
 

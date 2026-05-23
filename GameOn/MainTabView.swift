@@ -18,6 +18,7 @@ struct MainTabView: View {
     @State private var chatGateAlertMessage: String?
     @State private var didRunInitialPrivateChatTabGate = false
     @State private var showBlockingFanIdentitySetup = false
+    @State private var lastAutoPresentedFanIdentitySetupUserId: UUID?
     @State private var privateChatUnlockedForCurrentSelection = false
     @State private var discoverCalendarOverlayPresented = false
     /// Sticky lazy mount: Discover at launch; other tabs insert on first selection and stay mounted.
@@ -184,7 +185,7 @@ struct MainTabView: View {
             }
             logBottomTabStructure()
             updateDirectChatReadStateVisibility()
-            showBlockingFanIdentitySetup = viewModel.needsBlockingFanIdentitySetup
+            evaluateBlockingFanIdentitySetupPresentation(reason: "mainTabOnAppear")
             scheduleDeferredChatSocialRealtimeStartupIfNeeded()
             if selectedTab == .chat, viewModel.isAuthenticatedForSocialFeatures {
                 Task { await startChatSocialRealtimeIfNeeded(reason: "launchVisibleChatTab") }
@@ -231,7 +232,10 @@ struct MainTabView: View {
             }
             Task { await syncChatAuthState() }
         }
-        .onChange(of: viewModel.currentUserAuthId) { _, _ in
+        .onChange(of: viewModel.currentUserAuthId) { _, newValue in
+            if newValue == nil || newValue != lastAutoPresentedFanIdentitySetupUserId {
+                lastAutoPresentedFanIdentitySetupUserId = nil
+            }
             Task { await syncChatAuthState() }
         }
         .onChange(of: viewModel.privateSessionClearNonce) { _, _ in
@@ -246,8 +250,8 @@ struct MainTabView: View {
             print("[MainActorDebug] MainTabView unread observer actor=MainActor")
 #endif
         }
-        .onChange(of: viewModel.needsBlockingFanIdentitySetup) { _, needs in
-            showBlockingFanIdentitySetup = needs
+        .onChange(of: viewModel.profileEditPresentationEvaluationKey) { _, _ in
+            evaluateBlockingFanIdentitySetupPresentation(reason: "profilePresentationStateChanged")
         }
         .onChange(of: chatViewModel.requiresSignIn) { _, _ in
 #if DEBUG
@@ -326,6 +330,55 @@ struct MainTabView: View {
             guard id != nil else { return }
             selectTab(.discover, reason: "pendingFollowingMapVenueID")
         }
+    }
+
+    private func evaluateBlockingFanIdentitySetupPresentation(reason: String) {
+        let name = viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let handle = viewModel.currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        let missingRequiredFields = name.isEmpty && handle.isEmpty
+        let authState: String = {
+            if viewModel.isVenueOwnerLoggedIn { return "venueOwner" }
+            if viewModel.isLoggedIn { return "fanAuthenticated" }
+            return "signedOut"
+        }()
+        let suppressReason: String? = {
+            if !viewModel.isLoggedIn { return "notAuthenticated" }
+            if viewModel.isVenueOwnerLoggedIn { return "venueOwnerSession" }
+            if viewModel.isAuthSessionRestoringForProfilePresentation { return "sessionRestoring" }
+            if viewModel.isUserProfileLoadingForPresentation { return "profileLoading" }
+            if !viewModel.hasLoadedUserProfileForPresentation { return "profileNotLoaded" }
+            if !viewModel.userProfileExistsForPresentation { return "profileMissingOrNotCreated" }
+            if !missingRequiredFields { return "requiredFieldsPresent" }
+            if let userId = viewModel.currentUserAuthId,
+               lastAutoPresentedFanIdentitySetupUserId == userId,
+               !showBlockingFanIdentitySetup {
+                return "alreadyPresentedThisSession"
+            }
+            return nil
+        }()
+        let shouldPresent = suppressReason == nil
+
+#if DEBUG
+        print("[ProfileEditPresentationDebug] authState=\(authState)")
+        print("[ProfileEditPresentationDebug] profileLoading=\(viewModel.isUserProfileLoadingForPresentation)")
+        print("[ProfileEditPresentationDebug] profileLoaded=\(viewModel.hasLoadedUserProfileForPresentation)")
+        print("[ProfileEditPresentationDebug] missingRequiredFields=\(missingRequiredFields)")
+        print("[ProfileEditPresentationDebug] shouldPresentEditProfile=\(shouldPresent)")
+        print("[ProfileEditPresentationDebug] suppressReason=\(suppressReason ?? "none")")
+#endif
+
+        guard shouldPresent else {
+            if showBlockingFanIdentitySetup,
+               suppressReason == "requiredFieldsPresent" || suppressReason == "notAuthenticated" || suppressReason == "venueOwnerSession" {
+                showBlockingFanIdentitySetup = false
+            }
+            return
+        }
+
+        if let userId = viewModel.currentUserAuthId {
+            lastAutoPresentedFanIdentitySetupUserId = userId
+        }
+        showBlockingFanIdentitySetup = true
     }
 
     private func mountTab(_ tab: AppTab, reason: String) {
