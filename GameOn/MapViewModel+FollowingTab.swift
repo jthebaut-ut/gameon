@@ -177,7 +177,8 @@ extension MapViewModel {
                 }
             }
 
-            let localInterestedOnlyIDs = localInterestedOnly.subtracting(mergedServerEventIDs)
+            let activeServerGoingEventIDs = mergedServerEventIDs.subtracting(localInterestedOnly)
+            let localInterestedOnlyIDs = localInterestedOnly
 
             var goingItems: [FollowingGoingDisplayItem] = []
             goingItems.reserveCapacity(eventRowsByID.count)
@@ -190,7 +191,7 @@ extension MapViewModel {
                     barsById: barsById,
                     savedBars: savedBars
                 )
-                let userHasServerInterestRow = mergedServerEventIDs.contains(id)
+                let userHasServerInterestRow = activeServerGoingEventIDs.contains(id)
                 let attendeeCount = totals[id] ?? 0
                 goingItems.append(
                     FollowingGoingDisplayItem(
@@ -205,15 +206,15 @@ extension MapViewModel {
             }
 
             let favoriteVenuesCount = followingTabSavedVenues.count
-            let userGoingVenueEventsCount = mergedServerEventIDs.count
-            let userInterestedVenueEventsCount = localInterestedOnly.subtracting(mergedServerEventIDs).count
+            let userGoingVenueEventsCount = activeServerGoingEventIDs.count
+            let userInterestedVenueEventsCount = localInterestedOnly.count
             goingItems = Self.sortFollowingGoingItemsChronologically(goingItems)
 
             let finalFollowingItemsCount = goingItems.count
 
             followingTabGoingItems = goingItems
             followingTabGoingInterestCounts = totals
-            followingTabUserVenueEventInterestIDs = mergedServerEventIDs
+            followingTabUserVenueEventInterestIDs = activeServerGoingEventIDs
             await reconcileGameRemindersAfterFollowingRefresh()
 
 #if DEBUG

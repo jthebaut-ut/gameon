@@ -1179,6 +1179,16 @@ struct FollowingGoingDisplayItem: Identifiable {
     let isServerGoing: Bool
     /// Interested via UserDefaults only (no server row); UI pill: “Interested”.
     let isInterestedOnlyLocal: Bool
+
+    var isActiveGoingTabPlan: Bool {
+        isServerGoing || isInterestedOnlyLocal
+    }
+
+    var goingTabStatusDebugValue: String {
+        if isServerGoing { return "going" }
+        if isInterestedOnlyLocal { return "interested" }
+        return "nil"
+    }
 }
 
 /// Status pill for Following → “Games to Play” pickup join cards (`rejected` maps to ``declined``).

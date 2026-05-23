@@ -398,7 +398,7 @@ struct FollowingScreen: View {
     private var goingVenueGameItems: [FollowingGoingDisplayItem] {
         let sorted = MapViewModel.sortFollowingGoingItemsChronologically(
             viewModel.followingTabGoingItems
-            .filter(\.isServerGoing)
+            .filter(\.isActiveGoingTabPlan)
         )
         logGoingTabSortDebug(sorted)
         return sorted
@@ -1090,6 +1090,9 @@ struct FollowingScreen: View {
         guard viewModel.isAuthenticatedForSocialFeatures else { return }
 
         let previousInterestedOnly = interestedOnlyEncoded
+        let previousGoingItems = viewModel.followingTabGoingItems
+        let oldStatus = item.goingTabStatusDebugValue
+        let newStatus = target.goingTabStatusDebugValue
         var ok = true
 
 #if DEBUG
@@ -1098,26 +1101,90 @@ struct FollowingScreen: View {
 
         switch target {
         case .going:
-            if item.isServerGoing && !item.isInterestedOnlyLocal { return }
+            if item.isServerGoing && !item.isInterestedOnlyLocal {
+                logGoingTabStatusDebug(
+                    eventID: item.id,
+                    oldStatus: oldStatus,
+                    newStatus: newStatus,
+                    includedInGoingTab: true,
+                    optimisticUpdate: false,
+                    backendSaved: true
+                )
+                return
+            }
             setInterestedOnlyLocally(item.id, false)
+            applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingTabStatusDebug(
+                eventID: item.id,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                includedInGoingTab: true,
+                optimisticUpdate: true,
+                backendSaved: nil
+            )
             ok = await viewModel.markInterestedInVenueEvent(venueEventID: item.id, refreshFollowing: true)
         case .interested:
-            if !item.isServerGoing && item.isInterestedOnlyLocal { return }
+            if !item.isServerGoing && item.isInterestedOnlyLocal {
+                logGoingTabStatusDebug(
+                    eventID: item.id,
+                    oldStatus: oldStatus,
+                    newStatus: newStatus,
+                    includedInGoingTab: true,
+                    optimisticUpdate: false,
+                    backendSaved: true
+                )
+                return
+            }
+            setInterestedOnlyLocally(item.id, true)
+            applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingTabStatusDebug(
+                eventID: item.id,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                includedInGoingTab: true,
+                optimisticUpdate: true,
+                backendSaved: nil
+            )
             if item.isServerGoing {
-                ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
+                ok = await viewModel.setVenueEventInterest(
+                    venueEventID: item.id,
+                    isInterested: false,
+                    refreshFollowing: false,
+                    applyOptimistic: false,
+                    manageWriteInFlight: false,
+                    schedulePostWriteRefreshes: false,
+                    applyLocalSuccessState: false
+                )
                 if ok {
-                    setInterestedOnlyLocally(item.id, true)
                     await viewModel.refreshFollowingTabDataGlobally()
                     viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
                 }
             } else {
-                setInterestedOnlyLocally(item.id, true)
                 await viewModel.refreshFollowingTabDataGlobally()
                 viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
             }
         case .notGoing:
-            guard item.isServerGoing || item.isInterestedOnlyLocal else { return }
+            guard item.isActiveGoingTabPlan else {
+                logGoingTabStatusDebug(
+                    eventID: item.id,
+                    oldStatus: oldStatus,
+                    newStatus: newStatus,
+                    includedInGoingTab: false,
+                    optimisticUpdate: false,
+                    backendSaved: true
+                )
+                return
+            }
             setInterestedOnlyLocally(item.id, false)
+            applyOptimisticGoingTabAttendance(item, target: target)
+            logGoingTabStatusDebug(
+                eventID: item.id,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                includedInGoingTab: false,
+                optimisticUpdate: true,
+                backendSaved: nil
+            )
             if item.isServerGoing {
                 ok = await viewModel.removeInterestInVenueEvent(venueEventID: item.id, refreshFollowing: true)
             } else {
@@ -1131,9 +1198,26 @@ struct FollowingScreen: View {
             print("[FollowingState] attendance update failed event=\(item.id.uuidString) action=\(target)")
 #endif
             interestedOnlyEncoded = previousInterestedOnly
+            viewModel.followingTabGoingItems = previousGoingItems
+            logGoingTabStatusDebug(
+                eventID: item.id,
+                oldStatus: oldStatus,
+                newStatus: newStatus,
+                includedInGoingTab: item.isActiveGoingTabPlan,
+                optimisticUpdate: false,
+                backendSaved: false
+            )
             viewModel.showSocialActionToast("Couldn't update your game plan.")
             return
         }
+        logGoingTabStatusDebug(
+            eventID: item.id,
+            oldStatus: oldStatus,
+            newStatus: newStatus,
+            includedInGoingTab: target.isIncludedInGoingTab,
+            optimisticUpdate: false,
+            backendSaved: true
+        )
 #if DEBUG
         switch target {
         case .going:
@@ -1143,6 +1227,59 @@ struct FollowingScreen: View {
         case .notGoing:
             print("[FollowingState] marked not going, removed from following")
         }
+#endif
+    }
+
+    @MainActor
+    private func applyOptimisticGoingTabAttendance(_ item: FollowingGoingDisplayItem, target: FollowingAttendanceTarget) {
+        switch target {
+        case .going:
+            upsertOptimisticGoingTabItem(item, isServerGoing: true, isInterestedOnlyLocal: false)
+        case .interested:
+            upsertOptimisticGoingTabItem(item, isServerGoing: false, isInterestedOnlyLocal: true)
+        case .notGoing:
+            viewModel.followingTabGoingItems.removeAll { $0.id == item.id }
+        }
+        viewModel.followingTabGoingItems = MapViewModel.sortFollowingGoingItemsChronologically(viewModel.followingTabGoingItems)
+        viewModel.refreshFollowingInterestDerivedSnapshotsForUI()
+    }
+
+    @MainActor
+    private func upsertOptimisticGoingTabItem(
+        _ item: FollowingGoingDisplayItem,
+        isServerGoing: Bool,
+        isInterestedOnlyLocal: Bool
+    ) {
+        let updated = FollowingGoingDisplayItem(
+            id: item.id,
+            venueEvent: item.venueEvent,
+            bar: item.bar,
+            attendeeCount: max(item.attendeeCount, isServerGoing ? 1 : item.attendeeCount),
+            isServerGoing: isServerGoing,
+            isInterestedOnlyLocal: isInterestedOnlyLocal
+        )
+        if let index = viewModel.followingTabGoingItems.firstIndex(where: { $0.id == item.id }) {
+            viewModel.followingTabGoingItems[index] = updated
+        } else {
+            viewModel.followingTabGoingItems.append(updated)
+        }
+    }
+
+    private func logGoingTabStatusDebug(
+        eventID: UUID,
+        oldStatus: String,
+        newStatus: String,
+        includedInGoingTab: Bool,
+        optimisticUpdate: Bool,
+        backendSaved: Bool?
+    ) {
+#if DEBUG
+        print("[GoingTabStatusDebug] eventID=\(eventID.uuidString.lowercased())")
+        print("[GoingTabStatusDebug] oldStatus=\(oldStatus)")
+        print("[GoingTabStatusDebug] newStatus=\(newStatus)")
+        print("[GoingTabStatusDebug] includedInGoingTab=\(includedInGoingTab)")
+        print("[GoingTabStatusDebug] optimisticUpdate=\(optimisticUpdate)")
+        print("[GoingTabStatusDebug] backendSaved=\(backendSaved.map { String($0) } ?? "pending")")
 #endif
     }
 
@@ -1943,6 +2080,26 @@ private enum FollowingAttendanceTarget {
     case going
     case interested
     case notGoing
+
+    var goingTabStatusDebugValue: String {
+        switch self {
+        case .going:
+            return "going"
+        case .interested:
+            return "interested"
+        case .notGoing:
+            return "not_going"
+        }
+    }
+
+    var isIncludedInGoingTab: Bool {
+        switch self {
+        case .going, .interested:
+            return true
+        case .notGoing:
+            return false
+        }
+    }
 }
 
 private enum GoingParticipationMode: Hashable {

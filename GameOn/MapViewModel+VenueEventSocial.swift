@@ -844,7 +844,8 @@ extension MapViewModel {
         refreshFollowing: Bool = true,
         applyOptimistic: Bool = true,
         manageWriteInFlight: Bool = true,
-        schedulePostWriteRefreshes: Bool = true
+        schedulePostWriteRefreshes: Bool = true,
+        applyLocalSuccessState: Bool = true
     ) async -> Bool {
         let normalizedEventId = normalizedVenueEventWireId(venueEventID)
         if manageWriteInFlight, venueEventInterestWriteInFlightIDs.contains(venueEventID) {
@@ -973,12 +974,16 @@ extension MapViewModel {
         }
 
         await MainActor.run {
-            recordRecentlyConfirmedVenueEventInterest(venueEventID: venueEventID, isGoing: isInterested)
-            applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+            if applyLocalSuccessState {
+                recordRecentlyConfirmedVenueEventInterest(venueEventID: venueEventID, isGoing: isInterested)
+                applyLocalVenueEventInterestState(venueEventID: venueEventID, isInterested: isInterested)
+            }
             if manageWriteInFlight {
                 venueEventInterestWriteInFlightIDs.remove(venueEventID)
                 venueEventInterestPendingTargets.removeValue(forKey: venueEventID)
-                reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
+                if applyLocalSuccessState {
+                    reconcileFollowingGoingDisplayAfterInterestMutation(venueEventID: venueEventID)
+                }
             }
         }
 #if DEBUG

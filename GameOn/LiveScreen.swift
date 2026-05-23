@@ -1130,6 +1130,16 @@ struct LiveScreen: View {
             ? "Find Venues"
             : liveFindVenuesFallbackButtonTitle(for: sportType)
         let socialProfiles = liveMergedSocialProfiles(from: relatedItems)
+#if DEBUG
+        let event = (
+            title: "\(match.awayTeam) at \(match.homeTeam)",
+            venueName: match.venueName,
+            venueCity: match.venueCity
+        )
+        print("[LiveVenueRenderDebug] title=\(event.title)")
+        print("[LiveVenueRenderDebug] venueName=\(event.venueName ?? "nil")")
+        print("[LiveVenueRenderDebug] venueCity=\(event.venueCity ?? "nil")")
+#endif
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
@@ -1227,7 +1237,6 @@ struct LiveScreen: View {
             print("[LiveSportIconMapping] id=\(match.id) normalized=\(match.sport) catalogKey=\(catalogSportKey) systemImage=\(visual.systemImage) label=\(sportType.filterChipLabel)")
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
-            logLiveVenueRenderDebug(match)
         }
     }
 
@@ -1257,19 +1266,6 @@ struct LiveScreen: View {
         guard !venue.isEmpty else { return nil }
         let city = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return city.isEmpty ? venue : "\(venue) • \(city)"
-    }
-
-    private func logLiveVenueRenderDebug(_ match: LiveMatch) {
-#if DEBUG
-        let venueName = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let venueCity = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let rendered = liveVenueDisplayText(for: match) != nil
-        print("[LiveVenueRenderDebug] sport=\(match.sport)")
-        print("[LiveVenueRenderDebug] title=\(match.awayTeam) at \(match.homeTeam)")
-        print("[LiveVenueRenderDebug] venueName=\(venueName.isEmpty ? "nil" : venueName)")
-        print("[LiveVenueRenderDebug] venueCity=\(venueCity.isEmpty ? "nil" : venueCity)")
-        print("[LiveVenueRenderDebug] rendered=\(rendered)")
-#endif
     }
 
     private func liveStatusPill(_ match: LiveMatch, accent: Color) -> some View {

@@ -469,6 +469,17 @@ private nonisolated struct LiveMatchRow: Decodable {
                 "strArena",
                 "arena",
                 "locationName"
+            ],
+            paths: [
+                ["venue", "name"],
+                ["venue", "strVenue"],
+                ["venue", "venueName"],
+                ["stadium", "name"],
+                ["stadium", "strStadium"],
+                ["arena", "name"],
+                ["arena", "strArena"],
+                ["location", "name"],
+                ["location", "venueName"]
             ]
         )
     }
@@ -484,6 +495,17 @@ private nonisolated struct LiveMatchRow: Decodable {
                 "location",
                 "strVenueLocation",
                 "venueLocation"
+            ],
+            paths: [
+                ["venue", "city"],
+                ["venue", "strCity"],
+                ["venue", "venueCity"],
+                ["stadium", "city"],
+                ["stadium", "strCity"],
+                ["arena", "city"],
+                ["arena", "strCity"],
+                ["location", "city"],
+                ["location", "strCity"]
             ]
         )
     }
@@ -574,15 +596,18 @@ private nonisolated struct LiveMatchRow: Decodable {
 
     private static func firstString(
         in payload: [String: LiveMatchPayloadValue]?,
-        keys: [String]
+        keys: [String],
+        paths: [[String]] = []
     ) -> String? {
         guard let payload else { return nil }
-        var lowercased: [String: LiveMatchPayloadValue] = [:]
-        for (key, value) in payload {
-            lowercased[key.lowercased()] = value
-        }
+        let lowercased = lowercasedPayload(payload)
         for key in keys {
             guard let value = lowercased[key.lowercased()]?.stringValue else { continue }
+            let cleaned = clean(value)
+            if let cleaned { return cleaned }
+        }
+        for path in paths {
+            guard let value = value(in: lowercased, path: path)?.stringValue else { continue }
             let cleaned = clean(value)
             if let cleaned { return cleaned }
         }
