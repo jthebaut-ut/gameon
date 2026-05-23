@@ -42,8 +42,12 @@ extension MapViewModel {
         var goingLoaded = false
         var favoriteTeamsLoaded = false
 
-        do {
-            guard try await supabaseResolvedAuthSession() != nil else {
+        switch await supabaseResolvedAuthSessionResult() {
+        case .active:
+            break
+        case .missingSession:
+            let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
+            if !wasAuthenticated {
                 await MainActor.run {
                     clearAuthenticatedSessionCaches()
                     clearVenueOwnerDraftState()
@@ -51,17 +55,30 @@ extension MapViewModel {
                     isVenueOwnerLoggedIn = false
                     venueOwnerMode = false
                     isAdminLoggedIn = false
+                    authSessionState = .signedOut
+#if DEBUG
+                    print("[AuthStateDebug] authStateTransition=startupPrefetchMissingSession->signedOut")
+#endif
                 }
                 clearPersistedAccountMode()
-                logStartupPrefetchCompletion(
-                    startedAt: startedAt,
-                    profileLoaded: false,
-                    goingLoaded: false,
-                    favoriteTeamsLoaded: false
-                )
-                return
             }
-        } catch {
+            logStartupPrefetchCompletion(
+                startedAt: startedAt,
+                profileLoaded: false,
+                goingLoaded: false,
+                favoriteTeamsLoaded: false
+            )
+            return
+        case .refreshFailed(let error):
+#if DEBUG
+            print("[AuthStateDebug] tokenRefreshFailed=true reason=startupPrefetch error=\(error.localizedDescription)")
+#endif
+            await MainActor.run {
+                authSessionState = .authRefreshFailed
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=startupPrefetch->authRefreshFailed")
+#endif
+            }
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,

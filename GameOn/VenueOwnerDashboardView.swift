@@ -517,7 +517,7 @@ struct VenueOwnerDashboardView: View {
                     Task {
                         let success = await viewModel.updateVenueSupporterCountry(country)
                         await MainActor.run {
-                            profileSaveMessage = success ? "Supporter country updated" : "Unable to update supporter country"
+                            profileSaveMessage = success ? "Fan Zone Identity updated" : "Unable to update Fan Zone Identity"
                         }
                     }
                 },
@@ -525,7 +525,7 @@ struct VenueOwnerDashboardView: View {
                     Task {
                         let success = await viewModel.updateVenueSupporterCountry(nil)
                         await MainActor.run {
-                            profileSaveMessage = success ? "Supporter country cleared" : "Unable to clear supporter country"
+                            profileSaveMessage = success ? "Fan Zone Identity cleared" : "Unable to clear Fan Zone Identity"
                         }
                     }
                 }
@@ -1382,10 +1382,10 @@ struct VenueOwnerDashboardView: View {
                     .background(Circle().fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.13)))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Who is your venue supporting?")
+                    Text("Fan Zone Identity")
                         .font(.subheadline.weight(.heavy))
                         .foregroundStyle(.primary)
-                    Text(display?.title ?? "Choose a World Cup country or clear this any time.")
+                    Text(display?.title ?? "Choose a watch-spot country or clear this any time.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -1413,7 +1413,7 @@ struct VenueOwnerDashboardView: View {
                         Task {
                             let success = await viewModel.updateVenueSupporterCountry(nil)
                             await MainActor.run {
-                                profileSaveMessage = success ? "Supporter country cleared" : "Unable to clear supporter country"
+                                profileSaveMessage = success ? "Fan Zone Identity cleared" : "Unable to clear Fan Zone Identity"
                             }
                         }
                     } label: {
@@ -1438,7 +1438,7 @@ struct VenueOwnerDashboardView: View {
         }
         .onAppear {
 #if DEBUG
-            print("[VenueSupporterDebug] supporterCountry=\(viewModel.ownerVenueSupporterCountry.isEmpty ? "nil" : viewModel.ownerVenueSupporterCountry)")
+            print("[VenueSupporterIdentityDebug] load venueId=\(viewModel.ownerVenueDatabaseId?.uuidString.lowercased() ?? "nil") supporterCountry=\(viewModel.ownerVenueSupporterCountry.isEmpty ? "nil" : viewModel.ownerVenueSupporterCountry)")
 #endif
         }
     }
@@ -3972,7 +3972,7 @@ private struct VenueSupporterCountryPickerSheet: View {
     @State private var searchText = ""
 
     private var options: [NationalTeamCountryOption] {
-        NationalTeamCountryCatalog.options(matching: searchText, languageCode: appLanguageRaw)
+        VenueSupporterCountryMode.allowedOptions(matching: searchText, languageCode: appLanguageRaw)
     }
 
     var body: some View {
@@ -3980,13 +3980,42 @@ private struct VenueSupporterCountryPickerSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Who is your venue supporting?")
+                        Text("Fan Zone Identity")
                             .font(.title2.weight(.heavy))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
-                        Text("Show fans your World Cup watch spot identity on venue game cards.")
+                        Text("Show fans your watch-spot country on venue cards.")
                             .font(.subheadline)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
+
+                    Button {
+                        onClear()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "xmark.circle")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .frame(width: 34)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("None")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                                Text("Clear the watch-spot banner identity")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            }
+                            Spacer()
+                            if VenueSupporterCountryMode.normalizedStorageValue(currentCountry) == nil {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(FGColor.accentGreen)
+                            }
+                        }
+                        .padding(12)
+                        .background(FGAdaptiveSurface.controlFill)
+                        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
 
                     HStack(spacing: 9) {
                         Image(systemName: "magnifyingglass")
@@ -4000,24 +4029,8 @@ private struct VenueSupporterCountryPickerSheet: View {
                     .background(FGAdaptiveSurface.controlFill)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    if VenueSupporterCountryMode.normalizedStorageValue(currentCountry) != nil {
-                        Button {
-                            onClear()
-                            dismiss()
-                        } label: {
-                            Label("Clear supporter country", systemImage: "xmark.circle.fill")
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.red)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(12)
-                                .background(Color.red.opacity(colorScheme == .dark ? 0.16 : 0.09))
-                                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                    }
-
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Popular" : "Countries")
+                        Text(searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Allowed countries" : "Matching countries")
                             .font(.caption.weight(.heavy))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .textCase(.uppercase)
@@ -4043,7 +4056,7 @@ private struct VenueSupporterCountryPickerSheet: View {
 
         return Button {
 #if DEBUG
-            print("[VenueSupporterDebug] supporterCountry=\(option.name)")
+            print("[VenueSupporterIdentityDebug] save venueId=ownerToolsPicker supporterCountry=\(option.name)")
 #endif
             onSelect(option.name)
             dismiss()

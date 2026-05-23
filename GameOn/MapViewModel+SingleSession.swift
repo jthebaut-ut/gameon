@@ -173,7 +173,7 @@ extension MapViewModel {
             authErrorMessage = Self.fanSingleDeviceLogoutMessage
         }
 
-        await logoutUser()
+        await logoutUser(reason: "singleSessionMismatch", preserveAuthErrorMessage: true)
     }
 
     // MARK: - Supabase

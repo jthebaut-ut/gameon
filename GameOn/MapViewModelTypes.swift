@@ -1470,15 +1470,71 @@ struct VenueSupporterCountryDisplay: Equatable {
 }
 
 enum VenueSupporterCountryMode {
+    static let allowedCountryNames: [String] = [
+        "Brazil",
+        "USA",
+        "Mexico",
+        "Canada",
+        "Costa Rica",
+        "Bolivia",
+        "France",
+        "Belgium",
+        "Argentina",
+        "England",
+        "Spain",
+        "Germany",
+        "Italy",
+        "Portugal",
+        "Netherlands",
+        "Colombia",
+        "Uruguay",
+        "Chile",
+        "Japan",
+        "South Korea",
+        "Australia"
+    ]
+
+    private static let countryCodeOverrides: [String: String] = [
+        "USA": "US",
+        "England": "GB",
+        "South Korea": "KR"
+    ]
+
+    private static let aliasToCanonical: [String: String] = [
+        "brasil": "Brazil",
+        "us": "USA",
+        "u.s.": "USA",
+        "u.s.a.": "USA",
+        "united states": "USA",
+        "united states of america": "USA",
+        "méxico": "Mexico",
+        "belgique": "Belgium",
+        "belgie": "Belgium",
+        "espana": "Spain",
+        "españa": "Spain",
+        "deutschland": "Germany",
+        "italia": "Italy",
+        "the netherlands": "Netherlands",
+        "holland": "Netherlands",
+        "korea republic": "South Korea",
+        "republic of korea": "South Korea",
+        "korea, republic of": "South Korea"
+    ]
+
     static func normalizedStorageValue(_ country: String?) -> String? {
         let trimmed = country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmed.isEmpty ? nil : trimmed
+        guard !trimmed.isEmpty else { return nil }
+        let key = normalizedLookupKey(trimmed)
+        if let canonical = allowedCountryNames.first(where: { normalizedLookupKey($0) == key }) {
+            return canonical
+        }
+        return aliasToCanonical[key]
     }
 
     static func display(for storedCountry: String?, languageCode: String) -> VenueSupporterCountryDisplay? {
         guard let stored = normalizedStorageValue(storedCountry) else { return nil }
-        let code = CountryFlagHelper.countryCode(for: stored)
-        let flag = CountryFlagHelper.flag(for: stored) ?? "🏟️"
+        let code = countryCodeOverrides[stored] ?? CountryFlagHelper.countryCode(for: stored)
+        let flag = safeAllowedFlag(for: stored, countryCode: code)
         let displayName = supporterDisplayName(storedCountry: stored, countryCode: code, languageCode: languageCode)
         return VenueSupporterCountryDisplay(
             storedCountry: stored,
@@ -1489,7 +1545,25 @@ enum VenueSupporterCountryMode {
         )
     }
 
+    static func allowedOptions(matching query: String, languageCode: String) -> [NationalTeamCountryOption] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return allowedCountryNames.compactMap { name in
+            let code = countryCodeOverrides[name] ?? CountryFlagHelper.countryCode(for: name)
+            guard let code else { return nil }
+            let flag = safeAllowedFlag(for: name, countryCode: code)
+            return NationalTeamCountryOption(code: code, name: name, flag: flag, isPopular: true)
+        }
+        .filter { option in
+            trimmed.isEmpty
+                || option.name.localizedCaseInsensitiveContains(trimmed)
+                || option.code.localizedCaseInsensitiveContains(trimmed)
+        }
+    }
+
     private static func supporterDisplayName(storedCountry: String, countryCode: String?, languageCode: String) -> String {
+        if storedCountry == "USA" {
+            return "USA"
+        }
         if storedCountry.count <= 3, let countryCode {
             if countryCode == "US" { return "USA" }
             let localeIdentifier = L10n.normalizedLanguageCode(languageCode)
@@ -1514,6 +1588,19 @@ enum VenueSupporterCountryMode {
         default:
             return countryName.count <= 8 ? "Crowd" : "Supporters"
         }
+    }
+
+    private static func normalizedLookupKey(_ value: String) -> String {
+        value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .lowercased()
+    }
+
+    private static func safeAllowedFlag(for name: String, countryCode: String?) -> String {
+        TeamTheme.safeFlag(CountryFlagHelper.flag(for: name))
+            ?? TeamTheme.safeFlag(countryCode.flatMap { CountryFlagHelper.flag(for: $0) })
+            ?? "🏟️"
     }
 }
 

@@ -199,6 +199,10 @@ extension MapViewModel {
             isLoggedIn = true
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
+            authSessionState = .signedIn
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=fanSignup->signedIn")
+#endif
             bumpCurrentUserAvatarDisplayRefresh()
         }
 

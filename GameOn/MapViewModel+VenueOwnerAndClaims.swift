@@ -278,6 +278,7 @@ extension MapViewModel {
         guard let session = try? await supabase.auth.session else {
 #if DEBUG
             print("[BusinessSignup] auth signup no session after signUp (email confirmation or client state); signing out")
+            print("[AuthStateDebug] forcedLogoutReason=businessSignupNoSessionAfterSignUp")
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
@@ -285,6 +286,10 @@ extension MapViewModel {
                 isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                authSessionState = .signedOut
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=businessSignupNoSessionAfterSignUp->signedOut")
+#endif
                 venueAuthErrorMessage = "Account was created but there is no active session yet. Confirm your email if required, then sign in."
             }
             await persistAccountModeForActiveAuthSession(.fanUser)
@@ -315,11 +320,16 @@ extension MapViewModel {
             venueOwnerJustCompletedRegistration = false
             hasUnackedRejectedVenueClaimForOwnerEmail = false
             currentUserAuthId = ownerUserId
+            authSessionState = .signedIn
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=businessSignup->signedIn")
+#endif
         }
 
         guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
 #if DEBUG
             print("[BusinessSignup] cover upload failed post-auth (uploadVenuePhoto returned nil; see ERROR UPLOADING PHOTO log above) cover_upload_url_exists=false")
+            print("[AuthStateDebug] forcedLogoutReason=businessSignupCoverUploadFailed")
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
@@ -327,6 +337,10 @@ extension MapViewModel {
                 isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                authSessionState = .signedOut
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=businessSignupCoverUploadFailed->signedOut")
+#endif
                 venueAuthErrorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
             }
             await persistAccountModeForActiveAuthSession(.fanUser)
@@ -412,6 +426,7 @@ extension MapViewModel {
         } catch {
 #if DEBUG
             print("[BusinessSignup] business insert error localized=\(error.localizedDescription) full=\(error)")
+            print("[AuthStateDebug] forcedLogoutReason=businessSignupBusinessInsertFailed")
 #endif
             try? await supabase.auth.signOut()
             await MainActor.run {
@@ -419,6 +434,10 @@ extension MapViewModel {
                 isLoggedIn = false
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                authSessionState = .signedOut
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=businessSignupBusinessInsertFailed->signedOut")
+#endif
                 venueAuthErrorMessage =
                     "Could not create your business record. This is usually blocked by database permissions (RLS). An admin must allow authenticated business owners to insert into `businesses`, or creation must run on a secure backend."
             }
@@ -559,11 +578,18 @@ extension MapViewModel {
             )
 
             guard let session = try? await supabase.auth.session else {
+#if DEBUG
+                print("[AuthStateDebug] forcedLogoutReason=businessLoginNoSessionAfterSignIn")
+#endif
                 try? await supabase.auth.signOut()
                 await MainActor.run {
                     isVenueOwnerLoggedIn = false
                     clearVenueOwnerOwnedBusinessCaches()
                     ownerVenueDatabaseId = nil
+                    authSessionState = .signedOut
+#if DEBUG
+                    print("[AuthStateDebug] authStateTransition=businessLoginNoSessionAfterSignIn->signedOut")
+#endif
                     venueAuthErrorMessage = "Unable to login venue owner."
                 }
                 return
@@ -587,6 +613,10 @@ extension MapViewModel {
                 currentUserEmail = ""
                 venueAuthErrorMessage = ""
                 venueOwnerJustCompletedRegistration = false
+                authSessionState = .signedIn
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=businessLogin->signedIn")
+#endif
             }
 
             if let session = try? await supabase.auth.session {
@@ -1929,6 +1959,9 @@ extension MapViewModel {
         ownerVenueZipCode = saved.zip_code ?? ""
         ownerVenueCountry = saved.country ?? BusinessLocationCountryPolicy.defaultCountryCode
         ownerVenueSupporterCountry = saved.supporter_country ?? ""
+#if DEBUG
+        print("[VenueSupporterIdentityDebug] load venueId=\(saved.id?.uuidString.lowercased() ?? "nil") supporterCountry=\(ownerVenueSupporterCountry.isEmpty ? "nil" : ownerVenueSupporterCountry)")
+#endif
         applyVenueOwnerPhoneFromCombined(saved.phone)
         ownerVenueWebsite = saved.website ?? ""
         ownerVenueDescription = saved.description ?? ""
@@ -2357,32 +2390,55 @@ extension MapViewModel {
     }
 
     func updateVenueSupporterCountry(_ country: String?) async -> Bool {
+        struct Params: Encodable {
+            let p_venue_id: UUID
+            let p_supporter_country: String?
+        }
+
+        let requested = country?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let normalized = VenueSupporterCountryMode.normalizedStorageValue(country)
+        if !requested.isEmpty, normalized == nil {
+#if DEBUG
+            print("[VenueSupporterIdentityDebug] backendGuard=false reason=clientRejectedInvalidValue supporterCountry=\(requested)")
+            print("[VenueSupporterIdentityDebug] saveError=invalid_supporter_country")
+#endif
+            return false
+        }
+
         let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerEmailRow) else { return false }
 
-        await MainActor.run {
-            ownerVenueSupporterCountry = normalized ?? ""
+        var venueId = ownerVenueDatabaseId
+        if venueId == nil {
+            venueId = await loadVenueProfile()?.id
         }
-
-        let patch = VenueSupporterCountryUpdate(supporter_country: normalized)
-        do {
-            if let venueId = ownerVenueDatabaseId {
-                try await supabase
-                    .from("venues")
-                    .update(patch)
-                    .eq("id", value: venueId.uuidString.lowercased())
-                    .execute()
-            } else {
-                try await supabase
-                    .from("venues")
-                    .update(patch)
-                    .eq("owner_email", value: ownerEmailRow)
-                    .execute()
-            }
+        guard let venueId else {
 #if DEBUG
-            print("[VenueSupporterDebug] supporterCountryUpdated=\(normalized ?? "nil")")
+            print("[VenueSupporterIdentityDebug] save venueId=nil supporterCountry=\(normalized ?? "nil")")
+            print("[VenueSupporterIdentityDebug] saveError=missing_venue_id")
 #endif
+            return false
+        }
+#if DEBUG
+        print("[VenueSupporterIdentityDebug] save venueId=\(venueId.uuidString.lowercased()) supporterCountry=\(normalized ?? "nil")")
+        print("[VenueSupporterIdentityDebug] backendGuard=rpc_update_venue_supporter_country")
+#endif
+        do {
+            try await supabase
+                .rpc(
+                    "update_venue_supporter_country",
+                    params: Params(
+                        p_venue_id: venueId,
+                        p_supporter_country: normalized
+                    )
+                )
+                .execute()
+#if DEBUG
+            print("[VenueSupporterIdentityDebug] saveSuccess=true")
+#endif
+            await MainActor.run {
+                ownerVenueSupporterCountry = normalized ?? ""
+            }
             if let saved = await loadVenueProfile() {
                 await MainActor.run {
                     applyVenueProfileRowToOwnerState(saved)
@@ -2393,6 +2449,10 @@ extension MapViewModel {
             return true
         } catch {
             print("ERROR UPDATING VENUE SUPPORTER COUNTRY:", error)
+#if DEBUG
+            print("[VenueSupporterIdentityDebug] saveSuccess=false")
+            print("[VenueSupporterIdentityDebug] saveError=\(error.localizedDescription)")
+#endif
             return false
         }
     }

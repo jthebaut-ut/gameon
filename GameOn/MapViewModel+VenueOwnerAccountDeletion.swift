@@ -326,6 +326,9 @@ extension MapViewModel {
         await clearVenueOwnerLocalStateAfterDeletion()
 
         do {
+#if DEBUG
+            print("[AuthStateDebug] forcedLogoutReason=venueOwnerAccountDeletionCompleted")
+#endif
             try await supabase.auth.signOut()
         } catch {
 #if DEBUG
@@ -340,6 +343,10 @@ extension MapViewModel {
             clearVenueOwnerDraftState()
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
+            authSessionState = .signedOut
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=venueOwnerAccountDeletionCompleted->signedOut")
+#endif
             venueAuthErrorMessage = ""
         }
 

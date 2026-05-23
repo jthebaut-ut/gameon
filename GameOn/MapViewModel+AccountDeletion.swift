@@ -106,6 +106,7 @@ extension MapViewModel {
 #if DEBUG
         print("[AccountDeletionDebug] avatarCleanupSuccess=\(avatarCleanupSucceeded)")
         print("[AccountDeletionDebug] signOutStarted=true")
+        print("[AuthStateDebug] forcedLogoutReason=accountDeletionCompleted")
 #endif
 
         do {
@@ -150,6 +151,10 @@ extension MapViewModel {
         await MainActor.run {
             clearAuthenticatedSessionCaches()
             isLoggedIn = false
+            authSessionState = .signedOut
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=accountDeletionCompleted->signedOut")
+#endif
         }
     }
 }

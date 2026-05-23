@@ -131,6 +131,7 @@ extension MapViewModel {
         isLoggedIn = false
         isAdminLoggedIn = false
         currentUserAuthId = authId
+        markAuthSignedIn(reason: "\(context)_businessOwner")
         venueOwnerEmail = normalizedOwnerEmail
         currentUserEmail = ""
         currentUserDisplayName = ""
@@ -197,6 +198,7 @@ extension MapViewModel {
         currentUserDiscoverableByFans = true
         isAdminLoggedIn = false
         currentUserAuthId = session.user.id
+        markAuthSignedIn(reason: "\(context)_businessOwner")
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
         restorePersistedSelectedVenueForBusinessLaunch()
@@ -387,10 +389,18 @@ extension MapViewModel {
     /// Persists the account mode and, when a Supabase session exists, the auth user id (so a different account on the same device does not restore the wrong mode).
     func persistAccountModeForActiveAuthSession(_ mode: StoredAccountMode) async {
         let uid: String?
-        if let session = try? await supabase.auth.session {
+        switch await supabaseResolvedAuthSessionResult() {
+        case .active(let session):
             uid = session.user.id.uuidString.lowercased()
-        } else {
+        case .missingSession:
             uid = nil
+        case .refreshFailed(let error):
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "persistAccountMode")
+            }
+            uid = await MainActor.run {
+                currentUserAuthId?.uuidString.lowercased()
+            }
         }
         await MainActor.run {
             UserDefaults.standard.set(mode.rawValue, forKey: Self.storedAccountModeKey)
@@ -404,11 +414,16 @@ extension MapViewModel {
 
     /// Venue owner “Log out” from Settings clears owner UI state but keeps Supabase signed in; fan mode becomes the restored surface on next launch.
     func venueOwnerLocalSignOutPreservingSupabaseSession() {
+        logForcedLogoutReason("venueOwnerLocalSignOutPreservingSupabaseSession")
         clearAuthenticatedSessionCaches()
         clearVenueOwnerDraftState()
         isVenueOwnerLoggedIn = false
         venueOwnerMode = false
         isLoggedIn = false
+        authSessionState = .signedOut
+#if DEBUG
+        print("[AuthStateDebug] authStateTransition=venueOwnerLocalSignOutPreservingSupabaseSession->signedOut")
+#endif
         Task {
             await persistAccountModeForActiveAuthSession(.fanUser)
         }
@@ -459,6 +474,52 @@ extension MapViewModel {
         }
         let ns = error as NSError
         print("\(prefix) NSError domain=\(ns.domain) code=\(ns.code) userInfo=\(ns.userInfo)")
+    }
+
+    @MainActor
+    private func transitionAuthSessionState(_ newState: FanGeoAuthSessionState, reason: String) {
+        let oldState = authSessionState
+        guard oldState != newState else {
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=\(oldState.rawValue)->\(newState.rawValue) reason=\(reason) unchanged=true")
+#endif
+            return
+        }
+        authSessionState = newState
+#if DEBUG
+        print("[AuthStateDebug] authStateTransition=\(oldState.rawValue)->\(newState.rawValue) reason=\(reason)")
+#endif
+    }
+
+    @MainActor
+    private func markAuthSignedOut(reason: String) {
+        transitionAuthSessionState(.signedOut, reason: reason)
+    }
+
+    @MainActor
+    private func markAuthSignedIn(reason: String) {
+        transitionAuthSessionState(.signedIn, reason: reason)
+    }
+
+    @MainActor
+    private func markAuthRefreshFailed(_ error: Error, reason: String) {
+        transitionAuthSessionState(.authRefreshFailed, reason: reason)
+#if DEBUG
+        print("[AuthStateDebug] tokenRefreshFailed=true reason=\(reason) error=\(error.localizedDescription)")
+#endif
+    }
+
+    private func logForcedLogoutReason(_ reason: String) {
+#if DEBUG
+        print("[AuthStateDebug] forcedLogoutReason=\(reason)")
+#endif
+    }
+
+    private func logSessionRestored(_ restored: Bool, reason: String, userId: UUID? = nil) {
+#if DEBUG
+        let userText = userId?.uuidString.lowercased() ?? "nil"
+        print("[AuthStateDebug] sessionRestored=\(restored) reason=\(reason) userId=\(userText)")
+#endif
     }
 
     private static func liveVisibilityErrorText(_ error: Error) -> String {
@@ -711,6 +772,7 @@ extension MapViewModel {
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                markAuthSignedIn(reason: "registerUser")
                 bumpCurrentUserAvatarDisplayRefresh()
             }
             if let session = try? await supabase.auth.session {
@@ -749,10 +811,14 @@ extension MapViewModel {
             )
 
             guard let session = try? await supabase.auth.session else {
+#if DEBUG
+                print("[AuthStateDebug] forcedLogoutReason=fanLoginNoSessionAfterSignIn")
+#endif
                 try? await supabase.auth.signOut()
                 await MainActor.run {
                     isLoggedIn = false
                     currentUserAuthId = nil
+                markAuthSignedOut(reason: "loginUserSessionMissingAfterSignIn")
                     authErrorMessage = "Unable to login."
                 }
                 return
@@ -785,6 +851,7 @@ extension MapViewModel {
                 isLoggedIn = true
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
+                markAuthSignedIn(reason: "loginUser")
 
                 authErrorMessage = ""
                 bumpCurrentUserAvatarDisplayRefresh()
@@ -804,6 +871,7 @@ extension MapViewModel {
             await MainActor.run {
                 isLoggedIn = false
                 currentUserAuthId = nil
+                markAuthSignedOut(reason: "loginUserError")
 
                 let message = error.localizedDescription.lowercased()
 
@@ -822,7 +890,25 @@ extension MapViewModel {
     /// Returns `false` after signing out and clearing local state when access must be blocked.
     @discardableResult
     func checkCurrentUserAdminStatus() async -> Bool {
-        guard let session = try? await supabase.auth.session else { return true }
+        let sessionResolution = await supabaseResolvedAuthSessionResult()
+        let session: Session
+        switch sessionResolution {
+        case .active(let activeSession):
+            session = activeSession
+        case .missingSession:
+#if DEBUG
+            print("[AuthStateDebug] deletedAccountConfirmed=false reason=adminStatusNoSession")
+#endif
+            return true
+        case .refreshFailed(let error):
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "adminStatusCheck")
+            }
+#if DEBUG
+            print("[AuthStateDebug] deletedAccountConfirmed=false reason=adminStatusRefreshFailed")
+#endif
+            return true
+        }
 
         do {
             let rows: [UserProfileRow] = try await supabase
@@ -838,6 +924,9 @@ extension MapViewModel {
             }
 
             if profile.isDeletedAccount {
+#if DEBUG
+                print("[AuthStateDebug] deletedAccountConfirmed=true reason=adminStatusProfile userId=\(session.user.id.uuidString.lowercased())")
+#endif
                 await handleDeletedCurrentUser()
                 return false
             }
@@ -855,6 +944,7 @@ extension MapViewModel {
     }
 
     private func handleDeletedCurrentUser() async {
+        logForcedLogoutReason("deletedAccountConfirmed")
         do {
             try await supabase.auth.signOut()
         } catch {
@@ -869,13 +959,18 @@ extension MapViewModel {
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
             isAdminLoggedIn = false
+            transitionAuthSessionState(.deletedAccountConfirmed, reason: "profileVerifiedDeleted")
             authErrorMessage = "This account has been deleted.\nContact support if you believe this was a mistake."
         }
+#if DEBUG
+        print("[AuthStateDebug] deletedAccountConfirmed=true")
+#endif
 
         clearPersistedAccountMode()
     }
 
     private func handleDisabledCurrentUser() async {
+        logForcedLogoutReason("disabledAccountConfirmed")
         do {
             try await supabase.auth.signOut()
         } catch {
@@ -888,16 +983,19 @@ extension MapViewModel {
             isLoggedIn = false
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
+            markAuthSignedOut(reason: "disabledAccountConfirmed")
             authErrorMessage = "This account has been disabled by FanGeo support."
         }
 
         clearPersistedAccountMode()
     }
 
-    func logoutUser() async {
+    func logoutUser(reason: String = "explicitUserLogout", preserveAuthErrorMessage: Bool = false) async {
 #if DEBUG
         print("[Auth] logout requested")
 #endif
+        logForcedLogoutReason(reason)
+        let preservedAuthErrorMessage = preserveAuthErrorMessage ? await MainActor.run { authErrorMessage } : ""
 
         do {
             try await supabase.auth.signOut()
@@ -922,6 +1020,10 @@ extension MapViewModel {
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
             isAdminLoggedIn = false
+            markAuthSignedOut(reason: reason)
+            if preserveAuthErrorMessage, !preservedAuthErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                authErrorMessage = preservedAuthErrorMessage
+            }
         }
 
         clearPersistedAccountMode()
@@ -938,11 +1040,22 @@ extension MapViewModel {
             return false
         }
 
-        do {
-            _ = try await supabase.auth.session
+        switch await supabaseResolvedAuthSessionResult() {
+        case .active:
             return true
-        } catch {
-            return false
+        case .missingSession:
+            let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
+#if DEBUG
+            if wasAuthenticated {
+                print("[AuthStateDebug] sessionRestored=false reason=hasValidSessionMissingPreserved")
+            }
+#endif
+            return wasAuthenticated
+        case .refreshFailed(let error):
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "hasValidSession")
+            }
+            return true
         }
     }
 
@@ -984,6 +1097,7 @@ extension MapViewModel {
             venueOwnerEmail = ""
             isAdminLoggedIn = false
             currentUserAuthId = session.user.id
+            markAuthSignedIn(reason: "fanSessionRestore")
             if clearVenueOwnerCaches {
                 clearVenueOwnerOwnedBusinessCaches()
                 ownerVenueDatabaseId = nil
@@ -998,6 +1112,7 @@ extension MapViewModel {
     func bootstrapAuthSessionOnly() async {
         await MainActor.run {
             isAuthSessionRestoringForProfilePresentation = true
+            transitionAuthSessionState(.loadingSession, reason: "bootstrapStart")
         }
         defer {
             Task { @MainActor [weak self] in
@@ -1027,92 +1142,62 @@ extension MapViewModel {
                 isVenueOwnerLoggedIn = false
                 venueOwnerMode = false
                 isAdminLoggedIn = false
+                markAuthSignedOut(reason: "explicitLogoutBootstrap")
             }
             clearPersistedAccountMode()
+            logSessionRestored(false, reason: "explicitLogout")
             return
         }
 
-        do {
-            guard let session = try await supabaseResolvedAuthSession() else {
-                await MainActor.run {
-                    clearAuthenticatedSessionCaches()
-                    clearVenueOwnerDraftState()
-                    isLoggedIn = false
-                    isVenueOwnerLoggedIn = false
-                    venueOwnerMode = false
-                    isAdminLoggedIn = false
-                }
-                clearPersistedAccountMode()
-                print("NO ACTIVE SESSION")
-                return
+        switch await supabaseResolvedAuthSessionResult() {
+        case .missingSession:
+            await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                clearVenueOwnerDraftState()
+                isLoggedIn = false
+                isVenueOwnerLoggedIn = false
+                venueOwnerMode = false
+                isAdminLoggedIn = false
+                markAuthSignedOut(reason: "bootstrapMissingSession")
             }
-            let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
-            let sessionUid = session.user.id.uuidString.lowercased()
-            logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
+            clearPersistedAccountMode()
+            logSessionRestored(false, reason: "missingSession")
+            print("NO ACTIVE SESSION")
+            return
 
-            if !(await checkCurrentUserAdminStatus()) {
-                print("SESSION RESTORE BLOCKED: account unavailable")
-                return
+        case .refreshFailed(let error):
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "bootstrap")
             }
+            logSessionRestored(false, reason: "tokenRefreshFailed")
+            return
 
-            let persisted = readPersistedAccountMode()
-#if DEBUG
-            print("[AuthRestore] storedAccountMode=\(persisted.mode.rawValue)")
-#endif
-            let storedId = persisted.authUserId?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-            let idMismatch = !storedId.isEmpty && storedId != sessionUid
+        case .active(let session):
+            do {
+                let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+                let sessionUid = session.user.id.uuidString.lowercased()
+                logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
+                logSessionRestored(true, reason: "bootstrap", userId: session.user.id)
 
-            if idMismatch {
-#if DEBUG
-                print("[AuthRestore] auth uid mismatch session=\(sessionUid) stored=\(storedId) -> fan restore")
-#endif
-                await MainActor.run {
-                    clearCurrentUserProfileLocalCache()
+                if !(await checkCurrentUserAdminStatus()) {
+                    print("SESSION RESTORE BLOCKED: account unavailable")
+                    return
                 }
-                await persistAccountModeForActiveAuthSession(.fanUser)
-                await applyFanUserSessionRestoreAfterBootstrap(
-                    session: session,
-                    sessionEmail: sessionEmail,
-                    clearVenueOwnerCaches: true
-                )
-                print("SESSION RESTORED:", sessionEmail)
-                return
-            }
 
-            switch persisted.mode {
-            case .admin:
+                let persisted = readPersistedAccountMode()
 #if DEBUG
-                print("[AuthRestore] restoredAdmin (local admin UI)")
+                print("[AuthRestore] storedAccountMode=\(persisted.mode.rawValue)")
 #endif
-                await MainActor.run {
-                    isAdminLoggedIn = true
-                    isLoggedIn = false
-                    isVenueOwnerLoggedIn = false
-                    venueOwnerMode = false
-                    venueOwnerEmail = ""
-                    currentUserEmail = ""
-                    currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
-                    currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
-                    currentUserIsBusinessAccount = false
-                    currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
-                    currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
-                    currentUserNationalTeam = cachedNationalTeamIdentity()
-                    currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
-                    currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
-                    currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
-                    currentUserDiscoverableByFans = UserDefaults.standard.object(forKey: "cachedUserDiscoverableByFans") as? Bool ?? true
-                    currentUserAuthId = session.user.id
-                    clearVenueOwnerOwnedBusinessCaches()
-                    ownerVenueDatabaseId = nil
-                }
-                print("SESSION RESTORED:", sessionEmail)
-                return
+                let storedId = persisted.authUserId?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+                let idMismatch = !storedId.isEmpty && storedId != sessionUid
 
-            case .businessOwner:
-                guard OwnerBusinessEmail.isValidStrict(sessionEmail) else {
+                if idMismatch {
 #if DEBUG
-                    print("[AuthRestore] businessOwner restore missing_or_invalid session email -> fan")
+                    print("[AuthRestore] auth uid mismatch session=\(sessionUid) stored=\(storedId) -> fan restore")
 #endif
+                    await MainActor.run {
+                        clearCurrentUserProfileLocalCache()
+                    }
                     await persistAccountModeForActiveAuthSession(.fanUser)
                     await applyFanUserSessionRestoreAfterBootstrap(
                         session: session,
@@ -1122,59 +1207,103 @@ extension MapViewModel {
                     print("SESSION RESTORED:", sessionEmail)
                     return
                 }
-#if DEBUG
-                print("[AuthRestore] restoredBusinessOwner email=\(sessionEmail)")
-#endif
-                _ = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
-                    session: session,
-                    sessionEmail: sessionEmail,
-                    context: "bootstrap_restore_business_owner"
-                )
-                print("SESSION RESTORED:", sessionEmail)
-                return
 
-            case .fanUser:
-                if await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
-                    session: session,
-                    sessionEmail: sessionEmail,
-                    context: "bootstrap_restore_business_owner_fallback"
-                ) {
+                switch persisted.mode {
+                case .admin:
+#if DEBUG
+                    print("[AuthRestore] restoredAdmin (local admin UI)")
+#endif
+                    await MainActor.run {
+                        isAdminLoggedIn = true
+                        isLoggedIn = false
+                        isVenueOwnerLoggedIn = false
+                        venueOwnerMode = false
+                        venueOwnerEmail = ""
+                        currentUserEmail = ""
+                        currentUserDisplayName = UserDefaults.standard.string(forKey: "cachedUserDisplayName") ?? ""
+                        currentUserBio = UserDefaults.standard.string(forKey: "cachedUserBio") ?? ""
+                        currentUserIsBusinessAccount = false
+                        currentUserAvatarURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarURL"))
+                        currentUserAvatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL"))
+                        currentUserNationalTeam = cachedNationalTeamIdentity()
+                        currentUserLiveVisibilityEnabled = UserDefaults.standard.object(forKey: "cachedUserLiveVisibilityEnabled") as? Bool ?? true
+                        currentUserLiveVisibilityMode = cachedLiveVisibilityMode()
+                        currentUserSelectedLiveVisibilityFriendIDs = cachedSelectedLiveVisibilityFriendIDs()
+                        currentUserDiscoverableByFans = UserDefaults.standard.object(forKey: "cachedUserDiscoverableByFans") as? Bool ?? true
+                        currentUserAuthId = session.user.id
+                        markAuthSignedIn(reason: "adminSessionRestore")
+                        clearVenueOwnerOwnedBusinessCaches()
+                        ownerVenueDatabaseId = nil
+                    }
                     print("SESSION RESTORED:", sessionEmail)
                     return
+
+                case .businessOwner:
+                    guard OwnerBusinessEmail.isValidStrict(sessionEmail) else {
+#if DEBUG
+                        print("[AuthRestore] businessOwner restore missing_or_invalid session email -> fan")
+#endif
+                        await persistAccountModeForActiveAuthSession(.fanUser)
+                        await applyFanUserSessionRestoreAfterBootstrap(
+                            session: session,
+                            sessionEmail: sessionEmail,
+                            clearVenueOwnerCaches: true
+                        )
+                        print("SESSION RESTORED:", sessionEmail)
+                        return
+                    }
+#if DEBUG
+                    print("[AuthRestore] restoredBusinessOwner email=\(sessionEmail)")
+#endif
+                    _ = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                        session: session,
+                        sessionEmail: sessionEmail,
+                        context: "bootstrap_restore_business_owner"
+                    )
+                    print("SESSION RESTORED:", sessionEmail)
+                    return
+
+                case .fanUser:
+                    if await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                        session: session,
+                        sessionEmail: sessionEmail,
+                        context: "bootstrap_restore_business_owner_fallback"
+                    ) {
+                        print("SESSION RESTORED:", sessionEmail)
+                        return
+                    }
+                    await applyFanUserSessionRestoreAfterBootstrap(
+                        session: session,
+                        sessionEmail: sessionEmail,
+                        clearVenueOwnerCaches: false
+                    )
+                    logBusinessOwnerSessionFlags(context: "bootstrap_restore_fan_user")
+                    print("SESSION RESTORED:", sessionEmail)
+                    Task {
+                        await self.enforceFanSingleSessionOnForeground()
+                        await self.startFanSingleSessionRealtimeIfNeeded()
+                    }
+                    return
                 }
-                await applyFanUserSessionRestoreAfterBootstrap(
-                    session: session,
-                    sessionEmail: sessionEmail,
-                    clearVenueOwnerCaches: false
-                )
-                logBusinessOwnerSessionFlags(context: "bootstrap_restore_fan_user")
-                print("SESSION RESTORED:", sessionEmail)
-                Task {
-                    await self.enforceFanSingleSessionOnForeground()
-                    await self.startFanSingleSessionRealtimeIfNeeded()
+            } catch {
+                await MainActor.run {
+                    markAuthRefreshFailed(error, reason: "bootstrapActiveSessionApply")
                 }
+                logSessionRestored(false, reason: "bootstrapApplyError")
                 return
             }
-
-        } catch {
-            await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                clearVenueOwnerDraftState()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                isAdminLoggedIn = false
-            }
-            clearPersistedAccountMode()
-            print("NO ACTIVE SESSION")
         }
     }
 
     /// Profile bootstrap, fan profile row, favorites, and Following-tab caches. Runs after Discover core so map/calendar are not blocked.
     func refreshUserPersonalizationInBackground() async {
         let t0 = Date()
-        do {
-            guard try await supabaseResolvedAuthSession() != nil else {
+        switch await supabaseResolvedAuthSessionResult() {
+        case .active:
+            break
+        case .missingSession:
+            let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
+            if !wasAuthenticated {
                 await MainActor.run {
                     clearAuthenticatedSessionCaches()
                     clearVenueOwnerDraftState()
@@ -1182,27 +1311,22 @@ extension MapViewModel {
                     isVenueOwnerLoggedIn = false
                     venueOwnerMode = false
                     isAdminLoggedIn = false
+                    markAuthSignedOut(reason: "personalizationMissingSession")
                 }
                 clearPersistedAccountMode()
-                #if DEBUG
-                let ms = Int(Date().timeIntervalSince(t0) * 1000)
-                print("[Background] personalization loaded ms=\(ms) (no session)")
-                #endif
-                return
             }
-        } catch {
-            await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                clearVenueOwnerDraftState()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                isAdminLoggedIn = false
-            }
-            clearPersistedAccountMode()
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
             print("[Background] personalization loaded ms=\(ms) (no session)")
+            #endif
+            return
+        case .refreshFailed(let error):
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "personalization")
+            }
+            #if DEBUG
+            let ms = Int(Date().timeIntervalSince(t0) * 1000)
+            print("[Background] personalization skipped ms=\(ms) (auth refresh failed)")
             #endif
             return
         }
@@ -1243,7 +1367,19 @@ extension MapViewModel {
 
     // Fetches the row for the current user by `auth.uid` when a session exists; otherwise falls back to email (e.g. venue-owner context without fan session).
     func loadUserProfile() async {
-        if let session = try? await supabase.auth.session {
+        let sessionResolution = await supabaseResolvedAuthSessionResult()
+        if case .refreshFailed(let error) = sessionResolution {
+            await MainActor.run {
+                markAuthRefreshFailed(error, reason: "loadUserProfile")
+                finishProfilePresentationLoad(profileExists: false)
+            }
+#if DEBUG
+            print("[ProfilePersistenceDebug] profileLoadSkipped reason=authRefreshFailed")
+#endif
+            return
+        }
+
+        if case .active(let session) = sessionResolution {
             guard await checkCurrentUserAdminStatus() else {
                 await MainActor.run {
                     finishProfilePresentationLoad(profileExists: false)
@@ -1346,7 +1482,9 @@ extension MapViewModel {
                 print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
                 if profile.isDeletedAccount {
-                    await handleDeletedCurrentUser()
+#if DEBUG
+                    print("[AuthStateDebug] deletedAccountConfirmed=false reason=noSessionProfileFallbackDeletedRow")
+#endif
                     await MainActor.run {
                         finishProfilePresentationLoad(profileExists: false)
                     }
@@ -2487,6 +2625,9 @@ extension MapViewModel {
             print("[PasswordResetDebug] success=true step=update_password")
 
             do {
+#if DEBUG
+                print("[AuthStateDebug] forcedLogoutReason=passwordResetCompleted")
+#endif
                 try await supabase.auth.signOut()
             } catch {
                 print("[PasswordResetDebug] success=false step=sign_out_after_update error=\(error.localizedDescription)")
@@ -2499,6 +2640,7 @@ extension MapViewModel {
                 venueOwnerMode = false
                 isAdminLoggedIn = false
                 currentUserAuthId = nil
+                markAuthSignedOut(reason: "passwordResetCompleted")
                 isPasswordResetRecoverySessionActive = false
                 isShowingPasswordResetCreateSheet = false
                 passwordResetUpdateMessage = "Your password has been updated. Please sign in again."
@@ -2517,6 +2659,9 @@ extension MapViewModel {
         print("[PasswordResetDebug] step=cancel_recovery")
         if isPasswordResetRecoverySessionActive {
             do {
+#if DEBUG
+                print("[AuthStateDebug] forcedLogoutReason=passwordResetCancelled")
+#endif
                 try await supabase.auth.signOut()
                 print("[PasswordResetDebug] success=true step=cancel_recovery")
             } catch {
@@ -2531,6 +2676,7 @@ extension MapViewModel {
             venueOwnerMode = false
             isAdminLoggedIn = false
             currentUserAuthId = nil
+            markAuthSignedOut(reason: "passwordResetCancelled")
             isPasswordResetRecoverySessionActive = false
             isShowingPasswordResetCreateSheet = false
             passwordResetUpdateError = ""

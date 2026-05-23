@@ -3737,11 +3737,22 @@ struct DiscoverScreen: View {
         bar: BarVenue,
         gamesToday: [SportsEvent]
     ) -> VenuePreviewIdentityBanner {
-        if let supporter = VenueSupporterCountryMode.display(for: bar.supporterCountry, languageCode: appLanguageRaw) {
+        let rawSupporterCountry = bar.supporterCountry?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !rawSupporterCountry.isEmpty {
+            if let supporter = VenueSupporterCountryMode.display(for: rawSupporterCountry, languageCode: appLanguageRaw) {
+                return VenuePreviewIdentityBanner(
+                    rawIdentity: supporter.storedCountry,
+                    displayName: supporter.countryName,
+                    flag: supporter.flag
+                )
+            }
+#if DEBUG
+            print("[VenueSupporterIdentityDebug] backendGuard=invalid_db_value_ignored venueId=\(bar.id.uuidString.lowercased()) supporterCountry=\(rawSupporterCountry)")
+#endif
             return VenuePreviewIdentityBanner(
-                rawIdentity: supporter.storedCountry,
-                displayName: supporter.countryName,
-                flag: supporter.flag
+                rawIdentity: nil,
+                displayName: "FanGeo",
+                flag: "🏟️"
             )
         }
 
@@ -3769,7 +3780,7 @@ struct DiscoverScreen: View {
 
     private func venuePreviewIdentityBanner(_ banner: VenuePreviewIdentityBanner) -> some View {
         let theme = TeamTheme.resolve(banner.rawIdentity)
-        let flag = banner.flag ?? theme.flag
+        let flag = TeamTheme.safeFlag(banner.flag) ?? TeamTheme.safeFlag(theme.flag)
         let initials = String(banner.displayName.prefix(2)).uppercased()
 
         return HStack(spacing: 12) {

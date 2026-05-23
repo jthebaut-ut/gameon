@@ -6,6 +6,14 @@ import CoreLocation
 import EventKit
 import Supabase
 
+enum FanGeoAuthSessionState: String {
+    case loadingSession
+    case signedOut
+    case signedIn
+    case deletedAccountConfirmed
+    case authRefreshFailed
+}
+
 /// Central `@MainActor` observable object: map camera and selection, venue and schedule data, Supabase auth, venue-owner tools, favorites, and social (interests, comments, vibes).
 ///
 /// Feature code is split across `MapViewModel+*.swift` extensions. This declaration holds `@Published` state, `EventKit` store, and static sample references.
@@ -73,6 +81,7 @@ final class MapViewModel: ObservableObject {
     let venueEventInterestLocalReconcileTTL: TimeInterval = 15
     @Published var selectedTimeZone: TimeZoneOption = .mountain
     @Published var isLoggedIn: Bool = false
+    @Published var authSessionState: FanGeoAuthSessionState = .signedOut
     @Published var currentUserEmail: String = ""
     /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
     @Published var currentUserAuthId: UUID?

@@ -16,6 +16,9 @@ extension MapViewModel {
 
     /// Signs out and clears local session flags after a successful Supabase password sign-in that must be rejected for account-type mismatch.
     func undoPartialSupabaseSessionAfterAccountTypeMismatch() async {
+#if DEBUG
+        print("[AuthStateDebug] forcedLogoutReason=accountTypeMismatch")
+#endif
         do {
             try await supabase.auth.signOut()
         } catch {
@@ -31,6 +34,10 @@ extension MapViewModel {
             isVenueOwnerLoggedIn = false
             venueOwnerMode = false
             isAdminLoggedIn = false
+            authSessionState = .signedOut
+#if DEBUG
+            print("[AuthStateDebug] authStateTransition=accountTypeMismatch->signedOut")
+#endif
         }
         clearPersistedAccountMode()
     }
