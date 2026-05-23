@@ -86,25 +86,8 @@ struct VenueDetailView: View {
         return mergedRating
     }
 
-    private var hasDisplaySport: Bool {
-        guard let displaySport else { return false }
-        return !displaySport.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
     private var ratingSubtitle: String {
         ratingCount == 1 ? "1 rating" : "\(ratingCount) ratings"
-    }
-
-    private var heroFallbackIconName: String {
-        hasDisplaySport ? iconForSport(displaySport ?? "") : "building.2.fill"
-    }
-
-    private var heroImageURL: URL? {
-        guard let raw = venueDetailsHeroURLString,
-              let url = URL(string: raw) else {
-            return nil
-        }
-        return url
     }
 
     private var venueDetailsHeroURLString: String? {
@@ -401,105 +384,66 @@ struct VenueDetailView: View {
     }
 
     private var venueHeroSection: some View {
-        ZStack(alignment: .topTrailing) {
-            heroBackground
-
-            LinearGradient(
-                colors: [Color.black.opacity(0.04), Color.black.opacity(0.72)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                HStack(alignment: .top, spacing: FGSpacing.md) {
-                    if isBusinessConfirmed {
-                        compactHeroBadge("Confirmed Venue", tint: FGColor.accentGreen)
-                        .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
-                    }
-
-                    Spacer(minLength: FGSpacing.md)
-
-                    HStack(spacing: 10) {
-                        if showsHomeCrowdControls {
-                            homeCrowdHeroToggleButton
-                                .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
-                        }
-
-                        Button {
-                            runFanOnlyAction("favoriteVenue", onFavorite)
-                        } label: {
-                            Image(systemName: isFavorite ? "heart.fill" : "heart")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(isFavorite ? Color.red : Color.white)
-                                .frame(width: 44, height: 44)
-                                .background(Color.black.opacity(0.25))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
-                        .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                VStack(alignment: .leading, spacing: FGSpacing.xs) {
+        VStack(alignment: .leading, spacing: FGSpacing.md) {
+            HStack(alignment: .top, spacing: FGSpacing.md) {
+                VStack(alignment: .leading, spacing: FGSpacing.sm) {
                     Text(bar.name)
-                        .font(FGTypography.heroTitle)
-                        .foregroundStyle(.white)
+                        .font(.system(size: 30, weight: .black, design: .rounded))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
+                        .minimumScaleFactor(0.82)
 
-                    if !bar.distance.isEmpty {
-                        FGStatusPill(title: bar.distance, kind: .custom(tint: FGColor.accentYellow))
+                    HStack(spacing: FGSpacing.xs) {
+                        if !bar.distance.isEmpty {
+                            FGStatusPill(title: bar.distance, kind: .custom(tint: FGColor.accentYellow))
+                        }
+
+                        if let displaySport, !displaySport.isEmpty {
+                            FGStatusPill(title: displaySport, kind: .custom(tint: FGColor.accentBlue))
+                        }
+
+                        if isBusinessConfirmed {
+                            FGStatusPill(title: "Confirmed Venue", kind: .custom(tint: FGColor.accentGreen))
+                        }
                     }
+                    .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 6)
+
+                HStack(spacing: 10) {
+                    if showsHomeCrowdControls {
+                        homeCrowdHeroToggleButton
+                            .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
+                    }
+
+                    Button {
+                        runFanOnlyAction("favoriteVenue", onFavorite)
+                    } label: {
+                        Image(systemName: isFavorite ? "heart.fill" : "heart")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(isFavorite ? Color.red : FGColor.primaryText(colorScheme))
+                            .frame(width: 44, height: 44)
+                            .background((isFavorite ? Color.red : FGColor.accentBlue).opacity(colorScheme == .dark ? 0.18 : 0.10))
+                            .clipShape(Circle())
+                            .overlay {
+                                Circle()
+                                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.72), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(showsFanOnlyActionButtons ? 1 : 0.5)
+                    .progressiveAppear(isVisible: contentRevealPhase >= 2, yOffset: 4)
+                }
             }
-            .padding(FGSpacing.lg)
         }
-        .frame(height: 248)
+        .padding(FGSpacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGColor.cardBackground(colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: FGRadius.sheet, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-        }
-        .floatingShadow()
-    }
-
-    @ViewBuilder
-    private var heroBackground: some View {
-        if let heroImageURL {
-            DiscoverCachedRemoteImage(url: heroImageURL, contentMode: .fill) {
-                heroFallback
-            }
-        } else {
-            heroFallback
-        }
-    }
-
-    private var heroFallback: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.94),
-                    FGColor.gradientMiddle.opacity(0.74),
-                    FGColor.gradientEnd.opacity(0.84)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            Circle()
-                .fill(Color.white.opacity(0.10))
-                .frame(width: 190, height: 190)
-                .blur(radius: 26)
-                .offset(x: 112, y: -74)
-
-            Circle()
-                .fill(FGColor.accentBlue.opacity(0.16))
-                .frame(width: 168, height: 168)
-                .blur(radius: 20)
-                .offset(x: -118, y: 76)
+                .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
         }
     }
 
@@ -807,7 +751,7 @@ struct VenueDetailView: View {
                 let adInsertionPositions = VenueGamesAdInjector.insertedAfterGamePositions(gameCount: games.count)
                 VStack(spacing: FGSpacing.sm) {
                     ForEach(Array(games.enumerated()), id: \.element.id) { index, game in
-                        gameRow(game, isFeatured: index == 0)
+                        gameRow(game)
                         if let slotIndex = adInsertionPositions.firstIndex(of: index + 1) {
                             SponsoredVenueCardView(slotIndex: slotIndex)
                                 .id("venue-detail-sponsored-\(slotIndex)-after-\(index + 1)")
@@ -902,7 +846,7 @@ struct VenueDetailView: View {
         }
     }
 
-    private func gameRow(_ game: VenueDetailGameItem, isFeatured: Bool) -> some View {
+    private func gameRow(_ game: VenueDetailGameItem) -> some View {
         let matchup = venueDetailMatchup(for: game)
         let homeTheme = TeamTheme.resolve(matchup.home)
         let awayTheme = TeamTheme.resolve(matchup.away)
@@ -913,34 +857,186 @@ struct VenueDetailView: View {
             awayTheme: awayTheme
         )
 
-        return Group {
-            if isFeatured {
-                venueDetailGameHeroCard(game, matchup: matchup)
-            } else {
-                VenueMatchupCardView(
-                    homeTheme: homeTheme,
-                    awayTheme: awayTheme,
-                    homeTitle: displayTitles.home,
-                    awayTitle: displayTitles.away,
-                    sportLabel: game.sport,
-                    sportIconName: iconForSport(game.sport),
-                    dateTimeText: game.dateTimeText,
-                    statusTitle: game.status?.title,
-                    statusTint: game.status?.tint ?? FGColor.accentBlue,
-                    eventId: venueDetailGradientEventId(for: game),
-                    cardVariant: "venueDetailCompact",
-                    height: 166,
-                    cornerRadius: 24
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(RoundedRectangle(cornerRadius: isFeatured ? FGRadius.card : 24, style: .continuous))
+        return lightweightVenueGameRow(
+            game: game,
+            matchup: matchup,
+            homeTheme: homeTheme,
+            awayTheme: awayTheme,
+            displayTitles: displayTitles
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .onTapGesture {
             withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
                 selectedGameDetailID = game.id
             }
         }
+        .onAppear {
+#if DEBUG
+            print("[VenueGameListDebug] lightweightRow eventId=\(venueDetailGradientEventId(for: game))")
+#endif
+        }
+    }
+
+    private func lightweightVenueGameRow(
+        game: VenueDetailGameItem,
+        matchup: VenueDetailMatchup,
+        homeTheme: TeamTheme,
+        awayTheme: TeamTheme,
+        displayTitles: (home: String, away: String)
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            venueDetailLightweightGameIcon(
+                sport: game.sport,
+                homeTheme: homeTheme,
+                awayTheme: awayTheme
+            )
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(venueDetailLightweightMatchupTitle(
+                    game: game,
+                    matchup: matchup,
+                    displayTitles: displayTitles
+                ))
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+
+                HStack(spacing: 6) {
+                    Text(venueDetailSafeSportLabel(game.sport))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.accentBlue)
+                        .lineLimit(1)
+
+                    Text("•")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+                    Text(game.dateTimeText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                if let socialMetadata = venueDetailLightweightSocialMetadata(for: game) {
+                    Text(socialMetadata)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if game.status == .live {
+                Text("LIVE")
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(FGColor.dangerRed)
+                    .clipShape(Capsule(style: .continuous))
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(colorScheme == .dark ? Color.white.opacity(0.055) : Color.white.opacity(0.82))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.55), lineWidth: 1)
+        }
+    }
+
+    private func venueDetailLightweightGameIcon(
+        sport: String,
+        homeTheme: TeamTheme,
+        awayTheme: TeamTheme
+    ) -> some View {
+        let homeFlag = TeamTheme.safeFlag(homeTheme.flag)
+        let awayFlag = TeamTheme.safeFlag(awayTheme.flag)
+
+        return ZStack(alignment: .bottomTrailing) {
+            Circle()
+                .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                .overlay {
+                    Circle()
+                        .strokeBorder(FGColor.accentBlue.opacity(0.22), lineWidth: 1)
+                }
+
+            if let homeFlag {
+                Text(homeFlag)
+                    .font(.system(size: 21))
+            } else {
+                Image(systemName: venueDetailSafeSportIcon(sport))
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(FGColor.accentBlue)
+            }
+
+            if let awayFlag {
+                Text(awayFlag)
+                    .font(.system(size: 13))
+                    .frame(width: 20, height: 20)
+                    .background(FGColor.cardBackground(colorScheme))
+                    .clipShape(Circle())
+                    .overlay {
+                        Circle()
+                            .strokeBorder(FGColor.divider(colorScheme), lineWidth: 1)
+                    }
+                    .offset(x: 4, y: 4)
+            }
+        }
+        .frame(width: 42, height: 42)
+        .accessibilityHidden(true)
+    }
+
+    private func venueDetailLightweightMatchupTitle(
+        game: VenueDetailGameItem,
+        matchup: VenueDetailMatchup,
+        displayTitles: (home: String, away: String)
+    ) -> String {
+        if matchup.hasResolvedTeams {
+            return "\(displayTitles.home) vs \(displayTitles.away)"
+        }
+        let trimmed = game.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Game" : trimmed
+    }
+
+    private func venueDetailLightweightSocialMetadata(for game: VenueDetailGameItem) -> String? {
+        guard let eventID = game.venueEventID else { return nil }
+        let total = venuePredictionSummaries[eventID]?.totalCount ?? 0
+        guard total > 0 else { return nil }
+        return total == 1 ? "1 pick" : "\(total) picks"
+    }
+
+    private func venueDetailSafeSportLabel(_ sport: String) -> String {
+        let trimmed = sport.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Sport" : trimmed
+    }
+
+    private func venueDetailSafeSportIcon(_ sport: String) -> String {
+        let trimmed = iconForSport(sport).trimmingCharacters(in: .whitespacesAndNewlines)
+        let allowed: Set<String> = [
+            "sportscourt.fill",
+            "soccerball",
+            "basketball.fill",
+            "football.fill",
+            "baseball.fill",
+            "hockey.puck.fill",
+            "tennisball.fill",
+            "figure.run",
+            "flag.checkered",
+            "trophy.fill"
+        ]
+        return allowed.contains(trimmed) ? trimmed : "sportscourt.fill"
     }
 
     private func venueGameDetailSection(_ game: VenueDetailGameItem) -> some View {
