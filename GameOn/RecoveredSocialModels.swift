@@ -17,6 +17,7 @@ struct UserPreview: Identifiable, Hashable, Codable {
     /// Smaller avatar for lists/chips; falls back to ``avatarURL`` in views when nil/empty.
     let avatarThumbnailURL: String?
     let isBusinessAccount: Bool
+    let isDeleted: Bool
 
     init(
         id: UUID,
@@ -25,15 +26,17 @@ struct UserPreview: Identifiable, Hashable, Codable {
         email: String? = nil,
         avatarURL: String?,
         avatarThumbnailURL: String? = nil,
-        isBusinessAccount: Bool = false
+        isBusinessAccount: Bool = false,
+        isDeleted: Bool = false
     ) {
         self.id = id
-        self.displayName = displayName
-        self.username = username
+        self.displayName = isDeleted ? "Deleted User" : displayName
+        self.username = isDeleted ? nil : username
         self.email = email
-        self.avatarURL = avatarURL
-        self.avatarThumbnailURL = avatarThumbnailURL
+        self.avatarURL = isDeleted ? nil : avatarURL
+        self.avatarThumbnailURL = isDeleted ? nil : avatarThumbnailURL
         self.isBusinessAccount = isBusinessAccount
+        self.isDeleted = isDeleted
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -44,17 +47,20 @@ struct UserPreview: Identifiable, Hashable, Codable {
         case avatarURL
         case avatarThumbnailURL
         case isBusinessAccount
+        case isDeleted
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedDeleted = try container.decodeIfPresent(Bool.self, forKey: .isDeleted) ?? false
         id = try container.decode(UUID.self, forKey: .id)
-        displayName = try container.decode(String.self, forKey: .displayName)
-        username = try container.decodeIfPresent(String.self, forKey: .username)
+        displayName = decodedDeleted ? "Deleted User" : try container.decode(String.self, forKey: .displayName)
+        username = decodedDeleted ? nil : try container.decodeIfPresent(String.self, forKey: .username)
         email = try container.decodeIfPresent(String.self, forKey: .email)
-        avatarURL = try container.decodeIfPresent(String.self, forKey: .avatarURL)
-        avatarThumbnailURL = try container.decodeIfPresent(String.self, forKey: .avatarThumbnailURL)
+        avatarURL = decodedDeleted ? nil : try container.decodeIfPresent(String.self, forKey: .avatarURL)
+        avatarThumbnailURL = decodedDeleted ? nil : try container.decodeIfPresent(String.self, forKey: .avatarThumbnailURL)
         isBusinessAccount = try container.decodeIfPresent(Bool.self, forKey: .isBusinessAccount) ?? false
+        isDeleted = decodedDeleted
     }
 
     func encode(to encoder: Encoder) throws {
@@ -66,14 +72,20 @@ struct UserPreview: Identifiable, Hashable, Codable {
         try container.encodeIfPresent(avatarURL, forKey: .avatarURL)
         try container.encodeIfPresent(avatarThumbnailURL, forKey: .avatarThumbnailURL)
         try container.encode(isBusinessAccount, forKey: .isBusinessAccount)
+        try container.encode(isDeleted, forKey: .isDeleted)
     }
 
     var isBusinessIdentity: Bool {
         isBusinessAccount
     }
 
+    var canOpenPublicProfile: Bool {
+        !isDeleted
+    }
+
     /// Public @handle line — uses stored username or temporary email-prefix fallback (never persisted).
     var publicHandleLine: String {
+        guard !isDeleted else { return "" }
         let stored = username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !stored.isEmpty {
             return FanGeoHandleRules.displayHandle(stored: stored)
@@ -235,6 +247,7 @@ struct DmInboxSummaryRow: Codable, Hashable {
     let friend_avatar_thumbnail_url: String?
     let friend_email: String?
     let friend_is_business: Bool?
+    let friend_is_deleted: Bool?
     let friend_business_display_name: String?
     let last_message_body: String?
     let last_message_sender_id: UUID?
@@ -578,16 +591,18 @@ final class FriendshipService {
             let username: String?
             let avatar_url: String?
             let avatar_thumbnail_url: String?
+            let is_deleted: Bool?
             let created_at: String?
 
             func isFanProfileExcludingBusinessOwners(businessAuthProfileIds: Set<UUID>) -> Bool {
+                if is_deleted == true { return false }
                 if is_business_account == true { return false }
                 return !businessAuthProfileIds.contains(id)
             }
         }
 
         let fanSelect =
-            "id,email,display_name,username,avatar_url,avatar_thumbnail_url,created_at"
+            "id,email,display_name,username,avatar_url,avatar_thumbnail_url,is_deleted,created_at"
 
         var results: [AddFriendSearchTarget] = []
         var seenKeys = Set<String>()

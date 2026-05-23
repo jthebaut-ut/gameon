@@ -795,6 +795,18 @@ struct PickupGameJoinRequestComposerSheet: View {
                     }
                     .pickerStyle(.inline)
                 }
+                Section("Safety") {
+                    HStack(alignment: .top, spacing: FGSpacing.sm) {
+                        Image(systemName: "exclamationmark.shield.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(FGColor.accentYellow)
+                            .padding(.top, 1)
+                        Text("Pickup games and meetups involve physical activity and real-world interaction. Participate at your own risk and use good judgment.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 Section("Optional message") {
                     TextField("Short intro (optional)", text: $message, axis: .vertical)
                         .lineLimit(3...6)

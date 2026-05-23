@@ -428,12 +428,18 @@ private nonisolated struct LiveMatchRow: Decodable {
         let rawSport = Self.clean(sport)
         let visualType = LiveSportVisualType.normalize(rawSport)
         let normalizedSport = visualType.displayLabel
+        let title = "\(awayTeam) at \(homeTeam)"
+        let decodedVenue = venueName
+        let decodedCity = venueCity
 #if DEBUG
         print("[LiveSportNormalization] id=\(id) raw=\(rawSport ?? "nil") normalized=\(normalizedSport)")
         print("[LiveSportDetected] id=\(id) sportType=\(visualType.rawValue) label=\(normalizedSport)")
-        print("[LiveVenueDebug] sport=\(normalizedSport)")
-        print("[LiveVenueDebug] venue=\(venueName ?? "nil")")
-        print("[LiveVenueDebug] city=\(venueCity ?? "nil")")
+        print("[LiveVenueDebug] provider=\(payloadProviderDebugDescription)")
+        print("[LiveVenueDebug] title=\(title)")
+        print("[LiveVenueDebug] decodedVenue=\(decodedVenue ?? "nil")")
+        print("[LiveVenueDebug] decodedCity=\(decodedCity ?? "nil")")
+        print("[LiveVenueDebug] normalizedVenue=\(decodedVenue ?? "nil")")
+        print("[LiveVenueDebug] normalizedCity=\(decodedCity ?? "nil")")
         print("[LiveVenueDebug] latitude=\(venueLatitude.map(String.init(describing:)) ?? "nil")")
         print("[LiveVenueDebug] longitude=\(venueLongitude.map(String.init(describing:)) ?? "nil")")
         print("[LiveVenueDebug] rawVenuePayload=\(rawVenuePayloadDebugDescription)")
@@ -450,8 +456,8 @@ private nonisolated struct LiveMatchRow: Decodable {
             minute: minute,
             league: Self.clean(league) ?? "Live",
             startTime: start,
-            venueName: venueName,
-            venueCity: venueCity,
+            venueName: decodedVenue,
+            venueCity: decodedCity,
             venueLatitude: venueLatitude,
             venueLongitude: venueLongitude
         )
@@ -574,6 +580,25 @@ private nonisolated struct LiveMatchRow: Decodable {
     }
 
 #if DEBUG
+    private var payloadProviderDebugDescription: String {
+        Self.firstString(
+            in: payload,
+            keys: [
+                "provider",
+                "source",
+                "external_source",
+                "strSource",
+                "apiProvider"
+            ],
+            paths: [
+                ["provider", "name"],
+                ["source", "name"],
+                ["meta", "provider"],
+                ["meta", "source"]
+            ]
+        ) ?? "supabase:live_matches/TheSportsDB"
+    }
+
     private var rawVenuePayloadDebugDescription: String {
         guard let payload else { return "nil" }
         let subset = payload.filter { key, _ in

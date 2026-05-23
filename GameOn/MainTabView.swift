@@ -26,6 +26,8 @@ struct MainTabView: View {
     @State private var didStartChatSocialRealtime = false
     @State private var chatSocialRealtimeDeferTask: Task<Void, Never>?
     @State private var foregroundDeferredBatchTask: Task<Void, Never>?
+    @State private var tabSwitchStartAt: Date?
+    @State private var tabSwitchCachedData: Bool?
 
     private static let pokesBadgePollIntervalUnseenSeconds = 22
     private static let pokesBadgePollIntervalIdleSeconds = 105
@@ -40,6 +42,7 @@ struct MainTabView: View {
         Binding(
             get: { AppTab(rawValue: selectedTabStorage) ?? .discover },
             set: { newTab in
+                beginTabSwitch(to: newTab, reason: "selectedTabBinding")
                 mountTab(newTab, reason: "selectedTabBinding")
                 selectedTabStorage = newTab.rawValue
             }
@@ -292,6 +295,16 @@ struct MainTabView: View {
 #endif
             guard let tab = AppTab(rawValue: newRaw) else { return }
             mountTab(tab, reason: "selectedTabStorage")
+            let switchStartedAt = tabSwitchStartAt ?? Date()
+            let usedCachedData = tabSwitchCachedData ?? tabHasCachedData(tab)
+#if DEBUG
+            print("[TabPerfDebug] selectedTab=\(newRaw)")
+            print("[TabPerfDebug] tabSwitchStart=\(switchStartedAt.timeIntervalSince1970)")
+            print("[TabPerfDebug] usedCachedData=\(usedCachedData)")
+#endif
+            DispatchQueue.main.async {
+                logTabFirstContentVisible(tab: tab, startedAt: switchStartedAt, usedCachedData: usedCachedData)
+            }
             AdDebugDiagnostics.logEvent(
                 event: "lazyTabMountState",
                 format: "context",
@@ -390,6 +403,7 @@ struct MainTabView: View {
     }
 
     private func selectTab(_ tab: AppTab, animated: Bool = true, reason: String = "userSelection") {
+        beginTabSwitch(to: tab, reason: reason)
         mountTab(tab, reason: reason)
         if animated {
             withAnimation(.spring()) {
@@ -397,6 +411,52 @@ struct MainTabView: View {
             }
         } else {
             selectedTabStorage = tab.rawValue
+        }
+    }
+
+    private func beginTabSwitch(to tab: AppTab, reason: String) {
+        tabSwitchStartAt = Date()
+        tabSwitchCachedData = tabHasCachedData(tab)
+#if DEBUG
+        print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
+        print("[TabPerfDebug] tabSwitchStart=\(tabSwitchStartAt?.timeIntervalSince1970 ?? 0)")
+        print("[TabPerfDebug] usedCachedData=\(tabSwitchCachedData ?? false)")
+        print("[TabPerfDebug] reason=\(reason)")
+#endif
+    }
+
+    private func logTabFirstContentVisible(tab: AppTab, startedAt: Date, usedCachedData: Bool) {
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+#if DEBUG
+        print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
+        print("[TabPerfDebug] firstContentVisibleMs=\(ms)")
+        print("[TabPerfDebug] usedCachedData=\(usedCachedData)")
+#endif
+        tabSwitchStartAt = nil
+        tabSwitchCachedData = nil
+    }
+
+    private func tabHasCachedData(_ tab: AppTab) -> Bool {
+        switch tab {
+        case .discover:
+            return !viewModel.bars.isEmpty
+        case .live:
+            return !viewModel.liveMatches.isEmpty
+        case .calendar:
+            return !viewModel.events.isEmpty
+        case .following:
+            return !viewModel.followingTabGoingItems.isEmpty
+                || !viewModel.followingTabSavedVenues.isEmpty
+                || !viewModel.myPickupGameJoinRequestCards.isEmpty
+                || !viewModel.myPickupGamesForSettings.isEmpty
+        case .chat:
+            return !chatViewModel.friends.isEmpty
+                || !chatViewModel.incomingRequests.isEmpty
+                || !chatViewModel.outgoingRequests.isEmpty
+                || chatViewModel.unreadDirectMessageCount > 0
+        case .account:
+            return viewModel.currentUserAuthId != nil
+                || !viewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
     }
 

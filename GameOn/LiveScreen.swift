@@ -23,6 +23,7 @@ struct LiveScreen: View {
     @State private var liveIndicatorPulse = false
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
+    @State private var liveGamesWorldCupFilterSelected = false
     @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
 
@@ -119,7 +120,13 @@ struct LiveScreen: View {
     }
 
     private var displayedLiveMatches: [LiveMatch] {
-        viewModel.liveTabLiveMatchesDisplayed(searchQuery: "", sportFilter: liveGamesSportFilter, calendarDay: liveCalendarToday)
+        let matches = viewModel.liveTabLiveMatchesDisplayed(
+            searchQuery: "",
+            sportFilter: liveGamesWorldCupFilterSelected ? nil : liveGamesSportFilter,
+            calendarDay: liveCalendarToday
+        )
+        guard liveGamesWorldCupFilterSelected else { return matches }
+        return matches.filter(liveMatchMatchesWorldCupFilter)
     }
 
     private var liveGamesSportFilterOptions: [LiveSportVisualType] {
@@ -597,23 +604,29 @@ struct LiveScreen: View {
     }
 
     private func liveGamesSection(matches: [LiveMatch], rankedItems: [LiveFeedItem]) -> some View {
-        livePanelSection(
+        let allLiveGames = viewModel.liveTabLiveMatchesDisplayed(
+            searchQuery: "",
+            sportFilter: nil,
+            calendarDay: liveCalendarToday
+        )
+        let worldCupMatches = allLiveGames.filter(liveMatchMatchesWorldCupFilter)
+        let _: Void = logLiveWorldCupFilterDebug(
+            selected: liveGamesWorldCupFilterSelected,
+            totalLiveGames: allLiveGames.count,
+            matchedWorldCupGames: worldCupMatches
+        )
+
+        return livePanelSection(
             kind: .liveGames,
             title: "Live Games",
             subtitle: "Pro scores on TV right now"
         ) {
-            if !liveGamesSportFilterOptions.isEmpty {
-                liveGamesSportFilterBar
-            }
+            liveGamesSportFilterBar
             if viewModel.isLoadingLiveMatches && matches.isEmpty {
                 liveGamesLoadingCard
             } else if matches.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    liveSectionEmptyState(
-                        liveGamesSportFilter == nil
-                            ? "No live pro games right now"
-                            : "No live \(liveGamesSportFilter!.filterChipLabel) games right now"
-                    )
+                    liveSectionEmptyState(liveGamesEmptyStateMessage)
 #if DEBUG
                     if let hint = viewModel.liveMatchesEmptyDebugHint {
                         Text(hint)
@@ -630,8 +643,19 @@ struct LiveScreen: View {
                     }
                 }
                 .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
+                .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
             }
         }
+    }
+
+    private var liveGamesEmptyStateMessage: String {
+        if liveGamesWorldCupFilterSelected {
+            return "No World Cup or international games live right now"
+        }
+        if let liveGamesSportFilter {
+            return "No live \(liveGamesSportFilter.filterChipLabel) games right now"
+        }
+        return "No live pro games right now"
     }
 
     private var liveGamesSportFilterBar: some View {
@@ -639,21 +663,34 @@ struct LiveScreen: View {
             HStack(spacing: 10) {
                 SportFilterChip(
                     sport: "All",
-                    isSelected: liveGamesSportFilter == nil,
+                    isSelected: liveGamesSportFilter == nil && !liveGamesWorldCupFilterSelected,
+                    preferSystemSymbol: true
+                ) {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                        liveGamesWorldCupFilterSelected = false
+                        liveGamesSportFilter = nil
+                    }
+                }
+                SportFilterChip(
+                    sport: "Soccer",
+                    displayTitle: "🏆 World Cup",
+                    isSelected: liveGamesWorldCupFilterSelected,
                     preferSystemSymbol: true
                 ) {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
                         liveGamesSportFilter = nil
+                        liveGamesWorldCupFilterSelected = true
                     }
                 }
                 ForEach(liveGamesSportFilterOptions, id: \.self) { sport in
                     SportFilterChip(
                         sport: sport.sportFilterCatalogKey,
                         displayTitle: sport.filterChipLabel,
-                        isSelected: liveGamesSportFilter == sport,
+                        isSelected: liveGamesSportFilter == sport && !liveGamesWorldCupFilterSelected,
                         preferSystemSymbol: true
                     ) {
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+                            liveGamesWorldCupFilterSelected = false
                             liveGamesSportFilter = sport
                         }
                     }
@@ -664,10 +701,139 @@ struct LiveScreen: View {
         }
         .scrollClipDisabled()
         .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveGamesSportFilter)
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
     }
 
     private var favoriteTeams: [FavoriteTeam] {
         FavoriteTeamsStore.resolvedTeams(from: favoriteTeamIDsRaw)
+    }
+
+    private func liveMatchMatchesWorldCupFilter(_ match: LiveMatch) -> Bool {
+        let league = normalizedWorldCupFilterText(match.league)
+        let title = normalizedWorldCupFilterText("\(match.awayTeam) \(match.homeTeam)")
+        let sport = match.liveSportVisualType
+
+        let clubTournamentKeywords = [
+            "champions league",
+            "europa league",
+            "conference league",
+            "champions cup",
+            "libertadores",
+            "sudamericana",
+            "club world cup"
+        ]
+        if clubTournamentKeywords.contains(where: { league.contains($0) }) {
+            return false
+        }
+
+        let tournamentKeywords = [
+            "world cup",
+            "fifa",
+            "concacaf",
+            "conmebol",
+            "uefa",
+            "international",
+            "friendlies",
+            "friendly",
+            "nations league",
+            "gold cup",
+            "copa america",
+            "euros",
+            "euro qualifiers",
+            "world cup qualification",
+            "world cup qualifier"
+        ]
+        if tournamentKeywords.contains(where: { league.contains($0) }) {
+            return true
+        }
+
+        guard sport == .soccer else { return false }
+        if tournamentKeywords.contains(where: { title.contains($0) }) {
+            return true
+        }
+
+        return isLikelyNationalTeamName(match.awayTeam) && isLikelyNationalTeamName(match.homeTeam)
+    }
+
+    private func normalizedWorldCupFilterText(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "/", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
+    private func isLikelyNationalTeamName(_ rawTeam: String) -> Bool {
+        var name = normalizedWorldCupFilterText(rawTeam)
+        let suffixes = [
+            " national team",
+            " men",
+            " women",
+            " u23",
+            " u21",
+            " u20",
+            " u19",
+            " u18",
+            " u17"
+        ]
+        for suffix in suffixes where name.hasSuffix(suffix) {
+            name = String(name.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return Self.worldCupFilterNationalTeamNames.contains(name)
+    }
+
+    private static let worldCupFilterNationalTeamNames: Set<String> = {
+        var names = Set<String>()
+        for code in Locale.isoRegionCodes {
+            let locale = Locale(identifier: "en_US")
+            if let country = locale.localizedString(forRegionCode: code) {
+                names.insert(
+                    country
+                        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                        .lowercased()
+                )
+            }
+        }
+        names.formUnion([
+            "usa",
+            "us",
+            "united states",
+            "england",
+            "scotland",
+            "wales",
+            "northern ireland",
+            "republic of ireland",
+            "south korea",
+            "north korea",
+            "ivory coast",
+            "cote d ivoire",
+            "czech republic",
+            "czechia",
+            "iran",
+            "russia",
+            "turkiye",
+            "turkey"
+        ])
+        return names
+    }()
+
+    private func logLiveWorldCupFilterDebug(
+        selected: Bool,
+        totalLiveGames: Int,
+        matchedWorldCupGames: [LiveMatch]
+    ) {
+#if DEBUG
+        print("[LiveWorldCupFilterDebug] selected=\(selected)")
+        print("[LiveWorldCupFilterDebug] totalLiveGames=\(totalLiveGames)")
+        print("[LiveWorldCupFilterDebug] matchedWorldCupGames=\(matchedWorldCupGames.count)")
+        guard selected else { return }
+        for match in matchedWorldCupGames.prefix(12) {
+            print("[LiveWorldCupFilterDebug] league=\(match.league)")
+            print("[LiveWorldCupFilterDebug] title=\(match.awayTeam) at \(match.homeTeam)")
+        }
+#endif
     }
 
     private func favoriteTeamsLiveItems(rankedItems: [LiveFeedItem]) -> [FavoriteTeamLiveItem] {
@@ -1130,26 +1296,25 @@ struct LiveScreen: View {
             ? "Find Venues"
             : liveFindVenuesFallbackButtonTitle(for: sportType)
         let socialProfiles = liveMergedSocialProfiles(from: relatedItems)
+        let title = "\(match.awayTeam) at \(match.homeTeam)"
+        let renderVenue = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let renderCity = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines)
 #if DEBUG
-        let event = (
-            title: "\(match.awayTeam) at \(match.homeTeam)",
-            venueName: match.venueName,
-            venueCity: match.venueCity
-        )
-        print("[LiveVenueRenderDebug] title=\(event.title)")
-        print("[LiveVenueRenderDebug] venueName=\(event.venueName ?? "nil")")
-        print("[LiveVenueRenderDebug] venueCity=\(event.venueCity ?? "nil")")
+        print("[LiveVenueDebug] provider=LiveMatch")
+        print("[LiveVenueDebug] title=\(title)")
+        print("[LiveVenueDebug] renderVenue=\((renderVenue?.isEmpty == false) ? renderVenue! : "nil")")
+        print("[LiveVenueDebug] renderCity=\((renderCity?.isEmpty == false) ? renderCity! : "nil")")
 #endif
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
                 ZStack {
                     Circle()
                         .fill(accent.opacity(colorScheme == .dark ? 0.24 : 0.13))
-                    SportArtworkIconView(sport: catalogSportKey, diameter: 42, preferSystemSymbol: true)
+                    SportArtworkIconView(sport: catalogSportKey, diameter: 34, preferSystemSymbol: true)
                 }
-                .frame(width: 52, height: 52)
+                .frame(width: 42, height: 42)
 
-                VStack(alignment: .leading, spacing: 7) {
+                VStack(alignment: .leading, spacing: 9) {
                     HStack(spacing: 7) {
                         liveStatusPill(match, accent: accent)
 
@@ -1167,20 +1332,10 @@ struct LiveScreen: View {
                             .font(FGTypography.metadata.weight(.semibold))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                             .lineLimit(1)
+                            .truncationMode(.tail)
                     }
 
-                    Text("\(match.awayTeam) at \(match.homeTeam)")
-                        .font(FGTypography.cardTitle)
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                        .lineLimit(2)
-
-                    HStack(spacing: 10) {
-                        liveTeamScoreLine(team: match.awayTeam, score: match.scoreAway)
-                        Text("·")
-                            .foregroundStyle(FGColor.mutedText(colorScheme))
-                        liveTeamScoreLine(team: match.homeTeam, score: match.scoreHome)
-                    }
-
+                    liveMatchScoreboard(match, accent: accent)
                     liveVenueLine(match)
                 }
 
@@ -1189,7 +1344,7 @@ struct LiveScreen: View {
 
             if canShowPersonalLiveSections && !socialProfiles.isEmpty {
                 HStack(spacing: 8) {
-                    GoingAvatarStack(profiles: socialProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 28)
+                    GoingAvatarStack(profiles: socialProfiles, viewerUserID: viewModel.currentUserAuthId, diameter: 24)
                     Text(liveMatchSocialPresenceText(relatedItems: relatedItems))
                         .font(FGTypography.caption.weight(.semibold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
@@ -1212,14 +1367,14 @@ struct LiveScreen: View {
                     Text(findVenuesButtonTitle)
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(accent)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
                         .background(Capsule(style: .continuous).fill(accent.opacity(colorScheme == .dark ? 0.16 : 0.10)))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(liveCardSurface(cornerRadius: 22, highlighted: match.matchStatus.isHappeningNow))
         .overlay {
@@ -1238,6 +1393,40 @@ struct LiveScreen: View {
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
         }
+    }
+
+    private func liveMatchScoreboard(_ match: LiveMatch, accent: Color) -> some View {
+        VStack(spacing: 5) {
+            liveTeamScoreRow(team: match.awayTeam, score: match.scoreAway, isHome: false, accent: accent)
+            liveTeamScoreRow(team: match.homeTeam, score: match.scoreHome, isHome: true, accent: accent)
+        }
+        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func liveTeamScoreRow(team: String, score: Int, isHome: Bool, accent: Color) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(isHome ? accent.opacity(0.72) : FGColor.mutedText(colorScheme).opacity(0.55))
+                    .frame(width: 5, height: 5)
+
+                Text(team)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 8)
+
+            Text("\(score)")
+                .font(.system(size: 20, weight: .black, design: .rounded).monospacedDigit())
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .frame(width: 34, alignment: .trailing)
+        }
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -1311,18 +1500,6 @@ struct LiveScreen: View {
             return "LIVE \(minute)'"
         }
         return "LIVE"
-    }
-
-    private func liveTeamScoreLine(team: String, score: Int) -> some View {
-        HStack(spacing: 4) {
-            Text(team)
-                .font(FGTypography.caption.weight(.semibold))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-                .lineLimit(1)
-            Text("\(score)")
-                .font(FGTypography.caption.monospacedDigit().weight(.bold))
-                .foregroundStyle(FGColor.primaryText(colorScheme))
-        }
     }
 
     private func updateLiveAutoRefreshForCurrentState(immediatelyRefresh: Bool) {

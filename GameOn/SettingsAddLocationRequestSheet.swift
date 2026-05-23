@@ -288,6 +288,10 @@ struct AddBusinessLocationRequestSheet: View {
                         TextField("Proof note (how you operate this location)", text: $form.proofNote, axis: .vertical)
                             .lineLimit(2...6)
                             .fanGeoInputFieldStyle()
+                        Text("By submitting this claim, you confirm you are authorized to represent this business.")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     FGCard {

@@ -441,3 +441,8 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/sync-live-matches/deno.json"
 entrypoint = "./functions/sync-live-matches/index.ts"
+
+[functions.cleanup-expired-game-social]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/cleanup-expired-game-social/index.ts"

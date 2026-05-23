@@ -2,7 +2,33 @@ import Foundation
 
 extension MapViewModel {
     /// Pulls favorite teams from Supabase into ``FavoriteTeamsStore`` AppStorage cache.
-    func loadFavoriteTeamsFromSupabase() async {
+    func loadFavoriteTeamsFromSupabase(forceRefresh: Bool = false) async {
+        if !forceRefresh, let inFlight = favoriteTeamsLoadTask {
+#if DEBUG
+            print("[StartupPrefetchDebug] favoriteTeams coalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+        if !forceRefresh,
+           let lastFavoriteTeamsLoadAt,
+           Date().timeIntervalSince(lastFavoriteTeamsLoadAt) < 180 {
+#if DEBUG
+            print("[StartupPrefetchDebug] favoriteTeams cacheHit=true")
+#endif
+            return
+        }
+
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.loadFavoriteTeamsFromSupabaseNow()
+        }
+        favoriteTeamsLoadTask = task
+        await task.value
+        favoriteTeamsLoadTask = nil
+    }
+
+    private func loadFavoriteTeamsFromSupabaseNow() async {
         guard let uid = await MainActor.run(body: { currentUserAuthId }) else { return }
 
         var remoteSelection = await FavoriteTeamsSyncService.fetchTeamSelection(userId: uid)
@@ -37,6 +63,7 @@ extension MapViewModel {
         await MainActor.run {
             FavoriteTeamsStore.writeToAppStorage(applied)
             FavoriteTeamsStore.writePrimaryTeamIDToAppStorage(primary)
+            lastFavoriteTeamsLoadAt = Date()
         }
 #if DEBUG
         print("[FavoriteTeamsSyncDebug] applied_local_cache userId=\(uid.uuidString.lowercased()) count=\(applied.count)")

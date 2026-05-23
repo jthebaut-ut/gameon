@@ -5,7 +5,7 @@ import Supabase
 struct SocialIdentityService {
     private let client: SupabaseClient
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids"
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -40,13 +40,12 @@ struct SocialIdentityService {
             .from("user_profiles")
             .select(Self.userProfileSelectColumns)
             .in("email", values: normalizedEmails)
-            .eq("admin_status", value: "active")
             .execute()
             .value) ?? []
 
         let businessOwnerUserIDs = (try? await activeBusinessOwnerUserIDs(for: profiles.compactMap(\.id))) ?? []
         return profiles.filter {
-            $0.isRegularFanProfile(excludingBusinessOwnerUserIDs: businessOwnerUserIDs)
+            $0.isDeletedAccount || $0.isRegularFanProfile(excludingBusinessOwnerUserIDs: businessOwnerUserIDs)
         }
     }
 
@@ -80,7 +79,6 @@ struct SocialIdentityService {
             .from("user_profiles")
             .select(Self.userProfileSelectColumns)
             .in("id", values: ids)
-            .eq("admin_status", value: "active")
             .execute()
             .value) ?? []
 
@@ -208,7 +206,6 @@ struct SocialIdentityService {
             .from("user_profiles")
             .select(Self.userProfileSelectColumns)
             .in("email", values: normalizedEmails)
-            .eq("admin_status", value: "active")
             .execute()
             .value) ?? []
 
@@ -279,6 +276,24 @@ struct SocialIdentityService {
         fallbackUserId: UUID?,
         fallbackEmail: String?
     ) -> ResolvedIdentity? {
+        let profileEmail = OwnerBusinessEmail.normalized(profile?.email ?? fallbackEmail ?? "")
+        if profile?.isDeletedAccount == true || profileEmail.hasSuffix("@deleted.fangeo.local") {
+            guard OwnerBusinessEmail.isValidStrict(profileEmail) else { return nil }
+            return ResolvedIdentity(
+                userId: profile?.id ?? fallbackUserId,
+                email: profileEmail,
+                displayName: "Deleted User",
+                username: nil,
+                avatarURL: nil,
+                avatarThumbnailURL: nil,
+                isBusinessAccount: false,
+                isDeleted: true,
+                liveVisibilityEnabled: false,
+                liveVisibilityMode: .allFriends,
+                selectedLiveVisibilityFriendIDs: []
+            )
+        }
+
         if let business {
             let email = OwnerBusinessEmail.normalized(business.owner_email ?? fallbackEmail ?? "")
             guard OwnerBusinessEmail.isValidStrict(email) else { return nil }
@@ -291,6 +306,7 @@ struct SocialIdentityService {
                 avatarURL: nil,
                 avatarThumbnailURL: nil,
                 isBusinessAccount: true,
+                isDeleted: false,
                 liveVisibilityEnabled: true,
                 liveVisibilityMode: .allFriends,
                 selectedLiveVisibilityFriendIDs: []
@@ -299,6 +315,10 @@ struct SocialIdentityService {
 
         let email = OwnerBusinessEmail.normalized(profile?.email ?? fallbackEmail ?? "")
         guard OwnerBusinessEmail.isValidStrict(email) else { return nil }
+
+        if let status = profile?.admin_status, status != "active" {
+            return nil
+        }
 
         let provided = trimmedNonEmpty(profile?.display_name)
         let displayName: String
@@ -319,6 +339,7 @@ struct SocialIdentityService {
             avatarURL: profile?.avatar_url,
             avatarThumbnailURL: profile?.avatar_thumbnail_url,
             isBusinessAccount: profile?.isBusinessIdentity == true,
+            isDeleted: false,
             liveVisibilityEnabled: profile?.isVisibleForLiveFriendPresence ?? true,
             liveVisibilityMode: profile?.liveVisibilityMode ?? .allFriends,
             selectedLiveVisibilityFriendIDs: Array(profile?.selectedLiveVisibilityFriendIDs ?? [])
@@ -337,6 +358,7 @@ struct SocialIdentityService {
         let avatarURL: String?
         let avatarThumbnailURL: String?
         let isBusinessAccount: Bool
+        let isDeleted: Bool
         let liveVisibilityEnabled: Bool
         let liveVisibilityMode: LiveVisibilityMode
         let selectedLiveVisibilityFriendIDs: [UUID]
@@ -349,7 +371,8 @@ struct SocialIdentityService {
                 email: email,
                 avatarURL: avatarURL,
                 avatarThumbnailURL: avatarThumbnailURL,
-                isBusinessAccount: isBusinessAccount
+                isBusinessAccount: isBusinessAccount,
+                isDeleted: isDeleted
             )
         }
 
@@ -366,7 +389,8 @@ struct SocialIdentityService {
                 admin_status: "active",
                 live_visibility_enabled: liveVisibilityEnabled,
                 live_visibility_mode: liveVisibilityMode.rawValue,
-                selected_live_visibility_friend_ids: selectedLiveVisibilityFriendIDs
+                selected_live_visibility_friend_ids: selectedLiveVisibilityFriendIDs,
+                is_deleted: isDeleted
             )
         }
     }

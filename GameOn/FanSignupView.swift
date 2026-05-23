@@ -10,6 +10,7 @@ struct FanSignupView: View {
     var onDismissAfterSuccess: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
 
     @State private var email = ""
     @State private var password = ""
@@ -51,6 +52,8 @@ struct FanSignupView: View {
                 .frame(maxWidth: .infinity)
 
                 signupGlassCard
+
+                signupLegalFooter
 
                 if !errorMessage.isEmpty {
                     SettingsSheetStatusBanner(
@@ -194,6 +197,34 @@ struct FanSignupView: View {
             }
         }
         .fanGeoGlassCard()
+    }
+
+    private var signupLegalFooter: some View {
+        Text(signupLegalFooterText)
+            .font(FGTypography.caption)
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .multilineTextAlignment(.center)
+            .tint(FGColor.accentBlue)
+            .environment(\.openURL, OpenURLAction { url in
+                openURL(url)
+                return .handled
+            })
+            .padding(.horizontal, FGSpacing.sm)
+    }
+
+    private var signupLegalFooterText: AttributedString {
+        var text = AttributedString("By creating an account, you agree to FanGeo's Terms of Service and Privacy Policy.")
+        if let range = text.range(of: "Terms of Service") {
+            text[range].link = FanGeoLegalLinks.termsOfService
+            text[range].foregroundColor = FGColor.accentBlue
+            text[range].underlineStyle = .single
+        }
+        if let range = text.range(of: "Privacy Policy") {
+            text[range].link = FanGeoLegalLinks.privacyPolicy
+            text[range].foregroundColor = FGColor.accentBlue
+            text[range].underlineStyle = .single
+        }
+        return text
     }
 
     private var handlePreview: String {

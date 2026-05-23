@@ -78,17 +78,27 @@ final class SportsAPIService {
             guard let title = apiEvent.strEvent, !title.isEmpty else {
                 return nil
             }
-            
+            let venueName = Self.cleanOptional(apiEvent.strVenue)
+            let venueCity = Self.cleanOptional(apiEvent.strCity)
+            let normalizedSport = normalizeSport(apiEvent.strSport ?? sport)
+#if DEBUG
+            print("[LiveVenueDebug] provider=TheSportsDB/eventsday")
+            print("[LiveVenueDebug] title=\(title)")
+            print("[LiveVenueDebug] decodedVenue=\(venueName ?? "nil")")
+            print("[LiveVenueDebug] decodedCity=\(venueCity ?? "nil")")
+            print("[LiveVenueDebug] normalizedVenue=\(venueName ?? "nil")")
+            print("[LiveVenueDebug] normalizedCity=\(venueCity ?? "nil")")
+#endif
             return SportsEvent(
                 id: UUID(),
                 title: title,
-                sport: normalizeSport(apiEvent.strSport ?? sport),
+                sport: normalizedSport,
                 league: apiEvent.strLeague ?? "Unknown League",
                 date: date,
                 time: Self.cleanTime(apiEvent.strTime),
                 country: apiEvent.strCountry ?? "Unknown",
-                venueName: Self.cleanOptional(apiEvent.strVenue),
-                venueCity: Self.cleanOptional(apiEvent.strCity),
+                venueName: venueName,
+                venueCity: venueCity,
                 venueLatitude: Self.cleanDouble(apiEvent.strVenueLatitude),
                 venueLongitude: Self.cleanDouble(apiEvent.strVenueLongitude)
             )

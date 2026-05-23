@@ -52,36 +52,26 @@ final class LaunchWarmPreloadCoordinator {
         }
         guard !Task.isCancelled else { return }
 
-        await runWarmTask(name: "personalization", delayMs: 180) {
-            await viewModel.refreshUserPersonalizationInBackground()
+        await runWarmTask(name: "lightweightUserPrefetch", delayMs: 180) {
+            await viewModel.prefetchLightweightUserDataForStartup()
         }
         guard !Task.isCancelled else { return }
 
-        await runWarmTask(name: "chatFullRefresh", delayMs: 220) {
+        await runWarmTask(name: "chatBadges", delayMs: 220) {
             let authenticated = await MainActor.run { viewModel.isAuthenticatedForSocialFeatures }
             if authenticated {
-                await chatViewModel.loadIfNeeded()
-                DebugLogGate.debug("[PerfPhase2D] chatRealtimeDeferred reason=warmPreloadLoadOnly")
+                await chatViewModel.refreshUnreadDirectMessageCount()
+                await chatViewModel.refreshFriendRequestListsOnly()
+#if DEBUG
+                print("[StartupPrefetchDebug] unreadLoaded=true")
+#endif
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()
                 }
-            }
-        }
-        guard !Task.isCancelled else { return }
-
-        await runWarmTask(name: "calendarDotsAndGames", delayMs: 200) {
-            await MainActor.run {
-                viewModel.warmPreloadCalendarCaches(reason: "launchWarmPreload")
-                viewModel.loadGamesFromSupabase()
-            }
-            await viewModel.awaitLoadGamesCoalescedUntilIdle()
-        }
-        guard !Task.isCancelled else { return }
-
-        await runWarmTask(name: "pickupDiscoverMetadata", delayMs: 180) {
-            await MainActor.run {
-                viewModel.warmPreloadPickupDiscoverMetadataIfNeeded()
+#if DEBUG
+                print("[StartupPrefetchDebug] unreadLoaded=false")
+#endif
             }
         }
         guard !Task.isCancelled else { return }

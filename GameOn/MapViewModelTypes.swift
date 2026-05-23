@@ -914,6 +914,7 @@ struct UserProfileRow: Decodable {
     let live_visibility_mode: String?
     let selected_live_visibility_friend_ids: [UUID]?
     let discoverable_by_fans: Bool?
+    let is_deleted: Bool?
     let created_at: String?
     let national_team_country_code: String?
     let national_team_country_name: String?
@@ -935,6 +936,7 @@ struct UserProfileRow: Decodable {
         case live_visibility_mode
         case selected_live_visibility_friend_ids
         case discoverable_by_fans
+        case is_deleted
         case created_at
         case national_team_country_code
         case national_team_country_name
@@ -957,6 +959,7 @@ struct UserProfileRow: Decodable {
         live_visibility_mode: String? = nil,
         selected_live_visibility_friend_ids: [UUID]? = nil,
         discoverable_by_fans: Bool? = nil,
+        is_deleted: Bool? = nil,
         created_at: String? = nil,
         national_team_country_code: String? = nil,
         national_team_country_name: String? = nil,
@@ -977,6 +980,7 @@ struct UserProfileRow: Decodable {
         self.live_visibility_mode = live_visibility_mode
         self.selected_live_visibility_friend_ids = selected_live_visibility_friend_ids
         self.discoverable_by_fans = discoverable_by_fans
+        self.is_deleted = is_deleted
         self.created_at = created_at
         self.national_team_country_code = national_team_country_code
         self.national_team_country_name = national_team_country_name
@@ -999,6 +1003,7 @@ struct UserProfileRow: Decodable {
         live_visibility_enabled = try c.decodeIfPresent(Bool.self, forKey: .live_visibility_enabled)
         live_visibility_mode = try c.decodeIfPresent(String.self, forKey: .live_visibility_mode)
         discoverable_by_fans = try c.decodeIfPresent(Bool.self, forKey: .discoverable_by_fans)
+        is_deleted = try c.decodeIfPresent(Bool.self, forKey: .is_deleted)
         created_at = try c.decodeIfPresent(String.self, forKey: .created_at)
         national_team_country_code = try c.decodeIfPresent(String.self, forKey: .national_team_country_code)
         national_team_country_name = try c.decodeIfPresent(String.self, forKey: .national_team_country_name)
@@ -1020,6 +1025,7 @@ struct UserProfileRow: Decodable {
     }
 
     func isRegularFanProfile(excludingBusinessOwnerUserIDs businessOwnerUserIDs: Set<UUID> = []) -> Bool {
+        if isDeletedAccount { return false }
         if admin_status != nil, admin_status != "active" { return false }
         if isBusinessIdentity { return false }
         if let id, businessOwnerUserIDs.contains(id) { return false }
@@ -1036,6 +1042,12 @@ struct UserProfileRow: Decodable {
 
     var discoverableByFans: Bool {
         discoverable_by_fans ?? true
+    }
+
+    var isDeletedAccount: Bool {
+        if is_deleted == true { return true }
+        let normalizedEmail = OwnerBusinessEmail.normalized(email ?? "")
+        return normalizedEmail.hasSuffix("@deleted.fangeo.local")
     }
 
     var liveVisibilityMode: LiveVisibilityMode {
@@ -1334,6 +1346,21 @@ struct VenueEventCommentRow: Decodable, Identifiable {
             delivery_state: delivery_state,
             upReactionCount: upCount,
             downReactionCount: downCount,
+            viewerReaction: viewerReaction
+        )
+    }
+
+    func withAuthorEmail(_ email: String?) -> VenueEventCommentRow {
+        VenueEventCommentRow(
+            id: id,
+            venue_event_id: venue_event_id,
+            user_email: email,
+            comment: comment,
+            created_at: created_at,
+            is_moderation_hidden: is_moderation_hidden,
+            delivery_state: delivery_state,
+            upReactionCount: upReactionCount,
+            downReactionCount: downReactionCount,
             viewerReaction: viewerReaction
         )
     }

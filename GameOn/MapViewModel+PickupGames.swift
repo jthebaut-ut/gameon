@@ -489,6 +489,23 @@ extension MapViewModel {
     }
 
     func loadMyPickupGamesForSettings() async {
+        if let inFlight = myPickupGamesLightweightLoadTask {
+#if DEBUG
+            print("[StartupPrefetchDebug] pickupMine coalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.loadMyPickupGamesForSettingsNow()
+        }
+        myPickupGamesLightweightLoadTask = task
+        await task.value
+        myPickupGamesLightweightLoadTask = nil
+    }
+
+    private func loadMyPickupGamesForSettingsNow() async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             myPickupGamesForSettings = []
             myRemovedPickupGamesForSettings = []
@@ -527,6 +544,7 @@ extension MapViewModel {
             await loadOrganizerPickupRequestSummaries(gameIds: rows.map(\.id))
             await loadOrganizerWithdrawnPickupRequestsForSettings(gameIds: rows.map(\.id))
             await loadOrganizerApprovedPickupJoinersForSettings(gameIds: rows.map(\.id))
+            lastMyPickupGamesLightweightLoadAt = Date()
         } catch {
 #if DEBUG
             print("[PickupGames] loadMine failed:", error)

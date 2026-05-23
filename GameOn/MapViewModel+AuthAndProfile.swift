@@ -274,6 +274,23 @@ extension MapViewModel {
         pickupOrganizerJoinStatsByGameId = [:]
         pickupOrganizerWithdrawnRequestsByGameId = [:]
         pickupOrganizerApprovedJoinerUserIdsByGameId = [:]
+        lightweightStartupPrefetchTask?.cancel()
+        lightweightStartupPrefetchTask = nil
+        lastLightweightStartupPrefetchAt = nil
+        favoriteVenueIDsLoadTask?.cancel()
+        favoriteVenueIDsLoadTask = nil
+        lastFavoriteVenueIDsLoadAt = nil
+        favoriteTeamsLoadTask?.cancel()
+        favoriteTeamsLoadTask = nil
+        lastFavoriteTeamsLoadAt = nil
+        followingTodayPlansLoadTask?.cancel()
+        followingTodayPlansLoadTask = nil
+        lastFollowingTodayPlansLoadAt = nil
+        followingTabGlobalRefreshTask?.cancel()
+        followingTabGlobalRefreshTask = nil
+        myPickupGamesLightweightLoadTask?.cancel()
+        myPickupGamesLightweightLoadTask = nil
+        lastMyPickupGamesLightweightLoadAt = nil
         pendingPickupGameJoinRequestCount = 0
         myPickupGameJoinRequestCards = []
         pickupGamesFollowingTabCache.removeAll()
@@ -408,10 +425,10 @@ extension MapViewModel {
     }
 
     private static let userProfileSelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
 
     private static let userProfileIdentitySelectColumns =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
 
     private struct UserProfileIdentityRow: Decodable {
         let id: UUID?
@@ -421,6 +438,7 @@ extension MapViewModel {
         let bio: String?
         let avatar_url: String?
         let avatar_thumbnail_url: String?
+        let is_deleted: Bool?
         let national_team_country_code: String?
         let national_team_country_name: String?
         let national_team_flag: String?
@@ -504,21 +522,21 @@ extension MapViewModel {
     }
 
     @MainActor
-    private func resetProfilePresentationLoadStateForNewAuth() {
+    func resetProfilePresentationLoadStateForNewAuth() {
         isUserProfileLoadingForPresentation = false
         hasLoadedUserProfileForPresentation = false
         userProfileExistsForPresentation = false
     }
 
     @MainActor
-    private func beginProfilePresentationLoad() {
+    func beginProfilePresentationLoad() {
         isUserProfileLoadingForPresentation = true
         hasLoadedUserProfileForPresentation = false
         userProfileExistsForPresentation = false
     }
 
     @MainActor
-    private func finishProfilePresentationLoad(profileExists: Bool) {
+    func finishProfilePresentationLoad(profileExists: Bool) {
         userProfileExistsForPresentation = profileExists
         hasLoadedUserProfileForPresentation = true
         isUserProfileLoadingForPresentation = false
@@ -548,11 +566,15 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            if existing.first != nil {
+            if let profile = existing.first {
 #if DEBUG
                 print("[ProfileBootstrap] profile found")
                 print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
+                if profile.isDeletedAccount {
+                    await handleDeletedCurrentUser()
+                    return
+                }
                 await MainActor.run { currentUserAuthId = authId }
                 return
             }
@@ -792,8 +814,8 @@ extension MapViewModel {
         }
     }
 
-    /// Verifies the signed-in fan profile has not been disabled by an admin.
-    /// Returns `false` after signing out and clearing local state when `admin_status == disabled`.
+    /// Verifies the signed-in profile has not been disabled or deleted.
+    /// Returns `false` after signing out and clearing local state when access must be blocked.
     @discardableResult
     func checkCurrentUserAdminStatus() async -> Bool {
         guard let session = try? await supabase.auth.session else { return true }
@@ -807,7 +829,16 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            if rows.first?.admin_status == "disabled" {
+            guard let profile = rows.first else {
+                return true
+            }
+
+            if profile.isDeletedAccount {
+                await handleDeletedCurrentUser()
+                return false
+            }
+
+            if profile.admin_status == "disabled" {
                 await handleDisabledCurrentUser()
                 return false
             }
@@ -817,6 +848,27 @@ extension MapViewModel {
             print("ERROR CHECKING USER ADMIN STATUS:", error)
             return true
         }
+    }
+
+    private func handleDeletedCurrentUser() async {
+        do {
+            try await supabase.auth.signOut()
+        } catch {
+            print("DELETED USER SIGNOUT FAILED:", error)
+        }
+
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            clearVenueOwnerDraftState()
+            resetProfilePresentationLoadStateForNewAuth()
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            isAdminLoggedIn = false
+            authErrorMessage = "This account has been deleted.\nContact support if you believe this was a mistake."
+        }
+
+        clearPersistedAccountMode()
     }
 
     private func handleDisabledCurrentUser() async {
@@ -995,7 +1047,7 @@ extension MapViewModel {
             logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
 
             if !(await checkCurrentUserAdminStatus()) {
-                print("SESSION RESTORE BLOCKED: disabled account")
+                print("SESSION RESTORE BLOCKED: account unavailable")
                 return
             }
 
@@ -1154,7 +1206,7 @@ extension MapViewModel {
         guard await checkCurrentUserAdminStatus() else {
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
-            print("[Background] personalization blocked ms=\(ms) (disabled account)")
+            print("[Background] personalization blocked ms=\(ms) (account unavailable)")
             #endif
             return
         }
@@ -1170,20 +1222,7 @@ extension MapViewModel {
             return
         }
 
-        await MainActor.run {
-            beginProfilePresentationLoad()
-        }
-        await ensureUserProfileExists()
-        await loadUserProfile()
-        await loadFanIdentityPreferencesFromProfile()
-        await loadHomeCrowdFromProfile()
-        await refreshProfileXP()
-        await loadFavoriteVenuesFromSupabase()
-        await loadFavoriteTeamsFromSupabase()
-        await enforceFanSingleSessionOnForeground()
-        await startFanSingleSessionRealtimeIfNeeded()
-        await refreshFollowingTabDataGlobally()
-        await loadPendingPickupGameJoinRequestCountForCreator()
+        await prefetchLightweightUserDataForStartup()
 
         #if DEBUG
         let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -1225,6 +1264,13 @@ extension MapViewModel {
 #if DEBUG
                     print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
+                    if profile.isDeletedAccount {
+                        await handleDeletedCurrentUser()
+                        await MainActor.run {
+                            finishProfilePresentationLoad(profileExists: false)
+                        }
+                        return
+                    }
                     await MainActor.run {
                         if let em = profile.email?.trimmingCharacters(in: .whitespacesAndNewlines), !em.isEmpty {
                             currentUserEmail = em
@@ -1295,6 +1341,13 @@ extension MapViewModel {
 #if DEBUG
                 print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
+                if profile.isDeletedAccount {
+                    await handleDeletedCurrentUser()
+                    await MainActor.run {
+                        finishProfilePresentationLoad(profileExists: false)
+                    }
+                    return
+                }
                 await MainActor.run {
                     currentUserDisplayName = profile.display_name ?? ""
                     currentUserUsername = profile.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -1449,6 +1502,11 @@ extension MapViewModel {
             print("[ProfilePersistenceDebug] preventedBlankProfileOverwrite=true reason=existing_profile_unavailable")
 #endif
             return "Couldn’t verify your existing profile before saving. Please try again."
+        }
+
+        if existingProfile?.is_deleted == true {
+            await handleDeletedCurrentUser()
+            return "This account has been deleted.\nContact support if you believe this was a mistake."
         }
 
         let localDisplayWasBlank = await MainActor.run {
@@ -1931,6 +1989,7 @@ extension MapViewModel {
                 live_visibility_mode: row.live_visibility_mode,
                 selected_live_visibility_friend_ids: row.selected_live_visibility_friend_ids,
                 discoverable_by_fans: row.discoverable_by_fans,
+                is_deleted: row.is_deleted,
                 created_at: row.created_at,
                 national_team_country_code: row.national_team_country_code,
                 national_team_country_name: row.national_team_country_name,
@@ -1982,6 +2041,7 @@ extension MapViewModel {
                 live_visibility_mode: mode.rawValue,
                 selected_live_visibility_friend_ids: selectedFriendIDs,
                 discoverable_by_fans: row.discoverable_by_fans,
+                is_deleted: row.is_deleted,
                 national_team_country_code: row.national_team_country_code,
                 national_team_country_name: row.national_team_country_name,
                 national_team_flag: row.national_team_flag,
@@ -2094,18 +2154,38 @@ extension MapViewModel {
 
     // Batch-loads display names/avatars for a set of emails (e.g. “who’s going”) into `userProfilesByEmail`.
     func loadUserProfilesForEmails(_ emails: [String]) async {
-        let uniqueEmails = Array(Set(emails)).filter { !$0.isEmpty }
+        let uniqueEmails = Array(
+            Set(
+                emails
+                    .map(OwnerBusinessEmail.normalized)
+                    .filter(OwnerBusinessEmail.isValidStrict)
+            )
+        )
 
         guard !uniqueEmails.isEmpty else { return }
 
         do {
             let rows = try await SocialIdentityService().fetchUserProfileRows(forEmails: uniqueEmails)
+            let fetchedKeys = Set(
+                rows.compactMap { profile -> String? in
+                    let key = OwnerBusinessEmail.normalized(profile.email ?? "")
+                    return OwnerBusinessEmail.isValidStrict(key) ? key : nil
+                }
+            )
 
             await MainActor.run {
+                let unresolvedKeys = Set(uniqueEmails).subtracting(fetchedKeys)
+                for key in unresolvedKeys {
+                    removeStaleFanProfileCacheEntry(forNormalizedEmail: key)
+                }
+
                 for profile in rows {
                     guard let raw = profile.email else { continue }
                     let key = OwnerBusinessEmail.normalized(raw)
                     guard OwnerBusinessEmail.isValidStrict(key) else { continue }
+                    if profile.isDeletedAccount, let id = profile.id {
+                        removeStaleFanProfileCacheEntries(forDeletedUserId: id, keepingNormalizedEmail: key)
+                    }
                     if let existing = userProfilesByEmail[key] {
                         if existing.isBusinessIdentity, !profile.isBusinessIdentity {
                             userProfilesByEmail[key] = profile
@@ -2123,8 +2203,61 @@ extension MapViewModel {
         }
     }
 
+    private func removeStaleFanProfileCacheEntry(forNormalizedEmail normalizedEmail: String) {
+        let keysToRemove = userProfilesByEmail.keys.filter { key in
+            OwnerBusinessEmail.normalized(key) == normalizedEmail
+        }
+        for key in keysToRemove {
+            if userProfilesByEmail[key]?.isBusinessIdentity != true {
+                userProfilesByEmail.removeValue(forKey: key)
+            }
+        }
+    }
+
+    private func removeStaleFanProfileCacheEntries(forDeletedUserId userId: UUID, keepingNormalizedEmail keepEmail: String) {
+        let keysToRemove = userProfilesByEmail.compactMap { key, profile -> String? in
+            guard profile.id == userId else { return nil }
+            guard profile.isBusinessIdentity != true else { return nil }
+            return OwnerBusinessEmail.normalized(key) == keepEmail ? nil : key
+        }
+        for key in keysToRemove {
+            userProfilesByEmail.removeValue(forKey: key)
+        }
+    }
+
+    @MainActor
+    func invalidateFanChatAuthorProfileCache(for emails: [String]) {
+        let normalizedEmails = Set(
+            emails
+                .map(OwnerBusinessEmail.normalized)
+                .filter(OwnerBusinessEmail.isValidStrict)
+        )
+        for email in normalizedEmails {
+            removeStaleFanProfileCacheEntry(forNormalizedEmail: email)
+        }
+    }
+
     /// Prefer fresher `user_profiles.bio` when batch-loading social identity rows.
     private func mergeFanProfileRow(existing: UserProfileRow, fetched: UserProfileRow) -> UserProfileRow {
+        if fetched.isDeletedAccount {
+            return UserProfileRow(
+                id: fetched.id ?? existing.id,
+                email: fetched.email ?? existing.email,
+                display_name: "Deleted User",
+                username: nil,
+                bio: nil,
+                avatar_url: nil,
+                avatar_thumbnail_url: nil,
+                is_business_account: false,
+                admin_status: fetched.admin_status ?? existing.admin_status,
+                live_visibility_enabled: false,
+                live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
+                selected_live_visibility_friend_ids: [],
+                discoverable_by_fans: false,
+                is_deleted: true,
+                created_at: fetched.created_at ?? existing.created_at
+            )
+        }
         let existingBio = existing.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let fetchedBio = fetched.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let resolvedBio: String?
@@ -2167,6 +2300,7 @@ extension MapViewModel {
             selected_live_visibility_friend_ids: fetched.selected_live_visibility_friend_ids
                 ?? existing.selected_live_visibility_friend_ids,
             discoverable_by_fans: fetched.discoverable_by_fans ?? existing.discoverable_by_fans,
+            is_deleted: fetched.is_deleted ?? existing.is_deleted,
             created_at: fetched.created_at ?? existing.created_at
         )
     }

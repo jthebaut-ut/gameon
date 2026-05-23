@@ -698,6 +698,17 @@ final class MapViewModel: ObservableObject {
     @Published var myPickupGameJoinRequestCards: [PickupGameJoinRequestCardDisplay] = []
     /// Latest join request row per pickup game for the signed-in fan (includes declined/rejected; excludes nothing except empty fetch). Following / pickup detail surfaces.
     @Published var pickupJoinRequestLatestByPickupGameIdForFan: [UUID: PickupGameRequestRow] = [:]
+    var lightweightStartupPrefetchTask: Task<Void, Never>?
+    var lastLightweightStartupPrefetchAt: Date?
+    var favoriteVenueIDsLoadTask: Task<Void, Never>?
+    var lastFavoriteVenueIDsLoadAt: Date?
+    var favoriteTeamsLoadTask: Task<Void, Never>?
+    var lastFavoriteTeamsLoadAt: Date?
+    var followingTodayPlansLoadTask: Task<Void, Never>?
+    var lastFollowingTodayPlansLoadAt: Date?
+    var followingTabGlobalRefreshTask: Task<Void, Never>?
+    var myPickupGamesLightweightLoadTask: Task<Void, Never>?
+    var lastMyPickupGamesLightweightLoadAt: Date?
     /// Bumped when join-request rows affecting organizer summaries may have changed (realtime / withdraw); drives ``PickupOrganizerRequestsSheet`` reload.
     @Published var pickupOrganizerRequestsSyncGeneration: UInt64 = 0
     /// Bumped after join-request mutations so pickup detail sheets reload request + counts.

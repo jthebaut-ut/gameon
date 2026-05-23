@@ -1375,6 +1375,7 @@ struct SettingsPickupGameFormView: View {
     @State private var suppressGameDatePickerChangeLog = false
     @State private var coordinatesLockedFromMap = false
     @State private var mapPinnedCoordinate: CLLocationCoordinate2D?
+    @State private var pickupSafetyAcknowledged = false
 
     private var organizerPostStartLockedRow: PickupGameRow? {
         if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
@@ -1419,6 +1420,11 @@ struct SettingsPickupGameFormView: View {
     /// Post/Save stays tappable once the major address fields are present so ZIP validation can show a clear error.
     private var hasPlacedLocationForPostButton: Bool {
         !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty
+    }
+
+    private var requiresPickupSafetyAcknowledgment: Bool {
+        if case .add = mode { return true }
+        return false
     }
 
     private var pickMapSeedCoordinate: CLLocationCoordinate2D {
@@ -1581,6 +1587,13 @@ struct SettingsPickupGameFormView: View {
                     }
                 }
 
+                Section("Safety") {
+                    pickupSafetyNotice
+                    if requiresPickupSafetyAcknowledgment {
+                        Toggle("I understand and will use good judgment.", isOn: $pickupSafetyAcknowledged)
+                    }
+                }
+
                 Section("Cost") {
                     Picker("Entry", selection: $costKind) {
                         ForEach(PickupCostKind.allCases) { k in
@@ -1696,6 +1709,7 @@ struct SettingsPickupGameFormView: View {
                     isSaving
                         || (!isOrganizerPostStartManage && title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         || (!isOrganizerPostStartManage && !hasPlacedLocationForPostButton)
+                        || (requiresPickupSafetyAcknowledgment && !pickupSafetyAcknowledged)
                 )
             }
         }
@@ -1765,6 +1779,7 @@ struct SettingsPickupGameFormView: View {
             maxPlayers = 10
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
+            pickupSafetyAcknowledged = false
         case .edit(let row):
             title = row.title
             sport = row.sport
@@ -1802,6 +1817,20 @@ struct SettingsPickupGameFormView: View {
             }
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
+            pickupSafetyAcknowledged = true
+        }
+    }
+
+    private var pickupSafetyNotice: some View {
+        HStack(alignment: .top, spacing: FGSpacing.sm) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(FGColor.accentYellow)
+                .padding(.top, 1)
+            Text("Pickup games and meetups involve physical activity and real-world interaction. Participate at your own risk and use good judgment.")
+                .font(FGTypography.caption)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1959,6 +1988,10 @@ struct SettingsPickupGameFormView: View {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             errorText = "Title is required."
+            return
+        }
+        if requiresPickupSafetyAcknowledgment && !pickupSafetyAcknowledged {
+            errorText = "Acknowledge the pickup safety notice before posting."
             return
         }
         if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameTime) {

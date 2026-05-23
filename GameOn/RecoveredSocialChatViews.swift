@@ -24,7 +24,7 @@ struct ProfileAvatarView: View {
             }
             .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 8, y: 4)
 
-        if preview.isBusinessIdentity {
+        if preview.isBusinessIdentity || !preview.canOpenPublicProfile {
             avatar
         } else {
             PublicProfileAvatarTap(userId: preview.id, context: profileTapContext) {

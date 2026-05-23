@@ -347,7 +347,7 @@ struct VenueDetailView: View {
                 }
             }
         } message: {
-            Text("FanGeo will review your ownership request before enabling venue tools for this location.")
+            Text("FanGeo will review your ownership request before enabling venue tools for this location. By submitting this claim, you confirm you are authorized to represent this business.")
         }
         .alert(
             "Couldn’t submit claim",

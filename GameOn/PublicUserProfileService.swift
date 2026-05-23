@@ -66,13 +66,16 @@ struct PublicProfileMutualFanAvatar: Equatable, Identifiable {
 
 enum PublicUserProfileService {
     private static let profileSelect =
-        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
+        "id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_deleted,admin_status,live_visibility_enabled,live_visibility_mode,selected_live_visibility_friend_ids,discoverable_by_fans,created_at,national_team_country_code,national_team_country_name,national_team_flag,national_team_supporter_label,national_team_updated_at"
 
     /// Always returns a displayable profile; optional sections use safe fallbacks.
     static func load(userId: UUID, cachedProfile: UserProfileRow? = nil) async -> PublicUserProfileData {
 #if DEBUG
         print("[PublicProfileLoadDebug] requestedUserId=\(userId.uuidString.lowercased())")
 #endif
+        if cachedProfile?.isDeletedAccount == true {
+            return hiddenProfile(userId: userId)
+        }
 
         if let identity = await fetchPublicIdentityRPC(targetUserId: userId), identity.visible {
             return await assembleFromIdentityRPC(identity, userId: userId, cachedProfile: cachedProfile)
@@ -98,7 +101,8 @@ enum PublicUserProfileService {
             admin_status: "active",
             live_visibility_enabled: true,
             live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
-            selected_live_visibility_friend_ids: []
+            selected_live_visibility_friend_ids: [],
+            is_deleted: preview.isDeleted
         )
     }
 
@@ -549,6 +553,10 @@ enum PublicUserProfileService {
         let loadedBio = row?.bio?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         print("[ProfileBioDebug] publicProfileLoadedBio=\(loadedBio)")
 #endif
+
+        if row?.isDeletedAccount == true {
+            return hiddenProfile(userId: userId)
+        }
 
         let (fanXP, _) = await loadPublicXP(userId: userId)
         let organizerStats = await fetchOrganizerStats(userId: userId)

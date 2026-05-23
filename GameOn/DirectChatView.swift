@@ -1287,6 +1287,7 @@ struct DirectChatView: View {
     @State private var reportReviewWindowStart: Date = Date().addingTimeInterval(-86_400)
     @State private var reportReviewWindowEnd: Date = Date()
     @State private var reportReviewConsentChecked = false
+    @State private var resolvedFriendOverride: UserPreview?
 
     private static let reportSubmittedBannerText = "Report submitted. FanGeo moderation will review it."
     private static let duplicateConversationReportBannerText =
@@ -1332,6 +1333,12 @@ struct DirectChatView: View {
         chatViewModel.isEitherDirectionBlocked(with: presenter.friend.id)
     }
 
+    private var resolvedFriendPreview: UserPreview {
+        chatViewModel.previewForLoadedDmParticipant(userId: presenter.friend.id)
+            ?? resolvedFriendOverride
+            ?? presenter.friend
+    }
+
     init(friend: UserPreview) {
         _presenter = StateObject(wrappedValue: DirectChatPresenter(friend: friend))
     }
@@ -1359,10 +1366,10 @@ struct DirectChatView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: FGSpacing.sm) {
-                    ProfileAvatarView(preview: presenter.friend, size: 34)
+                    ProfileAvatarView(preview: resolvedFriendPreview, size: 34)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(presenter.friend.displayName)
+                        Text(resolvedFriendPreview.displayName)
                             .font(FGTypography.cardTitle)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .lineLimit(1)
@@ -1430,6 +1437,11 @@ struct DirectChatView: View {
         }
         .task(id: presenter.friend.id) {
             presenter.bindChatViewModel(chatViewModel)
+            resolvedFriendOverride = await chatViewModel.resolveDmParticipantPreview(
+                userId: presenter.friend.id,
+                fallback: presenter.friend,
+                surface: "dm_thread_header"
+            )
             await presenter.onAppear()
 
             if presenter.loadError == nil {
@@ -1569,7 +1581,7 @@ struct DirectChatView: View {
     private var chatPrimaryContent: some View {
         if presenter.isLoadingInitial {
             VStack(spacing: FGSpacing.lg) {
-                ProfileAvatarView(preview: presenter.friend, size: 64)
+                ProfileAvatarView(preview: resolvedFriendPreview, size: 64)
                 ProgressView()
                     .controlSize(.regular)
                 Text("Opening conversation…")
@@ -1602,7 +1614,7 @@ struct DirectChatView: View {
         if messagingBlocked {
             return "Messaging unavailable"
         }
-        if presenter.friend.isBusinessAccount {
+        if resolvedFriendPreview.isBusinessAccount {
             return "Business chat"
         }
         return "Direct chat"
@@ -2125,7 +2137,7 @@ struct DirectChatView: View {
                 case .confirmRemoveFriend:
                     chatOverflowConfirmCard(
                         title: "Remove friend?",
-                        message: "You will unfriend \(presenter.friend.displayName) and leave this chat.",
+                        message: "You will unfriend \(resolvedFriendPreview.displayName) and leave this chat.",
                         confirmTitle: "Remove friend",
                         onConfirm: {
                             Task {
@@ -2136,7 +2148,7 @@ struct DirectChatView: View {
                     )
                 case .confirmBlockUser:
                     chatOverflowConfirmCard(
-                        title: "Block \(presenter.friend.displayName)?",
+                        title: "Block \(resolvedFriendPreview.displayName)?",
                         message: "They won’t be able to message you or send friend requests. You won’t see each other in chat lists while the block is active.",
                         confirmTitle: "Block",
                         onConfirm: {
@@ -2371,7 +2383,7 @@ struct DirectChatView: View {
             text: row.body,
             isFromCurrentUser: isMine,
             showFriendAvatar: !isMine,
-            friendPreview: presenter.friend,
+            friendPreview: resolvedFriendPreview,
             timestamp: time
         )
         .contextMenu {

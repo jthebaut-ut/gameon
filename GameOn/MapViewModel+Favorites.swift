@@ -37,7 +37,33 @@ extension MapViewModel {
         }
     }
 
-    func loadFavoriteVenuesFromSupabase() async {
+    func loadFavoriteVenuesFromSupabase(forceRefresh: Bool = false) async {
+        if !forceRefresh, let inFlight = favoriteVenueIDsLoadTask {
+#if DEBUG
+            print("[StartupPrefetchDebug] favoriteVenueIDs coalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+        if !forceRefresh,
+           let lastFavoriteVenueIDsLoadAt,
+           Date().timeIntervalSince(lastFavoriteVenueIDsLoadAt) < 180 {
+#if DEBUG
+            print("[StartupPrefetchDebug] favoriteVenueIDs cacheHit=true")
+#endif
+            return
+        }
+
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.loadFavoriteVenueIDsFromSupabaseNow()
+        }
+        favoriteVenueIDsLoadTask = task
+        await task.value
+        favoriteVenueIDsLoadTask = nil
+    }
+
+    private func loadFavoriteVenueIDsFromSupabaseNow() async {
         do {
             guard let email = await strictNormalizedSessionEmailForSocialTables() else {
                 await MainActor.run {
@@ -50,12 +76,13 @@ extension MapViewModel {
 
             let rows: [FavoriteVenueRow] = try await supabase
                 .from("favorite_venues")
-                .select()
+                .select("venue_id")
                 .eq("user_email", value: email)
                 .execute()
                 .value
 
             favoriteVenueIDs = Set(rows.compactMap { $0.venue_id })
+            lastFavoriteVenueIDsLoadAt = Date()
 
         } catch {
             print("ERROR LOADING FAVORITE VENUES:", error)
@@ -79,14 +106,14 @@ extension MapViewModel {
                 .insert(favorite)
                 .execute()
 
-            await loadFavoriteVenuesFromSupabase()
+            await loadFavoriteVenuesFromSupabase(forceRefresh: true)
             await refreshFollowingTabDataGlobally()
 
         } catch {
             let message = error.localizedDescription.lowercased()
 
             if message.contains("duplicate key") || message.contains("23505") {
-                await loadFavoriteVenuesFromSupabase()
+                await loadFavoriteVenuesFromSupabase(forceRefresh: true)
                 await refreshFollowingTabDataGlobally()
             } else {
                 print("ERROR SAVING FAVORITE VENUE:", error)
@@ -105,7 +132,7 @@ extension MapViewModel {
                 .eq("venue_id", value: bar.id)
                 .execute()
 
-            await loadFavoriteVenuesFromSupabase()
+            await loadFavoriteVenuesFromSupabase(forceRefresh: true)
             await refreshFollowingTabDataGlobally()
 
             print("FAVORITE VENUE REMOVED")

@@ -373,6 +373,88 @@ extension MapViewModel {
     }
 
     @MainActor
+    private func replaceLoadedVenueEventComment(
+        _ updatedRow: VenueEventCommentRow,
+        for venueEventID: UUID,
+        source: String
+    ) {
+        let row = venueEventCommentRowWithCurrentReactionMetadata(updatedRow)
+        guard let serverID = row.serverCommentID else { return }
+
+        var didPatch = false
+        if var list = venueEventComments[venueEventID],
+           let index = list.firstIndex(where: { $0.serverCommentID == serverID || $0.id == serverID }) {
+            list[index] = row
+            venueEventComments[venueEventID] = list
+            didPatch = true
+        }
+
+        if var previews = venueEventCommentPreviews[venueEventID],
+           let index = previews.firstIndex(where: { $0.serverCommentID == serverID || $0.id == serverID }) {
+            previews[index] = row
+            venueEventCommentPreviews[venueEventID] = previews
+            didPatch = true
+        }
+
+        guard didPatch else { return }
+        fanUpdatesCommentPrefetchedAt[venueEventID] = Date()
+        #if DEBUG
+        print("[FanChatReceiverDebug] realtimeUpdatePatched source=\(source) commentId=\(serverID.uuidString.lowercased())")
+        #endif
+    }
+
+    @MainActor
+    func anonymizeLoadedFanChatAuthorLocally(originalEmail: String, deletedUserId: UUID?) {
+        let normalizedOriginal = OwnerBusinessEmail.normalized(originalEmail)
+        guard OwnerBusinessEmail.isValidStrict(normalizedOriginal) else { return }
+        let deletedEmail: String
+        if let deletedUserId {
+            deletedEmail = "deleted-user-\(deletedUserId.uuidString.replacingOccurrences(of: "-", with: "").lowercased())@deleted.fangeo.local"
+        } else {
+            deletedEmail = normalizedOriginal
+        }
+
+        func anonymized(_ row: VenueEventCommentRow) -> VenueEventCommentRow {
+            if OwnerBusinessEmail.normalized(row.user_email ?? "") == normalizedOriginal {
+                return row.withAuthorEmail(deletedEmail)
+            }
+            return row
+        }
+
+        for eventID in venueEventComments.keys {
+            venueEventComments[eventID] = venueEventComments[eventID]?.map(anonymized)
+        }
+        for eventID in venueEventCommentPreviews.keys {
+            venueEventCommentPreviews[eventID] = venueEventCommentPreviews[eventID]?.map(anonymized)
+        }
+
+        let keysToRemove = userProfilesByEmail.compactMap { key, profile -> String? in
+            let keyMatchesOriginal = OwnerBusinessEmail.normalized(key) == normalizedOriginal
+            let idMatchesDeletedUser = deletedUserId != nil && profile.id == deletedUserId
+            return keyMatchesOriginal || idMatchesDeletedUser ? key : nil
+        }
+        for key in keysToRemove {
+            userProfilesByEmail.removeValue(forKey: key)
+        }
+        userProfilesByEmail[deletedEmail] = UserProfileRow(
+            id: deletedUserId,
+            email: deletedEmail,
+            display_name: "Deleted User",
+            username: nil,
+            bio: nil,
+            avatar_url: nil,
+            avatar_thumbnail_url: nil,
+            is_business_account: false,
+            admin_status: "active",
+            live_visibility_enabled: false,
+            live_visibility_mode: LiveVisibilityMode.allFriends.rawValue,
+            selected_live_visibility_friend_ids: [],
+            discoverable_by_fans: false,
+            is_deleted: true
+        )
+    }
+
+    @MainActor
     private func markVenueEventCommentDeliveryState(
         venueEventID: UUID,
         localCommentID: UUID,
@@ -661,6 +743,17 @@ extension MapViewModel {
                 filter: RealtimePostgresFilter.in("venue_event_id", values: chunk)
             )
         }
+        let updateStreams = FanChatAppLevelRealtimeConfig.chunked(
+            ids,
+            size: FanChatAppLevelRealtimeConfig.filterChunkSize
+        ).map { chunk in
+            channel.postgresChange(
+                UpdateAction.self,
+                schema: "public",
+                table: "venue_event_comments",
+                filter: RealtimePostgresFilter.in("venue_event_id", values: chunk)
+            )
+        }
         let vibeStreams = FanChatAppLevelRealtimeConfig.chunked(
             ids,
             size: FanChatAppLevelRealtimeConfig.filterChunkSize
@@ -706,6 +799,11 @@ extension MapViewModel {
             for stream in streams {
                 group.addTask { [weak self] in
                     await self?.consumeFanChatAppLevelRealtimeStream(stream, trackedEventIDs: tracked)
+                }
+            }
+            for stream in updateStreams {
+                group.addTask { [weak self] in
+                    await self?.consumeFanChatAppLevelRealtimeUpdateStream(stream, trackedEventIDs: tracked)
                 }
             }
             for stream in vibeStreams {
@@ -792,6 +890,35 @@ extension MapViewModel {
                 #endif
             }
             applyFanChatAppLevelRealtimeInsert(row, for: eventID)
+            if let email = row.user_email {
+                await loadUserProfilesForEmails([email])
+            }
+        }
+    }
+
+    private func consumeFanChatAppLevelRealtimeUpdateStream(
+        _ stream: AsyncStream<UpdateAction>,
+        trackedEventIDs: Set<UUID>
+    ) async {
+        let decoder = JSONDecoder()
+        for await update in stream {
+            if Task.isCancelled { break }
+            let row: VenueEventCommentRow
+            do {
+                row = try update.decodeRecord(as: VenueEventCommentRow.self, decoder: decoder)
+            } catch {
+                continue
+            }
+            guard let eventID = row.venue_event_id, trackedEventIDs.contains(eventID) else { continue }
+            if hasActiveVenueEventCommentsRealtimeListener(for: eventID) {
+                markFanChatRealtimeHealth(for: eventID, healthy: true, eventReceived: true)
+            }
+            if let commentID = row.serverCommentID {
+                #if DEBUG
+                RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments type=update id=\(commentID.uuidString.lowercased())")
+                #endif
+            }
+            replaceLoadedVenueEventComment(row, for: eventID, source: "app_realtime_update")
             if let email = row.user_email {
                 await loadUserProfilesForEmails([email])
             }
@@ -1280,6 +1407,12 @@ extension MapViewModel {
                 table: "venue_event_comments",
                 filter: .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
             )
+            let updates = channel.postgresChange(
+                UpdateAction.self,
+                schema: "public",
+                table: "venue_event_comments",
+                filter: .eq("venue_event_id", value: venueEventID.uuidString.lowercased())
+            )
 
             do {
                 try await subscribeVenueEventCommentsChannelWithTimeout(channel)
@@ -1295,46 +1428,12 @@ extension MapViewModel {
                 #endif
                 scheduleFanChatReceiverRefreshBurst(for: venueEventID, reason: "realtime_reconnect")
 
-                for await insertion in inserts {
-                    if Task.isCancelled { break }
-                    let row: VenueEventCommentRow
-                    do {
-                        row = try insertion.decodeRecord(as: VenueEventCommentRow.self, decoder: JSONDecoder())
-                    } catch {
-                        continue
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { [weak self] in
+                        await self?.consumeVenueEventCommentsRealtimeInsertStream(inserts, venueEventID: venueEventID)
                     }
-                    #if DEBUG
-                    print("[GameChatPerf] realtime received event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
-                    print("[VenueCommentRealtimeDebug] realtimeInsertReceived id=\(row.id?.uuidString.lowercased() ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
-                    print("[FanChatLatencyDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedSinceSendMs=\(FanChatLatencyDebugClock.elapsedMs(since: row.serverCommentID.flatMap { self.venueEventCommentLatencySendTimesByServerID[$0] }))")
-                    print("[FanChatReceiverDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") userId=\(row.user_email ?? "nil")")
-                    #endif
-                    if row.isHiddenFromThread {
-                        #if DEBUG
-                        print("[FanChatReceiverDebug] realtimeIgnored reason=hidden commentId=\(row.id?.uuidString.lowercased() ?? "nil")")
-                        #endif
-                        continue
-                    }
-                    if let commentID = row.serverCommentID {
-                        markFanChatRealtimeHealth(for: venueEventID, healthy: true, eventReceived: true)
-                        venueEventCommentRealtimeReceivedServerIDs.insert(commentID)
-                        venueEventCommentDebugReceivedDatesByServerID[commentID] = Date()
-                        #if DEBUG
-                        print("[FanChatRealtimeDelayDebug] realtimeReceivedAfterInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
-                        RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments id=\(commentID.uuidString.lowercased()) elapsedSinceInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
-                        #endif
-                    }
-#if DEBUG
-                    let applyStartedAt = CFAbsoluteTimeGetCurrent()
-                    RealtimeHealthDiagnostics.log("mainActorApplyStart=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
-#endif
-                    mergeIncomingVenueEventComment(row, for: venueEventID, source: "realtime")
-                    logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
-#if DEBUG
-                    RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - applyStartedAt) * 1000)) table=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
-#endif
-                    if let email = row.user_email {
-                        await loadUserProfilesForEmails([email])
+                    group.addTask { [weak self] in
+                        await self?.consumeVenueEventCommentsRealtimeUpdateStream(updates, venueEventID: venueEventID)
                     }
                 }
             } catch is CancellationError {
@@ -1388,6 +1487,83 @@ extension MapViewModel {
             }
         }
         venueEventCommentsRealtimeTasks[venueEventID] = task
+    }
+
+    private func consumeVenueEventCommentsRealtimeInsertStream(
+        _ stream: AsyncStream<InsertAction>,
+        venueEventID: UUID
+    ) async {
+        let decoder = JSONDecoder()
+        for await insertion in stream {
+            if Task.isCancelled { break }
+            let row: VenueEventCommentRow
+            do {
+                row = try insertion.decodeRecord(as: VenueEventCommentRow.self, decoder: decoder)
+            } catch {
+                continue
+            }
+            #if DEBUG
+            print("[GameChatPerf] realtime received event=\(venueEventID) row=\(row.id?.uuidString ?? "nil")")
+            print("[VenueCommentRealtimeDebug] realtimeInsertReceived id=\(row.id?.uuidString.lowercased() ?? "nil") eventId=\(venueEventID.uuidString.lowercased())")
+            print("[FanChatLatencyDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") elapsedSinceSendMs=\(FanChatLatencyDebugClock.elapsedMs(since: row.serverCommentID.flatMap { self.venueEventCommentLatencySendTimesByServerID[$0] }))")
+            print("[FanChatReceiverDebug] realtimeInsertReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(row.id?.uuidString.lowercased() ?? "nil") userId=\(row.user_email ?? "nil")")
+            #endif
+            if row.isHiddenFromThread {
+                #if DEBUG
+                print("[FanChatReceiverDebug] realtimeIgnored reason=hidden commentId=\(row.id?.uuidString.lowercased() ?? "nil")")
+                #endif
+                continue
+            }
+            if let commentID = row.serverCommentID {
+                markFanChatRealtimeHealth(for: venueEventID, healthy: true, eventReceived: true)
+                venueEventCommentRealtimeReceivedServerIDs.insert(commentID)
+                venueEventCommentDebugReceivedDatesByServerID[commentID] = Date()
+                #if DEBUG
+                print("[FanChatRealtimeDelayDebug] realtimeReceivedAfterInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments id=\(commentID.uuidString.lowercased()) elapsedSinceInsertMs=\(FanChatLatencyDebugClock.elapsedMs(since: venueEventCommentInsertSuccessTimesByServerID[commentID]))")
+                #endif
+            }
+            #if DEBUG
+            let applyStartedAt = CFAbsoluteTimeGetCurrent()
+            RealtimeHealthDiagnostics.log("mainActorApplyStart=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
+            #endif
+            mergeIncomingVenueEventComment(row, for: venueEventID, source: "realtime")
+            logFanChatEndToEnd(venueEventID: venueEventID, row: row, fallbackUsed: false)
+            #if DEBUG
+            RealtimeHealthDiagnostics.log("mainActorApplyEnd elapsedMs=\(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - applyStartedAt) * 1000)) table=venue_event_comments id=\(row.serverCommentID?.uuidString.lowercased() ?? "nil")")
+            #endif
+            if let email = row.user_email {
+                await loadUserProfilesForEmails([email])
+            }
+        }
+    }
+
+    private func consumeVenueEventCommentsRealtimeUpdateStream(
+        _ stream: AsyncStream<UpdateAction>,
+        venueEventID: UUID
+    ) async {
+        let decoder = JSONDecoder()
+        for await update in stream {
+            if Task.isCancelled { break }
+            let row: VenueEventCommentRow
+            do {
+                row = try update.decodeRecord(as: VenueEventCommentRow.self, decoder: decoder)
+            } catch {
+                continue
+            }
+            guard row.venue_event_id == nil || row.venue_event_id == venueEventID else { continue }
+            if let commentID = row.serverCommentID {
+                markFanChatRealtimeHealth(for: venueEventID, healthy: true, eventReceived: true)
+                #if DEBUG
+                print("[FanChatReceiverDebug] realtimeUpdateReceived eventId=\(venueEventID.uuidString.lowercased()) commentId=\(commentID.uuidString.lowercased()) userId=\(row.user_email ?? "nil")")
+                RealtimeHealthDiagnostics.log("eventReceived table=venue_event_comments type=update id=\(commentID.uuidString.lowercased())")
+                #endif
+            }
+            replaceLoadedVenueEventComment(row, for: venueEventID, source: "sheet_realtime_update")
+            if let email = row.user_email {
+                await loadUserProfilesForEmails([email])
+            }
+        }
     }
 
     func stopVenueEventCommentsRealtime(for venueEventID: UUID) async {

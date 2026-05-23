@@ -1,7 +1,13 @@
 import Combine
 import CoreLocation
+#if canImport(MessageUI)
+import MessageUI
+#endif
 import PhotosUI
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Bottom spacing (floating tab bar + sheets)
 
@@ -286,7 +292,9 @@ struct SettingsScreen: View {
                                 showRegisterMode = true
                                 showUserAuthSheet = true
                             },
-                            onVenueOwnerTools: nil
+                            onVenueOwnerTools: nil,
+                            statusMessage: viewModel.authErrorMessage,
+                            attemptedLoginEmail: email
                         )
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
@@ -758,7 +766,14 @@ struct SettingsScreen: View {
             }
         }
         .sheet(isPresented: $showDeleteAccountSheet) {
-            SettingsAccountDeletionSheet(viewModel: viewModel)
+            SettingsAccountDeletionSheet(
+                viewModel: viewModel,
+                onCloseAfterSuccess: {
+                    profileSettingsPath = NavigationPath()
+                    showProfileSettingsSheet = false
+                    showDeleteAccountSheet = false
+                }
+            )
         }
         .sheet(isPresented: $showDeleteVenueOwnerSheet) {
             SettingsVenueOwnerDeletionSheet(viewModel: viewModel)
@@ -1233,7 +1248,7 @@ struct SettingsScreen: View {
                 } label: {
                     settingsRow(
                         title: L10n.t("support", languageCode: appLanguageRaw),
-                        subtitle: L10n.t("message_fangeo_team", languageCode: appLanguageRaw),
+                        subtitle: "Message the FanGeo team.",
                         systemImage: "envelope.open.fill",
                         showsChevron: true
                     )
@@ -1247,7 +1262,7 @@ struct SettingsScreen: View {
                 } label: {
                     settingsRow(
                         title: L10n.t("community_guidelines", languageCode: appLanguageRaw),
-                        subtitle: L10n.t("community_rules_fangeo", languageCode: appLanguageRaw),
+                        subtitle: SettingsLegalDocumentKind.communityGuidelines.rowSubtitle,
                         systemImage: SettingsLegalDocumentKind.communityGuidelines.systemImage,
                         showsChevron: true
                     )
@@ -1260,8 +1275,8 @@ struct SettingsScreen: View {
                     profileSettingsPath.append(ProfileSettingsRoute.trustSafety)
                 } label: {
                     settingsRow(
-                        title: L10n.t("trust_safety", languageCode: appLanguageRaw),
-                        subtitle: L10n.t("fangeo_reviews_reports", languageCode: appLanguageRaw),
+                        title: SettingsLegalDocumentKind.safetyReporting.title,
+                        subtitle: SettingsLegalDocumentKind.safetyReporting.rowSubtitle,
                         systemImage: SettingsLegalDocumentKind.safetyReporting.systemImage,
                         showsChevron: true
                     )
@@ -2286,13 +2301,14 @@ struct SettingsScreen: View {
 
 private struct SettingsAccountDeletionSheet: View {
     @ObservedObject var viewModel: MapViewModel
+    var onCloseAfterSuccess: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @State private var confirmationText: String = ""
-    @State private var confirmPassword: String = ""
     @State private var isDeleting: Bool = false
     @State private var errorMessage: String = ""
-    @State private var successMessage: String = ""
     @State private var didSucceed: Bool = false
+    @State private var showDeletionSuccessConfirmation: Bool = false
+    @FocusState private var confirmationFieldFocused: Bool
 
     private var canDelete: Bool {
         confirmationText.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == "DELETE"
@@ -2302,27 +2318,28 @@ private struct SettingsAccountDeletionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Text("Deleting your account permanently removes your profile and associated data from FanGeo.")
+                    Text("Deleting your account removes or anonymizes your FanGeo profile and personal preferences. Favorites, saved venues, teams, and saved activity are removed. Existing chats and Fan Chat comments may remain as Deleted User to preserve conversation integrity, safety, and legal/compliance records. Deleted accounts cannot log back in unless FanGeo support restores or reactivates them. This action cannot be undone.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("What will be deleted") {
-                    deletionRow("Profile (display name + email reference)")
-                    deletionRow("Avatar photo in storage")
-                    deletionRow("Comments and activity linked to your user")
-                    deletionRow("Chats and friend relationships where applicable")
-                    deletionRow("Reports and blocks where applicable")
+                Section("What happens") {
+                    deletionRow("Your profile identity and avatar are removed")
+                    deletionRow("Favorite teams and saved venues are removed")
+                    deletionRow("Going, Interested, and personal preference signals are removed")
+                    deletionRow("Direct messages and Fan Chat threads remain readable as Deleted User")
+                    deletionRow("Reports and moderation records stay available for safety review")
+                    deletionRow("This account cannot log back in unless support restores it")
                 }
 
                 Section("Confirm") {
                     TextField("Type DELETE to confirm", text: $confirmationText)
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
+                        .focused($confirmationFieldFocused)
+                        .disabled(isDeleting || didSucceed)
 
-                    SecureField("Confirm password (optional)", text: $confirmPassword)
-
-                    Text("Password re-auth is not currently enforced in-app. TODO: add re-auth via Supabase if required by policy changes.")
+                    Text("Type DELETE, then tap Delete Account Permanently. You will be signed out after deletion succeeds.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2332,14 +2349,6 @@ private struct SettingsAccountDeletionSheet: View {
                         Text(errorMessage)
                             .font(.caption)
                             .foregroundStyle(.red)
-                    }
-                }
-
-                if !successMessage.isEmpty {
-                    Section {
-                        Text(successMessage)
-                            .font(.caption)
-                            .foregroundStyle(.green)
                     }
                 }
 
@@ -2364,9 +2373,22 @@ private struct SettingsAccountDeletionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(didSucceed ? "Done" : "Close") { dismiss() }
+                    Button("Close") {
+                        if didSucceed {
+                            completeSuccessClose()
+                        } else {
+                            dismiss()
+                        }
+                    }
                         .disabled(isDeleting)
                 }
+            }
+            .alert("Your account has been deleted.", isPresented: $showDeletionSuccessConfirmation) {
+                Button("Close") {
+                    completeSuccessClose()
+                }
+            } message: {
+                Text("You have been signed out.")
             }
         }
     }
@@ -2387,19 +2409,40 @@ private struct SettingsAccountDeletionSheet: View {
         isDeleting = true
         defer { isDeleting = false }
         errorMessage = ""
-        successMessage = ""
 
         do {
             try await viewModel.requestPermanentAccountDeletion()
             await MainActor.run {
-                successMessage = "Your account was deleted and you have been signed out."
                 didSucceed = true
+                confirmationText = ""
+                dismissKeyboard()
+                showDeletionSuccessConfirmation = true
             }
         } catch {
             await MainActor.run {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    @MainActor
+    private func dismissKeyboard() {
+        confirmationFieldFocused = false
+#if canImport(UIKit)
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+#endif
+    }
+
+    @MainActor
+    private func completeSuccessClose() {
+        dismissKeyboard()
+        onCloseAfterSuccess()
+        dismiss()
     }
 }
 
@@ -2752,6 +2795,10 @@ struct SettingsSheetStatusBanner: View {
     let message: String
     let tint: Color
     var systemImage: String
+    var actionTitle: String? = nil
+    var actionSystemImage: String? = nil
+    var action: (() -> Void)? = nil
+    var footerMessage: String? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -2771,6 +2818,22 @@ struct SettingsSheetStatusBanner: View {
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
+                if let footerMessage,
+                   !footerMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(footerMessage)
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if let actionTitle, let action {
+                    Button(action: action) {
+                        Label(actionTitle, systemImage: actionSystemImage ?? "envelope.fill")
+                            .font(FGTypography.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(tint)
+                    .padding(.top, 4)
+                }
             }
 
             Spacer(minLength: 0)
@@ -2784,6 +2847,107 @@ struct SettingsSheetStatusBanner: View {
         }
     }
 }
+
+private enum DeletedAccountSupportContact {
+    static let recipient = "support@fangeosports.com"
+    static let subject = "Deleted account support request"
+
+    static func body(attemptedLoginEmail: String) -> String {
+        let normalized = OwnerBusinessEmail.normalized(attemptedLoginEmail)
+        let emailLine = normalized.isEmpty ? "<enter your account email>" : normalized
+        return """
+        Email: \(emailLine)
+        Reason: I believe my account was deleted by mistake.
+        """
+    }
+
+    static func isDeletedAccountBlockMessage(_ message: String) -> Bool {
+        message.localizedCaseInsensitiveContains("account has been deleted")
+    }
+}
+
+private struct DeletedAccountSupportStatusBanner: View {
+    let title: String
+    let message: String
+    let attemptedLoginEmail: String
+    @State private var showMailComposer = false
+    @State private var fallbackMessage = ""
+
+    var body: some View {
+        SettingsSheetStatusBanner(
+            title: title,
+            message: message,
+            tint: FGColor.dangerRed,
+            systemImage: "exclamationmark.triangle.fill",
+            actionTitle: "Contact Support",
+            actionSystemImage: "envelope.fill",
+            action: contactSupport,
+            footerMessage: fallbackMessage
+        )
+#if canImport(MessageUI)
+        .sheet(isPresented: $showMailComposer) {
+            DeletedAccountSupportMailComposer(attemptedLoginEmail: attemptedLoginEmail)
+        }
+#endif
+    }
+
+    private func contactSupport() {
+        fallbackMessage = ""
+#if canImport(MessageUI)
+        if MFMailComposeViewController.canSendMail() {
+            showMailComposer = true
+            return
+        }
+#endif
+#if canImport(UIKit)
+        UIPasteboard.general.string = DeletedAccountSupportContact.recipient
+        fallbackMessage = "Support email copied: \(DeletedAccountSupportContact.recipient)"
+#else
+        fallbackMessage = "Contact support at \(DeletedAccountSupportContact.recipient)"
+#endif
+    }
+}
+
+#if canImport(MessageUI)
+private struct DeletedAccountSupportMailComposer: UIViewControllerRepresentable {
+    let attemptedLoginEmail: String
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        let composer = MFMailComposeViewController()
+        composer.mailComposeDelegate = context.coordinator
+        composer.setToRecipients([DeletedAccountSupportContact.recipient])
+        composer.setSubject(DeletedAccountSupportContact.subject)
+        composer.setMessageBody(
+            DeletedAccountSupportContact.body(attemptedLoginEmail: attemptedLoginEmail),
+            isHTML: false
+        )
+        return composer
+    }
+
+    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onFinish: { dismiss() })
+    }
+
+    final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
+        let onFinish: () -> Void
+
+        init(onFinish: @escaping () -> Void) {
+            self.onFinish = onFinish
+        }
+
+        func mailComposeController(
+            _ controller: MFMailComposeViewController,
+            didFinishWith result: MFMailComposeResult,
+            error: Error?
+        ) {
+            onFinish()
+        }
+    }
+}
+#endif
 
 private struct SettingsSheetSectionLabel: View {
     let title: String
@@ -2808,6 +2972,8 @@ private struct SettingsUnifiedAccountEntryCard: View {
     let onSignIn: () -> Void
     let onCreateAccount: () -> Void
     let onVenueOwnerTools: (() -> Void)?
+    var statusMessage: String = ""
+    var attemptedLoginEmail: String = ""
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -2820,6 +2986,23 @@ private struct SettingsUnifiedAccountEntryCard: View {
             Text("Sign in once to move through FanGeo as one connected account experience, then unlock venue-owner tools as needed.")
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            if !statusMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if DeletedAccountSupportContact.isDeletedAccountBlockMessage(statusMessage) {
+                    DeletedAccountSupportStatusBanner(
+                        title: "Account access blocked",
+                        message: statusMessage,
+                        attemptedLoginEmail: attemptedLoginEmail
+                    )
+                } else {
+                    SettingsSheetStatusBanner(
+                        title: "Account access blocked",
+                        message: statusMessage,
+                        tint: FGColor.dangerRed,
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                }
+            }
 
             FGPrimaryButton(title: "Sign In", systemImage: "person.fill") {
                 onSignIn()
@@ -3770,7 +3953,7 @@ private struct SettingsFanAccountSecurityCard: View {
                 .font(.headline)
                 .fontWeight(.bold)
 
-            Text("Manage sensitive account actions. For permanent deletion, you’ll be asked to confirm before anything is removed.")
+                Text("Manage sensitive account actions. Deletion removes or anonymizes your profile and preferences, while chats, Fan Chat comments, reports, and moderation records may remain as Deleted User for safety and conversation integrity.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -3817,7 +4000,7 @@ private struct SettingsFanAccountSecurityCard: View {
                     .font(.title2)
                     .fontWeight(.bold)
 
-                Text("This will permanently delete your fan account and remove your profile, favorites, and activity. This cannot be undone.")
+                Text("This removes your profile, favorites, attendance, and preferences. Existing chats and Fan Chat comments stay readable for other users and show you as Deleted User. This cannot be undone.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
@@ -3974,12 +4157,20 @@ private struct SettingsFanLoginCard: View {
                 }
 
                 if !viewModel.authErrorMessage.isEmpty {
-                    SettingsSheetStatusBanner(
-                        title: "Couldn’t sign in",
-                        message: viewModel.authErrorMessage,
-                        tint: FGColor.dangerRed,
-                        systemImage: "exclamationmark.triangle.fill"
-                    )
+                    if DeletedAccountSupportContact.isDeletedAccountBlockMessage(viewModel.authErrorMessage) {
+                        DeletedAccountSupportStatusBanner(
+                            title: "Couldn’t sign in",
+                            message: viewModel.authErrorMessage,
+                            attemptedLoginEmail: email
+                        )
+                    } else {
+                        SettingsSheetStatusBanner(
+                            title: "Couldn’t sign in",
+                            message: viewModel.authErrorMessage,
+                            tint: FGColor.dangerRed,
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                    }
                 }
 
                 Button(action: onCreateAccount) {

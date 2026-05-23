@@ -558,6 +558,11 @@ struct VenueEventCommentsView: View {
         isNearCommentsBottom = true
 
         let hadCache = !(fanUpdatesStore.venueEventComments[venueEventID] ?? []).isEmpty
+        if hadCache {
+            viewModel.invalidateFanChatAuthorProfileCache(
+                for: (fanUpdatesStore.venueEventComments[venueEventID] ?? []).compactMap { $0.user_email }
+            )
+        }
         isLoadingInitialComments = !hadCache
 
         FanUpdatesTapPerf.logCommentLoadStarted(eventId: venueEventID)
@@ -765,7 +770,9 @@ struct VenueEventCommentsView: View {
                 comments.compactMap { comment -> UUID? in
                     guard let email = comment.user_email else { return nil }
                     guard !isAuthoredByCurrentUser(email: email) else { return nil }
-                    return userProfile(forAuthorEmail: email)?.id
+                    let profile = userProfile(forAuthorEmail: email)
+                    guard !isDeletedAccountAuthor(email: email, profile: profile) else { return nil }
+                    return profile?.id
                 }.compactMap { $0 }
             )
         )
@@ -781,6 +788,20 @@ struct VenueEventCommentsView: View {
         return viewModel.userProfilesByEmail.first(where: { pair in
             pair.key.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == lower
         })?.value
+    }
+
+    private func isDeletedAccountAuthor(email raw: String, profile: UserProfileRow?) -> Bool {
+        let email = OwnerBusinessEmail.normalized(raw)
+        let profileName = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let profileAvatar = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
+        let profileAvatarThumbnail = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
+        let anonymizedProfile = profileName == "Deleted User"
+            && profileAvatar.isEmpty
+            && profileAvatarThumbnail.isEmpty
+        return profile?.isDeletedAccount == true
+            || email.hasPrefix("deleted-user-")
+            || email.hasSuffix("@deleted.fangeo.local")
+            || anonymizedProfile
     }
 
     private func isAuthoredByCurrentUser(email: String) -> Bool {
@@ -1032,6 +1053,7 @@ struct VenueEventCommentsView: View {
            !isAuthoredByCurrentUser(email: email),
            let profile = userProfile(forAuthorEmail: email),
            let targetId = profile.id,
+           !isDeletedAccountAuthor(email: email, profile: profile),
            !(chatViewModel.currentUserAuthId.map { $0 == targetId } ?? false) {
             CommentFriendshipChip(
                 kind: chatViewModel.chipKind(forOtherUserId: targetId),
@@ -1477,9 +1499,13 @@ struct VenueEventCommentsView: View {
         let email = comment.user_email ?? ""
         let currentBusinessAccount = isAuthoredByCurrentUser(email: email) && viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn
         let commentProfile = userProfile(forAuthorEmail: email)
+        let isDeletedAuthor = isDeletedAccountAuthor(email: email, profile: commentProfile)
         let isBusinessComment = currentBusinessAccount || commentProfile?.isBusinessIdentity == true
 
         let avatarURL: String = {
+            if isDeletedAuthor {
+                return ""
+            }
             if isAuthoredByCurrentUser(email: email) {
                 if currentBusinessAccount {
                     return ""
@@ -1496,7 +1522,7 @@ struct VenueEventCommentsView: View {
 
         let name = displayName(for: comment)
 
-        let authorUserId = commentProfile?.id
+        let authorUserId = isDeletedAuthor ? nil : commentProfile?.id
 
         return Group {
             if let authorUserId, !isAuthoredByCurrentUser(email: email) {
@@ -1506,9 +1532,9 @@ struct VenueEventCommentsView: View {
                         email: email,
                         avatarURL: avatarURL,
                         avatarThumbnailURL: nil,
-                        isBusinessIdentity: isBusinessComment,
+                        isBusinessIdentity: isDeletedAuthor ? false : isBusinessComment,
                         size: 38,
-                        fallbackStyle: .blueInitials
+                        fallbackStyle: isDeletedAuthor ? .genericPerson : .blueInitials
                     )
                 }
             } else {
@@ -1517,9 +1543,9 @@ struct VenueEventCommentsView: View {
                     email: email,
                     avatarURL: avatarURL,
                     avatarThumbnailURL: nil,
-                    isBusinessIdentity: isBusinessComment,
+                    isBusinessIdentity: isDeletedAuthor ? false : isBusinessComment,
                     size: 38,
-                    fallbackStyle: .blueInitials
+                    fallbackStyle: isDeletedAuthor ? .genericPerson : .blueInitials
                 )
             }
         }
@@ -1532,6 +1558,11 @@ struct VenueEventCommentsView: View {
             return "Fan update"
         }
 
+        let profile = userProfile(forAuthorEmail: email)
+        if isDeletedAccountAuthor(email: email, profile: profile) {
+            return "Deleted User"
+        }
+
         if isAuthoredByCurrentUser(email: email) {
             if viewModel.isVenueOwnerLoggedIn && !viewModel.isLoggedIn {
                 let businessName = viewModel.authenticatedBusinessDisplayNameForSocialFeatures
@@ -1540,8 +1571,7 @@ struct VenueEventCommentsView: View {
             return viewModel.currentUserDisplayName.isEmpty ? "You" : viewModel.currentUserDisplayName
         }
 
-        if let profile = userProfile(forAuthorEmail: email),
-           let name = profile.display_name,
+        if let name = profile?.display_name,
            !name.isEmpty {
             return name
         }

@@ -670,7 +670,7 @@ final class ChatViewModel: ObservableObject {
         }
         let previewFromFriendRow = friends.first(where: { $0.id == row.sender_id })?.preview
         let senderPreview = previewFromFriendRow
-            ?? fallbackPreview(userId: row.sender_id)
+            ?? deletedUserPreview(userId: row.sender_id)
         let trimmed = row.body.trimmingCharacters(in: .whitespacesAndNewlines)
         let snippet = trimmed.isEmpty ? "New message" : String(trimmed.prefix(120))
         dmInAppNotification = DmInAppNotificationPayload(
@@ -977,14 +977,14 @@ final class ChatViewModel: ObservableObject {
             incomingRequests = inRows
                 .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
                 .map { row in
-                    let preview = previewsById[row.requester_id] ?? fallbackPreview(userId: row.requester_id)
+                    let preview = previewsById[row.requester_id] ?? deletedUserPreview(userId: row.requester_id)
                     return IncomingRequestDisplay(friendship: row, requester: preview)
                 }
 
             outgoingRequests = outRows
                 .filter { !isEitherDirectionBlocked(with: $0.addressee_id) }
                 .map { row in
-                    let preview = previewsById[row.addressee_id] ?? fallbackPreview(userId: row.addressee_id)
+                    let preview = previewsById[row.addressee_id] ?? deletedUserPreview(userId: row.addressee_id)
                     return OutgoingRequestDisplay(friendship: row, addressee: preview)
                 }
 
@@ -1049,9 +1049,15 @@ final class ChatViewModel: ObservableObject {
         await reloadModerationBlockSets()
         do {
             let rows = try await directChatService.fetchInboxSummaries()
+            let participantPreviews = try await fetchDmParticipantPreviews(for: rows)
             let displays = rows.map { row -> FriendDisplay in
-                let preview = inboxPreview(for: row)
+                let preview = inboxPreview(
+                    for: row,
+                    resolvedPreview: participantPreviews[row.friend_user_id],
+                    profileLookupAttempted: true
+                )
                 logChatRowDebug(preview: preview)
+                logDeletedUserRenderDebug(surface: "dm_inbox", preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -1140,6 +1146,36 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
+    func previewForLoadedDmParticipant(userId: UUID) -> UserPreview? {
+        friends.first(where: { $0.id == userId })?.preview
+    }
+
+    func resolveDmParticipantPreview(
+        userId: UUID,
+        fallback: UserPreview,
+        surface: String
+    ) async -> UserPreview {
+        if fallback.isDeleted {
+            logDeletedUserRenderDebug(surface: surface, preview: fallback)
+            return fallback
+        }
+
+        do {
+            if let resolved = try await socialIdentityService.fetchUserPreviews(for: [userId])[userId] {
+                logDeletedUserRenderDebug(surface: surface, preview: resolved)
+                patchLoadedDmParticipantPreview(resolved)
+                return resolved
+            }
+        } catch {
+            // Treat unresolved fan identities as deleted for DM presentation; the messages remain intact.
+        }
+
+        let deleted = deletedUserPreview(userId: userId, email: fallback.email)
+        logDeletedUserRenderDebug(surface: surface, preview: deleted)
+        patchLoadedDmParticipantPreview(deleted)
+        return deleted
+    }
+
     /// Same RPC path as ``DirectChatView`` / inbox rows: returns an existing peer DM conversation id or creates one (no duplicate threads).
     func startDirectConversationWithFriend(friendUserId: UUID) async throws -> UUID {
         try await directChatService.startDirectConversation(friendUserId: friendUserId)
@@ -1163,6 +1199,7 @@ final class ChatViewModel: ObservableObject {
             async let outgoing = service.fetchOutgoingFriendRequestsVisible(for: me)
             async let inbox = directChatService.fetchInboxSummaries()
             let (accRows, inRows, outRows, inboxRows) = try await (accepted, incoming, outgoing, inbox)
+            let participantPreviews = try await fetchDmParticipantPreviews(for: inboxRows)
 
             let previewIds = Set(
                 inRows.map(\.requester_id)
@@ -1172,8 +1209,13 @@ final class ChatViewModel: ObservableObject {
 
             let inboxFiltered = inboxRows.filter { !isEitherDirectionBlocked(with: $0.friend_user_id) }
             var friendDisplays = inboxFiltered.map { row -> FriendDisplay in
-                let preview = inboxPreview(for: row)
+                let preview = inboxPreview(
+                    for: row,
+                    resolvedPreview: participantPreviews[row.friend_user_id],
+                    profileLookupAttempted: true
+                )
                 logChatRowDebug(preview: preview)
+                logDeletedUserRenderDebug(surface: "dm_inbox", preview: preview)
 
                 let body = row.last_message_body?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
                 let rawPreview: String
@@ -1208,14 +1250,14 @@ final class ChatViewModel: ObservableObject {
             incomingRequests = inRows
                 .filter { !isEitherDirectionBlocked(with: $0.requester_id) }
                 .map { row in
-                let preview = previewsById[row.requester_id] ?? fallbackPreview(userId: row.requester_id)
+                let preview = previewsById[row.requester_id] ?? deletedUserPreview(userId: row.requester_id)
                 return IncomingRequestDisplay(friendship: row, requester: preview)
             }
 
             outgoingRequests = outRows
                 .filter { !isEitherDirectionBlocked(with: $0.addressee_id) }
                 .map { row in
-                let preview = previewsById[row.addressee_id] ?? fallbackPreview(userId: row.addressee_id)
+                let preview = previewsById[row.addressee_id] ?? deletedUserPreview(userId: row.addressee_id)
                 return OutgoingRequestDisplay(friendship: row, addressee: preview)
             }
 
@@ -1530,7 +1572,8 @@ final class ChatViewModel: ObservableObject {
         let previews = try await socialIdentityService.fetchUserPreviews(for: missingIds)
         var merged = inboxDisplays
         for pid in missingIds {
-            let preview = previews[pid] ?? fallbackPreview(userId: pid)
+            let preview = previews[pid] ?? deletedUserPreview(userId: pid)
+            logDeletedUserRenderDebug(surface: "dm_inbox", preview: preview)
             merged.append(
                 FriendDisplay(
                     id: pid,
@@ -1743,13 +1786,53 @@ final class ChatViewModel: ObservableObject {
         friendshipChipByOtherUserId = next
     }
 
+    private func fetchDmParticipantPreviews(for rows: [DmInboxSummaryRow]) async throws -> [UUID: UserPreview] {
+        let ids = Array(Set(rows.map(\.friend_user_id)))
+        guard !ids.isEmpty else { return [:] }
+        return try await socialIdentityService.fetchUserPreviews(for: ids)
+    }
+
+    private func deletedUserPreview(userId: UUID, email: String? = nil) -> UserPreview {
+        UserPreview(
+            id: userId,
+            displayName: "Deleted User",
+            email: email,
+            avatarURL: nil,
+            avatarThumbnailURL: nil,
+            isDeleted: true
+        )
+    }
+
+    private func patchLoadedDmParticipantPreview(_ preview: UserPreview) {
+        guard let index = friends.firstIndex(where: { $0.id == preview.id }) else { return }
+        let existing = friends[index]
+        friends[index] = FriendDisplay(
+            id: existing.id,
+            preview: preview,
+            subtitle: existing.subtitle,
+            lastMessageAt: existing.lastMessageAt,
+            unreadCount: existing.unreadCount
+        )
+    }
+
     private func fallbackPreview(
         userId: UUID,
         displayName: String? = nil,
         email: String? = nil,
         avatarURL: String? = nil,
-        avatarThumbnailURL: String? = nil
+        avatarThumbnailURL: String? = nil,
+        isDeleted: Bool = false
     ) -> UserPreview {
+        if isDeleted {
+            return UserPreview(
+                id: userId,
+                displayName: "Deleted User",
+                email: email,
+                avatarURL: nil,
+                avatarThumbnailURL: nil,
+                isDeleted: true
+            )
+        }
         let trimmed = displayName?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
         let resolved = trimmed.isEmpty ? "Player" : trimmed
         return UserPreview(
@@ -1761,7 +1844,19 @@ final class ChatViewModel: ObservableObject {
         )
     }
 
-    private func inboxPreview(for row: DmInboxSummaryRow) -> UserPreview {
+    private func inboxPreview(
+        for row: DmInboxSummaryRow,
+        resolvedPreview: UserPreview? = nil,
+        profileLookupAttempted: Bool = false
+    ) -> UserPreview {
+        let isDeleted = row.friend_is_deleted == true
+            || OwnerBusinessEmail.normalized(row.friend_email ?? "").hasSuffix("@deleted.fangeo.local")
+            || row.friend_display_name?.trimmingCharacters(in: .whitespacesAndNewlines) == "Deleted User"
+            || resolvedPreview?.isDeleted == true
+        if isDeleted {
+            return deletedUserPreview(userId: row.friend_user_id, email: row.friend_email)
+        }
+
         if row.friend_is_business == true {
             let businessName = row.friend_business_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
             let fallbackName = row.friend_display_name?.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines) ?? ""
@@ -1779,6 +1874,14 @@ final class ChatViewModel: ObservableObject {
             )
         }
 
+        if let resolvedPreview {
+            return resolvedPreview
+        }
+
+        if profileLookupAttempted {
+            return deletedUserPreview(userId: row.friend_user_id, email: row.friend_email)
+        }
+
         return fallbackPreview(
             userId: row.friend_user_id,
             displayName: row.friend_display_name,
@@ -1786,6 +1889,15 @@ final class ChatViewModel: ObservableObject {
             avatarURL: row.friend_avatar_url,
             avatarThumbnailURL: row.friend_avatar_thumbnail_url
         )
+    }
+
+    private func logDeletedUserRenderDebug(surface: String, preview: UserPreview) {
+#if DEBUG
+        print("[DeletedUserRenderDebug] surface=\(surface)")
+        print("[DeletedUserRenderDebug] userID=\(preview.id.uuidString.lowercased())")
+        print("[DeletedUserRenderDebug] isDeleted=\(preview.isDeleted)")
+        print("[DeletedUserRenderDebug] displayNameUsed=\(preview.displayName)")
+#endif
     }
 
     private func logChatRowDebug(preview: UserPreview) {

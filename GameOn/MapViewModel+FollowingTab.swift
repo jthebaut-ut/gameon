@@ -68,12 +68,30 @@ extension MapViewModel {
     ///
     /// Saved venues and venue-game membership are handled separately: failures loading interests or aggregate counts must not clear favorite venues (see ``clearFollowingTabVenueGamePlanCachesOnly()``).
     func refreshFollowingTabDataGlobally() async {
+        if let inFlight = followingTabGlobalRefreshTask {
+#if DEBUG
+            print("[PerfPhase1] followingRefreshCoalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.refreshFollowingTabDataGloballyNow()
+        }
+        followingTabGlobalRefreshTask = task
+        await task.value
+        followingTabGlobalRefreshTask = nil
+    }
+
+    private func refreshFollowingTabDataGloballyNow() async {
         guard let interestEmail = await strictNormalizedSessionEmailForSocialTables() else {
             clearFollowingTabCachesPreservingPickupJoinState()
             return
         }
 
-        await loadFavoriteVenuesFromSupabase()
+        await loadFavoriteVenuesFromSupabase(forceRefresh: true)
 
         let localInterestedOnly = Self.decodeInterestedOnlyUUIDsFromDefaults()
 
