@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum SocialAvatarRenderer {
     enum FallbackStyle {
@@ -51,21 +52,17 @@ enum SocialAvatarRenderer {
             BusinessAvatarIconView(size: size)
         } else if let raw = ImageDisplayURL.forList(thumbnail: avatarThumbnailURL, full: avatarURL),
                   let url = URL(string: raw) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    fallbackView(
-                        displayName: displayName,
-                        email: email,
-                        style: fallbackStyle,
-                        size: size
-                    )
-                }
+            ZStack {
+                fallbackView(
+                    displayName: displayName,
+                    email: email,
+                    style: fallbackStyle,
+                    size: size
+                )
+
+                SmoothCachedSocialAvatarImage(url: url, size: size)
             }
+            .frame(width: size, height: size)
         } else {
             fallbackView(
                 displayName: displayName,
@@ -119,5 +116,45 @@ enum SocialAvatarRenderer {
             return String(first).uppercased()
         }
         return "?"
+    }
+}
+
+private struct SmoothCachedSocialAvatarImage: View {
+    let url: URL
+    let size: CGFloat
+
+    @State private var uiImage: UIImage?
+    @State private var imageOpacity = 0.0
+
+    var body: some View {
+        Group {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(imageOpacity)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: size, height: size)
+        .task(id: url.absoluteString) {
+            imageOpacity = 0
+            uiImage = nil
+
+            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
+                guard !Task.isCancelled else { return }
+                uiImage = cached
+                imageOpacity = 1
+                return
+            }
+
+            guard let loaded = await DiscoverMapImageCache.shared.image(for: url),
+                  !Task.isCancelled else { return }
+            uiImage = loaded
+            withAnimation(.easeOut(duration: 0.22)) {
+                imageOpacity = 1
+            }
+        }
     }
 }

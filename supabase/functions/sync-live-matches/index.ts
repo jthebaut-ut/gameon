@@ -41,6 +41,22 @@ type SyncCounts = {
   pruned: number
 }
 
+type ScheduledFixturesCounts = {
+  fetched: number
+  normalized: number
+  windowFiltered: number
+  deduped: number
+  protectedExisting: number
+  upserted: number
+  errors: number
+}
+
+type ScheduledLeagueConfig = {
+  id: string
+  sport: string
+  league: string
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -67,21 +83,39 @@ serve(async (req) => {
       upserted: 0,
       pruned: 0,
     }
+    const scheduledCounts: ScheduledFixturesCounts = {
+      fetched: 0,
+      normalized: 0,
+      windowFiltered: 0,
+      deduped: 0,
+      protectedExisting: 0,
+      upserted: 0,
+      errors: 0,
+    }
     const fetchResult = await fetchNormalizedMatches(matchWindow, counts)
+    const scheduledMatches = await fetchScheduledFixtureMatches(matchWindow, scheduledCounts)
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
     counts.pruned = await pruneStaleMatches(supabase, matchWindow)
+    const protectedMatchIds = await fetchProtectedMatchIds(supabase, matchWindow)
+    const matchesToUpsert = mergeLiveAndScheduledMatches(fetchResult.matches, scheduledMatches, protectedMatchIds, scheduledCounts)
+    const scheduledUpsertIds = new Set(scheduledMatches.map((match) => match.id))
 
-    if (fetchResult.matches.length > 0) {
+    if (matchesToUpsert.length > 0) {
       const { error } = await supabase
         .from("live_matches")
-        .upsert(fetchResult.matches, { onConflict: "id" })
+        .upsert(matchesToUpsert, { onConflict: "id" })
 
       if (error) {
+        scheduledLog(`error=upsert ${error.message}`)
         return json({ success: false, error: error.message }, 500)
       }
-      counts.upserted = fetchResult.matches.length
+      counts.upserted = matchesToUpsert.length
+      scheduledCounts.upserted = matchesToUpsert.filter((match) =>
+        scheduledUpsertIds.has(match.id) && match.match_status === "SCHEDULED"
+      ).length
     }
+    scheduledLog(`upserted=${scheduledCounts.upserted}`)
 
     return json({
       success: true,
@@ -91,6 +125,7 @@ serve(async (req) => {
         end: matchWindow.endISO,
       },
       counts,
+      scheduledCounts,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -119,6 +154,65 @@ async function fetchNormalizedMatches(
   const v1Matches = await fetchTheSportsDBV1Matches(matchWindow, counts)
   providerLog(`totalNormalized=${v1Matches.length}`)
   return { source: "thesportsdb", matches: v1Matches }
+}
+
+async function fetchScheduledFixtureMatches(
+  matchWindow: MatchWindow,
+  counts: ScheduledFixturesCounts,
+): Promise<LiveMatchUpsert[]> {
+  const apiKey = Deno.env.get("THESPORTSDB_API_KEY") ?? "123"
+  const allMatches: LiveMatchUpsert[] = []
+
+  for (const leagueConfig of configuredSportsDBScheduledLeagues()) {
+    const encodedLeagueId = encodeURIComponent(leagueConfig.id)
+    const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsnextleague.php?id=${encodedLeagueId}`
+    const redactedURL = `https://www.thesportsdb.com/api/v1/json/redacted/eventsnextleague.php?id=${encodedLeagueId}`
+    scheduledLog(`sport=${leagueConfig.sport}`)
+    scheduledLog(`league=${leagueConfig.league}`)
+    debugLog(`scheduled_request_url=${redactedURL}`)
+
+    try {
+      const response = await fetch(url)
+      debugLog(`scheduled_response_status=${response.status}`)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const raw = await response.text()
+      debugLog(`scheduled_raw_response=${rawPreview(raw)}`)
+      const data = JSON.parse(raw)
+      const events = Array.isArray(data?.events) ? data.events : []
+      counts.fetched += events.length
+
+      const fetchedByDate = new Map<string, number>()
+      for (const event of events) {
+        const date = String(event?.dateEvent ?? "unknown")
+        fetchedByDate.set(date, (fetchedByDate.get(date) ?? 0) + 1)
+
+        const normalized = normalizeSportsDBScheduledFixture(event, leagueConfig)
+        if (normalized) {
+          counts.normalized += 1
+          allMatches.push(normalized)
+        }
+      }
+
+      if (fetchedByDate.size === 0) {
+        scheduledLog("date=none")
+        scheduledLog("fetched=0")
+      } else {
+        for (const [date, fetched] of fetchedByDate.entries()) {
+          scheduledLog(`date=${date}`)
+          scheduledLog(`fetched=${fetched}`)
+        }
+      }
+    } catch (error) {
+      counts.errors += 1
+      const message = error instanceof Error ? error.message : String(error)
+      scheduledLog(`error=${message}`)
+    }
+  }
+
+  return normalizeScheduledFixtureBatch(allMatches, matchWindow, counts)
 }
 
 async function fetchTheSportsDBPremiumV2Matches(
@@ -222,33 +316,6 @@ async function fetchTheSportsDBV1Matches(
     debugLog(`filtered_count=${normalizedCount}`)
   }
 
-  for (const leagueId of configuredSportsDBUpcomingLeagueIds()) {
-    const encodedLeagueId = encodeURIComponent(leagueId)
-    const url = `https://www.thesportsdb.com/api/v1/json/${apiKey}/eventsnextleague.php?id=${encodedLeagueId}`
-    const redactedURL = `https://www.thesportsdb.com/api/v1/json/redacted/eventsnextleague.php?id=${encodedLeagueId}`
-    debugLog(`request_url=${redactedURL}`)
-    const response = await fetch(url)
-    debugLog(`response_status=${response.status}`)
-    if (!response.ok) continue
-
-    const raw = await response.text()
-    debugLog(`raw_response=${rawPreview(raw)}`)
-    const data = JSON.parse(raw)
-    const events = Array.isArray(data?.events) ? data.events : []
-    counts.sportsDBRaw += events.length
-    debugLog(`raw_count=${events.length}`)
-    let normalizedCount = 0
-    for (const event of events) {
-      const normalized = normalizeSportsDBEvent(event, String(event?.strLeague ?? leagueId))
-      if (normalized) {
-        normalizedCount += 1
-        allMatches.push(normalized)
-      }
-    }
-    counts.sportsDBNormalized += normalizedCount
-    debugLog(`filtered_count=${normalizedCount}`)
-  }
-
   return normalizeMatchBatch(allMatches, matchWindow, counts)
 }
 
@@ -279,6 +346,32 @@ function normalizeSportsDBEvent(event: Record<string, any>, fallbackLeague: stri
   }
 }
 
+function normalizeSportsDBScheduledFixture(
+  event: Record<string, any>,
+  fallback: ScheduledLeagueConfig,
+): LiveMatchUpsert | null {
+  const normalized = normalizeSportsDBEvent(event, fallback.league)
+  if (!normalized) return null
+
+  const rawStatus = event?.strStatus ?? event?.strProgress
+  const status = normalizeSportsDBStatus(rawStatus)
+  if (status !== "SCHEDULED") return null
+
+  return {
+    ...normalized,
+    sport: String(event?.strSport ?? "").trim() ? normalizeSportsDBSport(event?.strSport) : fallback.sport,
+    league: String(event?.strLeague ?? fallback.league),
+    score_home: 0,
+    score_away: 0,
+    match_status: "SCHEDULED",
+    minute: null,
+    payload: {
+      ...event,
+      fangeo_sync_kind: "scheduled_fixture",
+    },
+  }
+}
+
 function normalizeMatchBatch(
   matches: LiveMatchUpsert[],
   matchWindow: MatchWindow,
@@ -293,6 +386,65 @@ function normalizeMatchBatch(
   }
   counts.deduped += windowed.length - latestById.size
   return [...latestById.values()].sort((lhs, rhs) => lhs.start_time.localeCompare(rhs.start_time))
+}
+
+function normalizeScheduledFixtureBatch(
+  matches: LiveMatchUpsert[],
+  matchWindow: MatchWindow,
+  counts: ScheduledFixturesCounts,
+): LiveMatchUpsert[] {
+  const now = new Date()
+  const windowed = matches.filter((match) => {
+    const start = new Date(match.start_time)
+    return Number.isFinite(start.getTime()) && start >= now && start <= matchWindow.end
+  })
+  counts.windowFiltered += matches.length - windowed.length
+
+  const latestById = new Map<string, LiveMatchUpsert>()
+  for (const match of windowed) {
+    latestById.set(match.id, match)
+  }
+  counts.deduped += windowed.length - latestById.size
+  return [...latestById.values()].sort((lhs, rhs) => lhs.start_time.localeCompare(rhs.start_time))
+}
+
+async function fetchProtectedMatchIds(
+  supabase: ReturnType<typeof createClient>,
+  matchWindow: MatchWindow,
+): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from("live_matches")
+    .select("id")
+    .in("match_status", ["LIVE", "HT", "FT"])
+    .gte("start_time", matchWindow.startISO)
+    .lte("start_time", matchWindow.endISO)
+
+  if (error || !Array.isArray(data)) {
+    if (error) scheduledLog(`error=protected_id_query ${error.message}`)
+    return new Set()
+  }
+
+  return new Set(data.map((row) => String(row.id)).filter(Boolean))
+}
+
+function mergeLiveAndScheduledMatches(
+  liveMatches: LiveMatchUpsert[],
+  scheduledMatches: LiveMatchUpsert[],
+  protectedMatchIds: Set<string>,
+  counts: ScheduledFixturesCounts,
+): LiveMatchUpsert[] {
+  const liveIds = new Set(liveMatches.map((match) => match.id))
+  const merged = [...liveMatches]
+
+  for (const match of scheduledMatches) {
+    if (liveIds.has(match.id) || protectedMatchIds.has(match.id)) {
+      counts.protectedExisting += 1
+      continue
+    }
+    merged.push(match)
+  }
+
+  return merged
 }
 
 async function pruneStaleMatches(
@@ -342,6 +494,16 @@ function configuredSportsDBLiveLeagues(): string[] {
 
 function configuredSportsDBUpcomingLeagueIds(): string[] {
   return envList("THESPORTSDB_UPCOMING_LEAGUE_IDS", ["4387", "4391", "4424", "4328"])
+}
+
+function configuredSportsDBScheduledLeagues(): ScheduledLeagueConfig[] {
+  const known: Record<string, ScheduledLeagueConfig> = {
+    "4387": { id: "4387", sport: "NBA", league: "NBA" },
+    "4391": { id: "4391", sport: "NFL", league: "NFL" },
+    "4424": { id: "4424", sport: "MLB", league: "MLB" },
+    "4328": { id: "4328", sport: "Soccer", league: "English Premier League" },
+  }
+  return configuredSportsDBUpcomingLeagueIds().map((id) => known[id] ?? { id, sport: "Sports", league: id })
 }
 
 function envList(name: string, fallback: string[]): string[] {
@@ -420,6 +582,10 @@ function providerLog(message: string): void {
 
 function debugLog(message: string): void {
   console.log(`[LiveDebug] ${message}`)
+}
+
+function scheduledLog(message: string): void {
+  console.log(`[ScheduledFixturesSync] ${message}`)
 }
 
 function redactedSecretDescription(value: string | undefined): string {

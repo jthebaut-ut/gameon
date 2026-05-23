@@ -81,6 +81,19 @@ actor DiscoverMapImageCache {
         let removed = Set(urls)
         order.removeAll { removed.contains($0) }
     }
+
+    func store(_ image: UIImage, for urls: [URL]) {
+        for url in urls {
+            if storage[url] == nil {
+                if storage.count >= maxEntries, let old = order.first {
+                    storage.removeValue(forKey: old)
+                    order.removeFirst()
+                }
+                order.append(url)
+            }
+            storage[url] = image
+        }
+    }
 }
 
 /// Loads a remote image with RAM cache; keeps layout stable with an intentional placeholder (non-blocking).

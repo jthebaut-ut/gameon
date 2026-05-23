@@ -15,9 +15,23 @@ struct CalendarScreen: View {
     @State private var showCalendarSportMoreSheet = false
     @State private var calendarDatePickerDetent: PresentationDetent = .large
     @State private var gameSearchText = ""
+    @State private var calendarProGamesSportFilter = "All"
+    @State private var calendarProGamesWorldCupOnly = false
     @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
 
-    private let calendarVisibleGameFilters: [CalendarTabGameFilter] = [.venueGames, .pickupGames]
+    private let calendarVisibleGameFilters: [CalendarTabGameFilter] = [.venueGames, .pickupGames, .proGames]
+    private let calendarProVisibleSportFilters: [(selection: String, display: String?)] = [
+        ("All", nil),
+        ("Soccer", nil),
+        ("Basketball", nil),
+        ("Football", nil),
+        ("Baseball", nil),
+        ("Hockey", nil),
+        ("MMA", "Combat"),
+        ("Racing", nil),
+        ("Golf", nil),
+        ("Tennis", nil)
+    ]
 
     private var displayedEvents: [SportsEvent] {
         viewModel.calendarScreenDisplayedEvents(
@@ -25,6 +39,19 @@ struct CalendarScreen: View {
             searchQuery: gameSearchText,
             filter: viewModel.calendarTabGameFilter
         )
+    }
+
+    private var displayedProMatches: [LiveMatch] {
+        viewModel.calendarProGamesDisplayed(
+            selectedDate: viewModel.calendarTabSelectedDate,
+            searchQuery: gameSearchText,
+            sportFilter: calendarProGamesSportFilter,
+            worldCupOnly: calendarProGamesWorldCupOnly
+        )
+    }
+
+    private var isProGamesSelected: Bool {
+        viewModel.calendarTabGameFilter == .proGames
     }
 
     private var calendarTabSelectedDayIsTodayOrFuture: Bool {
@@ -107,7 +134,7 @@ struct CalendarScreen: View {
 
                 gameSearchBar
 
-                sportFilterBar
+                calendarSecondaryFilterBar
 
                 eventsHeader
 
@@ -181,24 +208,28 @@ struct CalendarScreen: View {
                 viewModel.calendarTabSelectedDate,
                 reason: "calendar_tab_filter_change"
             )
-            normalizeCalendarGameFilter()
+            refreshCalendarProGamesIfNeeded(reason: "calendar_tab_filter_change")
         }
         .sheet(isPresented: $showCalendarSportMoreSheet) {
-            DiscoverSportFilterMoreSheet(selectedSport: viewModel.selectedSport) { sport in
+            DiscoverSportFilterMoreSheet(selectedSport: isProGamesSelected ? calendarProGamesSportFilter : viewModel.selectedSport) { sport in
                 showCalendarSportMoreSheet = false
                 withAnimation(.spring()) {
-                    viewModel.sportChanged(to: sport)
+                    if isProGamesSelected {
+                        calendarProGamesSportFilter = sport
+                    } else {
+                        viewModel.sportChanged(to: sport)
+                    }
                 }
             }
         }
         .onAppear {
-            normalizeCalendarGameFilter()
             guard isCalendarTabSelected else {
 #if DEBUG
                 print("[PerfPhase1D] deferredCalendarWork reason=calendarScreenOnAppearPickupRefresh")
 #endif
                 return
             }
+            refreshCalendarProGamesIfNeeded(reason: "calendar_tab_appear")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
@@ -206,7 +237,7 @@ struct CalendarScreen: View {
         }
         .onChange(of: isCalendarTabSelected) { _, active in
             guard active else { return }
-            normalizeCalendarGameFilter()
+            refreshCalendarProGamesIfNeeded(reason: "calendar_tab_selected")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
@@ -215,6 +246,7 @@ struct CalendarScreen: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             guard isCalendarTabSelected else { return }
+            refreshCalendarProGamesIfNeeded(reason: "calendar_scene_active")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
@@ -302,7 +334,12 @@ struct CalendarScreen: View {
 
             Spacer()
 
-            if viewModel.isLoadingEvents {
+            if isProGamesSelected {
+                if viewModel.isLoadingLiveMatches {
+                    ProgressView()
+                        .controlSize(displayedProMatches.isEmpty ? .regular : .small)
+                }
+            } else if viewModel.isLoadingEvents {
                 ProgressView()
             } else if viewModel.isRefreshingDiscoverEvents && !displayedEvents.isEmpty {
                 ProgressView()
@@ -318,14 +355,19 @@ struct CalendarScreen: View {
             return "Venue Games"
         case .pickupGames:
             return "Pickup Games"
-        case .live:
-            return "Venue Games"
+        case .proGames:
+            return "Pro Games"
         }
     }
 
-    private func normalizeCalendarGameFilter() {
-        guard viewModel.calendarTabGameFilter == .live else { return }
-        viewModel.calendarTabGameFilter = .venueGames
+    private func refreshCalendarProGamesIfNeeded(reason: String) {
+        guard isProGamesSelected else { return }
+#if DEBUG
+        print("[CalendarProGamesDebug] refreshReason=\(reason)")
+#endif
+        Task {
+            await viewModel.refreshLiveMatchesForCalendar(forceRefresh: false)
+        }
     }
 
     private var gameSearchBar: some View {
@@ -366,15 +408,20 @@ struct CalendarScreen: View {
             } else {
                 ScrollView {
                     Group {
-                        if displayedEvents.isEmpty {
-                            Text("No events found for this date or search.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color(.secondarySystemGroupedBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 18))
-                                .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
+                        if isProGamesSelected {
+                            let proMatches = displayedProMatches
+                            if proMatches.isEmpty {
+                                calendarEmptyState("No pro games found for this date or search.")
+                            } else {
+                                VStack(spacing: 12) {
+                                    ForEach(proMatches) { match in
+                                        calendarProGameCard(match)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .top)
+                            }
+                        } else if displayedEvents.isEmpty {
+                            calendarEmptyState("No events found for this date or search.")
                         } else {
                             VStack(spacing: 12) {
                                 ForEach(displayedEvents) { event in
@@ -402,6 +449,75 @@ struct CalendarScreen: View {
             .frame(maxWidth: .infinity, minHeight: Self.eventsListMinHeight, alignment: .center)
     }
 
+    @ViewBuilder
+    private var calendarSecondaryFilterBar: some View {
+        if isProGamesSelected {
+            proGamesFilterStack
+        } else {
+            sportFilterBar
+        }
+    }
+
+    private var proGamesFilterStack: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            proGamesSportFilterBar
+            proGamesWorldCupFilterBar
+        }
+    }
+
+    private var proGamesSportFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(calendarProVisibleSportFilters, id: \.selection) { item in
+                    proGamesSportChip(selection: item.selection, displayTitle: item.display)
+                }
+
+                SportFilterChip(sport: "More", isSelected: false, isCompact: true) {
+                    showCalendarSportMoreSheet = true
+                }
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal)
+    }
+
+    private var proGamesWorldCupFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                        calendarProGamesWorldCupOnly.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Text("World Cup only")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 34)
+                    .foregroundStyle(calendarProGamesWorldCupOnly ? Color.white : FGColor.dangerRed)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(calendarProGamesWorldCupOnly ? FGColor.dangerRed : FGColor.dangerRed.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
+                    }
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(FGColor.dangerRed.opacity(calendarColorScheme == .dark ? 0.44 : 0.28), lineWidth: 1)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("World Cup only")
+                .accessibilityValue(calendarProGamesWorldCupOnly ? "On" : "Off")
+            }
+            .padding(.horizontal, 4)
+        }
+        .padding(.horizontal)
+    }
+
     private var sportFilterBar: some View {
         ScalableSportFilterChipRow(
             viewModel: viewModel,
@@ -409,6 +525,19 @@ struct CalendarScreen: View {
             rowSpacing: 10,
             isCompact: true
         )
+    }
+
+    private func proGamesSportChip(selection: String, displayTitle: String? = nil) -> some View {
+        SportFilterChip(
+            sport: selection,
+            displayTitle: displayTitle,
+            isSelected: DiscoverSportFilterRowLayout.selectionTokensMatch(calendarProGamesSportFilter, selection),
+            isCompact: true
+        ) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                calendarProGamesSportFilter = selection
+            }
+        }
     }
 
     private func handleEventTap(_ event: SportsEvent) {
@@ -446,6 +575,84 @@ struct CalendarScreen: View {
             pickupCalendarEventCard(event)
         } else {
             venueCalendarEventCard(event)
+        }
+    }
+
+    private func calendarProGameCard(_ match: LiveMatch) -> some View {
+        let sportKey = match.liveSportVisualType.sportFilterCatalogKey
+        let accent = match.matchStatus.isHappeningNow ? FGColor.dangerRed : viewModel.colorForSport(sportKey)
+        return HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(calendarColorScheme == .dark ? 0.24 : 0.13))
+                SportArtworkIconView(sport: sportKey, diameter: 40, preferSystemSymbol: true)
+            }
+            .frame(width: 56, height: 56)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(calendarProGameStatusText(match))
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(accent.opacity(calendarColorScheme == .dark ? 0.18 : 0.10))
+                        )
+
+                    Text("\(match.sport) • \(match.league)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Text("\(match.awayTeam) at \(match.homeTeam)")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                Text(calendarProGameStartTimeText(match))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if match.matchStatus.isHappeningNow || match.matchStatus == .fullTime {
+                    Text("\(match.awayTeam) \(match.scoreAway) · \(match.homeTeam) \(match.scoreHome)")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func calendarProGameStartTimeText(_ match: LiveMatch) -> String {
+        CompactGameTimeFormatter.timeWithZone(
+            for: match.startTime,
+            timeZoneOption: viewModel.selectedTimeZone
+        )
+    }
+
+    private func calendarProGameStatusText(_ match: LiveMatch) -> String {
+        switch match.matchStatus {
+        case .live:
+            if let minute = match.minute {
+                return "LIVE \(minute)'"
+            }
+            return "LIVE"
+        case .halfTime:
+            return "HT"
+        case .fullTime:
+            return "Final"
+        case .scheduled:
+            return "Scheduled"
         }
     }
 

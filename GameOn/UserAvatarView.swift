@@ -1,10 +1,12 @@
 import SwiftUI
+import UIKit
 
 /// Shared profile avatar: optional ``AsyncImage`` from stored URLs (thumbnail-aware), otherwise initials on a neutral circle (same rules as Settings hero).
 struct UserAvatarView: View {
     var avatarThumbnailURL: String?
     let avatarURL: String
     var avatarDisplayRefreshToken: UUID
+    var localPreviewImage: UIImage? = nil
     let displayName: String
     let email: String
     let size: CGFloat
@@ -31,30 +33,90 @@ struct UserAvatarView: View {
 
     var body: some View {
         ZStack {
-            if let url = resolvedListURL {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    if let imagePlaceholderTint {
-                        ProgressView().tint(imagePlaceholderTint)
-                    } else {
-                        ProgressView()
-                    }
-                }
-            } else if shouldShowGenericPerson {
-                Image(systemName: "person.fill")
-                    .font(.system(size: size * 0.42, weight: .medium))
-                    .foregroundStyle(.secondary)
-            } else {
-                fallbackCircle
-                Text(Self.initials(displayName: displayName, email: email))
-                    .font(.system(size: max(12, size * 0.28), weight: .bold, design: .rounded))
-                    .foregroundStyle(fallbackInitialsForeground)
+            fallbackContent
+
+            if let localPreviewImage {
+                Image(uiImage: localPreviewImage)
+                    .resizable()
+                    .scaledToFill()
+                    .transition(.opacity)
+            } else if let url = resolvedListURL {
+                SmoothCachedAvatarImage(url: url, size: size)
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+        .contentShape(Circle())
     }
+
+    @ViewBuilder
+    private var fallbackContent: some View {
+        if shouldShowGenericPerson {
+            Image(systemName: "person.fill")
+                .font(.system(size: size * 0.42, weight: .medium))
+                .foregroundStyle(.secondary)
+        } else {
+            fallbackCircle
+            Text(Self.initials(displayName: displayName, email: email))
+                .font(.system(size: max(12, size * 0.28), weight: .bold, design: .rounded))
+                .foregroundStyle(fallbackInitialsForeground)
+        }
+
+        if resolvedListURL != nil, localPreviewImage == nil, let imagePlaceholderTint {
+            ProgressView()
+                .controlSize(.small)
+                .tint(imagePlaceholderTint)
+        }
+    }
+}
+
+private struct SmoothCachedAvatarImage: View {
+    let url: URL
+    let size: CGFloat
+
+    @State private var uiImage: UIImage?
+    @State private var imageOpacity = 0.0
+
+    var body: some View {
+        Group {
+            if let uiImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .opacity(imageOpacity)
+            } else {
+                Color.clear
+            }
+        }
+        .frame(width: size, height: size)
+        .task(id: url.absoluteString) {
+            imageOpacity = 0
+            uiImage = nil
+
+            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
+                guard !Task.isCancelled else { return }
+                uiImage = cached
+                imageOpacity = 1
+#if DEBUG
+                print("[UISmoothnessDebug] avatarLoadedFromCache=true")
+#endif
+                return
+            }
+
+            guard let loaded = await DiscoverMapImageCache.shared.image(for: url),
+                  !Task.isCancelled else { return }
+            uiImage = loaded
+#if DEBUG
+            print("[UISmoothnessDebug] avatarLoadedFromCache=false")
+#endif
+            withAnimation(.easeOut(duration: 0.22)) {
+                imageOpacity = 1
+            }
+        }
+    }
+}
+
+extension UserAvatarView {
 
     /// True only when there is no usable name or email to derive initials (anonymous / pre-sign-in surfaces).
     private var shouldShowGenericPerson: Bool {

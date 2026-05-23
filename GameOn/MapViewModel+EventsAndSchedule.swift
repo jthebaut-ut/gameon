@@ -265,7 +265,7 @@ extension MapViewModel {
                 if $0.time != $1.time { return $0.time < $1.time }
                 return $0.title < $1.title
             }
-        case .live:
+        case .proGames:
             return []
         }
     }

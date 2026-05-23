@@ -2,6 +2,7 @@ import Photos
 import SwiftUI
 import PhotosUI
 import CoreLocation
+import UIKit
 
 struct UserProfileScreen: View {
     @ObservedObject var viewModel: MapViewModel
@@ -18,6 +19,7 @@ struct UserProfileScreen: View {
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isSaving: Bool = false
     @State private var isUploadingAvatar: Bool = false
+    @State private var localAvatarPreviewImage: UIImage?
     @State private var message: String = ""
     @AppStorage(FavoriteTeamsStore.appStorageKey) private var favoriteTeamIDsRaw: String = ""
 
@@ -327,20 +329,6 @@ struct UserProfileScreen: View {
         String(raw.prefix(Self.bioCharacterLimit))
     }
 
-    private var initials: String {
-        let name = resolvedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty {
-            let parts = name.split(separator: " ").filter { !$0.isEmpty }
-            if parts.count >= 2 {
-                return "\(parts[0].prefix(1))\(parts[1].prefix(1))".uppercased()
-            }
-            return "\(name.prefix(2))".uppercased()
-        }
-        let email = viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        let local = email.split(separator: "@").first.map(String.init) ?? ""
-        return local.isEmpty ? "U" : "\(local.prefix(2))".uppercased()
-    }
-
     private func profilePhotoPickFailureHint() -> String {
         switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
         case .denied, .restricted:
@@ -353,32 +341,18 @@ struct UserProfileScreen: View {
     }
 
     private var profileAvatar: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white.opacity(0.18))
-
-            if let urlString = ImageDisplayURL.forDetailDisplay(
-                thumbnail: viewModel.currentUserAvatarThumbnailURL,
-                full: viewModel.currentUserAvatarURL,
-                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
-            ),
-               let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .scaledToFill()
-                } placeholder: {
-                    ProgressView()
-                        .tint(.white)
-                }
-            } else {
-                Text(initials)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
-            }
-        }
+        UserAvatarView(
+            avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
+            avatarURL: viewModel.currentUserAvatarURL,
+            avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+            localPreviewImage: localAvatarPreviewImage,
+            displayName: resolvedDisplayName,
+            email: viewModel.currentUserEmail,
+            size: 76,
+            fallbackStyle: .darkCardTranslucent,
+            imagePlaceholderTint: .white
+        )
         .frame(width: 76, height: 76)
-        .clipShape(Circle())
         .overlay {
             Circle()
                 .strokeBorder(Color.white.opacity(0.22), lineWidth: 2)
@@ -477,15 +451,25 @@ struct UserProfileScreen: View {
             await MainActor.run { message = profilePhotoPickFailureHint() }
             return
         }
+        let previewImage = UIImage(data: data)
+        await MainActor.run {
+            localAvatarPreviewImage = previewImage
+        }
         guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
-            await MainActor.run { message = "Unable to upload avatar." }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                message = "Unable to upload avatar."
+            }
             return
         }
 
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? resolvedDisplayName : trimmed
         if ModerationService.containsProfanity(nextName) {
-            await MainActor.run { message = ModerationService.profanityRejectionUserMessage() }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                message = ModerationService.profanityRejectionUserMessage()
+            }
             return
         }
         if let err = await viewModel.saveUserProfile(
@@ -493,9 +477,24 @@ struct UserProfileScreen: View {
             avatarURL: urls.fullURL,
             avatarThumbnailURL: urls.thumbnailURL
         ) {
-            await MainActor.run { message = err }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                message = err
+            }
             return
         }
-        await MainActor.run { message = "Avatar updated." }
+        if let previewImage {
+            let refreshToken = await MainActor.run { viewModel.currentUserAvatarDisplayRefreshToken }
+            let cacheURLs = ImageDisplayURL.displayURLs(
+                thumbnail: urls.thumbnailURL,
+                full: urls.fullURL,
+                refreshToken: refreshToken
+            )
+            await DiscoverMapImageCache.shared.store(previewImage, for: cacheURLs)
+        }
+        await MainActor.run {
+            localAvatarPreviewImage = nil
+            message = "Avatar updated."
+        }
     }
 }

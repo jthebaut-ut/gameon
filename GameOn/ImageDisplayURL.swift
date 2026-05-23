@@ -58,4 +58,13 @@ enum ImageDisplayURL {
         ) else { return nil }
         return displayVersionedURLString(base, refreshToken: refreshToken)
     }
+
+    static func displayURLs(thumbnail: String?, full: String?, refreshToken: UUID) -> [URL] {
+        [
+            forListDisplay(thumbnail: thumbnail, full: full, refreshToken: refreshToken),
+            forDetailDisplay(thumbnail: thumbnail, full: full, refreshToken: refreshToken)
+        ]
+        .compactMap { $0 }
+        .compactMap(URL.init(string:))
+    }
 }

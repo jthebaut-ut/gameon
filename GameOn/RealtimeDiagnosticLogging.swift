@@ -21,7 +21,7 @@ enum DebugLogGate {
 }
 
 enum UIPerformanceDiagnostics {
-    /// Manually flip to `true` during a profiling run to enable `[UIPerf]` logs and os_signpost events.
+    /// Profiling switch: temporarily set this to `true` to enable `[UIPerf]` logs and os_signpost events.
     static var uiPerformanceDiagnosticsEnabled = false
 
     private static let signpostLog = OSLog(
@@ -30,11 +30,13 @@ enum UIPerformanceDiagnostics {
     )
 
     static func timestamp() -> CFAbsoluteTime {
-        CFAbsoluteTimeGetCurrent()
+        guard uiPerformanceDiagnosticsEnabled else { return 0 }
+        return CFAbsoluteTimeGetCurrent()
     }
 
     static func elapsedMs(since start: CFAbsoluteTime) -> Double {
-        (CFAbsoluteTimeGetCurrent() - start) * 1000
+        guard uiPerformanceDiagnosticsEnabled else { return 0 }
+        return (CFAbsoluteTimeGetCurrent() - start) * 1000
     }
 
     static func formattedMs(_ ms: Double) -> String {
@@ -57,6 +59,7 @@ enum UIPerformanceDiagnostics {
     }
 
     static func logDiscoverScrollFrameDropIfNeeded(elapsedMs: Double, source: String, eventId: String? = nil) {
+        guard uiPerformanceDiagnosticsEnabled else { return }
         guard elapsedMs >= 16.7 else { return }
         let eventText = eventId.map { " eventId=\($0)" } ?? ""
         log("discoverScrollFrameDrop suspected=true source=\(source)\(eventText) ms=\(formattedMs(elapsedMs))")

@@ -424,6 +424,7 @@ struct MainTabView: View {
             "from=\(tabSwitchFromTab?.rawValue ?? "unknown") to=\(tab.rawValue) reason=\(reason)"
         )
 #if DEBUG
+        print("[UISmoothnessDebug] tabTransition=\(tabSwitchFromTab?.rawValue ?? "unknown")->\(tab.rawValue)")
         print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
         print("[TabPerfDebug] tabSwitchStart=\(tabSwitchStartAt?.timeIntervalSince1970 ?? 0)")
         print("[TabPerfDebug] usedCachedData=\(tabSwitchCachedData ?? false)")
@@ -758,6 +759,7 @@ struct MainTabView: View {
             .allowsHitTesting(isSelected)
             .accessibilityHidden(!isSelected)
             .zIndex(isSelected ? 1 : 0)
+            .animation(.easeInOut(duration: 0.18), value: isSelected)
     }
     
     /// Business tab building icon: orange while any location claim is pending; green when every managed venue is active and nothing is pending.

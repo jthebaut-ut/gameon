@@ -24,6 +24,7 @@ struct LiveScreen: View {
     @State private var liveAutoRefreshTask: Task<Void, Never>?
     @State private var liveGamesSportFilter: LiveSportVisualType?
     @State private var liveGamesWorldCupFilterSelected = false
+    @State private var liveNowExpanded = false
     @State private var liveWatchSpotsPresentation: LiveWatchSpotsPresentation?
     @State private var fanUpdatesSheetEvent: FanUpdatesSheetEvent?
 
@@ -615,37 +616,53 @@ struct LiveScreen: View {
             totalLiveGames: allLiveGames.count,
             matchedWorldCupGames: worldCupMatches
         )
+        let _: Void = logLiveNowSectionDebug(liveNowExpanded: liveNowExpanded, liveNowCount: matches.count)
 
-        return livePanelSection(
+        return liveCollapsiblePanelSection(
             kind: .liveGames,
-            title: "Live Games",
-            subtitle: "Pro scores on TV right now"
+            title: "Live Now",
+            count: matches.count,
+            subtitle: "Pro scores on TV right now",
+            isExpanded: liveNowExpanded,
+            toggle: toggleLiveNowExpanded
         ) {
-            liveGamesSportFilterBar
-            if viewModel.isLoadingLiveMatches && matches.isEmpty {
-                liveGamesLoadingCard
-            } else if matches.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    liveSectionEmptyState(liveGamesEmptyStateMessage)
+            if liveNowExpanded {
+                liveGamesSportFilterBar
+                if viewModel.isLoadingLiveMatches && matches.isEmpty {
+                    liveGamesLoadingCard
+                } else if matches.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        liveSectionEmptyState(liveGamesEmptyStateMessage)
 #if DEBUG
-                    if let hint = viewModel.liveMatchesEmptyDebugHint {
-                        Text(hint)
-                            .font(.caption2)
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                        if let hint = viewModel.liveMatchesEmptyDebugHint {
+                            Text(hint)
+                                .font(.caption2)
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
 #endif
-                }
-            } else {
-                VStack(spacing: 10) {
-                    ForEach(matches) { match in
-                        liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
                     }
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(matches) { match in
+                            liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                        }
+                    }
+                    .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
+                    .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
                 }
-                .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
-                .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesWorldCupFilterSelected)
             }
         }
+    }
+
+    private func toggleLiveNowExpanded() {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+            liveNowExpanded.toggle()
+        }
+#if DEBUG
+        print("[LiveTabDebug] liveNowExpanded=\(liveNowExpanded)")
+        print("[LiveTabDebug] liveNowCount=\(displayedLiveMatches.count)")
+#endif
     }
 
     private var liveGamesEmptyStateMessage: String {
@@ -834,6 +851,13 @@ struct LiveScreen: View {
             print("[LiveWorldCupFilterDebug] league=\(match.league)")
             print("[LiveWorldCupFilterDebug] title=\(match.awayTeam) at \(match.homeTeam)")
         }
+#endif
+    }
+
+    private func logLiveNowSectionDebug(liveNowExpanded: Bool, liveNowCount: Int) {
+#if DEBUG
+        print("[LiveTabDebug] liveNowExpanded=\(liveNowExpanded)")
+        print("[LiveTabDebug] liveNowCount=\(liveNowCount)")
 #endif
     }
 
@@ -2013,6 +2037,79 @@ struct LiveScreen: View {
             .overlay {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .strokeBorder(kind.panelStroke(colorScheme: colorScheme), lineWidth: 1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func liveCollapsiblePanelSection<Content: View>(
+        kind: LivePanelKind,
+        title: String,
+        count: Int,
+        subtitle: String,
+        isExpanded: Bool,
+        toggle: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let accent = kind.accentColor(colorScheme: colorScheme)
+        return VStack(alignment: .leading, spacing: 14) {
+            Button(action: toggle) {
+                HStack(alignment: .center, spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(accent.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: kind.icon)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(accent)
+                    }
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 7) {
+                            Text("\(title) (\(count))")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .foregroundStyle(FGColor.primaryText(colorScheme))
+                            if count > 0 {
+                                Circle()
+                                    .fill(FGColor.dangerRed)
+                                    .frame(width: 8, height: 8)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        Text(subtitle)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(accent)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(.spring(response: 0.28, dampingFraction: 0.86), value: isExpanded)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(title), \(count) games")
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint("Toggles the live games section")
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    content()
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(kind.panelFill(colorScheme: colorScheme))
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .strokeBorder(kind.panelStroke(colorScheme: colorScheme), lineWidth: 1)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

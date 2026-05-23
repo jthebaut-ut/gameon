@@ -106,17 +106,18 @@ enum DiscoverMapContentMode: String, CaseIterable, Identifiable, Equatable {
     var id: String { rawValue }
 }
 
-/// Discover overlay calendar day markers: green (venue games) vs blue (pickup games).
+/// Discover/Calendar day markers: green (venue games), orange (pickup games), red (pro games).
 enum DiscoverCalendarDotPalette: Equatable {
     case venueGames
     case pickupGames
+    case proGames
 }
 
 /// Bottom-tab Calendar: filter list + day dots (session-only; not persisted).
 enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
     case venueGames
     case pickupGames
-    case live
+    case proGames
 
     var id: String { rawValue }
 
@@ -124,7 +125,7 @@ enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
         switch self {
         case .venueGames: return "Venue Games"
         case .pickupGames: return "Pickup Games"
-        case .live: return "Live"
+        case .proGames: return "Pro Games"
         }
     }
 }

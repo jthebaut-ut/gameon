@@ -130,6 +130,47 @@ extension MapViewModel {
         liveMatchesDisplayed(searchQuery: searchQuery, statuses: [.live, .halfTime])
     }
 
+    func calendarProGamesDisplayed(
+        selectedDate: Date,
+        searchQuery: String,
+        sportFilter: String,
+        worldCupOnly: Bool
+    ) -> [LiveMatch] {
+        let cal = Calendar.current
+        let day = cal.startOfDay(for: selectedDate)
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let sport = sportFilter.trimmingCharacters(in: .whitespacesAndNewlines)
+        let matches = liveMatches
+            .filter { cal.isDate($0.startTime, inSameDayAs: day) }
+            .filter { match in
+                sport.isEmpty
+                    || sport.localizedCaseInsensitiveCompare("All") == .orderedSame
+                    || match.sport.localizedCaseInsensitiveCompare(sport) == .orderedSame
+                    || SportFilterCatalog.storedSport(match.sport, matchesSearchQuery: sport)
+            }
+            .filter { query.isEmpty || Self.liveMatch($0, matchesSearchQuery: query) }
+            .filter { !worldCupOnly || Self.liveMatchMatchesWorldCupFilter($0) }
+            .sorted { lhs, rhs in
+                if lhs.startTime != rhs.startTime { return lhs.startTime < rhs.startTime }
+                if lhs.league != rhs.league {
+                    return lhs.league.localizedCaseInsensitiveCompare(rhs.league) == .orderedAscending
+                }
+                return "\(lhs.awayTeam) \(lhs.homeTeam)".localizedCaseInsensitiveCompare("\(rhs.awayTeam) \(rhs.homeTeam)") == .orderedAscending
+            }
+#if DEBUG
+        print("[CalendarProGamesDebug] selectedDate=\(Self.calendarProGamesDebugDateFormatter.string(from: day))")
+        print("[CalendarProGamesDebug] sportFilter=\(sport.isEmpty ? "All" : sport)")
+        print("[CalendarProGamesDebug] worldCupOnly=\(worldCupOnly)")
+        print("[CalendarProGamesDebug] filteredCount=\(matches.count)")
+#endif
+        return matches
+    }
+
+    func calendarProGameDotDates() -> Set<Date> {
+        let cal = Calendar.current
+        return Set(liveMatches.map { cal.startOfDay(for: $0.startTime) })
+    }
+
     private func liveMatchesDisplayed(
         searchQuery: String,
         sportFilter: LiveSportVisualType? = nil,
@@ -164,4 +205,124 @@ extension MapViewModel {
             || match.sport.localizedCaseInsensitiveContains(query)
             || SportFilterCatalog.storedSport(match.sport, matchesSearchQuery: query)
     }
+
+    private static let calendarProGamesDebugDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    private static func liveMatchMatchesWorldCupFilter(_ match: LiveMatch) -> Bool {
+        let league = normalizedWorldCupFilterText(match.league)
+        let title = normalizedWorldCupFilterText("\(match.awayTeam) \(match.homeTeam)")
+        let sport = match.liveSportVisualType
+
+        let clubTournamentKeywords = [
+            "champions league",
+            "europa league",
+            "conference league",
+            "champions cup",
+            "libertadores",
+            "sudamericana",
+            "club world cup"
+        ]
+        if clubTournamentKeywords.contains(where: { league.contains($0) }) {
+            return false
+        }
+
+        let tournamentKeywords = [
+            "world cup",
+            "fifa",
+            "concacaf",
+            "conmebol",
+            "uefa",
+            "international",
+            "friendlies",
+            "friendly",
+            "nations league",
+            "gold cup",
+            "copa america",
+            "euros",
+            "euro qualifiers",
+            "world cup qualification",
+            "world cup qualifier"
+        ]
+        if tournamentKeywords.contains(where: { league.contains($0) }) {
+            return true
+        }
+
+        guard sport == .soccer else { return false }
+        if tournamentKeywords.contains(where: { title.contains($0) }) {
+            return true
+        }
+
+        return isLikelyNationalTeamName(match.awayTeam) && isLikelyNationalTeamName(match.homeTeam)
+    }
+
+    private static func normalizedWorldCupFilterText(_ raw: String) -> String {
+        raw
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "/", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
+    private static func isLikelyNationalTeamName(_ rawTeam: String) -> Bool {
+        var name = normalizedWorldCupFilterText(rawTeam)
+        let suffixes = [
+            " national team",
+            " men",
+            " women",
+            " u23",
+            " u21",
+            " u20",
+            " u19",
+            " u18",
+            " u17"
+        ]
+        for suffix in suffixes where name.hasSuffix(suffix) {
+            name = String(name.dropLast(suffix.count)).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return worldCupFilterNationalTeamNames.contains(name)
+    }
+
+    private static let worldCupFilterNationalTeamNames: Set<String> = {
+        var names = Set<String>()
+        for region in Locale.Region.isoRegions {
+            let code = region.identifier
+            let locale = Locale(identifier: "en_US")
+            if let country = locale.localizedString(forRegionCode: code) {
+                names.insert(
+                    country
+                        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+                        .lowercased()
+                )
+            }
+        }
+        names.formUnion([
+            "usa",
+            "us",
+            "united states",
+            "england",
+            "scotland",
+            "wales",
+            "northern ireland",
+            "republic of ireland",
+            "south korea",
+            "north korea",
+            "ivory coast",
+            "cote d ivoire",
+            "czech republic",
+            "czechia",
+            "iran",
+            "russia",
+            "turkiye",
+            "turkey"
+        ])
+        return names
+    }()
 }

@@ -397,6 +397,8 @@ struct EventCalendarView: View {
         switch calendarDotPalette {
         case .some(.pickupGames):
             return Color.orange
+        case .some(.proGames):
+            return FGColor.dangerRed
         case .some(.venueGames), .none:
             return Color(UIColor.systemGreen)
         }
@@ -662,6 +664,7 @@ struct EventCalendarView: View {
                 switch p {
                 case .venueGames: return "venueGames"
                 case .pickupGames: return "pickupGames"
+                case .proGames: return "proGames"
                 }
             }()
             let venueDotCount = calendarDotPalette == .some(.venueGames) ? eventDotDates.count : 0

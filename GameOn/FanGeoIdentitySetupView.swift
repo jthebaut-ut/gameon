@@ -1,5 +1,6 @@
 import PhotosUI
 import SwiftUI
+import UIKit
 
 /// Blocking or in-flow setup for display name + @handle after fan signup (or handle-only from profile).
 struct FanGeoIdentitySetupView: View {
@@ -23,6 +24,7 @@ struct FanGeoIdentitySetupView: View {
     @State private var selectedAvatarItem: PhotosPickerItem?
     @State private var isSaving = false
     @State private var isUploadingAvatar = false
+    @State private var localAvatarPreviewImage: UIImage?
     @State private var errorMessage = ""
     @State private var displayNameError = ""
     @State private var handleStatusMessage = ""
@@ -129,6 +131,7 @@ struct FanGeoIdentitySetupView: View {
                 displayName: displayNameDraft,
                 isUploadingAvatar: isUploadingAvatar,
                 isSaving: isSaving,
+                localPreviewImage: localAvatarPreviewImage,
                 selectedAvatarItem: $selectedAvatarItem
             )
         }
@@ -388,13 +391,27 @@ struct FanGeoIdentitySetupView: View {
         defer { isUploadingAvatar = false }
 
         guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        let previewImage = UIImage(data: data)
+        localAvatarPreviewImage = previewImage
         let fileName = "avatar-\(Int(Date().timeIntervalSince1970)).jpg"
-        guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: fileName) else { return }
+        guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: fileName) else {
+            localAvatarPreviewImage = nil
+            return
+        }
         _ = await viewModel.saveUserProfile(
             displayName: viewModel.currentUserDisplayName,
             avatarURL: urls.fullURL,
             avatarThumbnailURL: urls.thumbnailURL
         )
+        if let previewImage {
+            let cacheURLs = ImageDisplayURL.displayURLs(
+                thumbnail: urls.thumbnailURL,
+                full: urls.fullURL,
+                refreshToken: viewModel.currentUserAvatarDisplayRefreshToken
+            )
+            await DiscoverMapImageCache.shared.store(previewImage, for: cacheURLs)
+        }
+        localAvatarPreviewImage = nil
     }
 }
 
@@ -412,6 +429,7 @@ private struct IdentitySetupAvatarPickerRow: View {
     let displayName: String
     let isUploadingAvatar: Bool
     let isSaving: Bool
+    let localPreviewImage: UIImage?
     @Binding var selectedAvatarItem: PhotosPickerItem?
 
     var body: some View {
@@ -421,6 +439,7 @@ private struct IdentitySetupAvatarPickerRow: View {
                     avatarThumbnailURL: snapshot.thumbnailURL,
                     avatarURL: snapshot.avatarURL,
                     avatarDisplayRefreshToken: snapshot.refreshToken,
+                    localPreviewImage: localPreviewImage,
                     displayName: displayName,
                     email: snapshot.email,
                     size: 56,

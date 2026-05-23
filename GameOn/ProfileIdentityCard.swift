@@ -85,6 +85,7 @@ struct ProfileIdentityCard: View {
     @State private var availabilityTask: Task<Void, Never>?
     @State private var isSavingIdentity = false
     @State private var isUploadingAvatar = false
+    @State private var localAvatarPreviewImage: UIImage?
     @State private var incomingPokes: [ProfilePokeIncomingItem] = []
     @State private var incomingPokeTotalCount = 0
     @State private var isLoadingIncomingPokes = false
@@ -1433,6 +1434,7 @@ struct ProfileIdentityCard: View {
                 avatarThumbnailURL: viewModel.currentUserAvatarThumbnailURL,
                 avatarURL: viewModel.currentUserAvatarURL,
                 avatarDisplayRefreshToken: viewModel.currentUserAvatarDisplayRefreshToken,
+                localPreviewImage: localAvatarPreviewImage,
                 displayName: displayName,
                 email: viewModel.currentUserEmail,
                 size: 94,
@@ -1698,7 +1700,10 @@ struct ProfileIdentityCard: View {
         let trimmed = editedDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
         let nextName = trimmed.isEmpty ? displayName : trimmed
         if ModerationService.containsProfanity(nextName) {
-            await MainActor.run { identityMessage = ModerationService.profanityRejectionUserMessage() }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                identityMessage = ModerationService.profanityRejectionUserMessage()
+            }
             return
         }
         if let issue = FanGeoHandleRules.validate(editedUsername) {
@@ -1741,8 +1746,15 @@ struct ProfileIdentityCard: View {
             await MainActor.run { identityMessage = profilePhotoPickFailureHint() }
             return
         }
+        let previewImage = UIImage(data: data)
+        await MainActor.run {
+            localAvatarPreviewImage = previewImage
+        }
         guard let urls = await viewModel.uploadUserAvatar(data: data, fileName: "avatar.jpg") else {
-            await MainActor.run { identityMessage = "Unable to upload avatar." }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                identityMessage = "Unable to upload avatar."
+            }
             return
         }
 
@@ -1757,10 +1769,25 @@ struct ProfileIdentityCard: View {
             avatarURL: urls.fullURL,
             avatarThumbnailURL: urls.thumbnailURL
         ) {
-            await MainActor.run { identityMessage = err }
+            await MainActor.run {
+                localAvatarPreviewImage = nil
+                identityMessage = err
+            }
             return
         }
-        await MainActor.run { identityMessage = "Avatar updated." }
+        if let previewImage {
+            let refreshToken = await MainActor.run { viewModel.currentUserAvatarDisplayRefreshToken }
+            let cacheURLs = ImageDisplayURL.displayURLs(
+                thumbnail: urls.thumbnailURL,
+                full: urls.fullURL,
+                refreshToken: refreshToken
+            )
+            await DiscoverMapImageCache.shared.store(previewImage, for: cacheURLs)
+        }
+        await MainActor.run {
+            localAvatarPreviewImage = nil
+            identityMessage = "Avatar updated."
+        }
     }
 
     // MARK: - Stats

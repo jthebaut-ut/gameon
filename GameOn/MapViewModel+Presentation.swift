@@ -48,8 +48,8 @@ extension MapViewModel {
             merged = venueGameCalendarDotDates
         case .pickupGames:
             merged = pickupGameCalendarDotDates
-        case .live:
-            merged = []
+        case .proGames:
+            merged = calendarProGameDotDates()
         }
         return Set(merged.filter { cal.startOfDay(for: $0) >= today })
     }
@@ -60,8 +60,8 @@ extension MapViewModel {
             return .venueGames
         case .pickupGames:
             return .pickupGames
-        case .live:
-            return nil
+        case .proGames:
+            return .proGames
         }
     }
 
@@ -71,7 +71,7 @@ extension MapViewModel {
             return isLoadingVenueCalendarDots
         case .pickupGames:
             return isLoadingPickupCalendarDots
-        case .live:
+        case .proGames:
             return isLoadingLiveMatches
         }
     }
