@@ -1,0 +1,46 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+indiana_production_v1,1,state_curated_indiana_v1,black_circle_brewing_company_indianapolis,Black Circle Brewing Company,2201 East 46th Street,Indianapolis,IN,46205,USA,39.8396473,-86.1239156,+1-317-426-0143,https://www.blackcirclebrewing.com/
+indiana_production_v1,2,state_curated_indiana_v1,brew_link_brewing_downtown_indianapolis,Brew Link Brewing Downtown,714 North Capitol Avenue,Indianapolis,IN,46204,USA,39.7772349,-86.1615158,,https://brewlinkbrewing.com/
+indiana_production_v1,3,state_curated_indiana_v1,keystone_sports_review_indianapolis,Keystone Sports Review,2131 East 71st Street,Indianapolis,IN,46220,USA,39.8827497,-86.1228944,+1-317-251-9902,https://www.keystonesportsreview.com/
+indiana_production_v1,4,state_curated_indiana_v1,upland_brewing_company_bloomington,Upland Brewing Company,350 West 11th Street,Bloomington,IN,47404,USA,39.1734960,-86.5374265,+1-812-336-2337,https://www.uplandbeer.com/
+indiana_production_v1,5,state_curated_indiana_v1,wings_xtreme_u_bloomington,Wings Xtreme U,2620 East 10th Street,Bloomington,IN,47408,USA,39.1707872,-86.5007139,+1-812-333-9464,https://wings-xtreme.com/
+indiana_production_v1,6,state_curated_indiana_v1,mad_anthony_brewing_co_fort_wayne,Mad Anthony Brewing Co,2002 Broadway,Fort Wayne,IN,46802,USA,41.0675740,-85.1528163,,https://www.madbrew.com/fort-wayne/
+indiana_production_v1,7,state_curated_indiana_v1,chippewa_bowl_south_bend,Chippewa Bowl,225 West Chippewa Avenue,South Bend,IN,46614,USA,41.6368294,-86.2532754,+1-574-291-5093,https://chippewabowl.com/
+indiana_production_v1,8,state_curated_indiana_v1,bally_bet_sportsbook_bar_evansville,Bally Bet Sportsbook & Bar,421 Northwest Riverside Drive,Evansville,IN,47708,USA,37.9733983,-87.5795287,+1-812-433-4000,https://casinos.ballys.com/evansville/bally-bet-sportsbook-and-bar.htm
+indiana_production_v1,9,state_curated_indiana_v1,beech_bank_brewing_beech_grove,Beech Bank Brewing,301 Main Street,Beech Grove,IN,46107,USA,39.7215239,-86.0851709,,
+indiana_production_v1,10,state_curated_indiana_v1,big_walt_s_wings_more_indianapolis,Big Walt's Wings & More,3363 Brouse Avenue,Indianapolis,IN,46218,USA,39.8178643,-86.1224361,,
+indiana_production_v1,11,state_curated_indiana_v1,black_acre_brewing_indianapolis,Black Acre Brewing,5632 East Washington Street,Indianapolis,IN,46219,USA,39.7710069,-86.0712049,,
+indiana_production_v1,12,state_curated_indiana_v1,centerpoint_brewing_indianapolis,Centerpoint Brewing,1125 East Brookside Avenue,Indianapolis,IN,46202,USA,39.7821586,-86.1370528,,
+indiana_production_v1,13,state_curated_indiana_v1,fowling_warehouse_indianapolis,Fowling Warehouse,1125 East Brookside Avenue,Indianapolis,IN,46202,USA,39.7839415,-86.1334695,,
+indiana_production_v1,14,state_curated_indiana_v1,guggman_haus_brewing_co_indianapolis,Guggman Haus Brewing Co.,1701 Gent Avenue,Indianapolis,IN,46202,USA,39.7905319,-86.1824466,,
+indiana_production_v1,15,state_curated_indiana_v1,hooters_indianapolis,Hooters,25 West Georgia Street,Indianapolis,IN,46225,USA,39.7641103,-86.1589259,,
+indiana_production_v1,16,state_curated_indiana_v1,legend_classic_irvington_cafe_indianapolis,Legend Classic Irvington Cafe,5614 East Washington Street,Indianapolis,IN,46219,USA,39.7709787,-86.0714763,,
+indiana_production_v1,17,state_curated_indiana_v1,sport_s_bench_tavern_indianapolis,Sport's Bench Tavern,2023 Southeastern Avenue,Indianapolis,IN,46201,USA,39.7625909,-86.1266724,,
+indiana_production_v1,18,state_curated_indiana_v1,wingstop_indianapolis,Wingstop,16 North Pennsylvania Street,Indianapolis,IN,46204,USA,39.7674753,-86.1564766,+1 219-301-0869,
+indiana_production_v1,19,state_curated_indiana_v1,buffalo_wild_wings_indianapolis,Buffalo Wild Wings,2747 East 62nd Street,Indianapolis,IN,46220,USA,39.8682433,-86.1181001,,
+indiana_production_v1,20,state_curated_indiana_v1,classic_bowling_lanes_bloomington,Classic Bowling Lanes,1421 North Willis Drive,Bloomington,IN,47404,USA,39.1800319,-86.5453299,+1-812-332-6689,
+indiana_production_v1,21,state_curated_indiana_v1,dave_buster_s_bloomington,Dave & Buster's,731 South College Mall Road,Bloomington,IN,47401,USA,39.1594462,-86.4959541,,
+indiana_production_v1,22,state_curated_indiana_v1,kilroy_s_sports_bar_bloomington,Kilroy's Sports Bar,319 North Walnut Street,Bloomington,IN,,USA,39.1692561,-86.5339829,,
+indiana_production_v1,23,state_curated_indiana_v1,serendipity_martini_bar_bloomington,Serendipity Martini Bar,201 South College Avenue,Bloomington,IN,47401,USA,39.1654106,-86.5346298,+1 812-330-6688,http://serendipitymartini.com
+indiana_production_v1,24,state_curated_indiana_v1,sleeper_s_bar_bloomington,Sleeper's Bar,2601 North Walnut Street,Bloomington,IN,,USA,39.1915503,-86.5334813,,https://www.sleepersbarbloomington.com/
+indiana_production_v1,25,state_curated_indiana_v1,the_bishop_bar_bloomington,The Bishop Bar,123 South Walnut Street,Bloomington,IN,47404,USA,39.1657798,-86.5333355,,http://www.thebishopbar.com/
+indiana_production_v1,26,state_curated_indiana_v1,break_run_fort_wayne,Break & Run,1555 Goshen Avenue,Fort Wayne,IN,46808,USA,41.1019839,-85.1634415,,
+indiana_production_v1,27,state_curated_indiana_v1,georgetown_bowl_fort_wayne,Georgetown Bowl,6770 East State Boullevard,Fort Wayne,IN,46815,USA,41.1003685,-85.0557942,+1-260-749-9610,
+indiana_production_v1,28,state_curated_indiana_v1,jk_o_donnell_s_irish_ale_house_fort_wayne,JK O'Donnell's Irish Ale House,121 West Wayne Street,Fort Wayne,IN,46802,USA,41.0779656,-85.1402930,,https://www.jkodonnells.com/
+indiana_production_v1,29,state_curated_indiana_v1,junk_ditch_brewing_fort_wayne,Junk Ditch Brewing,1825 West Main Street,Fort Wayne,IN,46808,USA,41.0778681,-85.1671773,,
+indiana_production_v1,30,state_curated_indiana_v1,bar_louie_granger,Bar Louie,7320 Aspect Drive,Granger,IN,46530,USA,41.7267708,-86.1790725,,https://www.barlouie.com/locations/us/in/granger/granger
+indiana_production_v1,31,state_curated_indiana_v1,evil_czech_brewery_mishawaka,Evil Czech Brewery,3703 N. Main Street,Mishawaka,IN,46545,USA,41.6939144,-86.1823986,,https://evilczech.com/
+indiana_production_v1,32,state_curated_indiana_v1,buffalo_wild_wings_south_bend,Buffalo Wild Wings,West Ireland Road,South Bend,IN,46614,USA,41.6284605,-86.2543717,,
+indiana_production_v1,33,state_curated_indiana_v1,corby_s_irish_pub_south_bend,Corby's Irish Pub,441 East LaSalle Avenue,South Bend,IN,46617,USA,41.6793060,-86.2445822,+1-574-233-5326,http://www.corbysirishpub.com/
+indiana_production_v1,34,state_curated_indiana_v1,manny_s_sports_bar_south_bend,Manny's Sports Bar,503 East Colfax Avenue,South Bend,IN,46617,USA,41.6779442,-86.2441936,+15743678869,
+indiana_production_v1,35,state_curated_indiana_v1,sidebar_south_bend,Sidebar,201 South Main Street,South Bend,IN,46601,USA,41.6745468,-86.2521614,,https://sidebarsouthbend.com/
+indiana_production_v1,36,state_curated_indiana_v1,diamond_lanes_evansville,Diamond Lanes,2400 US 41 North,Evansville,IN,47711,USA,37.9997649,-87.5392705,+1-812-424-4677,
+indiana_production_v1,37,state_curated_indiana_v1,high_score_saloon_evansville,High Score Saloon,309 Main Street,Evansville,IN,47708,USA,37.9710380,-87.5716761,,
+indiana_production_v1,38,state_curated_indiana_v1,lyle_s_sportsbar_pizza_pub_evansville,Lyle's Sportsbar Pizza & Pub,1404 East Morgan Avenue,Evansville,IN,47711,USA,37.9920637,-87.5378336,,
+indiana_production_v1,39,state_curated_indiana_v1,piano_bar_at_cavanaugh_s_evansville,Piano Bar at Cavanaugh's,421 Northwest Riverside Drive,Evansville,IN,47708,USA,37.9722683,-87.5788694,,https://casinos.ballys.com/evansville/piano-bar-at-cavanaughs.htm
+indiana_production_v1,40,state_curated_indiana_v1,atomic_bowl_duckpin_indianapolis,Atomic Bowl Duckpin,,Indianapolis,IN,,USA,39.7522161,-86.1394648,,
+indiana_production_v1,41,state_curated_indiana_v1,chatterbox_tavern_indianapolis,Chatterbox Tavern,435 Massachusetts Avenue,Indianapolis,IN,,USA,39.7732890,-86.1512230,,
+indiana_production_v1,42,state_curated_indiana_v1,dorman_st_ninth_st_tavern_indianapolis,"Dorman St, Ninth St Tavern",903 Dorman Street,Indianapolis,IN,46202,USA,39.7790984,-86.1388228,,
+indiana_production_v1,43,state_curated_indiana_v1,dugout_bar_indianapolis,Dugout Bar,,Indianapolis,IN,,USA,39.7581823,-86.1465179,,
+indiana_production_v1,44,state_curated_indiana_v1,east_wind_bar_indianapolis,East Wind Bar,1877 South East Street,Indianapolis,IN,46225,USA,39.7417437,-86.1492166,,
+indiana_production_v1,45,state_curated_indiana_v1,garfield_brewery_indianapolis,Garfield Brewery,2310 Shelby Street,Indianapolis,IN,46203,USA,39.7353619,-86.1400249,,

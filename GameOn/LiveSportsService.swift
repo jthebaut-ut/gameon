@@ -326,7 +326,7 @@ actor LiveSportsService {
             resolvingAgainstBaseURL: false
         )
         components?.queryItems = [
-            URLQueryItem(name: "select", value: "id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at"),
+            URLQueryItem(name: "select", value: "id,sport,home_team,away_team,score_home,score_away,match_status,minute,league,start_time,updated_at,payload"),
             URLQueryItem(name: "start_time", value: "gte.\(supabaseTimestampFormatter.string(from: windowStart))"),
             URLQueryItem(name: "start_time", value: "lte.\(supabaseTimestampFormatter.string(from: windowEnd))"),
             URLQueryItem(name: "order", value: "start_time.asc")
@@ -376,7 +376,7 @@ actor LiveSportsService {
 
     private static func logMatchSamples(_ matches: [LiveMatch]) {
         for (index, match) in matches.prefix(2).enumerated() {
-            print("[LiveDebug] normalized_match_sample[\(index)]=id=\(match.id) sport=\(match.sport) status=\(match.matchStatus.rawValue) teams=\(match.awayTeam)@\(match.homeTeam) score=\(match.scoreAway)-\(match.scoreHome) start=\(supabaseTimestampFormatter.string(from: match.startTime))")
+            print("[LiveDebug] normalized_match_sample[\(index)]=id=\(match.id) sport=\(match.sport) status=\(match.matchStatus.rawValue) teams=\(match.awayTeam)@\(match.homeTeam) score=\(match.scoreAway)-\(match.scoreHome) start=\(supabaseTimestampFormatter.string(from: match.startTime)) venue=\(match.venueName ?? "nil") city=\(match.venueCity ?? "nil") lat=\(match.venueLatitude.map(String.init(describing:)) ?? "nil") lon=\(match.venueLongitude.map(String.init(describing:)) ?? "nil")")
         }
     }
 #endif
@@ -404,10 +404,11 @@ private nonisolated struct LiveMatchRow: Decodable {
     let minute: Int?
     let league: String?
     let start_time: String?
+    let payload: [String: LiveMatchPayloadValue]?
 
 #if DEBUG
     var debugSummary: String {
-        "id=\(id ?? "nil") sport=\(sport ?? "nil") status=\(match_status ?? "nil") teams=\(away_team ?? "nil")@\(home_team ?? "nil") score=\(Self.debugValue(score_away))-\(Self.debugValue(score_home)) minute=\(Self.debugValue(minute)) league=\(league ?? "nil") start=\(start_time ?? "nil")"
+        "id=\(id ?? "nil") sport=\(sport ?? "nil") status=\(match_status ?? "nil") teams=\(away_team ?? "nil")@\(home_team ?? "nil") score=\(Self.debugValue(score_away))-\(Self.debugValue(score_home)) minute=\(Self.debugValue(minute)) league=\(league ?? "nil") start=\(start_time ?? "nil") venue=\(venueName ?? "nil") city=\(venueCity ?? "nil") lat=\(venueLatitude.map(String.init(describing:)) ?? "nil") lon=\(venueLongitude.map(String.init(describing:)) ?? "nil")"
     }
 
     private static func debugValue(_ value: Int?) -> String {
@@ -430,6 +431,12 @@ private nonisolated struct LiveMatchRow: Decodable {
 #if DEBUG
         print("[LiveSportNormalization] id=\(id) raw=\(rawSport ?? "nil") normalized=\(normalizedSport)")
         print("[LiveSportDetected] id=\(id) sportType=\(visualType.rawValue) label=\(normalizedSport)")
+        print("[LiveVenueDebug] sport=\(normalizedSport)")
+        print("[LiveVenueDebug] venue=\(venueName ?? "nil")")
+        print("[LiveVenueDebug] city=\(venueCity ?? "nil")")
+        print("[LiveVenueDebug] latitude=\(venueLatitude.map(String.init(describing:)) ?? "nil")")
+        print("[LiveVenueDebug] longitude=\(venueLongitude.map(String.init(describing:)) ?? "nil")")
+        print("[LiveVenueDebug] rawVenuePayload=\(rawVenuePayloadDebugDescription)")
 #endif
 
         return LiveMatch(
@@ -442,13 +449,181 @@ private nonisolated struct LiveMatchRow: Decodable {
             matchStatus: Self.parseMatchStatus(match_status),
             minute: minute,
             league: Self.clean(league) ?? "Live",
-            startTime: start
+            startTime: start,
+            venueName: venueName,
+            venueCity: venueCity,
+            venueLatitude: venueLatitude,
+            venueLongitude: venueLongitude
         )
     }
+
+    private var venueName: String? {
+        Self.firstString(
+            in: payload,
+            keys: [
+                "strVenue",
+                "venue",
+                "venueName",
+                "strStadium",
+                "stadium",
+                "strArena",
+                "arena",
+                "locationName"
+            ]
+        )
+    }
+
+    private var venueCity: String? {
+        Self.firstString(
+            in: payload,
+            keys: [
+                "strCity",
+                "city",
+                "venueCity",
+                "strLocation",
+                "location",
+                "strVenueLocation",
+                "venueLocation"
+            ]
+        )
+    }
+
+    private var venueLatitude: Double? {
+        Self.firstDouble(
+            in: payload,
+            keys: [
+                "venueLatitude",
+                "venue_latitude",
+                "strVenueLatitude",
+                "stadiumLatitude",
+                "strStadiumLatitude",
+                "locationLatitude",
+                "latitude",
+                "lat"
+            ],
+            paths: [
+                ["venue", "lat"],
+                ["venue", "latitude"],
+                ["stadium", "lat"],
+                ["stadium", "latitude"],
+                ["arena", "lat"],
+                ["arena", "latitude"],
+                ["location", "lat"],
+                ["location", "latitude"],
+                ["location", "coordinates", "lat"],
+                ["location", "coordinates", "latitude"]
+            ]
+        )
+    }
+
+    private var venueLongitude: Double? {
+        Self.firstDouble(
+            in: payload,
+            keys: [
+                "venueLongitude",
+                "venue_longitude",
+                "venueLng",
+                "strVenueLongitude",
+                "stadiumLongitude",
+                "strStadiumLongitude",
+                "locationLongitude",
+                "longitude",
+                "lng",
+                "lon"
+            ],
+            paths: [
+                ["venue", "lng"],
+                ["venue", "lon"],
+                ["venue", "longitude"],
+                ["stadium", "lng"],
+                ["stadium", "lon"],
+                ["stadium", "longitude"],
+                ["arena", "lng"],
+                ["arena", "lon"],
+                ["arena", "longitude"],
+                ["location", "lng"],
+                ["location", "lon"],
+                ["location", "longitude"],
+                ["location", "coordinates", "lng"],
+                ["location", "coordinates", "lon"],
+                ["location", "coordinates", "longitude"]
+            ]
+        )
+    }
+
+#if DEBUG
+    private var rawVenuePayloadDebugDescription: String {
+        guard let payload else { return "nil" }
+        let subset = payload.filter { key, _ in
+            let lowered = key.lowercased()
+            return lowered.contains("venue")
+                || lowered.contains("stadium")
+                || lowered.contains("arena")
+                || lowered.contains("city")
+                || lowered.contains("location")
+        }
+        guard !subset.isEmpty else { return "{}" }
+        return LiveMatchPayloadValue.debugJSONString(for: subset)
+    }
+#endif
 
     private static func clean(_ raw: String?) -> String? {
         let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return value.isEmpty ? nil : value
+    }
+
+    private static func firstString(
+        in payload: [String: LiveMatchPayloadValue]?,
+        keys: [String]
+    ) -> String? {
+        guard let payload else { return nil }
+        var lowercased: [String: LiveMatchPayloadValue] = [:]
+        for (key, value) in payload {
+            lowercased[key.lowercased()] = value
+        }
+        for key in keys {
+            guard let value = lowercased[key.lowercased()]?.stringValue else { continue }
+            let cleaned = clean(value)
+            if let cleaned { return cleaned }
+        }
+        return nil
+    }
+
+    private static func firstDouble(
+        in payload: [String: LiveMatchPayloadValue]?,
+        keys: [String],
+        paths: [[String]]
+    ) -> Double? {
+        guard let payload else { return nil }
+        let lowercased = lowercasedPayload(payload)
+        for key in keys {
+            guard let value = lowercased[key.lowercased()]?.doubleValue else { continue }
+            return value
+        }
+        for path in paths {
+            guard let value = value(in: lowercased, path: path)?.doubleValue else { continue }
+            return value
+        }
+        return nil
+    }
+
+    private static func lowercasedPayload(_ payload: [String: LiveMatchPayloadValue]) -> [String: LiveMatchPayloadValue] {
+        var lowercased: [String: LiveMatchPayloadValue] = [:]
+        for (key, value) in payload {
+            lowercased[key.lowercased()] = value
+        }
+        return lowercased
+    }
+
+    private static func value(
+        in payload: [String: LiveMatchPayloadValue],
+        path: [String]
+    ) -> LiveMatchPayloadValue? {
+        guard let first = path.first else { return nil }
+        guard let value = payload[first.lowercased()] else { return nil }
+        guard path.count > 1 else { return value }
+        guard case .object(let nested) = value else { return nil }
+        return Self.value(in: lowercasedPayload(nested), path: Array(path.dropFirst()))
     }
 
     private static func parseMatchStatus(_ raw: String?) -> MatchStatus {
@@ -480,4 +655,85 @@ private nonisolated struct LiveMatchRow: Decodable {
         return .scheduled
     }
 
+}
+
+private nonisolated indirect enum LiveMatchPayloadValue: Decodable {
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case object([String: LiveMatchPayloadValue])
+    case array([LiveMatchPayloadValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .number(value)
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode([String: LiveMatchPayloadValue].self) {
+            self = .object(value)
+        } else if let value = try? container.decode([LiveMatchPayloadValue].self) {
+            self = .array(value)
+        } else {
+            self = .null
+        }
+    }
+
+    var stringValue: String? {
+        switch self {
+        case .string(let value):
+            return value
+        case .number(let value):
+            return String(value)
+        case .bool(let value):
+            return String(value)
+        case .object, .array, .null:
+            return nil
+        }
+    }
+
+    var doubleValue: Double? {
+        switch self {
+        case .number(let value):
+            return value
+        case .string(let value):
+            return Double(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        case .bool, .object, .array, .null:
+            return nil
+        }
+    }
+
+#if DEBUG
+    static func debugJSONString(for object: [String: LiveMatchPayloadValue]) -> String {
+        let jsonObject = object.mapValues { $0.debugObject }
+        guard JSONSerialization.isValidJSONObject(jsonObject),
+              let data = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.sortedKeys]),
+              let raw = String(data: data, encoding: .utf8) else {
+            return "\(jsonObject)"
+        }
+        return raw
+    }
+
+    private var debugObject: Any {
+        switch self {
+        case .string(let value):
+            return value
+        case .number(let value):
+            return value
+        case .bool(let value):
+            return value
+        case .object(let value):
+            return value.mapValues { $0.debugObject }
+        case .array(let value):
+            return value.map { $0.debugObject }
+        case .null:
+            return NSNull()
+        }
+    }
+#endif
 }

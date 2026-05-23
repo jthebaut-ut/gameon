@@ -1,0 +1,41 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+kentucky_production_v1,1,state_curated_kentucky_v1,walk_on_s_sports_bistreaux_clarksville,Walk-On's Sports Bistreaux,970 East Lewis and Clark Parkway,Clarksville,KY,47129,USA,38.3173709,-85.7550069,+1-812-992-9255,https://locate.walk-ons.com/in/clarksville/restaurants-582.html
+kentucky_production_v1,2,state_curated_kentucky_v1,awry_brewing_louisville,Awry Brewing,1025 Barret Avenue,Louisville,KY,40204,USA,38.2360690,-85.7275686,+1-502-963-5999,https://www.awrybrewing.com/
+kentucky_production_v1,3,state_curated_kentucky_v1,gallant_fox_brewing_company_louisville,Gallant Fox Brewing Company,2132 Frankfort Avenue,Louisville,KY,40206,USA,38.2535436,-85.7073263,,https://gallantfoxbrewing.com/
+kentucky_production_v1,4,state_curated_kentucky_v1,floyd_county_brewing_company_new_albany,Floyd County Brewing Company,129 West Main Street,New Albany,KY,47150,USA,38.2828590,-85.8241570,,https://floydcountybrewing.com/
+kentucky_production_v1,5,state_curated_kentucky_v1,recbar_812_new_albany,Recbar 812,336 Pearl Street,New Albany,KY,47150,USA,38.2859079,-85.8226179,,https://www.recbar812.com/
+kentucky_production_v1,6,state_curated_kentucky_v1,buffalo_wild_wings_st_matthews,Buffalo Wild Wings,4600 Shelbyville Road,St Matthews,KY,40207,USA,38.2480229,-85.6291970,+1-502-899-7732,https://www.buffalowildwings.com/
+kentucky_production_v1,7,state_curated_kentucky_v1,champions_kitchen_lexington,Champions Kitchen,160 Avenue of Champions,Lexington,KY,40508,USA,38.0395060,-84.5029667,,https://uky.campusdish.com/LocationsAndMenus/ChampionsKitchen
+kentucky_production_v1,8,state_curated_kentucky_v1,wing_kyng_lexington,WING KYNG,101 West Loudon Avenue,Lexington,KY,40508,USA,38.0579235,-84.4819676,+1-859-785-1661,https://www.wingkyng.com/
+kentucky_production_v1,9,state_curated_kentucky_v1,buffalo_wild_wings_bowling_green,Buffalo Wild Wings,2625 Scottsville Road,Bowling Green,KY,42104,USA,36.9499790,-86.4256669,+1-270-746-9123,https://buffalowildwings.com/
+kentucky_production_v1,10,state_curated_kentucky_v1,flight_club_cincinnati,Flight Club,125 West 5th Street,Cincinnati,KY,45202,USA,39.1006966,-84.5152454,,https://www.flightclubdartsusa.com/cincinnati/cincinnati
+kentucky_production_v1,11,state_curated_kentucky_v1,off_track_brewing_company_cincinnati,Off Track Brewing Company,227 Stark Street,Cincinnati,KY,45202,USA,39.1186224,-84.5223385,+1-513-604-4527,https://www.offtrackbrewingcompany.com
+kentucky_production_v1,12,state_curated_kentucky_v1,pins_mechanical_company_cincinnati,Pins Mechanical Company,1124 Main Street,Cincinnati,KY,45202,USA,39.1085348,-84.5112071,+1-513-964-7746,https://www.pinsbar.com/cincy
+kentucky_production_v1,13,state_curated_kentucky_v1,tom_s_watch_bar_cincinnati_cincinnati,Tom's Watch Bar - Cincinnati,175 Joe Nuxhall Way,Cincinnati,KY,45202,USA,39.0981570,-84.5091698,,https://tomswatchbar.com
+kentucky_production_v1,14,state_curated_kentucky_v1,yard_house_cincinnati,Yard House,95 East Freedom Way,Cincinnati,KY,45202,USA,39.0968377,-84.5105451,+1-513-381-4071,https://www.yardhouse.com/locations/oh/cincinnati/cincinnati-the-banks/8344
+kentucky_production_v1,15,state_curated_kentucky_v1,braxton_brewing_covington,Braxton Brewing,27 West 7th Street,Covington,KY,41011,USA,39.0829172,-84.5108058,,https://braxtonbrewing.com/
+kentucky_production_v1,16,state_curated_kentucky_v1,super_bowl_bellewood_newport,Super Bowl Bellewood,1209 Waterworks Road,Newport,KY,41071,USA,39.0951125,-84.4722373,+1-859-781-1211,https://superbowl-centers.com/Bellewood
+kentucky_production_v1,17,state_curated_kentucky_v1,match_cigar_bar_jeffersonville,Match Cigar Bar,207 Spring St.,Jeffersonville,KY,47130,USA,38.2708608,-85.7398004,+18127257475,https://riversidecigarshop.com
+kentucky_production_v1,18,state_curated_kentucky_v1,town_a_neighborhood_pub_jeffersonville,Town - A Neighborhood Pub,415 Spring Street,Jeffersonville,KY,47130,USA,38.2731890,-85.7418650,,https://www.townaneighborhoodpub.com/
+kentucky_production_v1,19,state_curated_kentucky_v1,union_pub_and_social_jeffersonville,Union Pub and Social,115 West Chestnut Street,Jeffersonville,KY,47130,USA,38.2714652,-85.7408685,+1-833-566-6458,https://uniongameyard.com/
+kentucky_production_v1,20,state_curated_kentucky_v1,apocalypse_brew_works_louisville,Apocalypse Brew Works,1612 Mellwood Avenue,Louisville,KY,40206,USA,38.2565444,-85.7203066,+1-502-589-4843,http://apocalypsebrewworks.com
+kentucky_production_v1,21,state_curated_kentucky_v1,bluegrass_brewing_company_louisville,Bluegrass Brewing Company,300 West Main Street,Louisville,KY,40202,USA,38.2562065,-85.7550890,,
+kentucky_production_v1,22,state_curated_kentucky_v1,ken_bowl_louisville,Ken Bowl,7021 Southside Drive,Louisville,KY,40214,USA,38.1547142,-85.7643494,,
+kentucky_production_v1,23,state_curated_kentucky_v1,overtime_sports_bar_and_grill_louisville,Overtime Sports Bar and Grill,307 Central Avenue,Louisville,KY,40208,USA,38.2052668,-85.7645327,+1-502-805-1167,
+kentucky_production_v1,24,state_curated_kentucky_v1,smiley_s_pocket_louisville,Smiley's Pocket,2124 South Preston Street,Louisville,KY,40217,USA,38.2166324,-85.7451883,,
+kentucky_production_v1,25,state_curated_kentucky_v1,the_irish_rover_louisville,The Irish Rover,2319 Frankfort Avenue,Louisville,KY,40206,USA,38.2537104,-85.7024671,+1-502-899-2544,https://www.theirishrover.com/
+kentucky_production_v1,26,state_curated_kentucky_v1,the_sports_and_social_club_louisville,The Sports and Social Club,"427, Suite 100 South 4th Street",Louisville,KY,40202,USA,38.2518560,-85.7570803,,
+kentucky_production_v1,27,state_curated_kentucky_v1,the_wing_zone_louisville,The Wing Zone,3038 Hunsinger Lane,Louisville,KY,40220,USA,38.2178283,-85.6250060,,
+kentucky_production_v1,28,state_curated_kentucky_v1,vernon_lanes_louisville,Vernon Lanes,1575 Story Avenue,Louisville,KY,40206,USA,38.2589790,-85.7223096,,
+kentucky_production_v1,29,state_curated_kentucky_v1,wingstop_louisville,Wingstop,4812 Dixie Highway,Louisville,KY,40216,USA,38.1726823,-85.8257655,+1 502-409-6000,
+kentucky_production_v1,30,state_curated_kentucky_v1,wing_station_shively,Wing Station,2119 Crums Lane,Shively,KY,40216,USA,38.1947172,-85.8120831,+1-502-618-0288,
+kentucky_production_v1,31,state_curated_kentucky_v1,hooters_st_matthews,Hooters,4120 Dutchmans Lane,St Matthews,KY,40207,USA,38.2348593,-85.6303292,,
+kentucky_production_v1,32,state_curated_kentucky_v1,al_s_bar_lexington,Al's Bar,601 North Limestone,Lexington,KY,,USA,38.0540236,-84.4863297,,http://alsbarlexington.com/
+kentucky_production_v1,33,state_curated_kentucky_v1,buffalo_wild_wings_lexington,Buffalo Wild Wings,1080 South Broadway,Lexington,KY,40504,USA,38.0363761,-84.5170150,+1 859 233 2999,
+kentucky_production_v1,34,state_curated_kentucky_v1,darling_wine_bar_lexington,Darling Wine Bar,101 West Loudon Avenue,Lexington,KY,40508,USA,38.0577318,-84.4812021,,https://www.darlingwinebar.com
+kentucky_production_v1,35,state_curated_kentucky_v1,ethereal_brewing_public_house_lexington,Ethereal Brewing Public House,102 West Vine Street,Lexington,KY,40507,USA,38.0456534,-84.4982810,,
+kentucky_production_v1,36,state_curated_kentucky_v1,mccarthy_s_irish_bar_lexington,McCarthy's Irish Bar,117 South Upper Street,Lexington,KY,40507,USA,38.0468940,-84.4985688,,http://www.mccarthysirishbar.com/new/
+kentucky_production_v1,37,state_curated_kentucky_v1,mirror_twin_brewing_lexington,Mirror Twin Brewing,725 National Avenue,Lexington,KY,40502,USA,38.0404067,-84.4784906,,
+kentucky_production_v1,38,state_curated_kentucky_v1,overtime_sports_bar_grill_bowling_green,Overtime Sports Bar & Grill,773 Bakersfields Way,Bowling Green,KY,42104-1072,USA,36.9603583,-86.4636675,,
+kentucky_production_v1,39,state_curated_kentucky_v1,arnold_s_bar_and_grill_cincinnati,Arnold's Bar and Grill,210 East 8th Street,Cincinnati,KY,45202,USA,39.1051758,-84.5101288,+1 513-421-6234,https://www.arnoldsbarandgrill.com/
+kentucky_production_v1,40,state_curated_kentucky_v1,bar_1207_cincinnati,Bar 1207,1207 Main Street,Cincinnati,KY,45202,USA,39.1090568,-84.5117678,,https://bar1207.com/

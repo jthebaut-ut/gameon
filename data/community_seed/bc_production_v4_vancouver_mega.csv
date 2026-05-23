@@ -1,0 +1,7 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+bc_production_v4_vancouver_mega,1,province_curated_bc_v4,bcv4_001,Steamworks Brewpub,375 Water St,Vancouver,BC,V6B 5C6,Canada,49.2845,-123.1085,,https://steamworks.com
+bc_production_v4_vancouver_mega,2,province_curated_bc_v4,bcv4_002,Greta Bar YVR,550 Seymour St,Vancouver,BC,V6B 3J5,Canada,49.2827,-123.1168,,https://gretabar.com
+bc_production_v4_vancouver_mega,3,province_curated_bc_v4,bcv4_003,Tap & Barrel Olympic Village,75 Athletes Way,Vancouver,BC,V5Y 0B1,Canada,49.271,-123.1052,,https://tapandbarrel.com
+bc_production_v4_vancouver_mega,4,province_curated_bc_v4,bcv4_004,The Three Brits,1788 W Broadway,Vancouver,BC,V6J 1Y1,Canada,49.2637,-123.145,,https://threebrits.ca
+bc_production_v4_vancouver_mega,5,province_curated_bc_v4,bcv4_005,Good Co. Main Street,2904 Main St,Vancouver,BC,V5T 3G3,Canada,49.2598,-123.1002,,https://goodcobars.com
+bc_production_v4_vancouver_mega,6,province_curated_bc_v4,bcv4_006,Dublin Crossing,18789 Fraser Hwy,Surrey,BC,V3S 7Y3,Canada,49.1165,-122.706,,https://dublincrossing.com

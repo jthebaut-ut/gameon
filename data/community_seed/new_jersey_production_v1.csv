@@ -1,0 +1,52 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+new_jersey_production_v1,1,state_curated_new_jersey_v1,wingstop_belleville,Wingstop,388 Main Street,Belleville,NJ,,USA,40.7921775,-74.1451469,+1 862-626-9464,https://www.wingstop.com/location/wingstop-2060-belleville-ny-07109/menu?y_source=1_NjAwOTg0MTktNzE1LWxvY2F0aW9uLndlYnNpdGU%3D
+new_jersey_production_v1,2,state_curated_new_jersey_v1,wingstop_east_orange,Wingstop,610 Central Avenue,East Orange,NJ,07018,USA,40.7619219,-74.2249010,+1-908-786-9464,https://www.wingstop.com/location/wingstop-2494-east-orange-nj-07018/menu?handoffMode=carryout
+new_jersey_production_v1,3,state_curated_new_jersey_v1,golden_wings_fish_and_chicken_irvington,Golden Wings - Fish and Chicken,718 Chancellor Avenue,Irvington,NJ,07111,USA,40.7155978,-74.2380609,+1 973-339-5494,https://www.goldenwingsfishandchicken.com/
+new_jersey_production_v1,4,state_curated_new_jersey_v1,wnb_factory_wings_burger_north_arlington,WNB Factory - Wings & Burger,491 Ridge Road,North Arlington,NJ,07031,USA,40.7964089,-74.1278184,+15515807102,https://wnbfactory.com/
+new_jersey_production_v1,5,state_curated_new_jersey_v1,wingstop_irvington,Wingstop,Grove Street,Irvington,NJ,,USA,40.7279667,-74.2210003,,
+new_jersey_production_v1,6,state_curated_new_jersey_v1,blitz_sportsbar_newark,Blitz Sportsbar,179 Wilson Avenue,Newark,NJ,07105,USA,40.7225839,-74.1500411,,
+new_jersey_production_v1,7,state_curated_new_jersey_v1,krug_s_tavern_newark,Krug's Tavern,118 Wilson Avenue,Newark,NJ,07105,USA,40.7242694,-74.1523817,,https://krugstavernnj.com/
+new_jersey_production_v1,8,state_curated_new_jersey_v1,mompou_tapas_bar_restaurant_newark,Mompou Tapas Bar & Restaurant,77 Ferry Street,Newark,NJ,07105,USA,40.7313690,-74.1620531,,https://www.mompoutapas.com/
+new_jersey_production_v1,9,state_curated_new_jersey_v1,wingstop_newark,Wingstop,1244 McCarter Highway,Newark,NJ,07104,USA,40.7510800,-74.1672686,,
+new_jersey_production_v1,10,state_curated_new_jersey_v1,north_arlington_bowl_north_arlington,North Arlington Bowl,200 Schuyler Avenue,North Arlington,NJ,07031,USA,40.7839672,-74.1255718,,
+new_jersey_production_v1,11,state_curated_new_jersey_v1,four_city_brewery_orange,Four City Brewery,55 South Essex Avenue,Orange,NJ,,USA,40.7712920,-74.2319940,,https://www.fourcitybrewing.com/
+new_jersey_production_v1,12,state_curated_new_jersey_v1,902_brewing_co_jersey_city,902 Brewing Co,101 Pacific Avenue,Jersey City,NJ,07304,USA,40.7068658,-74.0694719,,
+new_jersey_production_v1,13,state_curated_new_jersey_v1,bowl_rite_jersey_city,Bowl Rite,,Jersey City,NJ,,USA,40.7585937,-74.0429421,+1-201-864-2667,https://bowlritelanes.com/
+new_jersey_production_v1,14,state_curated_new_jersey_v1,departed_soles_brewing_company_jersey_city,Departed Soles Brewing Company,,Jersey City,NJ,07302,USA,40.7208296,-74.0400315,+12014798578,https://www.departedsoles.com/
+new_jersey_production_v1,15,state_curated_new_jersey_v1,dullboy_bar_jersey_city,Dullboy Bar,364 Grove Street,Jersey City,NJ,07302,USA,40.7214215,-74.0425579,+1-201-795-1628,https://www.dullboybar.com/
+new_jersey_production_v1,16,state_curated_new_jersey_v1,hudson_lanes_jersey_city,Hudson Lanes,1 Garfield Avenue,Jersey City,NJ,07305,USA,40.6865655,-74.0997134,,
+new_jersey_production_v1,17,state_curated_new_jersey_v1,o_hara_s_downtown_sports_bar_grill_jersey_city,O'Hara's Downtown Sports Bar & Grill,172 1st Street,Jersey City,NJ,07302,USA,40.7216573,-74.0408424,,
+new_jersey_production_v1,18,state_curated_new_jersey_v1,o_leary_s_publik_house_jersey_city,O'Leary's Publik House,788 Garfield Avenue,Jersey City,NJ,07305,USA,40.7062550,-74.0732105,+1 201-435-7269,https://ophjc.com
+new_jersey_production_v1,19,state_curated_new_jersey_v1,stadium_pizza_jersey_city,Stadium Pizza,321 NJ-440,Jersey City,NJ,07305,USA,40.7095798,-74.1019754,,
+new_jersey_production_v1,20,state_curated_new_jersey_v1,wingstop_jersey_city,Wingstop,231 12th Street,Jersey City,NJ,07310,USA,40.7299420,-74.0435898,,
+new_jersey_production_v1,21,state_curated_new_jersey_v1,bowl_rite_hoboken,Bowl Rite,,Hoboken,NJ,,USA,40.7585937,-74.0429421,+1-201-864-2667,https://bowlritelanes.com/
+new_jersey_production_v1,22,state_curated_new_jersey_v1,green_rock_tap_grill_hoboken,Green Rock Tap & Grill,70 Hudson Street,Hoboken,NJ,07030,USA,40.7361299,-74.0303238,,https://www.greenrockhoboken.com/
+new_jersey_production_v1,23,state_curated_new_jersey_v1,jk_s_boathouse_pub_belleville,JK's Boathouse Pub,558 Washington Avenue,Belleville,NJ,07109,USA,40.7996156,-74.1470278,,
+new_jersey_production_v1,24,state_curated_new_jersey_v1,titillations_go_go_bar_bloomfield,Titillations Go-Go Bar,12 Willow Street,Bloomfield,NJ,07003,USA,40.7836538,-74.1991575,,
+new_jersey_production_v1,25,state_curated_new_jersey_v1,baru_lounge_newark,Baru Lounge,91 Fleming Avenue,Newark,NJ,07105,USA,40.7319193,-74.1432804,,
+new_jersey_production_v1,26,state_curated_new_jersey_v1,bello_s_pub_and_grill_newark,Bello's Pub and Grill,376 Market Street,Newark,NJ,07105,USA,40.7334133,-74.1635114,,
+new_jersey_production_v1,27,state_curated_new_jersey_v1,north_end_bar_newark,North End Bar,873 Broadway,Newark,NJ,07104,USA,40.7793372,-74.1556770,,
+new_jersey_production_v1,28,state_curated_new_jersey_v1,1_republik_north_arlington,1 Republik,26 Ridge Road,North Arlington,NJ,07031,USA,40.7824232,-74.1376831,,
+new_jersey_production_v1,29,state_curated_new_jersey_v1,the_tavern_north_arlington,The Tavern,14 Ridge Road,North Arlington,NJ,07031,USA,40.7821941,-74.1380190,,
+new_jersey_production_v1,30,state_curated_new_jersey_v1,astor_bar_grill_jersey_city,Astor Bar & Grill,725 Montgomery Street,Jersey City,NJ,07306,USA,40.7248085,-74.0676384,,
+new_jersey_production_v1,31,state_curated_new_jersey_v1,lucky_7_tavern_jersey_city,Lucky 7 Tavern,,Jersey City,NJ,,USA,40.7228973,-74.0474260,,https://lucky7tavern.com/
+new_jersey_production_v1,32,state_curated_new_jersey_v1,mcginley_square_pub_jersey_city,McGinley Square Pub,755 Montgomery Street,Jersey City,NJ,,USA,40.7254627,-74.0687021,,
+new_jersey_production_v1,33,state_curated_new_jersey_v1,smorgasbar_jersey_city,Smorgasbar,,Jersey City,NJ,,USA,40.7204146,-74.0319809,,https://www.smorgasbar.com/
+new_jersey_production_v1,34,state_curated_new_jersey_v1,wings_curry_jersey_city,Wings & Curry,,Jersey City,NJ,,USA,40.7518297,-74.0537755,,
+new_jersey_production_v1,35,state_curated_new_jersey_v1,wings_to_go_grande_pizza_jersey_city,Wings To Go - Grande Pizza,,Jersey City,NJ,,USA,40.7375083,-74.0369687,,
+new_jersey_production_v1,36,state_curated_new_jersey_v1,moran_s_pub_hoboken,Moran's Pub,501 Garden Street,Hoboken,NJ,07030,USA,40.7425974,-74.0310524,,
+new_jersey_production_v1,37,state_curated_new_jersey_v1,wicked_wolf_tavern_hoboken,Wicked Wolf Tavern,120 Sinatra Drive,Hoboken,NJ,,USA,40.7380347,-74.0276288,,
+new_jersey_production_v1,38,state_curated_new_jersey_v1,wings_to_go_grande_pizza_hoboken,Wings To Go - Grande Pizza,,Hoboken,NJ,,USA,40.7375083,-74.0369687,,
+new_jersey_production_v1,39,state_curated_new_jersey_v1,ejecutivo_ii_bar_lounge_2nd_entrance_newark,"Ejecutivo II Bar & Lounge, 2nd entrance",,Newark,NJ,,USA,40.7265170,-74.1538052,,
+new_jersey_production_v1,40,state_curated_new_jersey_v1,the_donegal_saloon_newark,The Donegal Saloon,,Newark,NJ,,USA,40.7623586,-74.1499920,,
+new_jersey_production_v1,41,state_curated_new_jersey_v1,abbey_s_pub_jersey_city,Abbey's Pub,,Jersey City,NJ,,USA,40.7238005,-74.0492257,,
+new_jersey_production_v1,42,state_curated_new_jersey_v1,greene_hook_bar_kitchen_jersey_city,Greene Hook Bar & Kitchen,,Jersey City,NJ,,USA,40.7148984,-74.0358205,,
+new_jersey_production_v1,43,state_curated_new_jersey_v1,mcswiggans_pub_jersey_city,McSwiggans Pub,,Jersey City,NJ,,USA,40.7376666,-74.0315582,,
+new_jersey_production_v1,44,state_curated_new_jersey_v1,tally_ho_saloon_jersey_city,Tally-Ho Saloon,,Jersey City,NJ,,USA,40.7391909,-74.0301717,,
+new_jersey_production_v1,45,state_curated_new_jersey_v1,the_ale_house_jersey_city,The Ale House,,Jersey City,NJ,,USA,40.7502232,-74.0309393,,
+new_jersey_production_v1,46,state_curated_new_jersey_v1,the_keyhole_bar_jersey_city,The Keyhole Bar,,Jersey City,NJ,,USA,40.7212205,-74.0444928,,
+new_jersey_production_v1,47,state_curated_new_jersey_v1,little_bar_hoboken,Little Bar,,Hoboken,NJ,,USA,40.7530850,-74.0245472,,
+new_jersey_production_v1,48,state_curated_new_jersey_v1,louise_jerry_s_tavern_hoboken,Louise & Jerry's Tavern,,Hoboken,NJ,,USA,40.7409166,-74.0296386,,
+new_jersey_production_v1,49,state_curated_new_jersey_v1,mcswiggans_pub_hoboken,McSwiggans Pub,,Hoboken,NJ,,USA,40.7376666,-74.0315582,,
+new_jersey_production_v1,50,state_curated_new_jersey_v1,tally_ho_saloon_hoboken,Tally-Ho Saloon,,Hoboken,NJ,,USA,40.7391909,-74.0301717,,
+new_jersey_production_v1,51,state_curated_new_jersey_v1,the_ale_house_hoboken,The Ale House,,Hoboken,NJ,,USA,40.7502232,-74.0309393,,

@@ -1170,6 +1170,8 @@ struct LiveScreen: View {
                             .foregroundStyle(FGColor.mutedText(colorScheme))
                         liveTeamScoreLine(team: match.homeTeam, score: match.scoreHome)
                     }
+
+                    liveVenueLine(match, accent: accent)
                 }
 
                 Spacer(minLength: 0)
@@ -1226,6 +1228,83 @@ struct LiveScreen: View {
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
         }
+    }
+
+    @ViewBuilder
+    private func liveVenueLine(_ match: LiveMatch, accent: Color) -> some View {
+        if let venueText = liveVenueDisplayText(for: match) {
+            if LiveVenueNavigationFeatureFlags.liveVenueDiscoverNavigationEnabled,
+               match.venueCoordinate != nil {
+                Button {
+                    liveGameVenueTapped(match)
+                } label: {
+                    liveVenueLineContent(venueText: venueText, accent: accent, isTappable: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open \(venueText) on Discover map")
+            } else {
+                liveVenueLineContent(venueText: venueText, accent: accent, isTappable: false)
+                    .onAppear {
+                        logLiveVenueNavigationDisabledIfNeeded(hasCoordinate: match.venueCoordinate != nil)
+                    }
+            }
+        }
+    }
+
+    private func liveVenueLineContent(venueText: String, accent: Color, isTappable: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "mappin.circle.fill")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(isTappable ? accent : FGColor.mutedText(colorScheme))
+
+            Text(venueText)
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(isTappable ? FGColor.primaryText(colorScheme) : FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+
+            if isTappable {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(accent.opacity(0.9))
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background {
+            Capsule(style: .continuous)
+                .fill(accent.opacity(colorScheme == .dark ? 0.13 : 0.08))
+        }
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(accent.opacity(isTappable ? 0.24 : 0.12), lineWidth: 1)
+        }
+    }
+
+    private func liveVenueDisplayText(for match: LiveMatch) -> String? {
+        let venue = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !venue.isEmpty else { return nil }
+        let city = match.venueCity?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return city.isEmpty ? venue : "\(venue) • \(city)"
+    }
+
+    private func liveGameVenueTapped(_ match: LiveMatch) {
+        guard LiveVenueNavigationFeatureFlags.liveVenueDiscoverNavigationEnabled else {
+            logLiveVenueNavigationDisabledIfNeeded(hasCoordinate: match.venueCoordinate != nil)
+            return
+        }
+        guard viewModel.openLiveGameVenueOnDiscover(match) else { return }
+        selectedTab = .discover
+        Task { @MainActor in
+            await viewModel.loadVenuesFromSupabase(forceRefresh: true)
+        }
+    }
+
+    private func logLiveVenueNavigationDisabledIfNeeded(hasCoordinate: Bool) {
+        guard hasCoordinate,
+              !LiveVenueNavigationFeatureFlags.liveVenueDiscoverNavigationEnabled else { return }
+#if DEBUG
+        print("[LiveVenueNavigationDebug] disabledDueToDiscoverStability=true")
+#endif
     }
 
     private func liveStatusPill(_ match: LiveMatch, accent: Color) -> some View {

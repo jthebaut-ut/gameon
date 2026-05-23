@@ -1,0 +1,8 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+quebec_production_v3_montreal_mega,1,province_curated_quebec_v3,qcv3_001,Winnie's Bar,380 Rue Saint-Paul E,Montreal,QC,H2Y 1H4,Canada,45.5078,-73.551,,
+quebec_production_v3_montreal_mega,2,province_curated_quebec_v3,qcv3_002,Hurley's Irish Pub,1225 Rue Crescent,Montreal,QC,H3G 2B1,Canada,45.4958,-73.5784,,https://hurleysirishpub.com
+quebec_production_v3_montreal_mega,3,province_curated_quebec_v3,qcv3_003,Brutopia,1219 Rue Crescent,Montreal,QC,H3G 2B1,Canada,45.4957,-73.5783,,https://brutopia.net
+quebec_production_v3_montreal_mega,4,province_curated_quebec_v3,qcv3_004,MVP Sports Bar,2000 Sainte-Catherine O,Montreal,QC,H3H 2T2,Canada,45.4915,-73.5805,,https://mvpbarsportif.com
+quebec_production_v3_montreal_mega,5,province_curated_quebec_v3,qcv3_005,Sir Winston Churchill Pub,1455 Crescent St,Montreal,QC,H3G 2B2,Canada,45.495,-73.579,,https://sirwinstonchurchill.com
+quebec_production_v3_montreal_mega,6,province_curated_quebec_v3,qcv3_006,Mcleans Pub,1210 Rue Peel,Montreal,QC,H3B 2T6,Canada,45.497,-73.577,,https://mcleanspub.com
+quebec_production_v3_montreal_mega,7,province_curated_quebec_v3,qcv3_007,Pub Saint-Pierre,410 Rue Saint-Pierre,Montreal,QC,H2Y 2M2,Canada,45.5025,-73.5565,,https://pubsaintpierre.ca

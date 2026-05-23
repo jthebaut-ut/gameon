@@ -9,6 +9,10 @@ nonisolated struct SportsEvent: Identifiable, Equatable, Codable {
     let date: Date
     let time: String
     let country: String
+    let venueName: String?
+    let venueCity: String?
+    let venueLatitude: Double?
+    let venueLongitude: Double?
     /// Legacy field; Calendar tab pickup listings are public-only and ignore this. Following / Discover detail use join state elsewhere.
     var calendarPickupJoinStatus: String?
 
@@ -20,6 +24,10 @@ nonisolated struct SportsEvent: Identifiable, Equatable, Codable {
         date: Date,
         time: String,
         country: String,
+        venueName: String? = nil,
+        venueCity: String? = nil,
+        venueLatitude: Double? = nil,
+        venueLongitude: Double? = nil,
         calendarPickupJoinStatus: String? = nil
     ) {
         self.id = id
@@ -29,6 +37,10 @@ nonisolated struct SportsEvent: Identifiable, Equatable, Codable {
         self.date = date
         self.time = time
         self.country = country
+        self.venueName = venueName
+        self.venueCity = venueCity
+        self.venueLatitude = venueLatitude
+        self.venueLongitude = venueLongitude
         self.calendarPickupJoinStatus = calendarPickupJoinStatus
     }
 }

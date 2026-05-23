@@ -12,6 +12,10 @@ struct SportsDBEvent: Decodable {
     let dateEvent: String?
     let strTime: String?
     let strCountry: String?
+    let strVenue: String?
+    let strCity: String?
+    let strVenueLatitude: String?
+    let strVenueLongitude: String?
 }
 
 final class SportsAPIService {
@@ -82,7 +86,11 @@ final class SportsAPIService {
                 league: apiEvent.strLeague ?? "Unknown League",
                 date: date,
                 time: Self.cleanTime(apiEvent.strTime),
-                country: apiEvent.strCountry ?? "Unknown"
+                country: apiEvent.strCountry ?? "Unknown",
+                venueName: Self.cleanOptional(apiEvent.strVenue),
+                venueCity: Self.cleanOptional(apiEvent.strCity),
+                venueLatitude: Self.cleanDouble(apiEvent.strVenueLatitude),
+                venueLongitude: Self.cleanDouble(apiEvent.strVenueLongitude)
             )
         }
     }
@@ -158,5 +166,15 @@ final class SportsAPIService {
         
         let parts = rawTime.split(separator: "+")
         return String(parts.first ?? "Time TBD")
+    }
+
+    private static func cleanOptional(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func cleanDouble(_ raw: String?) -> Double? {
+        guard let raw else { return nil }
+        return Double(raw.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

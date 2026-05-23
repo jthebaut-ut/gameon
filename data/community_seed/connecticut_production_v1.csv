@@ -1,0 +1,36 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+connecticut_production_v1,1,state_curated_connecticut_v1,bulleye_s_billards_and_bar_east_haven,Bulleye's Billards and Bar,"655 Main Street, #3",East Haven,CT,06512,USA,41.2870141,-72.8859087,+1 203-466-7665,http://bulleyesbillardsandbar.com
+connecticut_production_v1,2,state_curated_connecticut_v1,atomic_wings_darien,Atomic Wings,330 Heights Road,Darien,CT,06820,USA,41.0695221,-73.4980007,,https://www.atomicwings.com
+connecticut_production_v1,3,state_curated_connecticut_v1,atomic_wings_stamford,Atomic Wings,522 Glenbrook Road,Stamford,CT,06906,USA,41.0710592,-73.5208580,+1-203-242-8554,https://www.atomicwings.com
+connecticut_production_v1,4,state_curated_connecticut_v1,buffalo_wild_wings_stamford,Buffalo Wild Wings,208 Summer Street,Stamford,CT,06901,USA,41.0548543,-73.5407707,+1-203-324-9453,https://buffalowildwings.com/
+connecticut_production_v1,5,state_curated_connecticut_v1,fire_n_spice_vegan_restaurant_sports_cafe_hartford,Fire-N-Spice Vegan Restaurant & Sports Cafe,491 Capitol Avenue,Hartford,CT,06106,USA,41.7633761,-72.6921272,+1 860 519 0476,https://www.fireandspiceveganrestaurant.com
+connecticut_production_v1,6,state_curated_connecticut_v1,hog_river_brewing_company_hartford,Hog River Brewing Company,1429 Park Street,Hartford,CT,06106,USA,41.7574349,-72.7020493,+1-860-206-2119,https://www.hogriverbrewing.com/
+connecticut_production_v1,7,state_curated_connecticut_v1,nutmeg_bowl_bridgeport,Nutmeg Bowl,802 Villa Avenue,Bridgeport,CT,,USA,41.1747987,-73.2290475,+1 203-367-7741,https://nutmegbowl.com
+connecticut_production_v1,8,state_curated_connecticut_v1,barcade_new_haven,Barcade,56 Orange Street,New Haven,CT,06510,USA,41.3044712,-72.9251975,+1 203-889-2966,https://barcade.com/newhaven/
+connecticut_production_v1,9,state_curated_connecticut_v1,bar_max_hartford,Bar Max,1 Haynes Street,Hartford,CT,06103,USA,41.7671977,-72.6771121,+18605222530,https://barmaxhartford.com/
+connecticut_production_v1,10,state_curated_connecticut_v1,black_bear_saloon_hartford,Black Bear Saloon,187 Allyn Street,Hartford,CT,06103,USA,41.7685952,-72.6807615,,https://www.blackbearhartford.com/
+connecticut_production_v1,11,state_curated_connecticut_v1,pig_s_eye_pub_hartford,Pig's Eye Pub,356 Asylum Street,Hartford,CT,06103,USA,41.7677067,-72.6795935,+1 860 278 4747,https://pigseyepub.com/
+connecticut_production_v1,12,state_curated_connecticut_v1,world_of_beer_bar_and_kitchen_west_hartford,World of Beer Bar and Kitchen,73 Isham Road,West Hartford,CT,06107,USA,41.7601859,-72.7403617,,https://worldofbeer.com/
+connecticut_production_v1,13,state_curated_connecticut_v1,hooters_wethersfield,Hooters,1731 Berlin Turnpike,Wethersfield,CT,06109,USA,41.7077596,-72.7013442,,
+connecticut_production_v1,14,state_curated_connecticut_v1,cappy_son_and_daughter_pool_tables_bridgeport,Cappy & Son And Daughter Pool Tables,3295 Fairfield Avenue,Bridgeport,CT,06605,USA,41.1550628,-73.2340602,,
+connecticut_production_v1,15,state_curated_connecticut_v1,dangle_s_bar_grill_new_haven,Dangle's Bar & Grill,259 Orange Street,New Haven,CT,06510,USA,41.3078846,-72.9223008,,
+connecticut_production_v1,16,state_curated_connecticut_v1,east_rock_brewing_company_beer_hall_new_haven,East Rock Brewing Company & Beer Hall,,New Haven,CT,,USA,41.3220547,-72.9070555,,
+connecticut_production_v1,17,state_curated_connecticut_v1,sports_haven_new_haven,Sports Haven,,New Haven,CT,,USA,41.2990439,-72.9124595,,
+connecticut_production_v1,18,state_curated_connecticut_v1,zodiac_bar_grill_new_haven,Zodiac Bar & Grill,216 Crown Street,New Haven,CT,06510,USA,41.3056333,-72.9289663,,
+connecticut_production_v1,19,state_curated_connecticut_v1,bobby_v_s_resturant_sports_bar_stamford,Bobby V's Resturant & Sports Bar,,Stamford,CT,,USA,41.0516576,-73.5393362,,
+connecticut_production_v1,20,state_curated_connecticut_v1,tiernans_bar_pub_stamford,Tiernans Bar & Pub,187 Main Street,Stamford,CT,06901,USA,41.0527971,-73.5420554,,
+connecticut_production_v1,21,state_curated_connecticut_v1,arch_street_tavern_hartford,Arch Street Tavern,85 Arch Street,Hartford,CT,06103,USA,41.7617734,-72.6708732,+1 860 246 7610,
+connecticut_production_v1,22,state_curated_connecticut_v1,rocking_horse_saloon_hartford,Rocking Horse Saloon,181 Ann Uccello Street,Hartford,CT,06103,USA,41.7679389,-72.6780630,,
+connecticut_production_v1,23,state_curated_connecticut_v1,the_clubhouse_hartford,The Clubhouse,,Hartford,CT,,USA,41.8117319,-72.7438359,,
+connecticut_production_v1,24,state_curated_connecticut_v1,wingstop_hartford,Wingstop,,Hartford,CT,,USA,41.7030372,-72.7018660,,
+connecticut_production_v1,25,state_curated_connecticut_v1,el_agave_bar_bridgeport,El Agave Bar,"2525,2521 Main Street",Bridgeport,CT,06606,USA,41.1969264,-73.2007253,+1 203 3453232,
+connecticut_production_v1,26,state_curated_connecticut_v1,elicit_brewing_co_bridgeport,Elicit Brewing Co,,Bridgeport,CT,,USA,41.1619736,-73.2317723,,
+connecticut_production_v1,27,state_curated_connecticut_v1,frankie_s_sport_lounge_bridgeport,Frankie's Sport Lounge,,Bridgeport,CT,,USA,41.1588584,-73.2253553,,
+connecticut_production_v1,28,state_curated_connecticut_v1,ray_kelly_s_pub_bridgeport,Ray Kelly's Pub,2720 Fairfield Avenue,Bridgeport,CT,06605,USA,41.1588330,-73.2253861,,
+connecticut_production_v1,29,state_curated_connecticut_v1,tautog_tavern_bridgeport,Tautog Tavern,2926 Fairfield Avenue,Bridgeport,CT,06605,USA,41.1566609,-73.2278729,,
+connecticut_production_v1,30,state_curated_connecticut_v1,off_the_hook_bar_grill_fairfield,Off The Hook Bar & Grill,222 Post Road,Fairfield,CT,06824,USA,41.1516666,-73.2404915,,
+connecticut_production_v1,31,state_curated_connecticut_v1,tazza_osteria_bar_fairfield,Tazza osteria & bar,116 Post Road,Fairfield,CT,06824,USA,41.1527147,-73.2389224,,
+connecticut_production_v1,32,state_curated_connecticut_v1,vinny_s_ale_house_fairfield,Vinny's Ale House,93 Post Road,Fairfield,CT,06824,USA,41.1526427,-73.2381737,,
+connecticut_production_v1,33,state_curated_connecticut_v1,bar_august_new_haven,Bar August,,New Haven,CT,,USA,41.3159112,-72.9096557,,
+connecticut_production_v1,34,state_curated_connecticut_v1,contois_tavern_new_haven,Contois Tavern,,New Haven,CT,,USA,41.3193984,-72.9094206,,
+connecticut_production_v1,35,state_curated_connecticut_v1,elm_city_taphouse_new_haven,Elm City Taphouse,,New Haven,CT,,USA,41.3056375,-72.9278623,,

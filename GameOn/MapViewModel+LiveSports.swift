@@ -1,6 +1,25 @@
 import Foundation
+import MapKit
 
 extension MapViewModel {
+    @discardableResult
+    func openLiveGameVenueOnDiscover(_ match: LiveMatch) -> Bool {
+        guard LiveVenueNavigationFeatureFlags.liveVenueDiscoverNavigationEnabled else {
+#if DEBUG
+            print("[LiveVenueNavigationDebug] disabledDueToDiscoverStability=true")
+#endif
+            return false
+        }
+        guard let coordinate = match.venueCoordinate else { return false }
+        let venueName = match.venueName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !venueName.isEmpty else { return false }
+#if DEBUG
+        print("[LiveVenueDebug] openDiscoverVenue=\(venueName)")
+        print("[LiveVenueDebug] openDiscoverCoordinate=\(coordinate.latitude),\(coordinate.longitude)")
+#endif
+        return true
+    }
+
     func refreshLiveMatchesForLiveTab(forceRefresh: Bool = false) async {
         await refreshLiveMatchesForCalendar(forceRefresh: forceRefresh)
     }

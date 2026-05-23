@@ -1,0 +1,9 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ontario_production_v5_toronto_mega,1,province_curated_ontario_v5,onv5_001,The Bottom Line,22 Front St W,Toronto,ON,M5J 1C4,Canada,43.6465,-79.3793,,https://bottomlineto.com
+ontario_production_v5_toronto_mega,2,province_curated_ontario_v5,onv5_002,Brazen Head Irish Pub,165 East Liberty St,Toronto,ON,M6K 3K4,Canada,43.6379,-79.423,,https://brazenhead.ca
+ontario_production_v5_toronto_mega,3,province_curated_ontario_v5,onv5_003,Liberty Commons,42 Liberty St,Toronto,ON,M6K 3P1,Canada,43.6392,-79.4208,,https://libertycommons.ca
+ontario_production_v5_toronto_mega,4,province_curated_ontario_v5,onv5_004,Fox and Fiddle Cityplace,17 Fort York Blvd,Toronto,ON,M5V 3Y7,Canada,43.641,-79.3975,,https://foxandfiddle.com
+ontario_production_v5_toronto_mega,5,province_curated_ontario_v5,onv5_005,Scotland Yard Pub,56 The Esplanade,Toronto,ON,M5E 1A7,Canada,43.648,-79.3732,,https://scotlandyard.ca
+ontario_production_v5_toronto_mega,6,province_curated_ontario_v5,onv5_006,Firkin on Harbour,10 Yonge St,Toronto,ON,M5E 1R4,Canada,43.6419,-79.3768,,https://firkinpubs.com
+ontario_production_v5_toronto_mega,7,province_curated_ontario_v5,onv5_007,The Madison Avenue Pub,14 Madison Ave,Toronto,ON,M5R 2S1,Canada,43.6678,-79.4035,,https://madisonavenuepub.com
+ontario_production_v5_toronto_mega,8,province_curated_ontario_v5,onv5_008,Opera Bob's,1112 Dundas St W,Toronto,ON,M6J 1X2,Canada,43.6492,-79.4212,,https://operabobs.ca

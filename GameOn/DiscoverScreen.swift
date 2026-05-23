@@ -1254,15 +1254,27 @@ struct DiscoverScreen: View {
 
     /// Returns true when center or zoom changed enough to warrant another venue fetch.
     private func mapVenueRegionIsMeaningfullyDifferent(from previous: MKCoordinateRegion, to new: MKCoordinateRegion) -> Bool {
-        let centerLatDiff = abs(previous.center.latitude - new.center.latitude)
-        let centerLonDiff = abs(previous.center.longitude - new.center.longitude)
+        mapVenueReloadDelta(from: previous, to: new).isMeaningful
+    }
+
+    private func mapVenueReloadDelta(from previous: MKCoordinateRegion, to new: MKCoordinateRegion) -> (
+        isMeaningful: Bool,
+        distanceMovedMiles: Double,
+        boundsChangedSignificantly: Bool
+    ) {
         let prevLatSpan = max(previous.span.latitudeDelta, 1e-9)
         let prevLonSpan = max(previous.span.longitudeDelta, 1e-9)
         let spanLatRatio = abs(previous.span.latitudeDelta - new.span.latitudeDelta) / prevLatSpan
         let spanLonRatio = abs(previous.span.longitudeDelta - new.span.longitudeDelta) / prevLonSpan
-        let centerMoved = centerLatDiff > 0.0012 || centerLonDiff > 0.0012
-        let zoomChanged = spanLatRatio > 0.08 || spanLonRatio > 0.08
-        return centerMoved || zoomChanged
+        let distanceMeters = MapViewModel.distanceMeters(from: previous.center, to: new.center)
+        let distanceMovedMiles = distanceMeters / 1609.344
+        let centerMovedMeaningfully = distanceMovedMiles >= 4.0
+        let boundsChangedSignificantly = spanLatRatio > 0.20 || spanLonRatio > 0.20
+        return (
+            centerMovedMeaningfully || boundsChangedSignificantly,
+            distanceMovedMiles,
+            boundsChangedSignificantly
+        )
     }
 
     private enum VenuePinDisplayState {
@@ -1608,6 +1620,7 @@ struct DiscoverScreen: View {
                         }
                     }
                 }
+
             }
 
             if viewModel.discoverMapContentMode == .pickupGames {
@@ -1647,17 +1660,46 @@ struct DiscoverScreen: View {
             mapVenueReloadTask?.cancel()
             mapVenueReloadTask = Task { @MainActor in
                 do {
-                    try await Task.sleep(for: .milliseconds(400))
+                    try await Task.sleep(for: .milliseconds(600))
                 } catch {
                     return
                 }
                 guard !Task.isCancelled else { return }
-                if let last = lastMapVenueReloadRegion,
-                   !mapVenueRegionIsMeaningfullyDifferent(from: last, to: region) {
+                guard viewModel.discoverMapContentMode == .venues else {
+#if DEBUG
+                    print("[ManualMapReloadDebug] reloadScheduled=false")
+                    print("[ManualMapReloadDebug] reloadSkippedReason=notVenuesMode")
+#endif
                     return
                 }
-                guard viewModel.discoverMapContentMode == .venues else { return }
-                await viewModel.loadVenuesFromSupabase()
+                guard viewModel.pendingCitySearchVenueDebugContext == nil else {
+#if DEBUG
+                    print("[ManualMapReloadDebug] reloadScheduled=false")
+                    print("[ManualMapReloadDebug] reloadSkippedReason=citySearchReloadInFlight")
+#endif
+                    return
+                }
+                if let last = lastMapVenueReloadRegion {
+                    let delta = mapVenueReloadDelta(from: last, to: region)
+#if DEBUG
+                    print("[ManualMapReloadDebug] distanceMovedMiles=\(String(format: "%.2f", delta.distanceMovedMiles))")
+#endif
+                    guard delta.isMeaningful else {
+#if DEBUG
+                        print("[ManualMapReloadDebug] reloadScheduled=false")
+                        print("[ManualMapReloadDebug] reloadSkippedReason=movementBelowThreshold")
+#endif
+                        return
+                    }
+                } else {
+#if DEBUG
+                    print("[ManualMapReloadDebug] distanceMovedMiles=initial")
+#endif
+                }
+#if DEBUG
+                print("[ManualMapReloadDebug] reloadScheduled=true")
+#endif
+                await viewModel.loadVenuesFromSupabase(logManualMapReload: true)
                 lastMapVenueReloadRegion = region
             }
         }
@@ -2456,7 +2498,8 @@ struct DiscoverScreen: View {
             if viewModel.discoverMapContentMode == .pickupGames {
                 await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
             } else {
-                await viewModel.loadVenuesFromSupabase()
+                await viewModel.loadVenuesFromSupabase(forceRefresh: true)
+                lastMapVenueReloadRegion = viewModel.cameraPosition.region
             }
             scheduleDiscoverWeatherRefresh(force: true)
 #if DEBUG

@@ -1,3 +1,4 @@
+import CoreLocation
 import Foundation
 
 nonisolated enum LiveSportVisualType: String, Codable, CaseIterable, Equatable {
@@ -94,6 +95,10 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
     let minute: Int?
     let league: String
     let startTime: Date
+    let venueName: String?
+    let venueCity: String?
+    let venueLatitude: Double?
+    let venueLongitude: Double?
 
     var liveSportVisualType: LiveSportVisualType {
         LiveSportVisualType.normalize(sport)
@@ -101,5 +106,17 @@ nonisolated struct LiveMatch: Identifiable, Equatable, Codable {
 
     var liveSportDisplayLabel: String {
         liveSportVisualType.displayLabel
+    }
+
+    var venueCoordinate: CLLocationCoordinate2D? {
+        guard let venueLatitude,
+              let venueLongitude else { return nil }
+        let coordinate = CLLocationCoordinate2D(latitude: venueLatitude, longitude: venueLongitude)
+        guard CLLocationCoordinate2DIsValid(coordinate),
+              abs(venueLatitude) > 0.0001,
+              abs(venueLongitude) > 0.0001 else {
+            return nil
+        }
+        return coordinate
     }
 }

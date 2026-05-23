@@ -1,0 +1,31 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+hawaii_production_v1,1,state_curated_hawaii_v1,legend_seafood_restaurant_honolulu,Legend Seafood Restaurant,100 North Beretania Street,Honolulu,HI,96817,USA,21.3142247,-157.8615330,+1808-532-1868,https://www.legendseafoodhonolulu.com/
+hawaii_production_v1,2,state_curated_hawaii_v1,waikiki_brewing_company_honolulu,Waikiki Brewing Company,1945 Kalakaua Avenue,Honolulu,HI,96815,USA,21.2858970,-157.8335144,,https://waikikibrewing.com/
+hawaii_production_v1,3,state_curated_hawaii_v1,waikiki_brewing_company_waikiki,Waikiki Brewing Company,1945 Kalakaua Avenue,Waikiki,HI,96815,USA,21.2858970,-157.8335144,,https://waikikibrewing.com/
+hawaii_production_v1,4,state_curated_hawaii_v1,bar_leather_apron_honolulu,Bar Leather Apron,745 Fort Street Mall,Honolulu,HI,96813,USA,21.3080074,-157.8636351,+18085240808,https://www.barleatherapron.com
+hawaii_production_v1,5,state_curated_hawaii_v1,black_shamrock_tavern_honolulu,Black Shamrock Tavern,902 Nuuanu Avenue,Honolulu,HI,96817,USA,21.3104071,-157.8635530,+1-808-777-3000,https://www.blackshamrocktavern.com/
+hawaii_production_v1,6,state_curated_hawaii_v1,champions_sports_bar_grill_honolulu,Champions Sports Bar & Grill,1108 keeaumoku Street,Honolulu,HI,96814,USA,21.2996487,-157.8400716,,
+hawaii_production_v1,7,state_curated_hawaii_v1,dave_buster_s_honolulu,Dave & Buster's,1450 Ala Moana Boulevard,Honolulu,HI,96814,USA,21.2920034,-157.8463138,,
+hawaii_production_v1,8,state_curated_hawaii_v1,island_vintage_wine_bar_honolulu,Island Vintage Wine Bar,2301 Kalakaua Avenue,Honolulu,HI,96815,USA,21.2782115,-157.8285360,+1 808-799-9463,https://www.islandvintagewinebar.com
+hawaii_production_v1,9,state_curated_hawaii_v1,lucky_strike_lanes_lucky_strike_social_honolulu,Lucky Strike Lanes;Lucky Strike Social,,Honolulu,HI,,USA,21.2903744,-157.8437456,,https://www.luckystrikeent.com/locations/honolulu/
+hawaii_production_v1,10,state_curated_hawaii_v1,murphy_s_bar_and_grill_honolulu,Murphy's Bar and Grill,2 Merchant Street,Honolulu,HI,96813,USA,21.3101668,-157.8635185,+1-808-531-0422,https://www.murphyshawaii.com/
+hawaii_production_v1,11,state_curated_hawaii_v1,rock_bottom_sports_bar_grill_honolulu,Rock Bottom Sports Bar & Grill,,Honolulu,HI,,USA,21.2929361,-157.8222442,,https://www.rbhawaii.com/
+hawaii_production_v1,12,state_curated_hawaii_v1,royal_arcade_bar_honolulu,Royal Arcade Bar,32 North Hotel Street,Honolulu,HI,,USA,21.3116106,-157.8622711,,
+hawaii_production_v1,13,state_curated_hawaii_v1,tapas_restaurant_lanai_bar_honolulu,Tapas Restaurant & Lanai Bar,,Honolulu,HI,,USA,21.2804248,-157.8267030,+1 808-979-7888,https://tapaswaikiki.com/
+hawaii_production_v1,14,state_curated_hawaii_v1,lucky_strike_lanes_lucky_strike_social_waikiki,Lucky Strike Lanes;Lucky Strike Social,,Waikiki,HI,,USA,21.2903744,-157.8437456,,https://www.luckystrikeent.com/locations/honolulu/
+hawaii_production_v1,15,state_curated_hawaii_v1,rock_bottom_sports_bar_grill_waikiki,Rock Bottom Sports Bar & Grill,,Waikiki,HI,,USA,21.2929361,-157.8222442,,https://www.rbhawaii.com/
+hawaii_production_v1,16,state_curated_hawaii_v1,tapas_restaurant_lanai_bar_waikiki,Tapas Restaurant & Lanai Bar,,Waikiki,HI,,USA,21.2804248,-157.8267030,+1 808-979-7888,https://tapaswaikiki.com/
+hawaii_production_v1,17,state_curated_hawaii_v1,buffalo_wild_wings_kapolei,Buffalo Wild Wings,,Kapolei,HI,,USA,21.3281216,-158.0205330,,https://buffalowildwings.com
+hawaii_production_v1,18,state_curated_hawaii_v1,arena_sports_lounge_honolulu,Arena Sports Lounge,,Honolulu,HI,,USA,21.2992177,-157.8402851,,
+hawaii_production_v1,19,state_curated_hawaii_v1,bar_koko_honolulu,Bar Koko,1102 Piikoi Street,Honolulu,HI,96814,USA,21.3009778,-157.8437099,,
+hawaii_production_v1,20,state_curated_hawaii_v1,club_wave_honolulu,Club Wave,,Honolulu,HI,,USA,21.3255809,-157.8708270,,
+hawaii_production_v1,21,state_curated_hawaii_v1,da_smokehouse_barbecue_pub_honolulu,Da Smokehouse Barbecue & Pub,438 Hobron Lane,Honolulu,HI,96815,USA,21.2869601,-157.8359069,,
+hawaii_production_v1,22,state_curated_hawaii_v1,five_o_bar_lounge_honolulu,Five-O Bar & Lounge,Kalakaua Avenue,Honolulu,HI,,USA,21.2785475,-157.8290640,,
+hawaii_production_v1,23,state_curated_hawaii_v1,hana_koa_brewing_company_honolulu,Hana Koa Brewing Company,,Honolulu,HI,,USA,21.2971672,-157.8529230,,
+hawaii_production_v1,24,state_curated_hawaii_v1,hula_s_bar_and_lei_stand_honolulu,Hula's Bar and Lei Stand,,Honolulu,HI,,USA,21.2717549,-157.8218752,,
+hawaii_production_v1,25,state_curated_hawaii_v1,irish_rose_saloon_honolulu,Irish Rose Saloon,460 Ena Road,Honolulu,HI,96815,USA,21.2867549,-157.8341390,,
+hawaii_production_v1,26,state_curated_hawaii_v1,maui_brewing_company_honolulu,Maui Brewing Company,,Honolulu,HI,,USA,21.2779819,-157.8273866,,
+hawaii_production_v1,27,state_curated_hawaii_v1,moose_mcgillycuddy_s_pub_cafe_waikiki_honolulu,Moose Mcgillycuddy's Pub & Cafe Waikiki,310 Lewers Street,Honolulu,HI,96815,USA,21.2805042,-157.8294645,+1 808-923-0751,
+hawaii_production_v1,28,state_curated_hawaii_v1,skybox_taphouse_honolulu,Skybox Taphouse,,Honolulu,HI,96815,USA,21.2780417,-157.8269578,,https://skyboxtaphouse.com
+hawaii_production_v1,29,state_curated_hawaii_v1,the_golf_sim_honolulu,The Golf Sim,,Honolulu,HI,,USA,21.2923395,-157.8516688,,
+hawaii_production_v1,30,state_curated_hawaii_v1,tropics_bar_grill_honolulu,Tropics Bar & Grill,,Honolulu,HI,,USA,21.2816457,-157.8375260,,

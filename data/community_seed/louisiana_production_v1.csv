@@ -1,0 +1,51 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+louisiana_production_v1,1,state_curated_louisiana_v1,american_sports_saloon_new_orleans,American Sports Saloon,1200 Decatur Street,New Orleans,LA,,USA,29.9606269,-90.0589910,,https://www.theamericansportssaloon.com/
+louisiana_production_v1,2,state_curated_louisiana_v1,buffalo_wild_wings_baton_rouge,Buffalo Wild Wings,7524 Bluebonnet Boulevard,Baton Rouge,LA,,USA,30.3811991,-91.0972034,+1-225-819-8438,https://www.buffalowildwings.com/en/locations/detail/3134/
+louisiana_production_v1,3,state_curated_louisiana_v1,kok_wings_things_baton_rouge,KOK Wings & Things,1509 Government Street,Baton Rouge,LA,70802,USA,30.4445753,-91.1724079,+1 225-910-8587,https://eatkok.com/
+louisiana_production_v1,4,state_curated_louisiana_v1,main_event_baton_rouge,Main Event,6401 Bluebonnet Boulevard,Baton Rouge,LA,70836,USA,30.3878731,-91.0859951,,https://www.mainevent.com/locations/louisiana/baton-rouge/
+louisiana_production_v1,5,state_curated_louisiana_v1,the_station_sports_bar_and_grill_baton_rouge,The Station Sports Bar and Grill,4608 Bennington Avenue,Baton Rouge,LA,,USA,30.4199918,-91.1389299,+1-225-926-0631,http://www.stationsportsbar.com/
+louisiana_production_v1,6,state_curated_louisiana_v1,walk_on_s_sports_bistreaux_baton_rouge,Walk-On's Sports Bistreaux,3838 Burbank Drive,Baton Rouge,LA,70808,USA,30.4025047,-91.1810164,+1-225-757-8010,https://walk-ons.com/
+louisiana_production_v1,7,state_curated_louisiana_v1,legends_verot_lafayette,Legends Verot,2813 Verot School Road,Lafayette,LA,70508,USA,30.1441341,-92.0320245,+1 337-889-3813,https://legendsoflafayette.com/verot
+louisiana_production_v1,8,state_curated_louisiana_v1,walk_on_s_sports_bistreaux_lafayette,Walk-On's Sports Bistreaux,2336 Kaliste Saloom Road,Lafayette,LA,70508,USA,30.1600020,-92.0458133,,https://walk-ons.com/
+louisiana_production_v1,9,state_curated_louisiana_v1,melius_bar_grill_metairie,Melius Bar & Grill,1701 Lake Avenue,Metairie,LA,70005,USA,30.0184831,-90.1229369,+1-504-828-9446,https://meliusbar.com/
+louisiana_production_v1,10,state_curated_louisiana_v1,wingstop_metairie,Wingstop,743 Veterans Memorial Boulevard,Metairie,LA,70005,USA,30.0034373,-90.1298690,+15043028980,
+louisiana_production_v1,11,state_curated_louisiana_v1,banks_street_bar_grill_new_orleans,Banks Street Bar & Grill,4401 Banks Street,New Orleans,LA,70119,USA,29.9744821,-90.1064478,+1 504 4860258,https://banksstreetbar.com/
+louisiana_production_v1,12,state_curated_louisiana_v1,barrel_proof_new_orleans,Barrel Proof,1201 Magazine Street,New Orleans,LA,,USA,29.9391967,-90.0711708,,https://www.barrelproofnola.com/
+louisiana_production_v1,13,state_curated_louisiana_v1,bourbon_o_bar_new_orleans,Bourbon O Bar,730 Bourbon Street,New Orleans,LA,70116,USA,29.9591115,-90.0651058,,https://www.bourbono.com/
+louisiana_production_v1,14,state_curated_louisiana_v1,bourbon_pub_new_orleans,Bourbon Pub,801 Bourbon Street,New Orleans,LA,,USA,29.9595997,-90.0649137,,https://bourbonpub.com/
+louisiana_production_v1,15,state_curated_louisiana_v1,circle_bar_new_orleans,Circle Bar,1032 Saint Charles Avenue,New Orleans,LA,,USA,29.9427294,-90.0724792,+1 504 5882616,http://www.circlebarnola.com
+louisiana_production_v1,16,state_curated_louisiana_v1,coyote_ugly_saloon_new_orleans,Coyote Ugly Saloon,225 North Peters Street,New Orleans,LA,70130,USA,29.9529067,-90.0654242,+1 866-520-8459,https://www.coyoteuglysaloon.com/
+louisiana_production_v1,17,state_curated_louisiana_v1,dino_s_bar_grill_new_orleans,Dino's Bar & Grill,1128 Tchoupitoulas Street,New Orleans,LA,,USA,29.9399159,-90.0669140,+1 504-558-0900,http://www.dinosnola.com
+louisiana_production_v1,18,state_curated_louisiana_v1,emporium_new_orleans_new_orleans,Emporium New Orleans,2231 Saint Claude Avenue,New Orleans,LA,,USA,29.9689322,-90.0557304,,
+louisiana_production_v1,19,state_curated_louisiana_v1,fahy_s_irish_pub_new_orleans,Fahy's Irish Pub,540 Burgundy Street,New Orleans,LA,70112,USA,29.9589389,-90.0681614,,https://m.facebook.com/FahysIrishPub
+louisiana_production_v1,20,state_curated_louisiana_v1,finn_mccool_s_irish_pub_new_orleans,Finn McCool's Irish Pub,3701 Banks St,New Orleans,LA,70119,USA,29.9695738,-90.0991644,+1 504-486-9080,https://finnmccools.com/
+louisiana_production_v1,21,state_curated_louisiana_v1,flanagan_s_pub_new_orleans,Flanagan's Pub,625 Saint Philip Street,New Orleans,LA,,USA,29.9602607,-90.0621427,+1 504 5989002,http://flanagans-pub.com
+louisiana_production_v1,22,state_curated_louisiana_v1,good_friends_bar_new_orleans,Good Friends Bar,740 Dauphine Street,New Orleans,LA,,USA,29.9599512,-90.0657564,+1 504 5667191,https://www.goodfriendsbar.com/
+louisiana_production_v1,23,state_curated_louisiana_v1,henry_s_gin_bar_new_orleans,Henry's Gin Bar,317 Baronne Street,New Orleans,LA,70112,USA,29.9521453,-90.0729503,,https://www.nopsihotel.com/dining/henrys-gin-bar
+louisiana_production_v1,24,state_curated_louisiana_v1,high_five_pool_bar_new_orleans,High-Five Pool Bar,600 Carondelet Street,New Orleans,LA,70130,USA,29.9483772,-90.0718845,,https://www.hyatt.com/en-US/hotel/louisiana/jdv-the-barnett/msyjd/dining
+louisiana_production_v1,25,state_curated_louisiana_v1,jockey_s_pub_sports_bar_new_orleans,Jockey's Pub & Sports Bar,1841 Gentilly Boulevard,New Orleans,LA,,USA,29.9862557,-90.0764246,,
+louisiana_production_v1,26,state_curated_louisiana_v1,madigan_s_bar_new_orleans,Madigan's Bar,800 South Carrollton Avenue,New Orleans,LA,70118,USA,29.9447609,-90.1329065,,https://madigansandgbs.com/
+louisiana_production_v1,27,state_curated_louisiana_v1,monkey_hill_bar_new_orleans,Monkey Hill Bar,6100 Magazine Street,New Orleans,LA,70118,USA,29.9226458,-90.1236287,,http://monkeyhillbar.com/
+louisiana_production_v1,28,state_curated_louisiana_v1,old_point_bar_new_orleans,Old Point Bar,545 Patterson Dr,New Orleans,LA,,USA,29.9549375,-90.0501914,+1 504 3640950,https://oldpointbar.com/
+louisiana_production_v1,29,state_curated_louisiana_v1,poppy_s_time_out_sports_bar_grill_new_orleans,Poppy's Time Out Sports Bar & Grill,500 Port of New Orleans Place,New Orleans,LA,70130,USA,29.9485400,-90.0627854,,
+louisiana_production_v1,30,state_curated_louisiana_v1,sports_vue_new_orleans,Sports Vue,,New Orleans,LA,,USA,29.9747964,-90.0569352,+1 504 9401111,http://www.sportsvuenola.com
+louisiana_production_v1,31,state_curated_louisiana_v1,the_lobby_bar_at_the_barnett_new_orleans,The Lobby Bar at the Barnett,600 Carondelet Street,New Orleans,LA,70130,USA,29.9483279,-90.0721644,+1 504 900 1180,https://thebarnett.com/eat-drink/#LobbyBar
+louisiana_production_v1,32,state_curated_louisiana_v1,willie_s_pizza_wing_co_new_orleans,Willie's Pizza Wing Co.,705 Canal Street,New Orleans,LA,,USA,29.9534971,-90.0690182,,
+louisiana_production_v1,33,state_curated_louisiana_v1,wingstop_new_orleans,Wingstop,4242 Chef Menteur Highway,New Orleans,LA,70126,USA,30.0042013,-90.0385438,+1 504-644-4477,
+louisiana_production_v1,34,state_curated_louisiana_v1,urban_south_brewery_new_orleans,urban south brewery,1645 Tchoupitoulas Street,New Orleans,LA,70130,USA,29.9296609,-90.0666427,,http://urbansouthbrewery.com/home/
+louisiana_production_v1,35,state_curated_louisiana_v1,all_star_lanes_baton_rouge_baton_rouge,All Star Lanes Baton Rouge,9829 Airline Highway,Baton Rouge,LA,70816,USA,30.4298035,-91.0776006,,
+louisiana_production_v1,36,state_curated_louisiana_v1,green_rabbit_tavern_baton_rouge,Green Rabbit Tavern,4612 Bennington Avenue,Baton Rouge,LA,,USA,30.4198789,-91.1385089,,https://greenrabbittavern.com/
+louisiana_production_v1,37,state_curated_louisiana_v1,mid_city_beer_garden_baton_rouge,Mid City Beer Garden,3808 Government Street,Baton Rouge,LA,70806,USA,30.4440291,-91.1503852,,https://www.midcitybeergarden.com/
+louisiana_production_v1,38,state_curated_louisiana_v1,radio_bar_baton_rouge,Radio Bar,3079 Government Street,Baton Rouge,LA,,USA,30.4444891,-91.1568211,,https://theradiobar.com
+louisiana_production_v1,39,state_curated_louisiana_v1,tin_roof_brewery_baton_rouge,Tin Roof Brewery,1624 Wyoming Street,Baton Rouge,LA,70802,USA,30.4326946,-91.1891373,+1 225-377-7022,https://www.tinroofbeer.com/
+louisiana_production_v1,40,state_curated_louisiana_v1,wingstop_baton_rouge,Wingstop,9600 Florida Boulevard,Baton Rouge,LA,70815,USA,30.4547081,-91.0810768,+1 225-218-4500,
+louisiana_production_v1,41,state_curated_louisiana_v1,buffalo_wild_wings_lafayette,Buffalo Wild Wings,4415 Ambassador Caffery Parkway,Lafayette,LA,,USA,30.1580553,-92.0492185,,
+louisiana_production_v1,42,state_curated_louisiana_v1,jim_deggys_brick_oven_pizza_brewery_lafayette,Jim Deggys Brick Oven Pizza & Brewery,201 Jefferson Street,Lafayette,LA,70501,USA,30.2270317,-92.0158478,+1-337-345-1122,jimdeggys.com
+louisiana_production_v1,43,state_curated_louisiana_v1,lafayette_lanes_lafayette,Lafayette Lanes,2825 Johnston Street,Lafayette,LA,,USA,30.2055467,-92.0396994,,
+louisiana_production_v1,44,state_curated_louisiana_v1,twin_peaks_lafayette,Twin Peaks,5801 Johnston Street,Lafayette,LA,70503,USA,30.1708623,-92.0803571,,
+louisiana_production_v1,45,state_curated_louisiana_v1,the_battlefield_bar_chalmette,The Battlefield Bar,2029 Paris Road,Chalmette,LA,70043,USA,29.9374330,-89.9656237,,
+louisiana_production_v1,46,state_curated_louisiana_v1,balcony_bar_and_cafe_new_orleans,Balcony Bar and Cafe,3201 Magazine Street,New Orleans,LA,70115,USA,29.9240397,-90.0866108,,
+louisiana_production_v1,47,state_curated_louisiana_v1,bar_redux_new_orleans,Bar Redux,801 Poland Avenue,New Orleans,LA,70117,USA,29.9616557,-90.0322430,,
+louisiana_production_v1,48,state_curated_louisiana_v1,bar_tonique_new_orleans,Bar Tonique,,New Orleans,LA,,USA,29.9616106,-90.0672165,,https://www.bartonique.com/
+louisiana_production_v1,49,state_curated_louisiana_v1,big_daddy_s_bar_new_orleans,Big Daddy's Bar,2513 Royal Street,New Orleans,LA,,USA,29.9650180,-90.0514628,,
+louisiana_production_v1,50,state_curated_louisiana_v1,bronx_bar_new_orleans,Bronx Bar,4416 Magazine Street,New Orleans,LA,70115,USA,29.9206451,-90.1021040,,

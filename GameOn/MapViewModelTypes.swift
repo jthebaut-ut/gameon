@@ -549,6 +549,19 @@ struct DiscoverMapBoundsWindow: Equatable {
     }
 }
 
+struct CitySearchVenueDebugContext {
+    let query: String
+    let resolvedCoordinate: CLLocationCoordinate2D
+    let resolvedCity: String
+    let resolvedState: String
+    let radiusMiles: Double
+    let bounds: DiscoverMapBoundsWindow
+}
+
+enum LiveVenueNavigationFeatureFlags {
+    static let liveVenueDiscoverNavigationEnabled = false
+}
+
 struct DiscoverViewportVenueRowsCacheEntry {
     let key: String
     let source: String

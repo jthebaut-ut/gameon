@@ -1,0 +1,41 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+oklahoma_production_v1,1,state_curated_oklahoma_v1,dust_bowl_lanes_and_lounge_oklahoma_city,Dust Bowl Lanes and Lounge,421 Northwest 10th Street,Oklahoma City,OK,73103,USA,35.4785662,-97.5197981,,https://dustbowllounge.com/locations/oklahoma-city/
+oklahoma_production_v1,2,state_curated_oklahoma_v1,mushwings_oklahoma_city,Mushwings,1407 Northeast 10th Street,Oklahoma City,OK,,USA,35.4784821,-97.4873917,+1 405-768-3470,https://mushwingsokc.wixsite.com/mushwings
+oklahoma_production_v1,3,state_curated_oklahoma_v1,amf_sheridan_lanes_tulsa,AMF Sheridan Lanes,3121 South Sheridan Road East,Tulsa,OK,74145,USA,36.1181938,-95.9035437,,https://www.amf.com/location/amf-sheridan-lanes-ok
+oklahoma_production_v1,4,state_curated_oklahoma_v1,angie_s_fish_wings_tulsa,Angie's Fish & Wings,3616 East 11th Street South,Tulsa,OK,74112,USA,36.1475660,-95.9363601,+1 918 619 9719,https://e11thst.angiesfishandwings.com/
+oklahoma_production_v1,5,state_curated_oklahoma_v1,arena_pub_grill_tulsa,Arena Pub & Grill,201 South Denver Avenue West,Tulsa,OK,,USA,36.1527342,-95.9947371,+1 918 879 1990,https://arenapubandgrill.com/
+oklahoma_production_v1,6,state_curated_oklahoma_v1,buffalo_wild_wings_tulsa,Buffalo Wild Wings,6222 East 41st Street,Tulsa,OK,74135,USA,36.1034934,-95.9071175,+1 918-398-7111,https://www.buffalowildwings.com/locations/us/ok/tulsa/6222-east-41st-street/sports-bar-1093/
+oklahoma_production_v1,7,state_curated_oklahoma_v1,golftec_tulsa,GolfTec,6010 South Memorial Drive East,Tulsa,OK,74145,USA,36.0767221,-95.8875158,,https://www.golftec.com/golf-lessons/tulsa
+oklahoma_production_v1,8,state_curated_oklahoma_v1,wingstop_tulsa,Wingstop,1921 South Yale Avenue East,Tulsa,OK,74112,USA,36.1356268,-95.9218401,+1 918-743-9464,https://www.wingstop.com/location/wingstop-448-tulsa-ok-74112/menu
+oklahoma_production_v1,9,state_curated_oklahoma_v1,buffalo_wild_wings_del_city,Buffalo Wild Wings,5500 Tinker Diagonal,Del City,OK,73115,USA,35.4450675,-97.4250552,,
+oklahoma_production_v1,10,state_curated_oklahoma_v1,tez_wingz_midwest_city,TEZ WINGZ,3801 North Oak Grove Drive,Midwest City,OK,73110,USA,35.4790175,-97.4041698,,
+oklahoma_production_v1,11,state_curated_oklahoma_v1,47_degrees_lounge_grill_oklahoma_city,47 Degrees Lounge & Grill,4700 West Reno Avenue,Oklahoma City,OK,73127,USA,35.4636879,-97.6044543,,https://www.facebook.com/47LoungeOkc
+oklahoma_production_v1,12,state_curated_oklahoma_v1,bar_arbolada_oklahoma_city,Bar Arbolada,637 West Main Street,Oklahoma City,OK,,USA,35.4680021,-97.5240774,+1 405-601-8659,https://www.facebook.com/bararbolada/
+oklahoma_production_v1,13,state_curated_oklahoma_v1,buffalo_wild_wings_oklahoma_city,Buffalo Wild Wings,6910 Southwest 3rd Street,Oklahoma City,OK,73128,USA,35.4617670,-97.6347097,,
+oklahoma_production_v1,14,state_curated_oklahoma_v1,cousins_bar_grill_oklahoma_city,Cousins Bar & Grill,6509 North May Avenue,Oklahoma City,OK,,USA,35.5378910,-97.5660809,+1 405 840 5053,https://cousinsbarandgrillokc.com
+oklahoma_production_v1,15,state_curated_oklahoma_v1,dave_buster_s_oklahoma_city,Dave & Buster's,5501 North May Avenue,Oklahoma City,OK,,USA,35.5257649,-97.5673407,,
+oklahoma_production_v1,16,state_curated_oklahoma_v1,hooters_oklahoma_city,Hooters,3025 Northwest Expressway,Oklahoma City,OK,,USA,35.5280230,-97.5688358,,
+oklahoma_production_v1,17,state_curated_oklahoma_v1,james_e_mcnellie_s_public_house_oklahoma_city,James E. McNellie's Public House,1100 Classen Drive,Oklahoma City,OK,73102,USA,35.4792814,-97.5213222,+1 405 601 7468,https://mcnellies.com/locations/oklahoma-city-pub/
+oklahoma_production_v1,18,state_curated_oklahoma_v1,scorecards_sports_bar_oklahoma_city,Scorecards Sports Bar,1708 North Indiana Avenue,Oklahoma City,OK,73170,USA,35.4863141,-97.5408963,+1-405-600-7985,
+oklahoma_production_v1,19,state_curated_oklahoma_v1,the_barrel_oklahoma_city,The Barrel,4308 North Western Avenue,Oklahoma City,OK,73118,USA,35.5149828,-97.5294876,+1-405-525-6682,https://www.barrelokc.com/
+oklahoma_production_v1,20,state_curated_oklahoma_v1,the_lobby_bar_oklahoma_city,The Lobby Bar,4322 North Western Avenue,Oklahoma City,OK,73118,USA,35.5153800,-97.5296899,,https://www.willrogerslobbybar.com/
+oklahoma_production_v1,21,state_curated_oklahoma_v1,wingstop_oklahoma_city,Wingstop,7000 Northwest Expressway,Oklahoma City,OK,73132,USA,35.5557225,-97.6379166,+1 405-720-9464,
+oklahoma_production_v1,22,state_curated_oklahoma_v1,double_o_sports_bar_tulsa,Double O Sports Bar,1926 East Pine Street North,Tulsa,OK,74110,USA,36.1768533,-95.9638590,,
+oklahoma_production_v1,23,state_curated_oklahoma_v1,king_s_way_wings_tulsa,King's Way Wings,804 South Lewis Avenue East,Tulsa,OK,74104,USA,36.1494821,-95.9584167,,
+oklahoma_production_v1,24,state_curated_oklahoma_v1,last_call_sports_bar_tulsa,Last Call Sports Bar,South Sheridan Road,Tulsa,OK,,USA,36.1010270,-95.9038381,,
+oklahoma_production_v1,25,state_curated_oklahoma_v1,new_story_brewing_tulsa,New Story Brewing,601 Pride Street,Tulsa,OK,74120,USA,36.1552581,-95.9834226,,
+oklahoma_production_v1,26,state_curated_oklahoma_v1,nothing_s_left_brewing_company_tulsa,Nothing's Left Brewing Company,1502 East 6th Street South,Tulsa,OK,,USA,36.1519101,-95.9713641,,
+oklahoma_production_v1,27,state_curated_oklahoma_v1,renaissance_brewing_co_tulsa,Renaissance Brewing Co.,1147 South Lewis Avenue East,Tulsa,OK,74104,USA,36.1461559,-95.9579560,,
+oklahoma_production_v1,28,state_curated_oklahoma_v1,torchy_s_side_pocket_tulsa,Torchy's Side Pocket,6151 East 31st Street South,Tulsa,OK,74135,USA,36.1193918,-95.9068040,,
+oklahoma_production_v1,29,state_curated_oklahoma_v1,welltown_brewing_tulsa,Welltown Brewing,114 West Archer Street North,Tulsa,OK,74103,USA,36.1565108,-95.9949631,,
+oklahoma_production_v1,30,state_curated_oklahoma_v1,whittier_bar_tulsa,Whittier Bar,2405 East Admiral Boulevard,Tulsa,OK,,USA,36.1600251,-95.9577865,+1 918-574-8709,https://www.thewhittierbar.com/
+oklahoma_production_v1,31,state_curated_oklahoma_v1,angry_scotsman_brewing_oklahoma_city,Angry Scotsman Brewing,,Oklahoma City,OK,,USA,35.4639854,-97.5245428,,
+oklahoma_production_v1,32,state_curated_oklahoma_v1,brewskeys_oklahoma_city,Brewskeys,2600 South Meridian Avenue,Oklahoma City,OK,73108,USA,35.4394165,-97.6004030,,
+oklahoma_production_v1,33,state_curated_oklahoma_v1,chester_s_billiards_grill_oklahoma_city,Chester's Billiards & Grill,,Oklahoma City,OK,,USA,35.5226551,-97.5643671,,
+oklahoma_production_v1,34,state_curated_oklahoma_v1,club_6000_bar_grill_oklahoma_city,Club 6000 Bar & Grill,6000 North Bryant Avenue,Oklahoma City,OK,73121,USA,35.5324324,-97.4586016,,
+oklahoma_production_v1,35,state_curated_oklahoma_v1,driving_range_oklahoma_city,Driving Range,,Oklahoma City,OK,,USA,35.4387655,-97.4690900,,
+oklahoma_production_v1,36,state_curated_oklahoma_v1,flashback_retropub_oklahoma_city,FlashBack RetroPub,,Oklahoma City,OK,,USA,35.4663042,-97.5264209,,
+oklahoma_production_v1,37,state_curated_oklahoma_v1,park_harvey_sushi_sports_lounge_oklahoma_city,Park Harvey Sushi & Sports Lounge,,Oklahoma City,OK,,USA,35.4689319,-97.5177633,,
+oklahoma_production_v1,38,state_curated_oklahoma_v1,planet_bowl_oklahoma_city,Planet Bowl,,Oklahoma City,OK,,USA,35.4388564,-97.4116643,,
+oklahoma_production_v1,39,state_curated_oklahoma_v1,practice_green_oklahoma_city,Practice Green,,Oklahoma City,OK,,USA,35.3990937,-97.5530981,,
+oklahoma_production_v1,40,state_curated_oklahoma_v1,the_wilshire_dive_bar_oklahoma_city,The Wilshire Dive Bar,2917 West Wilshire Boulevard,Oklahoma City,OK,,USA,35.5512697,-97.5666140,,

@@ -3,6 +3,10 @@ import Foundation
 import MapKit
 import SwiftUI
 
+private enum DiscoverCitySearchVenueReloadConfig {
+    static let radiusMiles = 25.0
+}
+
 fileprivate enum DiscoverLocationFetchResult {
     case coordinate(CLLocationCoordinate2D)
     case unavailable(reason: String)
@@ -545,8 +549,8 @@ extension MapViewModel {
         isDiscoverVenueSearchLoading = true
         defer { isDiscoverVenueSearchLoading = false }
 
-        if kind == .globalPlace, let coord = await geocodeAddress(q) {
-            applySuccessfulDiscoverAddressSearch(coordinate: coord)
+        if kind == .globalPlace, let resolution = await geocodeDiscoverAddressSearch(q) {
+            applySuccessfulDiscoverAddressSearch(resolution: resolution, query: q)
             return true
         }
 
@@ -560,8 +564,8 @@ extension MapViewModel {
             merged.append(bar)
         }
 
-        if kind == .appContentRegionBound, merged.isEmpty, let coord = await geocodeAddress(q) {
-            applySuccessfulDiscoverAddressSearch(coordinate: coord)
+        if kind == .appContentRegionBound, merged.isEmpty, let resolution = await geocodeDiscoverAddressSearch(q) {
+            applySuccessfulDiscoverAddressSearch(resolution: resolution, query: q)
             return true
         }
 
@@ -574,7 +578,7 @@ extension MapViewModel {
         return false
     }
 
-    private func applySuccessfulDiscoverAddressSearch(coordinate: CLLocationCoordinate2D) {
+    private func applySuccessfulDiscoverAddressSearch(resolution: CitySearchVenueDebugContext, query: String) {
         selectedBar = nil
         selectedEvent = nil
         selectedPickupGameForMap = nil
@@ -586,15 +590,72 @@ extension MapViewModel {
         discoverClusteredBarsCache = nil
         discoverPickupClustersCacheKey = nil
         discoverPickupClustersCache = nil
+        pendingCitySearchVenueDebugContext = resolution
         cameraPosition = .region(
             MKCoordinateRegion(
-                center: coordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.25, longitudeDelta: 0.25)
+                center: resolution.resolvedCoordinate,
+                span: MKCoordinateSpan(
+                    latitudeDelta: resolution.bounds.latSpan,
+                    longitudeDelta: resolution.bounds.lonSpan
+                )
             )
         )
 #if DEBUG
+        print("[CitySearchVenueDebug] query=\(query)")
+        print("[CitySearchVenueDebug] resolvedCoordinate=\(resolution.resolvedCoordinate.latitude),\(resolution.resolvedCoordinate.longitude)")
+        print("[CitySearchVenueDebug] resolvedCity=\(resolution.resolvedCity)")
+        print("[CitySearchVenueDebug] resolvedState=\(resolution.resolvedState)")
+        print("[CitySearchVenueDebug] radiusMiles=\(resolution.radiusMiles)")
+        print("[CitySearchVenueDebug] bounds=\(Self.citySearchBoundsDescription(resolution.bounds))")
         print("[DiscoverSearchDebug] addressSearchClearedAfterSubmit=true")
 #endif
+    }
+
+    private func geocodeDiscoverAddressSearch(_ address: String) async -> CitySearchVenueDebugContext? {
+        guard let request = MKGeocodingRequest(addressString: address) else { return nil }
+        do {
+            guard let item = try await request.mapItems.first else {
+                return nil
+            }
+            let coordinate = item.location.coordinate
+            let radiusMiles = DiscoverCitySearchVenueReloadConfig.radiusMiles
+            let bounds = Self.citySearchBounds(around: coordinate, radiusMiles: radiusMiles)
+            return CitySearchVenueDebugContext(
+                query: address,
+                resolvedCoordinate: coordinate,
+                resolvedCity: item.placemark.locality ?? "",
+                resolvedState: item.placemark.administrativeArea ?? item.placemark.countryCode ?? "",
+                radiusMiles: radiusMiles,
+                bounds: bounds
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    nonisolated private static func citySearchBounds(
+        around coordinate: CLLocationCoordinate2D,
+        radiusMiles: Double
+    ) -> DiscoverMapBoundsWindow {
+        let latDelta = radiusMiles / 69.0
+        let lonMilesPerDegree = max(cos(coordinate.latitude * .pi / 180) * 69.172, 0.01)
+        let lonDelta = radiusMiles / lonMilesPerDegree
+        return DiscoverMapBoundsWindow(
+            minLat: coordinate.latitude - latDelta,
+            maxLat: coordinate.latitude + latDelta,
+            minLon: coordinate.longitude - lonDelta,
+            maxLon: coordinate.longitude + lonDelta
+        )
+    }
+
+    nonisolated private static func citySearchBoundsDescription(_ bounds: DiscoverMapBoundsWindow) -> String {
+        String(
+            format: "%.5f...%.5f,%.5f...%.5f",
+            bounds.minLat,
+            bounds.maxLat,
+            bounds.minLon,
+            bounds.maxLon
+        )
     }
 
     func geocodeAddress(_ address: String) async -> CLLocationCoordinate2D? {

@@ -2569,12 +2569,24 @@ extension MapViewModel {
         }
     }
 
-    func loadVenuesFromSupabase(forceRefresh: Bool = false) async {
+    func loadVenuesFromSupabase(forceRefresh: Bool = false, logManualMapReload: Bool = false) async {
         let t0 = Date()
         let requestID = UUID()
         loadVenuesRequestID = requestID
+        let citySearchDebugContext = pendingCitySearchVenueDebugContext
         #if DEBUG
         print("[DiscoverPerf] map venue reload START forceRefresh=\(forceRefresh)")
+        if let citySearchDebugContext {
+            print("[CitySearchVenueDebug] query=\(citySearchDebugContext.query)")
+            print("[CitySearchVenueDebug] reloadTriggered=true")
+            print("[CitySearchVenueDebug] requestID=\(requestID.uuidString.lowercased())")
+            print("[CitySearchVenueDebug] displayMode=\(mapDisplayMode.rawValue)")
+            print("[CitySearchVenueDebug] selectedSport=\(selectedSport)")
+            print("[CitySearchVenueDebug] noGameCommunityIncluded=\(mapDisplayMode == .allSpots && selectedSport == "All")")
+        }
+        if logManualMapReload {
+            print("[ManualMapReloadDebug] requestID=\(requestID.uuidString.lowercased())")
+        }
         #endif
 
         clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
@@ -2620,6 +2632,9 @@ extension MapViewModel {
             if loadVenuesRequestIsCurrent(phase: "finalLoadingState") {
                 isLoadingMapVenues = false
                 isRefreshingMapVenues = false
+                if citySearchDebugContext != nil {
+                    pendingCitySearchVenueDebugContext = nil
+                }
             }
         }
 
@@ -2654,6 +2669,9 @@ extension MapViewModel {
 #endif
             }
 #if DEBUG
+            if citySearchDebugContext != nil {
+                print("[CitySearchVenueDebug] rowsReturned=\(venueRowsForContext.count)")
+            }
             let approvedManagedIdsForDiscover = Set(managedVenuesForOwner().compactMap(\.id))
             for row in venueRowsForContext {
                 guard let id = row.id else { continue }
@@ -2730,6 +2748,9 @@ extension MapViewModel {
             let phase1CompletedAt = Date()
 
             #if DEBUG
+            if logManualMapReload {
+                print("[ManualMapReloadDebug] rowsReturned=\(venueRowsForContext.count)")
+            }
             let phase1Ms = Int(phase1CompletedAt.timeIntervalSince(t0) * 1000)
             print("[Phase1Perf] fast venue load ms=\(phase1Ms) bars=\(phase1Bars.count) source=\(visibleVenueContext.querySource)")
             print("[Perf] Phase 1 pins loaded ms=\(phase1Ms) bars=\(phase1Bars.count)")
@@ -2813,10 +2834,16 @@ extension MapViewModel {
             let filteredDiscoverCount = bars.filter { !matchingEventsForDiscoverFilter(bar: $0).isEmpty }.count
             print("[DiscoverVenueEventsDebug] filteredBars count=\(filteredDiscoverCount)")
             print("[DiscoverVenueEventsDebug] selectedDate=\(dbgDateFmt.string(from: selectedDate)) selectedSport=\(selectedSport)")
+            if citySearchDebugContext != nil {
+                print("[CitySearchVenueDebug] visiblePins=\(mapVisibleBars.count)")
+            }
             #endif
 
         } catch {
             #if DEBUG
+            if logManualMapReload {
+                print("[ManualMapReloadDebug] rowsReturned=0")
+            }
             print("[DiscoverPerf] map venue reload ERROR:", error)
             #endif
         }

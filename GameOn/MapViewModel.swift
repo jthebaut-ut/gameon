@@ -50,6 +50,7 @@ final class MapViewModel: ObservableObject {
         }
     }
     @Published var searchText: String = ""
+    var pendingCitySearchVenueDebugContext: CitySearchVenueDebugContext?
     /// Debounced copy of ``searchText`` for Discover map/event filtering and live venue suggestions (see ``MapViewModel+DiscoverSearch``).
     @Published var debouncedDiscoverSearchText: String = "" {
         didSet {

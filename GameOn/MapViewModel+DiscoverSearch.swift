@@ -99,7 +99,9 @@ extension MapViewModel {
             return .globalPlace
         }
 
-        let collapsed = q.lowercased()
+        let collapsed = q.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+            .replacingOccurrences(of: "[\\.\\'’`]", with: "", options: .regularExpression)
             .replacingOccurrences(of: ",", with: " ")
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -117,7 +119,11 @@ extension MapViewModel {
             "usa", "us", "utah", "colorado", "arizona", "nevada", "california", "wyoming", "idaho", "newmexico",
             "oregon", "washington", "montana", "texas", "florida", "newyork", "illinois", "pennsylvania", "ohio",
             "georgia", "northcarolina", "michigan", "tennessee", "wisconsin", "minnesota", "canada", "mexico",
-            "england", "france", "germany", "spain", "japan", "china", "uk", "ireland", "australia", "slc", "nyc", "la"
+            "england", "france", "germany", "spain", "japan", "china", "uk", "ireland", "australia", "slc", "nyc", "la",
+            "toronto", "montreal", "quebec", "vancouver", "ottawa", "calgary", "edmonton", "winnipeg", "halifax",
+            "stjohns",
+            "honolulu", "waikiki", "portland", "bend", "eugene", "wichita", "hartford", "stamford", "baltimore",
+            "annapolis", "richmond", "norfolk", "newark", "hoboken", "louisville", "lexington", "tulsa"
         ]
         let compact = tokens.joined()
         if tokens.count == 1, placeKeywords.contains(compact) {
