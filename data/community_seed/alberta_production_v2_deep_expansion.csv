@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+alberta_production_v2_deep_expansion,1,province_curated_alberta_v2,abv2_001,National on 10th,341 10 Ave SW,Calgary,AB,T2R 0A5,Canada,51.0438,-114.0694,,https://ntnl.ca
+alberta_production_v2_deep_expansion,2,province_curated_alberta_v2,abv2_002,Trolley 5 Brewpub,728 17 Ave SW,Calgary,AB,T2S 0B7,Canada,51.0377,-114.079,,https://trolley5.com
+alberta_production_v2_deep_expansion,3,province_curated_alberta_v2,abv2_003,The Canadian Brewhouse,1818 32 Ave NE,Calgary,AB,T2E 7T5,Canada,51.0815,-114.0132,,https://thecanadianbrewhouse.com
+alberta_production_v2_deep_expansion,4,province_curated_alberta_v2,abv2_004,The Cabin Pub + Party,11606 Jasper Ave,Edmonton,AB,T5K 0M9,Canada,53.5416,-113.5192,,https://thecabinpub.ca
+alberta_production_v2_deep_expansion,5,province_curated_alberta_v2,abv2_005,Hudsons Canada's Pub,10307 82 Ave NW,Edmonton,AB,T6E 1Z9,Canada,53.5185,-113.4932,,https://hudsonscanadaspub.com

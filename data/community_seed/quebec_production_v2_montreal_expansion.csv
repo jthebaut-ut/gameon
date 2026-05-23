@@ -1,0 +1,9 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+quebec_production_v2_montreal_expansion,1,province_curated_quebec_v2,qcv2_001,Madhatter Pub,1208 Crescent St,Montreal,QC,H3G 2A9,Canada,45.4958,-73.5785,,https://madhatterpub.com
+quebec_production_v2_montreal_expansion,2,province_curated_quebec_v2,qcv2_002,Ye Olde Orchard Pub,1189 Rue de la Montagne,Montreal,QC,H3G 1Z2,Canada,45.4967,-73.5775,,https://yeoldeorchard.com
+quebec_production_v2_montreal_expansion,3,province_curated_quebec_v2,qcv2_003,N Sur Mackay,1245 Rue Mackay,Montreal,QC,H3G 2H4,Canada,45.4942,-73.5787,,https://nsurmackay.com
+quebec_production_v2_montreal_expansion,4,province_curated_quebec_v2,qcv2_004,Pub Bishop & Bagg,52 Avenue du Mont-Royal O,Montreal,QC,H2T 2S6,Canada,45.5222,-73.592,,https://bishopandbagg.com
+quebec_production_v2_montreal_expansion,5,province_curated_quebec_v2,qcv2_005,Le Boudoir,850 Rue du Mont-Royal E,Montreal,QC,H2J 1X1,Canada,45.5271,-73.579,,
+quebec_production_v2_montreal_expansion,6,province_curated_quebec_v2,qcv2_006,Peel Pub,1196 Rue Peel,Montreal,QC,H3B 2T6,Canada,45.4965,-73.5772,,https://peelpub.com
+quebec_production_v2_montreal_expansion,7,province_curated_quebec_v2,qcv2_007,McKibbin's Irish Pub,1426 Rue Bishop,Montreal,QC,H3G 2E6,Canada,45.4963,-73.5796,,https://mckibbinsirishpub.com
+quebec_production_v2_montreal_expansion,8,province_curated_quebec_v2,qcv2_008,La Distillerie,300 Ontario St E,Montreal,QC,H2X 1H6,Canada,45.514,-73.5601,,https://distillerie.com

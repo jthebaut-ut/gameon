@@ -595,7 +595,7 @@ struct MainTabView: View {
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.12), radius: colorScheme == .dark ? 18 : 10, y: 8)
             .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 10, y: 2)
             .padding(.horizontal)
-            .padding(.bottom, 12)
+            .padding(.bottom, 6)
         }
         .allowsHitTesting(true)
         .zIndex(2)

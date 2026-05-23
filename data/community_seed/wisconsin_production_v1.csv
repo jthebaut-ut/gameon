@@ -1,0 +1,31 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+wisconsin_production_v1,1,state_curated_wisconsin_v1,stadium_view_bar_ashwaubenon,Stadium View Bar,1963 Holmgren Way,Ashwaubenon,WI,54304,USA,44.4975471,-88.0530748,+1-920-498-1989,https://www.thestadiumview.com/
+wisconsin_production_v1,2,state_curated_wisconsin_v1,anduzzi_s_sports_club_green_bay,Anduzzi's Sports Club,900 Kepler Drive,Green Bay,WI,54311,USA,44.4838622,-87.9386654,+1-920-544-0874,https://www.anduzzis.com/
+wisconsin_production_v1,3,state_curated_wisconsin_v1,buffalo_wild_wings_milwaukee,Buffalo Wild Wings,1123 North Water Street,Milwaukee,WI,53202,USA,43.0451960,-87.9112446,+1 414 277 0293,https://www.buffalowildwings.com/en/locations/Detail/0407
+wisconsin_production_v1,4,state_curated_wisconsin_v1,sportclub_milwaukee,SportClub,750 North Jefferson Street,Milwaukee,WI,53202,USA,43.0402340,-87.9052437,+1 414 808 1588,https://sportclubmke.com
+wisconsin_production_v1,5,state_curated_wisconsin_v1,tom_s_watch_bar_milwaukee,Tom's Watch Bar,1134 North Vel R. Phillips Avenue,Milwaukee,WI,53203,USA,43.0451715,-87.9155960,+1-414-908-0401,https://tomswatchbar.com/milwaukee/
+wisconsin_production_v1,6,state_curated_wisconsin_v1,boz_s_sports_bar_west_allis,Boz's Sports Bar,1325 South 70th Street,West Allis,WI,53214,USA,43.0179407,-88.0002711,+1-414-443-9337,https://www.bozssportsbar.com/
+wisconsin_production_v1,7,state_curated_wisconsin_v1,buffalo_wild_wings_west_milwaukee,Buffalo Wild Wings,1621 Miller Park Way,West Milwaukee,WI,53214,USA,43.0136255,-87.9688776,+1-414-497-0681,https://www.buffalowildwings.com/locations/us/wi/west-milwaukee/1621-miller-park-way/sports-bar-1891/
+wisconsin_production_v1,8,state_curated_wisconsin_v1,anduzzi_s_sports_club_holmgren_way_green_bay,Anduzzi's Sports Club - Holmgren Way,1992 Holmgren Way,Green Bay,WI,54304,USA,44.4969920,-88.0547387,,https://www.anduzzis.com/
+wisconsin_production_v1,9,state_curated_wisconsin_v1,muskellounge_and_sporting_club_musky_madison,Muskellounge and Sporting Club (Musky),4102 Monona Drive,Madison,WI,53716,USA,43.0792828,-89.3233476,,https://www.muskellounge.com
+wisconsin_production_v1,10,state_curated_wisconsin_v1,buffalo_wild_wings_monona,Buffalo Wild Wings,6544 Monona Drive,Monona,WI,53716,USA,43.0472233,-89.3216127,,https://www.buffalowildwings.com/en/locations/Detail/0411
+wisconsin_production_v1,11,state_curated_wisconsin_v1,prime_time_sports_bar_and_eatery_brown_deer,Prime Time Sports Bar & Eatery,"8777,8777A North Deerwood Drive",Brown Deer,WI,53209,USA,43.1774386,-87.9642702,+1-414-354-1919,
+wisconsin_production_v1,12,state_curated_wisconsin_v1,premier_sports_lounge_milwaukee,Premier Sports Lounge,4001 West North Avenue,Milwaukee,WI,53208,USA,43.0604532,-87.9636561,+1-414-639-2134,
+wisconsin_production_v1,13,state_curated_wisconsin_v1,swagger_sports_bar_and_grill_franklin,Swagger Sports Bar & Grill,7220 West Rawson Avenue,Franklin,WI,53132,USA,42.9166319,-88.0050820,,
+wisconsin_production_v1,14,state_curated_wisconsin_v1,buffalo_wild_wings_madison,Buffalo Wild Wings,240 E Towne Mall,Madison,WI,53704,USA,43.1259566,-89.3059160,,
+wisconsin_production_v1,15,state_curated_wisconsin_v1,locker_room_madison,Locker Room,1810 Roth Street,Madison,WI,53704,USA,43.1114389,-89.3598208,,
+wisconsin_production_v1,16,state_curated_wisconsin_v1,brown_and_gibbs_sports_bar_milwaukee,Brown & Gibbs Sports Bar,182 East Lincoln Avenue,Milwaukee,WI,53207,USA,43.0030134,-87.9083110,,
+wisconsin_production_v1,17,state_curated_wisconsin_v1,buffalo_wild_wings_milwaukee_2,Buffalo Wild Wings,3636 South 27th Street,Milwaukee,WI,53221,USA,42.9784659,-87.9472939,,
+wisconsin_production_v1,18,state_curated_wisconsin_v1,dana_s_fieldhouse_milwaukee,Dana's Fieldhouse,5004 West Vliet Street,Milwaukee,WI,53208,USA,43.0490410,-87.9761865,,
+wisconsin_production_v1,19,state_curated_wisconsin_v1,the_hideaway_sports_bar_and_grill_milwaukee,The Hideaway Sports Bar & Grill,9000 West Kaul Avenue,Milwaukee,WI,53225,USA,43.1287269,-88.0244156,,
+wisconsin_production_v1,20,state_curated_wisconsin_v1,top_tier_sports_lounge_milwaukee,Top Tier Sports Lounge,2221 North Humboldt Avenue,Milwaukee,WI,53212,USA,43.0594922,-87.8981659,,
+wisconsin_production_v1,21,state_curated_wisconsin_v1,buffalo_wild_wings_wauwatosa,Buffalo Wild Wings,2635 North Mayfair Road,Wauwatosa,WI,53226,USA,43.0657034,-88.0484667,,
+wisconsin_production_v1,22,state_curated_wisconsin_v1,axe_mke_milwaukee,AXE MKE,1924 East Kenilworth Place,Milwaukee,WI,53202,USA,43.0591725,-87.8857055,+1 414 488 9340,https://www.axemke.com
+wisconsin_production_v1,23,state_curated_wisconsin_v1,merriment_social_milwaukee,Merriment Social,240 East Pittsburgh Avenue,Milwaukee,WI,53204,USA,43.0296205,-87.9087311,+1-414-645-0240,http://www.merrimentsocial.com
+wisconsin_production_v1,24,state_curated_wisconsin_v1,riley_s_social_house_milwaukee,Riley's Social House,411 East Menomonee Street,Milwaukee,WI,53202,USA,43.0314158,-87.9055160,+1-414-316-9118,https://www.rileysandwich.com/
+wisconsin_production_v1,25,state_curated_wisconsin_v1,buzz_social_green_bay,Buzz Social,2310 Lineville Road,Green Bay,WI,54313,USA,44.5944398,-88.0721743,,https://www.buzzsocialgreenbay.com/
+wisconsin_production_v1,26,state_curated_wisconsin_v1,dream_lounge_social_milwaukee,Dream Lounge Social,1806 North Doctor Martin Luther King Junior Drive,Milwaukee,WI,53212,USA,43.0541413,-87.9140837,,https://www.dreamloungesocial.com/
+wisconsin_production_v1,27,state_curated_wisconsin_v1,brownstone_social_lounge_milwaukee,BrownStone Social Lounge,524 North Water Street,Milwaukee,WI,53202,USA,43.0368546,-87.9085409,+1 414 409 6080,
+wisconsin_production_v1,28,state_curated_wisconsin_v1,608_axe_throwing_green_bay_ashwaubenon,608 Axe Throwing - Green Bay,303 Bay Park Square,Ashwaubenon,WI,54304,USA,44.4841866,-88.0666560,,
+wisconsin_production_v1,29,state_curated_wisconsin_v1,dave_and_buster_s_wauwatosa,Dave & Buster's,2201 North Mayfair Road,Wauwatosa,WI,53226,USA,43.0579779,-88.0487046,,
+wisconsin_production_v1,30,state_curated_wisconsin_v1,whos_on_third_milwaukee,Who's On Third,1007 North Doctor Martin Luther King Junior Drive,Milwaukee,WI,53203,USA,43.0431588,-87.9148042,,http://www.whosonthirdmke.com

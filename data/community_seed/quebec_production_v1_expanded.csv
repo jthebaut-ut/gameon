@@ -1,0 +1,21 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+quebec_production_v1,1,province_curated_quebec_v1,qc_001,McLean's Pub,1210 Rue Peel,Montreal,QC,H3B 2T6,Canada,45.497,-73.577,514-392-7770,https://mcleanspub.com
+quebec_production_v1,2,province_curated_quebec_v1,qc_002,Bar Champs,3956 Boulevard Saint-Laurent,Montreal,QC,H2W 1Y3,Canada,45.5176,-73.5773,,
+quebec_production_v1,3,province_curated_quebec_v1,qc_003,Bruno Sport Bar,3132 Rue Masson,Montreal,QC,H1Y 1X6,Canada,45.5495,-73.5702,,
+quebec_production_v1,4,province_curated_quebec_v1,qc_004,Burgundy Lion,2496 Rue Notre-Dame O,Montreal,QC,H3J 1N5,Canada,45.4798,-73.5755,,https://burgundylion.com
+quebec_production_v1,5,province_curated_quebec_v1,qc_005,Station des Sports,862 Rue Sainte-Catherine E,Montreal,QC,H2L 2E5,Canada,45.5187,-73.5556,,
+quebec_production_v1,6,province_curated_quebec_v1,qc_006,La Cage - Centre Bell,1212 Avenue des Canadiens-de-Montréal,Montreal,QC,H3B 5E8,Canada,45.496,-73.5693,,https://cage.ca
+quebec_production_v1,7,province_curated_quebec_v1,qc_007,Pub du Parvis,4828 Boulevard Saint-Laurent,Montreal,QC,H2T 1R5,Canada,45.5238,-73.5947,,
+quebec_production_v1,8,province_curated_quebec_v1,qc_008,Bar Courcelle,4685 Rue Notre-Dame O,Montreal,QC,H4C 1S5,Canada,45.473,-73.5915,,
+quebec_production_v1,9,province_curated_quebec_v1,qc_009,Caffè Italia,6840 Boulevard Saint-Laurent,Montreal,QC,H2S 3C7,Canada,45.5362,-73.615,,
+quebec_production_v1,10,province_curated_quebec_v1,qc_010,MVP Restaurant & Bar Sportif,2000 Rue Sainte-Catherine O,Montreal,QC,H3H 2T2,Canada,45.4915,-73.5805,,https://mvpbarsportif.com
+quebec_production_v1,11,province_curated_quebec_v1,qc_011,La Cage - Laval,1950 Rue Claude-Gagné,Laval,QC,H7N 0E4,Canada,45.5584,-73.7222,,https://cage.ca
+quebec_production_v1,12,province_curated_quebec_v1,qc_012,La Cage - Longueuil,825 Rue Saint-Laurent O,Longueuil,QC,J4K 2V1,Canada,45.536,-73.5185,,https://cage.ca
+quebec_production_v1,13,province_curated_quebec_v1,qc_013,Bar Sport Vegas,1175 Boulevard Pie-XI N,Quebec City,QC,G3K 2P8,Canada,46.842,-71.351,,
+quebec_production_v1,14,province_curated_quebec_v1,qc_014,Pub Universitaire,2325 Rue de l'Université,Quebec City,QC,G1V 0A6,Canada,46.781,-71.274,,
+quebec_production_v1,15,province_curated_quebec_v1,qc_015,La Cage - Sainte-Foy,2450 Boulevard Laurier,Quebec City,QC,G1V 2L1,Canada,46.7705,-71.2852,,https://cage.ca
+quebec_production_v1,16,province_curated_quebec_v1,qc_016,Boston Pizza Gatineau,25 Boulevard du Plateau,Gatineau,QC,J9A 3G1,Canada,45.4485,-75.7735,,https://bostonpizza.com
+quebec_production_v1,17,province_curated_quebec_v1,qc_017,La Cage - Gatineau,25 Chemin de la Savane,Gatineau,QC,J8T 8A4,Canada,45.4635,-75.717,,https://cage.ca
+quebec_production_v1,18,province_curated_quebec_v1,qc_018,Ziggy's Pub,1470 Crescent St,Montreal,QC,H3G 2B6,Canada,45.4952,-73.5782,,
+quebec_production_v1,19,province_curated_quebec_v1,qc_019,Chez Serge,5301 Boulevard Saint-Laurent,Montreal,QC,H2T 1S5,Canada,45.5258,-73.5954,,
+quebec_production_v1,20,province_curated_quebec_v1,qc_020,Sports Station,5584 Rue Sherbrooke O,Montreal,QC,H4A 1W3,Canada,45.4735,-73.622,,

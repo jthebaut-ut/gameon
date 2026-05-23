@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+new_brunswick_production_v1,1,province_curated_new_brunswick_v1,nbv1_001,Rocky's Sports Bar,7 Market Square,Saint John,NB,E2L 5C8,Canada,45.2724,-66.0618,506-652-5452,https://www.rockyssportsbar.com/
+new_brunswick_production_v1,2,province_curated_new_brunswick_v1,nbv1_002,The Pit Stop Sports Bar,961 Main St,Moncton,NB,E1C 1G9,Canada,46.0884,-64.7793,506-377-3399,https://www.pitstopsportsbar.com/
+new_brunswick_production_v1,3,province_curated_new_brunswick_v1,nbv1_003,Sports Rock Dieppe,451 Paul St,Dieppe,NB,E1A 6W8,Canada,46.0976,-64.7442,,https://www.sportsrockdieppe.com/
+new_brunswick_production_v1,4,province_curated_new_brunswick_v1,nbv1_004,St. Louis Bar & Grill Moncton,1405 Mountain Rd,Moncton,NB,E1C 2T9,Canada,46.112,-64.834,,https://locations.stlouiswings.com/nb-moncton-3201
+new_brunswick_production_v1,5,province_curated_new_brunswick_v1,nbv1_005,St. Louis Bar & Grill Saint John,212 McAllister Dr,Saint John,NB,E2J 2S5,Canada,45.3065,-66.0172,,https://locations.stlouiswings.com/saint-john/

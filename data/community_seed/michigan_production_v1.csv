@@ -1,0 +1,41 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+michigan_production_v1,1,state_curated_michigan_v1,sports_and_social_detroit_detroit,Sports & Social Detroit,28 Henry Street,Detroit,MI,48201,USA,42.3404953,-83.0542126,+1-313-782-4778,https://sportsandsocialdetroit.com/
+michigan_production_v1,2,state_curated_michigan_v1,gameday_detroit_detroit,Gameday Detroit,1436 Brush Street,Detroit,MI,48226,USA,42.3365307,-83.0450172,,
+michigan_production_v1,3,state_curated_michigan_v1,scorekeepers_ann_arbor,Scorekeepers,310 Maynard Street,Ann Arbor,MI,48104,USA,42.2789156,-83.7421646,+1-734-995-0100,http://scorekeepersa2.com/
+michigan_production_v1,4,state_curated_michigan_v1,buffalo_wild_wings_clinton_township,Buffalo Wild Wings,15745 15 Mile Road,Clinton Township,MI,48035,USA,42.5536676,-82.9635541,+1-586-293-9500,https://www.buffalowildwings.com/locations/us/mi/clinton-township/15745-15-mile-road/sports-bar-395/
+michigan_production_v1,5,state_curated_michigan_v1,fallsports_lounge_dearborn,Fallsports Lounge,19335 Carlysle Street,Dearborn,MI,48124,USA,42.2841432,-83.2324367,+1-313-278-0305,https://www.fallssportslounge.com/
+michigan_production_v1,6,state_curated_michigan_v1,buffalo_wild_wings_grand_rapids_2,Buffalo Wild Wings,2121 Celebration Drive Northeast,Grand Rapids,MI,49525,USA,43.0003818,-85.5931125,+1 616-364-2999,https://www.buffalowildwings.com/
+michigan_production_v1,7,state_curated_michigan_v1,orleans_sports_cafe_mount_clemens,Orleans Sports Cafe,100 Macomb Place,Mount Clemens,MI,48043,USA,42.5994973,-82.8795583,+1-586-465-2201,https://orleanssportscafe.com/home
+michigan_production_v1,8,state_curated_michigan_v1,art_and_jakes_sports_bar_and_grill_northville,Art & Jakes Sports Bar And Grill,39715 6 Mile Road,Northville,MI,48168,USA,42.4101856,-83.4351812,+1-248-404-4040,https://artjakes.com/northville/
+michigan_production_v1,9,state_curated_michigan_v1,northville_sports_den_northville,Northville Sports Den,133 W Main St,Northville,MI,48167,USA,42.4302371,-83.4841437,+12483475993,https://northvillesportsden.com/
+michigan_production_v1,10,state_curated_michigan_v1,library_sports_pub_and_grill_novi,Library Sports Pub & Grill,42705 Grand River Avenue,Novi,MI,48375,USA,42.4779076,-83.4673823,+1 248 349-9110,https://www.librarypub.com/
+michigan_production_v1,11,state_curated_michigan_v1,buffalo_wild_wings_sterling_heights,Buffalo Wild Wings,44833 Mound Road,Sterling Heights,MI,48314,USA,42.6232626,-83.0571100,+1-586-997-2999,https://www.buffalowildwings.com/locations/us/mi/sterling-heights/44833-mound-road/sports-bar-1086/
+michigan_production_v1,12,state_curated_michigan_v1,locker_room_saloon_utica,Locker Room Saloon,7790 Auburn Road,Utica,MI,48317,USA,42.6258817,-83.0335478,+1-586-731-3362,https://www.thelockerroomsaloon.com/
+michigan_production_v1,13,state_curated_michigan_v1,sidelines_sports_tavern_westland,Sidelines Sports Tavern,27554 Warren Road,Westland,MI,48185,USA,42.3408522,-83.3141337,+1-734-427-3980,https://sidelines-sportstavern.com/
+michigan_production_v1,14,state_curated_michigan_v1,buffalo_wild_wings_grand_rapids,Buffalo Wild Wings,8 Ionia Avenue Northwest,Grand Rapids,MI,49503,USA,42.9630020,-85.6699614,,https://www.buffalowildwings.com
+michigan_production_v1,15,state_curated_michigan_v1,buffalo_wild_wings_canton,Buffalo Wild Wings,41980 Ford Road,Canton,MI,48187,USA,42.3231940,-83.4554352,+1 734 844 9464,
+michigan_production_v1,16,state_curated_michigan_v1,eastown_sports_bar_and_grill_grand_rapids,Eastown Sports Bar & Grill,1520 Wealthy Street Southeast,Grand Rapids,MI,49506,USA,42.9554108,-85.6320574,+1-616-356-4949,
+michigan_production_v1,17,state_curated_michigan_v1,buffalo_wild_wings_rochester_hills,Buffalo Wild Wings,1234 Walton Boulevard,Rochester Hills,MI,48307,USA,42.6825234,-83.1509452,+1 248-651-3999,
+michigan_production_v1,18,state_curated_michigan_v1,buffalo_wild_wings_troy,Buffalo Wild Wings,1873 East Big Beaver Road,Troy,MI,48083,USA,42.5645303,-83.1108093,+1-248-743-1299,
+michigan_production_v1,19,state_curated_michigan_v1,sports_brew_pub_wyandotte,Sports Brew Pub,166 Maple Street,Wyandotte,MI,48192,USA,42.2022935,-83.1513264,+1-734-285-5060,
+michigan_production_v1,20,state_curated_michigan_v1,buffalo_wild_wings_ann_arbor,Buffalo Wild Wings,3150 Boardwalk Drive,Ann Arbor,MI,48108,USA,42.2417791,-83.7361987,,
+michigan_production_v1,21,state_curated_michigan_v1,thomas_magee_s_sporting_house_detroit,Thomas Magee's Sporting House,1408 East Fisher Freeway,Detroit,MI,48207,USA,42.3447789,-83.0391104,,
+michigan_production_v1,22,state_curated_michigan_v1,time_out_sports_bar_and_grille_detroit,Time Out Sports Bar & Grille,16801 Plymouth Road,Detroit,MI,48227,USA,42.3721684,-83.2109526,,
+michigan_production_v1,23,state_curated_michigan_v1,buffalo_wild_wings_east_lansing,Buffalo Wild Wings,360 Albert Avenue,East Lansing,MI,48823,USA,42.7350252,-84.4797884,,
+michigan_production_v1,24,state_curated_michigan_v1,super_sports_bar_and_grill_ecorse,Super Sports Bar & Grill,337 Southfield Road,Ecorse,MI,48229,USA,42.2443827,-83.1580381,,
+michigan_production_v1,25,state_curated_michigan_v1,scores_sports_bar_and_grill_farmington_hills,Scores Sports Bar & Grill,24365 Halsted Road,Farmington Hills,MI,48335,USA,42.4705974,-83.4162755,,
+michigan_production_v1,26,state_curated_michigan_v1,tony_s_sports_bar_ferndale,Tony's Sports Bar,23500 Woodward Avenue,Ferndale,MI,48220,USA,42.4669085,-83.1383892,,
+michigan_production_v1,27,state_curated_michigan_v1,twin_peaks_livonia,Twin Peaks,20120 Haggerty Road,Livonia,MI,48152,USA,42.4349333,-83.4329745,,
+michigan_production_v1,28,state_curated_michigan_v1,joe_kool_s_sports_bar_and_grill_novi,Joe Kool's Sports Bar & Grill,43200 Crescent Boulevard,Novi,MI,48375,USA,42.4859169,-83.4712096,,
+michigan_production_v1,29,state_curated_michigan_v1,buffalo_wild_wings_royal_oak,Buffalo Wild Wings,500 South Main Street,Royal Oak,MI,48067,USA,42.4863124,-83.1443300,,
+michigan_production_v1,30,state_curated_michigan_v1,buffalo_wild_wings_saint_clair_shores,Buffalo Wild Wings,23117 Harper Avenue,Saint Clair Shores,MI,48080,USA,42.4667946,-82.9078634,,
+michigan_production_v1,31,state_curated_michigan_v1,lake_michigan_sports_bar_walker,Lake Michigan Sports Bar,4072 Lake Michigan Drive Northwest,Walker,MI,49534,USA,42.9718944,-85.7680541,,
+michigan_production_v1,32,state_curated_michigan_v1,revel_and_roll_bowling_alley_ann_arbor,Revel & Roll Bowling Alley,1950 South Industrial Highway,Ann Arbor,MI,48104,USA,42.2590947,-83.7384426,+1-734-665-4474,https://revelandroll.com/
+michigan_production_v1,33,state_curated_michigan_v1,westside_social_grand_rapids,Westside Social,2802 Lake Michigan Drive Northwest,Grand Rapids,MI,49504,USA,42.9714097,-85.7375171,+1 616-453-5877,https://www.westside.social/
+michigan_production_v1,34,state_curated_michigan_v1,oak_park_social_oak_park,Oak Park Social,14691 West 11 Mile Road,Oak Park,MI,48237,USA,42.4883768,-83.1943620,,https://www.oakparksocial.com/
+michigan_production_v1,35,state_curated_michigan_v1,dave_and_buster_s_lansing,Dave & Buster's,3200 Preyde Boulevard,Lansing,MI,48912,USA,42.7655898,-84.5124708,+1-517-318-5700,
+michigan_production_v1,36,state_curated_michigan_v1,rooted_socialite_lansing,Rooted Socialite,2010 East Michigan Avenue,Lansing,MI,48912,USA,42.7334425,-84.5218813,+1-517-993-9870,
+michigan_production_v1,37,state_curated_michigan_v1,social_birmingham,Social,225 East Maple Road,Birmingham,MI,48009,USA,42.5469564,-83.2136358,,
+michigan_production_v1,38,state_curated_michigan_v1,renaissance_bowling_detroit,Renaissance Bowling,19600 Woodward Avenue,Detroit,MI,48203,USA,42.4373406,-83.1176651,,
+michigan_production_v1,39,state_curated_michigan_v1,dave_and_buster_s_livonia,Dave & Buster's,19375 Victor Parkway,Livonia,MI,48152,USA,42.4286052,-83.4229384,,
+michigan_production_v1,40,state_curated_michigan_v1,bowlero_lanes_and_lounge_royal_oak,Bowlero Lanes and Lounge,4209 Coolidge Highway,Royal Oak,MI,48073,USA,42.5257019,-83.1845587,,

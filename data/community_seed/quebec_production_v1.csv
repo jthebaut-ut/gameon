@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+quebec_production_v1,1,province_curated_quebec_v1,qc_001,McLean's Pub,1210 Rue Peel,Montreal,QC,H3B 2T6,Canada,45.497,-73.577,514-392-7770,
+quebec_production_v1,2,province_curated_quebec_v1,qc_002,MVP Restaurant & Bar Sportif,2000 Rue Sainte-Catherine O,Montreal,QC,H3H 2T2,Canada,45.4915,-73.5805,,https://www.mvpbarsportif.com
+quebec_production_v1,3,province_curated_quebec_v1,qc_003,Chez Miller,1111 Rue Sainte-Catherine E,Montreal,QC,H2L 2G2,Canada,45.518,-73.555,,https://chezmiller.ca
+quebec_production_v1,4,province_curated_quebec_v1,qc_004,Bar Champs,3956 Boulevard Saint-Laurent,Montreal,QC,H2W 1Y3,Canada,45.5176,-73.5773,,
+quebec_production_v1,5,province_curated_quebec_v1,qc_005,La Cage - Complexe Desjardins,150 Rue Sainte-Catherine O,Montreal,QC,H2X 3Y2,Canada,45.5076,-73.5648,,https://www.cage.ca/en/restaurants/complexe-desjardins

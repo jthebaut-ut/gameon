@@ -12,6 +12,26 @@ private enum GuestDiscoverLockedCopy {
         "Log in or create a FanGeo account to view details, join pickup games, save venues, and unlock the full FanGeo experience."
 }
 
+#if DEBUG
+@MainActor
+private enum VenueHeroCrashDebugTracker {
+    private static var appearances: [String: (count: Int, firstSeen: Date)] = [:]
+
+    static func recordAppearance(renderKey: String) {
+        let now = Date()
+        let existing = appearances[renderKey]
+        let firstSeen = existing?.firstSeen ?? now
+        let elapsed = now.timeIntervalSince(firstSeen)
+        let count = elapsed > 2 ? 1 : (existing?.count ?? 0) + 1
+        appearances[renderKey] = (count, elapsed > 2 ? now : firstSeen)
+
+        if count >= 4 {
+            print("[VenueHeroCrashDebug] duplicateRenderStorm renderKey=\(renderKey) count=\(count)")
+        }
+    }
+}
+#endif
+
 private struct DiscoverPredictionSheetContext: Identifiable {
     let venueEventID: UUID
     let teams: VenueEventPredictionTeams
@@ -377,6 +397,9 @@ struct DiscoverScreen: View {
     @State private var mapDisplayModeHintText: String?
     @State private var mapDisplayModeHintTask: Task<Void, Never>?
     @State private var discoverTopAdLoadFailed = false
+    @State private var discoverBottomAdLoaded = false
+    @State private var discoverBottomAdRetryToken = 0
+    @State private var discoverBottomAdRetryTask: Task<Void, Never>?
     @State private var showDiscoverSportMoreSheet = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
     @State private var discoverWeather: DiscoverWeather?
@@ -411,6 +434,21 @@ struct DiscoverScreen: View {
         let id: String
         let index: Int
         let event: SportsEvent
+    }
+
+    private struct VenuePreviewHeroCardPresentation {
+        let renderKey: String
+        let gameTitle: String
+        let sport: String
+        let league: String
+        let dateTimeText: String
+        let chatTitle: String
+        let venueEventID: UUID?
+        let matchup: VenuePreviewMatchup
+        let homeTheme: TeamTheme
+        let awayTheme: TeamTheme
+        let homeTitle: String
+        let awayTitle: String
     }
 
     private struct VenuePreviewMatchup {
@@ -1346,7 +1384,7 @@ struct DiscoverScreen: View {
         let pinSnapshot = viewModel.discoverMapRenderSnapshot.venuePinsByID[bar.id]
         let gamesToday = pinSnapshot?.selectedDayGames ?? viewModel.selectedDayEventsForMap(bar)
         let goingTotal = pinSnapshot?.goingTotal ?? gamesToday.reduce(0) { total, game in
-            if let id = viewModel.cachedVenueEventID(for: bar, gameTitle: game.title) {
+            if let id = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: game.title) {
                 return total + viewModel.interestCountForVenueEvent(id)
             }
             return total
@@ -1729,7 +1767,7 @@ struct DiscoverScreen: View {
 
     private func discoverFixedBottomOverlay(layoutWidth: CGFloat) -> some View {
         VStack(spacing: 0) {
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 if let mapHint = viewModel.followingMapNavigationMessage, !mapHint.isEmpty {
                     HStack(alignment: .top, spacing: FGSpacing.sm) {
                         FGStatusPill(title: "Going", kind: .custom(tint: FGColor.accentBlue))
@@ -1762,7 +1800,7 @@ struct DiscoverScreen: View {
 
                 if viewModel.selectedBar != nil || viewModel.selectedPickupGameForMap != nil {
                     discoverBottomLeadingCard
-                        .padding(.bottom, 6)
+                        .padding(.bottom, 2)
                 }
 
                 discoverUnifiedInfoToggleControl(layoutWidth: layoutWidth)
@@ -1770,22 +1808,18 @@ struct DiscoverScreen: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
 
-            Group {
-                if isDiscoverTabSelected {
-                    discoverBottomAdStrip(layoutWidth: layoutWidth)
-                } else {
-                    discoverBottomAdPlaceholder(layoutWidth: layoutWidth)
-                }
+            if isDiscoverTabSelected {
+                discoverBottomAdStrip(layoutWidth: layoutWidth)
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
             }
-            .padding(.top, 12)
-            .padding(.bottom, 16)
 
             Color.clear
-                .frame(height: 66)
+                .frame(height: 78)
                 .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 2)
+        .padding(.bottom, 0)
     }
 
     private func discoverLogLayoutDebug(layoutWidth: CGFloat) {
@@ -1810,7 +1844,7 @@ struct DiscoverScreen: View {
         print("[DiscoverBottomControlDebug] hapticOnModeSwitch=true")
         print("[DiscoverAdPolishDebug] adSystemStrip=true")
         print("[DiscoverAdPolishDebug] adUsesOuterLayoutWidth=true")
-        print("[DiscoverAdPolishDebug] adChromeRemoved=true")
+        print("[DiscoverAdPolishDebug] adSlotPersistent=true")
 #endif
     }
 
@@ -3077,72 +3111,91 @@ struct DiscoverScreen: View {
     private func discoverBottomAdStrip(layoutWidth: CGFloat) -> some View {
         let availableWidth = discoverAdBannerAvailableWidth(for: layoutWidth)
         let bannerSize = discoverAdaptiveBannerSize(for: layoutWidth)
+        let adUnitID = AdMobConfiguration.bannerAdUnitID
         let _ = discoverLogAdBannerDebug(
+            adUnitID: adUnitID,
             availableWidth: availableWidth,
             bannerSize: bannerSize,
             containerSize: bannerSize
         )
 
-        return Group {
-            if discoverTopAdLoadFailed {
-                Color.clear
-                    .frame(width: bannerSize.width, height: bannerSize.height)
-                    .allowsHitTesting(false)
-            } else {
-                AdaptiveBannerView(
-                    placement: "discover.bottomStrip",
-                    adUnitID: AdMobConfiguration.bannerAdUnitID,
-                    layoutWidth: availableWidth,
-                    onAdFailed: { _ in
-                        discoverTopAdLoadFailed = true
-                    }
-                )
-                .frame(width: bannerSize.width, height: bannerSize.height)
-                .accessibilityElement(children: .contain)
-            }
-        }
-        .frame(width: bannerSize.width, height: bannerSize.height, alignment: .center)
-        .fixedSize(horizontal: true, vertical: true)
-        .background {
+        return ZStack {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.black.opacity(0.22) : Color.white.opacity(0.22))
+                        .fill(colorScheme == .dark ? Color.black.opacity(0.24) : Color.white.opacity(0.14))
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.28),
-                                    Color.white.opacity(0.03)
+                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.16),
+                                    Color.white.opacity(0.02)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                 }
+
+            if !discoverBottomAdLoaded {
+                Text(discoverTopAdLoadFailed ? "Sponsored" : "Ad loading")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.74))
+                    .tracking(0.3)
+                    .allowsHitTesting(false)
+            }
+
+            AdaptiveBannerView(
+                placement: "discover.bottomStrip",
+                adUnitID: adUnitID,
+                layoutWidth: availableWidth,
+                onAdLoaded: {
+                    discoverBottomAdRetryTask?.cancel()
+                    discoverBottomAdRetryTask = nil
+                    discoverTopAdLoadFailed = false
+                    discoverBottomAdLoaded = true
+                },
+                onAdFailed: { _ in
+                    discoverTopAdLoadFailed = true
+                    discoverBottomAdLoaded = false
+                    scheduleDiscoverBottomAdRetry()
+                }
+            )
+            .id(discoverBottomAdRetryToken)
+            .frame(width: bannerSize.width, height: bannerSize.height)
+            .opacity(1)
+            .allowsHitTesting(discoverBottomAdLoaded)
+            .accessibilityElement(children: .contain)
         }
+        .frame(width: bannerSize.width, height: bannerSize.height, alignment: .center)
+        .fixedSize(horizontal: true, vertical: true)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.20) : FGColor.divider(colorScheme), lineWidth: 1)
+                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.07), lineWidth: 0.75)
         }
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 12, y: 5)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.07), radius: 10, y: 4)
         .opacity(0.94)
+        .accessibilityHidden(!discoverBottomAdLoaded)
         .zIndex(8)
         .frame(maxWidth: .infinity, alignment: .center)
+        .allowsHitTesting(discoverBottomAdLoaded)
     }
 
-    private func discoverBottomAdPlaceholder(layoutWidth: CGFloat) -> some View {
-        let bannerSize = discoverAdaptiveBannerSize(for: layoutWidth)
-        return Color.clear
-            .frame(width: bannerSize.width, height: bannerSize.height)
-            .allowsHitTesting(false)
+    private func scheduleDiscoverBottomAdRetry() {
+        discoverBottomAdRetryTask?.cancel()
+        discoverBottomAdRetryTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled else { return }
+            discoverTopAdLoadFailed = false
+            discoverBottomAdRetryToken += 1
+        }
     }
 
-    private func discoverLogAdBannerDebug(availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {
+    private func discoverLogAdBannerDebug(adUnitID: String, availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {
         AdDebugDiagnostics.logEvent(
             event: "discoverStripLayout",
             format: "banner",
@@ -3717,7 +3770,7 @@ struct DiscoverScreen: View {
 
         for event in gamesToday {
             let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let eventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle),
+            guard let eventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle),
                   !seenEventIDs.contains(eventID) else {
                 continue
             }
@@ -4100,9 +4153,16 @@ struct DiscoverScreen: View {
     }
     
     private func gamesListSection(bar: BarVenue, gamesToday: [SportsEvent]) -> some View {
-        let stableEvents = Array(venuePreviewOrderedGames(bar: bar, gamesToday: gamesToday).prefix(12))
-        let stableItems = venuePreviewStableGameItems(for: stableEvents, selectedVenueID: bar.id)
-        let _ = logVenueGameOrderDebug(events: stableEvents, bar: bar)
+        let orderedEvents = venuePreviewOrderedGames(bar: bar, gamesToday: gamesToday)
+        let previewEvents = Array(orderedEvents.prefix(4))
+        let stableItems = venuePreviewStableGameItems(for: previewEvents, selectedVenueID: bar.id)
+        let hasViewAllGames = orderedEvents.count > previewEvents.count
+        let _ = logVenueGameOrderDebug(events: orderedEvents, bar: bar)
+        let _ = logVenuePreviewGameLimitDebug(
+            totalGames: orderedEvents.count,
+            renderedGames: previewEvents.count,
+            hasViewAll: hasViewAllGames
+        )
 
         return ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
@@ -4126,6 +4186,10 @@ struct DiscoverScreen: View {
                                 venuePreviewCompactGameCard(bar: bar, event: item.event)
                             }
                         }
+
+                        if hasViewAllGames {
+                            venuePreviewViewAllGamesRow(totalGames: orderedEvents.count)
+                        }
                     }
                 }
             }
@@ -4148,27 +4212,76 @@ struct DiscoverScreen: View {
         }
     }
 
+    private func venuePreviewViewAllGamesRow(totalGames: Int) -> some View {
+        Button {
+            guard viewModel.canViewDiscoverDetails() || viewModel.isGuestDiscoverMode else {
+                viewModel.showSocialActionToast("Sign in with a FanGeo account to view venue details.")
+                return
+            }
+            showVenueDetails = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "list.bullet.rectangle.portrait.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(FGColor.accentBlue)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("View all games")
+                        .font(FGTypography.cardTitle.weight(.bold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("\(totalGames) games at this venue")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(FGColor.mutedText(colorScheme))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.06))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.14), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("View all \(totalGames) games")
+    }
+
+    private func logVenuePreviewGameLimitDebug(totalGames: Int, renderedGames: Int, hasViewAll: Bool) {
+#if DEBUG
+        print("[VenuePreviewGameLimitDebug] totalGames=\(totalGames)")
+        print("[VenuePreviewGameLimitDebug] renderedGames=\(renderedGames)")
+        print("[VenuePreviewGameLimitDebug] hasViewAll=\(hasViewAll)")
+#endif
+    }
+
     private func venuePreviewHeroGameCard(
         bar: BarVenue,
         event: SportsEvent,
         showsAttendanceFooter: Bool = true
     ) -> some View {
-        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
-        let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
-        let homeTheme = TeamTheme.resolve(matchup.home)
-        let awayTheme = TeamTheme.resolve(matchup.away)
+        let presentation = venuePreviewHeroCardPresentation(bar: bar, event: event)
         let attendancePresentation = showsAttendanceFooter
-            ? venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
+            ? venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: presentation.venueEventID)
             : nil
 
         let card = ZStack(alignment: .bottomLeading) {
-                ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
+                ThemeGradientBuilder.stadiumBackground(home: presentation.homeTheme, away: presentation.awayTheme)
 
                 HStack(alignment: .bottom) {
-                    venuePreviewTeamOrb(theme: homeTheme, isLeading: true)
+                    venuePreviewTeamOrb(theme: presentation.homeTheme, isLeading: true)
                     Spacer(minLength: 0)
-                    venuePreviewTeamOrb(theme: awayTheme, isLeading: false)
+                    venuePreviewTeamOrb(theme: presentation.awayTheme, isLeading: false)
                 }
                 .padding(.horizontal, 22)
                 .padding(.bottom, 14)
@@ -4176,25 +4289,25 @@ struct DiscoverScreen: View {
 
                 VStack(spacing: 0) {
                     HStack {
-                        venuePreviewSportBadge(sport: event.sport, league: event.league)
+                        venuePreviewSportBadge(sport: presentation.sport, league: presentation.league)
                         Spacer()
                     }
 
                     Spacer(minLength: 10)
 
                     VStack(spacing: 7) {
-                        venuePreviewHeroTeamTitle(homeTheme.uppercaseTitle, theme: homeTheme)
+                        venuePreviewHeroTeamTitle(presentation.homeTitle, theme: presentation.homeTheme)
                         Text("VS")
                             .font(.system(size: 30, weight: .black, design: .rounded))
                             .foregroundStyle(.white.opacity(0.92))
                             .shadow(color: .black.opacity(0.36), radius: 6, y: 3)
-                        venuePreviewHeroTeamTitle(awayTheme.uppercaseTitle, theme: awayTheme)
+                        venuePreviewHeroTeamTitle(presentation.awayTitle, theme: presentation.awayTheme)
                     }
                     .frame(maxWidth: .infinity)
 
                     Spacer(minLength: 8)
 
-                    Text(venuePreviewGameDateTimeText(for: event))
+                    Text(presentation.dateTimeText)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(.white.opacity(0.92))
                         .shadow(color: .black.opacity(0.32), radius: 5, y: 2)
@@ -4221,19 +4334,26 @@ struct DiscoverScreen: View {
                 FGInteractionHaptics.softImpact()
                 openVenuePreviewGameDetail(event)
             }
+            .onAppear {
+                logVenueHeroCrashDebugOnAppear(
+                    presentation: presentation,
+                    bar: bar,
+                    event: event
+                )
+            }
 
         return VStack(spacing: 0) {
             card
 
-            if let presentation = attendancePresentation {
+            if let attendancePresentation {
                 venuePreviewAttendanceFooter(
                     bar: bar,
                     event: event,
-                    venueEventID: presentation.venueEventID,
-                    chatTitle: "\(venuePreviewFanChatMatchupTitle(bar: bar, event: event)) Fan Chat",
-                    alreadyInterested: presentation.alreadyInterested,
-                    avatarProfiles: presentation.avatarProfiles,
-                    goingCount: presentation.goingCount,
+                    venueEventID: attendancePresentation.venueEventID,
+                    chatTitle: presentation.chatTitle,
+                    alreadyInterested: attendancePresentation.alreadyInterested,
+                    avatarProfiles: attendancePresentation.avatarProfiles,
+                    goingCount: attendancePresentation.goingCount,
                     avatarDiameter: 30,
                     textFont: FGTypography.caption.weight(.bold)
                 )
@@ -4241,9 +4361,81 @@ struct DiscoverScreen: View {
         }
     }
 
+    private func venuePreviewHeroCardPresentation(
+        bar: BarVenue,
+        event: SportsEvent
+    ) -> VenuePreviewHeroCardPresentation {
+        let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeGameTitle = gameTitle.isEmpty ? "Game" : gameTitle
+        let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: safeGameTitle)
+        let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
+        let homeTheme = TeamTheme.resolve(matchup.home)
+        let awayTheme = TeamTheme.resolve(matchup.away)
+        let renderID = venueEventID?.uuidString.lowercased() ?? event.id.uuidString.lowercased()
+        let renderKey = "\(bar.id.uuidString.lowercased())|\(renderID)|\(safeGameTitle)"
+        let chatTitle = "\(venuePreviewHeroChatTitle(matchup: matchup, fallbackTitle: safeGameTitle)) Fan Chat"
+
+        return VenuePreviewHeroCardPresentation(
+            renderKey: renderKey,
+            gameTitle: safeGameTitle,
+            sport: event.sport.trimmingCharacters(in: .whitespacesAndNewlines),
+            league: event.league.trimmingCharacters(in: .whitespacesAndNewlines),
+            dateTimeText: venuePreviewGameDateTimeText(for: event),
+            chatTitle: chatTitle,
+            venueEventID: venueEventID,
+            matchup: matchup,
+            homeTheme: homeTheme,
+            awayTheme: awayTheme,
+            homeTitle: venuePreviewSafeHeroTitle(homeTheme.uppercaseTitle),
+            awayTitle: venuePreviewSafeHeroTitle(awayTheme.uppercaseTitle)
+        )
+    }
+
+    private func venuePreviewSafeHeroTitle(_ rawTitle: String) -> String {
+        let trimmed = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+#if DEBUG
+            print("[VenueHeroCrashDebug] nil event/theme emptyHeroTitle=true")
+#endif
+            return "TEAM"
+        }
+        return trimmed
+    }
+
+    private func venuePreviewHeroChatTitle(matchup: VenuePreviewMatchup, fallbackTitle: String) -> String {
+        if matchup.hasResolvedTeams {
+            return "\(matchup.home) vs \(matchup.away)"
+        }
+        let trimmedFallback = fallbackTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedFallback.isEmpty ? "Game" : trimmedFallback
+    }
+
+    private func logVenueHeroCrashDebugOnAppear(
+        presentation: VenuePreviewHeroCardPresentation,
+        bar: BarVenue,
+        event: SportsEvent
+    ) {
+#if DEBUG
+        VenueHeroCrashDebugTracker.recordAppearance(renderKey: presentation.renderKey)
+
+        if presentation.venueEventID == nil {
+            print("[VenueHeroCrashDebug] nil event/theme venueEventID=nil renderKey=\(presentation.renderKey)")
+        }
+        if !presentation.matchup.hasResolvedTeams {
+            print("[VenueHeroCrashDebug] invalid matchup unresolved title=\(presentation.gameTitle)")
+        }
+        if presentation.homeTheme.usesFallback || presentation.awayTheme.usesFallback {
+            print("[VenueHeroCrashDebug] nil event/theme fallbackTheme home=\(presentation.homeTheme.usesFallback) away=\(presentation.awayTheme.usesFallback)")
+        }
+        if let selected = viewModel.selectedBar, selected.id != bar.id {
+            print("[VenueHeroCrashDebug] annotation reuse anomaly selectedVenue=\(selected.id.uuidString.lowercased()) cardVenue=\(bar.id.uuidString.lowercased()) event=\(event.id.uuidString.lowercased())")
+        }
+#endif
+    }
+
     private func venuePreviewCompactGameCard(bar: BarVenue, event: SportsEvent) -> some View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle)
         let presentation = venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
         let matchup = venuePreviewSafeMatchup(bar: bar, event: event)
         let homeTheme = TeamTheme.resolve(matchup.home)
@@ -4507,7 +4699,7 @@ struct DiscoverScreen: View {
 
     private func venuePreviewGameDetail(bar: BarVenue, event: SportsEvent) -> some View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle)
         let predictionVisibility = venuePredictionVisibility(
             bar: bar,
             event: event,
@@ -4671,21 +4863,33 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewTeamOrb(theme: TeamTheme, isLeading: Bool) -> some View {
-        ZStack {
+        let flag = theme.flag?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackText = venuePreviewTeamOrbFallbackText(theme)
+
+        return ZStack {
             Circle()
                 .fill(Color.black.opacity(0.35))
 
-            if let flag = theme.flag {
+            if let flag, !flag.isEmpty {
                 Text(flag)
                     .font(.system(size: 34))
             } else {
-                Text(String(theme.displayName.prefix(2)).uppercased())
+                Text(fallbackText)
                     .font(.system(size: 21, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
             }
         }
         .frame(width: 74, height: 74)
         .accessibilityHidden(true)
+    }
+
+    private func venuePreviewTeamOrbFallbackText(_ theme: TeamTheme) -> String {
+        let displayName = theme.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawName = theme.rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = displayName.isEmpty ? rawName : displayName
+        let letters = source.filter { $0.isLetter || $0.isNumber }
+        let prefix = String(letters.prefix(2)).uppercased()
+        return prefix.isEmpty ? "FG" : prefix
     }
 
     private func venuePreviewAttendancePresentation(
@@ -4761,7 +4965,7 @@ struct DiscoverScreen: View {
         goingText: String
     ) {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle)
         let predictionVisibility = venuePredictionVisibility(
             bar: bar,
             event: event,
@@ -4944,14 +5148,14 @@ struct DiscoverScreen: View {
         let row = venuePreviewOrderRow(bar: bar, event: event)
         let createdAt = trimmedNonEmpty(row?.created_at)
         let stableEventID = row?.id?.uuidString.lowercased()
-            ?? viewModel.cachedVenueEventID(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines))?.uuidString.lowercased()
+            ?? viewModel.peekVenueEventIDForRender(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines))?.uuidString.lowercased()
             ?? event.id.uuidString.lowercased()
         let title = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         return (createdAt, stableEventID, title, event.id.uuidString.lowercased())
     }
 
     private func venuePreviewOrderRow(bar: BarVenue, event: SportsEvent) -> VenueEventRow? {
-        if let eventID = viewModel.cachedVenueEventID(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines)),
+        if let eventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: event.title.trimmingCharacters(in: .whitespacesAndNewlines)),
            let row = viewModel.venueEventRows.first(where: { $0.id == eventID }) {
             return row
         }
@@ -5340,7 +5544,7 @@ struct DiscoverScreen: View {
 
     private func gameInterestRowContent(bar: BarVenue, event: SportsEvent) -> some View {
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let venueEventID = viewModel.cachedVenueEventID(for: bar, gameTitle: gameTitle)
+        let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle)
 
         let predictionVisibility = venuePredictionVisibility(
             bar: bar,

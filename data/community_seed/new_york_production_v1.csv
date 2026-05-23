@@ -1,0 +1,51 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+new_york_production_v1,1,state_curated_new_york_v1,stout_penn_station,Stout NYC Penn Station,215 W 35th St,New York,NY,10001,USA,40.7518997,-73.9905500,212-629-6191,https://www.stoutnyc.com/location/stout-nyc-penn-station/
+new_york_production_v1,2,state_curated_new_york_v1,stout_bryant_park,Stout NYC Bryant Park,109 W 39th St,New York,NY,10018,USA,40.7530644,-73.9856384,212-840-0414,https://www.stoutnyc.com/location/stout-nyc-bryant-park/
+new_york_production_v1,3,state_curated_new_york_v1,stout_fidi,Stout NYC Financial District,90 John St,New York,NY,10038,USA,40.7081440,-74.0065213,212-240-9122,https://www.stoutnyc.com/location/stout-nyc-financial-district/
+new_york_production_v1,4,state_curated_new_york_v1,stout_grand_central,Stout NYC Grand Central,60 E 41st St,New York,NY,10017,USA,40.7517897,-73.9790875,212-922-9009,https://www.stoutnyc.com/location/stout-nyc-grand-central/
+new_york_production_v1,5,state_curated_new_york_v1,smithfield_hall,Smithfield Hall NYC,138 W 25th St,New York,NY,10001,USA,40.7446091,-73.9930222,212-929-9677,https://smithfieldnyc.com/
+new_york_production_v1,6,state_curated_new_york_v1,jack_demseys,Jack Demsey's,36 W 33rd St,New York,NY,10001,USA,40.7481717,-73.9861633,212-629-9899,https://www.jackdemseys.com/
+new_york_production_v1,7,state_curated_new_york_v1,bravest_bar,The Bravest Bar and Eatery,700 2nd Ave,New York,NY,10016,USA,40.7471874,-73.9740361,(212) 683-3766,http://thebravestnyc.com/
+new_york_production_v1,8,state_curated_new_york_v1,mustang_harrys,Mustang Harry's,352 7th Ave,New York,NY,10001,USA,40.7479690,-73.9929110,(212) 268-8930,https://mustangharrys.com/
+new_york_production_v1,9,state_curated_new_york_v1,feile_nyc,Feile,131 W 33rd St,New York,NY,10001,USA,40.7495668,-73.9891284,(212) 695-1122,https://www.feilenyc.com/
+new_york_production_v1,10,state_curated_new_york_v1,slatterys_midtown,Slattery's Midtown Pub,8 E 36th St,New York,NY,10016,USA,40.7494136,-73.9830423,(212) 683-6444,https://slatterysmidtownpub.com/
+new_york_production_v1,11,state_curated_new_york_v1,the_canuck,The Canuck,202 9th Ave,New York,NY,10011,USA,40.7459246,-74.0016522,(212) 695-3278,https://www.thecanucknyc.com/
+new_york_production_v1,12,state_curated_new_york_v1,football_factory_legends,Football Factory at Legends,6 W 33rd St,New York,NY,10001,USA,40.7477981,-73.9852695,(212) 967-7792,https://www.legends33.com/football-factory
+new_york_production_v1,13,state_curated_new_york_v1,three_monkeys_nyc,The Three Monkeys,236 W 54th St,New York,NY,10019,USA,40.7640730,-73.9827201,(212) 586-2080,https://www.thethreemonkeysbar.com/
+new_york_production_v1,14,state_curated_new_york_v1,blue_haven_east,Blue Haven East,493 3rd Ave,New York,NY,10016,USA,40.7452256,-73.9784021,(212) 686-7272,https://www.bluehavenbarnyc.com/
+new_york_production_v1,15,state_curated_new_york_v1,standings_bar,Standings,43 E 7th St,New York,NY,10003,USA,40.7281823,-73.9884278,(212) 420-0671,https://standingsbar.com/
+new_york_production_v1,16,state_curated_new_york_v1,wogies_greenwich,Wogies Bar & Grill,39 Greenwich Ave,New York,NY,10014,USA,40.7353348,-74.0004564,(212) 229-2171,https://www.wogies.com/
+new_york_production_v1,17,state_curated_new_york_v1,blondies_sports_nyc,Blondies Sports,212 W 79th St,New York,NY,10024,USA,40.7832803,-73.9787941,(212) 362-4360,https://www.blondiessports.com/
+new_york_production_v1,18,state_curated_new_york_v1,t_squared_social,T-Squared Social,7 E 42nd St,New York,NY,10017,USA,40.7533662,-73.9804717,,https://tsquaredsocial.com/
+new_york_production_v1,19,state_curated_new_york_v1,five_iron_flatiron,Five Iron Golf Flatiron,138 5th Ave,New York,NY,10011,USA,40.7389823,-73.9915356,1-800-513-5153,https://fiveirongolf.com/locations/nyc-flatiron
+new_york_production_v1,20,state_curated_new_york_v1,five_iron_fidi,Five Iron Golf FiDi,22 Stone St,New York,NY,10004,USA,40.7041196,-74.0106027,1-800-513-5153,https://fiveirongolf.com/locations/nyc-fidi
+new_york_production_v1,21,state_curated_new_york_v1,five_iron_ues,Five Iron Golf Upper East Side,1681 3rd Ave,New York,NY,10128,USA,40.7840068,-73.9501084,1-800-513-5153,https://fiveirongolf.com/locations/nyc-upper-east-side
+new_york_production_v1,22,state_curated_new_york_v1,five_iron_rockefeller,Five Iron Golf Rockefeller Center,1290 Avenue of the Americas,New York,NY,10104,USA,40.7608352,-73.9796547,1-800-513-5153,https://fiveirongolf.com/locations/nyc-rockefeller-center
+new_york_production_v1,23,state_curated_new_york_v1,five_iron_herald_square,Five Iron Golf Herald Square,883 6th Ave,New York,NY,10001,USA,40.7482306,-73.9890061,1-800-513-5153,https://fiveirongolf.com/locations/nyc-herald-square
+new_york_production_v1,24,state_curated_new_york_v1,five_iron_lic,Five Iron Golf Long Island City,22-43 Jackson Ave,Long Island City,NY,11101,USA,40.7453119,-73.9470952,1-800-513-5153,https://fiveirongolf.com/locations/nyc-long-island-city
+new_york_production_v1,25,state_curated_new_york_v1,spin_flatiron,SPIN New York Flatiron,48 E 23rd St,New York,NY,10010,USA,40.7405809,-73.9874454,212-982-8802,https://wearespin.com/location/new-york-flatiron/
+new_york_production_v1,26,state_curated_new_york_v1,spin_midtown,SPIN New York Midtown,1626 Broadway,New York,NY,10019,USA,40.7608023,-73.9843615,212-333-7746,https://wearespin.com/location/new-york-midtown/
+new_york_production_v1,27,state_curated_new_york_v1,frames_bowling,Frames Bowling Lounge,550 9th Ave Fl 2,New York,NY,10018,USA,40.7570250,-73.9935606,(347) 630-2934,https://framesnyc.com/
+new_york_production_v1,28,state_curated_new_york_v1,dave_busters_times_square,Dave & Buster's Times Square,234 W 42nd St,New York,NY,10036,USA,40.7564065,-73.9879932,(646) 495-2015,https://www.daveandbusters.com/
+new_york_production_v1,29,state_curated_new_york_v1,brooklyn_bowl,Brooklyn Bowl,61 Wythe Ave,Brooklyn,NY,11249,USA,40.7222021,-73.9574520,(718) 963-3369,https://www.brooklynbowl.com/brooklyn
+new_york_production_v1,30,state_curated_new_york_v1,end_zone_brooklyn,End Zone Sports Bar & Lounge,28 Dooley St,Brooklyn,NY,11235,USA,40.5843027,-73.9451314,,http://www.endzonenyc.com/
+new_york_production_v1,31,state_curated_new_york_v1,croxley_williamsburg,Croxley's Ale House Williamsburg,63 Grand St,Brooklyn,NY,11249,USA,40.7158755,-73.9647573,,https://www.croxley.com/
+new_york_production_v1,32,state_curated_new_york_v1,the_commissioner_brooklyn,The Commissioner,247 5th Ave,Brooklyn,NY,11215,USA,40.6749015,-73.9814406,(718) 788-2010,https://www.thecommissionerbk.com/
+new_york_production_v1,33,state_curated_new_york_v1,mcmahons_public_house,McMahon's Public House,39 5th Ave,Brooklyn,NY,11217,USA,40.6815825,-73.9768734,(718) 230-4549,https://www.mcmahonspublichouse.com/
+new_york_production_v1,34,state_curated_new_york_v1,two_hundred_fifth,200 Fifth,200 5th Ave,Brooklyn,NY,11217,USA,40.6766883,-73.9803587,(718) 638-2925,https://200-fifth.com/
+new_york_production_v1,35,state_curated_new_york_v1,bar_43,Bar 43,43-06 43rd St,Sunnyside,NY,11104,USA,40.7450850,-73.9212380,(718) 361-3090,https://bar43.com/
+new_york_production_v1,36,state_curated_new_york_v1,katch_astoria,Katch Astoria,31-19 Newtown Ave,Astoria,NY,11102,USA,40.7675010,-73.9205932,(718) 777-2230,https://katchastoria.com/
+new_york_production_v1,37,state_curated_new_york_v1,rivercrest_astoria,Rivercrest,33-15 Ditmars Blvd,Astoria,NY,11105,USA,40.7753056,-73.9094259,(718) 606-6266,https://rivercrestny.com/
+new_york_production_v1,38,state_curated_new_york_v1,break_bar_billiards,Break Bar & Billiards,32-04 Broadway,Astoria,NY,11106,USA,40.7615118,-73.9245384,(718) 777-5400,https://break-ny.com/
+new_york_production_v1,39,state_curated_new_york_v1,croxley_rockville_centre,Croxley's Rockville Centre,7 S Park Ave,Rockville Centre,NY,11570,USA,40.6559737,-73.6453373,(516) 764-0470,https://www.croxley.com/
+new_york_production_v1,40,state_curated_new_york_v1,croxley_farmingdale,Croxley's Farmingdale,190 Main St,Farmingdale,NY,11735,USA,40.7337677,-73.4461002,(516) 293-7700,https://www.croxley.com/
+new_york_production_v1,41,state_curated_new_york_v1,croxley_franklin_square,Croxley's Franklin Square,129 New Hyde Park Rd,Franklin Square,NY,11010,USA,40.7109258,-73.6764219,,https://www.croxley.com/
+new_york_production_v1,42,state_curated_new_york_v1,changing_times_east_northport,Changing Times Ale House East Northport,526 Larkfield Rd,East Northport,NY,11731,USA,40.8622070,-73.3203859,(631) 368-3255,https://changingtimespubs.com/
+new_york_production_v1,43,state_curated_new_york_v1,dave_busters_westbury,Dave & Buster's Westbury,1504 Old Country Rd,Westbury,NY,11590,USA,40.7456702,-73.5949974,(516) 542-8501,https://www.daveandbusters.com/
+new_york_production_v1,44,state_curated_new_york_v1,southern_tier_buffalo,Southern Tier Brewing Company Buffalo,7 Scott St,Buffalo,NY,14203,USA,42.8771291,-78.8770042,716-436-7999,https://buffalo.stbcbeer.com/
+new_york_production_v1,45,state_curated_new_york_v1,thirsty_buffalo,Thirsty Buffalo,555 Elmwood Ave,Buffalo,NY,14222,USA,42.9121856,-78.8769949,(716) 878-0344,https://thirstybuffalobarandgrill.com/
+new_york_production_v1,46,state_curated_new_york_v1,sidelines_buffalo,Sidelines Sports Bar and Grill Downtown,189 Delaware Ave,Buffalo,NY,14202,USA,42.8897362,-78.8769815,(716) 240-9392,https://sidelinesbuffalony.com/
+new_york_production_v1,47,state_curated_new_york_v1,sidelines_depew,Sidelines Sports Bar and Grill Depew,6036 Transit Rd,Depew,NY,14043,USA,42.9200502,-78.6969886,716-503-2773,https://sidelinesbuffalony.com/
+new_york_production_v1,48,state_curated_new_york_v1,banshee_buffalo,The Banshee Irish Pub,257 Franklin St,Buffalo,NY,14202,USA,42.8915549,-78.8747546,(716) 464-3896,https://bansheeirishpub.com/
+new_york_production_v1,49,state_curated_new_york_v1,pour_house_buffalo,Buffalo Tap House,85 W Chippewa St,Buffalo,NY,14202,USA,42.8906707,-78.8760101,(716) 332-2444,https://buffalotaphouse.com/
+new_york_production_v1,50,state_curated_new_york_v1,banter_brooklyn,Banter,132 Havemeyer St,Brooklyn,NY,11211,USA,40.7122120,-73.9572350,(347) 457-6621,https://banterbrooklyn.com/

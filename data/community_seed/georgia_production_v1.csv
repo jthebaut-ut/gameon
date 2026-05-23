@@ -1,0 +1,31 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+georgia_production_v1,1,state_curated_georgia_v1,sports_social_atlanta,Sports & Social Atlanta,825 Battery Ave SE Suite 600,Atlanta,GA,30339,USA,33.8899106,-84.4694822,404-965-2511,https://liveatthebatteryatlanta.com/Eat-and-Drink/Sports-and-Social-Atlanta
+georgia_production_v1,2,state_curated_georgia_v1,stats_brewpub,STATS Brewpub,300 Marietta St NW,Atlanta,GA,30313,USA,33.7615515,-84.3964583,,https://statsatl.com/
+georgia_production_v1,3,state_curated_georgia_v1,black_bear_tavern,Black Bear Tavern,1931 Peachtree St NE,Atlanta,GA,30309,USA,33.8071973,-84.3936835,(404) 355-9089,https://blackbeartavern.net/
+georgia_production_v1,4,state_curated_georgia_v1,hudson_grille_midtown,Hudson Grille Midtown,942 Peachtree St NE,Atlanta,GA,30309,USA,33.7800580,-84.3842297,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,5,state_curated_georgia_v1,hudson_grille_downtown,Hudson Grille Downtown,120 Marietta St,Atlanta,GA,30303,USA,33.7570744,-84.3928395,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,6,state_curated_georgia_v1,hudson_grille_sandy_springs,Hudson Grille Sandy Springs,6317 Roswell Rd,Sandy Springs,GA,30328,USA,33.9273492,-84.3790577,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,7,state_curated_georgia_v1,hudson_grille_kennesaw,Hudson Grille Kennesaw,2500 Cobb Place Ln NW,Kennesaw,GA,30144,USA,34.0109046,-84.5729277,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,8,state_curated_georgia_v1,hudson_grille_tucker,Hudson Grille Tucker,2075 Northlake Pkwy,Tucker,GA,30084,USA,33.8436049,-84.2441481,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,9,state_curated_georgia_v1,hudson_grille_little_five,Hudson Grille Little Five Points,351 Moreland Ave NE,Atlanta,GA,30307,USA,33.7642501,-84.3491409,,https://hudsongrille.com/atlanta-hudson-grille-locations
+georgia_production_v1,10,state_curated_georgia_v1,taco_mac_prado,Taco Mac Prado,5600 Roswell Rd Ste F210,Sandy Springs,GA,30342,USA,33.9081314,-84.3787976,404-941-1503,https://tacomac.com/locations/5600-roswell-rd-sandy-springs-ga-30342/
+georgia_production_v1,11,state_curated_georgia_v1,taco_mac_perimeter,Taco Mac Perimeter,1211 Ashford Crossing,Atlanta,GA,30346,USA,33.9291675,-84.3446556,,https://tacomac.com/locations/1211-ashford-crossing-atlanta-ga-30346/
+georgia_production_v1,12,state_curated_georgia_v1,taco_mac_cumberland,Taco Mac Cumberland,3101 Cobb Pkwy SE Ste 210,Atlanta,GA,30339,USA,33.8790853,-84.4585076,,https://tacomac.com/
+georgia_production_v1,13,state_curated_georgia_v1,taco_mac_kennesaw,Taco Mac Kennesaw,600 Chastain Rd NW,Kennesaw,GA,30144,USA,34.0374633,-84.5664130,,https://tacomac.com/
+georgia_production_v1,14,state_curated_georgia_v1,twin_peaks_buckhead,Twin Peaks Buckhead,3365 Piedmont Rd NE,Atlanta,GA,30305,USA,33.8449918,-84.3719898,(404) 961-8946,https://twinpeaksrestaurant.com/locations/buckhead-ga
+georgia_production_v1,15,state_curated_georgia_v1,twin_peaks_kennesaw,Twin Peaks Kennesaw,2475 George Busbee Pkwy NW,Kennesaw,GA,30144,USA,34.0126700,-84.5653364,(678) 348-1605,https://twinpeaksrestaurant.com/locations/kennesaw-ga
+georgia_production_v1,16,state_curated_georgia_v1,dugans_briarcliff,Dugan's Restaurant & Bar,4800 Briarcliff Rd NE,Atlanta,GA,30345,USA,33.8488685,-84.2567650,,https://www.dugansbar.com/
+georgia_production_v1,17,state_curated_georgia_v1,whitehall_tavern,Whitehall Tavern,2391 Peachtree Rd NE,Atlanta,GA,30305,USA,33.8207088,-84.3880506,(404) 841-8501,https://www.whitehall-tavern.com/
+georgia_production_v1,18,state_curated_georgia_v1,fado_buckhead,Fado Irish Pub Buckhead,273 Buckhead Ave NE,Atlanta,GA,30305,USA,33.8381490,-84.3786615,(404) 841-0066,https://fadoirishpub.com/atlanta/
+georgia_production_v1,19,state_curated_georgia_v1,irbys_tavern,Irby's Tavern,322 E Paces Ferry Rd NE,Atlanta,GA,30305,USA,33.8392161,-84.3769578,(404) 254-1333,https://irbystavern.com/
+georgia_production_v1,20,state_curated_georgia_v1,topgolf_atlanta,Topgolf Atlanta Midtown,1600 Ellsworth Industrial Blvd NW,Atlanta,GA,30318,USA,33.7983033,-84.4270926,(404) 475-4000,https://topgolf.com/us/atlanta/
+georgia_production_v1,21,state_curated_georgia_v1,topgolf_alpharetta,Topgolf Alpharetta,10900 Westside Pkwy,Alpharetta,GA,30009,USA,34.0448951,-84.3083183,,https://topgolf.com/us/alpharetta/
+georgia_production_v1,22,state_curated_georgia_v1,topgolf_buford,Topgolf Buford,2935 Buford Dr,Buford,GA,30519,USA,34.0521358,-83.9940057,,https://topgolf.com/us/buford/
+georgia_production_v1,23,state_curated_georgia_v1,dave_busters_marietta,Dave & Buster's Marietta,2215 D&B Dr,Marietta,GA,30067,USA,33.9193408,-84.4866480,,https://www.daveandbusters.com/us/en/about/locations/marietta
+georgia_production_v1,24,state_curated_georgia_v1,bd_burgers_congress,B&D Burgers Congress,209 W Congress St,Savannah,GA,31401,USA,32.0802961,-81.0944227,912-238-8315,https://bdburgers.net/savannah-burgers/
+georgia_production_v1,25,state_curated_georgia_v1,bd_burgers_broughton,B&D Burgers Broughton,13 E Broughton St,Savannah,GA,31401,USA,32.0788689,-81.0917828,912-231-0986,https://bdburgers.net/savannah-burgers/
+georgia_production_v1,26,state_curated_georgia_v1,bd_burgers_pooler,B&D Burgers Pooler,238 Pooler Pkwy Ste G,Pooler,GA,31322,USA,32.1406091,-81.2490657,912-988-5560,https://bdburgers.net/savannah-burgers/
+georgia_production_v1,27,state_curated_georgia_v1,tailgate_sports_bar_savannah,Tailgate Sports Bar & Grill,11215 Abercorn St #2,Savannah,GA,31419,USA,31.9810394,-81.1464073,(912) 921-2269,http://tailgatesportsbar.com/
+georgia_production_v1,28,state_curated_georgia_v1,coachs_corner_savannah,Coach's Corner,3016 E Victory Dr,Thunderbolt,GA,31404,USA,32.0366084,-81.0564480,(912) 352-2933,https://coachscorner.shop/
+georgia_production_v1,29,state_curated_georgia_v1,barrelhouse_south,Barrelhouse South,125 W Congress St,Savannah,GA,31401,USA,32.0800519,-81.0934787,(912) 662-5576,https://barrelhousesouth.com/
+georgia_production_v1,30,state_curated_georgia_v1,bench_warmers_atlanta,Bench Warmers Sports Grill,2775 Clairmont Rd,Atlanta,GA,30329,USA,33.8380391,-84.3120182,,https://www.benchwarmerssportsgrill.com/

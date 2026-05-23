@@ -1,0 +1,11 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ontario_production_v2_toronto_expansion,1,province_curated_ontario_v2,onv2_001,The Dock Ellis,1280 Dundas St W,Toronto,ON,M6J 1X7,Canada,43.6498,-79.422,,https://www.thedockellis.com
+ontario_production_v2_toronto_expansion,2,province_curated_ontario_v2,onv2_002,Cafe Diplomatico,594 College St,Toronto,ON,M6G 1B3,Canada,43.6553,-79.4147,,https://cafediplomatico.ca
+ontario_production_v2_toronto_expansion,3,province_curated_ontario_v2,onv2_003,Hurricanes Roadhouse,321 Front St W,Toronto,ON,M5V 2T6,Canada,43.6445,-79.3911,,https://hurricanesroadhouse.com
+ontario_production_v2_toronto_expansion,4,province_curated_ontario_v2,onv2_004,The Pint Public House,277 Front St W,Toronto,ON,M5V 2X4,Canada,43.6442,-79.3902,,https://thepint.ca
+ontario_production_v2_toronto_expansion,5,province_curated_ontario_v2,onv2_005,Jack Astor's Front Street,144 Front St W,Toronto,ON,M5J 2L7,Canada,43.645,-79.3838,,https://jackastors.com
+ontario_production_v2_toronto_expansion,6,province_curated_ontario_v2,onv2_006,Duke's Refresher,315 Front St W,Toronto,ON,M5V 2Y1,Canada,43.6448,-79.39,,https://dukesrefresher.com
+ontario_production_v2_toronto_expansion,7,province_curated_ontario_v2,onv2_007,Shoeless Joe's Sports Grill,71 Yorkville Ave,Toronto,ON,M5R 1B8,Canada,43.6711,-79.3925,,https://shoelessjoes.ca
+ontario_production_v2_toronto_expansion,8,province_curated_ontario_v2,onv2_008,The Fox on John,106 John St,Toronto,ON,M5V 2E1,Canada,43.6472,-79.3915,,https://foxonjohn.ca
+ontario_production_v2_toronto_expansion,9,province_curated_ontario_v2,onv2_009,The Ballroom Bowl,145 John St,Toronto,ON,M5V 2E4,Canada,43.6477,-79.3912,,https://theballroombowl.ca
+ontario_production_v2_toronto_expansion,10,province_curated_ontario_v2,onv2_010,Local Public Eatery Liberty Village,171 East Liberty St,Toronto,ON,M6K 3P6,Canada,43.6384,-79.4226,,https://localpubliceatery.com

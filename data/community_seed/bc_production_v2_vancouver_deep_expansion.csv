@@ -1,0 +1,7 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+bc_production_v2_vancouver_deep_expansion,1,province_curated_bc_v2,bcv2_001,The Pint Public House,455 Abbott St,Vancouver,BC,V6B 2L2,Canada,49.2826,-123.1065,,https://thepint.ca
+bc_production_v2_vancouver_deep_expansion,2,province_curated_bc_v2,bcv2_002,Dublin Calling,900 Granville St,Vancouver,BC,V6Z 1L2,Canada,49.2805,-123.12,,https://dublincalling.com
+bc_production_v2_vancouver_deep_expansion,3,province_curated_bc_v2,bcv2_003,The American,926 Main St,Vancouver,BC,V6A 2W1,Canada,49.2753,-123.0994,,https://theamerican.ca
+bc_production_v2_vancouver_deep_expansion,4,province_curated_bc_v2,bcv2_004,Shark Club Vancouver,180 W Georgia St,Vancouver,BC,V6B 4P4,Canada,49.2796,-123.1139,,https://sharkclub.com
+bc_production_v2_vancouver_deep_expansion,5,province_curated_bc_v2,bcv2_005,CRAFT Beer Market,85 W 1st Ave,Vancouver,BC,V5Y 0C4,Canada,49.268,-123.1072,,https://craftbeermarket.ca
+bc_production_v2_vancouver_deep_expansion,6,province_curated_bc_v2,bcv2_006,Bells & Whistles Fraser,3296 Fraser St,Vancouver,BC,V5V 4B9,Canada,49.2553,-123.0904,,https://bellsandwhistlesyvr.ca

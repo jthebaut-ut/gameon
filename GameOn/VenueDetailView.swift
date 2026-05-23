@@ -810,6 +810,7 @@ struct VenueDetailView: View {
                         gameRow(game, isFeatured: index == 0)
                         if let slotIndex = adInsertionPositions.firstIndex(of: index + 1) {
                             SponsoredVenueCardView(slotIndex: slotIndex)
+                                .id("venue-detail-sponsored-\(slotIndex)-after-\(index + 1)")
                         }
                     }
                 }

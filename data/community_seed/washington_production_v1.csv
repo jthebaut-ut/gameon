@@ -1,0 +1,31 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+washington_production_v1,1,state_curated_washington_v1,seattle_soccer_house,Seattle Soccer House at Pacific Place,600 Pine St,Seattle,WA,98101,USA,47.6122152,-122.3353460,,https://www.seattlefwc26.org/seattle-soccer-house
+washington_production_v1,2,state_curated_washington_v1,the_dock_fremont,The Dock Sports Bar & Grill,1102 N 34th St,Seattle,WA,98103,USA,47.6487538,-122.3439281,,https://fremontdock.com/
+washington_production_v1,3,state_curated_washington_v1,buckleys_belltown,Buckley's in Belltown,2331 2nd Ave,Seattle,WA,98121,USA,47.6142357,-122.3461232,206-588-8879,https://buckleyspubs.com/
+washington_production_v1,4,state_curated_washington_v1,buckleys_queen_anne,Buckley's Queen Anne,232 1st Ave W,Seattle,WA,98119,USA,47.6201790,-122.3579660,(206) 691-0232,https://buckleyspubs.com/
+washington_production_v1,5,state_curated_washington_v1,fuel_sports_grill,Fuel Sports Grill,8037 15th Ave NW,Seattle,WA,98117,USA,47.6871407,-122.3768785,206-405-3835,https://www.fuelseattle.com/
+washington_production_v1,6,state_curated_washington_v1,george_dragon_pub,The George & Dragon Pub,206 N 36th St,Seattle,WA,98103,USA,47.6527416,-122.3564388,(206) 695-2768,https://theegeorge.com/
+washington_production_v1,7,state_curated_washington_v1,atlantic_crossing,The Atlantic Crossing,7200 Woodlawn Ave NE,Seattle,WA,98115,USA,47.6805856,-122.3246456,(206) 729-6266,https://www.theatlanticcrossing.com/
+washington_production_v1,8,state_curated_washington_v1,queen_anne_beerhall,Queen Anne Beerhall,203 W Thomas St,Seattle,WA,98119,USA,47.6208909,-122.3594583,(206) 420-4326,https://www.queenannebeerhall.com/
+washington_production_v1,9,state_curated_washington_v1,legion_bellevue,Legion Sports Bar,700 Bellevue Way NE Suite 50,Bellevue,WA,98004,USA,47.6165065,-122.2016153,(425) 502-7425,https://www.legionsportsbar.com/
+washington_production_v1,10,state_curated_washington_v1,tavern_hall_bellevue,Tavern Hall,505 Bellevue Square,Bellevue,WA,98004,USA,47.6156453,-122.2017659,(425) 454-7500,https://www.tavern-hall.com/
+washington_production_v1,11,state_curated_washington_v1,off_the_rails_bellevue,Off The Rails Sports Pub,1428 156th Ave NE,Bellevue,WA,98007,USA,47.6225686,-122.1323211,(425) 326-1314,https://www.restaurantji.com/wa/bellevue/off-the-riels-sports-pub-/
+washington_production_v1,12,state_curated_washington_v1,mustard_seed_bellevue,Mustard Seed Grill & Pub,5608 119th Ave SE,Bellevue,WA,98006,USA,47.5528188,-122.1788831,(425) 603-9001,http://mustardseedgrill.com/
+washington_production_v1,13,state_curated_washington_v1,loose_wheel_tacoma,The Loose Wheel Tacoma,6108 6th Ave,Tacoma,WA,98406,USA,47.2553858,-122.5186977,(253) 301-1647,https://theloosewheel.com/
+washington_production_v1,14,state_curated_washington_v1,beach_tavern_tacoma,Beach Tavern,8612 6th Ave,Tacoma,WA,98465,USA,47.2465441,-122.5526619,(253) 564-3429,https://beach-tavern.com/
+washington_production_v1,15,state_curated_washington_v1,office_on_pacific,The Office on Pacific,813 Pacific Ave,Tacoma,WA,98402,USA,47.2563058,-122.4392113,(253) 572-3222,https://www.theofficeonpacific.com/
+washington_production_v1,16,state_curated_washington_v1,rock_the_dock_tacoma,Rock the Dock Pub & Grill,535 Dock St #118,Tacoma,WA,98402,USA,47.2600443,-122.4389116,(253) 272-5004,https://www.rockthedockpub.com/
+washington_production_v1,17,state_curated_washington_v1,borracho_spokane,Borracho Tacos & Tequileria,211 N Division St,Spokane,WA,99202,USA,47.6595564,-117.4111815,(509) 822-7789,https://borrachospokane.com/
+washington_production_v1,18,state_curated_washington_v1,red_wheel_spokane,Red Wheel,501 S Thor St,Spokane,WA,99202,USA,47.6516690,-117.3602752,(509) 368-9633,https://www.redwheelspokane.com/
+washington_production_v1,19,state_curated_washington_v1,fizzie_mulligans,Fizzie Mulligans,331 W Hastings Rd,Spokane,WA,99218,USA,47.7690328,-117.4180277,(509) 466-5354,https://fizziesspokane.com/
+washington_production_v1,20,state_curated_washington_v1,bigfoot_spokane,Bigfoot Pub & Eatery,9115 N Division St,Spokane,WA,99218,USA,47.7401572,-117.4115980,,https://www.bigfootspokane.com/
+washington_production_v1,21,state_curated_washington_v1,pooles_south,Poole's Public House South,5620 S Regal St Ste 1,Spokane,WA,99223,USA,47.6029387,-117.3685563,(509) 368-9760,https://poolespublichouse.com/
+washington_production_v1,22,state_curated_washington_v1,pooles_north,Poole's Public House North,12310 N Ruby Rd,Spokane,WA,99218,USA,47.7693396,-117.4099497,(509) 413-1834,https://poolespublichouse.com/
+washington_production_v1,23,state_curated_washington_v1,spin_seattle,SPIN Seattle,1511 6th Ave,Seattle,WA,98101,USA,47.6112426,-122.3346611,206-686-3593,https://wearespin.com/location/seattle/
+washington_production_v1,24,state_curated_washington_v1,five_iron_seattle,Five Iron Golf Capitol Hill,1525 11th Ave Suite 100,Seattle,WA,98122,USA,47.6144023,-122.3182335,,https://fiveirongolf.com/locations/seattle-capitol-hill
+washington_production_v1,25,state_curated_washington_v1,five_iron_kirkland,Five Iron Golf Kirkland,425 Urban Plaza Suite 200,Kirkland,WA,98033,USA,47.6776839,-122.1991406,,https://fiveirongolf.com/locations/seattle-kirkland
+washington_production_v1,26,state_curated_washington_v1,topgolf_renton,Topgolf Renton,780 Logan Ave N,Renton,WA,98057,USA,47.4945920,-122.2070112,,https://topgolf.com/us/renton/
+washington_production_v1,27,state_curated_washington_v1,ozzies_seattle,Ozzie's,105 W Mercer St,Seattle,WA,98119,USA,47.6245270,-122.3581503,,https://www.ozziesseattle.com/
+washington_production_v1,28,state_curated_washington_v1,lenys_place,Leny's Place,2219 N 56th St,Seattle,WA,98103,USA,47.6688293,-122.3321129,,https://lenysplace.com/
+washington_production_v1,29,state_curated_washington_v1,duchess_tavern,Duchess Tavern,2827 NE 55th St,Seattle,WA,98105,USA,47.6684641,-122.2961033,,https://www.duchesstavern.com/
+washington_production_v1,30,state_curated_washington_v1,local_public_eatery,LOCAL Public Eatery South Lake Union,404 Terry Ave N,Seattle,WA,98109,USA,47.6221365,-122.3370658,(206) 257-1888,https://localpubliceatery.com/neighbourhoods/south-lake-union/

@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+alberta_production_v3_secondary_markets,1,province_curated_alberta_v3,abv3_001,Browns Socialhouse Lethbridge West,335 University Dr W,Lethbridge,AB,T1J 5C9,Canada,49.6845,-112.8927,,https://brownssocialhouse.com
+alberta_production_v3_secondary_markets,2,province_curated_alberta_v3,abv3_002,Hudsons Canada's Pub Lethbridge,904 2 Ave S,Lethbridge,AB,T1J 0C7,Canada,49.6962,-112.8362,,https://hudsonscanadaspub.com
+alberta_production_v3_secondary_markets,3,province_curated_alberta_v3,abv3_003,The Canadian Brewhouse Red Deer,12 Conway St,Red Deer,AB,T4P 0N1,Canada,52.288,-113.817,,https://thecanadianbrewhouse.com
+alberta_production_v3_secondary_markets,4,province_curated_alberta_v3,abv3_004,Bo's Bar & Stage,2310 50 Ave,Red Deer,AB,T4R 1C5,Canada,52.2435,-113.8145,,https://bosbar.com
+alberta_production_v3_secondary_markets,5,province_curated_alberta_v3,abv3_005,The Canadian Brewhouse Fort McMurray,108 Riverstone Ridge,Fort McMurray,AB,T9K 1S6,Canada,56.7536,-111.441,,https://thecanadianbrewhouse.com

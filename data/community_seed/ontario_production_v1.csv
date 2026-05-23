@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ontario_production_v1,1,province_curated_ontario_v1,on_001,Real Sports Bar & Grill,15 York St Unit A,Toronto,ON,M5J 0A3,Canada,43.6432,-79.379,416-815-5464,https://www.realsports.ca
+ontario_production_v1,2,province_curated_ontario_v1,on_002,Sportsnet Grill,1 Blue Jays Way,Toronto,ON,M5V 1J4,Canada,43.6418,-79.3892,416-341-5045,https://www.sportsnetgrill.ca
+ontario_production_v1,3,province_curated_ontario_v1,on_003,Hoops Sports Bar & Grill,125 Bremner Blvd,Toronto,ON,M5J 3A8,Canada,43.6415,-79.3835,647-343-0783,https://www.hoopssportsbar.com
+ontario_production_v1,4,province_curated_ontario_v1,on_004,The Loose Moose,146 Front St W,Toronto,ON,M5J 1G2,Canada,43.6451,-79.3857,,https://theloosemoose.ca
+ontario_production_v1,5,province_curated_ontario_v1,on_005,Score on Queen,107 Portland St,Toronto,ON,M5V 2N3,Canada,43.644,-79.401,,https://www.scoreonqueen.com

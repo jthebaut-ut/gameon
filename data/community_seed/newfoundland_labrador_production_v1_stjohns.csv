@@ -1,0 +1,4 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+newfoundland_labrador_production_v1_stjohns,1,province_curated_newfoundland_labrador_v1,nlv1_001,Cornerstone Sports Bar,16 Queen St,St. John's,NL,A1C 4K6,Canada,47.5657,-52.7066,709-753-6651,https://cornerstonelounge.com/
+newfoundland_labrador_production_v1_stjohns,2,province_curated_newfoundland_labrador_v1,nlv1_002,The Bigs Ultimate Sports Grill,290 Freshwater Rd,St. John's,NL,A1B 1C2,Canada,47.5635,-52.7344,,https://www.thebigs.ca/
+newfoundland_labrador_production_v1_stjohns,3,province_curated_newfoundland_labrador_v1,nlv1_003,Boston Pizza St. John's,35 Kelsey Dr,St. John's,NL,A1B 5C8,Canada,47.558,-52.7795,,https://bostonpizza.com/

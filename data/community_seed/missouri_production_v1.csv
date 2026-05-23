@@ -1,0 +1,41 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+missouri_production_v1,1,state_curated_missouri_v1,sports_and_social_st_louis_saint_louis,Sports & Social St. Louis,651 Clark Avenue,Saint Louis,MO,63102,USA,38.6242250,-90.1927977,+13144925064,https://www.stlballparkvillage.com/eat-and-drink/sports-and-social
+missouri_production_v1,2,state_curated_missouri_v1,billiards_sports_bar_and_grill_springfield,Billiards Sports Bar & Grill,541 East St Louis Street,Springfield,MO,65806,USA,37.2092715,-93.2868668,,
+missouri_production_v1,3,state_curated_missouri_v1,hotshots_sports_bar_and_grill_bridgeton,Hotshots Sports Bar and Grill,12154 Saint Charles Rock Road,Bridgeton,MO,63044,USA,38.7496430,-90.4261542,+1 314-291-1606,https://hotshotsnet.com/locations/bridgeton-mo/
+missouri_production_v1,4,state_curated_missouri_v1,buffalo_wild_wings_fenton,Buffalo Wild Wings,150 Gravois Bluffs Circle,Fenton,MO,63026,USA,38.5044830,-90.4449015,+16363265000,https://www.buffalowildwings.com/
+missouri_production_v1,5,state_curated_missouri_v1,buffalo_wild_wings_kansas_city_2,Buffalo Wild Wings,9207 Northeast Highway 152,Kansas City,MO,64158,USA,39.2443519,-94.4685441,+1-816-415-9525,https://www.buffalowildwings.com/locations/us/mo/kansas-city/464-ne-barry-road/sports-bar-1732/
+missouri_production_v1,6,state_curated_missouri_v1,chappell_s_restaurant_and_sports_museum_kansas_city,Chappell's Restaurant & Sports Museum,323 Armour Road,Kansas City,MO,64116,USA,39.1419251,-94.5765531,+1-816-421-0002,https://www.chappellskc.com/
+missouri_production_v1,7,state_curated_missouri_v1,twin_peaks_kansas_city,Twin Peaks,8660 North Boardwalk Avenue,Kansas City,MO,64154,USA,39.2534288,-94.6504407,+18166599821,https://twinpeaksrestaurant.com/locations/kansas-city
+missouri_production_v1,8,state_curated_missouri_v1,bar_louie_kirkwood,Bar Louie,110 South Kirkwood Road,Kirkwood,MO,63122,USA,38.5803591,-90.4058938,+1 314 238 2300,https://barlouieamerica.com/
+missouri_production_v1,9,state_curated_missouri_v1,buffalo_wild_wings_springfield,Buffalo Wild Wings,900 East Battlefield Road,Springfield,MO,65807,USA,37.1589677,-93.2842588,+1-417-881-9464,https://www.buffalowildwings.com/locations/us/mo/springfield/900-e--battlefield-rd/sports-bar-428/
+missouri_production_v1,10,state_curated_missouri_v1,fieldhouse_columbia,FieldHouse,1107 East Broadway,Columbia,MO,65201,USA,38.9516403,-92.3251771,,https://www.fieldhousecomo.com/
+missouri_production_v1,11,state_curated_missouri_v1,gael_s_public_house_and_sports_kansas_city,Gael's Public House and Sports,5424 Troost Avenue,Kansas City,MO,64110,USA,39.0280410,-94.5740515,,https://www.gaelspublichouse.com/
+missouri_production_v1,12,state_curated_missouri_v1,the_passport_st_louis,The Passport,6275 Delmar Boulevard,St Louis,MO,63130,USA,38.6558602,-90.3025606,,https://pourdecisionsstl.com/
+missouri_production_v1,13,state_curated_missouri_v1,the_post_sports_bar_and_grill_st_louis,The Post Sports Bar and Grill,763 Old Ballas Road,St Louis,MO,63141,USA,38.6703525,-90.4389930,,https://thepostsportsbar.com/locations/creve-coeur-2/
+missouri_production_v1,14,state_curated_missouri_v1,dylan_s_sports_pub_and_grill_arnold,Dylan's Sports Pub and Grill,675 Jeffco Boulevard,Arnold,MO,63010,USA,38.4510255,-90.3665994,+16362963831,
+missouri_production_v1,15,state_curated_missouri_v1,ugly_joe_s_sports_bar_and_grille_kansas_city,Ugly Joe's Sports Bar & Grille,1227 West 103rd Street,Kansas City,MO,64114,USA,38.9411802,-94.6067495,+1-816-941-7702,
+missouri_production_v1,16,state_curated_missouri_v1,hooters_maryland_heights,Hooters,11835 Lackland Road,Maryland Heights,MO,63146,USA,38.6988180,-90.4363003,+1 314-991-9565,
+missouri_production_v1,17,state_curated_missouri_v1,barney_s_sports_pub_saint_louis,Barney's Sports Pub,6027 Chippewa Street,Saint Louis,MO,63109,USA,38.5937943,-90.2955583,+13144570018,
+missouri_production_v1,18,state_curated_missouri_v1,buffalo_wild_wings_kansas_city,Buffalo Wild Wings,8441 Northwest Prairie View Road,Kansas City,MO,64153,USA,39.2479864,-94.6599375,,
+missouri_production_v1,19,state_curated_missouri_v1,hooters_kansas_city,Hooters,6411 Northwest Barry Road,Kansas City,MO,64154,USA,39.2463040,-94.6533080,,
+missouri_production_v1,20,state_curated_missouri_v1,buffalo_wild_wings_kirkwood,Buffalo Wild Wings,1244 South Kirkwood Road,Kirkwood,MO,63122,USA,38.5605888,-90.4059687,,
+missouri_production_v1,21,state_curated_missouri_v1,sportsman_s_park_ladue,Sportsman's Park,9901 Clayton Road,Ladue,MO,63124,USA,38.6376966,-90.3921508,,
+missouri_production_v1,22,state_curated_missouri_v1,buffalo_wild_wings_lee_s_summit,Buffalo Wild Wings,1806 Northwest Chipman Road,Lee's Summit,MO,64081,USA,38.9266996,-94.4102279,,
+missouri_production_v1,23,state_curated_missouri_v1,twin_peaks_maplewood,Twin Peaks,2351 Maplewood Commons Dr,Maplewood,MO,63143,USA,38.6184539,-90.3332353,,
+missouri_production_v1,24,state_curated_missouri_v1,millwoods_sports_bar_and_grill_maryland_heights,Millwoods Sports Bar and Grill,12068 Dorsett Road,Maryland Heights,MO,63043,USA,38.7142890,-90.4407348,,
+missouri_production_v1,25,state_curated_missouri_v1,bally_sports_live_saint_louis,Bally Sports Live!,601 Clark Avenue,Saint Louis,MO,63102,USA,38.6239049,-90.1919058,,
+missouri_production_v1,26,state_curated_missouri_v1,the_passport_cocktail_and_wine_bar_saint_louis,The Passport Cocktail and Wine Bar,1321 Washington Avenue,Saint Louis,MO,63103,USA,38.6324362,-90.1991096,,
+missouri_production_v1,27,state_curated_missouri_v1,the_spot_sports_bar_stl_saint_louis,The Spot Sports Bar Stl,8816 Saint Charles Rock Road,Saint Louis,MO,63114,USA,38.7094983,-90.3486286,,
+missouri_production_v1,28,state_curated_missouri_v1,bair_s_all_american_sports_grill_springfield,Bair's All-American Sports Grill,3821 South Campbell Avenue,Springfield,MO,65807,USA,37.1446236,-93.2970678,,
+missouri_production_v1,29,state_curated_missouri_v1,hooters_springfield,Hooters,2110 East Independence Street,Springfield,MO,65804,USA,37.1411159,-93.2589235,,
+missouri_production_v1,30,state_curated_missouri_v1,buffalo_wild_wings_st_louis,Buffalo Wild Wings,570 South County Center Way,St Louis,MO,63129,USA,38.5037953,-90.3339844,,
+missouri_production_v1,31,state_curated_missouri_v1,epiphany_bowling_lanes_saint_louis,Epiphany Bowling Lanes,3164 Ivanhoe Avenue,Saint Louis,MO,63139,USA,38.6064040,-90.3033879,+13147818684,https://epiphanystl.org/epiphanylanes
+missouri_production_v1,32,state_curated_missouri_v1,social_bar_and_grill_soulard_saint_louis,Social Bar & Grill Soulard,1551 South 7th Street,Saint Louis,MO,63104,USA,38.6106935,-90.1998252,+13142413023,https://www.socialbarandgrillsoulard.com/
+missouri_production_v1,33,state_curated_missouri_v1,billiards_on_broadway_columbia,Billiards on Broadway,514 East Broadway,Columbia,MO,65201,USA,38.9513773,-92.3312568,,https://www.billiardsonbroadway.com/
+missouri_production_v1,34,state_curated_missouri_v1,horsefeather_social_kansas_city,Horsefeather Social,1515 Wyandotte Street,Kansas City,MO,64108,USA,39.0955960,-94.5852611,,https://www.horsefeathersocial.com/
+missouri_production_v1,35,state_curated_missouri_v1,premier_bowling_raytown,Premier Bowling,11400 East 350 Highway,Raytown,MO,64138,USA,38.9785766,-94.4478717,,https://premierbowl.com/
+missouri_production_v1,36,state_curated_missouri_v1,westport_social_st_louis,Westport Social,910 Westport Plaza Drive,St. Louis,MO,63146,USA,38.7005290,-90.4471124,,https://westportsocial-stl.com/
+missouri_production_v1,37,state_curated_missouri_v1,romie_s_booze_and_billiards_kansas_city,Romie's Booze and Billiards,5304 East 24th Street,Kansas City,MO,64127,USA,39.0815932,-94.5207185,,
+missouri_production_v1,38,state_curated_missouri_v1,third_street_social_kansas_city,Third Street Social,5031 Main Street,Kansas City,MO,64112,USA,39.0355735,-94.5869929,,
+missouri_production_v1,39,state_curated_missouri_v1,bel_air_social_saint_louis,Bel Air Social,4630 Lindell Boulevard,Saint Louis,MO,63108,USA,38.6427867,-90.2610802,,
+missouri_production_v1,40,state_curated_missouri_v1,pieces_board_game_bar_and_restaurant_saint_louis,Pieces Board Game Bar And Restaurant,2727 South 12th Street,Saint Louis,MO,63118,USA,38.6005728,-90.2137272,,

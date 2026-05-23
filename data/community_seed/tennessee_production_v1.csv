@@ -1,0 +1,36 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+tennessee_production_v1,1,state_curated_tennessee_v1,betmgm_sports_lounge_nashville,BetMGM Sports Lounge Nashville,135 Rep John Lewis Way S,Nashville,TN,37203,USA,36.1597107,-86.7780507,(615) 722-1593,https://www.sportsloungenash.com/
+tennessee_production_v1,2,state_curated_tennessee_v1,wedgewood_sports_lounge,Wedgewood Sports Lounge,2018 Lindell Ave Suite B,Nashville,TN,37203,USA,36.1341682,-86.7741579,,https://wedgewoodsportslounge.com/
+tennessee_production_v1,3,state_curated_tennessee_v1,corner_pub_bellevue,Corner Pub Bellevue,8100 TN-100,Nashville,TN,37221,USA,36.0446463,-86.9554921,615-541-2148,https://www.cornerpubtn.com/locations
+tennessee_production_v1,4,state_curated_tennessee_v1,corner_pub_franklin,Corner Pub Franklin,1916 Columbia Ave,Franklin,TN,37064,USA,35.8974625,-86.8764388,,https://www.cornerpubtn.com/locations
+tennessee_production_v1,5,state_curated_tennessee_v1,beyond_the_edge,Beyond the Edge,112 S 11th St,Nashville,TN,37206,USA,36.1763774,-86.7501197,(615) 226-3343,https://www.nashvillesc.com/neighborhood-pubs
+tennessee_production_v1,6,state_curated_tennessee_v1,sports_social_green_hills,Sports & Social Green Hills,2126 Abbott Martin Rd,Nashville,TN,37215,USA,36.1062686,-86.8169366,,https://sportsandsocial.com/green-hills/
+tennessee_production_v1,7,state_curated_tennessee_v1,neighbors_germantown,Neighbors Germantown,313 Jefferson St,Nashville,TN,37208,USA,36.1747661,-86.7854622,,https://neighborsnashville.com/
+tennessee_production_v1,8,state_curated_tennessee_v1,neighbors_sylvan_park,Neighbors Sylvan Park,4425 Murphy Rd,Nashville,TN,37209,USA,36.1409150,-86.8394743,,https://neighborsnashville.com/
+tennessee_production_v1,9,state_curated_tennessee_v1,neighbors_gulch,Neighbors Gulch,610 12th Ave S,Nashville,TN,37203,USA,36.1515018,-86.7842098,,https://neighborsnashville.com/
+tennessee_production_v1,10,state_curated_tennessee_v1,dawghouse_saloon,DawgHouse Saloon,1522 Demonbreun St,Nashville,TN,37203,USA,36.1533014,-86.7891442,615-864-7393,https://dawghousesaloon.com/
+tennessee_production_v1,11,state_curated_tennessee_v1,jonathans_germantown,Jonathan's Grille Germantown,717 3rd Ave N,Nashville,TN,37201,USA,36.1703540,-86.7817745,,https://www.jonathansgrille.com/
+tennessee_production_v1,12,state_curated_tennessee_v1,jonathans_green_hills,Jonathan's Grille Green Hills,3805 Green Hills Village Dr,Nashville,TN,37215,USA,36.1094233,-86.8153906,,https://www.jonathansgrille.com/
+tennessee_production_v1,13,state_curated_tennessee_v1,pins_nashville,Pins Mechanical Co Nashville,1102 Grundy St,Nashville,TN,37203,USA,36.1585606,-86.7876970,,https://www.pinsbar.com/locations/nashville
+tennessee_production_v1,14,state_curated_tennessee_v1,topgolf_nashville,Topgolf Nashville,500 Cowan St,Nashville,TN,37207,USA,36.1792950,-86.7759783,(615) 777-3007,https://www.topgolf.com/us/nashville/
+tennessee_production_v1,15,state_curated_tennessee_v1,puttshack_nashville,Puttshack Nashville,138 12th Ave N,Nashville,TN,37203,USA,36.1580533,-86.7886733,,https://www.puttshack.com/locations/nashville/
+tennessee_production_v1,16,state_curated_tennessee_v1,game_terminal_nashville,Game Terminal,201 Terminal Ct,Nashville,TN,37210,USA,36.1350162,-86.7439353,,https://gameterminal.com/
+tennessee_production_v1,17,state_curated_tennessee_v1,dave_busters_nashville,Dave & Buster's Nashville,540 Opry Mills Dr,Nashville,TN,37214,USA,36.2021645,-86.6945157,,https://www.daveandbusters.com/us/en/about/locations/nashville
+tennessee_production_v1,18,state_curated_tennessee_v1,old_city_sports_bar,Old City Sports Bar,106 S Central St,Knoxville,TN,37902,USA,35.9703792,-83.9183669,,https://oldcitysportsbar.com/
+tennessee_production_v1,19,state_curated_tennessee_v1,roosters_knoxville,Rooster's Bar & Grill,7585 S Northshore Dr,Knoxville,TN,37919,USA,35.9040228,-84.0201748,,https://www.roostersknoxville.com/
+tennessee_production_v1,20,state_curated_tennessee_v1,twin_peaks_knoxville,Twin Peaks Knoxville,135 N Northshore Dr,Knoxville,TN,37919,USA,35.9332845,-84.0026555,(865) 622-5730,https://twinpeaksrestaurant.com/locations/knoxville-tn
+tennessee_production_v1,21,state_curated_tennessee_v1,fieldhouse_social,Fieldhouse Social,2525 University Commons Way,Knoxville,TN,37996,USA,35.9514534,-83.9399976,(865) 525-4481,https://fieldhousesocial.com/
+tennessee_production_v1,22,state_curated_tennessee_v1,topgolf_knoxville,Topgolf Knoxville,11400 Outlet Dr,Farragut,TN,37932,USA,35.9041879,-84.1573492,,https://topgolf.com/us/knoxville/
+tennessee_production_v1,23,state_curated_tennessee_v1,main_event_knoxville,Main Event Knoxville,9081 Kingston Pike,Knoxville,TN,37923,USA,35.9122096,-84.0842742,(865) 351-5000,https://www.mainevent.com/locations/tennessee/knoxville/
+tennessee_production_v1,24,state_curated_tennessee_v1,maple_hall_knoxville,Maple Hall,414 S Gay St,Knoxville,TN,37902,USA,35.9661739,-83.9187715,(865) 249-8454,https://maplehallknox.com/
+tennessee_production_v1,25,state_curated_tennessee_v1,cool_beans_knoxville,Cool Beans Bar and Grill,1817 Lake Ave,Knoxville,TN,37916,USA,35.9547234,-83.9345131,(865) 524-4472,https://www.coolbeansbar.com/
+tennessee_production_v1,26,state_curated_tennessee_v1,maxs_sports_bar,Max's Sports Bar,115 E G E Patterson Ave,Memphis,TN,38103,USA,35.1327270,-90.0584550,(901) 528-8367,https://maxssportsbar.com/
+tennessee_production_v1,27,state_curated_tennessee_v1,brookhaven_pub,Brookhaven Pub & Grill,695 W Brookhaven Cir,Memphis,TN,38117,USA,35.1122542,-89.8906411,,https://brookhavenpubandgrill.com/
+tennessee_production_v1,28,state_curated_tennessee_v1,celtic_crossing_memphis,Celtic Crossing Irish Pub,903 S Cooper St,Memphis,TN,38104,USA,35.1208365,-89.9910624,(901) 274-5151,https://www.celticcrossingirishpub.com/
+tennessee_production_v1,29,state_curated_tennessee_v1,topgolf_memphis,Topgolf Memphis,3450 S Germantown Rd,Memphis,TN,38119,USA,35.0486614,-89.8234392,,https://topgolf.com/us/memphis/
+tennessee_production_v1,30,state_curated_tennessee_v1,dave_busters_memphis,Dave & Buster's Memphis,2751 Wolfcreek Pkwy,Memphis,TN,38133,USA,35.2018405,-89.7936966,(901) 252-4500,https://www.daveandbusters.com/
+tennessee_production_v1,31,state_curated_tennessee_v1,main_event_memphis,Main Event Memphis,7219 Appling Farms Pkwy,Memphis,TN,38133,USA,35.1836778,-89.8222050,(901) 372-5000,https://www.mainevent.com/locations/tennessee/memphis/
+tennessee_production_v1,32,state_curated_tennessee_v1,putt_putt_memphis,Putt-Putt Family Park,5484 Summer Ave,Memphis,TN,38134,USA,35.1624806,-89.8782782,(901) 386-2992,https://puttputtmemphis.com/
+tennessee_production_v1,33,state_curated_tennessee_v1,railgarten_memphis,Railgarten,2166 Central Ave,Memphis,TN,38104,USA,35.1260647,-89.9898305,,https://railgarten.com/
+tennessee_production_v1,34,state_curated_tennessee_v1,rp_tracks_memphis,RP Tracks,3547 Walker Ave,Memphis,TN,38111,USA,35.1163450,-89.9445252,(901) 327-1471,https://www.rptracks.com/
+tennessee_production_v1,35,state_curated_tennessee_v1,jack_browns_memphis,Jack Brown's Beer & Burger Joint Memphis,2197 Central Ave Suite 101,Memphis,TN,38104,USA,35.1259282,-89.9885441,(901) 512-6957,https://www.jackbrownsjoint.com/

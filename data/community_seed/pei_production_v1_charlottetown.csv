@@ -1,0 +1,4 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+pei_production_v1_charlottetown,1,province_curated_pei_v1,peiv1_001,The Old Triangle Irish Alehouse,189 Great George St,Charlottetown,PE,C1A 4L1,Canada,46.2358,-63.1275,,https://oldtriangle.com
+pei_production_v1_charlottetown,2,province_curated_pei_v1,peiv1_002,Hunter's Ale House,185 Kent St,Charlottetown,PE,C1A 1P1,Canada,46.2387,-63.1287,,https://huntersalehouse.com
+pei_production_v1_charlottetown,3,province_curated_pei_v1,peiv1_003,Dooly's Charlottetown,125 Sydney St,Charlottetown,PE,C1A 1G5,Canada,46.2347,-63.1245,,https://doolys.ca

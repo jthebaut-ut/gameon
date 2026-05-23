@@ -1,0 +1,5 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+nova_scotia_production_v1_halifax,1,province_curated_nova_scotia_v1,nsv1_001,HFX Sports Bar & Grill,1721 Brunswick St,Halifax,NS,B3J 2G4,Canada,44.6482,-63.5752,902-404-1404,
+nova_scotia_production_v1_halifax,2,province_curated_nova_scotia_v1,nsv1_002,The Pint Public House Halifax,1575 Argyle St,Halifax,NS,B3J 2B2,Canada,44.6463,-63.5745,902-405-7468,https://thepinthfx.com/
+nova_scotia_production_v1_halifax,3,province_curated_nova_scotia_v1,nsv1_003,Oasis Pub & Eatery,5661 Spring Garden Rd,Halifax,NS,B3J 1H1,Canada,44.6425,-63.5786,902-422-2227,https://oasishfx.com/
+nova_scotia_production_v1_halifax,4,province_curated_nova_scotia_v1,nsv1_004,Durty Nelly's,1645 Argyle St,Halifax,NS,B3J 2B5,Canada,44.6473,-63.5748,,https://durtynellys.ca/

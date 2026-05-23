@@ -1,0 +1,7 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ontario_production_v4_southern_ontario,1,province_curated_ontario_v4,onv4_001,The Squire Pub & Grill,225 Locke St S,Hamilton,ON,L8P 4B6,Canada,43.2526,-79.8873,,https://thesquire.ca
+ontario_production_v4_southern_ontario,2,province_curated_ontario_v4,onv4_002,Odds Bar,164 James St S,Hamilton,ON,L8P 3A2,Canada,43.2513,-79.8717,,https://oddsbar.ca
+ontario_production_v4_southern_ontario,3,province_curated_ontario_v4,onv4_003,The Bauer Kitchen,187 King St S,Waterloo,ON,N2J 1R1,Canada,43.464,-80.522,,https://thebauerkitchen.ca
+ontario_production_v4_southern_ontario,4,province_curated_ontario_v4,onv4_004,Jack Astor's London,660 Richmond St,London,ON,N6A 3G8,Canada,42.9921,-81.2504,,https://jackastors.com
+ontario_production_v4_southern_ontario,5,province_curated_ontario_v4,onv4_005,Winks Eatery,551 Richmond St,London,ON,N6A 3E9,Canada,42.9888,-81.2491,,https://winkseatery.com
+ontario_production_v4_southern_ontario,6,province_curated_ontario_v4,onv4_006,The Keg Mansion,515 Jarvis St,Toronto,ON,M4Y 2H7,Canada,43.6663,-79.3795,,https://thekeg.com

@@ -48,6 +48,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         )
 
         context.coordinator.loadBannerIfNeeded(force: true, reason: "makeUIView")
+        context.coordinator.logDiscoverAdVisibility(phase: "makeUIView.deferred")
 
         return container
     }
@@ -121,6 +122,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 width,
                 height
             ])
+            logDiscoverAdState(phase: "attached", requested: false)
         }
 
         func update(adSize: AdSize, slotSize: CGSize, adUnitID: String, container: UIView) {
@@ -162,6 +164,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 )
 
                 loadBannerIfNeeded(force: true, reason: "adSizeOrSlotChanged")
+                logDiscoverAdVisibility(phase: "updateUIView.resize.deferred")
                 return
             }
 
@@ -177,12 +180,13 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 hostTabRaw: "discover"
             )
             loadBannerIfNeeded(force: false, reason: "updateUIView")
+            logDiscoverAdVisibility(phase: "updateUIView.deferred")
         }
 
         func loadBannerIfNeeded(force: Bool, reason: String) {
             guard let banner else { return }
             guard isHostTabVisible else {
-                detach()
+                logDiscoverAdState(phase: "hostTabHidden.deferRequest", requested: false)
                 return
             }
 
@@ -214,6 +218,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
 
             didRequestAd = true
             requestStartedAt = Date()
+            logDiscoverAdState(phase: "request.\(reason)", requested: true)
 
             AdDebugDiagnostics.logRequestStart(
                 format: "banner",
@@ -226,6 +231,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             )
 
             banner.load(Request())
+            logDiscoverAdVisibility(phase: "request.\(reason).deferred")
         }
 
         private var isHostTabVisible: Bool {
@@ -233,6 +239,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         }
 
         func detach() {
+            logDiscoverAdState(phase: "detach", requested: false)
             banner?.delegate = nil
             banner?.isHidden = true
             banner?.removeFromSuperview()
@@ -246,7 +253,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
 
         func bannerViewDidReceiveAd(_ bannerView: BannerView) {
             guard isHostTabVisible else {
-                detach()
+                logDiscoverAdState(phase: "loaded.hostTabHidden", requested: false, loaded: true)
                 return
             }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
@@ -269,12 +276,14 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 layoutWidth: layoutWidth,
                 hostTabRaw: "discover"
             )
+            logDiscoverAdState(phase: "loaded", requested: false, loaded: true)
+            logDiscoverAdVisibility(phase: "loaded.deferred")
             onAdLoaded()
         }
 
         func bannerView(_ bannerView: BannerView, didFailToReceiveAdWithError error: Error) {
             guard isHostTabVisible else {
-                detach()
+                logDiscoverAdState(phase: "failed.hostTabHidden", requested: false, failed: error.localizedDescription)
                 return
             }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
@@ -296,12 +305,13 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 layoutWidth: layoutWidth,
                 hostTabRaw: "discover"
             )
+            logDiscoverAdState(phase: "failed", requested: false, failed: error.localizedDescription)
             onAdFailed(error)
         }
 
         func bannerViewDidRecordImpression(_ bannerView: BannerView) {
             guard isHostTabVisible else {
-                detach()
+                logDiscoverAdState(phase: "impression.hostTabHidden", requested: false)
                 return
             }
             AdDebugDiagnostics.logEvent(
@@ -310,6 +320,39 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
                 placement: placement,
                 fields: ["unitID": bannerView.adUnitID ?? "unknown"]
             )
+        }
+
+        func logDiscoverAdVisibility(phase: String) {
+            DispatchQueue.main.async { [weak self] in
+                self?.logDiscoverAdState(phase: phase, requested: false)
+            }
+        }
+
+        private func logDiscoverAdState(
+            phase: String,
+            requested: Bool,
+            loaded: Bool = false,
+            failed: String? = nil
+        ) {
+            guard placement == "discover.bottomStrip" else { return }
+            let view = banner ?? container
+            let frame = view?.frame ?? .zero
+            let attached = view?.window != nil
+            let visibleTab = isHostTabVisible
+            let isHidden = view?.isHidden ?? true
+            let alpha = view?.alpha ?? 0
+            let unitID = banner?.adUnitID ?? lastAdUnitID ?? "unknown"
+            print("[DiscoverAdDebug] phase=\(phase)")
+            print("[DiscoverAdDebug] placement=\(placement)")
+            print("[DiscoverAdDebug] unitID=\(unitID)")
+            print("[DiscoverAdDebug] requested=\(requested)")
+            print("[DiscoverAdDebug] loaded=\(loaded)")
+            print("[DiscoverAdDebug] failed=\(failed ?? "nil")")
+            print(String(format: "[DiscoverAdDebug] frame=%.1fx%.1f@%.1f,%.1f", frame.width, frame.height, frame.origin.x, frame.origin.y))
+            print("[DiscoverAdDebug] attachedToWindow=\(attached)")
+            print("[DiscoverAdDebug] visibleTab=\(visibleTab)")
+            print("[DiscoverAdDebug] isHidden=\(isHidden)")
+            print(String(format: "[DiscoverAdDebug] alpha=%.3f", alpha))
         }
     }
 }

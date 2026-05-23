@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+alberta_production_v1_calgary_edmonton,1,province_curated_alberta_v1,abv1_001,Side Street Pub & Grill,2013 33 Ave SW,Calgary,AB,T2T 1Z5,Canada,51.0233,-114.108,,https://sidestreetpub.ca
+alberta_production_v1_calgary_edmonton,2,province_curated_alberta_v1,abv1_002,Pig & Duke,1312 12 Ave SW,Calgary,AB,T3C 0P3,Canada,51.041,-114.089,,https://pigandduke.ca
+alberta_production_v1_calgary_edmonton,3,province_curated_alberta_v1,abv1_003,Canadian Icehouse,336 8 Ave SW,Calgary,AB,T2P 1C9,Canada,51.045,-114.07,,https://thecanadianicehouse.com
+alberta_production_v1_calgary_edmonton,4,province_curated_alberta_v1,abv1_004,Hudsons Canada's Pub Whyte Ave,10307 82 Ave NW,Edmonton,AB,T6E 1Z9,Canada,53.5185,-113.4932,,https://hudsonscanadaspub.com
+alberta_production_v1_calgary_edmonton,5,province_curated_alberta_v1,abv1_005,1st RND,11248 104 Ave NW,Edmonton,AB,T5K 2X4,Canada,53.547,-113.516,,https://1strnd.ca

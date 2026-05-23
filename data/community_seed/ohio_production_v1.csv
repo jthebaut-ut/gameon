@@ -1,0 +1,41 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ohio_production_v1,1,state_curated_ohio_v1,parlay_columbus,Parlay Sporting Club + Kitchen,570 N High St,Columbus,OH,43215,USA,39.9740970,-83.0028641,(614) 812-0200,https://parlaycolumbus.com/
+ohio_production_v1,2,state_curated_ohio_v1,r_bar_arena,R Bar Arena,413 N Front St,Columbus,OH,43215,USA,39.9704141,-83.0041996,(614) 221-4950,https://www.rbararena.com/
+ohio_production_v1,3,state_curated_ohio_v1,pint_house_columbus,Short North Pint House,780 N High St,Columbus,OH,43215,USA,39.9782486,-83.0036846,(614) 429-3986,https://www.shortnorthpinthouse.com/
+ohio_production_v1,4,state_curated_ohio_v1,yogis_grandview,Yogi's Bar & Grill Grandview,955 W 5th Ave,Columbus,OH,43212,USA,39.9880922,-83.0316402,,https://yogiscolumbus.com/locations-menus/grandview-west-fifth-avenue/
+ohio_production_v1,5,state_curated_ohio_v1,jimmy_vs_grandview,Jimmy V's Grill & Pub Grandview,1788 W 5th Ave,Columbus,OH,43212,USA,39.9892885,-83.0544236,,https://www.jimmyvs.com/
+ohio_production_v1,6,state_curated_ohio_v1,buffalo_wings_rings_lewis_center,Buffalo Wings & Rings Lewis Center,8661 Columbus Pike,Lewis Center,OH,43035,USA,40.1647134,-83.0197455,,https://www.buffalowingsandrings.com/
+ohio_production_v1,7,state_curated_ohio_v1,buffalo_wings_rings_dublin,Buffalo Wings & Rings Dublin,55 S High St,Dublin,OH,43017,USA,40.0984517,-83.1136439,,https://www.buffalowingsandrings.com/
+ohio_production_v1,8,state_curated_ohio_v1,gallos_tap_room,Gallo's Tap Room,5019 Olentangy River Rd,Columbus,OH,43214,USA,40.0620316,-83.0369303,(614) 457-2394,https://gallostaproom.com/
+ohio_production_v1,9,state_curated_ohio_v1,pastimes_crosswoods,Pastimes Pub & Grill Crosswoods,121 E Campus View Blvd,Columbus,OH,43235,USA,40.1182118,-83.0131104,(614) 547-7750,https://pastimespub.com/
+ohio_production_v1,10,state_curated_ohio_v1,pins_columbus_downtown,Pins Mechanical Co Downtown Columbus,141 N 4th St,Columbus,OH,43215,USA,39.9654942,-82.9968525,,https://www.pinsbar.com/locations/columbus
+ohio_production_v1,11,state_curated_ohio_v1,pins_columbus_easton,Pins Mechanical Co Easton,4117 Worth Ave,Columbus,OH,43219,USA,40.0542480,-82.9119522,,https://www.pinsbar.com/locations/easton
+ohio_production_v1,12,state_curated_ohio_v1,topgolf_columbus,Topgolf Columbus,2000 IKEA Way,Columbus,OH,43240,USA,40.1483847,-82.9639306,,https://topgolf.com/us/columbus/
+ohio_production_v1,13,state_curated_ohio_v1,dave_busters_columbus_polaris,Dave & Buster's Columbus Polaris,1554 Polaris Pkwy,Columbus,OH,43240,USA,40.1416196,-82.9773216,,https://www.daveandbusters.com/
+ohio_production_v1,14,state_curated_ohio_v1,hi5_cleveland,HI 5 Cleveland,1052 Old River Rd,Cleveland,OH,44113,USA,41.4992316,-81.7055674,(216) 644-8884,https://www.hi5cle.com/
+ohio_production_v1,15,state_curated_ohio_v1,whistle_cleveland,Whistle Taproom & Venue,818 Huron Rd,Cleveland,OH,44115,USA,41.4985781,-81.6862585,(216) 331-5600,https://whistlecle.com/
+ohio_production_v1,16,state_curated_ohio_v1,city_tap_cleveland,City Tap Cleveland,748 Prospect Ave,Cleveland,OH,44115,USA,41.4986358,-81.6874820,,https://citytapcleveland.com/
+ohio_production_v1,17,state_curated_ohio_v1,harry_buffalo_cleveland,Harry Buffalo Cleveland,2120 E 4th St,Cleveland,OH,44115,USA,41.4980158,-81.6899174,,https://www.harrybuffalo.com/
+ohio_production_v1,18,state_curated_ohio_v1,the_clevelander,The Clevelander Bar & Grill,834 Huron Rd E,Cleveland,OH,44115,USA,41.4987089,-81.6860132,,https://clevelanderbar.com/
+ohio_production_v1,19,state_curated_ohio_v1,thirsty_parrot,Thirsty Parrot,812 Huron Rd E,Cleveland,OH,44115,USA,41.4985437,-81.6863223,,https://thirstyparrot.com/
+ohio_production_v1,20,state_curated_ohio_v1,winking_lizard_cleveland,Winking Lizard Downtown Cleveland,1300 E 9th St,Cleveland,OH,44114,USA,41.5039263,-81.6909217,,https://www.winkinglizard.com/
+ohio_production_v1,21,state_curated_ohio_v1,barley_house_cleveland,Barley House Cleveland,1261 W 6th St,Cleveland,OH,44113,USA,41.5002446,-81.6990078,,https://barleyhousecleveland.com/
+ohio_production_v1,22,state_curated_ohio_v1,punch_bowl_social_cleveland,Punch Bowl Social Cleveland,1086 W 11th St,Cleveland,OH,44113,USA,41.5000589,-81.7057454,(216) 239-1508,https://punchbowlsocial.com/location/cleveland/
+ohio_production_v1,23,state_curated_ohio_v1,pins_cleveland,Pins Mechanical Co Cleveland,1880 W 25th St,Cleveland,OH,44113,USA,41.4857772,-81.7047402,,https://www.pinsbar.com/locations/cleveland
+ohio_production_v1,24,state_curated_ohio_v1,topgolf_cleveland,Topgolf Cleveland,5820 Rockside Woods Blvd N,Independence,OH,44131,USA,41.4019114,-81.6458929,,https://topgolf.com/us/cleveland/
+ohio_production_v1,25,state_curated_ohio_v1,dave_busters_westlake,Dave & Buster's Westlake Cleveland,25735 First St,Westlake,OH,44145,USA,41.4762324,-81.9097748,,https://www.daveandbusters.com/us/en/about/locations/cleveland-westlake
+ohio_production_v1,26,state_curated_ohio_v1,wild_eagle_cleveland,Wild Eagle Saloon Cleveland,921 Huron Rd E,Cleveland,OH,44115,USA,41.4994458,-81.6848307,,https://www.wildeaglesaloon.com/
+ohio_production_v1,27,state_curated_ohio_v1,flannerys_pub_cleveland,Flannery's Pub,323 E Prospect Ave,Cleveland,OH,44115,USA,41.4982733,-81.6904618,,https://www.flannerys.com/
+ohio_production_v1,28,state_curated_ohio_v1,toms_watch_bar_cincinnati,Tom's Watch Bar Cincinnati,175 Joe Nuxhall Way,Cincinnati,OH,45202,USA,39.0976569,-84.5087844,(513) 572-3383,https://tomswatchbar.com/cincinnati/
+ohio_production_v1,29,state_curated_ohio_v1,holy_grail_cincinnati,The Holy Grail,161 Joe Nuxhall Way,Cincinnati,OH,45202,USA,39.0975226,-84.5087502,,https://www.holygrailbanks.com/
+ohio_production_v1,30,state_curated_ohio_v1,omalleys_cincinnati,O'Malley's in the Alley,25 W Ogden Pl,Cincinnati,OH,45202,USA,39.0992925,-84.5129562,(513) 381-3114,https://omalleyscincy.com/home-2/
+ohio_production_v1,31,state_curated_ohio_v1,rhinehaus_cincinnati,Rhinehaus,119 E 12th St,Cincinnati,OH,45202,USA,39.1086211,-84.5122646,,https://www.rhinehausbar.com/
+ohio_production_v1,32,state_curated_ohio_v1,trillions_west_chester,Trillions Sports Bar and Grill,9933 Cincinnati Columbus Rd,West Chester,OH,45241,USA,39.3044467,-84.3869478,(513) 777-2920,https://trillionssportsbar.com/
+ohio_production_v1,33,state_curated_ohio_v1,pins_cincinnati,Pins Mechanical Co Cincinnati,1124 Main St,Cincinnati,OH,45202,USA,39.1085431,-84.5114229,,https://www.pinsbar.com/locations/cincinnati
+ohio_production_v1,34,state_curated_ohio_v1,five_iron_cincinnati,Five Iron Golf Cincinnati,80 W 5th St,Cincinnati,OH,45202,USA,39.1010691,-84.5142729,,https://fiveirongolf.com/locations/cincinnati-downtown
+ohio_production_v1,35,state_curated_ohio_v1,topgolf_west_chester,Topgolf Cincinnati West Chester,9568 Water Front Dr,West Chester Township,OH,45069,USA,39.3167410,-84.4237483,,https://topgolf.com/us/west-chester/
+ohio_production_v1,36,state_curated_ohio_v1,dave_busters_springdale,Dave & Buster's Springdale Cincinnati,11775 Commons Dr,Springdale,OH,45246,USA,39.2925247,-84.4536617,,https://www.daveandbusters.com/us/en/about/locations/cincinnati-springdale
+ohio_production_v1,37,state_curated_ohio_v1,knockback_nats,Knockback Nat's,10 W 7th St,Cincinnati,OH,45202,USA,39.1036630,-84.5142042,(513) 621-1000,https://knockbacknats.com/
+ohio_production_v1,38,state_curated_ohio_v1,the_pitch_cincinnati,The Pitch Cincy,1430 Central Pkwy,Cincinnati,OH,45202,USA,39.1109206,-84.5203712,,https://www.thepitchcincy.com/
+ohio_production_v1,39,state_curated_ohio_v1,yard_house_cincinnati,Yard House Cincinnati,95 E Freedom Way,Cincinnati,OH,45202,USA,39.0971307,-84.5103490,(513) 381-4071,https://www.yardhouse.com/locations/oh/cincinnati/cincinnati-freedom-way/
+ohio_production_v1,40,state_curated_ohio_v1,roosters_olentangy,Roosters Olentangy,3370 Olentangy River Rd,Columbus,OH,43202,USA,40.0279573,-83.0282558,,https://roosterswings.com/locations/

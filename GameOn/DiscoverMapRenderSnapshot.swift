@@ -282,18 +282,15 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
             return []
         }
 
-        var gridSize = 0.035
-        if visibleLatitudeDelta > 0.35 {
-            gridSize = 0.08
-        }
-
         try checkCancellation(checkpoint: "clusterAssembly")
         var grouped: [String: [BarVenue]] = [:]
         for bar in source {
             try checkCancellation(checkpoint: "clusterAssembly")
-            let latKey = Int(bar.coordinate.latitude / gridSize)
-            let lonKey = Int(bar.coordinate.longitude / gridSize)
-            grouped["\(latKey)-\(lonKey)", default: []].append(bar)
+            let key = DiscoverVenueClusterTuning.clusterKey(
+                for: bar.coordinate,
+                visibleLatitudeDelta: visibleLatitudeDelta
+            )
+            grouped[key, default: []].append(bar)
         }
 
         var clusters: [DiscoverDetachedVenueCluster] = []

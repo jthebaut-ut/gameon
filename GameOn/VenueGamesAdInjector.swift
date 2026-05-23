@@ -15,8 +15,9 @@ enum VenueGamesFeedItem: Identifiable, Equatable {
 }
 
 enum VenueGamesAdInjector {
-    private static let compactFeedMaxGameCount = 4
-    private static let recurringInsertionInterval = 5
+    static let venueGameInlineAdsEnabled = false
+    private static let midFeedInsertionPosition = 4
+    private static let recurringInsertionInterval = 8
 
     static func listItems(for games: [SportsEvent]) -> [VenueGamesFeedItem] {
         let insertionPositions = insertedAfterGamePositions(gameCount: games.count)
@@ -46,39 +47,47 @@ enum VenueGamesAdInjector {
     }
 
     static func insertedAfterGamePositions(gameCount: Int) -> [Int] {
+        guard venueGameInlineAdsEnabled else {
 #if DEBUG
-        print("[VenueInlineAdDebug] gameCount=\(gameCount)")
-#endif
-        guard gameCount > 1 else {
-#if DEBUG
-            print("[VenueInlineAdDebug] inlineAdSuppressed reason=singleGame")
+            print("[VenueGameAdDebug] inlineAdsDisabledDueToStability=true")
+            print("[VenueGameAdDebug] placement=venue.gamesFeed")
+            print("[VenueGameAdDebug] gameCount=\(gameCount)")
+            print("[VenueGameAdDebug] insertedAdIndexes=[]")
 #endif
             return []
         }
 
-        if gameCount <= compactFeedMaxGameCount {
-            logInsertion(index: gameCount, mode: "afterLast")
-            return [gameCount]
+        guard gameCount > 0 else {
+            logPlan(gameCount: gameCount, positions: [])
+            return []
         }
 
-        let positions = stride(from: recurringInsertionInterval, through: gameCount, by: recurringInsertionInterval)
-            .map { $0 }
-        for position in positions {
-            logInsertion(index: position, mode: "interval")
+        let positions: [Int]
+        if gameCount <= 3 {
+            positions = [gameCount]
+        } else if gameCount < 10 {
+            positions = [min(midFeedInsertionPosition, gameCount)]
+        } else {
+            positions = stride(from: midFeedInsertionPosition, through: gameCount, by: recurringInsertionInterval)
+                .map { $0 }
         }
+
+        logPlan(gameCount: gameCount, positions: positions)
         return positions
     }
 
-    private static func logInsertion(index: Int, mode: String) {
+    private static func logPlan(gameCount: Int, positions: [Int]) {
 #if DEBUG
-        print("[VenueInlineAdDebug] inlineAdInserted index=\(index)")
-        print("[VenueInlineAdDebug] inlineAdMode=\(mode)")
+        print("[VenueGameAdDebug] placement=venue.gamesFeed")
+        print("[VenueGameAdDebug] gameCount=\(gameCount)")
+        print("[VenueGameAdDebug] insertedAdIndexes=\(positions)")
 #endif
     }
 }
 
 struct SponsoredVenueCardView: View {
     let slotIndex: Int
+    var placement: String = "venue.gamesFeed"
 
     private enum InlineAdLoadState {
         case loading
@@ -89,54 +98,82 @@ struct SponsoredVenueCardView: View {
     @State private var loadState: InlineAdLoadState = .loading
 
     var body: some View {
-        Group {
-            switch loadState {
-            case .loading, .loaded:
-                CompactNativeAdCard(
-                    placement: "venue.gamesFeed",
-                    hostTabRaw: "discover",
-                    slotIndex: slotIndex,
-                    layoutWidth: 0,
-                    prefersLightChrome: true,
-                    onAdLoaded: {
-                        withAnimation(.easeOut(duration: 0.2)) {
+        GeometryReader { geometry in
+            let layoutWidth = max(geometry.size.width, CompactNativeAdLayout.minimumRequestDimension)
+
+            ZStack {
+                sponsoredPlaceholder
+
+                if loadState != .failed {
+                    CompactNativeAdCard(
+                        placement: placement,
+                        hostTabRaw: "discover",
+                        slotIndex: slotIndex,
+                        layoutWidth: layoutWidth,
+                        prefersLightChrome: true,
+                        animatesLoadState: false,
+                        onAdLoaded: {
                             loadState = .loaded
-                        }
-#if DEBUG
-                        print("[VenueInlineAdDebug] adLoaded=true")
-                        print("[VenueInlineAdDebug] bannerDidReceiveAd=true")
-#endif
-                    },
-                    onAdFailed: { error in
-                        withAnimation(.easeOut(duration: 0.2)) {
+                            logLoadState(loaded: true, failed: nil)
+                        },
+                        onAdFailed: { error in
                             loadState = .failed
+                            logLoadState(loaded: false, failed: error.localizedDescription)
                         }
-#if DEBUG
-                        print("[VenueInlineAdDebug] adFailed error=\(error.localizedDescription)")
-                        print("[VenueInlineAdDebug] bannerDidFail error=\(error.localizedDescription)")
-                        print("[VenueInlineAdDebug] hiddenDueToNoFill=true")
-#endif
-                    }
-                )
-                .frame(height: loadState == .loaded ? 98 : 0)
-                .opacity(loadState == .loaded ? 1 : 0)
-                .clipped()
-                .allowsHitTesting(loadState == .loaded)
-                .accessibilityElement(children: .contain)
-                .onAppear {
-#if DEBUG
-                    let adUnitID = AdMobConfiguration.nativeAdUnitID
-                    print("[VenueInlineAdDebug] deviceIsPhysical=\(!AdRuntimeDevice.isSimulator)")
-                    print("[VenueInlineAdDebug] adUnitID=\(adUnitID)")
-                    print("[VenueInlineAdDebug] adSize=native width=0 height=98")
-                    print("[VenueInlineAdDebug] adLoadStarted=true")
-                    print("[VenueInlineAdDebug] containerHiddenUntilLoaded=true")
-                    print("[VenueInlineAdDebug] blackPlaceholderPrevented=true")
-#endif
+                    )
+                    .frame(height: CompactNativeAdLayout.preferredHeight)
+                    .opacity(loadState == .loaded ? 1 : 0.01)
+                    .allowsHitTesting(loadState == .loaded)
+                    .accessibilityElement(children: .contain)
                 }
-            case .failed:
-                EmptyView()
             }
         }
+        .frame(height: CompactNativeAdLayout.preferredHeight)
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .onAppear {
+            logLoadState(loaded: loadState == .loaded, failed: loadState == .failed ? "previousFailure" : nil)
+        }
+    }
+
+    private var sponsoredPlaceholder: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Sponsored")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                Text("FanGeo partner")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary.opacity(0.72))
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "sparkles.rectangle.stack")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.secondary.opacity(0.7))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: CompactNativeAdLayout.preferredHeight, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.05))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.75)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(loadState == .loaded)
+    }
+
+    private func logLoadState(loaded: Bool, failed: String?) {
+#if DEBUG
+        print("[VenueGameAdDebug] placement=\(placement)")
+        print("[VenueGameAdDebug] loaded=\(loaded)")
+        print("[VenueGameAdDebug] failed=\(failed ?? "nil")")
+#endif
     }
 }

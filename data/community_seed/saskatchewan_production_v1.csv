@@ -1,0 +1,5 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+saskatchewan_production_v1,1,province_curated_saskatchewan_v1,skv1_001,Sports On Tap,2606 Lorne Ave,Saskatoon,SK,S7J 0S6,Canada,52.0988,-106.6668,306-683-8921,https://www.sportsontap.ca
+saskatchewan_production_v1,2,province_curated_saskatchewan_v1,skv1_002,Shark Club Sports Bar & Grill,310 Circle Dr,Saskatoon,SK,S7L 0Y5,Canada,52.1576,-106.6708,306-477-4771,https://www.sharkclub.com/location/saskatoon/
+saskatchewan_production_v1,3,province_curated_saskatchewan_v1,skv1_003,JT's Bar & Grill,2404 8th St E,Saskatoon,SK,S7H 0V6,Canada,52.114,-106.6132,306-477-7000,https://jtsbarandgrill.ca/
+saskatchewan_production_v1,4,province_curated_saskatchewan_v1,skv1_004,Leopold's Tavern Regina,2330 Albert St,Regina,SK,S4P 2V7,Canada,50.4422,-104.6174,,https://leopoldstavern.com

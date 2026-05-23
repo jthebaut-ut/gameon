@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+ontario_production_v3_ottawa_expansion,1,province_curated_ontario_v3,onv3_001,Senate Tavern,1159 Bank St,Ottawa,ON,K1S 3X4,Canada,45.3939,-75.6837,,https://thesenate.ca
+ontario_production_v3_ottawa_expansion,2,province_curated_ontario_v3,onv3_002,Glebe Central Pub,779 Bank St,Ottawa,ON,K1S 3V5,Canada,45.4014,-75.6923,,https://glebecentralpub.com
+ontario_production_v3_ottawa_expansion,3,province_curated_ontario_v3,onv3_003,Hometown Sports Grill,1525 Bank St,Ottawa,ON,K1H 7Z1,Canada,45.3766,-75.683,,https://hometownsportsgrill.ca
+ontario_production_v3_ottawa_expansion,4,province_curated_ontario_v3,onv3_004,Local Heroes,1585 Merivale Rd,Ottawa,ON,K2G 3J4,Canada,45.349,-75.734,,https://localheroesrestaurants.com
+ontario_production_v3_ottawa_expansion,5,province_curated_ontario_v3,onv3_005,The Prescott,379 Preston St,Ottawa,ON,K1S 4N1,Canada,45.4028,-75.7127,,https://theprescott.com

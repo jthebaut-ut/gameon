@@ -23,6 +23,64 @@ struct BusinessVenueReverseGeocodeResult: Sendable {
     let formattedAddress: String?
 }
 
+enum DiscoverVenueClusterTuning {
+    private struct DenseDistrictBounds {
+        let latitude: ClosedRange<Double>
+        let longitude: ClosedRange<Double>
+
+        func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+            latitude.contains(coordinate.latitude) && longitude.contains(coordinate.longitude)
+        }
+    }
+
+    private static let denseEntertainmentDistricts: [DenseDistrictBounds] = [
+        // Las Vegas Strip / Paradise corridor.
+        DenseDistrictBounds(latitude: 36.075...36.155, longitude: (-115.195)...(-115.140)),
+        // Downtown Las Vegas / Fremont.
+        DenseDistrictBounds(latitude: 36.160...36.185, longitude: (-115.160)...(-115.130)),
+        // Miami Beach / South Beach.
+        DenseDistrictBounds(latitude: 25.760...25.890, longitude: (-80.155)...(-80.110)),
+        // Downtown Los Angeles / LA Live.
+        DenseDistrictBounds(latitude: 34.030...34.070, longitude: (-118.285)...(-118.220)),
+        // Manhattan.
+        DenseDistrictBounds(latitude: 40.680...40.885, longitude: (-74.030)...(-73.905)),
+        // Disney Springs / Lake Buena Vista.
+        DenseDistrictBounds(latitude: 28.360...28.395, longitude: (-81.535)...(-81.490)),
+        // Scottsdale entertainment district.
+        DenseDistrictBounds(latitude: 33.485...33.515, longitude: (-111.945)...(-111.910)),
+    ]
+
+    static func clusterKey(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> String {
+        let gridSize = clusterGridSize(for: coordinate, visibleLatitudeDelta: visibleLatitudeDelta)
+        let latKey = Int(coordinate.latitude / gridSize)
+        let lonKey = Int(coordinate.longitude / gridSize)
+        let gridKey = Int((gridSize * 1_000_000).rounded())
+        return "g\(gridKey)-\(latKey)-\(lonKey)"
+    }
+
+    static func clusterGridSize(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> Double {
+        guard isDenseEntertainmentDistrict(coordinate) else {
+            return visibleLatitudeDelta > 0.35 ? 0.08 : 0.035
+        }
+
+        if visibleLatitudeDelta > 0.35 {
+            return 0.08
+        } else if visibleLatitudeDelta > 0.18 {
+            return 0.024
+        } else if visibleLatitudeDelta > 0.08 {
+            return 0.006
+        } else if visibleLatitudeDelta > 0.035 {
+            return 0.0025
+        } else {
+            return 0.0012
+        }
+    }
+
+    private static func isDenseEntertainmentDistrict(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        denseEntertainmentDistricts.contains { $0.contains(coordinate) }
+    }
+}
+
 /// One-shot Core Location fetch for the Discover map “current location” control (no Utah/Lehi fallback).
 private final class DiscoverCurrentLocationFetchSession: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
@@ -197,15 +255,11 @@ extension MapViewModel {
             return cached
         }
 
-        var gridSize = 0.035
-        if visibleLatitudeDelta > 0.35 {
-            gridSize = 0.08
-        }
-
         let grouped = Dictionary(grouping: source) { bar in
-            let latKey = Int(bar.coordinate.latitude / gridSize)
-            let lonKey = Int(bar.coordinate.longitude / gridSize)
-            return "\(latKey)-\(lonKey)"
+            DiscoverVenueClusterTuning.clusterKey(
+                for: bar.coordinate,
+                visibleLatitudeDelta: visibleLatitudeDelta
+            )
         }
 
         let clusters = grouped.map { key, bars in

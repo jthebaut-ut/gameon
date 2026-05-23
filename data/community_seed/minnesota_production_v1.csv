@@ -1,0 +1,32 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+minnesota_production_v1,1,state_curated_minnesota_v1,game_time_sports_bar_and_arcade_minneapolis,Game Time Sports Bar & Arcade,920 East Lake Street,Minneapolis,MN,55407,USA,44.9485479,-93.2604553,,
+minnesota_production_v1,2,state_curated_minnesota_v1,wild_bill_s_sports_saloon_blaine,Wild Bill's Sports Saloon,10950 Club West Parkway North,Blaine,MN,55449,USA,45.1687847,-93.2318409,+1-763-746-2774,https://www.wildbillssportssaloon-blaine.com
+minnesota_production_v1,3,state_curated_minnesota_v1,racks_sports_bar_and_grill_burnsville,Racks Sports Bar and Grill,2400 Cliff Road East,Burnsville,MN,55337,USA,44.7909059,-93.2411277,+19527368226,https://racks-bar.com/
+minnesota_production_v1,4,state_curated_minnesota_v1,buffalo_wild_wings_eagan,Buffalo Wild Wings,1280 Promenade Place,Eagan,MN,55121,USA,44.8340889,-93.1556759,+1-951-414-6200,https://www.buffalowildwings.com/
+minnesota_production_v1,5,state_curated_minnesota_v1,buffalo_wild_wings_maplewood,Buffalo Wild Wings,3085 White Bear Avenue,Maplewood,MN,55109,USA,45.0346303,-93.0194689,+16517709464,https://www.buffalowildwings.com/
+minnesota_production_v1,6,state_curated_minnesota_v1,five_hole_sports_bar_and_grill_saint_anthony,Five Hole Sports Bar & Grill,3701 Stinson Boulevard Northeast,Saint Anthony,MN,55421,USA,45.0365837,-93.2266948,+1 763-285-4919,https://www.fiveholesb.com/
+minnesota_production_v1,7,state_curated_minnesota_v1,buffalo_wild_wings_savage,Buffalo Wild Wings,7551 Egan Drive,Savage,MN,55378,USA,44.7453467,-93.3767003,+1-952-226-1600,https://www.buffalowildwings.com/locations/us/mn/savage/7551-egan-dr/sports-bar-100/
+minnesota_production_v1,8,state_curated_minnesota_v1,stadium_bar_and_grill_minneapolis,Stadium Bar and Grill,207 Washington Avenue North,Minneapolis,MN,55401,USA,44.9838244,-93.2718528,,https://www.stadiumbarmn.com/
+minnesota_production_v1,9,state_curated_minnesota_v1,foster_s_sports_bar_and_grill_hermantown,Foster's Sports Bar & Grill,4767 West Arrowhead Road,Hermantown,MN,55811,USA,46.8226323,-92.1817539,+1-218-727-7002,
+minnesota_production_v1,10,state_curated_minnesota_v1,neisen_s_sports_bar_and_grill_bloomington,Neisen's Sports Bar & Grill,4851 123rd Street West,Bloomington,MN,55378,USA,44.7781089,-93.3415217,,
+minnesota_production_v1,11,state_curated_minnesota_v1,buffalo_wild_wings_champlin,Buffalo Wild Wings,11580 Theatre Drive North,Champlin,MN,55316,USA,45.1640619,-93.3925716,,
+minnesota_production_v1,12,state_curated_minnesota_v1,buffalo_wild_wings_chanhassen,Buffalo Wild Wings,560 West 79th Street,Chanhassen,MN,55317,USA,44.8594140,-93.5342735,,
+minnesota_production_v1,13,state_curated_minnesota_v1,the_sports_garden_duluth,The Sports Garden,417 Lake Avenue South,Duluth,MN,55802,USA,46.7811430,-92.0946932,,
+minnesota_production_v1,14,state_curated_minnesota_v1,cherokee_sirloin_room_and_sports_eagan,Cherokee Sirloin Room & Sports,4625 Nicols Road,Eagan,MN,55122,USA,44.7890139,-93.2190116,,
+minnesota_production_v1,15,state_curated_minnesota_v1,beacon_sports_bar_and_grill_hermantown,Beacon Sports Bar & Grill,5044 Hermantown Road,Hermantown,MN,55811,USA,46.7853394,-92.2109635,,
+minnesota_production_v1,16,state_curated_minnesota_v1,buffalo_wild_wings_minneapolis,Buffalo Wild Wings,2001 Southeast University Avenue,Minneapolis,MN,55455,USA,44.9759244,-93.2268521,,
+minnesota_production_v1,17,state_curated_minnesota_v1,buffalo_wild_wings_plymouth,Buffalo Wild Wings,3505 Vicksburg Lane North,Plymouth,MN,55447,USA,45.0207753,-93.4846422,,
+minnesota_production_v1,18,state_curated_minnesota_v1,dilla_sports_bar_and_ethiopian_restaurant_saint_paul,Dilla Sports Bar & Ethiopian Restaurant,1623 University Avenue,Saint Paul,MN,55104,USA,44.9558794,-93.1690824,,
+minnesota_production_v1,19,state_curated_minnesota_v1,rival_house_sporting_parlour_saint_paul,Rival House Sporting Parlour,411 Minnesota Street,Saint Paul,MN,55101,USA,44.9478333,-93.0933127,,
+minnesota_production_v1,20,state_curated_minnesota_v1,topgolf_brooklyn_center_brooklyn_center,Topgolf Brooklyn Center,6420 Camden Avenue North,Brooklyn Center,MN,55430,USA,45.0719612,-93.2879128,+1-763-201-9636,https://topgolf.com/us/minneapolis/
+minnesota_production_v1,21,state_curated_minnesota_v1,the_social_house_canal_park_duluth,The Social House - Canal Park,355 South Lake Avenue,Duluth,MN,55802,USA,46.7825796,-92.0954968,+1-218-606-1047,http://thesocialhousemn.com/
+minnesota_production_v1,22,state_curated_minnesota_v1,southern_social_eagan,Southern Social,1940 Rahncliff Court,Eagan,MN,55122,USA,44.7867879,-93.2071360,+16514787919,https://southernsocialmn.com/
+minnesota_production_v1,23,state_curated_minnesota_v1,the_camden_social_minneapolis,The Camden Social,4601 North Lyndale Avenue,Minneapolis,MN,55412,USA,45.0387253,-93.2877122,+1-612-489-8073,https://thecamdensocial.com/
+minnesota_production_v1,24,state_curated_minnesota_v1,buster_s_on_28th_minneapolis,Buster's on 28th,4204 28th Avenue South,Minneapolis,MN,55406,USA,44.9266272,-93.2323582,,https://busterson28th.com/
+minnesota_production_v1,25,state_curated_minnesota_v1,dave_and_busters_southdale_minneapolis,"Dave & Busters, Southdale",500 Southdale Ctr,Minneapolis,MN,55435,USA,44.8810788,-93.3268980,,https://daveandbusters.com/
+minnesota_production_v1,26,state_curated_minnesota_v1,axel_s_chanhassen,Axel's,560 West 78th Street,Chanhassen,MN,55317,USA,44.8624731,-93.5347560,,
+minnesota_production_v1,27,state_curated_minnesota_v1,axel_s_mendota,Axel's,1318 Sibley Memorial Highway,Mendota,MN,55150,USA,44.8880953,-93.1613770,,
+minnesota_production_v1,28,state_curated_minnesota_v1,goldy_s_gameroom_minneapolis,Goldy's Gameroom,300 Southeast Washington Avenue,Minneapolis,MN,55455,USA,44.9729292,-93.2358080,,
+minnesota_production_v1,29,state_curated_minnesota_v1,northeast_social_minneapolis,Northeast Social,355 Northeast 13th Avenue,Minneapolis,MN,55413,USA,45.0010209,-93.2617457,,
+minnesota_production_v1,30,state_curated_minnesota_v1,bunny_s_bar_and_grill_saint_louis_park,Bunny's Bar & Grill,5916 Excelsior Boulevard,Saint Louis Park,MN,55416,USA,44.9289034,-93.3552706,+19529229515,https://www.bunnysbarandgrill.com/
+minnesota_production_v1,31,state_curated_minnesota_v1,the_loop_minneapolis,The Loop,606 Washington Ave. N.,Minneapolis,MN,55401,USA,44.9872838,-93.2761088,,https://www.theloopmpls.com/

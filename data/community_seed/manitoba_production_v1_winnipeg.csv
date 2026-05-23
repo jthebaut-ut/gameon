@@ -1,0 +1,4 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+manitoba_production_v1_winnipeg,1,province_curated_manitoba_v1,mbv1_001,Underdogs,2609 Portage Ave,Winnipeg,MB,R3J 0P6,Canada,49.881,-97.274,,https://underdogswinnipeg.com
+manitoba_production_v1_winnipeg,2,province_curated_manitoba_v1,mbv1_002,Boston Pizza Cityplace,333 St Mary Ave,Winnipeg,MB,R3C 4A5,Canada,49.89,-97.143,,https://bostonpizza.com
+manitoba_production_v1_winnipeg,3,province_curated_manitoba_v1,mbv1_003,Tavern United,345 Graham Ave,Winnipeg,MB,R3C 5S6,Canada,49.8922,-97.1455,,https://canadinns.com

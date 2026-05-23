@@ -16,6 +16,7 @@ struct CompactNativeAdCard: View {
     let slotIndex: Int
     let layoutWidth: CGFloat
     let prefersLightChrome: Bool
+    let animatesLoadState: Bool
     var onAdLoaded: (() -> Void)? = nil
     var onAdFailed: ((Error) -> Void)? = nil
 
@@ -25,6 +26,7 @@ struct CompactNativeAdCard: View {
         slotIndex: Int,
         layoutWidth: CGFloat,
         prefersLightChrome: Bool = false,
+        animatesLoadState: Bool = true,
         onAdLoaded: (() -> Void)? = nil,
         onAdFailed: ((Error) -> Void)? = nil
     ) {
@@ -33,6 +35,7 @@ struct CompactNativeAdCard: View {
         self.slotIndex = slotIndex
         self.layoutWidth = layoutWidth
         self.prefersLightChrome = prefersLightChrome
+        self.animatesLoadState = animatesLoadState
         self.onAdLoaded = onAdLoaded
         self.onAdFailed = onAdFailed
     }
@@ -51,7 +54,11 @@ struct CompactNativeAdCard: View {
                     layoutWidth: layoutWidth,
                     prefersLightChrome: prefersLightChrome,
                     onAdLoaded: {
-                        withAnimation(.easeOut(duration: 0.2)) {
+                        if animatesLoadState {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                adLoaded = true
+                            }
+                        } else {
                             adLoaded = true
                         }
                         onAdLoaded?()
@@ -159,6 +166,11 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             hostTabRaw: hostTabRaw,
             extra: ["slotIndex": "\(slotIndex)"]
         )
+        context.coordinator.loadIfNeeded(
+            adUnitID: adUnitID,
+            slotIndex: slotIndex,
+            layoutWidth: layoutWidth
+        )
     }
 
     static func dismantleUIView(_ uiView: CompactNativeAdHostView, coordinator: Coordinator) {
@@ -196,7 +208,6 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         func loadIfNeeded(adUnitID: String, slotIndex: Int, layoutWidth: CGFloat) {
             guard adLoader == nil, nativeAd == nil else { return }
             guard isHostTabVisible else {
-                teardown()
                 return
             }
             let requestLayoutWidth = max(layoutWidth, CompactNativeAdLayout.minimumRequestDimension)

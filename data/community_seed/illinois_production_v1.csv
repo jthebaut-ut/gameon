@@ -1,0 +1,36 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+illinois_production_v1,1,state_curated_illinois_v1,rebel_rye,Rebel & Rye,726 W Grand Ave,Chicago,IL,60654,USA,41.8912491,-87.6468551,(312) 766-4146,https://rebelandrye.com/
+illinois_production_v1,2,state_curated_illinois_v1,clover_river_west,Clover Sports & Leisure,722 W Grand Ave,Chicago,IL,60654,USA,41.8912499,-87.6468163,(312) 344-1934,https://cloverchicago.com/
+illinois_production_v1,3,state_curated_illinois_v1,theory_chicago,Theory,9 W Hubbard St,Chicago,IL,60654,USA,41.8899997,-87.6284956,(312) 644-0004,https://www.theorychicago.com/
+illinois_production_v1,4,state_curated_illinois_v1,mcgees_tavern,McGee's Tavern & Grille,950 W Webster Ave,Chicago,IL,60614,USA,41.9218058,-87.6529216,(773) 549-8200,https://mcgeestavern.com/
+illinois_production_v1,5,state_curated_illinois_v1,draftkings_wrigley,DraftKings Sportsbook at Wrigley Field,1012 W Addison St,Chicago,IL,60613,USA,41.9472770,-87.6557453,(773) 739-6596,https://draftkings-sportsbook-at-wrigley-field.res-menu.com/
+illinois_production_v1,6,state_curated_illinois_v1,murphys_bleachers,Murphy's Bleachers,3655 N Sheffield Ave,Chicago,IL,60613,USA,41.9483581,-87.6542862,(773) 281-5356,https://murphysbleachers.com/
+illinois_production_v1,7,state_curated_illinois_v1,sports_corner_wrigley,The Sports Corner,952 W Addison St,Chicago,IL,60613,USA,41.9473034,-87.6538347,(773) 929-1441,https://www.sportscornerwrigley.com/
+illinois_production_v1,8,state_curated_illinois_v1,sluggers_wrigley,Sluggers World Class Sports Bar,3540 N Clark St,Chicago,IL,60657,USA,41.9465099,-87.6560499,(773) 248-0055,https://sluggersbar.com/
+illinois_production_v1,9,state_curated_illinois_v1,rizzos_wrigley,Rizzo's Bar & Inn,3658 N Clark St,Chicago,IL,60657,USA,41.9485116,-87.6576588,(773) 799-8161,https://rizzosbarandinn.com/
+illinois_production_v1,10,state_curated_illinois_v1,old_crow_wrigley,Old Crow Smokehouse Wrigleyville,3506 N Clark St,Chicago,IL,60657,USA,41.9457498,-87.6554389,(773) 537-4452,https://oldcrowwrigleyville.com/
+illinois_production_v1,11,state_curated_illinois_v1,aj_hudsons,AJ Hudson's Public House,3801 N Ashland Ave,Chicago,IL,60613,USA,41.9506975,-87.6688826,(773) 348-2767,https://www.ajhudsonspublichouse.com/
+illinois_production_v1,12,state_curated_illinois_v1,globe_pub,The Globe Pub,1934 W Irving Park Rd,Chicago,IL,60613,USA,41.9542348,-87.6777066,,https://www.theglobepub.com/
+illinois_production_v1,13,state_curated_illinois_v1,cleos_pub,Cleo's Bar and Grill,1935 W Chicago Ave,Chicago,IL,60622,USA,41.8958709,-87.6760235,(312) 243-5600,https://www.cleospub.com/
+illinois_production_v1,14,state_curated_illinois_v1,albion_manor,Albion Manor,1480 W Webster Ave,Chicago,IL,60614,USA,41.9216624,-87.6659186,,https://www.albionmanor.com/
+illinois_production_v1,15,state_curated_illinois_v1,embassy_public_house,Embassy Public House,1435 W Taylor St,Chicago,IL,60607,USA,41.8692617,-87.6630130,,https://embassypublichouse.com/
+illinois_production_v1,16,state_curated_illinois_v1,elephant_castle_adams,Elephant & Castle Adams,111 W Adams St,Chicago,IL,60603,USA,41.8793551,-87.6311594,,https://www.elephantcastle.com/
+illinois_production_v1,17,state_curated_illinois_v1,elephant_castle_wabash,Elephant & Castle Wabash,185 N Wabash Ave,Chicago,IL,60601,USA,41.8856125,-87.6261898,,https://www.elephantcastle.com/
+illinois_production_v1,18,state_curated_illinois_v1,weather_mark_tavern,Weather Mark Tavern,1503 S Michigan Ave,Chicago,IL,60605,USA,41.8621821,-87.6239568,(312) 588-0230,https://weathermarktavern.com/
+illinois_production_v1,19,state_curated_illinois_v1,weeds_tavern,Weeds Tavern,1555 N Dayton St,Chicago,IL,60642,USA,41.9100908,-87.6494014,,https://weedstavern.com/
+illinois_production_v1,20,state_curated_illinois_v1,jake_melnicks,Jake Melnick's Corner Tap,41 E Superior St,Chicago,IL,60611,USA,41.8956458,-87.6267478,(312) 266-0400,https://www.jakemelnicks.com/
+illinois_production_v1,21,state_curated_illinois_v1,benchmark_chicago,Benchmark,1510 N Wells St,Chicago,IL,60610,USA,41.9095669,-87.6347359,(312) 649-9640,https://www.benchmarkchicago.com/
+illinois_production_v1,22,state_curated_illinois_v1,no_vacancy_chicago,No Vacancy,509 N Wells St,Chicago,IL,60654,USA,41.8910439,-87.6339780,,https://www.novacancychicago.com/
+illinois_production_v1,23,state_curated_illinois_v1,lucky_strike_chicago,Lucky Strike Chicago,322 E Illinois St,Chicago,IL,60611,USA,41.8910733,-87.6193640,312-245-8331,https://www.luckystrikeent.com/location/lucky-strike-chicago
+illinois_production_v1,24,state_curated_illinois_v1,five_iron_river_north,Five Iron Golf River North,609 N Dearborn St,Chicago,IL,60654,USA,41.8931320,-87.6296156,,https://fiveirongolf.com/locations/chicago-river-north
+illinois_production_v1,25,state_curated_illinois_v1,five_iron_loop,Five Iron Golf The Loop,108 N State St #200,Chicago,IL,60602,USA,41.8836059,-87.6279579,,https://fiveirongolf.com/locations/chicago-the-loop
+illinois_production_v1,26,state_curated_illinois_v1,five_iron_lincoln_park,Five Iron Golf Lincoln Park,1000 W North Ave #A200,Chicago,IL,60642,USA,41.9108948,-87.6531909,,https://fiveirongolf.com/locations/chicago-lincoln-park
+illinois_production_v1,27,state_curated_illinois_v1,five_iron_bucktown,Five Iron Golf Bucktown,2131 N Elston Ave,Chicago,IL,60614,USA,41.9199341,-87.6699577,,https://fiveirongolf.com/locations/chicago-bucktown
+illinois_production_v1,28,state_curated_illinois_v1,whirlyball_chicago,WhirlyBall Chicago,1825 W Webster Ave,Chicago,IL,60614,USA,41.9214087,-87.6734697,(773) 486-7777,https://www.whirlyball.com/chicago
+illinois_production_v1,29,state_curated_illinois_v1,dave_busters_schaumburg,Dave & Buster's Schaumburg,601 N Martingale Rd,Schaumburg,IL,60173,USA,42.0403153,-88.0354335,(630) 439-0050,https://www.daveandbusters.com/us/en/about/locations/schaumburg
+illinois_production_v1,30,state_curated_illinois_v1,dave_busters_orland_park,Dave & Buster's Orland Park,49 Orland Square Dr,Orland Park,IL,60462,USA,41.6175077,-87.8511812,,https://www.daveandbusters.com/us/en/about/locations/orland-park
+illinois_production_v1,31,state_curated_illinois_v1,topgolf_schaumburg,Topgolf Schaumburg,2050 Progress Pkwy,Schaumburg,IL,60196,USA,42.0638198,-88.0511979,,https://topgolf.com/us/schaumburg/
+illinois_production_v1,32,state_curated_illinois_v1,buffalo_wild_wings_clybourn,Buffalo Wild Wings Clybourn,1832 N Clybourn Ave,Chicago,IL,60614,USA,41.9143324,-87.6543980,(773) 868-9453,https://www.buffalowildwings.com/
+illinois_production_v1,33,state_curated_illinois_v1,buffalo_wild_wings_willowbrook,Buffalo Wild Wings Willowbrook,7111 S Kingery Hwy,Willowbrook,IL,60527,USA,41.7228847,-87.9448427,(630) 455-6051,https://www.buffalowildwings.com/
+illinois_production_v1,34,state_curated_illinois_v1,buffalo_wild_wings_romeoville,Buffalo Wild Wings Romeoville,74 S Weber Rd,Romeoville,IL,60446,USA,41.6279737,-88.1238267,(815) 372-2999,https://www.buffalowildwings.com/
+illinois_production_v1,35,state_curated_illinois_v1,buffalo_wild_wings_waukegan,Buffalo Wild Wings Waukegan,3961 Fountain Square Pl,Waukegan,IL,60085,USA,42.3429813,-87.8973903,(847) 473-3194,https://www.buffalowildwings.com/

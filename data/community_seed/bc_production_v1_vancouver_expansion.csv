@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+bc_production_v1_vancouver_expansion,1,province_curated_bc_v1,bcv1_001,Score on Davie,1262 Davie St,Vancouver,BC,V6E 1N3,Canada,49.2817,-123.1312,,https://scoreondavie.com
+bc_production_v1_vancouver_expansion,2,province_curated_bc_v1,bcv1_002,Library Square Public House,300 W Georgia St,Vancouver,BC,V6B 6B4,Canada,49.2795,-123.1143,,https://librarysquarepub.com
+bc_production_v1_vancouver_expansion,3,province_curated_bc_v1,bcv1_003,Malone's Taphouse,608 W Pender St,Vancouver,BC,V6B 1V8,Canada,49.2846,-123.1145,,https://malones.bc.ca
+bc_production_v1_vancouver_expansion,4,province_curated_bc_v1,bcv1_004,The Sportsbar LIVE!,99 W Georgia St,Vancouver,BC,V6B 0N9,Canada,49.2777,-123.1089,,
+bc_production_v1_vancouver_expansion,5,province_curated_bc_v1,bcv1_005,Yagger's Downtown,433 W Pender St,Vancouver,BC,V6B 1V2,Canada,49.2837,-123.1125,,https://yaggers.com

@@ -1,0 +1,6 @@
+import_batch_id,source_row_number,community_source,community_source_id,venue_name,address,city,state,zip_code,country,latitude,longitude,phone,website
+bc_production_v3_victoria_kelowna,1,province_curated_bc_v3,bcv3_001,Bard & Banker,1022 Government St,Victoria,BC,V8W 1X7,Canada,48.4251,-123.368,,https://bardandbanker.com
+bc_production_v3_victoria_kelowna,2,province_curated_bc_v3,bcv3_002,Sticky Wicket,919 Douglas St,Victoria,BC,V8W 2C2,Canada,48.4248,-123.363,,https://strathconahotel.com/sticky-wicket
+bc_production_v3_victoria_kelowna,3,province_curated_bc_v3,bcv3_003,Yates Street Taphouse,759 Yates St,Victoria,BC,V8W 1L6,Canada,48.4264,-123.3627,,https://www.yatestaphouse.com
+bc_production_v3_victoria_kelowna,4,province_curated_bc_v3,bcv3_004,CRAFT Beer Market Kelowna,257 Bernard Ave,Kelowna,BC,V1Y 6N2,Canada,49.886,-119.496,,https://craftbeermarket.ca
+bc_production_v3_victoria_kelowna,5,province_curated_bc_v3,bcv3_005,BNA Brewing Co.,1250 Ellis St,Kelowna,BC,V1Y 1Z4,Canada,49.891,-119.494,,https://bnabrewing.com

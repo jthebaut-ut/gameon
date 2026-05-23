@@ -1096,6 +1096,20 @@ extension MapViewModel {
         return nil
     }
 
+    /// Render-safe lookup for SwiftUI bodies. Unlike ``cachedVenueEventID(for:gameTitle:)``,
+    /// this never writes back into ``venueEventIDsByKey`` while a view is being evaluated.
+    func peekVenueEventIDForRender(for bar: BarVenue, gameTitle: String) -> UUID? {
+        let trimmed = normalizedVenueGameTitle(gameTitle)
+        guard !trimmed.isEmpty else { return nil }
+        let primary = venueEventLookupKeyPrimary(for: bar, gameTitle: trimmed)
+        if let id = venueEventIDsByKey[primary] ?? venueEventIDsByKey[venueEventLookupKey(for: bar, gameTitle: trimmed)] {
+            return id
+        }
+        return venueEventRows.first { row in
+            venueEventRow(row, matches: bar) && venueEventTitlesMatch(row.event_title, trimmed)
+        }?.id
+    }
+
     func interestedPlans() -> [(bar: BarVenue, gameTitle: String, date: String, time: String, count: Int)] {
         var plans: [(bar: BarVenue, gameTitle: String, date: String, time: String, count: Int)] = []
 
