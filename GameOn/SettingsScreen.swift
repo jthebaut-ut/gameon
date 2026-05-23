@@ -4347,6 +4347,15 @@ private struct SettingsFanPasswordResetSheet: View {
             }
             .onAppear {
                 resetEmail = loginEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                viewModel.passwordResetRequestSheetDidAppear()
+            }
+            .onDisappear {
+                viewModel.passwordResetRequestSheetDidDisappear()
+            }
+            .onChange(of: viewModel.shouldDismissPasswordResetRequestSheetForRecovery) { _, shouldDismiss in
+                if shouldDismiss {
+                    isPresented = false
+                }
             }
         }
     }
@@ -4507,6 +4516,15 @@ private struct SettingsBusinessPasswordResetSheet: View {
             }
             .onAppear {
                 resetEmail = prefilledBusinessEmail
+                viewModel.passwordResetRequestSheetDidAppear()
+            }
+            .onDisappear {
+                viewModel.passwordResetRequestSheetDidDisappear()
+            }
+            .onChange(of: viewModel.shouldDismissPasswordResetRequestSheetForRecovery) { _, shouldDismiss in
+                if shouldDismiss {
+                    isPresented = false
+                }
             }
         }
     }

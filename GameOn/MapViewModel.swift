@@ -162,6 +162,9 @@ final class MapViewModel: ObservableObject {
     @Published var userPasswordResetMessage = ""
     @Published var userPasswordResetError = ""
     @Published var isShowingPasswordResetCreateSheet = false
+    @Published var isPasswordResetRequestSheetPresented = false
+    @Published var shouldDismissPasswordResetRequestSheetForRecovery = false
+    @Published var isPasswordResetCreateSheetPendingAfterRequestDismiss = false
     @Published var isPasswordResetRecoverySessionActive = false
     @Published var passwordResetUpdateMessage = ""
     @Published var passwordResetUpdateError = ""

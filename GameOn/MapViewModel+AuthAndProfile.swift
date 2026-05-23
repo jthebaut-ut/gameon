@@ -2508,7 +2508,8 @@ extension MapViewModel {
 
     func handlePasswordResetDeepLink(_ url: URL) async {
         guard Self.isPasswordResetDeepLink(url) else { return }
-        print("[PasswordResetDebug] step=deep_link_received")
+        let params = Self.passwordResetDeepLinkParams(from: url)
+        print("[PasswordResetDebug] deepLinkReceived=\(Self.redactedPasswordResetDeepLinkDescription(url, params: params))")
         await MainActor.run {
             passwordResetUpdateMessage = ""
             passwordResetUpdateError = ""
@@ -2516,27 +2517,83 @@ extension MapViewModel {
 
         do {
             UserDefaults.standard.set(false, forKey: Self.didExplicitlyLogoutKey)
-            let session = try await supabase.auth.session(from: url)
-            print("[PasswordResetDebug] success=true step=recovery_session")
+            let session = try await passwordResetRecoverySession(from: url, params: params)
+            print("[PasswordResetDebug] recoverySessionDetected=true")
 
             guard await passwordResetRecoverySessionIsAllowed(session: session) else {
-                print("[PasswordResetDebug] success=false step=recovery_session error=deleted_or_disabled_account")
+                print("[PasswordResetDebug] recoveryError=deleted_or_disabled_account")
                 return
             }
 
             await MainActor.run {
                 currentUserAuthId = session.user.id
                 isPasswordResetRecoverySessionActive = true
-                isShowingPasswordResetCreateSheet = true
+                queuePasswordResetCreateSheetForRecovery()
             }
         } catch {
             await MainActor.run {
                 passwordResetUpdateError = "This reset link is invalid or expired. Please request a new password reset link."
                 isPasswordResetRecoverySessionActive = false
-                isShowingPasswordResetCreateSheet = true
+                queuePasswordResetCreateSheetForRecovery()
             }
-            print("[PasswordResetDebug] success=false step=recovery_session error=\(error.localizedDescription)")
+            print("[PasswordResetDebug] recoverySessionDetected=false")
+            print("[PasswordResetDebug] recoveryError=\(error.localizedDescription)")
         }
+    }
+
+    @MainActor
+    func passwordResetRequestSheetDidAppear() {
+        isPasswordResetRequestSheetPresented = true
+    }
+
+    @MainActor
+    func passwordResetRequestSheetDidDisappear() {
+        isPasswordResetRequestSheetPresented = false
+        shouldDismissPasswordResetRequestSheetForRecovery = false
+        guard isPasswordResetCreateSheetPendingAfterRequestDismiss else { return }
+        isPasswordResetCreateSheetPendingAfterRequestDismiss = false
+        presentPasswordResetCreateSheetAfterDismissTick()
+    }
+
+    @MainActor
+    private func queuePasswordResetCreateSheetForRecovery() {
+        if isPasswordResetRequestSheetPresented {
+            isShowingPasswordResetCreateSheet = false
+            isPasswordResetCreateSheetPendingAfterRequestDismiss = true
+            shouldDismissPasswordResetRequestSheetForRecovery = true
+            print("[PasswordResetDebug] sheetConflictPrevented=true")
+            print("[PasswordResetDebug] requestSheetDismissedForRecovery=true")
+            return
+        }
+
+        isPasswordResetCreateSheetPendingAfterRequestDismiss = false
+        shouldDismissPasswordResetRequestSheetForRecovery = false
+        presentPasswordResetCreateSheetAfterDismissTick()
+    }
+
+    @MainActor
+    private func presentPasswordResetCreateSheetAfterDismissTick() {
+        Task { @MainActor in
+            await Task.yield()
+            print("[PasswordResetDebug] presentingCreatePasswordAfterDismiss=true")
+            isShowingPasswordResetCreateSheet = true
+            print("[PasswordResetDebug] showingCreatePassword=true")
+        }
+    }
+
+    private func passwordResetRecoverySession(from url: URL, params: [String: String]) async throws -> Session {
+        if let accessToken = params["access_token"], let refreshToken = params["refresh_token"] {
+            return try await supabase.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
+        }
+
+        if let tokenHash = params["token_hash"] ?? params["token_hashes"] {
+            let response = try await supabase.auth.verifyOTP(tokenHash: tokenHash, type: .recovery)
+            if let session = response.session {
+                return session
+            }
+        }
+
+        return try await supabase.auth.session(from: url)
     }
 
     func updateRecoveredPassword(_ newPassword: String) async {
@@ -2592,6 +2649,29 @@ extension MapViewModel {
         let host = url.host?.lowercased() ?? ""
         let path = url.path.lowercased()
         return host == "reset-password" || path == "/reset-password"
+    }
+
+    private static func passwordResetDeepLinkParams(from url: URL) -> [String: String] {
+        var result: [String: String] = [:]
+        if let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems {
+            for item in queryItems {
+                result[item.name] = item.value ?? ""
+            }
+        }
+        if let fragment = URLComponents(url: url, resolvingAgainstBaseURL: false)?.fragment,
+           let fragmentItems = URLComponents(string: "https://fangeo.local?\(fragment)")?.queryItems {
+            for item in fragmentItems {
+                result[item.name] = item.value ?? ""
+            }
+        }
+        return result
+    }
+
+    private static func redactedPasswordResetDeepLinkDescription(_ url: URL, params: [String: String]) -> String {
+        let host = url.host ?? ""
+        let path = url.path.isEmpty ? "/" : url.path
+        let paramKeys = params.keys.sorted().joined(separator: ",")
+        return "\(url.scheme ?? "unknown")://\(host)\(path) params=[\(paramKeys)]"
     }
 
     private func passwordResetRecoverySessionIsAllowed(session: Session) async -> Bool {
