@@ -13,8 +13,26 @@ struct VenueEventPredictionTeams: Equatable, Sendable {
     let home: String
     let away: String
 
+    init(home: String, away: String) {
+        let safeHome = Self.safeTeamName(home, fallback: "Home")
+        let safeAway = Self.safeTeamName(away, fallback: "Away")
+        self.home = safeHome
+        self.away = safeAway == safeHome ? "Away" : safeAway
+    }
+
     var displayMatchup: String { "\(home) vs \(away)" }
     var options: [String] { [home, away] }
+
+    private static func safeTeamName(_ raw: String, fallback: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return fallback }
+        guard !trimmed.unicodeScalars.contains(where: {
+            CharacterSet.controlCharacters.contains($0) || $0.value == 0xfffd
+        }) else {
+            return fallback
+        }
+        return trimmed
+    }
 }
 
 struct VenuePredictionParticipantAvatar: Identifiable, Equatable, Sendable {
@@ -94,6 +112,26 @@ enum VenueEventPredictionServiceError: LocalizedError {
     }
 }
 
+enum VenueEventPredictionUserMessage {
+    static let inactiveGame = "This game is no longer active."
+    static let saveFailed = "Couldn’t save your pick. Please try again."
+
+    static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return true }
+        let message = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return message == "cancelled"
+            || message == "canceled"
+            || message.contains("task was cancelled")
+            || message.contains("task was canceled")
+    }
+
+    static func message(for error: Error) -> String {
+        isCancellation(error) ? saveFailed : error.localizedDescription
+    }
+}
+
 final class VenueEventPredictionService {
     static let shared = VenueEventPredictionService()
 
@@ -148,6 +186,8 @@ final class VenueEventPredictionService {
                 print("[VenuePredictionDebug] winnerPercent=\(summary.winnerPercent ?? 0)")
                 print("[VenuePredictionDebug] scoreMode=\(summary.scoreMode ?? "none")")
                 print("[VenuePredictionDebug] firstScorePercent=\(summary.firstScorePercent ?? 0)")
+                print("[PredictionDebug] votesLoaded=\(summary.totalCount)")
+                print("[PredictionDebug] emptyState=\(summary.totalCount == 0)")
                 print("[ScorePredictionDebug] aggregateLoaded=\(!summary.topScorePredictions.isEmpty)")
                 print("[ScorePredictionDebug] aggregateTotal=\(summary.scorePredictionTotal)")
                 if let topScore = summary.topScorePredictions.first, !topScore.isOther {
@@ -158,6 +198,7 @@ final class VenueEventPredictionService {
         } catch {
 #if DEBUG
             print("[VenuePredictionDebug] loadSummaryFailed=\(error.localizedDescription)")
+            print("[PredictionDebug] error=\(error.localizedDescription)")
 #endif
             for eventID in idsToFetch {
                 let summary = VenueEventPredictionSummary.empty(eventID: eventID)
@@ -189,7 +230,28 @@ final class VenueEventPredictionService {
         predictedAwayScore: Int? = nil,
         predictedFirstScoreTeam: String? = nil
     ) async throws {
-        let userID = try await currentUserId()
+        let debugChoice = Self.predictionDebugChoice(
+            predictionType: predictionType,
+            predictedWinner: predictedWinner,
+            predictedHomeScore: predictedHomeScore,
+            predictedAwayScore: predictedAwayScore,
+            predictedFirstScoreTeam: predictedFirstScoreTeam
+        )
+        let userID: UUID
+        do {
+            userID = try await currentUserId()
+        } catch {
+#if DEBUG
+            Self.logPredictionVoteWriteFailure(
+                error,
+                venueEventId: venueEventId,
+                userID: nil,
+                predictionType: predictionType,
+                choice: debugChoice
+            )
+#endif
+            throw error
+        }
         let payload = VenueEventPredictionUpsert(
             venue_event_id: venueEventId,
             user_id: userID,
@@ -200,16 +262,45 @@ final class VenueEventPredictionService {
             predicted_first_score_team: Self.trimmed(predictedFirstScoreTeam)
         )
         guard payload.hasValue(for: predictionType) else {
-            throw VenueEventPredictionServiceError.invalidPrediction
+            let error = VenueEventPredictionServiceError.invalidPrediction
+#if DEBUG
+            Self.logPredictionVoteWriteFailure(
+                error,
+                venueEventId: venueEventId,
+                userID: userID,
+                predictionType: predictionType,
+                choice: debugChoice
+            )
+#endif
+            throw error
         }
 
 #if DEBUG
         print("[VenuePredictionDebug] upsertPrediction type=\(predictionType.rawValue)")
+        Self.logPredictionVoteWriteAttempt(
+            venueEventId: venueEventId,
+            userID: userID,
+            predictionType: predictionType,
+            choice: debugChoice
+        )
 #endif
-        try await client
-            .from("venue_event_predictions")
-            .upsert(payload, onConflict: "venue_event_id,user_id,prediction_type")
-            .execute()
+        do {
+            try await client
+                .from(Self.predictionTableName)
+                .upsert(payload, onConflict: Self.predictionUpsertConflictTarget)
+                .execute()
+        } catch {
+#if DEBUG
+            Self.logPredictionVoteWriteFailure(
+                error,
+                venueEventId: venueEventId,
+                userID: userID,
+                predictionType: predictionType,
+                choice: debugChoice
+            )
+#endif
+            throw error
+        }
         summaryCache.removeValue(forKey: venueEventId)
     }
 
@@ -270,6 +361,73 @@ final class VenueEventPredictionService {
 
     private static let predictionSelect =
         "id,venue_event_id,user_id,prediction_type,predicted_winner,predicted_home_score,predicted_away_score,predicted_first_score_team,created_at,updated_at"
+    private static let predictionTableName = "venue_event_predictions"
+    private static let predictionUpsertAction = "upsert"
+    private static let predictionUpsertConflictTarget = "venue_event_id,user_id,prediction_type"
+    private static let predictionUpsertUniqueConstraintName = "venue_event_predictions_unique_user_type"
+
+#if DEBUG
+    private static func logPredictionVoteWriteAttempt(
+        venueEventId: UUID,
+        userID: UUID,
+        predictionType: VenueEventPredictionType,
+        choice: String
+    ) {
+        print("[PredictionVoteDebug] table=\(predictionTableName)")
+        print("[PredictionVoteDebug] action=\(predictionUpsertAction)")
+        print("[PredictionVoteDebug] conflictTarget=\(predictionUpsertConflictTarget)")
+        print("[PredictionVoteDebug] expectedUniqueConstraint=\(predictionUpsertUniqueConstraintName)")
+        print("[PredictionVoteDebug] eventId=\(venueEventId.uuidString.lowercased())")
+        print("[PredictionVoteDebug] userId=\(userID.uuidString.lowercased())")
+        print("[PredictionVoteDebug] predictionType=\(predictionType.rawValue)")
+        print("[PredictionVoteDebug] choice=\(choice)")
+    }
+
+    private static func logPredictionVoteWriteFailure(
+        _ error: Error,
+        venueEventId: UUID,
+        userID: UUID?,
+        predictionType: VenueEventPredictionType,
+        choice: String
+    ) {
+        let localizedError = error as? LocalizedError
+        let nsError = error as NSError
+
+        print("[PredictionVoteDebug] table=\(predictionTableName)")
+        print("[PredictionVoteDebug] action=\(predictionUpsertAction)")
+        print("[PredictionVoteDebug] conflictTarget=\(predictionUpsertConflictTarget)")
+        print("[PredictionVoteDebug] expectedUniqueConstraint=\(predictionUpsertUniqueConstraintName)")
+        print("[PredictionVoteDebug] eventId=\(venueEventId.uuidString.lowercased())")
+        print("[PredictionVoteDebug] userId=\(userID?.uuidString.lowercased() ?? "nil")")
+        print("[PredictionVoteDebug] predictionType=\(predictionType.rawValue)")
+        print("[PredictionVoteDebug] choice=\(choice)")
+        print("[PredictionVoteDebug] errorDescription=\(localizedError?.errorDescription ?? "nil")")
+        print("[PredictionVoteDebug] localizedDescription=\(error.localizedDescription)")
+        print("[PredictionVoteDebug] rawError=\(String(reflecting: error))")
+        print("[PredictionVoteDebug] nsErrorDomain=\(nsError.domain)")
+        print("[PredictionVoteDebug] nsErrorCode=\(nsError.code)")
+        print("[PredictionVoteDebug] nsErrorUserInfo=\(nsError.userInfo)")
+    }
+#endif
+
+    private static func predictionDebugChoice(
+        predictionType: VenueEventPredictionType,
+        predictedWinner: String?,
+        predictedHomeScore: Int?,
+        predictedAwayScore: Int?,
+        predictedFirstScoreTeam: String?
+    ) -> String {
+        switch predictionType {
+        case .winner:
+            return trimmed(predictedWinner) ?? "nil"
+        case .score:
+            let home = predictedHomeScore.map(String.init) ?? "nil"
+            let away = predictedAwayScore.map(String.init) ?? "nil"
+            return "\(home)-\(away)"
+        case .firstScoreTeam:
+            return trimmed(predictedFirstScoreTeam) ?? "nil"
+        }
+    }
 
     private static func buildSummary(
         eventID: UUID,
@@ -279,25 +437,29 @@ final class VenueEventPredictionService {
         let winnerRows = rows.filter { $0.prediction_type == VenueEventPredictionType.winner.rawValue }
         let scoreRows = rows.filter { $0.prediction_type == VenueEventPredictionType.score.rawValue }
         let firstScoreRows = rows.filter { $0.prediction_type == VenueEventPredictionType.firstScoreTeam.rawValue }
+        let winnerValues = winnerRows.compactMap { trimmed($0.predicted_winner) }
+        let firstScoreValues = firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) }
+        let validScoreRows = scoreRows.filter { $0.predicted_home_score != nil && $0.predicted_away_score != nil }
+        let validTotalCount = winnerValues.count + validScoreRows.count + firstScoreValues.count
 
         let winner = leaderPercent(
-            values: winnerRows.compactMap { trimmed($0.predicted_winner) },
-            denominator: winnerRows.count
+            values: winnerValues,
+            denominator: winnerValues.count
         )
         let winnerPercents = optionPercents(
-            values: winnerRows.compactMap { trimmed($0.predicted_winner) },
-            denominator: winnerRows.count
+            values: winnerValues,
+            denominator: winnerValues.count
         )
         let scoreMode = modeScore(rows: scoreRows)
         let scoreCrowdPicks = topScorePredictions(rows: scoreRows)
-        let scorePredictionTotal = scoreRows.filter { $0.predicted_home_score != nil && $0.predicted_away_score != nil }.count
+        let scorePredictionTotal = validScoreRows.count
         let firstScore = leaderPercent(
-            values: firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) },
-            denominator: firstScoreRows.count
+            values: firstScoreValues,
+            denominator: firstScoreValues.count
         )
         let firstScorePercents = optionPercents(
-            values: firstScoreRows.compactMap { trimmed($0.predicted_first_score_team) },
-            denominator: firstScoreRows.count
+            values: firstScoreValues,
+            denominator: firstScoreValues.count
         )
         let avatars = recentParticipantIDs(from: rows)
             .compactMap { avatarsByUserID[$0] }
@@ -314,7 +476,7 @@ final class VenueEventPredictionService {
         )
         return VenueEventPredictionSummary(
             venueEventID: eventID,
-            totalCount: rows.count,
+            totalCount: validTotalCount,
             winnerLeader: winner?.label,
             winnerPercent: winner?.percent,
             winnerPercents: winnerPercents,

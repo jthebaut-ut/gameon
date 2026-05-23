@@ -381,7 +381,7 @@ struct MapVenuePreviewCard: View {
         source: String,
         commentCount: Int
     ) -> some View {
-        let baseTitle = L10n.t("fan_chat", languageCode: appLanguageRaw)
+        let baseTitle = "Chat"
         let title = commentCount > 0 ? "\(baseTitle) · \(commentCount)" : baseTitle
         let tint = FGColor.accentBlue
         let fill = tint.opacity(colorScheme == .dark ? 0.20 : 0.12)
@@ -424,8 +424,8 @@ struct MapVenuePreviewCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             commentCount > 0
-                ? "\(L10n.t("fan_chat", languageCode: appLanguageRaw)), \(commentCount) comments"
-                : L10n.t("fan_chat", languageCode: appLanguageRaw)
+                ? "Chat, \(commentCount) comments"
+                : "Chat"
         )
     }
 

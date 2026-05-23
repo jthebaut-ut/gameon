@@ -10,94 +10,94 @@ nonisolated enum SportFilterCatalog {
         let accent: Color
     }
 
-    private struct Definition {
-        let aliases: [String]
-        let emoji: String
-        let systemImage: String
-        let accent: Color
-    }
-
-    private static let definitions: [Definition] = [
-        Definition(aliases: ["soccer", "mls", "premier league"], emoji: "⚽", systemImage: "soccerball", accent: Color(red: 0.05, green: 0.55, blue: 0.28)),
-        Definition(aliases: ["nba", "basketball"], emoji: "🏀", systemImage: "basketball.fill", accent: Color(red: 0.95, green: 0.45, blue: 0.12)),
-        Definition(aliases: ["nfl", "football", "american football"], emoji: "🏈", systemImage: "football.fill", accent: Color(red: 0.45, green: 0.32, blue: 0.18)),
-        Definition(aliases: ["mlb", "baseball"], emoji: "⚾", systemImage: "baseball.fill", accent: Color(red: 0.85, green: 0.15, blue: 0.18)),
-        Definition(aliases: ["nhl", "hockey", "ice hockey"], emoji: "🏒", systemImage: "hockey.puck.fill", accent: Color(red: 0.12, green: 0.45, blue: 0.92)),
-        Definition(aliases: ["tennis"], emoji: "🎾", systemImage: "tennisball.fill", accent: Color(red: 0.98, green: 0.82, blue: 0.08)),
-        Definition(aliases: ["golf"], emoji: "⛳", systemImage: "figure.golf", accent: Color(red: 0.18, green: 0.62, blue: 0.32)),
-        Definition(aliases: ["volleyball"], emoji: "🏐", systemImage: "volleyball.fill", accent: Color(red: 0.2, green: 0.75, blue: 0.88)),
-        Definition(aliases: ["ping pong", "pingpong", "table tennis", "tabletennis"], emoji: "🏓", systemImage: "figure.table.tennis", accent: Color(red: 0.55, green: 0.22, blue: 0.85)),
-        Definition(aliases: ["ufc", "mma", "combat sports"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18)),
-        Definition(aliases: ["boxing"], emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.78, green: 0.15, blue: 0.12)),
-        Definition(aliases: ["wrestling"], emoji: "🤼", systemImage: "figure.wrestling", accent: Color(red: 0.42, green: 0.35, blue: 0.72)),
-        Definition(aliases: ["formula 1", "formula1", "f1", "racing", "formula one"], emoji: "🏎\u{FE0F}", systemImage: "flag.pattern.checkered", accent: Color(red: 0.92, green: 0.2, blue: 0.22)),
-        Definition(aliases: ["nascar", "stock car"], emoji: "🏁", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.18, green: 0.28, blue: 0.82)),
-        Definition(aliases: ["cricket"], emoji: "🏏", systemImage: "cricket.ball.fill", accent: Color(red: 0.2, green: 0.35, blue: 0.75)),
-        Definition(aliases: ["rugby"], emoji: "🏉", systemImage: "sportscourt.fill", accent: Color(red: 0.15, green: 0.42, blue: 0.28)),
-        Definition(aliases: ["softball"], emoji: "🥎", systemImage: "circle.fill", accent: Color(red: 0.95, green: 0.55, blue: 0.2)),
-        Definition(
-            aliases: [
-                "cycling",
-                "bicycle",
-                "biking",
-                "bike race",
-                "tour de france",
-                "giro",
-                "vuelta",
-                "bmx",
-                "mountain biking",
-                "mountainbiking"
-            ],
-            emoji: "🚴",
-            systemImage: "bicycle",
-            accent: Color(red: 0.1, green: 0.52, blue: 0.78)
-        ),
-        Definition(aliases: ["running", "run", "jogging", "road race", "marathon"], emoji: "🏃", systemImage: "figure.run", accent: Color(red: 0.22, green: 0.62, blue: 0.42)),
-        Definition(aliases: ["pickleball"], emoji: "🏓", systemImage: "figure.tennis", accent: Color(red: 0.35, green: 0.72, blue: 0.38)),
-        Definition(aliases: ["lacrosse"], emoji: "🥍", systemImage: "sportscourt.fill", accent: Color(red: 0.28, green: 0.52, blue: 0.38)),
-        Definition(
-            aliases: ["track & field", "track and field", "trackfield", "athletics"],
-            emoji: "🏃",
-            systemImage: "figure.track.and.field",
-            accent: Color(red: 0.55, green: 0.42, blue: 0.82)
-        ),
-        Definition(aliases: ["motogp"], emoji: "🏍️", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.92, green: 0.22, blue: 0.28)),
-        Definition(aliases: ["motocross"], emoji: "🏁", systemImage: "figure.outdoor.cycle", accent: Color(red: 0.55, green: 0.38, blue: 0.22)),
-        Definition(aliases: ["climbing", "rock climbing", "bouldering"], emoji: "🧗", systemImage: "figure.climbing", accent: Color(red: 0.35, green: 0.55, blue: 0.82)),
-        Definition(aliases: ["skateboarding", "skateboard"], emoji: "🛹", systemImage: "figure.skateboarding", accent: Color(red: 0.45, green: 0.45, blue: 0.5)),
-        Definition(aliases: ["bowling"], emoji: "🎳", systemImage: "figure.bowling", accent: Color(red: 0.72, green: 0.35, blue: 0.82)),
-        Definition(aliases: ["swimming", "swim"], emoji: "🏊", systemImage: "figure.pool.swim", accent: Color(red: 0.12, green: 0.55, blue: 0.88)),
-        Definition(aliases: ["skiing", "alpine skiing"], emoji: "⛷️", systemImage: "figure.skiing.downhill", accent: Color(red: 0.2, green: 0.55, blue: 0.92)),
-        Definition(aliases: ["esports", "e-sports", "gaming"], emoji: "🎮", systemImage: "gamecontroller.fill", accent: Color(red: 0.55, green: 0.28, blue: 0.92)),
-        Definition(aliases: ["handball"], emoji: "🤾", systemImage: "figure.handball", accent: Color(red: 0.88, green: 0.42, blue: 0.18)),
-        Definition(aliases: ["more"], emoji: "", systemImage: "ellipsis.circle.fill", accent: Color(red: 0.38, green: 0.4, blue: 0.48))
-    ]
-
-    private static let allVisual = ChipVisual(
-        emoji: "",
-        systemImage: "square.grid.2x2.fill",
-        accent: Color(red: 0.35, green: 0.38, blue: 0.45)
-    )
-
-    private static let fallbackVisual = ChipVisual(
-        emoji: "",
-        systemImage: "sportscourt.fill",
-        accent: Color.accentColor
-    )
+    static let fallbackSystemImage = "sportscourt.fill"
+    static let fallbackEmoji = "🏟️"
+    static let fallbackAccent = Color(red: 0.22, green: 0.76, blue: 0.45)
 
     /// Resolve visuals for a chip label or any event ``SportsEvent/sport`` string.
     static func resolve(_ raw: String) -> ChipVisual {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.caseInsensitiveCompare("All") == .orderedSame {
-            return allVisual
-        }
-        let key = trimmed.lowercased()
-        for def in definitions {
-            if def.aliases.contains(key) {
-                return ChipVisual(emoji: def.emoji, systemImage: def.systemImage, accent: def.accent)
+        switch canonicalSportKey(for: raw) {
+        case "all":
+            return ChipVisual(emoji: "", systemImage: "square.grid.2x2.fill", accent: Color(red: 0.35, green: 0.38, blue: 0.45))
+        case "soccer":
+            return ChipVisual(emoji: "⚽", systemImage: "soccerball", accent: Color(red: 0.05, green: 0.55, blue: 0.28))
+        case "basketball":
+            return ChipVisual(emoji: "🏀", systemImage: "basketball.fill", accent: Color(red: 0.95, green: 0.45, blue: 0.12))
+        case "football":
+            return ChipVisual(emoji: "🏈", systemImage: "football.fill", accent: Color(red: 0.45, green: 0.32, blue: 0.18))
+        case "baseball":
+            return ChipVisual(emoji: "⚾", systemImage: "baseball.fill", accent: Color(red: 0.85, green: 0.15, blue: 0.18))
+        case "hockey":
+            return ChipVisual(emoji: "🏒", systemImage: "hockey.puck.fill", accent: Color(red: 0.12, green: 0.45, blue: 0.92))
+        case "tennis":
+            return ChipVisual(emoji: "🎾", systemImage: "tennisball.fill", accent: Color(red: 0.98, green: 0.82, blue: 0.08))
+        case "golf":
+            return ChipVisual(emoji: "⛳", systemImage: "figure.golf", accent: Color(red: 0.18, green: 0.62, blue: 0.32))
+        case "volleyball":
+            return ChipVisual(emoji: "🏐", systemImage: "volleyball.fill", accent: Color(red: 0.2, green: 0.75, blue: 0.88))
+        case "pingpong":
+            return ChipVisual(emoji: "🏓", systemImage: "figure.table.tennis", accent: Color(red: 0.55, green: 0.22, blue: 0.85))
+        case "mma":
+            return ChipVisual(emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.75, green: 0.12, blue: 0.18))
+        case "boxing":
+            return ChipVisual(emoji: "🥊", systemImage: "figure.boxing", accent: Color(red: 0.78, green: 0.15, blue: 0.12))
+        case "wrestling":
+            return ChipVisual(emoji: "🤼", systemImage: "figure.wrestling", accent: Color(red: 0.42, green: 0.35, blue: 0.72))
+        case "racing":
+            return ChipVisual(emoji: "🏎\u{FE0F}", systemImage: "flag.pattern.checkered", accent: Color(red: 0.92, green: 0.2, blue: 0.22))
+        case "nascar":
+            return ChipVisual(emoji: "🏁", systemImage: "flag.checkered.2.crossed", accent: Color(red: 0.18, green: 0.28, blue: 0.82))
+        case "cricket":
+            return ChipVisual(emoji: "🏏", systemImage: "cricket.ball.fill", accent: Color(red: 0.2, green: 0.35, blue: 0.75))
+        case "rugby":
+            return ChipVisual(emoji: "🏉", systemImage: "sportscourt.fill", accent: Color(red: 0.15, green: 0.42, blue: 0.28))
+        case "softball":
+            return ChipVisual(emoji: "🥎", systemImage: "circle.fill", accent: Color(red: 0.95, green: 0.55, blue: 0.2))
+        case "cycling":
+            return ChipVisual(emoji: "🚴", systemImage: "bicycle", accent: Color(red: 0.1, green: 0.52, blue: 0.78))
+        case "running":
+            return ChipVisual(emoji: "🏃", systemImage: "figure.run", accent: Color(red: 0.22, green: 0.62, blue: 0.42))
+        case "pickleball":
+            return ChipVisual(emoji: "🏓", systemImage: "figure.tennis", accent: Color(red: 0.35, green: 0.72, blue: 0.38))
+        case "lacrosse":
+            return ChipVisual(emoji: "🥍", systemImage: "sportscourt.fill", accent: Color(red: 0.28, green: 0.52, blue: 0.38))
+        case "trackfield":
+            return ChipVisual(emoji: "🏃", systemImage: "figure.track.and.field", accent: Color(red: 0.55, green: 0.42, blue: 0.82))
+        case "motocross":
+            return ChipVisual(emoji: "🏁", systemImage: "figure.outdoor.cycle", accent: Color(red: 0.55, green: 0.38, blue: 0.22))
+        case "climbing":
+            return ChipVisual(emoji: "🧗", systemImage: "figure.climbing", accent: Color(red: 0.35, green: 0.55, blue: 0.82))
+        case "skateboarding":
+            return ChipVisual(emoji: "🛹", systemImage: "figure.skateboarding", accent: Color(red: 0.45, green: 0.45, blue: 0.5))
+        case "bowling":
+            return ChipVisual(emoji: "🎳", systemImage: "figure.bowling", accent: Color(red: 0.72, green: 0.35, blue: 0.82))
+        case "swimming":
+            return ChipVisual(emoji: "🏊", systemImage: "figure.pool.swim", accent: Color(red: 0.12, green: 0.55, blue: 0.88))
+        case "skiing":
+            return ChipVisual(emoji: "⛷️", systemImage: "figure.skiing.downhill", accent: Color(red: 0.2, green: 0.55, blue: 0.92))
+        case "esports":
+            return ChipVisual(emoji: "🎮", systemImage: "gamecontroller.fill", accent: Color(red: 0.55, green: 0.28, blue: 0.92))
+        case "handball":
+            return ChipVisual(emoji: "🤾", systemImage: "figure.handball", accent: Color(red: 0.88, green: 0.42, blue: 0.18))
+        case "more":
+            return ChipVisual(emoji: "", systemImage: "ellipsis.circle.fill", accent: Color(red: 0.38, green: 0.4, blue: 0.48))
+        default:
+#if DEBUG
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty, trimmed.caseInsensitiveCompare("All") != .orderedSame {
+                print("[SportCatalogDebug] unresolvedSport=\(trimmed)")
             }
+#endif
+            return fallback
         }
-        return fallbackVisual
+    }
+
+    static var fallback: ChipVisual {
+        ChipVisual(
+            emoji: fallbackEmoji,
+            systemImage: fallbackSystemImage,
+            accent: fallbackAccent
+        )
     }
 
     /// True when a free-text search should match this stored ``SportsEvent/sport`` (or venue primary sport) via catalog aliases — e.g. "tour de france" ↔ "Cycling".
@@ -107,21 +107,133 @@ nonisolated enum SportFilterCatalog {
         guard !sport.isEmpty, !q.isEmpty else { return false }
         if sport.localizedCaseInsensitiveContains(q) { return true }
         if q.localizedCaseInsensitiveContains(sport) { return true }
-        guard let def = definition(matchingStoredSport: sport) else { return false }
-        let ql = q.lowercased()
-        for a in def.aliases {
-            if a.lowercased().localizedCaseInsensitiveContains(ql) { return true }
-            if ql.localizedCaseInsensitiveContains(a) { return true }
+        guard let sportKey = canonicalSportKey(for: sport) else { return false }
+        if canonicalSportKey(for: q) == sportKey { return true }
+
+        let normalizedQuery = normalizedSportText(q)
+        for alias in aliases(for: sportKey) {
+            let normalizedAlias = normalizedSportText(alias)
+            if normalizedAlias.contains(normalizedQuery) || normalizedQuery.contains(normalizedAlias) {
+                return true
+            }
         }
         return false
     }
 
-    private static func definition(matchingStoredSport sport: String) -> Definition? {
-        let key = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return definitions.first { def in
-            def.aliases.contains { alias in
-                alias == key || sport.localizedCaseInsensitiveCompare(alias) == .orderedSame
-            }
+    static func isFallbackSport(_ raw: String) -> Bool {
+        canonicalSportKey(for: raw) == nil
+    }
+
+    private static func canonicalSportKey(for raw: String) -> String? {
+        let normalized = normalizedSportText(raw)
+        guard !normalized.isEmpty else { return nil }
+        guard !isNilLikeSportValue(normalized) else { return nil }
+        if normalized == "all" { return "all" }
+
+        if normalized.contains("soccer") || normalized.contains("mls") || normalized.contains("premier league") { return "soccer" }
+        if normalized.contains("basketball") || normalized.contains("nba") { return "basketball" }
+        if normalized.contains("football") || normalized.contains("nfl") || normalized.contains("ncaaf") { return "football" }
+        if normalized.contains("baseball") || normalized.contains("mlb") { return "baseball" }
+        if normalized.contains("hockey") || normalized.contains("nhl") { return "hockey" }
+        if normalized.contains("softball") { return "softball" }
+        if normalized.contains("mma") || normalized.contains("ufc") || normalized.contains("combat sport") { return "mma" }
+        if normalized.contains("boxing") { return "boxing" }
+        if normalized.contains("table tennis") || normalized.contains("tabletennis") { return "pingpong" }
+        if normalized.contains("tennis") { return "tennis" }
+        if normalized.contains("golf") { return "golf" }
+        if normalized.contains("motocross") { return "motocross" }
+        if normalized.contains("racing")
+            || normalized.contains("motogp")
+            || normalized.contains("formula 1")
+            || normalized.contains("formula1")
+            || normalized.contains("formula one")
+            || normalized == "f1" {
+            return "racing"
+        }
+        if normalized.contains("cricket") { return "cricket" }
+        if normalized.contains("rugby") { return "rugby" }
+        if normalized.contains("volleyball") { return "volleyball" }
+        if normalized.contains("ping pong") || normalized.contains("pingpong") { return "pingpong" }
+        if normalized.contains("wrestling") { return "wrestling" }
+        if normalized.contains("nascar") || normalized.contains("stock car") { return "nascar" }
+        if normalized.contains("cycling")
+            || normalized.contains("bicycle")
+            || normalized.contains("biking")
+            || normalized.contains("tour de france")
+            || normalized.contains("giro")
+            || normalized.contains("vuelta")
+            || normalized.contains("bmx") {
+            return "cycling"
+        }
+        if normalized.contains("running") || normalized.contains("marathon") { return "running" }
+        if normalized.contains("pickleball") { return "pickleball" }
+        if normalized.contains("lacrosse") { return "lacrosse" }
+        if normalized.contains("track field") || normalized.contains("track and field") || normalized.contains("athletics") { return "trackfield" }
+        if normalized.contains("climbing") || normalized.contains("bouldering") { return "climbing" }
+        if normalized.contains("skateboard") { return "skateboarding" }
+        if normalized.contains("bowling") { return "bowling" }
+        if normalized.contains("swimming") || normalized == "swim" { return "swimming" }
+        if normalized.contains("skiing") { return "skiing" }
+        if normalized.contains("esports") || normalized.contains("e sports") || normalized.contains("gaming") { return "esports" }
+        if normalized.contains("handball") { return "handball" }
+        if normalized == "more" { return "more" }
+
+        return nil
+    }
+
+    private static func normalizedSportText(_ raw: String) -> String {
+        let lowered = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let separators = CharacterSet(charactersIn: "_-/|•:.,()[]{}&")
+        let parts = lowered.components(separatedBy: separators).flatMap { chunk in
+            chunk.components(separatedBy: .whitespacesAndNewlines)
+        }
+        return parts.filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    private static func isNilLikeSportValue(_ normalized: String) -> Bool {
+        switch normalized {
+        case "nil", "null", "none", "unknown", "n a", "na", "deleted", "deleted sport":
+            return true
+        default:
+            return false
+        }
+    }
+
+    private static func aliases(for key: String) -> [String] {
+        switch key {
+        case "all": return ["all"]
+        case "soccer": return ["soccer", "mls", "premier league"]
+        case "basketball": return ["basketball", "nba"]
+        case "football": return ["football", "nfl", "american football", "ncaaf", "college football"]
+        case "baseball": return ["baseball", "mlb"]
+        case "hockey": return ["hockey", "nhl", "ice hockey"]
+        case "tennis": return ["tennis"]
+        case "golf": return ["golf"]
+        case "volleyball": return ["volleyball"]
+        case "pingpong": return ["ping pong", "pingpong", "table tennis", "tabletennis"]
+        case "mma": return ["mma", "ufc", "combat sports"]
+        case "boxing": return ["boxing"]
+        case "wrestling": return ["wrestling"]
+        case "racing": return ["racing", "formula 1", "formula1", "formula one", "f1", "motogp"]
+        case "nascar": return ["nascar", "stock car"]
+        case "cricket": return ["cricket"]
+        case "rugby": return ["rugby"]
+        case "softball": return ["softball"]
+        case "cycling": return ["cycling", "bicycle", "biking", "bike race", "tour de france", "giro", "vuelta", "bmx", "mountain biking", "mountainbiking"]
+        case "running": return ["running", "run", "jogging", "road race", "marathon"]
+        case "pickleball": return ["pickleball"]
+        case "lacrosse": return ["lacrosse"]
+        case "trackfield": return ["track field", "track and field", "trackfield", "athletics"]
+        case "motocross": return ["motocross"]
+        case "climbing": return ["climbing", "rock climbing", "bouldering"]
+        case "skateboarding": return ["skateboarding", "skateboard"]
+        case "bowling": return ["bowling"]
+        case "swimming": return ["swimming", "swim"]
+        case "skiing": return ["skiing", "alpine skiing"]
+        case "esports": return ["esports", "e sports", "gaming"]
+        case "handball": return ["handball"]
+        case "more": return ["more"]
+        default: return []
         }
     }
 }

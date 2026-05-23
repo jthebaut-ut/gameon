@@ -6,6 +6,17 @@
 	<string>ca-app-pub-9637364906993742~5547329973</string>
 	<key>GADNativeAdValidatorEnabled</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.jt.fangio.password-reset</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fangeo</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>FanGeo uses your data to show more relevant ads and support the app.</string>
 	<key>SKAdNetworkItems</key>

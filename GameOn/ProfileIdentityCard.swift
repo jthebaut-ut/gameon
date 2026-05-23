@@ -116,6 +116,7 @@ struct ProfileIdentityCard: View {
 
     private let profilePokesService = ProfilePokesService()
     private let friendSuggestionsService = FriendSuggestionsService()
+    private let socialIdentityService = SocialIdentityService()
 
     private enum ProfileSectionHierarchy {
         case hero
@@ -802,6 +803,24 @@ struct ProfileIdentityCard: View {
     }
 
     private func pokesAvatar(_ poke: ProfilePokeIncomingItem) -> some View {
+        pokeAvatarView(poke, size: 30)
+        .overlay {
+            Circle()
+                .strokeBorder(Color(.secondarySystemGroupedBackground), lineWidth: 2)
+        }
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 4, y: 2)
+    }
+
+    @ViewBuilder
+    private func pokeAvatarView(_ poke: ProfilePokeIncomingItem, size: CGFloat) -> some View {
+        if poke.isDeleted {
+            Image(systemName: "person.fill")
+                .font(.system(size: size * 0.42, weight: .medium))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .frame(width: size, height: size)
+                .background(Circle().fill(Color(white: 0.88)))
+                .clipShape(Circle())
+        } else {
         UserAvatarView(
             avatarThumbnailURL: poke.pokerAvatarThumbnailURL,
             avatarURL: poke.pokerAvatarURL ?? "",
@@ -813,15 +832,11 @@ struct ProfileIdentityCard: View {
             ),
             displayName: poke.pokerDisplayName,
             email: "",
-            size: 30,
+            size: size,
             fallbackStyle: .lightOnWhiteChrome,
             imagePlaceholderTint: FGColor.accentBlue
         )
-        .overlay {
-            Circle()
-                .strokeBorder(Color(.secondarySystemGroupedBackground), lineWidth: 2)
         }
-        .shadow(color: .black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 4, y: 2)
     }
 
     private var shouldShowCompactPokesRow: Bool {
@@ -873,16 +888,20 @@ struct ProfileIdentityCard: View {
                     )
                 } else {
                     List(incomingPokes) { poke in
-                        Button {
-                            viewModel.presentPublicProfile(
-                                userId: poke.pokerUserId,
-                                context: "pokes_history",
-                                activeSheet: "Pokes"
-                            )
-                        } label: {
+                        if poke.isDeleted {
                             pokesHistoryRow(poke)
+                        } else {
+                            Button {
+                                viewModel.presentPublicProfile(
+                                    userId: poke.pokerUserId,
+                                    context: "pokes_history",
+                                    activeSheet: "Pokes"
+                                )
+                            } label: {
+                                pokesHistoryRow(poke)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                     .listStyle(.plain)
                 }
@@ -940,20 +959,7 @@ struct ProfileIdentityCard: View {
 
     private func pokesHistoryRow(_ poke: ProfilePokeIncomingItem) -> some View {
         HStack(spacing: 12) {
-            UserAvatarView(
-                avatarThumbnailURL: poke.pokerAvatarThumbnailURL,
-                avatarURL: poke.pokerAvatarURL ?? "",
-                avatarDisplayRefreshToken: ProfileAvatarRefreshToken.stable(
-                    userId: poke.pokerUserId,
-                    thumbnailURL: poke.pokerAvatarThumbnailURL,
-                    avatarURL: poke.pokerAvatarURL,
-                    versionSuffix: poke.createdAt ?? ""
-                ),
-                displayName: poke.pokerDisplayName,
-                email: "",
-                size: 42,
-                fallbackStyle: .lightOnWhiteChrome
-            )
+            pokeAvatarView(poke, size: 42)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(poke.pokerDisplayName)
@@ -1140,8 +1146,22 @@ struct ProfileIdentityCard: View {
             let suggestions = try await friendSuggestionsService.fetchSuggestions(
                 limit: Self.suggestedFansFetchLimit
             )
+            let previewsById = (try? await socialIdentityService.fetchUserPreviews(
+                for: suggestions.map(\.userID)
+            )) ?? [:]
+            let filteredSuggestions = suggestions.filter { suggestion in
+                let suggestionEmail = OwnerBusinessEmail.normalized(suggestion.email ?? "")
+                if Self.isDeletedSuggestionIdentity(email: suggestionEmail) {
+                    return false
+                }
+                guard let preview = previewsById[suggestion.userID] else {
+                    return true
+                }
+                let previewEmail = OwnerBusinessEmail.normalized(preview.email ?? "")
+                return !preview.isDeleted && !Self.isDeletedSuggestionIdentity(email: previewEmail)
+            }
             await MainActor.run {
-                suggestedFans = suggestions
+                suggestedFans = filteredSuggestions
                 suggestedFansMessage = nil
                 isLoadingSuggestedFans = false
                 if let authId = viewModel.currentUserAuthId {
@@ -1149,7 +1169,7 @@ struct ProfileIdentityCard: View {
                 }
             }
 #if DEBUG
-            print("[SuggestedFansUI] load success count=\(suggestions.count)")
+            print("[SuggestedFansUI] load success count=\(filteredSuggestions.count)")
 #endif
         } catch {
             await MainActor.run {
@@ -1161,6 +1181,11 @@ struct ProfileIdentityCard: View {
             print("[SuggestedFansUI] load failed error=\(error.localizedDescription)")
 #endif
         }
+    }
+
+    private static func isDeletedSuggestionIdentity(email raw: String) -> Bool {
+        let email = OwnerBusinessEmail.normalized(raw)
+        return email.hasPrefix("deleted-user-") || email.contains("@deleted.fangeo.local")
     }
 
     private func addSuggestedFan(_ suggestion: FriendSuggestionProfile) async {

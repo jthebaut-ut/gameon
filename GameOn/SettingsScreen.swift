@@ -4156,6 +4156,15 @@ private struct SettingsFanLoginCard: View {
                     }
                 }
 
+                if !viewModel.passwordResetUpdateMessage.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: "Password updated",
+                        message: viewModel.passwordResetUpdateMessage,
+                        tint: FGColor.accentGreen,
+                        systemImage: "checkmark.circle.fill"
+                    )
+                }
+
                 if !viewModel.authErrorMessage.isEmpty {
                     if DeletedAccountSupportContact.isDeletedAccountBlockMessage(viewModel.authErrorMessage) {
                         DeletedAccountSupportStatusBanner(

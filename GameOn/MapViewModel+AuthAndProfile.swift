@@ -12,6 +12,8 @@ extension MapViewModel {
         case admin
     }
 
+    static let fanPasswordResetRedirectURL = URL(string: "fangeo://reset-password")!
+
     private static let storedAccountModeKey = "GameOn.storedAccountMode"
     private static let storedAccountAuthUserIdKey = "GameOn.storedAccountAuthUserId"
 
@@ -335,6 +337,8 @@ extension MapViewModel {
         authErrorMessage = ""
         userPasswordResetMessage = ""
         userPasswordResetError = ""
+        passwordResetUpdateMessage = ""
+        passwordResetUpdateError = ""
         venueAuthErrorMessage = ""
         venuePasswordResetMessage = ""
         venuePasswordResetError = ""
@@ -2366,6 +2370,7 @@ extension MapViewModel {
         }
 #endif
         guard !trimmed.isEmpty else {
+            print("[PasswordResetDebug] success=false step=send_reset_link error=missing_email")
             await MainActor.run {
                 switch accountKind {
                 case .fan:
@@ -2386,18 +2391,24 @@ extension MapViewModel {
         }
 
         do {
-            try await supabase.auth.resetPasswordForEmail(trimmed)
+            print("[PasswordResetDebug] step=send_reset_link")
+            try await supabase.auth.resetPasswordForEmail(
+                trimmed,
+                redirectTo: Self.fanPasswordResetRedirectURL
+            )
             await MainActor.run {
                 switch accountKind {
                 case .fan:
-                    userPasswordResetMessage = "Password reset link sent. Check your email."
+                    userPasswordResetMessage = "If an account exists for this email, we sent a password reset link."
                     userPasswordResetError = ""
+                    print("[PasswordResetDebug] success=true step=send_reset_link")
 #if DEBUG
                     print("[FanPasswordResetDebug] resetLinkSent=true")
 #endif
                 case .venueOwner:
-                    venuePasswordResetMessage = "Password reset link sent. Check your email."
+                    venuePasswordResetMessage = "If an account exists for this email, we sent a password reset link."
                     venuePasswordResetError = ""
+                    print("[PasswordResetDebug] success=true step=send_reset_link")
 #if DEBUG
                     print("[BusinessPasswordResetDebug] resetLinkSent=true")
 #endif
@@ -2409,17 +2420,158 @@ extension MapViewModel {
                 case .fan:
                     userPasswordResetMessage = ""
                     userPasswordResetError = error.localizedDescription
+                    print("[PasswordResetDebug] success=false step=send_reset_link error=\(error.localizedDescription)")
 #if DEBUG
                     print("[FanPasswordResetDebug] resetError=\(error.localizedDescription)")
 #endif
                 case .venueOwner:
                     venuePasswordResetMessage = ""
                     venuePasswordResetError = error.localizedDescription
+                    print("[PasswordResetDebug] success=false step=send_reset_link error=\(error.localizedDescription)")
 #if DEBUG
                     print("[BusinessPasswordResetDebug] resetError=\(error.localizedDescription)")
 #endif
                 }
             }
+        }
+    }
+
+    func handlePasswordResetDeepLink(_ url: URL) async {
+        guard Self.isPasswordResetDeepLink(url) else { return }
+        print("[PasswordResetDebug] step=deep_link_received")
+        await MainActor.run {
+            passwordResetUpdateMessage = ""
+            passwordResetUpdateError = ""
+        }
+
+        do {
+            UserDefaults.standard.set(false, forKey: Self.didExplicitlyLogoutKey)
+            let session = try await supabase.auth.session(from: url)
+            print("[PasswordResetDebug] success=true step=recovery_session")
+
+            guard await passwordResetRecoverySessionIsAllowed(session: session) else {
+                print("[PasswordResetDebug] success=false step=recovery_session error=deleted_or_disabled_account")
+                return
+            }
+
+            await MainActor.run {
+                currentUserAuthId = session.user.id
+                isPasswordResetRecoverySessionActive = true
+                isShowingPasswordResetCreateSheet = true
+            }
+        } catch {
+            await MainActor.run {
+                passwordResetUpdateError = "This reset link is invalid or expired. Please request a new password reset link."
+                isPasswordResetRecoverySessionActive = false
+                isShowingPasswordResetCreateSheet = true
+            }
+            print("[PasswordResetDebug] success=false step=recovery_session error=\(error.localizedDescription)")
+        }
+    }
+
+    func updateRecoveredPassword(_ newPassword: String) async {
+        print("[PasswordResetDebug] step=update_password")
+        await MainActor.run {
+            passwordResetUpdateMessage = ""
+            passwordResetUpdateError = ""
+        }
+
+        do {
+            let session = try await supabase.auth.session
+            guard await passwordResetRecoverySessionIsAllowed(session: session) else {
+                print("[PasswordResetDebug] success=false step=update_password error=deleted_or_disabled_account")
+                return
+            }
+
+            try await supabase.auth.update(user: UserAttributes(password: newPassword))
+            print("[PasswordResetDebug] success=true step=update_password")
+
+            do {
+                try await supabase.auth.signOut()
+            } catch {
+                print("[PasswordResetDebug] success=false step=sign_out_after_update error=\(error.localizedDescription)")
+            }
+
+            await MainActor.run {
+                clearAuthenticatedSessionCaches()
+                isLoggedIn = false
+                isVenueOwnerLoggedIn = false
+                venueOwnerMode = false
+                isAdminLoggedIn = false
+                currentUserAuthId = nil
+                isPasswordResetRecoverySessionActive = false
+                isShowingPasswordResetCreateSheet = false
+                passwordResetUpdateMessage = "Your password has been updated. Please sign in again."
+                clearPersistedAccountMode()
+                UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
+            }
+        } catch {
+            await MainActor.run {
+                passwordResetUpdateError = error.localizedDescription
+            }
+            print("[PasswordResetDebug] success=false step=update_password error=\(error.localizedDescription)")
+        }
+    }
+
+    func cancelPasswordResetRecovery() async {
+        print("[PasswordResetDebug] step=cancel_recovery")
+        if isPasswordResetRecoverySessionActive {
+            do {
+                try await supabase.auth.signOut()
+                print("[PasswordResetDebug] success=true step=cancel_recovery")
+            } catch {
+                print("[PasswordResetDebug] success=false step=cancel_recovery error=\(error.localizedDescription)")
+            }
+        }
+
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            isAdminLoggedIn = false
+            currentUserAuthId = nil
+            isPasswordResetRecoverySessionActive = false
+            isShowingPasswordResetCreateSheet = false
+            passwordResetUpdateError = ""
+            clearPersistedAccountMode()
+            UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
+        }
+    }
+
+    private static func isPasswordResetDeepLink(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "fangeo" else { return false }
+        let host = url.host?.lowercased() ?? ""
+        let path = url.path.lowercased()
+        return host == "reset-password" || path == "/reset-password"
+    }
+
+    private func passwordResetRecoverySessionIsAllowed(session: Session) async -> Bool {
+        do {
+            let rows: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select(Self.userProfileSelectColumns)
+                .eq("id", value: session.user.id.uuidString.lowercased())
+                .limit(1)
+                .execute()
+                .value
+
+            if let profile = rows.first, profile.isDeletedAccount {
+                await handleDeletedCurrentUser()
+                return false
+            }
+
+            if let profile = rows.first,
+               let status = profile.admin_status,
+               status != "active" {
+                await handleDisabledCurrentUser()
+                return false
+            }
+
+            return true
+        } catch {
+            print("[PasswordResetDebug] success=false step=profile_check error=\(error.localizedDescription)")
+            return true
         }
     }
 }

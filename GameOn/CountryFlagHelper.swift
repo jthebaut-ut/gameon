@@ -5,6 +5,7 @@ enum CountryFlagHelper {
         "AR": ["argentina"],
         "AU": ["australia"],
         "BE": ["belgium", "belgië", "belgique"],
+        "BO": ["bolivia", "bol"],
         "BR": ["brazil", "brasil"],
         "CA": ["canada"],
         "CL": ["chile"],
@@ -115,9 +116,15 @@ enum CountryFlagHelper {
     }
 
     nonisolated private static func flagEmoji(forRegionCode regionCode: String) -> String {
-        regionCode
+        let scalars = regionCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
             .unicodeScalars
+        guard scalars.count == 2,
+              scalars.allSatisfy({ (65...90).contains($0.value) }) else {
+            return ""
+        }
+        return scalars
             .compactMap { UnicodeScalar(127397 + $0.value) }
             .map(String.init)
             .joined()

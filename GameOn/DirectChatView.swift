@@ -184,6 +184,7 @@ private final class DirectChatPresenter: ObservableObject {
     @Published var draft: String = ""
     @Published var menuBanner: String?
     @Published private(set) var isManuallyRefreshingMessages = false
+    @Published private(set) var peerIsDeleted: Bool
 #if DEBUG
     @Published private(set) var realtimeConnectionStatus: DirectChatRealtimeConnectionStatus = .reconnecting
 #endif
@@ -248,6 +249,7 @@ private final class DirectChatPresenter: ObservableObject {
 
     init(friend: UserPreview) {
         self.friend = friend
+        self.peerIsDeleted = friend.isDeleted
     }
 
     private func dmDebugMilliseconds(from start: CFAbsoluteTime?, to end: CFAbsoluteTime? = nil) -> String {
@@ -323,6 +325,10 @@ private final class DirectChatPresenter: ObservableObject {
 #endif
     }
 
+    func updatePeerDeletedState(_ isDeleted: Bool) {
+        peerIsDeleted = isDeleted
+    }
+
     private func isMessagingBlocked() -> Bool {
         guard let chatViewModel else { return false }
         return chatViewModel.isEitherDirectionBlocked(with: friend.id)
@@ -343,8 +349,11 @@ private final class DirectChatPresenter: ObservableObject {
             currentUserId = me
 
             if conversationId == nil {
-                let cid = try await service.startDirectConversation(friendUserId: friend.id)
-                conversationId = cid
+                if let existingId = try await service.fetchExistingConversationId(peerUserId: friend.id) {
+                    conversationId = existingId
+                } else {
+                    conversationId = try await service.startDirectConversation(friendUserId: friend.id)
+                }
             }
 
             guard let conversationId else { return }
@@ -1059,6 +1068,10 @@ private final class DirectChatPresenter: ObservableObject {
         guard trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
 
+        if peerIsDeleted {
+            sendError = DirectChatView.deletedPeerNoticeText
+            return
+        }
         if isMessagingBlocked() {
             sendError = "You can’t message this user."
             return
@@ -1136,6 +1149,10 @@ private final class DirectChatPresenter: ObservableObject {
         guard !trimmed.isEmpty, trimmed.count <= maxBodyLength else { return }
         guard let conversationId, let me = currentUserId else { return }
 
+        if peerIsDeleted {
+            sendError = DirectChatView.deletedPeerNoticeText
+            return
+        }
         if isMessagingBlocked() {
             sendError = "You can’t message this user."
             return
@@ -1292,6 +1309,8 @@ struct DirectChatView: View {
     private static let reportSubmittedBannerText = "Report submitted. FanGeo moderation will review it."
     private static let duplicateConversationReportBannerText =
         "You already reported this conversation. FanGeo moderation will review it."
+    fileprivate static let deletedPeerNoticeText =
+        "This account has been deleted. You can still view past messages."
     private static let conversationReportMaxReviewWindow: TimeInterval = 7 * 24 * 60 * 60
 
     private static func isPositiveReportBanner(_ text: String) -> Bool {
@@ -1331,6 +1350,14 @@ struct DirectChatView: View {
 
     private var messagingBlocked: Bool {
         chatViewModel.isEitherDirectionBlocked(with: presenter.friend.id)
+    }
+
+    private var isDeletedPeer: Bool {
+        resolvedFriendPreview.isDeleted || presenter.peerIsDeleted
+    }
+
+    private var sendingDisabled: Bool {
+        messagingBlocked || isDeletedPeer
     }
 
     private var resolvedFriendPreview: UserPreview {
@@ -1442,6 +1469,7 @@ struct DirectChatView: View {
                 fallback: presenter.friend,
                 surface: "dm_thread_header"
             )
+            presenter.updatePeerDeletedState(resolvedFriendOverride?.isDeleted == true)
             await presenter.onAppear()
 
             if presenter.loadError == nil {
@@ -1535,6 +1563,13 @@ struct DirectChatView: View {
             presenter.clearForSessionLoss()
             dismiss()
         }
+        .onChange(of: resolvedFriendPreview.isDeleted) { _, isDeleted in
+            presenter.updatePeerDeletedState(isDeleted)
+            if isDeleted {
+                composerFocused = false
+                showEmojiQuickTray = false
+            }
+        }
         .sheet(item: $reportSheet) { kind in
             directChatReportSheet(kind: kind)
         }
@@ -1611,6 +1646,9 @@ struct DirectChatView: View {
     }
 
     private var chatHeaderSubtitle: String {
+        if isDeletedPeer {
+            return "Deleted account"
+        }
         if messagingBlocked {
             return "Messaging unavailable"
         }
@@ -2431,6 +2469,12 @@ struct DirectChatView: View {
                     systemImage: "lock.fill",
                     tint: FGColor.accentYellow
                 )
+            } else if isDeletedPeer {
+                threadStatusBanner(
+                    text: Self.deletedPeerNoticeText,
+                    systemImage: "person.crop.circle.badge.xmark",
+                    tint: FGColor.secondaryText(colorScheme)
+                )
             }
             if showEmojiQuickTray {
                 quickReactionTray
@@ -2471,7 +2515,7 @@ struct DirectChatView: View {
             }
             .buttonStyle(FGPremiumPressButtonStyle(hapticOnPress: false))
             .accessibilityLabel("Toggle emoji reactions")
-            .disabled(messagingBlocked)
+            .disabled(sendingDisabled)
 
             TextField("Message", text: $presenter.draft)
                 .textFieldStyle(.plain)
@@ -2479,7 +2523,7 @@ struct DirectChatView: View {
                 .lineLimit(1)
                 .submitLabel(.send)
                 .onSubmit {
-                    guard presenter.canSend, !messagingBlocked else { return }
+                    guard presenter.canSend, !sendingDisabled else { return }
                     FGInteractionHaptics.softImpact()
                     Task { await presenter.sendDraft() }
                 }
@@ -2505,7 +2549,7 @@ struct DirectChatView: View {
                 }
                 .frame(minHeight: 38, alignment: .center)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .disabled(messagingBlocked)
+                .disabled(sendingDisabled)
 
             manualRefreshMessagesButton
 
@@ -2520,13 +2564,13 @@ struct DirectChatView: View {
                     .background(
                         Circle()
                             .fill(
-                                presenter.canSend && !messagingBlocked
+                                presenter.canSend && !sendingDisabled
                                     ? AnyShapeStyle(FGColor.brandGradient)
                                     : AnyShapeStyle(Color.gray.opacity(0.35))
                             )
                     )
             }
-            .disabled(!presenter.canSend || messagingBlocked)
+            .disabled(!presenter.canSend || sendingDisabled)
             .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.94, hapticOnPress: false))
             .contentShape(Rectangle())
             .accessibilityLabel("Send")
@@ -2589,7 +2633,7 @@ struct DirectChatView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(messagingBlocked)
+                    .disabled(sendingDisabled)
                     .accessibilityLabel("Send \(emoji) reaction")
                 }
             }

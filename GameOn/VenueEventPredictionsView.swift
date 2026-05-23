@@ -12,6 +12,7 @@ private enum PredictionTeamDisplayName {
     static func compact(_ teamName: String, languageCode: String) -> String {
         let original = CountryFlagHelper.displayName(for: teamName, languageCode: languageCode)
         let normalized = original.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return "Game" }
         let shortened: String
         switch normalized {
         case "united states", "united states of america":
@@ -121,6 +122,10 @@ struct VenueEventPredictionModule: View {
         selectedHomeScore != nil && selectedAwayScore != nil
     }
 
+    private var isPredictionEmptyState: Bool {
+        resolvedSummary.totalCount == 0
+    }
+
     var body: some View {
         predictionVotingCard
         .task(id: userPredictionLoadToken) {
@@ -165,6 +170,8 @@ struct VenueEventPredictionModule: View {
                 print("[PredictionCardLayoutDebug] finalCardHeight=winner:\(PredictionCardMetrics.matchupHeight),score:\(PredictionCardMetrics.scoreHeight)")
                 print("[ScorePredictionDebug] aggregateLoaded=\(!resolvedSummary.topScorePredictions.isEmpty)")
                 print("[ScorePredictionDebug] aggregateTotal=\(resolvedSummary.scorePredictionTotal)")
+                print("[PredictionDebug] votesLoaded=\(resolvedSummary.totalCount)")
+                print("[PredictionDebug] emptyState=\(isPredictionEmptyState)")
                 if let topScore = resolvedSummary.topScorePredictions.first, !topScore.isOther {
                     print("[ScorePredictionDebug] topScore=\(topScore.homeScore ?? 0)-\(topScore.awayScore ?? 0):\(topScore.percent)")
                 }
@@ -194,6 +201,10 @@ struct VenueEventPredictionModule: View {
     private var predictionVotingCard: some View {
         VStack(alignment: .leading, spacing: FGSpacing.md) {
             compactPredictionHeader
+
+            if isPredictionEmptyState {
+                predictionEmptyState
+            }
 
             winnerMatchupSection(
                 title: "Who wins?",
@@ -230,6 +241,22 @@ struct VenueEventPredictionModule: View {
                 .strokeBorder(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.24 : 0.18), lineWidth: 1)
         }
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.06), radius: 12, y: 5)
+    }
+
+    private var predictionEmptyState: some View {
+        Text("No predictions yet. Be the first to vote.")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .onAppear {
+#if DEBUG
+                print("[PredictionDebug] emptyState=true")
+#endif
+            }
     }
 
     private var compactPredictionHeader: some View {
@@ -417,7 +444,7 @@ struct VenueEventPredictionModule: View {
                 ScorePredictionTeamCard(
                     teamName: homeDisplayName,
                     score: inlineHomeScore,
-                    flag: CountryFlagHelper.flag(for: teams.home),
+                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
                     colorScheme: colorScheme,
                     canDecrement: inlineHomeScore > 0,
                     canIncrement: inlineHomeScore < 20,
@@ -433,7 +460,7 @@ struct VenueEventPredictionModule: View {
                 ScorePredictionTeamCard(
                     teamName: awayDisplayName,
                     score: inlineAwayScore,
-                    flag: CountryFlagHelper.flag(for: teams.away),
+                    flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
                     colorScheme: colorScheme,
                     canDecrement: inlineAwayScore > 0,
                     canIncrement: inlineAwayScore < 20,
@@ -554,7 +581,7 @@ struct VenueEventPredictionModule: View {
             value: team,
             title: displayName,
             subtitle: nil,
-            flag: CountryFlagHelper.flag(for: team),
+            flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team)),
             percent: percent,
             avatars: avatars
         )
@@ -874,6 +901,7 @@ struct VenueEventPredictionModule: View {
         } catch {
 #if DEBUG
             print("[PredictionUIDebug] userPredictionLoadSkipped=\(error.localizedDescription)")
+            print("[PredictionDebug] error=\(error.localizedDescription)")
 #endif
         }
     }
@@ -908,6 +936,7 @@ struct VenueEventPredictionSheet: View {
     let venueEventID: UUID
     let teams: VenueEventPredictionTeams
     let predictionType: VenueEventPredictionType
+    var unavailableMessage: String? = nil
     let onSaved: () async -> Void
 
     @State private var userPrediction = VenueEventUserPredictions()
@@ -919,6 +948,10 @@ struct VenueEventPredictionSheet: View {
     @State private var errorMessage: String?
 
     private let scoreRange = 0...20
+
+    private var votingIsDisabled: Bool {
+        isSaving || isLoading || unavailableMessage != nil
+    }
 
     private var title: String {
         switch predictionType {
@@ -951,6 +984,12 @@ struct VenueEventPredictionSheet: View {
                         .foregroundStyle(FGColor.dangerRed)
                 }
 
+                if let unavailableMessage {
+                    Text(unavailableMessage)
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.dangerRed)
+                }
+
                 Spacer(minLength: 0)
 
                 if predictionType == .score {
@@ -958,18 +997,18 @@ struct VenueEventPredictionSheet: View {
                         FGSecondaryButton(title: "Remove", systemImage: "trash") {
                             Task { await deletePrediction() }
                         }
-                        .disabled(isSaving || isLoading)
+                        .disabled(votingIsDisabled)
 
                         FGPrimaryButton(title: isSaving ? "Saving..." : "Save", systemImage: "checkmark") {
                             Task { await savePrediction() }
                         }
-                        .disabled(isSaving || isLoading || !scoreIsValid)
+                        .disabled(votingIsDisabled || !scoreIsValid)
                     }
                 } else {
                     FGSecondaryButton(title: "Remove", systemImage: "trash") {
                         Task { await deletePrediction() }
                     }
-                    .disabled(isSaving || isLoading)
+                    .disabled(votingIsDisabled)
                 }
             }
             .padding(22)
@@ -979,10 +1018,13 @@ struct VenueEventPredictionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                        .disabled(isSaving)
                 }
             }
+            .interactiveDismissDisabled(isSaving)
             .task {
 #if DEBUG
+                print("[PredictionDebug] open eventId=\(venueEventID.uuidString.lowercased())")
                 print("[ScorePredictionDebug] sheetOpened=\(predictionType == .score)")
 #endif
                 await loadUserPrediction()
@@ -999,6 +1041,10 @@ struct VenueEventPredictionSheet: View {
         switch predictionType {
         case .winner, .firstScoreTeam:
             VStack(spacing: FGSpacing.sm) {
+                Text("No predictions yet. Be the first to vote.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 ForEach(sheetVotingOptions) { option in
                     PredictionOptionVotingCard(
                         option: option,
@@ -1006,6 +1052,7 @@ struct VenueEventPredictionSheet: View {
                         isSaving: isSaving && selectedTeam == option.value,
                         colorScheme: colorScheme
                     ) {
+                        guard !votingIsDisabled else { return }
                         selectedTeam = option.value
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 #if DEBUG
@@ -1025,7 +1072,7 @@ struct VenueEventPredictionSheet: View {
                     ScorePredictionTeamCard(
                         teamName: PredictionTeamDisplayName.compact(teams.home, languageCode: appLanguageRaw),
                         score: homeScore,
-                        flag: CountryFlagHelper.flag(for: teams.home),
+                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.home)),
                         colorScheme: colorScheme,
                         canDecrement: homeScore > scoreRange.lowerBound,
                         canIncrement: homeScore < scoreRange.upperBound,
@@ -1041,7 +1088,7 @@ struct VenueEventPredictionSheet: View {
                     ScorePredictionTeamCard(
                         teamName: PredictionTeamDisplayName.compact(teams.away, languageCode: appLanguageRaw),
                         score: awayScore,
-                        flag: CountryFlagHelper.flag(for: teams.away),
+                        flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: teams.away)),
                         colorScheme: colorScheme,
                         canDecrement: awayScore > scoreRange.lowerBound,
                         canIncrement: awayScore < scoreRange.upperBound,
@@ -1065,7 +1112,7 @@ struct VenueEventPredictionSheet: View {
                 value: team,
                 title: displayName,
                 subtitle: nil,
-                flag: CountryFlagHelper.flag(for: team),
+                flag: TeamTheme.safeFlag(CountryFlagHelper.flag(for: team)),
                 percent: 0,
                 avatars: []
             )
@@ -1083,6 +1130,7 @@ struct VenueEventPredictionSheet: View {
     }
 
     private func adjustScore(isHome: Bool, delta: Int) {
+        guard !votingIsDisabled else { return }
         if isHome {
             homeScore = min(scoreRange.upperBound, max(scoreRange.lowerBound, homeScore + delta))
         } else {
@@ -1121,21 +1169,32 @@ struct VenueEventPredictionSheet: View {
             }
         } catch {
             errorMessage = error.localizedDescription
+#if DEBUG
+            print("[PredictionDebug] error=\(error.localizedDescription)")
+#endif
         }
     }
 
     @MainActor
     private func savePrediction() async {
+        if let unavailableMessage {
+            errorMessage = unavailableMessage
+            return
+        }
         guard predictionType != .score || scoreIsValid else {
             errorMessage = "Choose a valid score."
             return
         }
+        guard !isSaving else { return }
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
         do {
             switch predictionType {
             case .winner:
+#if DEBUG
+                print("[PredictionVoteDebug] submit eventId=\(venueEventID.uuidString.lowercased()) choice=\(selectedTeam)")
+#endif
                 try await VenueEventPredictionService.shared.upsertPrediction(
                     venueEventId: venueEventID,
                     predictionType: .winner,
@@ -1146,6 +1205,7 @@ struct VenueEventPredictionSheet: View {
                 print("[ScorePredictionDebug] saveTapped=true")
                 print("[ScorePredictionDebug] homeScore=\(homeScore)")
                 print("[ScorePredictionDebug] awayScore=\(awayScore)")
+                print("[PredictionVoteDebug] submit eventId=\(venueEventID.uuidString.lowercased()) choice=\(homeScore)-\(awayScore)")
 #endif
                 try await VenueEventPredictionService.shared.upsertPrediction(
                     venueEventId: venueEventID,
@@ -1154,6 +1214,9 @@ struct VenueEventPredictionSheet: View {
                     predictedAwayScore: awayScore
                 )
             case .firstScoreTeam:
+#if DEBUG
+                print("[PredictionVoteDebug] submit eventId=\(venueEventID.uuidString.lowercased()) choice=\(selectedTeam)")
+#endif
                 try await VenueEventPredictionService.shared.upsertPrediction(
                     venueEventId: venueEventID,
                     predictionType: .firstScoreTeam,
@@ -1169,12 +1232,18 @@ struct VenueEventPredictionSheet: View {
 #endif
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = VenueEventPredictionUserMessage.message(for: error)
+#if DEBUG
+            print("[PredictionDebug] error=\(error.localizedDescription)")
+            print("[PredictionVoteDebug] error=\(error.localizedDescription)")
+            print("[PredictionVoteDebug] cancelled=\(VenueEventPredictionUserMessage.isCancellation(error))")
+#endif
         }
     }
 
     @MainActor
     private func deletePrediction() async {
+        guard !isSaving else { return }
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
@@ -1197,7 +1266,12 @@ struct VenueEventPredictionSheet: View {
 #endif
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = VenueEventPredictionUserMessage.message(for: error)
+#if DEBUG
+            print("[PredictionDebug] error=\(error.localizedDescription)")
+            print("[PredictionVoteDebug] error=\(error.localizedDescription)")
+            print("[PredictionVoteDebug] cancelled=\(VenueEventPredictionUserMessage.isCancellation(error))")
+#endif
         }
     }
 
@@ -1245,7 +1319,7 @@ private struct ScorePredictionTeamCard: View {
 
     var body: some View {
         VStack(spacing: PredictionCardMetrics.scoreVerticalSpacing) {
-            Text(flag ?? " ")
+            Text(TeamTheme.safeFlag(flag) ?? " ")
                 .font(.system(size: 25))
                 .frame(height: PredictionCardMetrics.scoreFlagHeight)
 
@@ -1332,7 +1406,7 @@ private struct PredictionMatchupTeamCard: View {
     var body: some View {
         Button(action: action) {
             VStack(spacing: PredictionCardMetrics.matchupVerticalSpacing) {
-                Text(option.flag ?? " ")
+                Text(TeamTheme.safeFlag(option.flag) ?? " ")
                     .font(.system(size: 26))
                     .frame(height: PredictionCardMetrics.matchupFlagHeight)
 
@@ -1452,7 +1526,7 @@ private struct PredictionOptionVotingCard: View {
     var body: some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 12) {
-                Text(option.flag ?? " ")
+                Text(TeamTheme.safeFlag(option.flag) ?? " ")
                     .font(.system(size: 26))
                     .frame(width: 34)
 

@@ -75,104 +75,99 @@ BEGIN
 
   -- Collect exact avatar object paths before profile URLs are cleared. Storage
   -- deletion remains best-effort outside this transaction, using returned paths.
-  IF to_regprocedure('public.gameon_storage_path_from_public_url(text,text)') IS NOT NULL THEN
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_url'
-    ) THEN
-      v_avatar_exprs := v_avatar_exprs || 'public.gameon_storage_path_from_public_url(up.avatar_url, ''user-avatars'')';
-    END IF;
+  BEGIN
+    IF to_regprocedure('public.gameon_storage_path_from_public_url(text,text)') IS NOT NULL THEN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_url'
+      ) THEN
+        v_avatar_exprs := v_avatar_exprs || ARRAY['public.gameon_storage_path_from_public_url(NULLIF(btrim(up.avatar_url), ''''), ''user-avatars'')'];
+      END IF;
 
-    IF EXISTS (
-      SELECT 1 FROM information_schema.columns
-      WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_thumbnail_url'
-    ) THEN
-      v_avatar_exprs := v_avatar_exprs || 'public.gameon_storage_path_from_public_url(up.avatar_thumbnail_url, ''user-avatars'')';
-    END IF;
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_thumbnail_url'
+      ) THEN
+        v_avatar_exprs := v_avatar_exprs || ARRAY['public.gameon_storage_path_from_public_url(NULLIF(btrim(up.avatar_thumbnail_url), ''''), ''user-avatars'')'];
+      END IF;
 
-    IF array_length(v_avatar_exprs, 1) IS NOT NULL THEN
-      v_sql := format(
-        'SELECT coalesce(array_agg(DISTINCT storage.path), ARRAY[]::text[])
-           FROM public.user_profiles up
-           CROSS JOIN LATERAL (VALUES %s) AS storage(path)
-          WHERE up.id = $1
-            AND storage.path IS NOT NULL
-            AND btrim(storage.path) <> ''''',
-        array_to_string(
-          ARRAY(
-            SELECT format('(%s)', path_expr)
-            FROM unnest(v_avatar_exprs) AS exprs(path_expr)
-          ),
-          ', '
-        )
-      );
-      EXECUTE v_sql INTO v_avatar_storage_paths USING v_uid;
+      IF array_length(v_avatar_exprs, 1) IS NOT NULL THEN
+        v_sql := format(
+          'SELECT coalesce(array_agg(DISTINCT storage.path), ARRAY[]::text[])
+             FROM public.user_profiles up
+             CROSS JOIN LATERAL unnest(ARRAY[%s]::text[]) AS storage(path)
+            WHERE up.id = $1
+              AND storage.path IS NOT NULL
+              AND btrim(storage.path) <> ''''',
+          array_to_string(v_avatar_exprs, ', ')
+        );
+        EXECUTE v_sql INTO v_avatar_storage_paths USING v_uid;
+      END IF;
     END IF;
-  END IF;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'request_delete_my_account: storage cleanup skipped for user %: %', v_uid, SQLERRM;
+    v_avatar_storage_paths := ARRAY[]::text[];
+  END;
 
   -- Build the profile anonymization UPDATE from columns that actually exist.
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'is_deleted') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'is_deleted = true';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['is_deleted = true'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'deleted_at') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'deleted_at = now()';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['deleted_at = now()'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'anonymized_at') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'anonymized_at = now()';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['anonymized_at = now()'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'deletion_requested_at') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'deletion_requested_at = coalesce(deletion_requested_at, now())';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['deletion_requested_at = coalesce(deletion_requested_at, now())'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'display_name') THEN
-    v_profile_set_clauses := v_profile_set_clauses || format('display_name = %L', 'Deleted User');
+    v_profile_set_clauses := array_append(v_profile_set_clauses, format('display_name = %L', 'Deleted User'));
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'email') THEN
-    v_profile_set_clauses := v_profile_set_clauses || format('email = %L', v_deleted_email);
+    v_profile_set_clauses := array_append(v_profile_set_clauses, format('email = %L', v_deleted_email));
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'username') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'username = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['username = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'handle') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'handle = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['handle = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'bio') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'bio = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['bio = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_url') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'avatar_url = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['avatar_url = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_thumbnail_url') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'avatar_thumbnail_url = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['avatar_thumbnail_url = NULL'];
   END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'avatar_name_normalized') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'avatar_name_normalized = NULL';
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'display_name_normalized') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'display_name_normalized = NULL';
-  END IF;
+  -- Do not update normalized/generated columns directly. They recompute from
+  -- display_name / username, or are maintained by legacy triggers where present.
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'discoverable_by_fans') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'discoverable_by_fans = false';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['discoverable_by_fans = false'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'live_visibility_enabled') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'live_visibility_enabled = false';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['live_visibility_enabled = false'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'selected_live_visibility_friend_ids') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'selected_live_visibility_friend_ids = ARRAY[]::uuid[]';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['selected_live_visibility_friend_ids = ARRAY[]::uuid[]'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'fan_identity_preferences') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'fan_identity_preferences = ''{}''::jsonb';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['fan_identity_preferences = ''{}''::jsonb'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'home_crowd_venue_id') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'home_crowd_venue_id = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['home_crowd_venue_id = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'home_crowd_set_at') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'home_crowd_set_at = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['home_crowd_set_at = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'active_session_id') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'active_session_id = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['active_session_id = NULL'];
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'user_profiles' AND column_name = 'active_session_updated_at') THEN
-    v_profile_set_clauses := v_profile_set_clauses || 'active_session_updated_at = NULL';
+    v_profile_set_clauses := v_profile_set_clauses || ARRAY['active_session_updated_at = NULL'];
   END IF;
 
   IF array_length(v_profile_set_clauses, 1) IS NOT NULL THEN
@@ -282,13 +277,13 @@ BEGIN
      AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'status') THEN
     v_friendship_set_clauses := ARRAY['status = ''archived'''];
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'requester_cleared_at') THEN
-      v_friendship_set_clauses := v_friendship_set_clauses || 'requester_cleared_at = now()';
+      v_friendship_set_clauses := v_friendship_set_clauses || ARRAY['requester_cleared_at = now()'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'addressee_cleared_at') THEN
-      v_friendship_set_clauses := v_friendship_set_clauses || 'addressee_cleared_at = now()';
+      v_friendship_set_clauses := v_friendship_set_clauses || ARRAY['addressee_cleared_at = now()'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'friendships' AND column_name = 'responded_at') THEN
-      v_friendship_set_clauses := v_friendship_set_clauses || 'responded_at = coalesce(responded_at, now())';
+      v_friendship_set_clauses := v_friendship_set_clauses || ARRAY['responded_at = coalesce(responded_at, now())'];
     END IF;
 
     v_sql := format(
@@ -329,16 +324,16 @@ BEGIN
   IF to_regclass('public.pickup_games') IS NOT NULL
      AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_games' AND column_name = 'creator_user_id') THEN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_games' AND column_name = 'status') THEN
-      v_pickup_game_set_clauses := v_pickup_game_set_clauses || 'status = ''cancelled''';
+      v_pickup_game_set_clauses := v_pickup_game_set_clauses || ARRAY['status = ''cancelled'''];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_games' AND column_name = 'is_visible') THEN
-      v_pickup_game_set_clauses := v_pickup_game_set_clauses || 'is_visible = false';
+      v_pickup_game_set_clauses := v_pickup_game_set_clauses || ARRAY['is_visible = false'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_games' AND column_name = 'remove_after_at') THEN
-      v_pickup_game_set_clauses := v_pickup_game_set_clauses || 'remove_after_at = coalesce(remove_after_at, now())';
+      v_pickup_game_set_clauses := v_pickup_game_set_clauses || ARRAY['remove_after_at = coalesce(remove_after_at, now())'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_games' AND column_name = 'updated_at') THEN
-      v_pickup_game_set_clauses := v_pickup_game_set_clauses || 'updated_at = now()';
+      v_pickup_game_set_clauses := v_pickup_game_set_clauses || ARRAY['updated_at = now()'];
     END IF;
 
     IF array_length(v_pickup_game_set_clauses, 1) IS NOT NULL THEN
@@ -385,10 +380,10 @@ BEGIN
   IF to_regclass('public.pickup_game_requests') IS NOT NULL
      AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_game_requests' AND column_name = 'status') THEN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_game_requests' AND column_name = 'updated_at') THEN
-      v_pickup_request_set_clauses := v_pickup_request_set_clauses || 'updated_at = now()';
+      v_pickup_request_set_clauses := v_pickup_request_set_clauses || ARRAY['updated_at = now()'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_game_requests' AND column_name = 'responded_at') THEN
-      v_pickup_request_set_clauses := v_pickup_request_set_clauses || 'responded_at = coalesce(responded_at, now())';
+      v_pickup_request_set_clauses := v_pickup_request_set_clauses || ARRAY['responded_at = coalesce(responded_at, now())'];
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'pickup_game_requests' AND column_name = 'requester_user_id') THEN
@@ -439,13 +434,13 @@ BEGIN
 
   IF to_regclass('public.notifications') IS NOT NULL THEN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'user_id') THEN
-      v_notification_where_clauses := v_notification_where_clauses || 'user_id = $1';
+      v_notification_where_clauses := v_notification_where_clauses || ARRAY['user_id = $1'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'recipient_user_id') THEN
-      v_notification_where_clauses := v_notification_where_clauses || 'recipient_user_id = $1';
+      v_notification_where_clauses := v_notification_where_clauses || ARRAY['recipient_user_id = $1'];
     END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'notifications' AND column_name = 'target_user_id') THEN
-      v_notification_where_clauses := v_notification_where_clauses || 'target_user_id = $1';
+      v_notification_where_clauses := v_notification_where_clauses || ARRAY['target_user_id = $1'];
     END IF;
 
     IF array_length(v_notification_where_clauses, 1) IS NOT NULL THEN

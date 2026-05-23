@@ -43,6 +43,18 @@ struct ContentView: View {
             print("[LaunchPathDebug] isBootstrapping=\(bootstrapCoordinator.isBootstrapping)")
             #endif
         }
+        .onOpenURL { url in
+            Task {
+                await viewModel.handlePasswordResetDeepLink(url)
+            }
+        }
+        .sheet(isPresented: $viewModel.isShowingPasswordResetCreateSheet) {
+            PasswordResetCreatePasswordSheet(viewModel: viewModel)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+                .interactiveDismissDisabled(viewModel.isPasswordResetRecoverySessionActive)
+        }
         .task {
 #if DEBUG
             print("[ChatViewModelInstanceDebug] ContentView root ChatViewModel id=\(ObjectIdentifier(chatViewModel))")

@@ -15,6 +15,44 @@ struct TeamTheme {
     let accentColorHex: String?
     let darkModeAdjustedColorHex: String?
 
+    init(
+        rawName: String,
+        displayName: String,
+        flag: String?,
+        colors: [Color],
+        accent: Color,
+        textColors: [Color],
+        usesFallback: Bool,
+        textColorHint: Color?,
+        shortName: String?,
+        primaryColorHex: String?,
+        secondaryColorHex: String?,
+        accentColorHex: String?,
+        darkModeAdjustedColorHex: String?
+    ) {
+        let safeRawName = Self.safeDisplayName(rawName, fallback: "FanGeo")
+        let safeDisplayName = Self.safeDisplayName(displayName, fallback: safeRawName)
+        let fallbackColors = CountryTheme.fallback.colors.isEmpty
+            ? [FGColor.accentGreen, Color(red: 0.02, green: 0.05, blue: 0.14)]
+            : CountryTheme.fallback.colors
+        let safeColors = colors.isEmpty ? fallbackColors : colors
+        let safeTextColors = textColors.isEmpty ? CountryTheme.fallback.textColors : textColors
+
+        self.rawName = safeRawName
+        self.displayName = safeDisplayName
+        self.flag = Self.safeFlag(flag)
+        self.colors = safeColors
+        self.accent = accent
+        self.textColors = safeTextColors.isEmpty ? [.white, FGColor.accentGreen] : safeTextColors
+        self.usesFallback = usesFallback
+        self.textColorHint = textColorHint
+        self.shortName = Self.safeOptionalDisplayName(shortName)
+        self.primaryColorHex = Self.safeOptionalDisplayName(primaryColorHex)
+        self.secondaryColorHex = Self.safeOptionalDisplayName(secondaryColorHex)
+        self.accentColorHex = Self.safeOptionalDisplayName(accentColorHex)
+        self.darkModeAdjustedColorHex = Self.safeOptionalDisplayName(darkModeAdjustedColorHex)
+    }
+
     static let fallback = TeamTheme(
         rawName: "FanGeo",
         displayName: "FanGeo",
@@ -32,11 +70,11 @@ struct TeamTheme {
     )
 
     static func resolve(_ rawName: String?) -> TeamTheme {
-        let cleanedName = rawName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let cleanedName = safeOptionalDisplayName(rawName) ?? ""
         guard !cleanedName.isEmpty else {
             return logResolvedTheme(fallback, requestedName: rawName ?? "")
         }
-        let displayName = CountryFlagHelper.displayName(for: cleanedName)
+        let displayName = safeDisplayName(CountryFlagHelper.displayName(for: cleanedName), fallback: cleanedName)
 
         if let teamTheme = TeamThemeProvider.theme(for: cleanedName) {
             return logResolvedTheme(teamTheme, requestedName: cleanedName)
@@ -79,7 +117,7 @@ struct TeamTheme {
     }
 
     var uppercaseTitle: String {
-        (shortName ?? displayName).uppercased()
+        Self.safeDisplayName(shortName ?? displayName, fallback: "TEAM").uppercased()
     }
 
     var primaryColor: Color {
@@ -92,6 +130,49 @@ struct TeamTheme {
 
     var accentColor: Color {
         accent
+    }
+
+    static func safeFallbackText(rawName: String, displayName: String, shortName: String? = nil) -> String {
+        let source = [
+            safeOptionalDisplayName(shortName),
+            safeOptionalDisplayName(displayName),
+            safeOptionalDisplayName(rawName)
+        ].compactMap { $0 }.first ?? "FG"
+        let letters = source.filter { $0.isLetter || $0.isNumber }
+        let prefix = String(letters.prefix(2)).uppercased()
+        return prefix.isEmpty ? "FG" : prefix
+    }
+
+    static func safeFlag(_ raw: String?) -> String? {
+        guard let trimmed = safeOptionalDisplayName(raw) else { return nil }
+        guard !trimmed.unicodeScalars.contains(where: {
+            CharacterSet.controlCharacters.contains($0) || $0.value == 0xfffd
+        }) else {
+            return nil
+        }
+        let scalarValues = trimmed.unicodeScalars.map(\.value)
+        let isRegionalIndicatorFlag = scalarValues.count == 2
+            && scalarValues.allSatisfy { (0x1F1E6...0x1F1FF).contains($0) }
+        if isRegionalIndicatorFlag { return trimmed }
+
+        let characterCount = trimmed.count
+        guard characterCount <= 2, trimmed.utf16.count <= 8 else { return nil }
+        return trimmed
+    }
+
+    private static func safeDisplayName(_ raw: String, fallback: String) -> String {
+        safeOptionalDisplayName(raw) ?? safeOptionalDisplayName(fallback) ?? "FanGeo"
+    }
+
+    private static func safeOptionalDisplayName(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.unicodeScalars.contains(where: {
+            CharacterSet.controlCharacters.contains($0) || $0.value == 0xfffd
+        }) else {
+            return nil
+        }
+        return trimmed
     }
 
     private static func logResolvedTheme(_ theme: TeamTheme, requestedName: String) -> TeamTheme {

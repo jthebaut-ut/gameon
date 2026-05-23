@@ -669,11 +669,12 @@ final class FriendshipService {
         func appendFan(_ row: FanProfileRow, matchedEmail: String?, matchKind: String) {
             guard row.isFanProfileExcludingBusinessOwners(businessAuthProfileIds: businessAuthProfileIds) else { return }
             if let ex = excludingUserId, row.id == ex { return }
+            let emailNorm = Self.normalizedFriendLookupQuery(row.email ?? "")
+            guard !Self.isDeletedAccountEmail(emailNorm) else { return }
             let key = "user-\(row.id.uuidString.lowercased())"
             guard seenKeys.insert(key).inserted else { return }
             let display = trimmedNonEmpty(row.display_name)
             let storedHandle = trimmedNonEmpty(row.username)
-            let emailNorm = Self.normalizedFriendLookupQuery(row.email ?? "")
             let name: String
             if !display.isEmpty {
                 name = display
@@ -861,6 +862,11 @@ final class FriendshipService {
 
     private func trimmedNonEmpty(_ raw: String?) -> String {
         raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private static func isDeletedAccountEmail(_ raw: String) -> Bool {
+        let email = normalizedFriendLookupQuery(raw)
+        return email.hasPrefix("deleted-user-") || email.contains("@deleted.fangeo.local")
     }
 
     /// Resolves an active **regular fan** ``user_profiles`` id (excludes business-only rows). Order: @handle → email → ``display_name_normalized`` → ``display_name``.

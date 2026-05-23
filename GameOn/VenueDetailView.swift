@@ -906,79 +906,32 @@ struct VenueDetailView: View {
         let matchup = venueDetailMatchup(for: game)
         let homeTheme = TeamTheme.resolve(matchup.home)
         let awayTheme = TeamTheme.resolve(matchup.away)
+        let displayTitles = venueDetailMatchupDisplayTitles(
+            matchup: matchup,
+            gameTitle: game.title,
+            homeTheme: homeTheme,
+            awayTheme: awayTheme
+        )
 
         return Group {
             if isFeatured {
                 venueDetailGameHeroCard(game, matchup: matchup)
             } else {
-                ZStack(alignment: .bottomLeading) {
-                    ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
-
-                    LinearGradient(
-                        colors: [
-                            Color.black.opacity(0.12),
-                            Color.black.opacity(0.38),
-                            Color.black.opacity(0.64)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-
-                    HStack(alignment: .top, spacing: FGSpacing.md) {
-                        venueDetailCompactTeamOrb(theme: homeTheme)
-                        Spacer(minLength: 0)
-                        venueDetailCompactTeamOrb(theme: awayTheme)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 12)
-
-                    VStack(alignment: .leading, spacing: 9) {
-                        HStack {
-                            HStack(spacing: 6) {
-                                Image(systemName: iconForSport(game.sport))
-                                Text(game.sport)
-                            }
-                            .font(FGTypography.caption.weight(.black))
-                            .foregroundStyle(.white.opacity(0.92))
-                            .textCase(.uppercase)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(Color.white.opacity(0.16))
-                            .clipShape(Capsule(style: .continuous))
-
-                            Spacer(minLength: 0)
-
-                            if let status = game.status {
-                                FGStatusPill(title: status.title, kind: .custom(tint: status.tint))
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: true, vertical: false)
-                            }
-                        }
-
-                        Text(matchup.hasResolvedTeams ? "\(homeTheme.uppercaseTitle) vs \(awayTheme.uppercaseTitle)" : game.title.uppercased())
-                            .font(.system(size: 23, weight: .black, design: .rounded))
-                            .tracking(0.3)
-                            .foregroundStyle(.white)
-                            .shadow(color: homeTheme.accent.opacity(0.34), radius: 8, y: 3)
-                            .shadow(color: .black.opacity(0.44), radius: 5, y: 3)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.68)
-
-                        Text(game.dateTimeText)
-                            .font(FGTypography.caption.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.88))
-                    }
-                    .padding(15)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 156)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
-                }
-                .shadow(color: homeTheme.accent.opacity(0.14), radius: 12, y: 6)
-                .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.13), radius: 14, y: 8)
+                VenueMatchupCardView(
+                    homeTheme: homeTheme,
+                    awayTheme: awayTheme,
+                    homeTitle: displayTitles.home,
+                    awayTitle: displayTitles.away,
+                    sportLabel: game.sport,
+                    sportIconName: iconForSport(game.sport),
+                    dateTimeText: game.dateTimeText,
+                    statusTitle: game.status?.title,
+                    statusTint: game.status?.tint ?? FGColor.accentBlue,
+                    eventId: venueDetailGradientEventId(for: game),
+                    cardVariant: "venueDetailCompact",
+                    height: 166,
+                    cornerRadius: 24
+                )
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1155,7 +1108,7 @@ struct VenueDetailView: View {
     }
 
     private func venueDetailFanChatPill(venueEventID: UUID, commentCount: Int) -> some View {
-        let title = commentCount > 0 ? "Fan Chat · \(commentCount)" : "Fan Chat"
+        let title = commentCount > 0 ? "Chat · \(commentCount)" : "Chat"
         let tint = FGColor.accentBlue
 
         return Button {
@@ -1188,7 +1141,7 @@ struct VenueDetailView: View {
         }
         .buttonStyle(.plain)
         .disabled(onOpenFanChat == nil)
-        .accessibilityLabel(commentCount > 0 ? "Fan Chat, \(commentCount) comments" : "Fan Chat")
+        .accessibilityLabel(commentCount > 0 ? "Chat, \(commentCount) comments" : "Chat")
     }
 
     private func venueDetailVibeChip(
@@ -1266,66 +1219,28 @@ struct VenueDetailView: View {
     private func venueDetailGameHeroCard(_ game: VenueDetailGameItem, matchup: VenueDetailMatchup) -> some View {
         let homeTheme = TeamTheme.resolve(matchup.home)
         let awayTheme = TeamTheme.resolve(matchup.away)
+        let displayTitles = venueDetailMatchupDisplayTitles(
+            matchup: matchup,
+            gameTitle: game.title,
+            homeTheme: homeTheme,
+            awayTheme: awayTheme
+        )
 
-        return ZStack(alignment: .bottomLeading) {
-            ThemeGradientBuilder.stadiumBackground(home: homeTheme, away: awayTheme)
-
-            HStack {
-                venueDetailTeamOrb(theme: homeTheme)
-                    .offset(x: -16, y: -6)
-                Spacer(minLength: 0)
-                venueDetailTeamOrb(theme: awayTheme)
-                    .offset(x: 16, y: -6)
-            }
-            .padding(.horizontal, 8)
-
-            VStack(spacing: 10) {
-                HStack {
-                    HStack(spacing: 6) {
-                        Image(systemName: iconForSport(game.sport))
-                        Text(game.sport)
-                    }
-                    .font(FGTypography.caption.weight(.black))
-                    .foregroundStyle(.white.opacity(0.92))
-                    .textCase(.uppercase)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(Color.white.opacity(0.16))
-                    .clipShape(Capsule(style: .continuous))
-
-                    Spacer(minLength: 0)
-                }
-
-                VStack(spacing: 0) {
-                    venueDetailHeroTeamTitle(homeTheme.uppercaseTitle, theme: homeTheme, alignment: .leading)
-                    Text("VS")
-                        .font(.system(size: 21, weight: .black, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.92))
-                    venueDetailHeroTeamTitle(awayTheme.uppercaseTitle, theme: awayTheme, alignment: .trailing)
-                }
-
-                Text(game.dateTimeText)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.92))
-
-                HStack {
-                    if let status = game.status {
-                        FGStatusPill(title: status.title, kind: .custom(tint: status.tint))
-                    }
-                    Spacer(minLength: 0)
-                }
-            }
-            .padding(18)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 214)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
-        }
-        .shadow(color: homeTheme.accent.opacity(0.18), radius: 16, y: 8)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.16), radius: 18, y: 10)
+        return VenueMatchupCardView(
+            homeTheme: homeTheme,
+            awayTheme: awayTheme,
+            homeTitle: displayTitles.home,
+            awayTitle: displayTitles.away,
+            sportLabel: game.sport,
+            sportIconName: iconForSport(game.sport),
+            dateTimeText: game.dateTimeText,
+            statusTitle: game.status?.title,
+            statusTint: game.status?.tint ?? FGColor.accentBlue,
+            eventId: venueDetailGradientEventId(for: game),
+            cardVariant: "venueDetailHero",
+            height: 214,
+            cornerRadius: 26
+        )
     }
 
     private func venueDetailHeroTeamTitle(_ title: String, theme: TeamTheme, alignment: TextAlignment) -> some View {
@@ -1385,6 +1300,39 @@ struct VenueDetailView: View {
         }
         logVenueDetailCrashGuard(reason: "matchupParseFallback", game: game)
         return VenueDetailMatchup(home: trimmedTitle, away: bar.name, hasResolvedTeams: false)
+    }
+
+    private func venueDetailGradientEventId(for game: VenueDetailGameItem) -> String {
+        game.venueEventID?.uuidString.lowercased() ?? game.id
+    }
+
+    private func venueDetailMatchupDisplayTitles(
+        matchup: VenueDetailMatchup,
+        gameTitle: String,
+        homeTheme: TeamTheme,
+        awayTheme: TeamTheme
+    ) -> (home: String, away: String) {
+        if matchup.hasResolvedTeams,
+           let parsed = parseVenueDetailMatchupTitle(gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return (
+                home: parsed.home.isEmpty ? homeTheme.uppercaseTitle : parsed.home,
+                away: parsed.away.isEmpty ? awayTheme.uppercaseTitle : parsed.away
+            )
+        }
+
+        if matchup.hasResolvedTeams {
+            return (home: homeTheme.uppercaseTitle, away: awayTheme.uppercaseTitle)
+        }
+
+        if let parsed = parseVenueDetailMatchupTitle(gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return (home: parsed.home, away: parsed.away)
+        }
+
+        let fallbackTitle = gameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (
+            home: fallbackTitle.isEmpty ? homeTheme.uppercaseTitle : fallbackTitle,
+            away: awayTheme.uppercaseTitle
+        )
     }
 
     private func parseVenueDetailMatchupTitle(_ title: String) -> (home: String, away: String)? {

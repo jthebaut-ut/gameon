@@ -152,6 +152,10 @@ final class MapViewModel: ObservableObject {
     /// Set after a fan/user password-reset email is requested (`MapViewModel+AuthAndProfile`).
     @Published var userPasswordResetMessage = ""
     @Published var userPasswordResetError = ""
+    @Published var isShowingPasswordResetCreateSheet = false
+    @Published var isPasswordResetRecoverySessionActive = false
+    @Published var passwordResetUpdateMessage = ""
+    @Published var passwordResetUpdateError = ""
     /// Set after a venue-owner password-reset email is requested (same Auth API, separate UI feedback).
     @Published var venuePasswordResetMessage = ""
     @Published var venuePasswordResetError = ""

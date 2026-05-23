@@ -40,6 +40,23 @@ final class DirectChatService {
         return try Self.decodeUUIDFromRPCData(data)
     }
 
+    /// Looks up an existing 1:1 conversation without creating a new one. This keeps old DMs readable
+    /// when the friendship row is no longer accepted, such as after account deletion cleanup.
+    func fetchExistingConversationId(peerUserId: UUID) async throws -> UUID? {
+        let me = try await currentUserId()
+        let meId = me.uuidString.lowercased()
+        let peerId = peerUserId.uuidString.lowercased()
+        let filter = "and(user_a_id.eq.\(meId),user_b_id.eq.\(peerId)),and(user_a_id.eq.\(peerId),user_b_id.eq.\(meId))"
+        let rows: [DirectConversationIdRow] = try await client
+            .from("direct_conversations")
+            .select("id")
+            .or(filter)
+            .limit(1)
+            .execute()
+            .value
+        return rows.first?.id
+    }
+
     /// Clears/hides conversation history for participants (same RPC as in-app “Clear chat history”). Server defines semantics.
     func clearDirectConversation(conversationId: UUID) async throws {
         struct Params: Encodable {

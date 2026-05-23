@@ -99,16 +99,30 @@ extension MapViewModel {
     }
 
     func iconForSport(_ sport: String) -> String {
-        SportFilterCatalog.resolve(sport).systemImage
+        let systemImage = SportFilterCatalog.resolve(sport).systemImage
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !systemImage.isEmpty else {
+#if DEBUG
+            print("[SportCatalogDebug] unresolvedSport=\(sport.trimmingCharacters(in: .whitespacesAndNewlines))")
+#endif
+            return SportFilterCatalog.fallbackSystemImage
+        }
+        return systemImage
     }
 
     /// Emoji from ``SportFilterCatalog`` for pickup pins and compact labels (empty when the catalog uses SF Symbol only).
     func emojiForSport(_ sport: String) -> String {
-        SportFilterCatalog.resolve(sport).emoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        let emoji = SportFilterCatalog.resolve(sport).emoji
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return emoji.isEmpty && SportFilterCatalog.isFallbackSport(sport)
+            ? SportFilterCatalog.fallbackEmoji
+            : emoji
     }
 
     /// Brand-style tint for map pins, game rows, and sport chips (see ``SportFilterCatalog``).
     func colorForSport(_ sport: String) -> Color {
-        SportFilterCatalog.resolve(sport).accent
+        SportFilterCatalog.isFallbackSport(sport)
+            ? SportFilterCatalog.fallbackAccent
+            : SportFilterCatalog.resolve(sport).accent
     }
 }

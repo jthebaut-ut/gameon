@@ -69,6 +69,7 @@ struct ProfilePokeIncomingItem: Identifiable, Hashable, Codable, Sendable {
     let pokerUsername: String?
     let pokerAvatarURL: String?
     let pokerAvatarThumbnailURL: String?
+    let isDeleted: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -80,9 +81,11 @@ struct ProfilePokeIncomingItem: Identifiable, Hashable, Codable, Sendable {
         case pokerUsername = "poker_username"
         case pokerAvatarURL = "poker_avatar_url"
         case pokerAvatarThumbnailURL = "poker_avatar_thumbnail_url"
+        case isDeleted = "is_deleted"
     }
 
     var publicHandleLine: String {
+        guard !isDeleted else { return "" }
         let stored = pokerUsername?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return stored.isEmpty ? "" : FanGeoHandleRules.displayHandle(stored: stored)
     }
@@ -119,7 +122,8 @@ final class ProfilePokesService {
     private static let table = "profile_pokes"
     private static let recipientClearTable = "profile_pokes_recipient_clear"
     private static let pokeSelect = "id,poker_user_id,poked_user_id,created_at,source"
-    private static let profileSelect = "id,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
+    private static let profileSelect = "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status,is_deleted"
+    private static let legacyProfileSelect = "id,email,display_name,username,avatar_url,avatar_thumbnail_url,admin_status"
 
     init(client: SupabaseClient = supabase) {
         self.client = client
@@ -293,12 +297,22 @@ final class ProfilePokesService {
     private func fetchPokerProfilesByID(_ pokerIDs: [UUID]) async -> [UUID: ProfilePokeProfileRow] {
         guard !pokerIDs.isEmpty else { return [:] }
         do {
-            let profileRows: [ProfilePokeProfileRow] = try await client
-                .from("user_profiles")
-                .select(Self.profileSelect)
-                .in("id", values: pokerIDs.map { $0.uuidString.lowercased() })
-                .execute()
-                .value
+            let profileRows: [ProfilePokeProfileRow]
+            do {
+                profileRows = try await client
+                    .from("user_profiles")
+                    .select(Self.profileSelect)
+                    .in("id", values: pokerIDs.map { $0.uuidString.lowercased() })
+                    .execute()
+                    .value
+            } catch {
+                profileRows = try await client
+                    .from("user_profiles")
+                    .select(Self.legacyProfileSelect)
+                    .in("id", values: pokerIDs.map { $0.uuidString.lowercased() })
+                    .execute()
+                    .value
+            }
             var profilesByID: [UUID: ProfilePokeProfileRow] = [:]
             profilesByID.reserveCapacity(profileRows.count)
             for row in profileRows {
@@ -316,6 +330,7 @@ final class ProfilePokesService {
         profilesByID: [UUID: ProfilePokeProfileRow]
     ) -> ProfilePokeIncomingItem {
         let profile = profilesByID[row.poker_user_id]
+        let isDeleted = profile?.isDeletedAccount == true
         let displayName = profile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let avatarURL = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
         let avatarThumbnailURL = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_thumbnail_url)
@@ -326,10 +341,11 @@ final class ProfilePokesService {
             pokedUserId: row.poked_user_id,
             createdAt: row.created_at,
             source: row.source,
-            pokerDisplayName: displayName.isEmpty ? "Fan" : displayName,
-            pokerUsername: profile?.username,
-            pokerAvatarURL: avatarURL.isEmpty ? nil : avatarURL,
-            pokerAvatarThumbnailURL: avatarThumbnailURL.isEmpty ? nil : avatarThumbnailURL
+            pokerDisplayName: isDeleted ? "Deleted User" : (displayName.isEmpty ? "Fan" : displayName),
+            pokerUsername: isDeleted ? nil : profile?.username,
+            pokerAvatarURL: isDeleted || avatarURL.isEmpty ? nil : avatarURL,
+            pokerAvatarThumbnailURL: isDeleted || avatarThumbnailURL.isEmpty ? nil : avatarThumbnailURL,
+            isDeleted: isDeleted
         )
     }
 
@@ -343,11 +359,19 @@ final class ProfilePokesService {
 
     private struct ProfilePokeProfileRow: Decodable, Sendable {
         let id: UUID
+        let email: String?
         let display_name: String?
         let username: String?
         let avatar_url: String?
         let avatar_thumbnail_url: String?
         let admin_status: String?
+        let is_deleted: Bool?
+
+        var isDeletedAccount: Bool {
+            if is_deleted == true { return true }
+            let email = OwnerBusinessEmail.normalized(email ?? "")
+            return email.hasPrefix("deleted-user-") || email.contains("@deleted.fangeo.local")
+        }
     }
 
     private struct ProfilePokesRecipientClearRow: Decodable, Sendable {
