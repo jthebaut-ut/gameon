@@ -130,6 +130,7 @@ struct PasswordResetCreatePasswordSheet: View {
             }
         } else {
             viewModel.isShowingPasswordResetCreateSheet = false
+            viewModel.passwordResetSheetMode = .requestLink
             viewModel.passwordResetUpdateError = ""
         }
     }

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Root view for the single-window app; delegates UI to ``MainTabView``.
 struct ContentView: View {
@@ -48,13 +49,7 @@ struct ContentView: View {
                 await viewModel.handlePasswordResetDeepLink(url)
             }
         }
-        .sheet(isPresented: $viewModel.isShowingPasswordResetCreateSheet) {
-            PasswordResetCreatePasswordSheet(viewModel: viewModel)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationBackground(FGAdaptiveSurface.sheetRoot)
-                .interactiveDismissDisabled(viewModel.isPasswordResetRecoverySessionActive)
-        }
+        .background(PasswordResetRecoveryOverlayWindowPresenter(viewModel: viewModel))
         .task {
 #if DEBUG
             print("[ChatViewModelInstanceDebug] ContentView root ChatViewModel id=\(ObjectIdentifier(chatViewModel))")
@@ -78,5 +73,82 @@ struct ContentView: View {
         #else
         return bootstrapCoordinator.isBootstrapping
         #endif
+    }
+}
+
+private struct PasswordResetRecoveryOverlayWindowPresenter: UIViewRepresentable {
+    @ObservedObject var viewModel: MapViewModel
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isHidden = true
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.update(viewModel: viewModel, sourceView: uiView)
+    }
+
+    final class Coordinator {
+        private var overlayWindow: UIWindow?
+        private weak var previousKeyWindow: UIWindow?
+        private var hostingController: UIHostingController<PasswordResetCreatePasswordSheet>?
+        private var isShowingOverlay = false
+
+        @MainActor
+        func update(viewModel: MapViewModel, sourceView: UIView) {
+            let shouldShowOverlay = viewModel.isShowingPasswordResetCreateSheet
+                || viewModel.isPasswordResetRecoverySessionActive
+            guard shouldShowOverlay else {
+                dismissOverlayIfNeeded()
+                return
+            }
+
+            let host = hostingController ?? UIHostingController(
+                rootView: PasswordResetCreatePasswordSheet(viewModel: viewModel)
+            )
+            host.rootView = PasswordResetCreatePasswordSheet(viewModel: viewModel)
+            host.view.backgroundColor = .clear
+            hostingController = host
+
+            if overlayWindow == nil {
+                guard let windowScene = sourceView.window?.windowScene
+                    ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first
+                else { return }
+
+                let window = UIWindow(windowScene: windowScene)
+                window.windowLevel = .alert + 100
+                window.backgroundColor = .clear
+                window.rootViewController = host
+                previousKeyWindow = windowScene.windows.first(where: \.isKeyWindow)
+                overlayWindow = window
+            } else {
+                overlayWindow?.rootViewController = host
+            }
+
+            overlayWindow?.makeKeyAndVisible()
+            if !isShowingOverlay {
+                isShowingOverlay = true
+                print("[PasswordResetDebug] rootOverlayPresented=true")
+                print("[PasswordResetDebug] recoveryOverlayAboveAll=true")
+            }
+        }
+
+        @MainActor
+        private func dismissOverlayIfNeeded() {
+            guard overlayWindow != nil || isShowingOverlay else { return }
+            overlayWindow?.isHidden = true
+            overlayWindow?.rootViewController = nil
+            overlayWindow = nil
+            hostingController = nil
+            previousKeyWindow?.makeKey()
+            previousKeyWindow = nil
+            isShowingOverlay = false
+            print("[PasswordResetDebug] rootOverlayDismissed=true")
+        }
     }
 }

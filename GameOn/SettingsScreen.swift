@@ -260,7 +260,13 @@ struct SettingsScreen: View {
                         SettingsProfileHero(
                             viewModel: viewModel,
                             venueOwnerOnNotifications: { showReportedCommentsSheet = true },
-                            venueOwnerOnResetPassword: { showVenueOwnerPasswordResetSheet = true },
+                            venueOwnerOnResetPassword: {
+                                guard viewModel.canPresentPasswordResetRequestSheet() else {
+                                    showVenueOwnerPasswordResetSheet = false
+                                    return
+                                }
+                                showVenueOwnerPasswordResetSheet = true
+                            },
                             venueOwnerOnDismissSheetsAfterLogout: {
                                 venueOwnerDashboardSheet = nil
                                 showVenueOwnerPasswordResetSheet = false
@@ -759,19 +765,10 @@ struct SettingsScreen: View {
             .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
         .sheet(isPresented: $showVenueOwnerPasswordResetSheet) {
-            NavigationStack {
-                Form { SettingsVenuePasswordResetCard(viewModel: viewModel) }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
-                    }
-                    .navigationTitle("Reset venue password")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Close") { showVenueOwnerPasswordResetSheet = false }
-                        }
-                    }
-            }
+            SettingsVenueOwnerPasswordResetSheet(
+                viewModel: viewModel,
+                isPresented: $showVenueOwnerPasswordResetSheet
+            )
         }
         .sheet(isPresented: $showDeleteAccountSheet) {
             SettingsAccountDeletionSheet(
@@ -4144,6 +4141,10 @@ private struct SettingsFanLoginCard: View {
 #if DEBUG
                     print("[FanPasswordResetDebug] forgotPasswordTapped=true")
 #endif
+                    guard viewModel.canPresentPasswordResetRequestSheet() else {
+                        showFanPasswordResetSheet = false
+                        return
+                    }
                     viewModel.userPasswordResetMessage = ""
                     viewModel.userPasswordResetError = ""
                     showFanPasswordResetSheet = true
@@ -4292,76 +4293,228 @@ private struct SettingsFanPasswordResetSheet: View {
     @Binding var isPresented: Bool
     @State private var resetEmail = ""
     @State private var isSending = false
+    @State private var resetLinkAutoDismissTask: Task<Void, Never>?
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: FGSpacing.md) {
-                FGSectionHeader(
-                    "Reset password",
-                    subtitle: "We’ll email a secure link to reset your FanGeo fan account password."
-                )
+        Group {
+            if viewModel.passwordResetSheetMode == .createPassword || viewModel.isPasswordResetRecoverySessionActive {
+                Color.clear.ignoresSafeArea()
+            } else {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: FGSpacing.md) {
+                        FGSectionHeader(
+                            "Reset password",
+                            subtitle: "We’ll email a secure link to reset your FanGeo fan account password."
+                        )
 
-                TextField("Email", text: $resetEmail)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .fanGeoInputFieldStyle()
+                        TextField("Email", text: $resetEmail)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                            .fanGeoInputFieldStyle()
 
-                FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
-                    Task {
-                        isSending = true
-                        await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .fan)
-                        isSending = false
+                        FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
+                            Task {
+                                isSending = true
+                                await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .fan)
+                                isSending = false
+                            }
+                        }
+
+                        if !viewModel.userPasswordResetMessage.isEmpty {
+                            SettingsSheetStatusBanner(
+                                title: "Reset link sent",
+                                message: viewModel.userPasswordResetMessage,
+                                tint: FGColor.accentGreen,
+                                systemImage: "checkmark.circle.fill"
+                            )
+                        }
+
+                        if !viewModel.userPasswordResetError.isEmpty {
+                            SettingsSheetStatusBanner(
+                                title: "Reset unavailable",
+                                message: viewModel.userPasswordResetError,
+                                tint: FGColor.dangerRed,
+                                systemImage: "xmark.circle.fill"
+                            )
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(FGSpacing.lg)
+                    .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+                    .navigationTitle("Reset password")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(viewModel.userPasswordResetMessage.isEmpty ? "Cancel" : "Done") {
+                                isPresented = false
+                            }
+                        }
                     }
                 }
+            }
+        }
+        .onAppear {
+            resetEmail = loginEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            viewModel.passwordResetRequestSheetDidAppear()
+        }
+        .onDisappear {
+            cancelResetLinkAutoDismiss(log: true)
+            viewModel.passwordResetRequestSheetDidDisappear()
+        }
+        .onChange(of: viewModel.userPasswordResetMessage) { _, message in
+            scheduleResetLinkAutoDismissIfNeeded(message: message, error: viewModel.userPasswordResetError)
+        }
+        .onChange(of: viewModel.userPasswordResetError) { _, error in
+            if !error.isEmpty {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+        .onChange(of: viewModel.passwordResetSheetMode) { _, mode in
+            if mode != .requestLink {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+    }
 
-                if !viewModel.userPasswordResetMessage.isEmpty {
-                    SettingsSheetStatusBanner(
-                        title: "Reset link sent",
-                        message: viewModel.userPasswordResetMessage,
-                        tint: FGColor.accentGreen,
-                        systemImage: "checkmark.circle.fill"
-                    )
-                }
+    private func scheduleResetLinkAutoDismissIfNeeded(message: String, error: String) {
+        guard !message.isEmpty,
+              error.isEmpty,
+              isPresented,
+              viewModel.passwordResetSheetMode == .requestLink,
+              !viewModel.isPasswordResetRecoverySessionActive
+        else { return }
 
-                if !viewModel.userPasswordResetError.isEmpty {
-                    SettingsSheetStatusBanner(
-                        title: "Reset unavailable",
-                        message: viewModel.userPasswordResetError,
-                        tint: FGColor.dangerRed,
-                        systemImage: "xmark.circle.fill"
-                    )
-                }
+        cancelResetLinkAutoDismiss(log: false)
+        print("[PasswordResetDebug] resetLinkSendSuccessAutoDismissScheduled=true")
+        resetLinkAutoDismissTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: PasswordResetRequestAutoDismiss.delayNanoseconds)
+            } catch {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
+            }
 
-                Spacer(minLength: 0)
+            guard isPresented,
+                  viewModel.passwordResetSheetMode == .requestLink,
+                  !viewModel.userPasswordResetMessage.isEmpty,
+                  viewModel.userPasswordResetError.isEmpty
+            else {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
             }
-            .padding(FGSpacing.lg)
-            .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
-            .navigationTitle("Reset password")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(viewModel.userPasswordResetMessage.isEmpty ? "Cancel" : "Done") {
-                        isPresented = false
-                    }
-                }
-            }
-            .onAppear {
-                resetEmail = loginEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-                viewModel.passwordResetRequestSheetDidAppear()
-            }
-            .onDisappear {
-                viewModel.passwordResetRequestSheetDidDisappear()
-            }
-            .onChange(of: viewModel.shouldDismissPasswordResetRequestSheetForRecovery) { _, shouldDismiss in
-                if shouldDismiss {
-                    isPresented = false
-                }
-            }
+
+            resetLinkAutoDismissTask = nil
+            isPresented = false
+            print("[PasswordResetDebug] resetLinkRequestSheetAutoDismissed=true")
+        }
+    }
+
+    private func cancelResetLinkAutoDismiss(log: Bool) {
+        guard let task = resetLinkAutoDismissTask else { return }
+        task.cancel()
+        resetLinkAutoDismissTask = nil
+        if log {
+            print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
         }
     }
 }
 
 // MARK: - Venue owner password reset
+
+private enum PasswordResetRequestAutoDismiss {
+    static let delayNanoseconds: UInt64 = 4_500_000_000
+}
+
+private struct SettingsVenueOwnerPasswordResetSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    @Binding var isPresented: Bool
+    @State private var resetLinkAutoDismissTask: Task<Void, Never>?
+
+    var body: some View {
+        Group {
+            if viewModel.passwordResetSheetMode == .createPassword || viewModel.isPasswordResetRecoverySessionActive {
+                Color.clear.ignoresSafeArea()
+            } else {
+                NavigationStack {
+                    Form { SettingsVenuePasswordResetCard(viewModel: viewModel) }
+                        .safeAreaInset(edge: .bottom, spacing: 0) {
+                            Color.clear.frame(height: SettingsScrollBottomLayout.sheetScrollComfortInset)
+                        }
+                        .navigationTitle("Reset venue password")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Close") { isPresented = false }
+                            }
+                        }
+                }
+            }
+        }
+        .onAppear {
+            viewModel.passwordResetRequestSheetDidAppear()
+        }
+        .onDisappear {
+            cancelResetLinkAutoDismiss(log: true)
+            viewModel.passwordResetRequestSheetDidDisappear()
+        }
+        .onChange(of: viewModel.venuePasswordResetMessage) { _, message in
+            scheduleResetLinkAutoDismissIfNeeded(message: message, error: viewModel.venuePasswordResetError)
+        }
+        .onChange(of: viewModel.venuePasswordResetError) { _, error in
+            if !error.isEmpty {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+        .onChange(of: viewModel.passwordResetSheetMode) { _, mode in
+            if mode != .requestLink {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+    }
+
+    private func scheduleResetLinkAutoDismissIfNeeded(message: String, error: String) {
+        guard !message.isEmpty,
+              error.isEmpty,
+              isPresented,
+              viewModel.passwordResetSheetMode == .requestLink,
+              !viewModel.isPasswordResetRecoverySessionActive
+        else { return }
+
+        cancelResetLinkAutoDismiss(log: false)
+        print("[PasswordResetDebug] resetLinkSendSuccessAutoDismissScheduled=true")
+        resetLinkAutoDismissTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: PasswordResetRequestAutoDismiss.delayNanoseconds)
+            } catch {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
+            }
+
+            guard isPresented,
+                  viewModel.passwordResetSheetMode == .requestLink,
+                  !viewModel.venuePasswordResetMessage.isEmpty,
+                  viewModel.venuePasswordResetError.isEmpty
+            else {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
+            }
+
+            resetLinkAutoDismissTask = nil
+            isPresented = false
+            print("[PasswordResetDebug] resetLinkRequestSheetAutoDismissed=true")
+        }
+    }
+
+    private func cancelResetLinkAutoDismiss(log: Bool) {
+        guard let task = resetLinkAutoDismissTask else { return }
+        task.cancel()
+        resetLinkAutoDismissTask = nil
+        if log {
+            print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+        }
+    }
+}
 
 /// Password recovery for the venue-owner Supabase account (same Auth table as fans; uses the venue business email field when present).
 private struct SettingsVenuePasswordResetCard: View {
@@ -4457,75 +4610,133 @@ private struct SettingsBusinessPasswordResetSheet: View {
     @Binding var isPresented: Bool
     @State private var resetEmail = ""
     @State private var isSending = false
+    @State private var resetLinkAutoDismissTask: Task<Void, Never>?
 
     private var prefilledBusinessEmail: String {
         OwnerBusinessEmail.normalized(viewModel.venueOwnerEmail)
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: FGSpacing.md) {
-                FGSectionHeader(
-                    "Reset business password",
-                    subtitle: "We’ll email a secure link to reset the password for your business owner account."
-                )
+        Group {
+            if viewModel.passwordResetSheetMode == .createPassword || viewModel.isPasswordResetRecoverySessionActive {
+                Color.clear.ignoresSafeArea()
+            } else {
+                NavigationStack {
+                    VStack(alignment: .leading, spacing: FGSpacing.md) {
+                        FGSectionHeader(
+                            "Reset business password",
+                            subtitle: "We’ll email a secure link to reset the password for your business owner account."
+                        )
 
-                TextField("Business email", text: $resetEmail)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.emailAddress)
-                    .fanGeoInputFieldStyle()
+                        TextField("Business email", text: $resetEmail)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                            .fanGeoInputFieldStyle()
 
-                FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
-                    Task {
-                        isSending = true
-                        await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .venueOwner)
-                        isSending = false
+                        FGPrimaryButton(title: "Send reset link", isDisabled: isSending) {
+                            Task {
+                                isSending = true
+                                await viewModel.sendPasswordResetEmail(resetEmail, accountKind: .venueOwner)
+                                isSending = false
+                            }
+                        }
+
+                        if !viewModel.venuePasswordResetMessage.isEmpty {
+                            SettingsSheetStatusBanner(
+                                title: "Reset link sent",
+                                message: viewModel.venuePasswordResetMessage,
+                                tint: FGColor.accentGreen,
+                                systemImage: "checkmark.circle.fill"
+                            )
+                        }
+
+                        if !viewModel.venuePasswordResetError.isEmpty {
+                            SettingsSheetStatusBanner(
+                                title: "Reset unavailable",
+                                message: viewModel.venuePasswordResetError,
+                                tint: FGColor.dangerRed,
+                                systemImage: "xmark.circle.fill"
+                            )
+                        }
+
+                        Spacer(minLength: 0)
+                    }
+                    .padding(FGSpacing.lg)
+                    .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
+                    .navigationTitle("Reset business password")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(viewModel.venuePasswordResetMessage.isEmpty ? "Cancel" : "Done") {
+                                isPresented = false
+                            }
+                        }
                     }
                 }
+            }
+        }
+        .onAppear {
+            resetEmail = prefilledBusinessEmail
+            viewModel.passwordResetRequestSheetDidAppear()
+        }
+        .onDisappear {
+            cancelResetLinkAutoDismiss(log: true)
+            viewModel.passwordResetRequestSheetDidDisappear()
+        }
+        .onChange(of: viewModel.venuePasswordResetMessage) { _, message in
+            scheduleResetLinkAutoDismissIfNeeded(message: message, error: viewModel.venuePasswordResetError)
+        }
+        .onChange(of: viewModel.venuePasswordResetError) { _, error in
+            if !error.isEmpty {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+        .onChange(of: viewModel.passwordResetSheetMode) { _, mode in
+            if mode != .requestLink {
+                cancelResetLinkAutoDismiss(log: true)
+            }
+        }
+    }
 
-                if !viewModel.venuePasswordResetMessage.isEmpty {
-                    SettingsSheetStatusBanner(
-                        title: "Reset link sent",
-                        message: viewModel.venuePasswordResetMessage,
-                        tint: FGColor.accentGreen,
-                        systemImage: "checkmark.circle.fill"
-                    )
-                }
+    private func scheduleResetLinkAutoDismissIfNeeded(message: String, error: String) {
+        guard !message.isEmpty,
+              error.isEmpty,
+              isPresented,
+              viewModel.passwordResetSheetMode == .requestLink,
+              !viewModel.isPasswordResetRecoverySessionActive
+        else { return }
 
-                if !viewModel.venuePasswordResetError.isEmpty {
-                    SettingsSheetStatusBanner(
-                        title: "Reset unavailable",
-                        message: viewModel.venuePasswordResetError,
-                        tint: FGColor.dangerRed,
-                        systemImage: "xmark.circle.fill"
-                    )
-                }
+        cancelResetLinkAutoDismiss(log: false)
+        print("[PasswordResetDebug] resetLinkSendSuccessAutoDismissScheduled=true")
+        resetLinkAutoDismissTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: PasswordResetRequestAutoDismiss.delayNanoseconds)
+            } catch {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
+            }
 
-                Spacer(minLength: 0)
+            guard isPresented,
+                  viewModel.passwordResetSheetMode == .requestLink,
+                  !viewModel.venuePasswordResetMessage.isEmpty,
+                  viewModel.venuePasswordResetError.isEmpty
+            else {
+                print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
+                return
             }
-            .padding(FGSpacing.lg)
-            .background(FGAdaptiveSurface.sheetRoot.ignoresSafeArea())
-            .navigationTitle("Reset business password")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(viewModel.venuePasswordResetMessage.isEmpty ? "Cancel" : "Done") {
-                        isPresented = false
-                    }
-                }
-            }
-            .onAppear {
-                resetEmail = prefilledBusinessEmail
-                viewModel.passwordResetRequestSheetDidAppear()
-            }
-            .onDisappear {
-                viewModel.passwordResetRequestSheetDidDisappear()
-            }
-            .onChange(of: viewModel.shouldDismissPasswordResetRequestSheetForRecovery) { _, shouldDismiss in
-                if shouldDismiss {
-                    isPresented = false
-                }
-            }
+
+            resetLinkAutoDismissTask = nil
+            isPresented = false
+            print("[PasswordResetDebug] resetLinkRequestSheetAutoDismissed=true")
+        }
+    }
+
+    private func cancelResetLinkAutoDismiss(log: Bool) {
+        guard let task = resetLinkAutoDismissTask else { return }
+        task.cancel()
+        resetLinkAutoDismissTask = nil
+        if log {
+            print("[PasswordResetDebug] resetLinkAutoDismissCancelled=true")
         }
     }
 }
@@ -5154,6 +5365,10 @@ private struct SettingsVenueOwnerCard: View {
 #if DEBUG
                     print("[BusinessPasswordResetDebug] forgotPasswordTapped=true")
 #endif
+                    guard viewModel.canPresentPasswordResetRequestSheet() else {
+                        showBusinessPasswordResetSheet = false
+                        return
+                    }
                     viewModel.venuePasswordResetMessage = ""
                     viewModel.venuePasswordResetError = ""
                     showBusinessPasswordResetSheet = true

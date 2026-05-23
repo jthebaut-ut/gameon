@@ -14,6 +14,11 @@ enum FanGeoAuthSessionState: String {
     case authRefreshFailed
 }
 
+enum PasswordResetSheetMode: String {
+    case requestLink
+    case createPassword
+}
+
 /// Central `@MainActor` observable object: map camera and selection, venue and schedule data, Supabase auth, venue-owner tools, favorites, and social (interests, comments, vibes).
 ///
 /// Feature code is split across `MapViewModel+*.swift` extensions. This declaration holds `@Published` state, `EventKit` store, and static sample references.
@@ -162,9 +167,8 @@ final class MapViewModel: ObservableObject {
     @Published var userPasswordResetMessage = ""
     @Published var userPasswordResetError = ""
     @Published var isShowingPasswordResetCreateSheet = false
+    @Published var passwordResetSheetMode: PasswordResetSheetMode = .requestLink
     @Published var isPasswordResetRequestSheetPresented = false
-    @Published var shouldDismissPasswordResetRequestSheetForRecovery = false
-    @Published var isPasswordResetCreateSheetPendingAfterRequestDismiss = false
     @Published var isPasswordResetRecoverySessionActive = false
     @Published var passwordResetUpdateMessage = ""
     @Published var passwordResetUpdateError = ""

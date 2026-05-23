@@ -2544,41 +2544,40 @@ extension MapViewModel {
     @MainActor
     func passwordResetRequestSheetDidAppear() {
         isPasswordResetRequestSheetPresented = true
+        print("[PasswordResetDebug] sheetMode=\(passwordResetSheetMode.rawValue)")
     }
 
     @MainActor
     func passwordResetRequestSheetDidDisappear() {
         isPasswordResetRequestSheetPresented = false
-        shouldDismissPasswordResetRequestSheetForRecovery = false
-        guard isPasswordResetCreateSheetPendingAfterRequestDismiss else { return }
-        isPasswordResetCreateSheetPendingAfterRequestDismiss = false
-        presentPasswordResetCreateSheetAfterDismissTick()
     }
 
     @MainActor
     private func queuePasswordResetCreateSheetForRecovery() {
+        passwordResetSheetMode = .createPassword
+        isShowingPasswordResetCreateSheet = true
+        print("[PasswordResetDebug] sheetMode=createPassword")
+        print("[PasswordResetDebug] rootRecoveryPresentation=true")
+        print("[PasswordResetDebug] blockingAllOtherAuthSheets=true")
         if isPasswordResetRequestSheetPresented {
-            isShowingPasswordResetCreateSheet = false
-            isPasswordResetCreateSheetPendingAfterRequestDismiss = true
-            shouldDismissPasswordResetRequestSheetForRecovery = true
-            print("[PasswordResetDebug] sheetConflictPrevented=true")
-            print("[PasswordResetDebug] requestSheetDismissedForRecovery=true")
-            return
+            print("[PasswordResetDebug] reusedExistingSheetForRecovery=true")
         }
+        print("[PasswordResetDebug] showingCreatePassword=true")
+    }
 
-        isPasswordResetCreateSheetPendingAfterRequestDismiss = false
-        shouldDismissPasswordResetRequestSheetForRecovery = false
-        presentPasswordResetCreateSheetAfterDismissTick()
+    var passwordResetRequestSheetPresentationBlocked: Bool {
+        isPasswordResetRecoverySessionActive || isShowingPasswordResetCreateSheet
     }
 
     @MainActor
-    private func presentPasswordResetCreateSheetAfterDismissTick() {
-        Task { @MainActor in
-            await Task.yield()
-            print("[PasswordResetDebug] presentingCreatePasswordAfterDismiss=true")
-            isShowingPasswordResetCreateSheet = true
-            print("[PasswordResetDebug] showingCreatePassword=true")
+    func canPresentPasswordResetRequestSheet() -> Bool {
+        guard !passwordResetRequestSheetPresentationBlocked else {
+            print("[PasswordResetDebug] blockedRequestSheetDuringRecovery=true")
+            return false
         }
+        passwordResetSheetMode = .requestLink
+        print("[PasswordResetDebug] sheetMode=requestLink")
+        return true
     }
 
     private func passwordResetRecoverySession(from url: URL, params: [String: String]) async throws -> Session {
@@ -2618,6 +2617,7 @@ extension MapViewModel {
             await MainActor.run {
                 isPasswordResetRecoverySessionActive = false
                 isShowingPasswordResetCreateSheet = false
+                passwordResetSheetMode = .requestLink
                 passwordResetUpdateMessage = "Your password has been updated. Please sign in again."
             }
         } catch {
@@ -2640,6 +2640,7 @@ extension MapViewModel {
         await MainActor.run {
             isPasswordResetRecoverySessionActive = false
             isShowingPasswordResetCreateSheet = false
+            passwordResetSheetMode = .requestLink
             passwordResetUpdateError = ""
         }
     }
