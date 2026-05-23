@@ -28,6 +28,7 @@ struct MainTabView: View {
     @State private var foregroundDeferredBatchTask: Task<Void, Never>?
     @State private var tabSwitchStartAt: Date?
     @State private var tabSwitchCachedData: Bool?
+    @State private var tabSwitchFromTab: AppTab?
 
     private static let pokesBadgePollIntervalUnseenSeconds = 22
     private static let pokesBadgePollIntervalIdleSeconds = 105
@@ -415,8 +416,13 @@ struct MainTabView: View {
     }
 
     private func beginTabSwitch(to tab: AppTab, reason: String) {
+        tabSwitchFromTab = selectedTab
         tabSwitchStartAt = Date()
         tabSwitchCachedData = tabHasCachedData(tab)
+        UIPerformanceDiagnostics.signpost(
+            "tab switch",
+            "from=\(tabSwitchFromTab?.rawValue ?? "unknown") to=\(tab.rawValue) reason=\(reason)"
+        )
 #if DEBUG
         print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
         print("[TabPerfDebug] tabSwitchStart=\(tabSwitchStartAt?.timeIntervalSince1970 ?? 0)")
@@ -427,6 +433,16 @@ struct MainTabView: View {
 
     private func logTabFirstContentVisible(tab: AppTab, startedAt: Date, usedCachedData: Bool) {
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        let from = tabSwitchFromTab?.rawValue ?? "unknown"
+        UIPerformanceDiagnostics.log("tabSwitch from=\(from) to=\(tab.rawValue) ms=\(ms) cached=\(usedCachedData)")
+        switch tab {
+        case .chat:
+            UIPerformanceDiagnostics.signpost("DM inbox open", "ms=\(ms)")
+        case .account:
+            UIPerformanceDiagnostics.signpost("Profile tab open", "ms=\(ms)")
+        default:
+            break
+        }
 #if DEBUG
         print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
         print("[TabPerfDebug] firstContentVisibleMs=\(ms)")
@@ -434,6 +450,7 @@ struct MainTabView: View {
 #endif
         tabSwitchStartAt = nil
         tabSwitchCachedData = nil
+        tabSwitchFromTab = nil
     }
 
     private func tabHasCachedData(_ tab: AppTab) -> Bool {
@@ -1087,17 +1104,17 @@ struct MainTabView: View {
 
     private func handleAppBecameActive() async {
         DebugLogGate.debug("[PerfPhase2D] foregroundBatch criticalStart")
+        let foregroundRefreshStart = UIPerformanceDiagnostics.timestamp()
+        defer {
+            let ms = UIPerformanceDiagnostics.elapsedMs(since: foregroundRefreshStart)
+            let currentTab = AppTab(rawValue: selectedTabStorage)?.rawValue ?? "unknown"
+            UIPerformanceDiagnostics.log("visibleTabForegroundRefresh ms=\(UIPerformanceDiagnostics.formattedMs(ms)) tab=\(currentTab)")
+        }
 
         let hasSession = await viewModel.hasValidSession()
         if !hasSession {
+            await viewModel.forceLogout(reason: "foregroundInvalidSession", source: "MainTabView.handleAppBecameActive")
             await MainActor.run {
-                viewModel.clearAuthenticatedSessionCaches()
-                viewModel.clearVenueOwnerDraftState()
-                viewModel.isLoggedIn = false
-                viewModel.isVenueOwnerLoggedIn = false
-                viewModel.venueOwnerMode = false
-                viewModel.isAdminLoggedIn = false
-                viewModel.clearPersistedAccountMode()
                 chatViewModel.clearForSignOut()
                 didStartChatSocialRealtime = false
                 chatSocialRealtimeDeferTask?.cancel()

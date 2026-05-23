@@ -786,7 +786,8 @@ struct LiveScreen: View {
 
     private static let worldCupFilterNationalTeamNames: Set<String> = {
         var names = Set<String>()
-        for code in Locale.isoRegionCodes {
+        for region in Locale.Region.isoRegions {
+            let code = region.identifier
             let locale = Locale(identifier: "en_US")
             if let country = locale.localizedString(forRegionCode: code) {
                 names.insert(

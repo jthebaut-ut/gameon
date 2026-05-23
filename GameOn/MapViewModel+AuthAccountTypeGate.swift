@@ -16,30 +16,7 @@ extension MapViewModel {
 
     /// Signs out and clears local session flags after a successful Supabase password sign-in that must be rejected for account-type mismatch.
     func undoPartialSupabaseSessionAfterAccountTypeMismatch() async {
-#if DEBUG
-        print("[AuthStateDebug] forcedLogoutReason=accountTypeMismatch")
-#endif
-        do {
-            try await supabase.auth.signOut()
-        } catch {
-#if DEBUG
-            print("[AuthAccountTypeGate] signOut after mismatch failed: \(error.localizedDescription)")
-#endif
-        }
-
-        await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            clearVenueOwnerDraftState()
-            isLoggedIn = false
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            isAdminLoggedIn = false
-            authSessionState = .signedOut
-#if DEBUG
-            print("[AuthStateDebug] authStateTransition=accountTypeMismatch->signedOut")
-#endif
-        }
-        clearPersistedAccountMode()
+        await forceLogout(reason: "accountTypeMismatch", source: "MapViewModel.undoPartialSupabaseSessionAfterAccountTypeMismatch")
     }
 
     /// Any `businesses` row for this email with a reserved lifecycle status (no auth uid required).

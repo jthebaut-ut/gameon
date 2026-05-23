@@ -278,21 +278,11 @@ extension MapViewModel {
         guard let session = try? await supabase.auth.session else {
 #if DEBUG
             print("[BusinessSignup] auth signup no session after signUp (email confirmation or client state); signing out")
-            print("[AuthStateDebug] forcedLogoutReason=businessSignupNoSessionAfterSignUp")
 #endif
-            try? await supabase.auth.signOut()
+            await forceLogout(reason: "businessSignupNoSessionAfterSignUp", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                authSessionState = .signedOut
-#if DEBUG
-                print("[AuthStateDebug] authStateTransition=businessSignupNoSessionAfterSignUp->signedOut")
-#endif
                 venueAuthErrorMessage = "Account was created but there is no active session yet. Confirm your email if required, then sign in."
             }
-            await persistAccountModeForActiveAuthSession(.fanUser)
             return
         }
 
@@ -329,21 +319,11 @@ extension MapViewModel {
         guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
 #if DEBUG
             print("[BusinessSignup] cover upload failed post-auth (uploadVenuePhoto returned nil; see ERROR UPLOADING PHOTO log above) cover_upload_url_exists=false")
-            print("[AuthStateDebug] forcedLogoutReason=businessSignupCoverUploadFailed")
 #endif
-            try? await supabase.auth.signOut()
+            await forceLogout(reason: "businessSignupCoverUploadFailed", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                authSessionState = .signedOut
-#if DEBUG
-                print("[AuthStateDebug] authStateTransition=businessSignupCoverUploadFailed->signedOut")
-#endif
                 venueAuthErrorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
             }
-            await persistAccountModeForActiveAuthSession(.fanUser)
             return
         }
 
@@ -426,22 +406,12 @@ extension MapViewModel {
         } catch {
 #if DEBUG
             print("[BusinessSignup] business insert error localized=\(error.localizedDescription) full=\(error)")
-            print("[AuthStateDebug] forcedLogoutReason=businessSignupBusinessInsertFailed")
 #endif
-            try? await supabase.auth.signOut()
+            await forceLogout(reason: "businessSignupBusinessInsertFailed", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                authSessionState = .signedOut
-#if DEBUG
-                print("[AuthStateDebug] authStateTransition=businessSignupBusinessInsertFailed->signedOut")
-#endif
                 venueAuthErrorMessage =
                     "Could not create your business record. This is usually blocked by database permissions (RLS). An admin must allow authenticated business owners to insert into `businesses`, or creation must run on a secure backend."
             }
-            await persistAccountModeForActiveAuthSession(.fanUser)
             print("BUSINESS INSERT ERROR (signup):", error)
             return
         }
@@ -578,18 +548,10 @@ extension MapViewModel {
             )
 
             guard let session = try? await supabase.auth.session else {
-#if DEBUG
-                print("[AuthStateDebug] forcedLogoutReason=businessLoginNoSessionAfterSignIn")
-#endif
-                try? await supabase.auth.signOut()
+                await forceLogout(reason: "businessLoginNoSessionAfterSignIn", source: "MapViewModel.loginVenueOwner")
                 await MainActor.run {
-                    isVenueOwnerLoggedIn = false
                     clearVenueOwnerOwnedBusinessCaches()
                     ownerVenueDatabaseId = nil
-                    authSessionState = .signedOut
-#if DEBUG
-                    print("[AuthStateDebug] authStateTransition=businessLoginNoSessionAfterSignIn->signedOut")
-#endif
                     venueAuthErrorMessage = "Unable to login venue owner."
                 }
                 return
@@ -2779,10 +2741,9 @@ extension MapViewModel {
         } catch {
 #if DEBUG
             print("[BusinessPhaseB1] load failed:", error)
+            print("[BusinessAuthCleanupDebug] ownerDataRefreshFailedPreservedSession=true error=\(error.localizedDescription)")
 #endif
             await MainActor.run {
-                clearVenueOwnerOwnedBusinessCaches()
-                ownerVenueDatabaseId = nil
                 isVenueOwnerBusinessDataLoading = false
             }
         }

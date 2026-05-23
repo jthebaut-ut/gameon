@@ -407,6 +407,7 @@ struct DiscoverScreen: View {
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @State private var isDiscoverHomeCrowdToggleInFlight = false
     @State private var venuePreviewDetailEvent: SportsEvent?
+    @State private var venueDetailOpenStartedAt: CFAbsoluteTime?
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
 
@@ -893,6 +894,15 @@ struct DiscoverScreen: View {
         .onChange(of: viewModel.selectedBar?.id) { _, _ in
             venuePreviewDetailEvent = nil
         }
+        .onChange(of: showVenueDetails) { _, isPresented in
+            if isPresented {
+                venueDetailOpenStartedAt = UIPerformanceDiagnostics.timestamp()
+                let venueId = viewModel.selectedBar?.id.uuidString.lowercased() ?? "nil"
+                UIPerformanceDiagnostics.signpost("Venue detail open", "venueId=\(venueId)")
+            } else {
+                venueDetailOpenStartedAt = nil
+            }
+        }
         .onChange(of: viewModel.discoverMapContentMode) { oldMode, newMode in
             if newMode != .venues {
                 mapDisplayModeHintTask?.cancel()
@@ -1173,6 +1183,12 @@ struct DiscoverScreen: View {
                     await viewModel.toggleHomeCrowd(for: selectedBar)
                 }
             )
+            .onAppear {
+                if let startedAt = venueDetailOpenStartedAt {
+                    let ms = UIPerformanceDiagnostics.elapsedMs(since: startedAt)
+                    UIPerformanceDiagnostics.log("venueDetailOpen ms=\(UIPerformanceDiagnostics.formattedMs(ms)) venueId=\(selectedBar.id)")
+                }
+            }
             .task {
                 await viewModel.refreshApprovedVenueOwnershipState(for: selectedBar)
                 await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "venue_detail_open")
@@ -3695,6 +3711,10 @@ struct DiscoverScreen: View {
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.34 : 0.14), radius: colorScheme == .dark ? 24 : 16, x: 0, y: colorScheme == .dark ? 14 : 9)
         .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.08 : 0.04), radius: 12, x: 0, y: 2)
         .onAppear {
+            UIPerformanceDiagnostics.signpost(
+                "Discover card open",
+                "venueId=\(resolved.id.uuidString.lowercased()) games=\(gamesToday.count)"
+            )
 #if DEBUG
             print("[VenuePreviewScrollDebug] fullCardContentScrollable=true")
             print("[VenuePreviewScrollDebug] bottomActionsPinned=true")
@@ -4364,6 +4384,7 @@ struct DiscoverScreen: View {
         event: SportsEvent,
         showsAttendanceFooter: Bool = true
     ) -> some View {
+        let uiPerfStart = UIPerformanceDiagnostics.timestamp()
         let safeTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? "Game"
             : event.title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -4447,6 +4468,14 @@ struct DiscoverScreen: View {
             print("[GoingPreviewDebug] count=\(safeGoingCount) avatarCount=\(safeGoingAvatarProfiles.count)")
 #endif
         }
+
+        let bodyBuildMs = UIPerformanceDiagnostics.elapsedMs(since: uiPerfStart)
+        UIPerformanceDiagnostics.log("venueCardBodyBuild eventId=\(eventID) ms=\(UIPerformanceDiagnostics.formattedMs(bodyBuildMs)) variant=hero")
+        UIPerformanceDiagnostics.logDiscoverScrollFrameDropIfNeeded(
+            elapsedMs: bodyBuildMs,
+            source: "venueCardBodyBuild",
+            eventId: eventID
+        )
 
         return VStack(spacing: 0) {
             card
@@ -4810,6 +4839,7 @@ struct DiscoverScreen: View {
     }
 
     private func venuePreviewCompactGameCard(bar: BarVenue, event: SportsEvent) -> some View {
+        let uiPerfStart = UIPerformanceDiagnostics.timestamp()
         let gameTitle = event.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let venueEventID = viewModel.peekVenueEventIDForRender(for: bar, gameTitle: gameTitle)
         let presentation = venuePreviewAttendancePresentation(bar: bar, event: event, venueEventID: venueEventID)
@@ -4853,6 +4883,14 @@ struct DiscoverScreen: View {
             FGInteractionHaptics.softImpact()
             openVenuePreviewGameDetail(event)
         }
+
+        let bodyBuildMs = UIPerformanceDiagnostics.elapsedMs(since: uiPerfStart)
+        UIPerformanceDiagnostics.log("venueCardBodyBuild eventId=\(eventID) ms=\(UIPerformanceDiagnostics.formattedMs(bodyBuildMs)) variant=compact")
+        UIPerformanceDiagnostics.logDiscoverScrollFrameDropIfNeeded(
+            elapsedMs: bodyBuildMs,
+            source: "venueCardBodyBuild",
+            eventId: eventID
+        )
 
         return VStack(spacing: 0) {
             card
@@ -5212,11 +5250,20 @@ struct DiscoverScreen: View {
         awayTheme: TeamTheme
     ) -> some View {
         let title = eventTitle.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let text = matchup.hasResolvedTeams
-            ? Text(homeTheme.uppercaseTitle).foregroundColor(homeTheme.textColorHint ?? homeTheme.accentColor)
-                + Text(" vs ").foregroundColor(.white.opacity(0.88))
-                + Text(awayTheme.uppercaseTitle).foregroundColor(awayTheme.textColorHint ?? awayTheme.accentColor)
-            : Text(title.isEmpty ? "GAME" : title).foregroundColor(.white)
+        let text: Text
+        if matchup.hasResolvedTeams {
+            var home = AttributedString(homeTheme.uppercaseTitle)
+            home.foregroundColor = homeTheme.textColorHint ?? homeTheme.accentColor
+            var separator = AttributedString(" vs ")
+            separator.foregroundColor = .white.opacity(0.88)
+            var away = AttributedString(awayTheme.uppercaseTitle)
+            away.foregroundColor = awayTheme.textColorHint ?? awayTheme.accentColor
+            home.append(separator)
+            home.append(away)
+            text = Text(home)
+        } else {
+            text = Text(title.isEmpty ? "GAME" : title).foregroundColor(.white)
+        }
 
         return text
             .font(.system(size: 24, weight: .black, design: .rounded))

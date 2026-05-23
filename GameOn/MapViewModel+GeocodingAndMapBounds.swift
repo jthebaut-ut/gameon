@@ -28,16 +28,16 @@ struct BusinessVenueReverseGeocodeResult: Sendable {
 }
 
 enum DiscoverVenueClusterTuning {
-    private struct DenseDistrictBounds {
+    private struct DenseDistrictBounds: Sendable {
         let latitude: ClosedRange<Double>
         let longitude: ClosedRange<Double>
 
-        func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
+        nonisolated func contains(_ coordinate: CLLocationCoordinate2D) -> Bool {
             latitude.contains(coordinate.latitude) && longitude.contains(coordinate.longitude)
         }
     }
 
-    private static let denseEntertainmentDistricts: [DenseDistrictBounds] = [
+    nonisolated private static let denseEntertainmentDistricts: [DenseDistrictBounds] = [
         // Las Vegas Strip / Paradise corridor.
         DenseDistrictBounds(latitude: 36.075...36.155, longitude: (-115.195)...(-115.140)),
         // Downtown Las Vegas / Fremont.
@@ -54,7 +54,7 @@ enum DiscoverVenueClusterTuning {
         DenseDistrictBounds(latitude: 33.485...33.515, longitude: (-111.945)...(-111.910)),
     ]
 
-    static func clusterKey(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> String {
+    nonisolated static func clusterKey(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> String {
         let gridSize = clusterGridSize(for: coordinate, visibleLatitudeDelta: visibleLatitudeDelta)
         let latKey = Int(coordinate.latitude / gridSize)
         let lonKey = Int(coordinate.longitude / gridSize)
@@ -62,7 +62,7 @@ enum DiscoverVenueClusterTuning {
         return "g\(gridKey)-\(latKey)-\(lonKey)"
     }
 
-    static func clusterGridSize(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> Double {
+    nonisolated static func clusterGridSize(for coordinate: CLLocationCoordinate2D, visibleLatitudeDelta: Double) -> Double {
         guard isDenseEntertainmentDistrict(coordinate) else {
             return visibleLatitudeDelta > 0.35 ? 0.08 : 0.035
         }
@@ -80,7 +80,7 @@ enum DiscoverVenueClusterTuning {
         }
     }
 
-    private static func isDenseEntertainmentDistrict(_ coordinate: CLLocationCoordinate2D) -> Bool {
+    nonisolated private static func isDenseEntertainmentDistrict(_ coordinate: CLLocationCoordinate2D) -> Bool {
         denseEntertainmentDistricts.contains { $0.contains(coordinate) }
     }
 }
@@ -620,16 +620,35 @@ extension MapViewModel {
             let coordinate = item.location.coordinate
             let radiusMiles = DiscoverCitySearchVenueReloadConfig.radiusMiles
             let bounds = Self.citySearchBounds(around: coordinate, radiusMiles: radiusMiles)
+            let cityState = Self.discoverCitySearchLocationText(from: item)
             return CitySearchVenueDebugContext(
                 query: address,
                 resolvedCoordinate: coordinate,
-                resolvedCity: item.placemark.locality ?? "",
-                resolvedState: item.placemark.administrativeArea ?? item.placemark.countryCode ?? "",
+                resolvedCity: cityState.city,
+                resolvedState: cityState.state,
                 radiusMiles: radiusMiles,
                 bounds: bounds
             )
         } catch {
             return nil
+        }
+    }
+
+    nonisolated private static func discoverCitySearchLocationText(from item: MKMapItem) -> (city: String, state: String) {
+        if #available(iOS 26.0, *) {
+            let representations = item.addressRepresentations
+            let city = trimmedNonEmpty(representations?.cityName) ?? ""
+            let lines = addressLines(from: representations, address: item.address)
+            let regionPostal = stateAndPostalCode(from: lines, city: city)
+            let state = stateAbbreviation(from: trimmedNonEmpty(representations?.cityWithContext), city: city)
+                ?? regionPostal.state
+                ?? ""
+            return (city, state)
+        } else {
+            return (
+                item.placemark.locality ?? "",
+                item.placemark.administrativeArea ?? item.placemark.countryCode ?? ""
+            )
         }
     }
 

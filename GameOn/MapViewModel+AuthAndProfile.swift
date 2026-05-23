@@ -412,20 +412,13 @@ extension MapViewModel {
         }
     }
 
-    /// Venue owner “Log out” from Settings clears owner UI state but keeps Supabase signed in; fan mode becomes the restored surface on next launch.
+    /// Legacy venue-owner logout entry point. Full account-tab logout uses the centralized Supabase teardown.
     func venueOwnerLocalSignOutPreservingSupabaseSession() {
-        logForcedLogoutReason("venueOwnerLocalSignOutPreservingSupabaseSession")
-        clearAuthenticatedSessionCaches()
-        clearVenueOwnerDraftState()
-        isVenueOwnerLoggedIn = false
-        venueOwnerMode = false
-        isLoggedIn = false
-        authSessionState = .signedOut
-#if DEBUG
-        print("[AuthStateDebug] authStateTransition=venueOwnerLocalSignOutPreservingSupabaseSession->signedOut")
-#endif
         Task {
-            await persistAccountModeForActiveAuthSession(.fanUser)
+            await forceLogout(
+                reason: "venueOwnerLocalSignOutPreservingSupabaseSession",
+                source: "MapViewModel.venueOwnerLocalSignOutPreservingSupabaseSession"
+            )
         }
     }
 
@@ -513,6 +506,51 @@ extension MapViewModel {
 #if DEBUG
         print("[AuthStateDebug] forcedLogoutReason=\(reason)")
 #endif
+    }
+
+    func forceLogout(reason: String, source: String) async {
+        let snapshot = await MainActor.run {
+            (
+                currentUserId: currentUserAuthId?.uuidString.lowercased() ?? "nil",
+                currentEmail: currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? venueOwnerEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+                    : currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines),
+                authState: authSessionState.rawValue
+            )
+        }
+
+        print("[AuthForceLogoutDebug] reason=\(reason)")
+        print("[AuthForceLogoutDebug] source=\(source)")
+        print("[AuthForceLogoutDebug] currentUserId=\(snapshot.currentUserId)")
+        print("[AuthForceLogoutDebug] currentEmail=\(snapshot.currentEmail.isEmpty ? "nil" : snapshot.currentEmail)")
+        print("[AuthForceLogoutDebug] authState=\(snapshot.authState)")
+        print("[AuthForceLogoutDebug] callStack=\(Thread.callStackSymbols.joined(separator: " | "))")
+
+        do {
+            try await supabase.auth.signOut()
+#if DEBUG
+            print("[AuthForceLogoutDebug] signOutSuccess=true")
+#endif
+        } catch {
+            print("[AuthForceLogoutDebug] signOutSuccess=false error=\(error.localizedDescription)")
+        }
+
+        await stopVenueOwnerAnalyticsRealtime()
+        await removeAllVenueEventCommentsRealtimeListeners()
+        await clearFanActiveSessionOnLogout()
+
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            clearVenueOwnerDraftState()
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            isAdminLoggedIn = false
+            markAuthSignedOut(reason: reason)
+        }
+
+        clearPersistedAccountMode()
+        UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
     }
 
     private func logSessionRestored(_ restored: Bool, reason: String, userId: UUID? = nil) {
@@ -811,16 +849,8 @@ extension MapViewModel {
             )
 
             guard let session = try? await supabase.auth.session else {
-#if DEBUG
-                print("[AuthStateDebug] forcedLogoutReason=fanLoginNoSessionAfterSignIn")
-#endif
-                try? await supabase.auth.signOut()
-                await MainActor.run {
-                    isLoggedIn = false
-                    currentUserAuthId = nil
-                markAuthSignedOut(reason: "loginUserSessionMissingAfterSignIn")
-                    authErrorMessage = "Unable to login."
-                }
+                await forceLogout(reason: "loginUserSessionMissingAfterSignIn", source: "MapViewModel.loginUser")
+                await MainActor.run { authErrorMessage = "Unable to login." }
                 return
             }
 
@@ -944,21 +974,9 @@ extension MapViewModel {
     }
 
     private func handleDeletedCurrentUser() async {
-        logForcedLogoutReason("deletedAccountConfirmed")
-        do {
-            try await supabase.auth.signOut()
-        } catch {
-            print("DELETED USER SIGNOUT FAILED:", error)
-        }
-
+        await forceLogout(reason: "deletedAccountConfirmed", source: "MapViewModel.handleDeletedCurrentUser")
         await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            clearVenueOwnerDraftState()
             resetProfilePresentationLoadStateForNewAuth()
-            isLoggedIn = false
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            isAdminLoggedIn = false
             transitionAuthSessionState(.deletedAccountConfirmed, reason: "profileVerifiedDeleted")
             authErrorMessage = "This account has been deleted.\nContact support if you believe this was a mistake."
         }
@@ -966,68 +984,28 @@ extension MapViewModel {
         print("[AuthStateDebug] deletedAccountConfirmed=true")
 #endif
 
-        clearPersistedAccountMode()
     }
 
     private func handleDisabledCurrentUser() async {
-        logForcedLogoutReason("disabledAccountConfirmed")
-        do {
-            try await supabase.auth.signOut()
-        } catch {
-            print("DISABLED USER SIGNOUT FAILED:", error)
-        }
-
+        await forceLogout(reason: "disabledAccountConfirmed", source: "MapViewModel.handleDisabledCurrentUser")
         await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            clearVenueOwnerDraftState()
-            isLoggedIn = false
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            markAuthSignedOut(reason: "disabledAccountConfirmed")
             authErrorMessage = "This account has been disabled by FanGeo support."
         }
-
-        clearPersistedAccountMode()
     }
 
     func logoutUser(reason: String = "explicitUserLogout", preserveAuthErrorMessage: Bool = false) async {
 #if DEBUG
         print("[Auth] logout requested")
 #endif
-        logForcedLogoutReason(reason)
         let preservedAuthErrorMessage = preserveAuthErrorMessage ? await MainActor.run { authErrorMessage } : ""
 
-        do {
-            try await supabase.auth.signOut()
-#if DEBUG
-            print("[Auth] Supabase signOut completed")
-#endif
-        } catch {
-            print("Logout failed:", error)
-#if DEBUG
-            print("[Auth] Supabase signOut failed (continuing local teardown): \(error.localizedDescription)")
-#endif
-        }
+        await forceLogout(reason: reason, source: "MapViewModel.logoutUser")
 
-        await stopVenueOwnerAnalyticsRealtime()
-        await removeAllVenueEventCommentsRealtimeListeners()
-        await clearFanActiveSessionOnLogout()
-
-        await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            clearVenueOwnerDraftState()
-            isLoggedIn = false
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            isAdminLoggedIn = false
-            markAuthSignedOut(reason: reason)
-            if preserveAuthErrorMessage, !preservedAuthErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if preserveAuthErrorMessage, !preservedAuthErrorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            await MainActor.run {
                 authErrorMessage = preservedAuthErrorMessage
             }
         }
-
-        clearPersistedAccountMode()
-        UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
 
 #if DEBUG
         print("[Auth] local auth state cleared")
@@ -1124,43 +1102,14 @@ extension MapViewModel {
 #if DEBUG
             print("[Auth] startup session restore skipped due to explicit logout")
 #endif
-            do {
-                try await supabase.auth.signOut()
-            } catch {
-#if DEBUG
-                print("[Auth] signOut during explicit-logout bootstrap failed: \(error.localizedDescription)")
-#endif
-            }
-
-            await stopVenueOwnerAnalyticsRealtime()
-            await removeAllVenueEventCommentsRealtimeListeners()
-
-            await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                clearVenueOwnerDraftState()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                isAdminLoggedIn = false
-                markAuthSignedOut(reason: "explicitLogoutBootstrap")
-            }
-            clearPersistedAccountMode()
+            await forceLogout(reason: "explicitLogoutBootstrap", source: "MapViewModel.bootstrapAuthSessionOnly")
             logSessionRestored(false, reason: "explicitLogout")
             return
         }
 
         switch await supabaseResolvedAuthSessionResult() {
         case .missingSession:
-            await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                clearVenueOwnerDraftState()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                isAdminLoggedIn = false
-                markAuthSignedOut(reason: "bootstrapMissingSession")
-            }
-            clearPersistedAccountMode()
+            await forceLogout(reason: "bootstrapMissingSession", source: "MapViewModel.bootstrapAuthSessionOnly")
             logSessionRestored(false, reason: "missingSession")
             print("NO ACTIVE SESSION")
             return
@@ -1173,7 +1122,6 @@ extension MapViewModel {
             return
 
         case .active(let session):
-            do {
                 let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
                 let sessionUid = session.user.id.uuidString.lowercased()
                 logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
@@ -1285,13 +1233,6 @@ extension MapViewModel {
                     }
                     return
                 }
-            } catch {
-                await MainActor.run {
-                    markAuthRefreshFailed(error, reason: "bootstrapActiveSessionApply")
-                }
-                logSessionRestored(false, reason: "bootstrapApplyError")
-                return
-            }
         }
     }
 
@@ -1304,16 +1245,7 @@ extension MapViewModel {
         case .missingSession:
             let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
             if !wasAuthenticated {
-                await MainActor.run {
-                    clearAuthenticatedSessionCaches()
-                    clearVenueOwnerDraftState()
-                    isLoggedIn = false
-                    isVenueOwnerLoggedIn = false
-                    venueOwnerMode = false
-                    isAdminLoggedIn = false
-                    markAuthSignedOut(reason: "personalizationMissingSession")
-                }
-                clearPersistedAccountMode()
+                await forceLogout(reason: "personalizationMissingSession", source: "MapViewModel.refreshUserPersonalizationInBackground")
             }
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
@@ -2624,28 +2556,12 @@ extension MapViewModel {
             try await supabase.auth.update(user: UserAttributes(password: newPassword))
             print("[PasswordResetDebug] success=true step=update_password")
 
-            do {
-#if DEBUG
-                print("[AuthStateDebug] forcedLogoutReason=passwordResetCompleted")
-#endif
-                try await supabase.auth.signOut()
-            } catch {
-                print("[PasswordResetDebug] success=false step=sign_out_after_update error=\(error.localizedDescription)")
-            }
+            await forceLogout(reason: "passwordResetCompleted", source: "MapViewModel.updateRecoveredPassword")
 
             await MainActor.run {
-                clearAuthenticatedSessionCaches()
-                isLoggedIn = false
-                isVenueOwnerLoggedIn = false
-                venueOwnerMode = false
-                isAdminLoggedIn = false
-                currentUserAuthId = nil
-                markAuthSignedOut(reason: "passwordResetCompleted")
                 isPasswordResetRecoverySessionActive = false
                 isShowingPasswordResetCreateSheet = false
                 passwordResetUpdateMessage = "Your password has been updated. Please sign in again."
-                clearPersistedAccountMode()
-                UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
             }
         } catch {
             await MainActor.run {
@@ -2658,30 +2574,16 @@ extension MapViewModel {
     func cancelPasswordResetRecovery() async {
         print("[PasswordResetDebug] step=cancel_recovery")
         if isPasswordResetRecoverySessionActive {
-            do {
-#if DEBUG
-                print("[AuthStateDebug] forcedLogoutReason=passwordResetCancelled")
-#endif
-                try await supabase.auth.signOut()
-                print("[PasswordResetDebug] success=true step=cancel_recovery")
-            } catch {
-                print("[PasswordResetDebug] success=false step=cancel_recovery error=\(error.localizedDescription)")
-            }
+            await forceLogout(reason: "passwordResetCancelled", source: "MapViewModel.cancelPasswordResetRecovery")
+            print("[PasswordResetDebug] success=true step=cancel_recovery")
+        } else {
+            print("[PasswordResetDebug] signOutSkipped=true reason=no_recovery_session")
         }
 
         await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            isLoggedIn = false
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            isAdminLoggedIn = false
-            currentUserAuthId = nil
-            markAuthSignedOut(reason: "passwordResetCancelled")
             isPasswordResetRecoverySessionActive = false
             isShowingPasswordResetCreateSheet = false
             passwordResetUpdateError = ""
-            clearPersistedAccountMode()
-            UserDefaults.standard.set(true, forKey: Self.didExplicitlyLogoutKey)
         }
     }
 

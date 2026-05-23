@@ -106,19 +106,9 @@ extension MapViewModel {
 #if DEBUG
         print("[AccountDeletionDebug] avatarCleanupSuccess=\(avatarCleanupSucceeded)")
         print("[AccountDeletionDebug] signOutStarted=true")
-        print("[AuthStateDebug] forcedLogoutReason=accountDeletionCompleted")
 #endif
 
-        do {
-            try await supabase.auth.signOut()
-        } catch {
-#if DEBUG
-            print("[AccountDeletionDebug] error=signOutFailed \(error.localizedDescription)")
-#endif
-        }
-
-        await clearFanAccountLocalStateAfterDeletion()
-        clearPersistedAccountMode()
+        await forceLogout(reason: "accountDeletionCompleted", source: "MapViewModel.requestDeleteMyAccount")
 #if DEBUG
         print("[AccountDeletionDebug] completed=true")
 #endif
@@ -148,13 +138,6 @@ extension MapViewModel {
 
     /// Resets fan-specific UI state and profile cache; does not clear venue-owner fields.
     private func clearFanAccountLocalStateAfterDeletion() async {
-        await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            isLoggedIn = false
-            authSessionState = .signedOut
-#if DEBUG
-            print("[AuthStateDebug] authStateTransition=accountDeletionCompleted->signedOut")
-#endif
-        }
+        await forceLogout(reason: "accountDeletionCompleted", source: "MapViewModel.clearFanAccountLocalStateAfterDeletion")
     }
 }

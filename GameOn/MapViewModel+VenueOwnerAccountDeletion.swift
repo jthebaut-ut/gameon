@@ -219,7 +219,7 @@ extension MapViewModel {
         print("[BusinessDeletionStateDebug] businessDeleted=true")
 #endif
         await clearBusinessAccountLocalStateAfterDeletion()
-        await logoutUser()
+        await forceLogout(reason: "businessAccountDeletionCompleted", source: "MapViewModel.deleteBusinessAccountCascade")
 #if DEBUG
         print("[BusinessDeletionStateDebug] signedOutAfterBusinessDelete=true")
 #endif
@@ -323,34 +323,11 @@ extension MapViewModel {
             throw VenueOwnerAccountDeletionError.server(response.error ?? "unknown", detail: response.detail)
         }
 
-        await clearVenueOwnerLocalStateAfterDeletion()
-
-        do {
-#if DEBUG
-            print("[AuthStateDebug] forcedLogoutReason=venueOwnerAccountDeletionCompleted")
-#endif
-            try await supabase.auth.signOut()
-        } catch {
-#if DEBUG
-            print("VenueOwnerDeletion: signOut after delete (expected to fail sometimes):", error)
-#endif
-        }
+        await forceLogout(reason: "venueOwnerAccountDeletionCompleted", source: "MapViewModel.requestPermanentVenueOwnerAccountDeletion")
     }
 
     private func clearVenueOwnerLocalStateAfterDeletion() async {
-        await MainActor.run {
-            clearAuthenticatedSessionCaches()
-            clearVenueOwnerDraftState()
-            isVenueOwnerLoggedIn = false
-            venueOwnerMode = false
-            authSessionState = .signedOut
-#if DEBUG
-            print("[AuthStateDebug] authStateTransition=venueOwnerAccountDeletionCompleted->signedOut")
-#endif
-            venueAuthErrorMessage = ""
-        }
-
-        clearPersistedAccountMode()
+        await forceLogout(reason: "venueOwnerAccountDeletionCompleted", source: "MapViewModel.clearVenueOwnerLocalStateAfterDeletion")
     }
 }
 

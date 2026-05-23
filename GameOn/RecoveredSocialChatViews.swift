@@ -216,11 +216,15 @@ struct FriendsTabView: View {
         }
         .onChange(of: isTabSelected) { _, on in
             if on {
+                UIPerformanceDiagnostics.signpost("DM inbox open", "source=tabSelected")
                 consumePendingDmOpenPreviewIfNeeded()
                 Task { await viewModel.ensureSignedInSocialRealtimeIfNeeded() }
             }
         }
         .onAppear {
+            if isTabSelected {
+                UIPerformanceDiagnostics.signpost("DM inbox open", "source=onAppear")
+            }
             viewModel.mapViewModel = mapViewModel
             consumePendingDmOpenPreviewIfNeeded()
             Task {

@@ -185,7 +185,7 @@ enum SportsTeamPickerData {
         }
     }
 
-    private static func normalize(_ value: String) -> String {
+    nonisolated private static func normalize(_ value: String) -> String {
         value
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .components(separatedBy: CharacterSet.alphanumerics.inverted)

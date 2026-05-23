@@ -847,6 +847,7 @@ struct VenueDetailView: View {
     }
 
     private func gameRow(_ game: VenueDetailGameItem) -> some View {
+        let uiPerfStart = UIPerformanceDiagnostics.timestamp()
         let matchup = venueDetailMatchup(for: game)
         let homeTheme = TeamTheme.resolve(matchup.home)
         let awayTheme = TeamTheme.resolve(matchup.away)
@@ -857,13 +858,22 @@ struct VenueDetailView: View {
             awayTheme: awayTheme
         )
 
-        return lightweightVenueGameRow(
+        let row = lightweightVenueGameRow(
             game: game,
             matchup: matchup,
             homeTheme: homeTheme,
             awayTheme: awayTheme,
             displayTitles: displayTitles
         )
+        let bodyBuildMs = UIPerformanceDiagnostics.elapsedMs(since: uiPerfStart)
+        let eventId = venueDetailGradientEventId(for: game)
+        UIPerformanceDiagnostics.log("venueCardBodyBuild eventId=\(eventId) ms=\(UIPerformanceDiagnostics.formattedMs(bodyBuildMs)) surface=venueDetail")
+        UIPerformanceDiagnostics.logDiscoverScrollFrameDropIfNeeded(
+            elapsedMs: bodyBuildMs,
+            source: "venueDetailGameRow",
+            eventId: eventId
+        )
+        return row
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .onTapGesture {
             withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {

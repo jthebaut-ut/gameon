@@ -48,19 +48,7 @@ extension MapViewModel {
         case .missingSession:
             let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
             if !wasAuthenticated {
-                await MainActor.run {
-                    clearAuthenticatedSessionCaches()
-                    clearVenueOwnerDraftState()
-                    isLoggedIn = false
-                    isVenueOwnerLoggedIn = false
-                    venueOwnerMode = false
-                    isAdminLoggedIn = false
-                    authSessionState = .signedOut
-#if DEBUG
-                    print("[AuthStateDebug] authStateTransition=startupPrefetchMissingSession->signedOut")
-#endif
-                }
-                clearPersistedAccountMode()
+                await forceLogout(reason: "startupPrefetchMissingSession", source: "MapViewModel.runLightweightStartupPrefetch")
             }
             logStartupPrefetchCompletion(
                 startedAt: startedAt,

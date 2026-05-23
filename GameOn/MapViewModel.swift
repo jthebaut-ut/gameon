@@ -774,6 +774,7 @@ final class MapViewModel: ObservableObject {
     var fanSingleSessionRealtimeDebounceTask: Task<Void, Never>?
     var isPerformingSingleSessionLogout = false
     var singleSessionIgnoreRealtimeUntil: Date?
+    var pendingSingleSessionMismatch: (remoteId: String, localId: String, source: String, detectedAt: Date)?
     var pickupFollowingRealtimeDebounceTask: Task<Void, Never>?
     /// First successful Games-to-Play load completed; suppresses marking everything unread on cold start.
     var pickupFollowingActivityPrimed: Bool = false

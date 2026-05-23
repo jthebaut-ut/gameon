@@ -359,12 +359,15 @@ struct VenueMatchupCardView: View {
     }
 
     private var matchupTitleText: Text {
-        Text(safeHomeTitle)
-            .foregroundColor(homeTheme.textColorHint ?? homeTheme.accentColor)
-        + Text(" vs ")
-            .foregroundColor(.white.opacity(0.96))
-        + Text(safeAwayTitle)
-            .foregroundColor(awayTheme.textColorHint ?? awayTheme.accentColor)
+        var home = AttributedString(safeHomeTitle)
+        home.foregroundColor = homeTheme.textColorHint ?? homeTheme.accentColor
+        var separator = AttributedString(" vs ")
+        separator.foregroundColor = .white.opacity(0.96)
+        var away = AttributedString(safeAwayTitle)
+        away.foregroundColor = awayTheme.textColorHint ?? awayTheme.accentColor
+        home.append(separator)
+        home.append(away)
+        return Text(home)
     }
 
     private var safeHomeTitle: String {

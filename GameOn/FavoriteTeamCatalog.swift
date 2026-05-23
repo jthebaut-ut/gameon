@@ -590,7 +590,7 @@ enum FavoriteTeamCatalog {
         "Tournaments"
     ]
 
-    private static func normalizeSearch(_ value: String) -> String {
+    nonisolated private static func normalizeSearch(_ value: String) -> String {
         value
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
@@ -599,7 +599,7 @@ enum FavoriteTeamCatalog {
             .lowercased()
     }
 
-    private static func duplicateKey(for team: FavoriteTeam) -> String {
+    nonisolated private static func duplicateKey(for team: FavoriteTeam) -> String {
         [
             team.sport.rawValue,
             team.kind.rawValue,

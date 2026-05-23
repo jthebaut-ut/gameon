@@ -27,6 +27,7 @@ enum FanUpdatesTapPerf {
         lastEventID = eventId
         lastTapTime = now
 
+        UIPerformanceDiagnostics.signpost("Fan Chat open", "eventId=\(eventId.uuidString.lowercased())")
 #if DEBUG
         print("[FanUpdatesTapPerf] tapReceived eventId=\(eventId.uuidString.lowercased())")
 #endif

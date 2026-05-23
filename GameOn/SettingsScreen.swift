@@ -564,6 +564,9 @@ struct SettingsScreen: View {
                 }
             }
             .onAppear {
+                if isAccountTabSelected {
+                    UIPerformanceDiagnostics.signpost("Profile tab open", "source=onAppear")
+                }
                 print("[FaceIDSettingsDebug] defaultPrivateChatFaceID=false")
                 logSettingsBusinessVenueSectionVisibilityForFanAccount()
                 Task {
@@ -572,6 +575,11 @@ struct SettingsScreen: View {
                         await viewModel.loadMyPickupGamesForSettings()
                     }
                 }
+            }
+        }
+        .onChange(of: isAccountTabSelected) { _, isSelected in
+            if isSelected {
+                UIPerformanceDiagnostics.signpost("Profile tab open", "source=tabSelected")
             }
         }
         .overlay(alignment: .top) {

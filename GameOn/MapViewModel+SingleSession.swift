@@ -156,6 +156,45 @@ extension MapViewModel {
         realtime: Bool
     ) async {
         guard !isPerformingSingleSessionLogout else { return }
+        guard !isAuthSessionRestoringForProfilePresentation,
+              authSessionState != .loadingSession,
+              authSessionState != .authRefreshFailed else {
+#if DEBUG
+            print("[SingleSessionDebug] mismatchIgnored=true reason=authLoadingOrRefreshFailed source=\(source)")
+#endif
+            return
+        }
+
+        let now = Date()
+        if let pending = pendingSingleSessionMismatch,
+           pending.remoteId == remoteId,
+           pending.localId == localId,
+           now.timeIntervalSince(pending.detectedAt) >= 5 {
+#if DEBUG
+            print("[SingleSessionDebug] mismatchConfirmedTwice=true source=\(source)")
+#endif
+            pendingSingleSessionMismatch = nil
+        } else {
+            if pendingSingleSessionMismatch == nil ||
+                pendingSingleSessionMismatch?.remoteId != remoteId ||
+                pendingSingleSessionMismatch?.localId != localId {
+                pendingSingleSessionMismatch = (remoteId: remoteId, localId: localId, source: source, detectedAt: now)
+#if DEBUG
+                print("[SingleSessionDebug] mismatchPending=true source=\(source)")
+                print("[SingleSessionDebug] mismatchConfirmDelaySeconds=5")
+#endif
+                Task { [weak self] in
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    await self?.enforceFanSingleSessionFromRemoteCheck(source: "\(source)_confirm")
+                }
+            } else {
+#if DEBUG
+                print("[SingleSessionDebug] mismatchPending=true source=\(source) waitingForConfirm=true")
+#endif
+            }
+            return
+        }
+
         isPerformingSingleSessionLogout = true
         defer { isPerformingSingleSessionLogout = false }
 
@@ -169,11 +208,10 @@ extension MapViewModel {
         await stopFanSingleSessionRealtime()
         FanSingleSessionStore.clearLocalSessionId()
 
+        await forceLogout(reason: "singleSessionMismatch", source: "MapViewModel.logoutDueToSingleSessionMismatch")
         await MainActor.run {
             authErrorMessage = Self.fanSingleDeviceLogoutMessage
         }
-
-        await logoutUser(reason: "singleSessionMismatch", preserveAuthErrorMessage: true)
     }
 
     // MARK: - Supabase

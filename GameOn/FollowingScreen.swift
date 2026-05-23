@@ -4,7 +4,7 @@ import MapKit
 import SwiftUI
 
 enum WatchingExpiredVenueGameDiagnostics {
-    static let enabled = false
+    nonisolated static let enabled = false
 }
 
 struct FollowingScreen: View {
