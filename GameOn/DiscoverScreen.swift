@@ -403,6 +403,7 @@ struct DiscoverScreen: View {
     @State private var discoverBottomAdRetryTask: Task<Void, Never>?
     @State private var showDiscoverSportMoreSheet = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
+    @State private var pickupHostPrefillPlace: PickupPlaceRow?
     @State private var discoverWeather: DiscoverWeather?
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @State private var isDiscoverHomeCrowdToggleInFlight = false
@@ -737,6 +738,17 @@ struct DiscoverScreen: View {
                     showDiscoverSportMoreSheet = false
                     withAnimation(.spring()) {
                         viewModel.sportChanged(to: sport)
+                    }
+                }
+            }
+            .sheet(item: $pickupHostPrefillPlace) { place in
+                NavigationStack {
+                    SettingsPickupGameFormView(viewModel: viewModel, mode: .add, pickupPlacePrefill: place) {
+                        pickupHostPrefillPlace = nil
+                        Task {
+                            await viewModel.loadMyPickupGamesForSettings()
+                            await viewModel.refreshPickupGamesForDiscoverMap(force: true)
+                        }
                     }
                 }
             }
@@ -1628,12 +1640,16 @@ struct DiscoverScreen: View {
         if !snapshotClusters.isEmpty {
 #if DEBUG
             DebugLogGate.noisy("[PerfPhase1B] mapUsingSnapshotClusters count=\(snapshotClusters.count)")
+            DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(snapshotClusters.count)")
+            DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=snapshot")
 #endif
             return snapshotClusters
         }
         let fallback = viewModel.clusteredBars()
 #if DEBUG
         DebugLogGate.noisy("[PerfPhase1B] mapUsingFallbackClusters count=\(fallback.count)")
+        DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(fallback.count)")
+        DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=fallback")
 #endif
         return fallback
     }
@@ -3206,7 +3222,7 @@ struct DiscoverScreen: View {
                 .tint(Color.gray)
 
                 Button {
-                    viewModel.showSocialActionToast("Pickup game creation from places is coming soon.", isError: false)
+                    openPickupHostFlow(from: place)
                 } label: {
                     Text("Create Pickup Game Here")
                         .font(FGTypography.cardTitle)
@@ -3223,6 +3239,25 @@ struct DiscoverScreen: View {
                 .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.42), lineWidth: 1)
         }
         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.14), radius: 18, y: 10)
+    }
+
+    private func openPickupHostFlow(from place: PickupPlaceRow) {
+#if DEBUG
+        print("[PickupHostPrefillDebug] selectedPlace=\(place.id.uuidString.lowercased()) name=\(place.name) sport=\(place.primarySport) city=\(place.city ?? "nil") state=\(place.state ?? "nil") latitude=\(place.latitude) longitude=\(place.longitude)")
+#endif
+        guard viewModel.isAuthenticatedForSocialFeatures else {
+            viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
+            return
+        }
+        guard viewModel.canFanUsePickupGamesUI else {
+            viewModel.logBusinessUserGateBlocked(action: "createPickupGameFromPickupPlace")
+            viewModel.showSocialActionToast(BusinessFanGateCopy.pickupFanOnly, isError: true)
+            return
+        }
+#if DEBUG
+        print("[PickupHostPrefillDebug] openingHostFlow=true placeId=\(place.id.uuidString.lowercased())")
+#endif
+        pickupHostPrefillPlace = place
     }
 
     private func discoverPickupPreviewCard(

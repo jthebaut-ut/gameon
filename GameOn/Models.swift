@@ -205,6 +205,7 @@ nonisolated struct PickupPlaceRow: Identifiable, Equatable {
     let sportTags: [String]
     let city: String?
     let state: String?
+    let zip: String?
     let latitude: Double
     let longitude: Double
 

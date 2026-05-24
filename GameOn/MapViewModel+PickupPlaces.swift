@@ -3,12 +3,13 @@ import Foundation
 import MapKit
 import Supabase
 import SwiftUI
+import UIKit
 
 private let pickupPlacesSelectColumnsWithSportTags =
-    "id,name,place_type,sport_tags,city,state,latitude,longitude"
+    "id,name,place_type,sport_tags,city,state,zip,latitude,longitude"
 
 private let pickupPlacesSelectColumnsWithSport =
-    "id,name,place_type,sport,city,state,latitude,longitude"
+    "id,name,place_type,sport,city,state,zip,latitude,longitude"
 
 private struct PickupPlaceTaggedDBRow: Decodable {
     let id: UUID
@@ -17,6 +18,7 @@ private struct PickupPlaceTaggedDBRow: Decodable {
     let sport_tags: [String]?
     let city: String?
     let state: String?
+    let zip: String?
     let latitude: Double?
     let longitude: Double?
 }
@@ -28,6 +30,7 @@ private struct PickupPlaceSportDBRow: Decodable {
     let sport: String?
     let city: String?
     let state: String?
+    let zip: String?
     let latitude: Double?
     let longitude: Double?
 }
@@ -64,6 +67,7 @@ extension MapViewModel {
                 sportTags: row.sport_tags ?? [],
                 city: row.city,
                 state: row.state,
+                zip: row.zip,
                 latitude: latitude,
                 longitude: longitude
             )
@@ -84,6 +88,7 @@ extension MapViewModel {
                 sportTags: sport.isEmpty ? [] : [sport],
                 city: row.city,
                 state: row.state,
+                zip: row.zip,
                 latitude: latitude,
                 longitude: longitude
             )
@@ -243,10 +248,30 @@ extension MapViewModel {
     }
 
     func openDirections(to place: PickupPlaceRow) {
-        let location = CLLocation(latitude: place.latitude, longitude: place.longitude)
-        let mapItem = MKMapItem(location: location, address: nil)
-        mapItem.name = place.name
-        mapItem.openInMaps()
+        let coordinate = place.coordinate
+        if CLLocationCoordinate2DIsValid(coordinate),
+           let url = URL(string: "maps://?daddr=\(coordinate.latitude),\(coordinate.longitude)") {
+#if DEBUG
+            print("[PickupLocationDebug] directionsUsingCoordinates=true latitude=\(coordinate.latitude) longitude=\(coordinate.longitude)")
+#endif
+            UIApplication.shared.open(url)
+            return
+        }
+
+        let addressFallback = [place.name, place.city, place.state, place.zip]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        guard !addressFallback.isEmpty else { return }
+        var components = URLComponents()
+        components.scheme = "maps"
+        components.queryItems = [URLQueryItem(name: "daddr", value: addressFallback)]
+#if DEBUG
+        print("[PickupLocationDebug] directionsUsingCoordinates=false addressFallback=\(addressFallback)")
+#endif
+        if let url = components.url {
+            UIApplication.shared.open(url)
+        }
     }
 
     func pruneSelectedPickupPlaceIfNeeded() {

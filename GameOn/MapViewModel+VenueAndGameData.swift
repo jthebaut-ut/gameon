@@ -626,6 +626,33 @@ extension MapViewModel {
         }
     }
 
+#if DEBUG
+    private func communityVenueDebugStatesFetched(_ rows: [VenueRow]) -> String {
+        let counts = Dictionary(grouping: rows) { row in
+            let raw = row.state?.trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? row.region?.trimmingCharacters(in: .whitespacesAndNewlines)
+                ?? ""
+            return raw.isEmpty ? "nil" : raw.uppercased()
+        }
+            .mapValues(\.count)
+        return counts
+            .sorted { lhs, rhs in
+                if lhs.value != rhs.value { return lhs.value > rhs.value }
+                return lhs.key < rhs.key
+            }
+            .map { "\($0.key):\($0.value)" }
+            .joined(separator: ",")
+    }
+
+    private func communityVenueDebugActiveRows(_ rows: [VenueRow]) -> Int {
+        rows.filter { row in
+            let normalized = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            return normalized.isEmpty || normalized == "active"
+        }
+        .count
+    }
+#endif
+
     private func pruneDiscoverViewportVenueRowsCacheIfNeeded() {
         guard discoverViewportVenueRowsCache.count > DiscoverViewportVenueCacheConfig.maxEntries else { return }
         let sorted = discoverViewportVenueRowsCache
@@ -2371,6 +2398,11 @@ extension MapViewModel {
                 let filtered = filterVenueRows(entry.rows, within: requestedBounds)
                 #if DEBUG
                 print("[Perf] Venue viewport cache hit key=\(entry.key) requestedRows=\(filtered.count) cachedRows=\(entry.rows.count)")
+                print("[CommunityVenueDebug] fetchBounds=cacheHit requested=\(String(format: "%.4f", requestedBounds.minLat)),\(String(format: "%.4f", requestedBounds.maxLat)),\(String(format: "%.4f", requestedBounds.minLon)),\(String(format: "%.4f", requestedBounds.maxLon)) coverage=\(String(format: "%.4f", entry.coverageBounds.minLat)),\(String(format: "%.4f", entry.coverageBounds.maxLat)),\(String(format: "%.4f", entry.coverageBounds.minLon)),\(String(format: "%.4f", entry.coverageBounds.maxLon)) source=\(entry.source)")
+                print("[CommunityVenueDebug] queryLimit=\(limit) cacheHit=true")
+                print("[CommunityVenueDebug] rowsFetched=\(filtered.count) cachedRows=\(entry.rows.count)")
+                print("[CommunityVenueDebug] statesFetched=\(communityVenueDebugStatesFetched(filtered))")
+                print("[CommunityVenueDebug] activeRows=\(communityVenueDebugActiveRows(filtered))")
                 #endif
                 return filtered
             }
@@ -2380,6 +2412,8 @@ extension MapViewModel {
         let cacheKey = discoverViewportVenueCacheKey(for: coverageBounds, source: source)
         #if DEBUG
         print("[Perf] Venue viewport cache miss key=\(cacheKey)")
+        print("[CommunityVenueDebug] fetchBounds=requested=\(String(format: "%.4f", requestedBounds.minLat)),\(String(format: "%.4f", requestedBounds.maxLat)),\(String(format: "%.4f", requestedBounds.minLon)),\(String(format: "%.4f", requestedBounds.maxLon)) coverage=\(String(format: "%.4f", coverageBounds.minLat)),\(String(format: "%.4f", coverageBounds.maxLat)),\(String(format: "%.4f", coverageBounds.minLon)),\(String(format: "%.4f", coverageBounds.maxLon)) source=\(source)")
+        print("[CommunityVenueDebug] queryLimit=\(limit) cacheHit=false")
         #endif
 
         let fetchedRows = try await fetchVenueRows(
@@ -2392,6 +2426,12 @@ extension MapViewModel {
             selectColumns: selectColumns,
             limit: limit
         )
+        let filteredRows = filterVenueRows(fetchedRows, within: requestedBounds)
+#if DEBUG
+        print("[CommunityVenueDebug] rowsFetched=\(filteredRows.count) rawRowsFetched=\(fetchedRows.count)")
+        print("[CommunityVenueDebug] statesFetched=\(communityVenueDebugStatesFetched(filteredRows))")
+        print("[CommunityVenueDebug] activeRows=\(communityVenueDebugActiveRows(filteredRows))")
+#endif
 
         discoverViewportVenueRowsCache[cacheKey] = DiscoverViewportVenueRowsCacheEntry(
             key: cacheKey,
@@ -2402,7 +2442,7 @@ extension MapViewModel {
             fetchedAt: Date()
         )
         pruneDiscoverViewportVenueRowsCacheIfNeeded()
-        return filterVenueRows(fetchedRows, within: requestedBounds)
+        return filteredRows
     }
 
     func fetchVenueRowsInCurrentBounds(

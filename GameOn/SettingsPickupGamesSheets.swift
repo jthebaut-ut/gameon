@@ -1346,6 +1346,7 @@ private enum PickupCostKind: String, CaseIterable, Identifiable {
 struct SettingsPickupGameFormView: View {
     @ObservedObject var viewModel: MapViewModel
     let mode: PickupGameFormMode
+    var pickupPlacePrefill: PickupPlaceRow? = nil
     var onFinished: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -1375,7 +1376,9 @@ struct SettingsPickupGameFormView: View {
     @State private var suppressGameDatePickerChangeLog = false
     @State private var coordinatesLockedFromMap = false
     @State private var mapPinnedCoordinate: CLLocationCoordinate2D?
+    @State private var appliedPickupPlacePrefill: PickupPlaceRow?
     @State private var pickupSafetyAcknowledged = false
+    @State private var didInitializeForm = false
 
     private var organizerPostStartLockedRow: PickupGameRow? {
         if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
@@ -1417,9 +1420,13 @@ struct SettingsPickupGameFormView: View {
         !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty && !trimmedZipCode.isEmpty
     }
 
+    private var hasPrefilledPickupPlaceLocation: Bool {
+        appliedPickupPlacePrefill != nil && coordinatesLockedFromMap && mapPinnedCoordinate != nil && !trimmedAddress.isEmpty
+    }
+
     /// Post/Save stays tappable once the major address fields are present so ZIP validation can show a clear error.
     private var hasPlacedLocationForPostButton: Bool {
-        !trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty
+        hasPrefilledPickupPlaceLocation || (!trimmedAddress.isEmpty && !trimmedCity.isEmpty && !trimmedState.isEmpty)
     }
 
     private var requiresPickupSafetyAcknowledgment: Bool {
@@ -1428,6 +1435,9 @@ struct SettingsPickupGameFormView: View {
     }
 
     private var pickMapSeedCoordinate: CLLocationCoordinate2D {
+        if let pin = mapPinnedCoordinate {
+            return pin
+        }
         if case .edit(let row) = mode,
            let la = row.latitude,
            let lo = row.longitude {
@@ -1444,6 +1454,7 @@ struct SettingsPickupGameFormView: View {
             get: { address },
             set: { newValue in
                 address = newValue
+                appliedPickupPlacePrefill = nil
                 coordinatesLockedFromMap = false
                 mapPinnedCoordinate = nil
             }
@@ -1455,6 +1466,7 @@ struct SettingsPickupGameFormView: View {
             get: { city },
             set: { newValue in
                 city = newValue
+                appliedPickupPlacePrefill = nil
                 coordinatesLockedFromMap = false
                 mapPinnedCoordinate = nil
             }
@@ -1466,6 +1478,7 @@ struct SettingsPickupGameFormView: View {
             get: { state },
             set: { newValue in
                 state = newValue
+                appliedPickupPlacePrefill = nil
                 coordinatesLockedFromMap = false
                 mapPinnedCoordinate = nil
             }
@@ -1477,6 +1490,7 @@ struct SettingsPickupGameFormView: View {
             get: { zipCode },
             set: { newValue in
                 zipCode = newValue
+                appliedPickupPlacePrefill = nil
                 coordinatesLockedFromMap = false
                 mapPinnedCoordinate = nil
             }
@@ -1484,6 +1498,7 @@ struct SettingsPickupGameFormView: View {
     }
 
     private var locationGuidanceFootnote: String? {
+        if hasPrefilledPickupPlaceLocation { return nil }
         if hasCompleteTypedAddress { return nil }
         if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
             return "Location missing"
@@ -1611,7 +1626,12 @@ struct SettingsPickupGameFormView: View {
                 }
 
                 Section("Location") {
+                    if let appliedPickupPlacePrefill {
+                        pickupPlacePrefillCard(appliedPickupPlacePrefill)
+                    }
+
                     Button {
+                        appliedPickupPlacePrefill = nil
                         showPickupMapLocationPicker = true
                     } label: {
                         Label("Pick location from map", systemImage: "mappin.and.ellipse")
@@ -1627,7 +1647,7 @@ struct SettingsPickupGameFormView: View {
                         .keyboardType(.numbersAndPunctuation)
 
                     if coordinatesLockedFromMap {
-                        Text("Using exact coordinates from your map pin.")
+                        Text(hasPrefilledPickupPlaceLocation ? "Exact map location saved" : "Using exact coordinates from your map pin.")
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.accentBlue)
                     }
@@ -1714,7 +1734,10 @@ struct SettingsPickupGameFormView: View {
             }
         }
         .onAppear {
-            applyModeToFields()
+            if !didInitializeForm {
+                applyModeToFields()
+                didInitializeForm = true
+            }
             if case .edit(let row) = mode {
                 let now = Date()
                 let actions: String
@@ -1736,6 +1759,7 @@ struct SettingsPickupGameFormView: View {
                 initialCoordinate: pickMapSeedCoordinate,
                 onCancel: { showPickupMapLocationPicker = false },
                 onConfirm: { coord, street, cityName, stateAbbr, postalCode in
+                    appliedPickupPlacePrefill = nil
                     if let s = street, !s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         address = s
                     }
@@ -1753,6 +1777,75 @@ struct SettingsPickupGameFormView: View {
                     showPickupMapLocationPicker = false
                 }
             )
+        }
+    }
+
+    @ViewBuilder
+    private func pickupPlacePrefillCard(_ place: PickupPlaceRow) -> some View {
+        let cityState = place.cityStateDisplay
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                SportArtworkIconView(sport: sport, diameter: 32)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Playing at \(place.name) \(sport)")
+                        .font(FGTypography.body.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !cityState.isEmpty {
+                        Text(cityState)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            pickupPlaceMiniMapPreview(place)
+
+            Button {
+                clearPickupPlacePrefill()
+            } label: {
+                Label("Clear or change location", systemImage: "xmark.circle")
+                    .font(FGTypography.caption.weight(.semibold))
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(FGSpacing.sm)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
+        )
+    }
+
+    private func pickupPlaceMiniMapPreview(_ place: PickupPlaceRow) -> some View {
+        let region = MKCoordinateRegion(
+            center: place.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.012, longitudeDelta: 0.012)
+        )
+        return Map(initialPosition: .region(region)) {
+            Annotation(place.name, coordinate: place.coordinate) {
+                Image(systemName: "mappin.circle.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(FGColor.accentBlue, Color.white)
+                    .shadow(color: .black.opacity(0.24), radius: 4, y: 2)
+            }
+            .annotationTitles(.hidden)
+        }
+        .allowsHitTesting(false)
+        .frame(height: 118)
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.55 : 0.4), lineWidth: 1)
+        )
+        .onAppear {
+#if DEBUG
+            print("[PickupLocationDebug] miniMapShown=true latitude=\(place.latitude) longitude=\(place.longitude)")
+#endif
         }
     }
 
@@ -1780,6 +1873,9 @@ struct SettingsPickupGameFormView: View {
             coordinatesLockedFromMap = false
             mapPinnedCoordinate = nil
             pickupSafetyAcknowledged = false
+            if let pickupPlacePrefill {
+                applyPickupPlacePrefill(pickupPlacePrefill)
+            }
         case .edit(let row):
             title = row.title
             sport = row.sport
@@ -1819,6 +1915,48 @@ struct SettingsPickupGameFormView: View {
             mapPinnedCoordinate = nil
             pickupSafetyAcknowledged = true
         }
+    }
+
+    private func applyPickupPlacePrefill(_ place: PickupPlaceRow) {
+        let placeSport = place.primarySport.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !placeSport.isEmpty && placeSport != "Pickup" {
+            sport = placeSport
+        } else if viewModel.selectedSport != "All" {
+            sport = viewModel.selectedSport
+        }
+
+        let trimmedName = place.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedName.isEmpty {
+            address = trimmedName
+            title = "\(sport) at \(trimmedName)"
+        }
+        city = place.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        state = place.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let placeZip = place.zip?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+#if DEBUG
+        print("[PickupHostPrefillDebug] zipFromPlace=\(placeZip.isEmpty ? "nil" : placeZip)")
+#endif
+        zipCode = placeZip
+        mapPinnedCoordinate = place.coordinate
+        coordinatesLockedFromMap = true
+        appliedPickupPlacePrefill = place
+#if DEBUG
+        print("[PickupHostPrefillDebug] zipPrefillApplied=\(!placeZip.isEmpty)")
+        if placeZip.isEmpty || city.isEmpty {
+            print("[PickupLocationDebug] zipMissingAllowed=true cityMissing=\(city.isEmpty)")
+        }
+        print("[PickupHostPrefillDebug] prefillApplied=true placeId=\(place.id.uuidString.lowercased()) sport=\(sport) city=\(city) state=\(state) zip=\(zipCode) latitude=\(place.latitude) longitude=\(place.longitude)")
+#endif
+    }
+
+    private func clearPickupPlacePrefill() {
+        appliedPickupPlacePrefill = nil
+        address = ""
+        city = ""
+        state = ""
+        zipCode = ""
+        coordinatesLockedFromMap = false
+        mapPinnedCoordinate = nil
     }
 
     private var pickupSafetyNotice: some View {
@@ -2028,11 +2166,14 @@ struct SettingsPickupGameFormView: View {
         let missingZip = trimmedZipCode.isEmpty
 #if DEBUG
         print("[PickupLocationDebug] postValidationMissingZip=\(missingZip)")
+        if hasPrefilledPickupPlaceLocation, missingZip || trimmedCity.isEmpty {
+            print("[PickupLocationDebug] zipMissingAllowed=true cityMissing=\(trimmedCity.isEmpty)")
+        }
 #endif
-        guard hasCompleteTypedAddress else {
+        guard hasCompleteTypedAddress || hasPrefilledPickupPlaceLocation else {
             if trimmedAddress.isEmpty && trimmedCity.isEmpty && trimmedState.isEmpty && trimmedZipCode.isEmpty {
                 errorText = "Location missing"
-            } else if missingZip {
+            } else if missingZip && !hasPrefilledPickupPlaceLocation {
                 errorText = "Enter the ZIP code for this pickup game."
             } else {
                 errorText = "Enter a complete street address, city, state, and ZIP code."
@@ -2040,7 +2181,9 @@ struct SettingsPickupGameFormView: View {
             return
         }
 
-        let addressLine = [trimmedAddress, trimmedCity, trimmedState, trimmedZipCode].joined(separator: ", ")
+        let addressLine = [trimmedAddress, trimmedCity, trimmedState, trimmedZipCode]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
 
         let latFinal: Double
         let lonFinal: Double
@@ -2065,6 +2208,12 @@ struct SettingsPickupGameFormView: View {
         do {
             switch mode {
             case .add:
+#if DEBUG
+                print("[PickupLocationDebug] coordinatesSaved=true latitude=\(latFinal) longitude=\(lonFinal) source=\(appliedPickupPlacePrefill == nil ? "manual" : "pickup_place")")
+                if let appliedPickupPlacePrefill {
+                    print("[PickupHostPrefillDebug] savedPickupPlaceLocation=true placeId=\(appliedPickupPlacePrefill.id.uuidString.lowercased()) address=\(addr) city=\(c) state=\(st) zip=\(trimmedZipCode) latitude=\(latFinal) longitude=\(lonFinal)")
+                }
+#endif
                 _ = try await viewModel.insertPickupGame(
                     title: trimmedTitle,
                     sport: sport,
