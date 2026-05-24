@@ -1789,10 +1789,13 @@ struct DiscoverScreen: View {
             viewModel.cameraPosition = .region(context.region)
 
             let region = context.region
+#if DEBUG
+            print("[CommunityVenuePerf] cameraEnd=center=\(region.center.latitude),\(region.center.longitude) span=\(region.span.latitudeDelta),\(region.span.longitudeDelta)")
+#endif
             mapVenueReloadTask?.cancel()
             mapVenueReloadTask = Task { @MainActor in
                 do {
-                    try await Task.sleep(for: .milliseconds(600))
+                    try await Task.sleep(for: .milliseconds(250))
                 } catch {
                     return
                 }
@@ -3354,7 +3357,7 @@ struct DiscoverScreen: View {
                                 Image(systemName: "clock.fill")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(subInk)
-                                Text(start.formatted(date: .abbreviated, time: .shortened))
+                                Text(row.pickupDateWithCompactTimeRange ?? start.formatted(date: .abbreviated, time: .shortened))
                                     .font(FGTypography.metadata.weight(.semibold))
                                     .foregroundStyle(mainInk)
                             }
@@ -3381,7 +3384,7 @@ struct DiscoverScreen: View {
                             HStack(spacing: FGSpacing.sm) {
                                 let playersNeeded = pickupPlayersNeededDisplay(row)
                                 pickupPreviewMetricCapsule("\(playersNeeded) spots left", mainInk: mainInk)
-                                pickupPreviewMetricCapsule("\(playersNeeded) players needed", mainInk: mainInk)
+                                pickupPreviewMetricCapsule(row.pickupCompactDurationLabel ?? "\(playersNeeded) players needed", mainInk: mainInk)
                             }
                             .padding(.top, 2)
 

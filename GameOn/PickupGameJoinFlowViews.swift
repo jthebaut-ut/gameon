@@ -593,7 +593,7 @@ struct DiscoverPickupGameDetailSheet: View {
                 }
 
                 if let start = PickupGameModels.parseSupabaseTimestamptz(g.game_start_at) {
-                    Text(start.formatted(date: .abbreviated, time: .shortened))
+                    Text(g.pickupDateWithCompactTimeRange ?? start.formatted(date: .abbreviated, time: .shortened))
                         .font(FGTypography.cardTitle.weight(.semibold))
                         .foregroundStyle(pickupDetailMainInk)
                 }

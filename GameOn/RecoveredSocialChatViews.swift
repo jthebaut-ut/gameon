@@ -135,6 +135,10 @@ struct FriendsTabView: View {
         var id: String { rawValue }
     }
 
+    private var chatRootBackground: Color {
+        colorScheme == .dark ? Color.black : Color(.systemBackground)
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -169,6 +173,8 @@ struct FriendsTabView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(chatRootBackground)
             .navigationDestination(item: $dmBannerNavigationFriend) { friend in
                 DirectChatView(friend: friend)
             }
@@ -200,6 +206,7 @@ struct FriendsTabView: View {
                 }
             }
         }
+        .background(chatRootBackground.ignoresSafeArea())
         .sheet(isPresented: $showingAddFriendSheet) {
             AddFriendGlassSheet(
                 lookupDraft: $manualFriendLookupDraft,
@@ -301,6 +308,8 @@ struct FriendsTabView: View {
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(chatRootBackground)
         .refreshable { await viewModel.refreshInboxSummaries() }
         .onAppear {
             viewModel.clearActiveVisibleConversationId(reason: "chat_list_visible")
@@ -355,6 +364,7 @@ struct FriendsTabView: View {
 
     private func logChatInboxAdPlacement() {
 #if DEBUG
+        guard AdDiagnostics.enabled else { return }
         print("[ChatInboxAdDebug] conversationCount=\(viewModel.friends.count)")
         print("[ChatInboxAdDebug] insertionIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
         print("[ChatInboxAdDebug] debugOverride=\(ChatInboxAdPlacement.debugOverrideEnabled)")
@@ -391,6 +401,8 @@ struct FriendsTabView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .background(chatRootBackground)
                 .refreshable { await viewModel.refresh() }
             }
         }

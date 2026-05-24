@@ -1,6 +1,13 @@
 import Foundation
+import AppTrackingTransparency
 import GoogleMobileAds
 import UIKit
+import UserMessagingPlatform
+
+// Set to true while actively debugging ad consent/loading. Keep false for normal DEBUG/TestFlight use.
+enum AdDiagnostics {
+    static let enabled = false
+}
 
 // MARK: - Ad unit configuration (test in DEBUG, production in RELEASE)
 
@@ -109,17 +116,140 @@ enum AdMobRootViewController {
 }
 
 /// Initializes the Google Mobile Ads SDK once at launch (non-blocking).
+@MainActor
 enum GoogleMobileAdsBootstrap {
     private static var didStart = false
+    private static var didFinishConsentFlow = false
+    private static var adsCanBeRequested = false
+    private static var didStartMobileAds = false
+    private static var pendingReadyHandlers: [() -> Void] = []
+
+    static var canRequestAds: Bool {
+        didFinishConsentFlow && adsCanBeRequested
+    }
+
+    static var privacyOptionsRequired: Bool {
+        ConsentInformation.shared.privacyOptionsRequirementStatus == .required
+    }
 
     static func startIfNeeded() {
         guard !didStart else { return }
         didStart = true
         AdMobDiagnostics.logBootstrap()
-        print("[AdDebug] testDeviceConfigured=\(AdRuntimeDevice.testDeviceConfigured)")
+        AdDebugDiagnostics.logConsent("attStatus=\(AdDebugDiagnostics.currentATTStatusLabel())")
         Task {
-            _ = await MobileAds.shared.start()
-            AdDebugDiagnostics.logSDKStartCompleted()
+            await resolveConsentAndStartAdsIfAllowed()
+        }
+    }
+
+    static func runWhenAdsCanBeRequested(_ handler: @escaping () -> Void) {
+        if canRequestAds {
+            handler()
+            return
+        }
+        pendingReadyHandlers.append(handler)
+    }
+
+    static func presentPrivacyOptionsIfRequired() async {
+        guard privacyOptionsRequired,
+              let root = await waitForRootViewController(timeoutSeconds: 3) else { return }
+        await presentPrivacyOptions(from: root)
+    }
+
+    private static func resolveConsentAndStartAdsIfAllowed() async {
+        await updateUMPConsentInformation()
+        await loadAndPresentUMPFormIfNeeded()
+        await requestATTIfAppropriate()
+
+        adsCanBeRequested = ConsentInformation.shared.canRequestAds
+        didFinishConsentFlow = true
+        AdDebugDiagnostics.logConsent("canRequestAds=\(adsCanBeRequested)")
+
+        if adsCanBeRequested {
+            await startMobileAdsIfNeeded()
+        }
+
+        let handlers = pendingReadyHandlers
+        pendingReadyHandlers.removeAll()
+        handlers.forEach { $0() }
+    }
+
+    private static func updateUMPConsentInformation() async {
+        AdDebugDiagnostics.logConsent("umpUpdateStarted=true")
+        let parameters = RequestParameters()
+        await withCheckedContinuation { continuation in
+            ConsentInformation.shared.requestConsentInfoUpdate(with: parameters) { error in
+                if let error {
+                    AdDebugDiagnostics.logConsent("umpUpdateFailed=\(error.localizedDescription)")
+                }
+                continuation.resume()
+            }
+        }
+        let required = ConsentInformation.shared.consentStatus == .required
+        AdDebugDiagnostics.logConsent("consentRequired=\(required)")
+    }
+
+    private static func loadAndPresentUMPFormIfNeeded() async {
+        guard let root = await waitForRootViewController(timeoutSeconds: 3) else {
+            AdDebugDiagnostics.logConsent("umpFormSkipped=noRootViewController")
+            return
+        }
+        await withCheckedContinuation { continuation in
+            ConsentForm.loadAndPresentIfRequired(from: root) { error in
+                if let error {
+                    AdDebugDiagnostics.logConsent("umpFormFailed=\(error.localizedDescription)")
+                }
+                continuation.resume()
+            }
+        }
+    }
+
+    private static func requestATTIfAppropriate() async {
+        guard #available(iOS 14, *) else {
+            AdDebugDiagnostics.logConsent("attStatus=unavailable_pre_iOS14")
+            return
+        }
+        guard ATTrackingManager.trackingAuthorizationStatus == .notDetermined else {
+            AdDebugDiagnostics.logConsent("attStatus=\(AdDebugDiagnostics.currentATTStatusLabel())")
+            return
+        }
+        await withCheckedContinuation { continuation in
+            ATTrackingManager.requestTrackingAuthorization { _ in
+                Task { @MainActor in
+                    AdDebugDiagnostics.logConsent("attStatus=\(AdDebugDiagnostics.currentATTStatusLabel())")
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private static func startMobileAdsIfNeeded() async {
+        guard !didStartMobileAds else { return }
+        didStartMobileAds = true
+        _ = await MobileAds.shared.start()
+        AdDebugDiagnostics.logConsent("adsStarted=true")
+        AdDebugDiagnostics.logSDKStartCompleted()
+    }
+
+    private static func waitForRootViewController(timeoutSeconds: TimeInterval) async -> UIViewController? {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while Date() < deadline {
+            if let root = AdMobRootViewController.topViewController() {
+                return root
+            }
+            try? await Task.sleep(nanoseconds: 150_000_000)
+        }
+        return AdMobRootViewController.topViewController()
+    }
+
+    private static func presentPrivacyOptions(from root: UIViewController) async {
+        await withCheckedContinuation { continuation in
+            ConsentForm.presentPrivacyOptionsForm(from: root) { error in
+                if let error {
+                    AdDebugDiagnostics.logConsent("privacyOptionsFailed=\(error.localizedDescription)")
+                }
+                continuation.resume()
+            }
         }
     }
 }

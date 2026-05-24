@@ -910,6 +910,7 @@ final class MapViewModel: ObservableObject {
     var discoverPickupMetadataPreloadTask: Task<Void, Never>?
     var discoverPickupMetadataPreloadCompleted = false
     var loadVenuesRequestID: UUID?
+    var loadVenuesPhase1AppliedRequestID: UUID?
     var discoverSelectedDayRefreshTask: Task<Void, Never>?
     var discoverSelectedDayRefreshRequestID: UUID?
     var venueCalendarDotLoadTask: Task<Void, Never>?

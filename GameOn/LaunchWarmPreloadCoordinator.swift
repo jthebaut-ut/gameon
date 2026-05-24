@@ -60,17 +60,21 @@ final class LaunchWarmPreloadCoordinator {
         await runWarmTask(name: "chatBadges", delayMs: 220) {
             let authenticated = await MainActor.run { viewModel.isAuthenticatedForSocialFeatures }
             if authenticated {
-                await chatViewModel.refreshUnreadDirectMessageCount()
+                let chatResult = await chatViewModel.prefetchLightweightStartupChatData()
                 await chatViewModel.refreshFriendRequestListsOnly()
 #if DEBUG
-                print("[StartupPrefetchDebug] unreadLoaded=true")
+                print("[StartupPrefetchDebug] dmBadgePrefetched=\(chatResult.dmBadgePrefetched)")
+                print("[StartupPrefetchDebug] inboxSummariesPrefetched=\(chatResult.inboxSummariesPrefetched)")
+                print("[StartupPrefetchDebug] skippedReason=\(chatResult.skippedReason ?? "none")")
 #endif
             } else {
                 await MainActor.run {
                     chatViewModel.clearForSignOut()
                 }
 #if DEBUG
-                print("[StartupPrefetchDebug] unreadLoaded=false")
+                print("[StartupPrefetchDebug] dmBadgePrefetched=false")
+                print("[StartupPrefetchDebug] inboxSummariesPrefetched=false")
+                print("[StartupPrefetchDebug] skippedReason=notAuthenticatedForChat")
 #endif
             }
         }

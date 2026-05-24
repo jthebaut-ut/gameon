@@ -718,6 +718,7 @@ struct VenueEventCommentsView: View {
 
     private func discoverLogVenueCommentsAdPlacement() {
 #if DEBUG
+        guard AdDiagnostics.enabled else { return }
         let count = comments.count
         print("[VenueCommentsAdDebug] enabled=true")
         print("[VenueCommentsAdDebug] commentCount=\(count)")

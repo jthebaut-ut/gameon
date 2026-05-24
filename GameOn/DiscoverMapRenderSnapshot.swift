@@ -143,6 +143,9 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
             }
 
             try checkCancellation(checkpoint: "clusterAssembly")
+#if DEBUG
+            let clusterBuildStart = Date()
+#endif
             let clusters = try clusteredBars(from: visibleBars, visibleLatitudeDelta: input.visibleLatitudeDelta)
             var clusterItems: [String: DiscoverVenueClusterRenderItem] = [:]
             clusterItems.reserveCapacity(clusters.count)
@@ -178,6 +181,10 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
                 )
             }
 
+#if DEBUG
+            let clusterBuildMs = Int(Date().timeIntervalSince(clusterBuildStart) * 1000)
+            print("[CommunityVenuePerf] clusterBuildMs=\(clusterBuildMs)")
+#endif
             return DiscoverMapSnapshotDetachedOutput(
                 venueCount: visibleBars.count,
                 venuePinsByID: pinItems,
@@ -563,6 +570,7 @@ extension MapViewModel {
             print("[DiscoverMapSnapshotDebug] venueCount=\(output.venuePinsByID.count)")
             print("[DiscoverMapSnapshotDebug] clusterCount=\(output.venueClustersByID.count)")
             print("[DiscoverMapSnapshotDebug] buildMs=\(buildMs)")
+            print("[CommunityVenuePerf] renderSnapshotMs=\(buildMs)")
             #endif
         }
     }

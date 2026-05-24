@@ -102,6 +102,9 @@ final class ChatViewModel: ObservableObject {
     private let minRefreshInterval: TimeInterval = 12
     private var lastInboxLoadAt: Date?
     private let minInboxRefreshInterval: TimeInterval = 2
+    private var startupLightweightPrefetchTask: Task<StartupChatPrefetchResult, Never>?
+    private var lastStartupLightweightPrefetchAt: Date?
+    private let startupLightweightPrefetchTTL: TimeInterval = 90
 
     private var chatTabVisibleForDirectReadState = false
     private var privateChatUnlockedForDirectReadState = false
@@ -112,6 +115,12 @@ final class ChatViewModel: ObservableObject {
         let conversationId: UUID?
         let senderPreview: UserPreview
         let bodyPreview: String
+    }
+
+    struct StartupChatPrefetchResult {
+        let dmBadgePrefetched: Bool
+        let inboxSummariesPrefetched: Bool
+        let skippedReason: String?
     }
 
     // MARK: - Realtime (in-app inbox)
@@ -196,6 +205,9 @@ final class ChatViewModel: ObservableObject {
         badgeRecalculationTask?.cancel()
         badgeRecalculationTask = nil
         badgeRecalculationNeedsInboxSummaries = false
+        startupLightweightPrefetchTask?.cancel()
+        startupLightweightPrefetchTask = nil
+        lastStartupLightweightPrefetchAt = nil
         friendRequestRealtimeDebounceTask?.cancel()
         friendRequestRealtimeDebounceTask = nil
         socialRealtimeForegroundTask?.cancel()
@@ -1020,6 +1032,64 @@ final class ChatViewModel: ObservableObject {
         print("[UnreadBadgeDebug] newUnread=\(n)")
         print("[UnreadBadgeDebug] totalBadge=\(n)")
 #endif
+    }
+
+    /// Launch warm path: refreshes only the DM unread badge and inbox summaries, never message bodies.
+    func prefetchLightweightStartupChatData() async -> StartupChatPrefetchResult {
+        if let inFlight = startupLightweightPrefetchTask {
+#if DEBUG
+            print("[StartupPrefetchDebug] skippedReason=chatInFlight")
+#endif
+            return await inFlight.value
+        }
+        if let lastStartupLightweightPrefetchAt,
+           Date().timeIntervalSince(lastStartupLightweightPrefetchAt) < startupLightweightPrefetchTTL {
+#if DEBUG
+            print("[StartupPrefetchDebug] skippedReason=chatFreshCache")
+#endif
+            return StartupChatPrefetchResult(
+                dmBadgePrefetched: true,
+                inboxSummariesPrefetched: true,
+                skippedReason: "chatFreshCache"
+            )
+        }
+
+        let task = Task<StartupChatPrefetchResult, Never> { [weak self] in
+            guard let self else {
+                return StartupChatPrefetchResult(
+                    dmBadgePrefetched: false,
+                    inboxSummariesPrefetched: false,
+                    skippedReason: "chatViewModelReleased"
+                )
+            }
+            return await self.runLightweightStartupChatPrefetch()
+        }
+        startupLightweightPrefetchTask = task
+        let result = await task.value
+        startupLightweightPrefetchTask = nil
+        if result.skippedReason == nil {
+            lastStartupLightweightPrefetchAt = Date()
+        }
+        return result
+    }
+
+    private func runLightweightStartupChatPrefetch() async -> StartupChatPrefetchResult {
+        guard (try? await directChatService.currentUserId()) != nil else {
+            clearForSignOut()
+            return StartupChatPrefetchResult(
+                dmBadgePrefetched: false,
+                inboxSummariesPrefetched: false,
+                skippedReason: "chatMissingSession"
+            )
+        }
+
+        await refreshUnreadDirectMessageCount()
+        await refreshInboxSummariesIfNeeded()
+        return StartupChatPrefetchResult(
+            dmBadgePrefetched: true,
+            inboxSummariesPrefetched: true,
+            skippedReason: nil
+        )
     }
 
     /// Loads friends and requests; coalesces rapid repeats.

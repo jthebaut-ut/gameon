@@ -10,6 +10,7 @@ extension MapViewModel {
         if let inFlight = lightweightStartupPrefetchTask {
 #if DEBUG
             print("[StartupPrefetchDebug] coalesced=true")
+            print("[StartupPrefetchDebug] skippedReason=inFlight")
 #endif
             await inFlight.value
             return
@@ -18,8 +19,9 @@ extension MapViewModel {
            Date().timeIntervalSince(lastLightweightStartupPrefetchAt) < Self.lightweightStartupPrefetchTTL {
 #if DEBUG
             print("[StartupPrefetchDebug] started=false")
+            print("[StartupPrefetchDebug] skippedReason=freshCache")
             print("[StartupPrefetchDebug] completed=true")
-            print("[StartupPrefetchDebug] durationMs=0")
+            print("[StartupPrefetchDebug] totalMs=0")
 #endif
             return
         }
@@ -41,6 +43,7 @@ extension MapViewModel {
         var profileLoaded = false
         var goingLoaded = false
         var favoriteTeamsLoaded = false
+        var avatarPrefetched = false
 
         switch await supabaseResolvedAuthSessionResult() {
         case .active:
@@ -53,8 +56,10 @@ extension MapViewModel {
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,
+                avatarPrefetched: false,
                 goingLoaded: false,
-                favoriteTeamsLoaded: false
+                favoriteTeamsLoaded: false,
+                skippedReason: "missingSession"
             )
             return
         case .refreshFailed(let error):
@@ -70,8 +75,10 @@ extension MapViewModel {
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,
+                avatarPrefetched: false,
                 goingLoaded: false,
-                favoriteTeamsLoaded: false
+                favoriteTeamsLoaded: false,
+                skippedReason: "authRefreshFailed"
             )
             return
         }
@@ -80,8 +87,10 @@ extension MapViewModel {
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,
+                avatarPrefetched: false,
                 goingLoaded: false,
-                favoriteTeamsLoaded: false
+                favoriteTeamsLoaded: false,
+                skippedReason: "adminStatusBlocked"
             )
             return
         }
@@ -91,8 +100,10 @@ extension MapViewModel {
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,
+                avatarPrefetched: false,
                 goingLoaded: false,
-                favoriteTeamsLoaded: false
+                favoriteTeamsLoaded: false,
+                skippedReason: "adminSession"
             )
             return
         }
@@ -103,6 +114,12 @@ extension MapViewModel {
         await ensureUserProfileExists()
         await loadUserProfile()
         profileLoaded = await MainActor.run { hasLoadedUserProfileForPresentation }
+        avatarPrefetched = await MainActor.run {
+            !currentUserAvatarThumbnailURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || !currentUserAvatarURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || UserDefaults.standard.string(forKey: "cachedUserAvatarThumbnailURL")?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                || UserDefaults.standard.string(forKey: "cachedUserAvatarURL")?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        }
 
         await loadFavoriteVenuesFromSupabase()
         await loadFavoriteTeamsFromSupabase()
@@ -122,24 +139,30 @@ extension MapViewModel {
         logStartupPrefetchCompletion(
             startedAt: startedAt,
             profileLoaded: profileLoaded,
+            avatarPrefetched: avatarPrefetched,
             goingLoaded: goingLoaded,
-            favoriteTeamsLoaded: favoriteTeamsLoaded
+            favoriteTeamsLoaded: favoriteTeamsLoaded,
+            skippedReason: nil
         )
     }
 
     private func logStartupPrefetchCompletion(
         startedAt: Date,
         profileLoaded: Bool,
+        avatarPrefetched: Bool,
         goingLoaded: Bool,
-        favoriteTeamsLoaded: Bool
+        favoriteTeamsLoaded: Bool,
+        skippedReason: String?
     ) {
 #if DEBUG
         let durationMs = Int(Date().timeIntervalSince(startedAt) * 1000)
-        print("[StartupPrefetchDebug] profileLoaded=\(profileLoaded)")
+        print("[StartupPrefetchDebug] profilePrefetched=\(profileLoaded)")
+        print("[StartupPrefetchDebug] avatarPrefetched=\(avatarPrefetched)")
         print("[StartupPrefetchDebug] goingLoaded=\(goingLoaded)")
-        print("[StartupPrefetchDebug] favoriteTeamsLoaded=\(favoriteTeamsLoaded)")
+        print("[StartupPrefetchDebug] favoriteTeamsPrefetched=\(favoriteTeamsLoaded)")
+        print("[StartupPrefetchDebug] skippedReason=\(skippedReason ?? "none")")
         print("[StartupPrefetchDebug] completed=true")
-        print("[StartupPrefetchDebug] durationMs=\(durationMs)")
+        print("[StartupPrefetchDebug] totalMs=\(durationMs)")
 #endif
     }
 

@@ -528,8 +528,7 @@ struct SettingsPickupMyGameListCard: View {
     }
 
     private var dateTimeLine: String? {
-        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
-        return start.formatted(date: .abbreviated, time: .shortened)
+        row.pickupDateWithCompactTimeRange
     }
 
     private var organizerStatsApproved: Int {
@@ -1023,8 +1022,7 @@ struct SettingsPickupRemovedHistoryCard: View {
     var useCompactCopy: Bool
 
     private var dateTimeLine: String? {
-        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return nil }
-        return start.formatted(date: .abbreviated, time: .shortened)
+        row.pickupDateWithCompactTimeRange
     }
 
     var body: some View {
@@ -1356,6 +1354,8 @@ struct SettingsPickupGameFormView: View {
     @State private var sport: String = "Soccer"
     @State private var gameDate: Date = Date()
     @State private var gameTime: Date = Date()
+    @State private var endTime: Date = Date().addingTimeInterval(2 * 3600)
+    @State private var didManuallyEditEndTime = false
     @State private var address: String = ""
     @State private var city: String = ""
     @State private var state: String = ""
@@ -1379,6 +1379,7 @@ struct SettingsPickupGameFormView: View {
     @State private var appliedPickupPlacePrefill: PickupPlaceRow?
     @State private var pickupSafetyAcknowledged = false
     @State private var didInitializeForm = false
+    @State private var showPickupTimeConflictConfirmation = false
 
     private var organizerPostStartLockedRow: PickupGameRow? {
         if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
@@ -1397,6 +1398,12 @@ struct SettingsPickupGameFormView: View {
     private var lockedGameStartDisplay: String {
         guard case .edit(let row) = mode,
               let d = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return "—" }
+        return d.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    private var lockedGameEndDisplay: String {
+        guard case .edit(let row) = mode,
+              let d = PickupGameModels.endDate(for: row) else { return "—" }
         return d.formatted(date: .abbreviated, time: .shortened)
     }
 
@@ -1497,6 +1504,28 @@ struct SettingsPickupGameFormView: View {
         )
     }
 
+    private var startTimeBinding: Binding<Date> {
+        Binding(
+            get: { gameTime },
+            set: { newValue in
+                gameTime = newValue
+                if !didManuallyEditEndTime {
+                    endTime = Self.defaultPickupEndTime(forStartTimePickerDate: newValue)
+                }
+            }
+        )
+    }
+
+    private var endTimeBinding: Binding<Date> {
+        Binding(
+            get: { endTime },
+            set: { newValue in
+                endTime = newValue
+                didManuallyEditEndTime = true
+            }
+        )
+    }
+
     private var locationGuidanceFootnote: String? {
         if hasPrefilledPickupPlaceLocation { return nil }
         if hasCompleteTypedAddress { return nil }
@@ -1544,6 +1573,10 @@ struct SettingsPickupGameFormView: View {
                         Text(lockedGameStartDisplay)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                     }
+                    LabeledContent("End") {
+                        Text(lockedGameEndDisplay)
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
                 } else {
                     TextField("Title", text: $title)
                     GameSportSearchablePickerFormRow(selection: $sport)
@@ -1560,7 +1593,8 @@ struct SettingsPickupGameFormView: View {
                     .popover(isPresented: $showGameDatePopover) {
                         pickupGameDatePopover
                     }
-                    DatePicker("Start time", selection: $gameTime, displayedComponents: .hourAndMinute)
+                    DatePicker("Start time", selection: startTimeBinding, displayedComponents: .hourAndMinute)
+                    DatePicker("End time", selection: endTimeBinding, displayedComponents: .hourAndMinute)
                 }
                 Stepper(value: $playersNeeded, in: 1...20) {
                     HStack {
@@ -1628,34 +1662,33 @@ struct SettingsPickupGameFormView: View {
                 Section("Location") {
                     if let appliedPickupPlacePrefill {
                         pickupPlacePrefillCard(appliedPickupPlacePrefill)
-                    }
+                    } else {
+                        Button {
+                            showPickupMapLocationPicker = true
+                        } label: {
+                            Label("Pick location from map", systemImage: "mappin.and.ellipse")
+                                .font(FGTypography.metadata.weight(.semibold))
+                        }
 
-                    Button {
-                        appliedPickupPlacePrefill = nil
-                        showPickupMapLocationPicker = true
-                    } label: {
-                        Label("Pick location from map", systemImage: "mappin.and.ellipse")
-                            .font(FGTypography.metadata.weight(.semibold))
-                    }
+                        TextField("Street address", text: addressBinding, axis: .vertical)
+                            .lineLimit(1...3)
+                        TextField("City", text: cityBinding)
+                        TextField("State", text: stateBinding)
+                        TextField("ZIP code", text: zipCodeBinding)
+                            .textInputAutocapitalization(.characters)
+                            .keyboardType(.numbersAndPunctuation)
 
-                    TextField("Street address", text: addressBinding, axis: .vertical)
-                        .lineLimit(1...3)
-                    TextField("City", text: cityBinding)
-                    TextField("State", text: stateBinding)
-                    TextField("ZIP code", text: zipCodeBinding)
-                        .textInputAutocapitalization(.characters)
-                        .keyboardType(.numbersAndPunctuation)
+                        if coordinatesLockedFromMap {
+                            Text("Using exact coordinates from your map pin.")
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.accentBlue)
+                        }
 
-                    if coordinatesLockedFromMap {
-                        Text(hasPrefilledPickupPlaceLocation ? "Exact map location saved" : "Using exact coordinates from your map pin.")
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.accentBlue)
-                    }
-
-                    if let foot = locationGuidanceFootnote {
-                        Text(foot)
-                            .font(FGTypography.caption)
-                            .foregroundStyle(FGColor.accentYellow)
+                        if let foot = locationGuidanceFootnote {
+                            Text(foot)
+                                .font(FGTypography.caption)
+                                .foregroundStyle(FGColor.accentYellow)
+                        }
                     }
                 }
             } else {
@@ -1778,29 +1811,44 @@ struct SettingsPickupGameFormView: View {
                 }
             )
         }
+        .confirmationDialog(
+            "Another pickup game is already scheduled at this location during a similar time. Do you still want to post yours?",
+            isPresented: $showPickupTimeConflictConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Post Anyway") {
+                Task { await save(skipConflictCheck: true) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     @ViewBuilder
     private func pickupPlacePrefillCard(_ place: PickupPlaceRow) -> some View {
-        let cityState = place.cityStateDisplay
+        let city = place.city?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let state = place.state?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 SportArtworkIconView(sport: sport, diameter: 32)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Playing at \(place.name) \(sport)")
+                    Text(place.name)
                         .font(FGTypography.body.weight(.semibold))
                         .foregroundStyle(FGColor.primaryText(colorScheme))
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if !cityState.isEmpty {
-                        Text(cityState)
+                    if !city.isEmpty && !state.isEmpty {
+                        Text("\(city), \(state)")
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            Label("Exact map location saved", systemImage: "location.fill")
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
 
             pickupPlaceMiniMapPreview(place)
 
@@ -1857,6 +1905,8 @@ struct SettingsPickupGameFormView: View {
             let now = Date()
             gameDate = now
             gameTime = now
+            endTime = Self.defaultPickupEndTime(forStartTimePickerDate: now)
+            didManuallyEditEndTime = false
             address = ""
             city = ""
             state = ""
@@ -1882,6 +1932,8 @@ struct SettingsPickupGameFormView: View {
             if let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) {
                 gameDate = start
                 gameTime = start
+                endTime = PickupGameModels.endDate(for: row) ?? PickupGameModels.defaultPickupEndTime(forStart: start)
+                didManuallyEditEndTime = row.end_time != nil
             }
             address = row.address ?? ""
             city = row.city ?? ""
@@ -2020,6 +2072,9 @@ struct SettingsPickupGameFormView: View {
         gameDate = todayStart
         if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameTime, now: now) {
             gameTime = VenueOwnerGameScheduleValidation.recommendedStartTimeAfterGameDateChange(newGameDate: todayStart, now: now)
+            if !didManuallyEditEndTime {
+                endTime = Self.defaultPickupEndTime(forStartTimePickerDate: gameTime)
+            }
         }
         suppressGameDatePickerChangeLog = false
         logPickupDatePicker(todayTapped: true, doneTapped: false, selectedDate: gameDate)
@@ -2078,6 +2133,17 @@ struct SettingsPickupGameFormView: View {
         VenueOwnerGameScheduleValidation.combinedLocalStart(gameDate: gameDate, gameStartTime: gameTime)
     }
 
+    private func combinedEndDate(start: Date) -> Date {
+        let cal = Calendar.current
+        let rawEnd = VenueOwnerGameScheduleValidation.combinedLocalStart(gameDate: gameDate, gameStartTime: endTime)
+        if rawEnd > start { return rawEnd }
+        return cal.date(byAdding: .day, value: 1, to: rawEnd) ?? PickupGameModels.defaultPickupEndTime(forStart: start)
+    }
+
+    private static func defaultPickupEndTime(forStartTimePickerDate startTime: Date) -> Date {
+        PickupGameModels.defaultPickupEndTime(forStart: startTime)
+    }
+
     private func parsedEntryFeeAmount() -> Double? {
         let t = entryFeeText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return nil }
@@ -2085,7 +2151,7 @@ struct SettingsPickupGameFormView: View {
         return Double(normalized)
     }
 
-    private func save() async {
+    private func save(skipConflictCheck: Bool = false) async {
         errorText = nil
 
         if let postStartRow = organizerPostStartLockedRow {
@@ -2162,6 +2228,7 @@ struct SettingsPickupGameFormView: View {
         defer { isSaving = false }
 
         let start = combinedStartDate()
+        let end = combinedEndDate(start: start)
 
         let missingZip = trimmedZipCode.isEmpty
 #if DEBUG
@@ -2208,6 +2275,20 @@ struct SettingsPickupGameFormView: View {
         do {
             switch mode {
             case .add:
+                if !skipConflictCheck {
+                    if try await viewModel.findOverlappingPickupGameAtLocation(
+                        newStart: start,
+                        newEnd: end,
+                        latitude: latFinal,
+                        longitude: lonFinal,
+                        address: addr,
+                        city: c,
+                        state: st
+                    ) != nil {
+                        showPickupTimeConflictConfirmation = true
+                        return
+                    }
+                }
 #if DEBUG
                 print("[PickupLocationDebug] coordinatesSaved=true latitude=\(latFinal) longitude=\(lonFinal) source=\(appliedPickupPlacePrefill == nil ? "manual" : "pickup_place")")
                 if let appliedPickupPlacePrefill {
@@ -2220,6 +2301,7 @@ struct SettingsPickupGameFormView: View {
                     description: desc.isEmpty ? nil : desc,
                     skillLevel: skillLevel.rawValue,
                     gameStartAt: start,
+                    endTime: end,
                     address: addr.isEmpty ? nil : addr,
                     city: c.isEmpty ? nil : c,
                     state: st.isEmpty ? nil : st,
@@ -2234,6 +2316,7 @@ struct SettingsPickupGameFormView: View {
                 )
             case .edit(let row):
                 let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(start)
+                let endISO = PickupGameModels.encodeSupabaseTimestamptz(end)
                 let removeISO = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: gameStartISO)
                 let patch = PickupGameFullUpdate(
                     title: trimmedTitle,
@@ -2241,6 +2324,7 @@ struct SettingsPickupGameFormView: View {
                     description: desc.isEmpty ? nil : desc,
                     skill_level: skillLevel.rawValue,
                     game_start_at: gameStartISO,
+                    end_time: endISO,
                     address: addr.isEmpty ? nil : addr,
                     city: c.isEmpty ? nil : c,
                     state: st.isEmpty ? nil : st,

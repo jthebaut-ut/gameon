@@ -1231,6 +1231,9 @@ extension MapViewModel {
     }
 
     private func dateTimeLineForFollowingPickupCard(game: PickupGameRow) -> String {
+        if let line = game.pickupDateWithCompactTimeRange {
+            return line
+        }
         guard let d = PickupGameModels.parseSupabaseTimestamptz(game.game_start_at) else { return "" }
         return Self.followingPickupCardDateFormatter.string(from: d)
     }

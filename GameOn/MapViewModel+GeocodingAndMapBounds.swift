@@ -1045,9 +1045,9 @@ extension MapViewModel {
         return true
     }
 
-    private static let startupDiscoverInitialRadiusMiles: Double = 15
+    private static let startupDiscoverInitialRadiusMiles: Double = 9
 
-    /// Startup: optional GPS center + 15 mi region, then arms the next ``refreshDiscoverCoreInBackground()`` for DEBUG completion logging. Runs once per launch (see ``didFinishStartupDiscoverPrepare``).
+    /// Startup: optional GPS center + local region, then arms the next ``refreshDiscoverCoreInBackground()`` for DEBUG completion logging. Runs once per launch (see ``didFinishStartupDiscoverPrepare``).
     func prepareInitialDiscoverRegionAndPreload() async {
         guard !didFinishStartupDiscoverPrepare else { return }
         defer {
@@ -1064,12 +1064,19 @@ extension MapViewModel {
             print("[StartupDiscover] usingInitialRadiusMiles=\(Self.startupDiscoverInitialRadiusMiles)")
 #endif
             recordCurrentUserLocation(c)
-            cameraPosition = .region(
-                Self.discoverStartupMKRegion(center: c, radiusMiles: Self.startupDiscoverInitialRadiusMiles)
-            )
+            let region = Self.discoverStartupMKRegion(center: c, radiusMiles: Self.startupDiscoverInitialRadiusMiles)
+            cameraPosition = .region(region)
+#if DEBUG
+            print("[StartupMapRegionDebug] initialSpan=\(region.span.latitudeDelta),\(region.span.longitudeDelta)")
+            print("[StartupMapRegionDebug] basis=userLocation")
+#endif
         case .unavailable(let reason):
 #if DEBUG
             print("[StartupDiscover] fallbackToDefaultRegion reason=\(reason)")
+            if let region = cameraPosition.region {
+                print("[StartupMapRegionDebug] initialSpan=\(region.span.latitudeDelta),\(region.span.longitudeDelta)")
+            }
+            print("[StartupMapRegionDebug] basis=fallback")
 #endif
             break
         }

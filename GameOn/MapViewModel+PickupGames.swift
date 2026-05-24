@@ -3,7 +3,7 @@ import Foundation
 import Supabase
 
 let pickupGamesSelectColumns =
-    "id,creator_user_id,creator_email,title,sport,description,skill_level,game_start_at,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
+    "id,creator_user_id,creator_email,title,sport,description,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
 private let pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix = "gameon.settings.pickupOrganizerHistoryClearedIds."
 
@@ -107,6 +107,93 @@ extension MapViewModel {
         print("[PickupHistoryClear] visible=\(visible)")
 #endif
         return visible
+    }
+
+    func findOverlappingPickupGameAtLocation(
+        newStart: Date,
+        newEnd: Date,
+        latitude: Double?,
+        longitude: Double?,
+        address: String?,
+        city: String?,
+        state: String?,
+        excluding excludedId: UUID? = nil
+    ) async throws -> PickupGameRow? {
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: newStart)
+        guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
+        let startISO = PickupGameModels.encodeSupabaseTimestamptz(dayStart)
+        let endISO = PickupGameModels.encodeSupabaseTimestamptz(dayEnd)
+        let nowISO = PickupGameModels.encodeSupabaseTimestamptz(Date())
+
+        let rows: [PickupGameRow] = try await supabase
+            .from("pickup_games")
+            .select(pickupGamesSelectColumns)
+            .gte("game_start_at", value: startISO)
+            .lt("game_start_at", value: endISO)
+            .or(pickupGamesDiscoverRemoveAfterOrFilter(nowISO: nowISO))
+            .eq("status", value: "active")
+            .eq("is_visible", value: true)
+            .limit(300)
+            .execute()
+            .value
+
+        return rows.first { row in
+            if row.id == excludedId { return false }
+            guard Self.pickupLocationMatches(
+                row: row,
+                latitude: latitude,
+                longitude: longitude,
+                address: address,
+                city: city,
+                state: state
+            ) else {
+                return false
+            }
+            guard let existingStart = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at),
+                  let existingEnd = PickupGameModels.endDate(for: row) else {
+                return false
+            }
+            return newStart < existingEnd && newEnd > existingStart
+        }
+    }
+
+    private static func pickupLocationMatches(
+        row: PickupGameRow,
+        latitude: Double?,
+        longitude: Double?,
+        address: String?,
+        city: String?,
+        state: String?
+    ) -> Bool {
+        if let latitude,
+           let longitude,
+           let rowLat = row.latitude,
+           let rowLon = row.longitude {
+            let candidate = CLLocation(latitude: latitude, longitude: longitude)
+            let existing = CLLocation(latitude: rowLat, longitude: rowLon)
+            return candidate.distance(from: existing) <= 80
+        }
+
+        let lhs = [
+            normalizedPickupLocationComponent(address),
+            normalizedPickupLocationComponent(city),
+            normalizedPickupLocationComponent(state)
+        ].joined(separator: "|")
+        let rhs = [
+            normalizedPickupLocationComponent(row.address),
+            normalizedPickupLocationComponent(row.city),
+            normalizedPickupLocationComponent(row.state)
+        ].joined(separator: "|")
+        return !lhs.replacingOccurrences(of: "|", with: "").isEmpty && lhs == rhs
+    }
+
+    private static func normalizedPickupLocationComponent(_ raw: String?) -> String {
+        raw?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .lowercased() ?? ""
     }
 
     func clearPickupMapSelection() {
@@ -566,6 +653,7 @@ extension MapViewModel {
         description: String?,
         skillLevel: String,
         gameStartAt: Date,
+        endTime: Date,
         address: String?,
         city: String?,
         state: String?,
@@ -594,6 +682,7 @@ extension MapViewModel {
         }()
         let feePayload: Double? = isFree ? nil : entryFeeAmount.map { Self.roundMoney($0) }
         let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(gameStartAt)
+        let endTimeISO = PickupGameModels.encodeSupabaseTimestamptz(endTime)
         let removeISO = PickupGameModels.encodedPickupRemoveAfterAt(forEncodedGameStart: gameStartISO)
         PickupExpirationEditDebug.log(
             oldGameStartAt: nil,
@@ -609,6 +698,7 @@ extension MapViewModel {
             description: emptyStringToNil(description),
             skill_level: skillLevel,
             game_start_at: gameStartISO,
+            end_time: endTimeISO,
             address: emptyStringToNil(address),
             city: emptyStringToNil(city),
             state: emptyStringToNil(state),

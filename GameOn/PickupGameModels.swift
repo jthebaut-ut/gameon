@@ -29,6 +29,8 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     /// Stored tokens: `casual`, `beginner_friendly`, `intermediate`, `competitive`.
     let skill_level: String
     let game_start_at: String
+    /// Optional scheduled end. Older rows may be nil; UI falls back to `game_start_at + 2h`.
+    let end_time: String?
     let address: String?
     let city: String?
     let state: String?
@@ -62,6 +64,7 @@ extension PickupGameRow {
             description: description,
             skill_level: skill_level,
             game_start_at: game_start_at,
+            end_time: end_time,
             address: address,
             city: city,
             state: state,
@@ -94,6 +97,38 @@ extension PickupGameRow {
         let clamped = max(1, min(168, hours))
         return start.addingTimeInterval(Double(clamped) * 3600)
     }
+
+    var pickupCompactTimeRange: String? {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at),
+              let end = PickupGameModels.endDate(for: self),
+              end > start else {
+            return nil
+        }
+        return "\(start.formatted(date: .omitted, time: .shortened)) – \(end.formatted(date: .omitted, time: .shortened))"
+    }
+
+    var pickupCompactDurationLabel: String? {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at),
+              let end = PickupGameModels.endDate(for: self),
+              end > start else {
+            return nil
+        }
+        let minutes = Int((end.timeIntervalSince(start) / 60).rounded())
+        guard minutes > 0 else { return nil }
+        if minutes % 60 == 0 {
+            return "\(minutes / 60)h game"
+        }
+        return "\(minutes / 60)h \(minutes % 60)m game"
+    }
+
+    var pickupDateWithCompactTimeRange: String? {
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(game_start_at) else { return nil }
+        let dateText = start.formatted(date: .abbreviated, time: .omitted)
+        if let range = pickupCompactTimeRange {
+            return "\(dateText) • \(range)"
+        }
+        return start.formatted(date: .abbreviated, time: .shortened)
+    }
 }
 
 struct PickupGameInsert: Encodable {
@@ -104,6 +139,7 @@ struct PickupGameInsert: Encodable {
     let description: String?
     let skill_level: String
     let game_start_at: String
+    let end_time: String
     let address: String?
     let city: String?
     let state: String?
@@ -131,6 +167,7 @@ struct PickupGameInsert: Encodable {
             description: description,
             skill_level: skill_level,
             game_start_at: game_start_at,
+            end_time: end_time,
             address: address,
             city: city,
             state: state,
@@ -155,6 +192,7 @@ struct PickupGameFullUpdate: Encodable {
     let description: String?
     let skill_level: String
     let game_start_at: String
+    let end_time: String
     let address: String?
     let city: String?
     let state: String?
@@ -180,6 +218,7 @@ struct PickupGameFullUpdate: Encodable {
             description: description,
             skill_level: skill_level,
             game_start_at: game_start_at,
+            end_time: end_time,
             address: address,
             city: city,
             state: state,
@@ -732,6 +771,22 @@ enum PickupGameModels {
 
     nonisolated static func encodeSupabaseTimestamptz(_ date: Date) -> String {
         SupabaseTimestampParsing.encodeTimestamptz(date)
+    }
+
+    nonisolated static func defaultPickupEndTime(forStart start: Date) -> Date {
+        start.addingTimeInterval(2 * 3600)
+    }
+
+    nonisolated static func endDate(for row: PickupGameRow) -> Date? {
+        if let raw = row.end_time, let end = parseSupabaseTimestamptz(raw) {
+            return end
+        }
+        guard let start = parseSupabaseTimestamptz(row.game_start_at) else { return nil }
+        return defaultPickupEndTime(forStart: start)
+    }
+
+    nonisolated static func encodedDefaultEndTime(forStart start: Date) -> String {
+        encodeSupabaseTimestamptz(defaultPickupEndTime(forStart: start))
     }
 
     /// Encoded `remove_after_at` for `pickup_games`: `game_start_at` + fixed pickup retention (12h).

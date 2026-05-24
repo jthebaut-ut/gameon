@@ -63,6 +63,7 @@ struct CompactNativeAdCard: View {
                         }
                         onAdLoaded?()
 #if DEBUG
+                        guard AdDiagnostics.enabled else { return }
                         print("[VenueCommentsAdDebug] nativeAdValidatorFix=true")
                         print("[VenueCommentsAdDebug] minAssetSize=\(Int(CompactNativeAdHostView.minIconSize))")
                         print("[VenueCommentsAdDebug] allAssetsInsideNativeAdView=true")
@@ -185,6 +186,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         private var adLoader: AdLoader?
         private var nativeAd: NativeAd?
         private var currentAdUnitID: String?
+        private var isWaitingForConsent = false
         private var requestStartedAt: Date?
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
@@ -211,6 +213,17 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
                 return
             }
             let requestLayoutWidth = max(layoutWidth, CompactNativeAdLayout.minimumRequestDimension)
+
+            guard GoogleMobileAdsBootstrap.canRequestAds else {
+                guard !isWaitingForConsent else { return }
+                isWaitingForConsent = true
+                GoogleMobileAdsBootstrap.runWhenAdsCanBeRequested { [weak self] in
+                    guard let self else { return }
+                    self.isWaitingForConsent = false
+                    self.loadIfNeeded(adUnitID: adUnitID, slotIndex: slotIndex, layoutWidth: layoutWidth)
+                }
+                return
+            }
 
             AdDebugDiagnostics.logViewSnapshot(
                 phase: "preRequest",
@@ -271,6 +284,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             adLoader?.delegate = nil
             adLoader = nil
             currentAdUnitID = nil
+            isWaitingForConsent = false
             hostView = nil
         }
 

@@ -595,6 +595,7 @@ struct DiscoverViewportVenueRowsCacheEntry {
     let source: String
     let requestedBounds: DiscoverMapBoundsWindow
     let coverageBounds: DiscoverMapBoundsWindow
+    let queryLimit: Int
     let rows: [VenueRow]
     let fetchedAt: Date
 }

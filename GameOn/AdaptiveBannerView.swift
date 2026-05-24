@@ -88,6 +88,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
         private(set) var currentSlotSize: CGSize?
         private(set) var lastAdUnitID: String?
         private var didRequestAd = false
+        private var isWaitingForConsent = false
         private var requestStartedAt: Date?
         private let onAdLoaded: () -> Void
         private let onAdFailed: (Error) -> Void
@@ -203,6 +204,18 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
 
             guard force || !didRequestAd else { return }
 
+            guard GoogleMobileAdsBootstrap.canRequestAds else {
+                logDiscoverAdState(phase: "consentPending.deferRequest.\(reason)", requested: false)
+                guard !isWaitingForConsent else { return }
+                isWaitingForConsent = true
+                GoogleMobileAdsBootstrap.runWhenAdsCanBeRequested { [weak self] in
+                    guard let self else { return }
+                    self.isWaitingForConsent = false
+                    self.loadBannerIfNeeded(force: true, reason: "consentReady.\(reason)")
+                }
+                return
+            }
+
             AdDebugDiagnostics.logViewSnapshot(
                 phase: "preRequest.\(reason)",
                 format: "banner",
@@ -248,6 +261,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             widthConstraint = nil
             heightConstraint = nil
             didRequestAd = false
+            isWaitingForConsent = false
             requestStartedAt = nil
         }
 
@@ -334,6 +348,7 @@ private struct AdaptiveBannerRepresentable: UIViewRepresentable {
             loaded: Bool = false,
             failed: String? = nil
         ) {
+            guard AdDiagnostics.enabled else { return }
             guard placement == "discover.bottomStrip" else { return }
             let view = banner ?? container
             let frame = view?.frame ?? .zero

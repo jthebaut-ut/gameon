@@ -104,6 +104,11 @@ struct MainTabView: View {
 
     private var tabShellWithLifecycleModifiers: some View {
         ZStack {
+            if selectedTab == .chat {
+                chatTabRootBackground
+                    .ignoresSafeArea()
+            }
+
             lazyPreservedRoot(tab: .discover) {
                 DiscoverScreen(
                     viewModel: viewModel,
@@ -147,6 +152,7 @@ struct MainTabView: View {
                     .bottom,
                     chatViewModel.hidesFloatingTabBarForDirectChat ? 0 : Self.floatingTabBarStackHeight
                 )
+                .background(chatTabRootBackground.ignoresSafeArea())
             }
 
             lazyPreservedRoot(tab: .account) {
@@ -804,6 +810,10 @@ struct MainTabView: View {
         colorScheme == .dark
             ? Color.black.opacity(0.34)
             : Color.white.opacity(0.58)
+    }
+
+    private var chatTabRootBackground: Color {
+        colorScheme == .dark ? Color.black : Color(.systemBackground)
     }
 
     private var floatingTabBarBorder: Color {

@@ -49,6 +49,7 @@ enum VenueGamesAdInjector {
     static func insertedAfterGamePositions(gameCount: Int) -> [Int] {
         guard venueGameInlineAdsEnabled else {
 #if DEBUG
+            guard AdDiagnostics.enabled else { return [] }
             print("[VenueGameAdDebug] inlineAdsDisabledDueToStability=true")
             print("[VenueGameAdDebug] placement=venue.gamesFeed")
             print("[VenueGameAdDebug] gameCount=\(gameCount)")
@@ -78,6 +79,7 @@ enum VenueGamesAdInjector {
 
     private static func logPlan(gameCount: Int, positions: [Int]) {
 #if DEBUG
+        guard AdDiagnostics.enabled else { return }
         print("[VenueGameAdDebug] placement=venue.gamesFeed")
         print("[VenueGameAdDebug] gameCount=\(gameCount)")
         print("[VenueGameAdDebug] insertedAdIndexes=\(positions)")
@@ -171,6 +173,7 @@ struct SponsoredVenueCardView: View {
 
     private func logLoadState(loaded: Bool, failed: String?) {
 #if DEBUG
+        guard AdDiagnostics.enabled else { return }
         print("[VenueGameAdDebug] placement=\(placement)")
         print("[VenueGameAdDebug] loaded=\(loaded)")
         print("[VenueGameAdDebug] failed=\(failed ?? "nil")")

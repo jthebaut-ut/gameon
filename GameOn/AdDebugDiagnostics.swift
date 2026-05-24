@@ -28,12 +28,13 @@ enum AdDebugContext {
     }
 }
 
-// MARK: - Deep AdMob diagnostics ([AdDebug] — always printed for TestFlight Console)
+// MARK: - Deep AdMob diagnostics ([AdDebug] — quiet by default; enable `AdDiagnostics.enabled` for ad debugging)
 
 enum AdDebugDiagnostics {
     // MARK: Bootstrap / plist verification
 
     static func logBootstrap() {
+        guard AdDiagnostics.enabled else { return }
         let plistAppID = Bundle.main.object(forInfoDictionaryKey: "GADApplicationIdentifier") as? String
         let configuredAppID = AdMobConfiguration.applicationID
         let skItems = Bundle.main.object(forInfoDictionaryKey: "SKAdNetworkItems") as? [[String: Any]]
@@ -64,7 +65,7 @@ enum AdDebugDiagnostics {
                 "userInterfaceIdiom": idiomLabel(UIDevice.current.userInterfaceIdiom),
                 "systemVersion": UIDevice.current.systemVersion,
                 "idfa": idfa,
-                "attStatus": attStatusLabel(),
+                "attStatus": currentATTStatusLabel(),
                 "attPromptConfigured": "\(attPromptConfigured)"
             ]
         )
@@ -95,6 +96,11 @@ enum AdDebugDiagnostics {
         log(event: "sdkStartCompleted", format: "sdk", placement: "appLaunch", fields: [:])
     }
 
+    static func logConsent(_ message: String) {
+        guard AdDiagnostics.enabled else { return }
+        print("[AdConsentDebug] \(message)")
+    }
+
     static func logUnitSelection(format: String, unitID: String) {
         log(
             event: "unitSelected",
@@ -121,7 +127,7 @@ enum AdDebugDiagnostics {
         var fields: [String: String] = [
             "unitID": unitID,
             "visibleTab": AdDebugContext.visibleTab,
-            "attStatus": attStatusLabel()
+            "attStatus": currentATTStatusLabel()
         ]
         if let adSize {
             fields["adSizeW"] = fmt(adSize.width)
@@ -156,7 +162,7 @@ enum AdDebugDiagnostics {
             "unitID": unitID ?? "unknown",
             "fill": "success",
             "visibleTab": AdDebugContext.visibleTab,
-            "attStatus": attStatusLabel()
+            "attStatus": currentATTStatusLabel()
         ]
         if let elapsedMs {
             fields["elapsedMs"] = String(format: "%.0f", elapsedMs)
@@ -183,7 +189,7 @@ enum AdDebugDiagnostics {
         fields["unitID"] = unitID ?? "unknown"
         fields["fill"] = "failure"
         fields["visibleTab"] = AdDebugContext.visibleTab
-        fields["attStatus"] = attStatusLabel()
+        fields["attStatus"] = currentATTStatusLabel()
         if let elapsedMs {
             fields["elapsedMs"] = String(format: "%.0f", elapsedMs)
         }
@@ -226,7 +232,7 @@ enum AdDebugDiagnostics {
             "visibleTab": AdDebugContext.visibleTab,
             "hostTab": hostTab,
             "hostTabOffscreenPreserved": "\(tabOffscreen)",
-            "attStatus": attStatusLabel()
+            "attStatus": currentATTStatusLabel()
         ]
 
         if let view {
@@ -325,6 +331,7 @@ enum AdDebugDiagnostics {
         placement: String,
         fields: [String: String]
     ) {
+        guard AdDiagnostics.enabled else { return }
         let sortedPairs = fields.sorted { $0.key < $1.key }
         let payload = sortedPairs.map { "\($0.key)=\($0.value)" }.joined(separator: " ")
         print("[AdDebug] event=\(event) format=\(format) placement=\(placement) \(payload)")
@@ -361,7 +368,7 @@ enum AdDebugDiagnostics {
         return fields
     }
 
-    private static func attStatusLabel() -> String {
+    static func currentATTStatusLabel() -> String {
         if #available(iOS 14, *) {
             switch ATTrackingManager.trackingAuthorizationStatus {
             case .notDetermined: return "notDetermined"
