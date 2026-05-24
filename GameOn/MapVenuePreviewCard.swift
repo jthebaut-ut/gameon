@@ -250,7 +250,16 @@ struct MapVenuePreviewCard: View {
             if let urlString = coverURLString,
                let url = URL(string: urlString) {
 
-                DiscoverCachedRemoteImage(url: url, contentMode: .fill) {
+                DiscoverCachedRemoteImage(
+                    url: url,
+                    contentMode: .fill,
+                    venuePhotoDebugContext: VenuePhotoDebugContext(
+                        venueId: bar.id,
+                        venueName: bar.name,
+                        selectedMainPhotoURL: urlString,
+                        selectedSecondaryPhotoURL: selectedVenueSecondaryPhotoURLString
+                    )
+                ) {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
                 }
@@ -281,10 +290,29 @@ struct MapVenuePreviewCard: View {
     private func logDiscoverCardPhotoDebug(urlString: String?) {
 #if DEBUG
         let resolved = urlString ?? ""
+        let selectedSecondary = selectedVenueSecondaryPhotoURLString ?? ""
+        print("[VenuePhotoDebug] venueId=\(bar.id.uuidString.lowercased())")
+        print("[VenuePhotoDebug] venueName=\(bar.name)")
+        print("[VenuePhotoDebug] coverPhotoURL=\(bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] coverThumbnailURL=\(bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuPhotoURL=\(bar.menuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuThumbnailURL=\(bar.menuPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] selectedMainPhotoURL=\(resolved)")
+        print("[VenuePhotoDebug] selectedSecondaryPhotoURL=\(selectedSecondary)")
         print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
         print("[VenuePhotoDisplayDebug] usingThumbnail=\(discoverCardUsesThumbnail)")
         print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")
 #endif
+    }
+
+    private var selectedVenueSecondaryPhotoURLString: String? {
+        ImageDisplayURL.forList(
+            thumbnail: bar.menuPhotoThumbnailURL,
+            full: bar.menuPhotoURL
+        ) ?? ImageDisplayURL.forList(
+            thumbnail: bar.coverPhotoThumbnailURL,
+            full: bar.coverPhotoURL
+        )
     }
 
     private func logVenueFeatureCardPropagation() {

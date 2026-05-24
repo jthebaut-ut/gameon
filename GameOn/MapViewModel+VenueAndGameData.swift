@@ -28,7 +28,7 @@ private enum DiscoverVenueFastPinSelect {
 
 private enum DiscoverVenueLightweightPinSelect {
     nonisolated static let columns =
-        "id,venue_name,latitude,longitude,city,state,admin_status,community_type"
+        "id,venue_name,latitude,longitude,city,state,admin_status,community_type,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
 }
 
 private let discoverVenueActiveLegacySafeOrFilter = "admin_status.is.null,admin_status.eq.active"

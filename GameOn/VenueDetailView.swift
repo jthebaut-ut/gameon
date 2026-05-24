@@ -109,18 +109,20 @@ struct VenueDetailView: View {
 
     private var insideVenueImageURL: URL? {
         guard let raw = venueDetailsSecondPhotoURLString,
-              let url = URL(string: raw) else {
+              let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return nil
         }
         return url
     }
 
     private var venueDetailsSecondPhotoURLString: String? {
-        guard let second = ImageDisplayURL.forDetail(
+        ImageDisplayURL.forList(
             thumbnail: bar.menuPhotoThumbnailURL,
             full: menuPhotoURL ?? bar.menuPhotoURL
-        ) else { return nil }
-        return second == venueDetailsHeroURLString ? nil : second
+        ) ?? ImageDisplayURL.forList(
+            thumbnail: bar.coverPhotoThumbnailURL,
+            full: coverPhotoURL ?? bar.coverPhotoURL
+        )
     }
 
     private var venueShareText: String {
@@ -457,7 +459,16 @@ struct VenueDetailView: View {
                 )
 
                 ZStack(alignment: .bottomLeading) {
-                    DiscoverCachedRemoteImage(url: insideVenueImageURL, contentMode: .fill) {
+                    DiscoverCachedRemoteImage(
+                        url: insideVenueImageURL,
+                        contentMode: .fill,
+                        venuePhotoDebugContext: VenuePhotoDebugContext(
+                            venueId: bar.id,
+                            venueName: bar.name,
+                            selectedMainPhotoURL: venueDetailsHeroURLString,
+                            selectedSecondaryPhotoURL: venueDetailsSecondPhotoURLString
+                        )
+                    ) {
                         LinearGradient(
                             colors: [FGColor.gradientStart.opacity(0.70), FGColor.gradientEnd.opacity(0.90)],
                             startPoint: .topLeading,
@@ -1717,6 +1728,14 @@ struct VenueDetailView: View {
         print("[VenueDetailDebug] selected venue ratingCount=\(ratingCount)")
         let hero = venueDetailsHeroURLString ?? ""
         let second = venueDetailsSecondPhotoURLString ?? ""
+        print("[VenuePhotoDebug] venueId=\(bar.id.uuidString.lowercased())")
+        print("[VenuePhotoDebug] venueName=\(bar.name)")
+        print("[VenuePhotoDebug] coverPhotoURL=\(bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] coverThumbnailURL=\(bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuPhotoURL=\(bar.menuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuThumbnailURL=\(bar.menuPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] selectedMainPhotoURL=\(hero)")
+        print("[VenuePhotoDebug] selectedSecondaryPhotoURL=\(second)")
         print("[VenuePhotoDisplayDebug] venueDetailsHeroURL=\(hero)")
         print("[VenuePhotoDisplayDebug] venueDetailsSecondPhotoURL=\(second)")
         print("[VenuePhotoDisplayDebug] usingThumbnail=\(venueDetailsHeroUsesThumbnail)")

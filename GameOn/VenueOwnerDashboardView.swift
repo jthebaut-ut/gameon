@@ -41,6 +41,99 @@ private struct VenueOwnerAnalyticsDetailSelection: Identifiable {
     let row: VenueEventRow
 }
 
+private struct VenueAnalyticsLocationPerformance: Identifiable {
+    let id: UUID
+    let name: String
+    let score: Int
+    let signal: String
+    let trendValues: [Int]
+    let tint: Color
+}
+
+private struct VenueAnalyticsPerformanceWindow: Identifiable {
+    let id: String
+    let label: String
+    let subtitle: String
+}
+
+private struct VenueAnalyticsBusinessInsight: Identifiable {
+    let id: String
+    let icon: String
+    let title: String
+    let value: String
+    let subtitle: String?
+    let tint: Color
+}
+
+private struct VenueAnalyticsDisplayCardRow: Identifiable {
+    let id: String
+    let eventID: UUID
+    let row: VenueEventRow
+}
+
+private struct VenueAnalyticsBasicEventRow: Identifiable {
+    let id: String
+    let eventID: UUID?
+    let title: String
+    let schedule: String
+    let sport: String
+    let goingCount: Int
+    let commentsCount: Int
+    let status: String
+}
+
+private struct BusinessInsightsSparkline: View {
+    let values: [Int]
+    let tint: Color
+    var lineWidth: CGFloat = 2
+
+    var body: some View {
+        GeometryReader { proxy in
+            let points = normalizedPoints(size: proxy.size)
+            Path { path in
+                guard let first = points.first else { return }
+                path.move(to: first)
+                for point in points.dropFirst() {
+                    path.addLine(to: point)
+                }
+            }
+            .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+
+            if let last = points.last {
+                Circle()
+                    .fill(tint)
+                    .frame(width: lineWidth * 2.8, height: lineWidth * 2.8)
+                    .position(last)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func normalizedPoints(size: CGSize) -> [CGPoint] {
+        let usableValues = values.isEmpty ? [0, 0] : values
+        guard usableValues.count > 1 else {
+            return [CGPoint(x: 0, y: size.height / 2), CGPoint(x: size.width, y: size.height / 2)]
+        }
+        let minValue = usableValues.min() ?? 0
+        let maxValue = usableValues.max() ?? 0
+        if minValue == maxValue {
+            let step = size.width / CGFloat(max(1, usableValues.count - 1))
+            return usableValues.enumerated().map { index, _ in
+                CGPoint(x: CGFloat(index) * step, y: size.height / 2)
+            }
+        }
+        let range = max(1, maxValue - minValue)
+        let step = size.width / CGFloat(max(1, usableValues.count - 1))
+        return usableValues.enumerated().map { index, value in
+            let normalized = CGFloat(value - minValue) / CGFloat(range)
+            return CGPoint(
+                x: CGFloat(index) * step,
+                y: size.height - (normalized * size.height)
+            )
+        }
+    }
+}
+
 /// Which slice of the venue owner dashboard Settings (or other callers) presents.
 enum VenueOwnerDashboardEntryPoint: Equatable {
     /// Profile, games, and analytics tabs (legacy / rare).
@@ -63,6 +156,7 @@ struct VenueOwnerDashboardView: View {
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    private let usePremiumCrowdInsights = false
 
     @State private var selectedSection: VenueDashboardSection = .overview
 
@@ -183,6 +277,7 @@ struct VenueOwnerDashboardView: View {
     @State private var showBusinessProSubscriptionSheet = false
     @State private var titleEditTarget: VenueOwnerGameTitleEditTarget?
     @State private var titleEditDraft = ""
+    @State private var businessGameChatTarget: VenueOwnerGameChatTarget?
     @State private var showCancelGameDialog = false
     @State private var cancelGameRowSnapshot: VenueEventRow?
     @State private var showVenueOwnerContactSupport = false
@@ -593,6 +688,15 @@ struct VenueOwnerDashboardView: View {
                 logBusinessProVisibilityDebug(dashboardVisible: true)
             }
         }
+        .sheet(item: $businessGameChatTarget) { target in
+            VenueEventCommentsSheet(
+                viewModel: viewModel,
+                venueEventID: target.id,
+                title: target.title
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         }
     }
     
@@ -693,22 +797,19 @@ struct VenueOwnerDashboardView: View {
             logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
             showBusinessProSubscriptionSheet = true
         } label: {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .center, spacing: 10) {
-                    ZStack {
-                        Circle()
-                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.12))
-                        Image(systemName: "sparkles.rectangle.stack.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(FGColor.accentGreen)
-                    }
-                    .frame(width: 34, height: 34)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(FGColor.accentGreen)
+                        .frame(width: 38, height: 38)
+                        .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.22 : 0.13), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Business Pro")
-                            .font(.subheadline.weight(.heavy))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("FanGeo Business Pro")
+                            .font(.headline.weight(.black))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
-                        Text("Unlimited hosting through Aug 31, 2026")
+                        Text("Premium tools for growing sports crowds.")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
                     }
@@ -718,21 +819,53 @@ struct VenueOwnerDashboardView: View {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .padding(.top, 4)
+                }
+
+                HStack(spacing: 7) {
+                    businessProBenefitPill("Unlimited watch parties")
+                    businessProBenefitPill("Fan engagement tools")
+                    businessProBenefitPill("Priority visibility")
                 }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FGAdaptiveSurface.controlFill)
+            .background(
+                LinearGradient(
+                    colors: [
+                        FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.10),
+                        FGColor.accentBlue.opacity(colorScheme == .dark ? 0.12 : 0.07),
+                        FGAdaptiveSurface.controlFill.opacity(0.96)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.24 : 0.14), lineWidth: 1)
+                    .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.32 : 0.20), lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
         .onAppear {
             logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
         }
+    }
+
+    private func businessProBenefitPill(_ title: String) -> some View {
+        Text("✓ \(title)")
+            .font(.caption2.weight(.heavy))
+            .foregroundStyle(FGColor.primaryText(colorScheme))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(.ultraThinMaterial, in: Capsule(style: .continuous))
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.28), lineWidth: 1)
+            }
     }
 
     private var businessDashboardOverviewSection: some View {
@@ -1723,7 +1856,7 @@ struct VenueOwnerDashboardView: View {
         VStack(alignment: .leading, spacing: 10) {
             if let row = hottestAnalyticsGameRow(from: displayed) {
                 HStack(spacing: 8) {
-                    Text("Most active")
+                    Text("Top Performing Match")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.secondary)
@@ -1748,7 +1881,7 @@ struct VenueOwnerDashboardView: View {
 
             if let top = globalTopVibeSummary(from: displayed) {
                 HStack(spacing: 8) {
-                    Text("Top vibe")
+                    Text("Fan Favorite Feature")
                         .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.secondary)
@@ -1770,10 +1903,382 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    private func crowdInsightsSummaryHeader(displayed: [VenueEventRow]) -> some View {
+        ZStack(alignment: .topTrailing) {
+            if shouldShowEngagementSparkline(displayed) {
+                BusinessInsightsSparkline(
+                    values: engagementTrendValues(from: displayed),
+                    tint: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.18),
+                    lineWidth: 1.6
+                )
+                .frame(width: 132, height: 42)
+                .padding(.top, 24)
+                .padding(.trailing, 16)
+            }
+
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 5) {
+                        Text("Fan Engagement")
+                            .font(.headline.weight(.black))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Image(systemName: "info.circle")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text("\(venueEngagementScore100(displayed))")
+                            .font(.system(size: 42, weight: .black, design: .rounded))
+                            .foregroundStyle(FGColor.accentGreen)
+                            .contentTransition(.numericText())
+                        Text("/100")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                    }
+
+                    Text(crowdInsightsComparisonLine())
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(crowdInsightsTrendTint())
+                }
+
+                HStack(spacing: 0) {
+                    heroMetricBlock(
+                        icon: "person.2.fill",
+                        tint: FGColor.accentGreen,
+                        value: "\(averageFansPerGame(displayed))",
+                        label: "Avg fans\nper game"
+                    )
+                    heroDivider
+                    heroMetricBlock(
+                        icon: "bubble.left.and.bubble.right.fill",
+                        tint: FGColor.accentBlue,
+                        value: "\(totalFanDiscussions(displayed))",
+                        label: "Active\ndiscussions"
+                    )
+                    heroDivider
+                    heroMetricBlock(
+                        icon: "trophy.fill",
+                        tint: Color.purple,
+                        value: topSportName(displayed),
+                        label: "Top sport"
+                    )
+                }
+            }
+            .padding(16)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.16 : 0.09),
+                    FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.06),
+                    FGAdaptiveSurface.controlFill.opacity(0.96)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.25 : 0.16), lineWidth: 1)
+        }
+        .shadow(color: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.14 : 0.10), radius: 18, x: 0, y: 10)
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsUI] premiumAnalyticsEnabled=true")
+#endif
+        }
+    }
+
+    private var heroDivider: some View {
+        Rectangle()
+            .fill(FGColor.divider(colorScheme).opacity(0.65))
+            .frame(width: 1, height: 42)
+            .padding(.horizontal, 8)
+    }
+
+    private func heroMetricBlock(icon: String, tint: Color, value: String, label: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.caption.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private func mostPopularSportInsight(displayed: [VenueEventRow]) -> some View {
+        if let summary = topSportEngagementSummary(displayed) {
+            HStack(spacing: 12) {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 18, weight: .black))
+                    .foregroundStyle(Color.purple)
+                    .frame(width: 38, height: 38)
+                    .background(Color.purple.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Most Popular Sport")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(summary.sport)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("+\(summary.percent)%")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.accentGreen)
+                    Text("of engagement")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+            }
+            .padding(13)
+            .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(Color.purple.opacity(colorScheme == .dark ? 0.20 : 0.12), lineWidth: 1)
+            }
+            .onAppear {
+#if DEBUG
+                print("[BusinessInsightsCrashFix] topSportSafe=true")
+#endif
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func venueInsightsSection(displayed: [VenueEventRow]) -> some View {
+        let insights = venueBusinessInsights(from: displayed)
+        if !insights.isEmpty {
+            let visibleInsights = Array(insights.prefix(4))
+            VStack(alignment: .leading, spacing: 9) {
+                Text("Venue Insights")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ],
+                    spacing: 8
+                ) {
+                    ForEach(visibleInsights) { insight in
+                        venueInsightCard(insight)
+                    }
+                }
+            }
+        } else {
+            notEnoughActivityCard
+        }
+    }
+
+    private func venueInsightCard(_ insight: VenueAnalyticsBusinessInsight) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(insight.icon)
+                .font(.system(size: 17))
+                .accessibilityHidden(true)
+            Text(insight.title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+            Text(insight.value)
+                .font(.caption.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(2)
+                .minimumScaleFactor(0.76)
+            if let subtitle = insight.subtitle {
+                Text(subtitle)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(insight.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .background(insight.tint.opacity(colorScheme == .dark ? 0.14 : 0.07), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(insight.tint.opacity(colorScheme == .dark ? 0.18 : 0.10), lineWidth: 1)
+        }
+    }
+
+    private var notEnoughActivityCard: some View {
+        Text("Not enough activity yet")
+            .font(.caption.weight(.heavy))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func venuePerformanceLeaderboard(displayed: [VenueEventRow]) -> some View {
+        let rows = topPerformingLocations(from: displayed)
+        if rows.count > 1 {
+            let visibleRows = Array(rows.prefix(3).enumerated())
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Top Performing Locations")
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Spacer(minLength: 0)
+                    Text("View all")
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(FGColor.accentBlue)
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(visibleRows, id: \.element.id) { index, item in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top, spacing: 7) {
+                                    Text("\(index + 1)")
+                                        .font(.caption2.weight(.black))
+                                        .foregroundStyle(Color.white)
+                                        .frame(width: 18, height: 18)
+                                        .background(item.tint, in: Circle())
+                                    Image(systemName: "building.2.fill")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(item.tint)
+                                    Text(item.name)
+                                        .font(.caption.weight(.black))
+                                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                                        .lineLimit(2)
+                                }
+
+                                HStack(alignment: .bottom) {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("\(item.score)")
+                                            .font(.title3.weight(.black))
+                                            .foregroundStyle(item.tint)
+                                        Text("Engagement")
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                    }
+                                    Spacer(minLength: 6)
+                                    BusinessInsightsSparkline(values: item.trendValues, tint: item.tint, lineWidth: 1.8)
+                                        .frame(width: 52, height: 24)
+                                }
+
+                                Text(item.signal)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.75)
+                            }
+                            .padding(11)
+                            .frame(width: 138, alignment: .leading)
+                            .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.42), lineWidth: 1)
+                            }
+                        }
+                    }
+                }
+            }
+            .onAppear {
+#if DEBUG
+                print("[BusinessInsightsUI] leaderboardVisible=true")
+                print("[BusinessInsightsCrashFix] leaderboardSafe=true")
+#endif
+            }
+        } else {
+            EmptyView()
+                .onAppear {
+#if DEBUG
+                    print("[BusinessInsightsUI] leaderboardVisible=false")
+                    print("[BusinessInsightsCrashFix] leaderboardSafe=true")
+#endif
+                }
+        }
+    }
+
+    @ViewBuilder
+    private func bestPerformanceWindowsSection(displayed: [VenueEventRow]) -> some View {
+        let windows = bestPerformanceWindows(from: displayed)
+        if !windows.isEmpty {
+            let visibleWindows = Array(windows.prefix(2))
+            HStack(spacing: 10) {
+                Image(systemName: "clock")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(FGColor.accentYellow)
+                    .frame(width: 34, height: 34)
+                    .background(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.20 : 0.12), in: Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Best Performance Windows")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text("When your venue gets the most fans")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+
+                Spacer(minLength: 0)
+
+                ForEach(visibleWindows) { window in
+                    VStack(alignment: .center, spacing: 3) {
+                        Text(window.label)
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                        Text(window.subtitle)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.accentYellow)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    .frame(minWidth: 74)
+                }
+            }
+            .padding(12)
+            .background(
+                LinearGradient(
+                    colors: [
+                        FGColor.accentYellow.opacity(colorScheme == .dark ? 0.16 : 0.10),
+                        FGAdaptiveSurface.controlFill.opacity(0.96)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(FGColor.accentYellow.opacity(colorScheme == .dark ? 0.22 : 0.14), lineWidth: 1)
+            }
+            .onAppear {
+#if DEBUG
+                print("[BusinessInsightsCrashFix] bestWindowsSafe=true")
+#endif
+            }
+        }
+    }
+
     private var venueAnalyticsSection: some View {
         dashboardCard(
-            title: "Analytics",
-            subtitle: "Venue Analytics focuses on games still in your database—engagement for active, recent, and cancelled listings. Use the Game History tab for permanent lightweight summaries after a game is fully purged from venue events (fan comments and reactions are never stored there)."
+            title: "Business Intelligence",
+            subtitle: "Premium crowd insights for watch parties, fan energy, and venue performance."
         ) {
             venueAnalyticsDashboardInner()
                 .sheet(item: $analyticsDetailSelection) { selection in
@@ -1788,7 +2293,7 @@ struct VenueOwnerDashboardView: View {
                             )
                             .padding(.vertical, 8)
                         }
-                        .navigationTitle("Game analytics")
+                        .navigationTitle("Watch party insights")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
@@ -1803,8 +2308,8 @@ struct VenueOwnerDashboardView: View {
     private func venueAnalyticsDashboardInner() -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("", selection: $businessVenueAnalyticsTab) {
-                Text("Venue Analytics").tag(BusinessVenueAnalyticsTab.venueAnalytics)
-                Text("Game History").tag(BusinessVenueAnalyticsTab.gameHistory)
+                Text("Crowd Insights").tag(BusinessVenueAnalyticsTab.venueAnalytics)
+                Text("Past Watch Parties").tag(BusinessVenueAnalyticsTab.gameHistory)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -1834,96 +2339,340 @@ struct VenueOwnerDashboardView: View {
             venueAnalyticsFilterBar
 
             if isCapped {
-                Text("Showing the \(VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset) most recent games for this view. Purged games are removed from venue events entirely—they never appear here. Use a narrower date filter to browse older rows without loading everything at once.")
+                Text("Showing the \(VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset) most recent watch parties. Use a narrower date or sport filter for older results.")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 
-            Group {
-                if analyticsIsLoading && analyticsGames.isEmpty {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Loading analytics…")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                } else if analyticsGames.isEmpty {
-                    Text("No games loaded for analytics yet. Add a game from the Games tab, or pull to refresh after cancellations.")
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    if !displayed.isEmpty {
-                        venueAnalyticsSummaryStrip(displayed: displayed)
-                    }
-
-                    if displayed.isEmpty {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No games match this filter.")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                            Text("Try another date range or sport, or choose “All” in the date presets to include past and cancelled listings.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
-                    } else {
-                        ScrollView {
-                            LazyVStack(spacing: 8) {
-                                ForEach(displayed.compactMap { row -> (UUID, VenueEventRow)? in
-                                    guard let id = row.id else { return nil }
-                                    return (id, row)
-                                }, id: \.0) { pair in
-                                    VenueOwnerCompactAnalyticsRow(
-                                        viewModel: viewModel,
-                                        fanUpdatesStore: fanUpdatesStore,
-                                        row: pair.1,
-                                        eventID: pair.0,
-                                        isLiveToday: isGameLiveToday(pair.1),
-                                        onTapDetail: {
-                                            analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
-                                        }
-                                    )
-                                    .contextMenu {
-                                        Button("Details") {
-                                            analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: pair.0, row: pair.1)
-                                        }
-                                        Button("Hide from analytics", role: .destructive) {
-                                            hideVenueEventFromAnalytics(pair.0)
-                                        }
-                                    }
-                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                        Button("Hide") {
-                                            hideVenueEventFromAnalytics(pair.0)
-                                        }
-                                        .tint(.orange)
-                                    }
-                                }
-                            }
-                            .padding(.top, 4)
-                        }
-                        .frame(maxHeight: 520)
-                    }
-                }
+            if usePremiumCrowdInsights {
+                venueAnalyticsVenueEngagementContent(displayed: displayed)
+            } else {
+                venueAnalyticsRestoredStableLayout(displayed: displayed)
             }
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsCrashFix] displayedCount=\(displayed.count)")
+#endif
         }
         .refreshable {
             await loadVenueAnalytics()
         }
     }
 
+    @ViewBuilder
+    private func venueAnalyticsVenueEngagementContent(displayed: [VenueEventRow]) -> some View {
+        let _ = logBusinessInsightsEnteringContent(displayedCount: displayed.count)
+        if analyticsIsLoading && analyticsGames.isEmpty {
+            venueAnalyticsLoadingState
+        } else if analyticsGames.isEmpty {
+            venueAnalyticsEmptyState
+        } else if displayed.isEmpty {
+            venueAnalyticsNoFilterMatchesState
+        } else if usePremiumCrowdInsights {
+            venueAnalyticsPremiumContent(displayed: displayed)
+        } else {
+            venueAnalyticsBasicFallbackList(displayed: displayed)
+        }
+    }
+
+    private func logBusinessInsightsEnteringContent(displayedCount: Int) -> Bool {
+#if DEBUG
+        print("[BusinessInsightsCrashFix] enteringContent displayedCount=\(displayedCount)")
+#endif
+        return true
+    }
+
+    @ViewBuilder
+    private func venueAnalyticsRestoredStableLayout(displayed: [VenueEventRow]) -> some View {
+        if analyticsIsLoading && analyticsGames.isEmpty {
+            venueAnalyticsLoadingState
+        } else if analyticsGames.isEmpty {
+            venueAnalyticsEmptyState
+        } else if displayed.isEmpty {
+            venueAnalyticsNoFilterMatchesState
+        } else {
+            crowdInsightsSummaryHeader(displayed: displayed)
+            bestPerformanceWindowsSection(displayed: displayed)
+            venueAnalyticsEventPerformanceList(displayed: displayed)
+        }
+    }
+
+    @ViewBuilder
+    private func venueAnalyticsEmergencyRollbackFallback(displayed: [VenueEventRow]) -> some View {
+        let rows = analyticsBasicEventRows(from: displayed)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Crowd Insights")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            Text("Analytics are being refreshed.")
+                .font(.subheadline)
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+
+            if analyticsIsLoading && analyticsGames.isEmpty {
+                venueAnalyticsLoadingState
+            } else if analyticsGames.isEmpty {
+                venueAnalyticsEmptyState
+            } else if displayed.isEmpty {
+                venueAnalyticsNoFilterMatchesState
+            } else if rows.isEmpty {
+                notEnoughActivityCard
+            } else {
+                LazyVStack(spacing: 8) {
+                    ForEach(rows) { row in
+                        venueAnalyticsBasicEventCard(row)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsCrashFix] enteringContent displayedCount=\(displayed.count)")
+            print("[BusinessInsightsCrashFix] renderingBasicFallback=true")
+            print("[BusinessInsightsCrashFix] stableEventRowsCount=\(rows.count)")
+#endif
+        }
+    }
+
+    private var venueAnalyticsLoadingState: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+            Text("Loading analytics…")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var venueAnalyticsEmptyState: some View {
+        Text("No games loaded for analytics yet. Add a game from the Games tab, or pull to refresh after cancellations.")
+            .font(.subheadline)
+            .fontWeight(.semibold)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var venueAnalyticsNoFilterMatchesState: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("No watch parties match this filter.")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            Text("Try another date range or sport, or choose “All” to review more crowd activity.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+    }
+
+    private func venueAnalyticsPremiumContent(displayed: [VenueEventRow]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            venueAnalyticsInsightsOverview(displayed: displayed)
+            venueAnalyticsEventPerformanceList(displayed: displayed)
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsCrashFix] renderingPremiumSection=true")
+#endif
+        }
+    }
+
+    @ViewBuilder
+    private func venueAnalyticsBasicFallbackList(displayed: [VenueEventRow]) -> some View {
+        let rows = analyticsBasicEventRows(from: displayed)
+        if rows.isEmpty {
+            notEnoughActivityCard
+                .onAppear {
+#if DEBUG
+                    print("[BusinessInsightsCrashFix] renderingBasicFallback=true")
+                    print("[BusinessInsightsCrashFix] stableEventRowsCount=0")
+#endif
+                }
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(rows) { row in
+                        venueAnalyticsBasicEventCard(row)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .frame(maxHeight: 520)
+            .onAppear {
+#if DEBUG
+                print("[BusinessInsightsCrashFix] renderingBasicFallback=true")
+                print("[BusinessInsightsCrashFix] stableEventRowsCount=\(rows.count)")
+#endif
+            }
+        }
+    }
+
+    private func venueAnalyticsBasicEventCard(_ row: VenueAnalyticsBasicEventRow) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .top, spacing: 8) {
+                Text(row.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+                Text(row.status)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(FGAdaptiveSurface.capsuleUnselected, in: Capsule(style: .continuous))
+            }
+
+            Text(row.schedule)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+
+            HStack(spacing: 10) {
+                Text(row.sport)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .lineLimit(1)
+                Text("Going \(row.goingCount)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Text("Comments \(row.commentsCount)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        }
+    }
+
+    private func venueAnalyticsInsightsOverview(displayed: [VenueEventRow]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            crowdInsightsSummaryHeader(displayed: displayed)
+            mostPopularSportInsight(displayed: displayed)
+            venueInsightsSection(displayed: displayed)
+            venuePerformanceLeaderboard(displayed: displayed)
+            bestPerformanceWindowsSection(displayed: displayed)
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsCrashFix] displayedCount=\(displayed.count)")
+            print("[BusinessInsightsCrashFix] summarySafe=true")
+            print("[BusinessInsightsCrashFix] leaderboardSafe=true")
+            print("[BusinessInsightsCrashFix] topSportSafe=true")
+            print("[BusinessInsightsCrashFix] bestWindowsSafe=true")
+#endif
+        }
+    }
+
+    @ViewBuilder
+    private func venueAnalyticsEventPerformanceList(displayed: [VenueEventRow]) -> some View {
+        let cardRows = analyticsDisplayCardRows(from: displayed)
+        if cardRows.isEmpty {
+            notEnoughActivityCard
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 8) {
+                    ForEach(cardRows) { card in
+                        venueAnalyticsEventPerformanceCard(card)
+                    }
+                }
+                .padding(.top, 4)
+            }
+            .frame(maxHeight: 520)
+        }
+    }
+
+    private func venueAnalyticsEventPerformanceCard(_ card: VenueAnalyticsDisplayCardRow) -> some View {
+        VenueOwnerCompactAnalyticsRow(
+            viewModel: viewModel,
+            fanUpdatesStore: fanUpdatesStore,
+            row: card.row,
+            eventID: card.eventID,
+            isLiveToday: isGameLiveToday(card.row),
+            onTapDetail: {
+                analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: card.eventID, row: card.row)
+            }
+        )
+        .contextMenu {
+            Button("Details") {
+                analyticsDetailSelection = VenueOwnerAnalyticsDetailSelection(id: card.eventID, row: card.row)
+            }
+            Button("Hide from analytics", role: .destructive) {
+                hideVenueEventFromAnalytics(card.eventID)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button("Hide") {
+                hideVenueEventFromAnalytics(card.eventID)
+            }
+            .tint(.orange)
+        }
+    }
+
+    private func analyticsDisplayCardRows(from rows: [VenueEventRow]) -> [VenueAnalyticsDisplayCardRow] {
+        rows.enumerated().compactMap { index, row in
+            guard let eventID = row.id else { return nil }
+            let venuePart = row.venue_id?.uuidString ?? row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "venue"
+            let datePart = row.scheduled_start_at ?? row.event_date ?? "date"
+            return VenueAnalyticsDisplayCardRow(
+                id: "\(eventID.uuidString)-\(venuePart)-\(datePart)-\(index)",
+                eventID: eventID,
+                row: row
+            )
+        }
+    }
+
+    private func analyticsBasicEventRows(from rows: [VenueEventRow]) -> [VenueAnalyticsBasicEventRow] {
+        rows.enumerated().map { index, row in
+            let eventID = row.id
+            let venuePart = row.venue_id?.uuidString ?? row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "venue"
+            let startPart = row.scheduled_start_at ?? row.event_date ?? "date"
+            let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let status = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let going = eventID.map { viewModel.interestCountForVenueEvent($0) } ?? 0
+            let comments = eventID.map { fanUpdatesStore.venueEventComments[$0]?.count ?? 0 } ?? 0
+            return VenueAnalyticsBasicEventRow(
+                id: "\(eventID?.uuidString ?? "missing-event")-\(venuePart)-\(startPart)-\(index)",
+                eventID: eventID,
+                title: title.isEmpty ? "Watch party" : title,
+                schedule: basicAnalyticsScheduleLine(for: row),
+                sport: sport.isEmpty ? "Sport not set" : sport,
+                goingCount: going,
+                commentsCount: comments,
+                status: status.isEmpty ? "Active" : status.capitalized
+            )
+        }
+    }
+
+    private func basicAnalyticsScheduleLine(for row: VenueEventRow) -> String {
+        if let start = venueAnalyticsEventStartDate(row) {
+            return start.formatted(date: .abbreviated, time: .shortened)
+        }
+        let day = row.event_date?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !day.isEmpty && !time.isEmpty { return "\(day) • \(time)" }
+        if !day.isEmpty { return day }
+        if !time.isEmpty { return time }
+        return "Date TBD"
+    }
+
     /// Lightweight rows after a game listing is cleared from the database (no fan chat text). Populated when server retention runs.
     private var analyticsPurgedHistorySection: some View {
         let currentYear = Calendar.current.component(.year, from: Date())
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Cleared listings (permanent summaries)")
+            Text("Past Watch Parties")
                 .font(.headline.weight(.bold))
 
-            Text("When a game is fully purged from venue events, it no longer appears under Venue Analytics. Only these lightweight rows remain (title, schedule, venue, counts)—intentional for scale. Fan comments and reactions are not stored here.")
+            Text("Review finished watch parties by season and month without the noise of live fan chat.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -1946,10 +2695,10 @@ struct VenueOwnerDashboardView: View {
                 Spacer(minLength: 0)
             }
 
-            Text("Total cleared games (this year): \(totalAnalyticsGameHistoryInYear)")
+            Text("Watch parties this year: \(totalAnalyticsGameHistoryInYear)")
                 .font(.caption.weight(.semibold))
             if analyticsGameHistoryMonth != 0 {
-                Text("In selected month: \(analyticsGameHistoryInSelectedMonthCount)")
+                Text("Selected month: \(analyticsGameHistoryInSelectedMonthCount)")
                     .font(.caption.weight(.semibold))
             }
 
@@ -1967,11 +2716,11 @@ struct VenueOwnerDashboardView: View {
                         .foregroundStyle(.secondary)
                 }
             } else if viewModel.currentBusinessIdForAddLocation() == nil {
-                Text("Link a business to this account to load cleared-game summaries.")
+                Text("Link a business to this account to load past watch party summaries.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else if analyticsGameHistoryFiltered.isEmpty {
-                Text("No cleared-game records for this year yet.")
+                Text("No past watch parties for this year yet.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
@@ -2005,11 +2754,9 @@ struct VenueOwnerDashboardView: View {
     }
 
     private func hottestAnalyticsGameRow(from rows: [VenueEventRow]) -> VenueEventRow? {
-        rows.max { a, b in
-            let sa = a.id.map { viewModel.venueOwnerEngagementScore(venueEventID: $0) } ?? 0
-            let sb = b.id.map { viewModel.venueOwnerEngagementScore(venueEventID: $0) } ?? 0
-            return sa < sb
-        }
+        rows
+            .filter { analyticsEngagementSignal(for: $0) > 0 }
+            .max { analyticsEngagementSignal(for: $0) < analyticsEngagementSignal(for: $1) }
     }
 
     private func globalTopVibeSummary(from rows: [VenueEventRow]) -> (label: String, total: Int)? {
@@ -2023,6 +2770,292 @@ struct VenueOwnerDashboardView: View {
         }
         guard let best = totals.max(by: { $0.value < $1.value }), best.value > 0 else { return nil }
         return (venueOwnerVibeMetricLabel(best.key), best.value)
+    }
+
+    private func engagementScore(for row: VenueEventRow) -> Int {
+        row.id.map { viewModel.venueOwnerEngagementScore(venueEventID: $0) } ?? 0
+    }
+
+    private func vibeTotal(for row: VenueEventRow) -> Int {
+        guard let id = row.id else { return 0 }
+        return fanUpdatesStore.venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
+    }
+
+    private func analyticsEngagementSignal(for row: VenueEventRow) -> Int {
+        guard let id = row.id else { return 0 }
+        let going = viewModel.interestCountForVenueEvent(id)
+        let comments = fanUpdatesStore.venueEventComments[id]?.count ?? 0
+        let vibes = fanUpdatesStore.venueEventVibeCounts[id]?.values.reduce(0, +) ?? 0
+        return max(0, engagementScore(for: row)) + going + comments + vibes
+    }
+
+    private func totalFanDiscussions(_ rows: [VenueEventRow]) -> Int {
+        rows.reduce(0) { total, row in
+            guard let id = row.id else { return total }
+            return total + (fanUpdatesStore.venueEventComments[id]?.count ?? 0)
+        }
+    }
+
+    private func averageFansPerGame(_ rows: [VenueEventRow]) -> Int {
+        guard !rows.isEmpty else { return 0 }
+        let total = rows.reduce(0) { total, row in
+            guard let id = row.id else { return total }
+            return total + viewModel.interestCountForVenueEvent(id)
+        }
+        return Int((Double(total) / Double(rows.count)).rounded())
+    }
+
+    private func topSportName(_ rows: [VenueEventRow]) -> String {
+        var scores: [String: Int] = [:]
+        for row in rows {
+            let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !sport.isEmpty else { continue }
+            let signal = analyticsEngagementSignal(for: row)
+            guard signal > 0 else { continue }
+            scores[sport, default: 0] += signal
+        }
+        return scores.max(by: { $0.value < $1.value })?.key ?? "Sports"
+    }
+
+    private func topSportEngagementSummary(_ rows: [VenueEventRow]) -> (sport: String, percent: Int, score: Int)? {
+        var scores: [String: Int] = [:]
+        for row in rows {
+            let sport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !sport.isEmpty else { continue }
+            let signal = analyticsEngagementSignal(for: row)
+            guard signal > 0 else { continue }
+            scores[sport, default: 0] += signal
+        }
+        let total = scores.values.reduce(0, +)
+        guard total > 0, let best = scores.max(by: { $0.value < $1.value }) else { return nil }
+        let percent = Int((Double(best.value) / Double(total) * 100).rounded())
+        return (best.key, max(1, percent), best.value)
+    }
+
+    private func venueBusinessInsights(from rows: [VenueEventRow]) -> [VenueAnalyticsBusinessInsight] {
+        var insights: [VenueAnalyticsBusinessInsight] = []
+
+        if let window = bestPerformanceWindows(from: rows).first {
+            insights.append(
+                VenueAnalyticsBusinessInsight(
+                    id: "best-window",
+                    icon: "🕒",
+                    title: "Best Hosting Window",
+                    value: window.label,
+                    subtitle: window.subtitle,
+                    tint: FGColor.accentYellow
+                )
+            )
+        }
+
+        if let topSport = topSportEngagementSummary(rows) {
+            insights.append(
+                VenueAnalyticsBusinessInsight(
+                    id: "highest-momentum",
+                    icon: "🔥",
+                    title: "Highest Fan Momentum",
+                    value: "\(topSport.sport) watch parties",
+                    subtitle: "\(topSport.percent)% of engagement",
+                    tint: FGColor.accentGreen
+                )
+            )
+        }
+
+        if let conversation = mostDiscussedAnalyticsRow(from: rows) {
+            insights.append(
+                VenueAnalyticsBusinessInsight(
+                    id: "active-conversations",
+                    icon: "💬",
+                    title: "Most Active Conversations",
+                    value: conversation.title,
+                    subtitle: "\(conversation.comments) fan chat",
+                    tint: FGColor.accentBlue
+                )
+            )
+        }
+
+        if let fastest = hottestAnalyticsGameRow(from: rows) {
+            let signal = analyticsEngagementSignal(for: fastest)
+            guard signal > 0 else { return insights }
+            insights.append(
+                VenueAnalyticsBusinessInsight(
+                    id: "fastest-growing",
+                    icon: "⚡",
+                    title: "Fastest Growing Event",
+                    value: fastest.event_title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? (fastest.event_title ?? "Watch party") : "Watch party",
+                    subtitle: "\(signal) momentum",
+                    tint: Color.purple
+                )
+            )
+        }
+
+        return insights
+    }
+
+    private func mostDiscussedAnalyticsRow(from rows: [VenueEventRow]) -> (title: String, comments: Int)? {
+        let best = rows.compactMap { row -> (title: String, comments: Int)? in
+            guard let id = row.id else { return nil }
+            let comments = fanUpdatesStore.venueEventComments[id]?.count ?? 0
+            guard comments > 0 else { return nil }
+            let title = row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return (title.isEmpty ? "Watch party" : title, comments)
+        }
+        .max { $0.comments < $1.comments }
+
+        return best
+    }
+
+    private func venueEngagementScore100(_ rows: [VenueEventRow]) -> Int {
+        min(100, rows.reduce(0) { $0 + engagementScore(for: $1) })
+    }
+
+    private func engagementTrendValues(from rows: [VenueEventRow]) -> [Int] {
+        let sorted = rows
+            .compactMap { row -> (Date, Int)? in
+                guard let start = venueAnalyticsEventStartDate(row) else { return nil }
+                return (start, engagementScore(for: row))
+            }
+            .sorted { $0.0 < $1.0 }
+
+        let values = sorted.suffix(8).map(\.1)
+        if values.count >= 2 { return values }
+        let score = venueEngagementScore100(rows)
+        return [max(0, score - 8), score]
+    }
+
+    private func shouldShowEngagementSparkline(_ rows: [VenueEventRow]) -> Bool {
+        engagementTrendValues(from: rows).count >= 3
+    }
+
+    private func crowdInsightsTrendLine() -> String {
+        let calendar = Calendar.current
+        guard let currentMonth = calendar.dateInterval(of: .month, for: Date()),
+              let previousStart = calendar.date(byAdding: .month, value: -1, to: currentMonth.start),
+              let previousMonth = calendar.dateInterval(of: .month, for: previousStart) else {
+            return "This month"
+        }
+        let currentScore = analyticsScore(in: currentMonth)
+        let previousScore = analyticsScore(in: previousMonth)
+        if previousScore > 0 {
+            let delta = Int(((Double(currentScore - previousScore) / Double(previousScore)) * 100).rounded())
+            return "\(delta >= 0 ? "↑" : "↓") \(abs(delta))% this month"
+        }
+        if currentScore > 0 { return "New activity this month" }
+        return "Ready for crowd growth"
+    }
+
+    private func crowdInsightsComparisonLine() -> String {
+        let line = crowdInsightsTrendLine()
+        if line.contains("this month") {
+            return line.replacingOccurrences(of: "this month", with: "vs last month")
+        }
+        return line
+    }
+
+    private func crowdInsightsTrendTint() -> Color {
+        crowdInsightsTrendLine().hasPrefix("↓") ? FGColor.dangerRed : FGColor.accentGreen
+    }
+
+    private func analyticsScore(in interval: DateInterval) -> Int {
+        analyticsGames.reduce(0) { total, row in
+            guard let start = venueAnalyticsEventStartDate(row), interval.contains(start) else { return total }
+            return total + engagementScore(for: row)
+        }
+    }
+
+    private func topPerformingLocations(from rows: [VenueEventRow]) -> [VenueAnalyticsLocationPerformance] {
+        let managedVenueIDs = Set(viewModel.managedVenuesForOwner().compactMap(\.id))
+        guard managedVenueIDs.count > 1 else { return [] }
+
+        struct LocationStats {
+            var name: String
+            var score: Int = 0
+            var going: Int = 0
+            var comments: Int = 0
+            var games: Int = 0
+            var trendValues: [Int] = []
+        }
+
+        var statsByVenueID: [UUID: LocationStats] = [:]
+        for row in rows {
+            guard let venueID = row.venue_id else { continue }
+            let name = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            var stats = statsByVenueID[venueID] ?? LocationStats(name: name.isEmpty ? "Venue" : name)
+            stats.score += engagementScore(for: row)
+            if let eventID = row.id {
+                stats.going += viewModel.interestCountForVenueEvent(eventID)
+                stats.comments += fanUpdatesStore.venueEventComments[eventID]?.count ?? 0
+            }
+            stats.trendValues.append(engagementScore(for: row))
+            stats.games += 1
+            statsByVenueID[venueID] = stats
+        }
+
+        return statsByVenueID
+            .map { venueID, stats in
+                let averageCrowd = stats.games > 0 ? stats.going / stats.games : 0
+                let signal: String
+                let tint: Color
+                if stats.comments >= stats.going && stats.comments > 0 {
+                    signal = "💬 Strongest fan chat"
+                    tint = FGColor.accentBlue
+                } else if averageCrowd >= 10 {
+                    signal = "👥 Largest average crowd"
+                    tint = FGColor.accentGreen
+                } else {
+                    signal = "🔥 Highest engagement"
+                    tint = FGColor.accentYellow
+                }
+                let trendValues = stats.trendValues.count >= 2
+                    ? Array(stats.trendValues.suffix(8))
+                    : [max(0, stats.score - 8), stats.score]
+                return VenueAnalyticsLocationPerformance(
+                    id: venueID,
+                    name: stats.name,
+                    score: min(100, stats.score),
+                    signal: signal,
+                    trendValues: trendValues,
+                    tint: tint
+                )
+            }
+            .sorted { lhs, rhs in
+                let lhsScore = statsByVenueID[lhs.id]?.score ?? 0
+                let rhsScore = statsByVenueID[rhs.id]?.score ?? 0
+                return lhsScore > rhsScore
+            }
+    }
+
+    private func bestPerformanceWindows(from rows: [VenueEventRow]) -> [VenueAnalyticsPerformanceWindow] {
+        var scores: [String: (label: String, score: Int)] = [:]
+        for row in rows {
+            guard let start = venueAnalyticsEventStartDate(row) else { continue }
+            let label = Self.performanceWindowFormatter.string(from: start)
+            let signal = analyticsEngagementSignal(for: row)
+            guard signal > 0 else { continue }
+            scores[label, default: (label: label, score: 0)].score += signal
+        }
+        return scores.values
+            .filter { $0.score > 0 }
+            .sorted { $0.score > $1.score }
+            .prefix(2)
+            .enumerated()
+            .map { index, value in
+                VenueAnalyticsPerformanceWindow(
+                    id: value.label,
+                    label: value.label,
+                    subtitle: index == 0 ? "Highest engagement" : "Most active chat"
+                )
+            }
+    }
+
+    private func venueAnalyticsEventStartDate(_ row: VenueEventRow) -> Date? {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at, eventId: row.id) {
+            return start
+        }
+        guard let day = venueOwnerGameDay(row) else { return nil }
+        let time = row.event_time?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !time.isEmpty else { return day }
+        return Self.analyticsDateTimeFormatter.date(from: "\(Self.analyticsDayFormatter.string(from: day)) \(time)") ?? day
     }
 
     private func venueOwnerVibeMetricLabel(_ key: String) -> String {
@@ -2049,6 +3082,29 @@ struct VenueOwnerDashboardView: View {
         f.dateFormat = "yyyy-MM-dd"
         return f.date(from: s)
     }
+
+    private static let analyticsDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    private static let analyticsDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd h:mm a"
+        return formatter
+    }()
+
+    private static let performanceWindowFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "EEE • h a"
+        return formatter
+    }()
 
     /// Wide date window for the analytics pool (client-side filters narrow further). Capped for performance.
     private static func venueAnalyticsGamesLoadingPool(_ rows: [VenueEventRow]) -> [VenueEventRow] {
@@ -2115,7 +3171,7 @@ struct VenueOwnerDashboardView: View {
         return rows
     }
 
-    /// Rows shown as cards in **Venue Analytics**; when the date preset is **All**, caps count so the screen stays responsive with very large histories.
+    /// Rows shown as cards in Crowd Insights; when the date preset is **All**, caps count so the screen stays responsive with very large histories.
     private func displayedVenueAnalyticsGamesForCards() -> (rows: [VenueEventRow], isCapped: Bool) {
         let full = displayedVenueAnalyticsGames()
         let maxRows = VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset
@@ -2390,7 +3446,7 @@ struct VenueOwnerDashboardView: View {
                     Text("No games yet")
                         .font(.headline)
                         .fontWeight(.bold)
-                    Text("Add your first game to let fans know what you’re showing.")
+                    Text("Host your first watch party and start building your local sports crowd.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Button {
@@ -2421,6 +3477,12 @@ struct VenueOwnerDashboardView: View {
                             goingCount: viewModel.interestCountForVenueEvent(item.id),
                             commentCount: fanUpdatesStore.venueEventComments[item.id]?.count ?? 0,
                             vibeTotal: aggregateVibeTotal(eventID: item.id),
+                            onViewChat: {
+                                businessGameChatTarget = VenueOwnerGameChatTarget(
+                                    id: item.id,
+                                    title: item.row.event_title ?? "Game Fan Chat"
+                                )
+                            },
                             onEditTitle: {
                                 clearManageGamesBanners()
                                 titleEditDraft = item.row.event_title ?? ""
@@ -4207,6 +5269,11 @@ private struct VenueOwnerGameTitleEditTarget: Identifiable {
     let id: UUID
 }
 
+private struct VenueOwnerGameChatTarget: Identifiable {
+    let id: UUID
+    let title: String
+}
+
 private struct VenueOwnerIdentifiedVenueEvent: Identifiable {
     let id: UUID
     var row: VenueEventRow
@@ -4808,6 +5875,8 @@ private struct VenueOwnerSchedulePickerSheet: View {
 
 private struct VenueOwnerManageGameRow: View {
     @ObservedObject var viewModel: MapViewModel
+    @Environment(\.colorScheme) private var colorScheme
+
     let row: VenueEventRow
     let eventID: UUID
     let formattedDateTime: String
@@ -4815,117 +5884,227 @@ private struct VenueOwnerManageGameRow: View {
     let goingCount: Int
     let commentCount: Int
     let vibeTotal: Int
+    let onViewChat: () -> Void
     let onEditTitle: () -> Void
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(row.event_title ?? "Game")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundStyle(.primary)
+        let sportRaw = (row.sport ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let sportDisplay = sportRaw.isEmpty ? "Sports" : sportRaw
+        let sportEmoji = viewModel.emojiForSport(sportDisplay)
+        let sportIcon = viewModel.iconForSport(sportDisplay)
+        let sportTint = viewModel.colorForSport(sportDisplay)
+        let momentum = momentumState
 
-            Text(formattedDateTime)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            HStack(alignment: .center, spacing: 8) {
-                let sportRaw = (row.sport ?? "—").trimmingCharacters(in: .whitespacesAndNewlines)
-                let sportDisplay = sportRaw.isEmpty ? "—" : sportRaw
-                let sportEmoji = viewModel.emojiForSport(sportDisplay)
-                let sportIcon = viewModel.iconForSport(sportDisplay)
-                let sportTint = viewModel.colorForSport(sportDisplay)
-
-                HStack(spacing: 6) {
+        return VStack(alignment: .leading, spacing: 9) {
+            HStack(alignment: .top, spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .fill(sportTint.opacity(colorScheme == .dark ? 0.22 : 0.13))
                     if !sportEmoji.isEmpty {
                         Text(sportEmoji)
-                            .font(.system(size: 15))
+                            .font(.system(size: 17))
                             .accessibilityHidden(true)
                     } else {
                         Image(systemName: sportIcon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(sportTint)
                             .accessibilityHidden(true)
                     }
-                    Text(sportDisplay)
+                }
+                .frame(width: 36, height: 36)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(row.event_title?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? (row.event_title ?? "Game") : "Game")
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(eventDateTimeLine)
                         .font(.caption.weight(.semibold))
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(FGAdaptiveSurface.controlFill)
-                .clipShape(Capsule())
-
-                if let statusLabel {
-                    Text(statusLabel)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.08))
-                        .clipShape(Capsule())
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(1)
                 }
 
-                if row.imported_from_api == true {
-                    Text("Imported")
-                        .font(.caption2.weight(.heavy))
-                        .foregroundStyle(Color.orange)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.orange.opacity(0.12))
-                        .clipShape(Capsule())
+                Spacer(minLength: 8)
+
+                statusPill
+            }
+
+            if hasMetadataBadges {
+                HStack(spacing: 6) {
+                    if let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !league.isEmpty {
+                        Text(league)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
+
+                    if row.imported_from_api == true {
+                        Text("Imported")
+                            .font(.caption2.weight(.heavy))
+                            .foregroundStyle(Color.orange)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Color.orange.opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
+                    }
+
+                    Spacer(minLength: 0)
                 }
             }
 
-            if let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !league.isEmpty {
-                Text(league)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+            HStack(spacing: 7) {
+                metricChip(symbol: "👥", value: goingCount, label: "going", tint: FGColor.accentBlue)
+                metricChip(symbol: "💬", value: commentCount, label: "chat", tint: FGColor.accentGreen)
+                metricChip(symbol: "⚡", value: vibeTotal, label: "vibes", tint: FGColor.accentYellow)
             }
 
-            Text("\(goingCount) going · \(commentCount) comments · \(vibeTotal) vibes")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 7) {
+                Text(momentum.label)
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(momentum.tint)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(momentum.tint.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
 
-            TimelineView(.periodic(from: .now, by: 60)) { context in
-                if let countdown = autoRemovalCountdownText(now: context.date) {
-                    Text(countdown)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    if let countdown = autoRemovalCountdownText(now: context.date) {
+                        Text(countdown)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
                 }
-            }
-
-            HStack(spacing: 10) {
-                Button(action: onEditTitle) {
-                    Text("Edit title")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(FGAdaptiveSurface.capsuleUnselected)
-                        .foregroundStyle(.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
-
-                Button(action: onCancel) {
-                    Text("Cancel game")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.red.opacity(0.10))
-                        .foregroundStyle(.red)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
 
                 Spacer(minLength: 0)
             }
+
+            HStack(spacing: 8) {
+                compactActionButton("View Chat", systemImage: "bubble.left.and.bubble.right.fill", tint: FGColor.accentBlue, action: onViewChat)
+                compactActionButton("Edit", systemImage: "pencil", tint: FGColor.secondaryText(colorScheme), action: onEditTitle)
+                compactActionButton("Cancel", systemImage: "xmark.circle.fill", tint: FGColor.dangerRed, action: onCancel)
+                Spacer(minLength: 0)
+            }
         }
-        .padding(12)
+        .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FGAdaptiveSurface.controlFill)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(cardBackground(tint: momentum.tint))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(momentum.tint.opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
+        }
+        .overlay(alignment: .topTrailing) {
+            if momentum.isHighEnergy {
+                Circle()
+                    .fill(momentum.tint.opacity(colorScheme == .dark ? 0.22 : 0.14))
+                    .frame(width: 46, height: 46)
+                    .blur(radius: 18)
+                    .offset(x: 2, y: -8)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessGamesUI] redesignedCardLoaded=\(eventID.uuidString.lowercased())")
+            print("[BusinessGamesUI] momentumLabel=\(momentum.label)")
+            print("[BusinessGamesUI] compactLayoutEnabled=true")
+#endif
+        }
+    }
+
+    private var statusPill: some View {
+        let display = statusLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = display?.isEmpty == false ? (display ?? "Scheduled") : "Scheduled"
+        let tint = title.localizedCaseInsensitiveContains("live") ? FGColor.accentGreen : FGColor.accentBlue
+
+        return Text(title)
+            .font(.caption2.weight(.black))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(tint.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
+    }
+
+    private var hasMetadataBadges: Bool {
+        let league = row.external_league?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !league.isEmpty || row.imported_from_api == true
+    }
+
+    private var eventDateTimeLine: String {
+        guard let start = VenueGameExpiration.scheduledStartDate(for: row) else {
+            return formattedDateTime
+        }
+        return Self.dashboardDateTimeFormatter.string(from: start)
+    }
+
+    private var momentumState: (label: String, tint: Color, isHighEnergy: Bool) {
+        let score = goingCount + (commentCount * 2) + vibeTotal
+        if score >= 35 {
+            return ("⚡ High Fan Activity", FGColor.accentGreen, true)
+        }
+        if goingCount >= 15 || commentCount >= 8 {
+            return ("🔥 Crowd Building", FGColor.accentYellow, true)
+        }
+        if score >= 12 {
+            return ("📈 Trending Nearby", FGColor.accentBlue, false)
+        }
+        if goingCount > 0 || commentCount > 0 || vibeTotal > 0 {
+            return ("🏟️ Watch Party Active", FGColor.accentBlue, false)
+        }
+        return ("🏟️ Ready for fans", FGColor.secondaryText(colorScheme), false)
+    }
+
+    private func cardBackground(tint: Color) -> some ShapeStyle {
+        LinearGradient(
+            colors: [
+                tint.opacity(colorScheme == .dark ? 0.13 : 0.07),
+                FGAdaptiveSurface.controlFill.opacity(0.98)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private func metricChip(symbol: String, value: Int, label: String, tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Text(symbol)
+                .font(.caption2)
+                .accessibilityHidden(true)
+            Text("\(value)")
+                .font(.caption.weight(.black))
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .foregroundStyle(FGColor.primaryText(colorScheme))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(tint.opacity(colorScheme == .dark ? 0.16 : 0.09), in: Capsule(style: .continuous))
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(tint.opacity(colorScheme == .dark ? 0.18 : 0.12), lineWidth: 1)
+        }
+    }
+
+    private func compactActionButton(
+        _ title: String,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.heavy))
+                .labelStyle(.titleAndIcon)
+                .foregroundStyle(tint)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(FGAdaptiveSurface.capsuleUnselected, in: Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func autoRemovalCountdownText(now: Date) -> String? {
@@ -4950,6 +6129,13 @@ private struct VenueOwnerManageGameRow: View {
         }
         return "Auto-removes in \(minutes)m"
     }
+
+    private static let dashboardDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "EEE • MMM d • h:mm a"
+        return formatter
+    }()
 }
 
 // MARK: - Venue owner compact analytics row
@@ -4957,6 +6143,8 @@ private struct VenueOwnerManageGameRow: View {
 private struct VenueOwnerCompactAnalyticsRow: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
+    @Environment(\.colorScheme) private var colorScheme
+
     let row: VenueEventRow
     let eventID: UUID
     let isLiveToday: Bool
@@ -4994,53 +6182,57 @@ private struct VenueOwnerCompactAnalyticsRow: View {
         fanUpdatesStore.venueEventVibeCounts[eventID]?["tv_visible"] ?? 0
     }
 
-    private var shortTitle: String {
+    private var title: String {
         let t = (row.event_title ?? "Game").trimmingCharacters(in: .whitespacesAndNewlines)
-        if t.count <= 18 { return t }
-        return String(t.prefix(16)) + "…"
+        return t.isEmpty ? "Watch party" : t
     }
 
     private var dateTimeLine: String {
-        let d = row.event_date ?? "—"
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at, eventId: row.id) {
+            return Self.analyticsRowDateFormatter.string(from: start)
+        }
+        let d = row.event_date ?? "Date TBD"
         let t = row.event_time ?? ""
-        if t.isEmpty { return d }
-        return "\(d) · \(t)"
+        return t.isEmpty ? d : "\(d) • \(t)"
     }
 
     private var sportLine: String {
-        let s = row.sport ?? "—"
-        return "\(Self.sportEmoji(for: s)) \(s)"
+        let s = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return s.isEmpty ? "Sports" : "\(Self.sportEmoji(for: s)) \(s)"
     }
 
-    private var scoreCrownLine: String {
-        if score >= 40 { return "👑 \(score)" }
-        if score >= 16 { return "🚀 \(score)" }
-        if score >= 6 { return "🔥 \(score)" }
-        return "✨ \(score)"
+    private var sportIconText: String {
+        let s = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return Self.sportEmoji(for: s)
+    }
+
+    private var vibeTotal: Int {
+        audioCount + packedCount + seatsOpenCount + specialsCount + tvVisibleCount
+    }
+
+    private var momentumState: (label: String, tint: Color) {
+        if score >= 35 { return ("⚡ High Activity", FGColor.accentGreen) }
+        if going >= 15 || comments >= 8 { return ("🔥 Crowd Building", FGColor.accentYellow) }
+        if score >= 12 { return ("📈 Trending Nearby", FGColor.accentBlue) }
+        if score > 0 { return ("🏟️ Watch Party Active", FGColor.accentBlue) }
+        return ("Ready for fans", FGColor.secondaryText(colorScheme))
     }
 
     private var topVibeSnippet: String? {
         let m = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
         guard let best = m.max(by: { $0.value < $1.value }), best.value > 0 else { return nil }
-        let label: String
-        switch best.key {
-        case "audio_on": label = "Audio"
-        case "packed": label = "Packed"
-        case "seats_open": label = "Seats"
-        case "specials": label = "Specials"
-        case "tv_visible": label = "TVs"
-        default: label = best.key.replacingOccurrences(of: "_", with: " ")
+        return topFanSignal(for: best.key, value: best.value)
+    }
+
+    private func topFanSignal(for key: String, value: Int) -> String {
+        switch key {
+        case "audio_on": return "🎙 Audio"
+        case "packed": return "🔥 Packed"
+        case "seats_open": return "🪑 Seating"
+        case "specials": return "🍺 Specials"
+        case "tv_visible": return "📺 TVs visible"
+        default: return "⭐️ \(key.replacingOccurrences(of: "_", with: " ")) \(value)"
         }
-        let emoji: String
-        switch best.key {
-        case "audio_on": emoji = "🎙"
-        case "packed": emoji = "🔥"
-        case "seats_open": emoji = "🪑"
-        case "specials": emoji = "🍺"
-        case "tv_visible": emoji = "📺"
-        default: emoji = "⭐️"
-        }
-        return "\(emoji) \(label) \(best.value)"
     }
 
     private static func sportEmoji(for sport: String) -> String {
@@ -5059,93 +6251,157 @@ private struct VenueOwnerCompactAnalyticsRow: View {
     }
 
     var body: some View {
+        let momentum = momentumState
+
         Button(action: onTapDetail) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(shortTitle)
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    Text(sportIconText)
+                        .font(.system(size: 18))
+                        .frame(width: 34, height: 34)
+                        .background(FGAdaptiveSurface.capsuleUnselected, in: Circle())
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.subheadline.weight(.black))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(2)
+
+                        Text("\(dateTimeLine) • \(sportLine)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(2)
+                    }
+
                     Spacer(minLength: 6)
-                    Text(scoreCrownLine)
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(.primary)
-                    let listingStatus = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-                    if listingStatus == "archived" {
-                        Text("Cancelled")
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.orange.opacity(0.18))
-                            .foregroundStyle(Color.orange)
-                            .clipShape(Capsule())
-                    } else if isLiveToday {
-                        Text("LIVE")
-                            .font(.caption2.weight(.heavy))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.green.opacity(0.22))
-                            .foregroundStyle(Color.green)
-                            .clipShape(Capsule())
+                    momentumBadge
+                }
+
+                Text(momentum.label)
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(momentum.tint)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(momentum.tint.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
+
+                if hasMeaningfulMetrics {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 7) {
+                            if going > 0 { insightMetricPill("👥", going, "interested", FGColor.accentBlue) }
+                            if comments > 0 { insightMetricPill("💬", comments, "chat", FGColor.accentGreen) }
+                            if vibeTotal > 0 { insightMetricPill("⚡", vibeTotal, "energy", FGColor.accentYellow) }
+                            if let topVibeSnippet {
+                                topSignalPill(topVibeSnippet)
+                            }
+                        }
                     }
                 }
-
-                Text(dateTimeLine)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                Text(sportLine)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                Text(viewModel.venueOwnerEngagementTrendLabel(score: score))
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(FGAdaptiveSurface.capsuleUnselected)
-                    .clipShape(Capsule())
-
-                HStack(spacing: 10) {
-                    Text("👥 \(going)")
-                        .font(.caption2.weight(.semibold))
-                    Text("💬 \(comments)")
-                        .font(.caption2.weight(.semibold))
-                    if let topVibeSnippet {
-                        Text(topVibeSnippet)
-                            .font(.caption2.weight(.semibold))
-                            .lineLimit(1)
-                    }
-                }
-                .foregroundStyle(.secondary)
-
-                HStack(spacing: 8) {
-                    Text("🎙 \(audioCount)")
-                        .font(.caption2.weight(.medium))
-                    Text("🔥 \(packedCount)")
-                        .font(.caption2.weight(.medium))
-                    Text("🪑 \(seatsOpenCount)")
-                        .font(.caption2.weight(.medium))
-                    Text("🍺 \(specialsCount)")
-                        .font(.caption2.weight(.medium))
-                    Text("📺 \(tvVisibleCount)")
-                        .font(.caption2.weight(.medium))
-                }
-                .foregroundStyle(.secondary.opacity(0.9))
             }
-            .padding(10)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FGAdaptiveSurface.controlFill)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color(.separator).opacity(0.55), lineWidth: 1)
+            .background(
+                LinearGradient(
+                    colors: [
+                        momentum.tint.opacity(colorScheme == .dark ? 0.12 : 0.06),
+                        FGAdaptiveSurface.controlFill.opacity(0.98)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(alignment: .leading) {
+                Rectangle()
+                    .fill(momentum.tint)
+                    .frame(width: 3)
+                    .clipShape(Capsule(style: .continuous))
+                    .padding(.vertical, 8)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(momentum.tint.opacity(colorScheme == .dark ? 0.22 : 0.14), lineWidth: 1)
+            }
+            .shadow(color: momentum.tint.opacity(colorScheme == .dark ? 0.10 : 0.07), radius: 10, x: 0, y: 5)
+            .onAppear {
+#if DEBUG
+                print("[BusinessInsightsUI] momentumLabel=\(momentum.label)")
+                print("[BusinessInsightsUI] compactMetricsApplied=true")
+#endif
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(FGPremiumPressButtonStyle(pressedScale: 0.985, hapticOnPress: false))
     }
+
+    private var hasMeaningfulMetrics: Bool {
+        going > 0 || comments > 0 || vibeTotal > 0
+    }
+
+    @ViewBuilder
+    private var momentumBadge: some View {
+        let listingStatus = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if listingStatus == "archived" {
+            Text("Cancelled")
+                .font(.caption2.weight(.black))
+                .foregroundStyle(Color.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.orange.opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
+        } else if isLiveToday {
+            Text("Live")
+                .font(.caption2.weight(.black))
+                .foregroundStyle(FGColor.accentGreen)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
+        } else {
+            Text("Momentum \(score)")
+                .font(.caption2.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(FGAdaptiveSurface.capsuleUnselected, in: Capsule(style: .continuous))
+        }
+    }
+
+    private func insightMetricPill(_ symbol: String, _ value: Int, _ label: String, _ tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Text(symbol)
+                .font(.caption2)
+                .accessibilityHidden(true)
+            Text("\(value)")
+                .font(.caption.weight(.black))
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .foregroundStyle(FGColor.primaryText(colorScheme))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(tint.opacity(colorScheme == .dark ? 0.16 : 0.09), in: Capsule(style: .continuous))
+    }
+
+    private func topSignalPill(_ text: String) -> some View {
+        HStack(spacing: 5) {
+            Text(text)
+                .font(.caption2.weight(.black))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text("signal")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .foregroundStyle(FGColor.primaryText(colorScheme))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.14 : 0.08), in: Capsule(style: .continuous))
+    }
+
+    private static let analyticsRowDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "EEE • MMM d • h:mm a"
+        return formatter
+    }()
 }
 
 // MARK: - Venue owner game analytics card
@@ -5153,6 +6409,8 @@ private struct VenueOwnerCompactAnalyticsRow: View {
 private struct VenueOwnerGameAnalyticsCard: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var fanUpdatesStore: FanUpdatesRealtimeStore
+    @Environment(\.colorScheme) private var colorScheme
+
     let row: VenueEventRow
     let eventID: UUID
     let isLiveToday: Bool
@@ -5189,88 +6447,108 @@ private struct VenueOwnerGameAnalyticsCard: View {
         viewModel.venueOwnerEngagementScore(venueEventID: eventID)
     }
 
+    private var vibeTotal: Int {
+        audioCount + packedCount + seatsOpenCount + specialsCount + tvVisibleCount
+    }
+
+    private var momentumState: (label: String, tint: Color) {
+        if score >= 35 { return ("⚡ High Activity", FGColor.accentGreen) }
+        if goingCount >= 15 || commentCount >= 8 { return ("🔥 Crowd Building", FGColor.accentYellow) }
+        if score >= 12 { return ("📈 Trending Nearby", FGColor.accentBlue) }
+        if score > 0 { return ("🏟️ Watch Party Active", FGColor.accentBlue) }
+        return ("Ready for fans", FGColor.secondaryText(colorScheme))
+    }
+
+    private var dateTimeLine: String {
+        if let start = FanGeoLiveEnergyTiming.parseScheduledStart(row.scheduled_start_at, eventId: row.id) {
+            return Self.analyticsDetailDateFormatter.string(from: start)
+        }
+        return [row.event_date, row.event_time]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " • ")
+    }
+
     private var topVibeLine: String? {
         let m = fanUpdatesStore.venueEventVibeCounts[eventID] ?? [:]
         guard let best = m.max(by: { $0.value < $1.value }), best.value > 0 else { return nil }
         switch best.key {
-        case "audio_on": return "Top vibe: 🔊 Audio (\(best.value))"
-        case "packed": return "Top vibe: 🔥 Packed (\(best.value))"
-        case "seats_open": return "Top vibe: 🪑 Seats open (\(best.value))"
-        case "specials": return "Top vibe: 🍺 Specials (\(best.value))"
-        case "tv_visible": return "Top vibe: 📺 TVs (\(best.value))"
-        default: return "Top vibe: \(best.key) (\(best.value))"
+        case "audio_on": return "🎙 Audio confirmed"
+        case "packed": return "🔥 Crowd density high"
+        case "seats_open": return "🪑 Seating demand visible"
+        case "specials": return "🍺 Drink specials popular"
+        case "tv_visible": return "📺 TVs visible"
+        default: return "⭐️ \(best.key.replacingOccurrences(of: "_", with: " "))"
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 8) {
+        let momentum = momentumState
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(row.event_title ?? "Game")
-                        .font(.subheadline)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.primary)
+                        .font(.headline.weight(.black))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
                         .lineLimit(2)
-                    Text([row.event_date, row.event_time].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                    Text(dateTimeLine.isEmpty ? "Schedule unavailable" : dateTimeLine)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text(row.sport ?? "Sports")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
                 Spacer(minLength: 8)
-                if isLiveToday {
-                    Text("Live now")
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.green.opacity(0.2))
-                        .foregroundStyle(Color.green)
-                        .clipShape(Capsule())
-                }
+                Text(isLiveToday ? "Live" : "Momentum \(score)")
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(isLiveToday ? FGColor.accentGreen : FGColor.primaryText(colorScheme))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background((isLiveToday ? FGColor.accentGreen : momentum.tint).opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
             }
 
-            Text(viewModel.venueOwnerEngagementTrendLabel(score: score))
-                .font(.caption)
-                .fontWeight(.bold)
+            Text(momentum.label)
+                .font(.caption.weight(.heavy))
+                .foregroundStyle(momentum.tint)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
-                .background(FGAdaptiveSurface.capsuleUnselected)
-                .foregroundStyle(.primary)
-                .clipShape(Capsule())
+                .background(momentum.tint.opacity(colorScheme == .dark ? 0.18 : 0.10), in: Capsule(style: .continuous))
 
-            LazyVGrid(
-                columns: [
-                    GridItem(.flexible(), spacing: 8),
-                    GridItem(.flexible(), spacing: 8)
-                ],
-                spacing: 8
-            ) {
-                metricCell(title: "Interested / going", value: goingCount, accent: .primary)
-                metricCell(title: "Fan updates", value: commentCount, accent: .blue)
+            HStack(spacing: 8) {
+                if goingCount > 0 { insightMetricPill("👥", goingCount, "interested", FGColor.accentBlue) }
+                if commentCount > 0 { insightMetricPill("💬", commentCount, "fan chat", FGColor.accentGreen) }
+                if vibeTotal > 0 { insightMetricPill("⚡", vibeTotal, "energy", FGColor.accentYellow) }
             }
 
-            metricCell(title: "Total engagement score", value: score, accent: .purple)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            vibeBadgeRow
-
             if let topVibeLine {
-                Text(topVibeLine)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Text("Top Fan Signal")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    Text(topVibeLine)
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(1)
+                }
             }
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(FGAdaptiveSurface.cardElevated)
-                .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 4)
+            LinearGradient(
+                colors: [
+                    momentum.tint.opacity(colorScheme == .dark ? 0.14 : 0.07),
+                    FGAdaptiveSurface.cardElevated.opacity(0.98)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color(.separator).opacity(0.55), lineWidth: 1)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(momentum.tint.opacity(colorScheme == .dark ? 0.24 : 0.14), lineWidth: 1)
+        }
     }
 
     private func metricCell(title: String, value: Int, accent: Color) -> some View {
@@ -5323,5 +6601,29 @@ private struct VenueOwnerGameAnalyticsCard: View {
             .clipShape(Capsule())
             .contentTransition(.numericText())
     }
+
+    private func insightMetricPill(_ symbol: String, _ value: Int, _ label: String, _ tint: Color) -> some View {
+        HStack(spacing: 5) {
+            Text(symbol)
+                .font(.caption2)
+                .accessibilityHidden(true)
+            Text("\(value)")
+                .font(.caption.weight(.black))
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+        }
+        .foregroundStyle(FGColor.primaryText(colorScheme))
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(tint.opacity(colorScheme == .dark ? 0.16 : 0.09), in: Capsule(style: .continuous))
+    }
+
+    private static let analyticsDetailDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateFormat = "EEE • MMM d • h:mm a"
+        return formatter
+    }()
 }
 

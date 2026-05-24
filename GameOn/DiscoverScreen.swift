@@ -4635,7 +4635,16 @@ struct DiscoverScreen: View {
 
         ZStack(alignment: .bottomLeading) {
             if let heroURL {
-                DiscoverCachedRemoteImage(url: heroURL, contentMode: .fill) {
+                DiscoverCachedRemoteImage(
+                    url: heroURL,
+                    contentMode: .fill,
+                    venuePhotoDebugContext: VenuePhotoDebugContext(
+                        venueId: bar.id,
+                        venueName: bar.name,
+                        selectedMainPhotoURL: heroURLString,
+                        selectedSecondaryPhotoURL: selectedVenueSecondaryPhotoURLString(for: bar)
+                    )
+                ) {
                     venueHeroPlaceholder
                 }
             } else {
@@ -4667,7 +4676,10 @@ struct DiscoverScreen: View {
     }
 
     private func safeVenueHeroImageURLString(for bar: BarVenue) -> String? {
-        let trimmed = bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let trimmed = ImageDisplayURL.forList(
+            thumbnail: bar.coverPhotoThumbnailURL,
+            full: bar.coverPhotoURL
+        )?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmed.isEmpty,
               let components = URLComponents(string: trimmed),
               let scheme = components.scheme?.lowercased(),
@@ -4681,11 +4693,30 @@ struct DiscoverScreen: View {
         return trimmed
     }
 
+    private func selectedVenueSecondaryPhotoURLString(for bar: BarVenue) -> String? {
+        ImageDisplayURL.forList(
+            thumbnail: bar.menuPhotoThumbnailURL,
+            full: bar.menuPhotoURL
+        ) ?? ImageDisplayURL.forList(
+            thumbnail: bar.coverPhotoThumbnailURL,
+            full: bar.coverPhotoURL
+        )
+    }
+
     private func logDiscoverCardPhotoDebug(bar: BarVenue, urlString: String?) {
 #if DEBUG
         let resolved = urlString ?? ""
         let thumbnail = bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let usingThumbnail = !thumbnail.isEmpty && resolved == thumbnail
+        let selectedSecondary = selectedVenueSecondaryPhotoURLString(for: bar) ?? ""
+        print("[VenuePhotoDebug] venueId=\(bar.id.uuidString.lowercased())")
+        print("[VenuePhotoDebug] venueName=\(bar.name)")
+        print("[VenuePhotoDebug] coverPhotoURL=\(bar.coverPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] coverThumbnailURL=\(bar.coverPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuPhotoURL=\(bar.menuPhotoURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] menuThumbnailURL=\(bar.menuPhotoThumbnailURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")")
+        print("[VenuePhotoDebug] selectedMainPhotoURL=\(resolved)")
+        print("[VenuePhotoDebug] selectedSecondaryPhotoURL=\(selectedSecondary)")
         print("[VenuePhotoDisplayDebug] discoverCardCoverURL=\(resolved)")
         print("[VenuePhotoDisplayDebug] usingThumbnail=\(usingThumbnail)")
         print("[VenuePhotoDisplayDebug] fallbackUsed=\(resolved.isEmpty)")

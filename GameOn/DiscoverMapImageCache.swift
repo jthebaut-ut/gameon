@@ -97,9 +97,17 @@ actor DiscoverMapImageCache {
 }
 
 /// Loads a remote image with RAM cache; keeps layout stable with an intentional placeholder (non-blocking).
+struct VenuePhotoDebugContext {
+    let venueId: UUID
+    let venueName: String
+    let selectedMainPhotoURL: String?
+    let selectedSecondaryPhotoURL: String?
+}
+
 struct DiscoverCachedRemoteImage<Placeholder: View>: View {
     let url: URL?
     var contentMode: ContentMode = .fill
+    var venuePhotoDebugContext: VenuePhotoDebugContext? = nil
     @ViewBuilder var placeholder: () -> Placeholder
 
     @State private var uiImage: UIImage?
@@ -138,6 +146,15 @@ struct DiscoverCachedRemoteImage<Placeholder: View>: View {
             } else {
                 guard !Task.isCancelled else { return }
                 uiImage = nil
+#if DEBUG
+                if let context = venuePhotoDebugContext {
+                    print("[VenuePhotoDebug] venueId=\(context.venueId.uuidString.lowercased())")
+                    print("[VenuePhotoDebug] venueName=\(context.venueName)")
+                    print("[VenuePhotoDebug] selectedMainPhotoURL=\(context.selectedMainPhotoURL ?? "")")
+                    print("[VenuePhotoDebug] selectedSecondaryPhotoURL=\(context.selectedSecondaryPhotoURL ?? "")")
+                    print("[VenuePhotoDebug] imageLoadFailed=\(url.absoluteString)")
+                }
+#endif
             }
         }
     }

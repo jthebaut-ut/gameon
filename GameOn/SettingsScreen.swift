@@ -6276,6 +6276,12 @@ struct BusinessLocationVenuePicker: View {
         let venueRow: VenueProfileRow?
     }
 
+    private struct ManagedVenueListingCounts {
+        let totalVenueCount: Int
+        let approvedVenueCount: Int
+        let pendingVenueCount: Int
+    }
+
     @ObservedObject var viewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
     var chrome: Chrome = .settings
@@ -6292,8 +6298,10 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private var venuePairs: [(UUID, String)] {
-        viewModel.managedVenuesForOwner().compactMap { row in
+        var seenVenueIDs = Set<UUID>()
+        return viewModel.managedVenuesForOwner().compactMap { row in
             guard let id = row.id else { return nil }
+            guard seenVenueIDs.insert(id).inserted else { return nil }
             let raw = row.venue_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let label = raw.isEmpty ? "Location" : raw
             return (id, label)
@@ -6301,8 +6309,10 @@ struct BusinessLocationVenuePicker: View {
     }
 
     private var managedVenueSelectorRows: [ManagedVenueSelectorRow] {
+        var seenApprovedVenueIDs = Set<UUID>()
         let approvedRows = viewModel.managedVenuesForOwner().compactMap { row -> ManagedVenueSelectorRow? in
             guard let id = row.id else { return nil }
+            guard seenApprovedVenueIDs.insert(id).inserted else { return nil }
             return ManagedVenueSelectorRow(
                 id: "venue-\(id.uuidString)",
                 venueID: id,
@@ -6315,8 +6325,10 @@ struct BusinessLocationVenuePicker: View {
             )
         }
         let approvedVenueIDs = Set(approvedRows.compactMap(\.venueID))
+        var seenPendingVenueIDs = Set<UUID>()
         let pendingRows = viewModel.pendingVenueClaimsForSettings.compactMap { claim -> ManagedVenueSelectorRow? in
             if let venueID = claim.venue_id, approvedVenueIDs.contains(venueID) { return nil }
+            if let venueID = claim.venue_id, !seenPendingVenueIDs.insert(venueID).inserted { return nil }
             return managedVenueSelectorClaimRow(claim, status: .pending)
         }
         let rejectedRows = viewModel.rejectedVenueClaimsForSettings.compactMap { claim -> ManagedVenueSelectorRow? in
@@ -6381,6 +6393,53 @@ struct BusinessLocationVenuePicker: View {
         let formatted = row.formatted_address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !formatted.isEmpty { return formatted }
         return row.address?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private func managedVenueStatus(for row: VenueProfileRow) -> ManagedVenueSelectorStatus {
+        let raw = row.admin_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        if raw.isEmpty || raw == "active" { return .approved }
+        if raw.contains("pending") || raw.contains("review") { return .pending }
+        if raw.contains("reject") || raw.contains("archive") { return .rejected }
+        return .approved
+    }
+
+    private var managedVenueListingCounts: ManagedVenueListingCounts {
+        var approvedVenueIDs = Set<UUID>()
+        var pendingVenueIDs = Set<UUID>()
+
+        for row in viewModel.managedVenuesForOwner() {
+            guard let id = row.id else { continue }
+            switch managedVenueStatus(for: row) {
+            case .approved:
+                approvedVenueIDs.insert(id)
+            case .pending:
+                pendingVenueIDs.insert(id)
+            case .rejected:
+                continue
+            }
+        }
+
+        for claim in viewModel.pendingVenueClaimsForSettings {
+            guard let venueID = claim.venue_id else { continue }
+            guard !approvedVenueIDs.contains(venueID) else { continue }
+            pendingVenueIDs.insert(venueID)
+        }
+
+        return ManagedVenueListingCounts(
+            totalVenueCount: approvedVenueIDs.union(pendingVenueIDs).count,
+            approvedVenueCount: approvedVenueIDs.count,
+            pendingVenueCount: pendingVenueIDs.count
+        )
+    }
+
+    private var dashboardVenueListingCountLine: String {
+        let count = managedVenueListingCounts.totalVenueCount
+        return "\(count) \(count == 1 ? "venue listing" : "venue listings")"
+    }
+
+    private var dashboardVenueListingStatusLine: String {
+        let counts = managedVenueListingCounts
+        return "\(counts.approvedVenueCount) approved • \(counts.pendingVenueCount) pending"
     }
 
     private func venueClaimLocationSubtitle(for claim: VenueClaimPendingSettingsRow) -> String {
@@ -6662,10 +6721,17 @@ struct BusinessLocationVenuePicker: View {
                         managedVenueStatusBadge(status: selectedManagedVenueSelectorRow?.status ?? .approved)
                     }
 
-                    Text(selectedVenueSubtitle)
-                        .font(FGTypography.caption)
-                        .foregroundStyle(FGColor.secondaryText(colorScheme))
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(dashboardVenueListingCountLine)
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+
+                        Text(dashboardVenueListingStatusLine)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
