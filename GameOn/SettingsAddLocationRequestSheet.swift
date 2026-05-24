@@ -96,6 +96,7 @@ final class AddLocationSheetFormState: ObservableObject {
 struct AddBusinessLocationRequestSheet: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject var form: AddLocationSheetFormState
+    @ObservedObject private var businessProEntitlement = BusinessProEntitlementManager.shared
     @Binding var submitBanner: String?
     @Binding var isPresented: Bool
 
@@ -105,6 +106,7 @@ struct AddBusinessLocationRequestSheet: View {
     @State private var selectedCoverPicker: PhotosPickerItem?
     @State private var selectedMenuPicker: PhotosPickerItem?
     @State private var showPinPicker = false
+    @State private var businessMembershipStatus: BusinessVenueGamePostingStatus?
 
     /// Non-nil ``submitBanner`` only flags success; Settings parent maps status to user-facing copy.
     private static let successCopy = "submitted"
@@ -151,6 +153,9 @@ struct AddBusinessLocationRequestSheet: View {
         }
         if viewModel.currentBusinessIdForAddLocation() == nil {
             m.append("Could not resolve business for this request")
+        }
+        if businessMembershipStatus?.freeVenueListingLimitReached == true {
+            m.append("Free business accounts can list up to \(BusinessMembershipPolicy.freeVenueListingLimit) venues after the Summer Launch Promotion")
         }
         if form.locationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             m.append("Missing location name")
@@ -370,6 +375,9 @@ struct AddBusinessLocationRequestSheet: View {
                 logAddLocationFormState()
 #endif
             }
+            .task {
+                await refreshBusinessMembershipStatus()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
@@ -492,6 +500,15 @@ struct AddBusinessLocationRequestSheet: View {
             return
         }
 
+        let membershipStatus = await refreshBusinessMembershipStatus()
+        if membershipStatus.freeVenueListingLimitReached {
+            await MainActor.run {
+                form.isSubmitting = false
+                form.errorMessage = "Free business accounts can list up to \(BusinessMembershipPolicy.freeVenueListingLimit) venues after the Summer Launch Promotion. Business Pro unlocks unlimited venue listings."
+            }
+            return
+        }
+
         let combinedPhone = BusinessPhoneFields.combinedStorage(
             iso: form.phoneDialISO,
             local: form.phoneLocal
@@ -549,6 +566,18 @@ struct AddBusinessLocationRequestSheet: View {
                 isPresented = false
             }
         }
+    }
+
+    @discardableResult
+    private func refreshBusinessMembershipStatus() async -> BusinessVenueGamePostingStatus {
+        await businessProEntitlement.refreshPurchasedEntitlements()
+        let status = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
+        await MainActor.run {
+            businessMembershipStatus = status
+        }
+        return status
     }
 
     private func applyLocationDraft(_ draft: BusinessVenueLocationDraft) {

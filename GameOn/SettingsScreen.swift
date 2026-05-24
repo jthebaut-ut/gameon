@@ -152,6 +152,7 @@ struct SettingsScreen: View {
     @State private var venueOwnerDashboardSheet: VenueOwnerDashboardSheetRoute?
     @State private var showVenueRegisterMode = false
     @State private var showProfileSettingsSheet = false
+    @State private var showBusinessProSubscriptionSheet = false
     @State private var profileSettingsPath = NavigationPath()
     @State private var showUserAuthSheet = false
     @State private var showVenueAuthSheet = false
@@ -307,10 +308,22 @@ struct SettingsScreen: View {
                     }
                 }
 
+                if isBusinessAccountProfileContext && !viewModel.isVenueOwnerLoggedIn {
+                    Section {
+                        settingsBusinessProRow
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                            .listRowBackground(Color.clear)
+                    }
+                }
+
                 if shouldShowInlineBusinessDashboard {
                     Section {
+                        settingsBusinessProRow
+                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 6, trailing: 16))
+                            .listRowBackground(Color.clear)
+
                         settingsInlineBusinessDashboard
-                            .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 10, trailing: 16))
                             .listRowBackground(Color.clear)
                     }
                 }
@@ -322,6 +335,10 @@ struct SettingsScreen: View {
                             let hasActiveBusinessAccount = viewModel.hasBusinessAccountForOwner()
 
                             if viewModel.isVenueOwnerLoggedIn {
+                                settingsBusinessProButton()
+
+                                settingsRowDivider()
+
                                 if viewModel.isVenueOwnerBusinessDataLoading {
                                     HStack(spacing: 10) {
                                         ProgressView()
@@ -699,6 +716,12 @@ struct SettingsScreen: View {
                 .presentationDragIndicator(.visible)
                 .presentationBackground(FGAdaptiveSurface.sheetRoot)
         }
+        .sheet(isPresented: $showBusinessProSubscriptionSheet) {
+            BusinessProSubscriptionView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(FGAdaptiveSurface.sheetRoot)
+        }
         .sheet(isPresented: Binding(
             get: { showLiveSharingModeDialog && canShowLiveActivitySharing },
             set: { if !$0 { showLiveSharingModeDialog = false } }
@@ -1010,12 +1033,54 @@ struct SettingsScreen: View {
         }
     }
 
+    private var settingsBusinessProRow: some View {
+        settingsSectionCard {
+            settingsBusinessProButton()
+        }
+        .onAppear {
+            logBusinessProVisibilityInBusinessSettings(rowRendered: true)
+        }
+    }
+
+    private func settingsBusinessProButton(presentingFromProfileSettings: Bool = false) -> some View {
+        Button {
+            logBusinessProVisibilityInBusinessSettings(rowRendered: true)
+            if presentingFromProfileSettings {
+                presentFromProfileSettings { showBusinessProSubscriptionSheet = true }
+            } else {
+                showBusinessProSubscriptionSheet = true
+            }
+        } label: {
+            settingsRow(
+                title: "Business Pro",
+                subtitle: "Unlimited hosting through Aug 31, 2026",
+                systemImage: "sparkles.rectangle.stack.fill"
+            )
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            logBusinessProVisibilityInBusinessSettings(rowRendered: true)
+        }
+    }
+
+    private func logBusinessProVisibilityInBusinessSettings(rowRendered: Bool) {
+#if DEBUG
+        print("[BusinessProVisibilityDebug] rowRenderedInBusinessSettings=\(rowRendered)")
+#endif
+    }
+
     @ViewBuilder
     private func profileSettingsAccountSection() -> some View {
         if viewModel.isLoggedIn || viewModel.isVenueOwnerLoggedIn {
             Section {
                 settingsSectionCard {
                     if viewModel.isLoggedIn {
+                        if isBusinessAccountProfileContext {
+                            settingsBusinessProButton(presentingFromProfileSettings: true)
+
+                            settingsRowDivider()
+                        }
+
                         Button {
                             profileSettingsPath.append(ProfileSettingsRoute.resetPassword)
                         } label: {
@@ -1034,6 +1099,10 @@ struct SettingsScreen: View {
                             .buttonStyle(.plain)
                         }
                     } else if viewModel.isVenueOwnerLoggedIn {
+                        settingsBusinessProButton(presentingFromProfileSettings: true)
+
+                        settingsRowDivider()
+
                         Button {
                             profileSettingsPath.append(ProfileSettingsRoute.venueResetPassword)
                         } label: {

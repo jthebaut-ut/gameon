@@ -86,18 +86,151 @@ extension MapViewModel {
 #endif
     }
 
-    private func hasActiveBusinessAccount(ownerEmail: String, ownerUserId: UUID?) async -> Bool {
+    private enum BusinessOwnerActiveValidationResult {
+        case active
+        case inactive
+        case inconclusive(Error)
+
+        var debugValue: String {
+            switch self {
+            case .active:
+                return "active"
+            case .inactive:
+                return "inactive"
+            case .inconclusive(let error):
+                return "inconclusive:\(error.localizedDescription)"
+            }
+        }
+    }
+
+    private enum BusinessAdminStatusValidationResult {
+        case active(String)
+        case blocked(String)
+        case noBusiness
+        case inconclusive(Error)
+
+        var debugStatus: String {
+            switch self {
+            case .active(let status), .blocked(let status):
+                return status
+            case .noBusiness:
+                return "noBusiness"
+            case .inconclusive(let error):
+                return "inconclusive:\(error.localizedDescription)"
+            }
+        }
+    }
+
+    private struct BusinessAdminStatusRow: Decodable {
+        let id: UUID?
+        let owner_email: String?
+        let owner_user_id: UUID?
+        let admin_status: String?
+    }
+
+    private func logBusinessSessionRestoreDebug(_ message: String) {
+#if DEBUG
+        print("[BusinessSessionRestoreDebug] \(message)")
+#endif
+    }
+
+    private func logBusinessLogoutTrace(_ message: String) {
+#if DEBUG
+        print("[BusinessLogoutTrace] \(message)")
+#endif
+    }
+
+    private func logDeletedAccountRestoreDebug(_ message: String) {
+#if DEBUG
+        print("[DeletedAccountRestoreDebug] \(message)")
+#endif
+    }
+
+    @MainActor
+    private func clearStaleDeletedAccountBlockIfNeeded(context: String) {
+        let staleDeletedBlock = authSessionState == .deletedAccountConfirmed
+            || Self.isDeletedAccountBlockMessage(authErrorMessage)
+            || Self.isDeletedAccountBlockMessage(venueAuthErrorMessage)
+        guard staleDeletedBlock else { return }
+
+        if authSessionState == .deletedAccountConfirmed {
+            transitionAuthSessionState(.loadingSession, reason: "\(context)_staleDeletedBlockCleared")
+        }
+        authErrorMessage = ""
+        venueAuthErrorMessage = ""
+        logDeletedAccountRestoreDebug("staleBlockCleared=true context=\(context)")
+    }
+
+    private static func isDeletedAccountBlockMessage(_ message: String) -> Bool {
+        message.localizedCaseInsensitiveContains("account has been deleted")
+    }
+
+    private func hasStoredAccountModeForRestore() -> Bool {
+        UserDefaults.standard.string(forKey: Self.storedAccountModeKey) != nil
+    }
+
+    private func storedAccountModeDebugValue() -> String {
+        let raw = UserDefaults.standard.string(forKey: Self.storedAccountModeKey)
+        return raw ?? "nil"
+    }
+
+    func shouldPreserveMissingSessionForRestore() -> Bool {
+        guard !UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey) else { return false }
+        if hasStoredAccountModeForRestore() { return true }
+        return isAuthenticatedForSocialFeatures
+            || isAuthSessionRestoringForProfilePresentation
+            || authSessionState == .loadingSession
+            || isBusinessOwnerSessionRestorePending
+    }
+
+    func markTransientMissingSessionPreserved(reason: String, source: String) async {
+        let persisted = readPersistedAccountMode()
+        let hasStoredMode = hasStoredAccountModeForRestore()
+        let didExplicitlyLogout = UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey)
+        logBusinessLogoutTrace("transientMissingSessionPreserved=true reason=\(reason) source=\(source)")
+        logBusinessLogoutTrace("didExplicitlyLogout=\(didExplicitlyLogout)")
+        logBusinessLogoutTrace("storedAccountMode=\(storedAccountModeDebugValue())")
+
+        await MainActor.run {
+            if !didExplicitlyLogout, hasStoredMode, persisted.mode == .businessOwner {
+                isBusinessOwnerSessionRestorePending = true
+                if authSessionState != .signedIn {
+                    transitionAuthSessionState(.loadingSession, reason: reason)
+                }
+            } else if !didExplicitlyLogout, isAuthenticatedForSocialFeatures {
+                transitionAuthSessionState(.loadingSession, reason: reason)
+            }
+        }
+    }
+
+    private func destructiveLogoutAllowed(reason: String, source: String) -> Bool {
+        let reasonKey = reason.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let sourceKey = source.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if reasonKey.contains("explicituserlogout") { return true }
+        if reasonKey.contains("explicitlogoutbootstrap") { return true }
+        if sourceKey.contains("logoutuser") { return true }
+        if reasonKey.contains("deletedaccountconfirmed") { return true }
+        if reasonKey.contains("disabledaccountconfirmed") { return true }
+        if reasonKey.contains("accountdeletion") { return true }
+        if reasonKey.contains("accounttypemismatch") { return true }
+        if reasonKey.contains("singlesessionmismatch") { return true }
+        if reasonKey.contains("passwordreset") { return true }
+        return false
+    }
+
+    private func validateActiveBusinessAccount(ownerEmail: String, ownerUserId: UUID?) async -> BusinessOwnerActiveValidationResult {
         let normalized = OwnerBusinessEmail.normalized(ownerEmail)
-        guard OwnerBusinessEmail.isValidStrict(normalized) else { return false }
+        guard OwnerBusinessEmail.isValidStrict(normalized) else { return .inactive }
 
         if ownedBusinesses.contains(where: {
             OwnerBusinessEmail.normalized($0.owner_email ?? "") == normalized && $0.admin_status == "active"
         }) {
-            return true
+            return .active
         }
         if let ownerUserId,
            ownedBusinesses.contains(where: { $0.owner_user_id == ownerUserId && $0.admin_status == "active" }) {
-            return true
+            return .active
         }
 
         struct BusinessExistenceRow: Decodable {
@@ -113,7 +246,7 @@ extension MapViewModel {
                 .limit(1)
                 .execute()
                 .value
-            if !byEmail.isEmpty { return true }
+            if !byEmail.isEmpty { return .active }
 
             if let ownerUserId {
                 let byUser: [BusinessExistenceRow] = try await supabase
@@ -124,15 +257,163 @@ extension MapViewModel {
                     .limit(1)
                     .execute()
                     .value
-                if !byUser.isEmpty { return true }
+                if !byUser.isEmpty { return .active }
             }
-            return false
+            return .inactive
         } catch {
 #if DEBUG
             print("[BusinessSessionFlags] hasActiveBusinessAccount failed email=\(normalized):", error)
 #endif
+            return .inconclusive(error)
+        }
+    }
+
+    private func validateBusinessAdminStatus(ownerEmail: String, ownerUserId: UUID?) async -> BusinessAdminStatusValidationResult {
+        let normalized = OwnerBusinessEmail.normalized(ownerEmail)
+        logDeletedAccountRestoreDebug("email=\(normalized.isEmpty ? "nil" : normalized)")
+
+        var rowsById: [BusinessAdminStatusRow] = []
+        var rowsByEmail: [BusinessAdminStatusRow] = []
+
+        do {
+            if let ownerUserId {
+                rowsById = try await supabase
+                    .from("businesses")
+                    .select("id,owner_email,owner_user_id,admin_status")
+                    .eq("owner_user_id", value: ownerUserId)
+                    .limit(5)
+                    .execute()
+                    .value
+            }
+
+            if OwnerBusinessEmail.isValidStrict(normalized) {
+                rowsByEmail = try await supabase
+                    .from("businesses")
+                    .select("id,owner_email,owner_user_id,admin_status")
+                    .eq("owner_email", value: normalized)
+                    .limit(5)
+                    .execute()
+                    .value
+            }
+        } catch {
+            logDeletedAccountRestoreDebug("businessAdminStatus=inconclusive:\(error.localizedDescription)")
+            logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true")
+            return .inconclusive(error)
+        }
+
+        let rows = rowsById + rowsByEmail
+        guard !rows.isEmpty else {
+            logDeletedAccountRestoreDebug("businessAdminStatus=noBusiness")
+            logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true reason=noBusinessRow")
+            return .noBusiness
+        }
+
+        let statuses = rows.map { ($0.admin_status ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        let debugStatus = statuses.isEmpty ? "nil" : statuses.joined(separator: ",")
+        logDeletedAccountRestoreDebug("businessAdminStatus=\(debugStatus)")
+
+        if statuses.contains("active") {
+            logDeletedAccountRestoreDebug("activeBusinessClearsBlock=true")
+            return .active("active")
+        }
+
+        if let blocked = statuses.first(where: { ["archived", "deleted", "disabled"].contains($0) }) {
+            logDeletedAccountRestoreDebug("dbConfirmedDeleted=true status=\(blocked)")
+            return .blocked(blocked)
+        }
+
+        logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true reason=unrecognizedBusinessStatus")
+        return .noBusiness
+    }
+
+    @discardableResult
+    private func restoreActiveBusinessFromAdminStatusIfNeeded(
+        session: Session,
+        sessionEmail: String,
+        context: String
+    ) async -> Bool {
+        let validation = await validateBusinessAdminStatus(ownerEmail: sessionEmail, ownerUserId: session.user.id)
+        switch validation {
+        case .active:
+            await MainActor.run {
+                clearStaleDeletedAccountBlockIfNeeded(context: context)
+            }
+            return true
+        case .blocked(let status):
+            await handleBlockedBusinessAccount(status: status, context: context)
+            return false
+        case .noBusiness, .inconclusive:
+            return true
+        }
+    }
+
+    private func handleBlockedBusinessAccount(status: String, context: String) async {
+        logDeletedAccountRestoreDebug("blockedStateSetBy=\(context)")
+        await forceLogout(reason: "disabledAccountConfirmed", source: "MapViewModel.\(context)")
+        await MainActor.run {
+            resetProfilePresentationLoadStateForNewAuth()
+            transitionAuthSessionState(.deletedAccountConfirmed, reason: "\(context)_businessStatus_\(status)")
+            authErrorMessage = "This business account is no longer active.\nContact support if you believe this was a mistake."
+            venueAuthErrorMessage = authErrorMessage
+        }
+    }
+
+    func businessAccountAccessIsAllowedForAuthenticatedSession(
+        ownerEmail: String,
+        userId: UUID,
+        context: String
+    ) async -> Bool {
+        let validation = await validateBusinessAdminStatus(ownerEmail: ownerEmail, ownerUserId: userId)
+        switch validation {
+        case .active:
+            await MainActor.run {
+                clearStaleDeletedAccountBlockIfNeeded(context: context)
+            }
+            return true
+        case .blocked(let status):
+            await handleBlockedBusinessAccount(status: status, context: context)
+            return false
+        case .noBusiness, .inconclusive:
+            return true
+        }
+    }
+
+    private func shouldSuppressDeletedProfileBlockForBusinessSession(
+        session: Session,
+        context: String
+    ) async -> Bool {
+        let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+        let validation = await validateBusinessAdminStatus(ownerEmail: sessionEmail, ownerUserId: session.user.id)
+        switch validation {
+        case .active:
+            await MainActor.run {
+                clearStaleDeletedAccountBlockIfNeeded(context: context)
+            }
+            logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true reason=activeBusinessProfileDeletedIgnored context=\(context)")
+            return true
+        case .blocked(let status):
+            await handleBlockedBusinessAccount(status: status, context: context)
+            return true
+        case .noBusiness, .inconclusive:
+            let shouldTreatAsBusinessRestore = await MainActor.run {
+                readPersistedAccountMode().mode == .businessOwner
+                    || currentUserIsBusinessAccount
+                    || isVenueOwnerLoggedIn
+                    || isBusinessOwnerSessionRestorePending
+            }
+            if shouldTreatAsBusinessRestore {
+                logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true reason=businessContextProfileDeletedIgnored context=\(context)")
+                return true
+            }
             return false
         }
+    }
+
+    private func hasActiveBusinessAccount(ownerEmail: String, ownerUserId: UUID?) async -> Bool {
+        if case .active = await validateActiveBusinessAccount(ownerEmail: ownerEmail, ownerUserId: ownerUserId) {
+            return true
+        }
+        return false
     }
 
     @discardableResult
@@ -155,7 +436,20 @@ extension MapViewModel {
             return false
         }
 
-        guard await hasActiveBusinessAccount(ownerEmail: normalizedOwnerEmail, ownerUserId: authId) else {
+        let businessAdminStatus = await validateBusinessAdminStatus(ownerEmail: normalizedOwnerEmail, ownerUserId: authId)
+        switch businessAdminStatus {
+        case .active:
+            clearStaleDeletedAccountBlockIfNeeded(context: context)
+        case .blocked(let status):
+            await handleBlockedBusinessAccount(status: status, context: context)
+            return false
+        case .noBusiness, .inconclusive:
+            break
+        }
+
+        let validation = await validateActiveBusinessAccount(ownerEmail: normalizedOwnerEmail, ownerUserId: authId)
+        logBusinessSessionRestoreDebug("activeBusinessValidation=\(validation.debugValue)")
+        guard case .active = validation else {
             logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
             return false
         }
@@ -182,6 +476,7 @@ extension MapViewModel {
         currentUserLiveVisibilityMode = .allFriends
         currentUserSelectedLiveVisibilityFriendIDs = []
         currentUserDiscoverableByFans = true
+        isBusinessOwnerSessionRestorePending = false
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
         restorePersistedSelectedVenueForBusinessLaunch()
@@ -210,7 +505,17 @@ extension MapViewModel {
             return false
         }
 
-        guard await hasActiveBusinessAccount(ownerEmail: sessionEmail, ownerUserId: session.user.id) else {
+        guard await restoreActiveBusinessFromAdminStatusIfNeeded(
+            session: session,
+            sessionEmail: sessionEmail,
+            context: context
+        ) else {
+            return false
+        }
+
+        let validation = await validateActiveBusinessAccount(ownerEmail: sessionEmail, ownerUserId: session.user.id)
+        logBusinessSessionRestoreDebug("activeBusinessValidation=\(validation.debugValue)")
+        guard case .active = validation else {
             logBusinessOwnerSessionFlags(context: "\(context)_no_business_account")
             return false
         }
@@ -233,6 +538,7 @@ extension MapViewModel {
         isAdminLoggedIn = false
         currentUserAuthId = session.user.id
         markAuthSignedIn(reason: "\(context)_businessOwner")
+        isBusinessOwnerSessionRestorePending = false
 
         await persistAccountModeForActiveAuthSession(.businessOwner)
         restorePersistedSelectedVenueForBusinessLaunch()
@@ -265,6 +571,7 @@ extension MapViewModel {
         currentUserUsername = ""
         currentUserBio = ""
         currentUserIsBusinessAccount = false
+        isBusinessOwnerSessionRestorePending = false
         currentUserFanXP = .rookie
         currentUserFanIdentityPreferences = .empty
         currentUserHomeCrowdVenueId = nil
@@ -552,6 +859,17 @@ extension MapViewModel {
     }
 
     func forceLogout(reason: String, source: String) async {
+        let destructiveAllowed = destructiveLogoutAllowed(reason: reason, source: source)
+        logBusinessLogoutTrace("forceLogoutCalled reason=\(reason)")
+        logBusinessLogoutTrace("destructiveLogoutAllowed=\(destructiveAllowed)")
+        logBusinessLogoutTrace("didExplicitlyLogout=\(UserDefaults.standard.bool(forKey: Self.didExplicitlyLogoutKey))")
+        logBusinessLogoutTrace("storedAccountMode=\(storedAccountModeDebugValue())")
+        guard destructiveAllowed else {
+            logBusinessLogoutTrace("supabaseSignOutCalled=false")
+            await markTransientMissingSessionPreserved(reason: reason, source: source)
+            return
+        }
+
         let snapshot = await MainActor.run {
             (
                 currentUserId: currentUserAuthId?.uuidString.lowercased() ?? "nil",
@@ -570,6 +888,7 @@ extension MapViewModel {
         print("[AuthForceLogoutDebug] callStack=\(Thread.callStackSymbols.joined(separator: " | "))")
 
         do {
+            logBusinessLogoutTrace("supabaseSignOutCalled=true")
             try await supabase.auth.signOut()
 #if DEBUG
             print("[AuthForceLogoutDebug] signOutSuccess=true")
@@ -718,6 +1037,12 @@ extension MapViewModel {
                 print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
                 if profile.isDeletedAccount {
+                    if await shouldSuppressDeletedProfileBlockForBusinessSession(
+                        session: session,
+                        context: "ensureUserProfileExists"
+                    ) {
+                        return
+                    }
                     await handleDeletedCurrentUser()
                     return
                 }
@@ -1086,6 +1411,21 @@ extension MapViewModel {
             return true
         }
 
+        let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+        let businessValidation = await validateBusinessAdminStatus(ownerEmail: sessionEmail, ownerUserId: session.user.id)
+        switch businessValidation {
+        case .active:
+            await MainActor.run {
+                clearStaleDeletedAccountBlockIfNeeded(context: "checkCurrentUserAdminStatus")
+            }
+            return true
+        case .blocked(let status):
+            await handleBlockedBusinessAccount(status: status, context: "checkCurrentUserAdminStatus")
+            return false
+        case .noBusiness, .inconclusive:
+            break
+        }
+
         do {
             let rows: [UserProfileRow] = try await supabase
                 .from("user_profiles")
@@ -1100,6 +1440,20 @@ extension MapViewModel {
             }
 
             if profile.isDeletedAccount {
+                let shouldTreatAsBusinessRestore = await MainActor.run {
+                    readPersistedAccountMode().mode == .businessOwner
+                        || currentUserIsBusinessAccount
+                        || isVenueOwnerLoggedIn
+                        || isBusinessOwnerSessionRestorePending
+                }
+                if shouldTreatAsBusinessRestore {
+                    logDeletedAccountRestoreDebug("inconclusiveNotDeleted=true reason=businessRestoreProfileDeletedWithoutBusinessConfirmation")
+                    await markTransientMissingSessionPreserved(
+                        reason: "profileDeletedBusinessRestoreInconclusive",
+                        source: "MapViewModel.checkCurrentUserAdminStatus"
+                    )
+                    return true
+                }
 #if DEBUG
                 print("[AuthStateDebug] deletedAccountConfirmed=true reason=adminStatusProfile userId=\(session.user.id.uuidString.lowercased())")
 #endif
@@ -1120,6 +1474,8 @@ extension MapViewModel {
     }
 
     private func handleDeletedCurrentUser() async {
+        logDeletedAccountRestoreDebug("blockedStateSetBy=handleDeletedCurrentUser")
+        logDeletedAccountRestoreDebug("dbConfirmedDeleted=true source=user_profiles")
         await forceLogout(reason: "deletedAccountConfirmed", source: "MapViewModel.handleDeletedCurrentUser")
         await MainActor.run {
             resetProfilePresentationLoadStateForNewAuth()
@@ -1133,6 +1489,8 @@ extension MapViewModel {
     }
 
     private func handleDisabledCurrentUser() async {
+        logDeletedAccountRestoreDebug("blockedStateSetBy=handleDisabledCurrentUser")
+        logDeletedAccountRestoreDebug("dbConfirmedDeleted=true source=user_profiles_disabled")
         await forceLogout(reason: "disabledAccountConfirmed", source: "MapViewModel.handleDisabledCurrentUser")
         await MainActor.run {
             authErrorMessage = "This account has been disabled by FanGeo support."
@@ -1168,6 +1526,27 @@ extension MapViewModel {
         case .active:
             return true
         case .missingSession:
+            let restoreInProgress = await MainActor.run {
+                isAuthSessionRestoringForProfilePresentation || authSessionState == .loadingSession
+            }
+            if restoreInProgress {
+                logBusinessSessionRestoreDebug("forceLogoutSuppressedDuringRestore=true reason=hasValidSessionMissing")
+                await markTransientMissingSessionPreserved(
+                    reason: "hasValidSessionMissingRestoreInProgress",
+                    source: "MapViewModel.hasValidSession"
+                )
+                return true
+            }
+            if await MainActor.run(body: { shouldPreserveMissingSessionForRestore() }) {
+                await markTransientMissingSessionPreserved(
+                    reason: "hasValidSessionMissingPersistedRestore",
+                    source: "MapViewModel.hasValidSession"
+                )
+                Task { [weak self] in
+                    await self?.bootstrapAuthSessionOnly()
+                }
+                return true
+            }
             let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
 #if DEBUG
             if wasAuthenticated {
@@ -1220,6 +1599,7 @@ extension MapViewModel {
             venueOwnerMode = false
             venueOwnerEmail = ""
             isAdminLoggedIn = false
+            isBusinessOwnerSessionRestorePending = false
             currentUserAuthId = session.user.id
             markAuthSignedIn(reason: "fanSessionRestore")
             if clearVenueOwnerCaches {
@@ -1232,15 +1612,134 @@ extension MapViewModel {
 #endif
     }
 
+    private func bootstrapAuthSessionResultWithRetry() async -> SupabaseAuthSessionResolution {
+        let first = await supabaseResolvedAuthSessionResult()
+        switch first {
+        case .active:
+            logBusinessSessionRestoreDebug("supabaseSessionExists=true")
+            return first
+        case .refreshFailed:
+            logBusinessSessionRestoreDebug("supabaseSessionExists=false")
+            return first
+        case .missingSession:
+            logBusinessSessionRestoreDebug("supabaseSessionExists=false")
+            logBusinessSessionRestoreDebug("restorePending=missingSessionRetry")
+            logBusinessSessionRestoreDebug("forceLogoutSuppressedDuringRestore=true reason=bootstrapMissingSession")
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            let retry = await supabaseResolvedAuthSessionResult()
+            if case .active = retry {
+                logBusinessSessionRestoreDebug("supabaseSessionExists=true")
+            } else {
+                logBusinessSessionRestoreDebug("supabaseSessionExists=false")
+            }
+            return retry
+        }
+    }
+
+    private func preserveBusinessOwnerAuthIdentity(
+        session: Session,
+        sessionEmail: String,
+        reason: String
+    ) async {
+        await MainActor.run {
+            currentUserAuthId = session.user.id
+            currentUserEmail = sessionEmail
+            venueOwnerEmail = sessionEmail
+            currentUserIsBusinessAccount = true
+            isVenueOwnerLoggedIn = true
+            venueOwnerMode = true
+            isLoggedIn = false
+            isAdminLoggedIn = false
+            isBusinessOwnerSessionRestorePending = true
+            markAuthSignedIn(reason: reason)
+            restorePersistedSelectedVenueForBusinessLaunch()
+        }
+        await persistAccountModeForActiveAuthSession(.businessOwner)
+        logBusinessSessionRestoreDebug("preservedAuthIdentity=true userId=\(session.user.id.uuidString.lowercased()) email=\(sessionEmail)")
+    }
+
+    private func sessionUserIsDefinitelyFanProfile(userId: UUID) async -> Bool {
+        do {
+            let rows: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select(Self.userProfileSelectColumns)
+                .eq("id", value: userId)
+                .eq("admin_status", value: "active")
+                .limit(1)
+                .execute()
+                .value
+            guard let profile = rows.first else { return false }
+            return profile.isRegularFanProfile()
+        } catch {
+#if DEBUG
+            print("[BusinessSessionRestoreDebug] fanProfileValidation=inconclusive:\(error.localizedDescription)")
+#endif
+            return false
+        }
+    }
+
+    private func handleFailedBusinessOwnerBootstrapRestore(
+        session: Session,
+        sessionEmail: String
+    ) async {
+        logBusinessSessionRestoreDebug("fallbackBusinessRestoreStarted=true")
+        await preserveBusinessOwnerAuthIdentity(
+            session: session,
+            sessionEmail: sessionEmail,
+            reason: "bootstrapBusinessOwnerFallbackPreserveIdentity"
+        )
+
+        let validation = await validateActiveBusinessAccount(ownerEmail: sessionEmail, ownerUserId: session.user.id)
+        logBusinessSessionRestoreDebug("activeBusinessValidation=\(validation.debugValue)")
+
+        switch validation {
+        case .active:
+            let restored = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                session: session,
+                sessionEmail: sessionEmail,
+                context: "bootstrap_restore_business_owner_fallback_retry"
+            )
+            logBusinessSessionRestoreDebug("restoreBusinessReturned=\(restored)")
+            if restored {
+                await MainActor.run { isBusinessOwnerSessionRestorePending = false }
+                logBusinessSessionRestoreDebug("restoreCompleted=business")
+            } else {
+                logBusinessSessionRestoreDebug("restorePending=true reason=businessRestoreRetryReturnedFalse")
+            }
+
+        case .inactive:
+            if await sessionUserIsDefinitelyFanProfile(userId: session.user.id) {
+                await MainActor.run { isBusinessOwnerSessionRestorePending = false }
+                await persistAccountModeForActiveAuthSession(.fanUser)
+                await applyFanUserSessionRestoreAfterBootstrap(
+                    session: session,
+                    sessionEmail: sessionEmail,
+                    clearVenueOwnerCaches: true
+                )
+                logBusinessSessionRestoreDebug("restoreCompleted=fan")
+            } else {
+                logBusinessSessionRestoreDebug("restorePending=true reason=inactiveBusinessWithoutFanProfile")
+            }
+
+        case .inconclusive(_):
+            logBusinessSessionRestoreDebug("restorePending=true reason=activeBusinessValidationInconclusive")
+        }
+    }
+
     /// Reads Supabase session and applies cached profile URLs from `UserDefaults` only. Does **not** load profile, favorites, or following (see ``refreshUserPersonalizationInBackground()``).
     func bootstrapAuthSessionOnly() async {
+        let restoreID = UUID()
         await MainActor.run {
+            authSessionRestoreID = restoreID
             isAuthSessionRestoringForProfilePresentation = true
             transitionAuthSessionState(.loadingSession, reason: "bootstrapStart")
         }
+        logBusinessSessionRestoreDebug("bootstrapStart=true")
         defer {
-            Task { @MainActor [weak self] in
-                self?.isAuthSessionRestoringForProfilePresentation = false
+            Task { @MainActor [weak self, restoreID] in
+                guard let self, self.authSessionRestoreID == restoreID else { return }
+                self.authSessionRestoreID = nil
+                self.isAuthSessionRestoringForProfilePresentation = false
             }
         }
 
@@ -1253,10 +1752,14 @@ extension MapViewModel {
             return
         }
 
-        switch await supabaseResolvedAuthSessionResult() {
+        switch await bootstrapAuthSessionResultWithRetry() {
         case .missingSession:
-            await forceLogout(reason: "bootstrapMissingSession", source: "MapViewModel.bootstrapAuthSessionOnly")
+            await markTransientMissingSessionPreserved(
+                reason: "bootstrapMissingSessionAfterRetry",
+                source: "MapViewModel.bootstrapAuthSessionOnly"
+            )
             logSessionRestored(false, reason: "missingSession")
+            logBusinessSessionRestoreDebug("restorePending=true reason=missingSessionAfterRetry")
             print("NO ACTIVE SESSION")
             return
 
@@ -1292,6 +1795,7 @@ extension MapViewModel {
 #if DEBUG
                 print("[AuthRestore] storedAccountMode=\(persisted.mode.rawValue)")
 #endif
+                logBusinessSessionRestoreDebug("persistedMode=\(persisted.mode.rawValue)")
                 let storedId = persisted.authUserId?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
                 let idMismatch = !storedId.isEmpty && storedId != sessionUid
 
@@ -1359,20 +1863,32 @@ extension MapViewModel {
 #if DEBUG
                     print("[AuthRestore] restoredBusinessOwner email=\(sessionEmail)")
 #endif
-                    _ = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                    let restored = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
                         session: session,
                         sessionEmail: sessionEmail,
                         context: "bootstrap_restore_business_owner"
                     )
+                    logBusinessSessionRestoreDebug("restoreBusinessReturned=\(restored)")
+                    if !restored {
+                        await handleFailedBusinessOwnerBootstrapRestore(
+                            session: session,
+                            sessionEmail: sessionEmail
+                        )
+                    } else {
+                        logBusinessSessionRestoreDebug("restoreCompleted=business")
+                    }
                     print("SESSION RESTORED:", sessionEmail)
                     return
 
                 case .fanUser:
-                    if await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
+                    let restoredBusiness = await restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded(
                         session: session,
                         sessionEmail: sessionEmail,
                         context: "bootstrap_restore_business_owner_fallback"
-                    ) {
+                    )
+                    logBusinessSessionRestoreDebug("restoreBusinessReturned=\(restoredBusiness)")
+                    if restoredBusiness {
+                        logBusinessSessionRestoreDebug("restoreCompleted=business")
                         print("SESSION RESTORED:", sessionEmail)
                         return
                     }
@@ -1399,10 +1915,10 @@ extension MapViewModel {
         case .active:
             break
         case .missingSession:
-            let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
-            if !wasAuthenticated {
-                await forceLogout(reason: "personalizationMissingSession", source: "MapViewModel.refreshUserPersonalizationInBackground")
-            }
+            await markTransientMissingSessionPreserved(
+                reason: "personalizationMissingSession",
+                source: "MapViewModel.refreshUserPersonalizationInBackground"
+            )
             #if DEBUG
             let ms = Int(Date().timeIntervalSince(t0) * 1000)
             print("[Background] personalization loaded ms=\(ms) (no session)")
@@ -1493,6 +2009,15 @@ extension MapViewModel {
                     print("[ProfilePersistenceDebug] existingProfileFound=true")
 #endif
                     if profile.isDeletedAccount {
+                        if await shouldSuppressDeletedProfileBlockForBusinessSession(
+                            session: session,
+                            context: "loadUserProfile"
+                        ) {
+                            await MainActor.run {
+                                finishProfilePresentationLoad(profileExists: false)
+                            }
+                            return
+                        }
                         await handleDeletedCurrentUser()
                         await MainActor.run {
                             finishProfilePresentationLoad(profileExists: false)
@@ -1735,6 +2260,13 @@ extension MapViewModel {
         }
 
         if existingProfile?.is_deleted == true {
+            if let session = try? await supabase.auth.session,
+               await shouldSuppressDeletedProfileBlockForBusinessSession(
+                    session: session,
+                    context: "saveUserProfile"
+               ) {
+                return "Business profile restore is still finishing. Please try again in a moment."
+            }
             await handleDeletedCurrentUser()
             return "This account has been deleted.\nContact support if you believe this was a mistake."
         }
@@ -2852,6 +3384,12 @@ extension MapViewModel {
                 .value
 
             if let profile = rows.first, profile.isDeletedAccount {
+                if await shouldSuppressDeletedProfileBlockForBusinessSession(
+                    session: session,
+                    context: "passwordResetRecovery"
+                ) {
+                    return false
+                }
                 await handleDeletedCurrentUser()
                 return false
             }

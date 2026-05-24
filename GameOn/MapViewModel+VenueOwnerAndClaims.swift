@@ -814,6 +814,14 @@ extension MapViewModel {
                 return
             }
 
+            guard await businessAccountAccessIsAllowedForAuthenticatedSession(
+                ownerEmail: ownerEmail,
+                userId: session.user.id,
+                context: "businessLogin"
+            ) else {
+                return
+            }
+
             if await shouldBlockBusinessOwnerLogin(sessionEmail: ownerEmail, userId: session.user.id) {
 #if DEBUG
                 print("[AuthAccountTypeGate] business login blocked fanEmail=\(ownerEmail)")
@@ -3012,7 +3020,7 @@ extension MapViewModel {
 
     func runDeferredBusinessOwnerHydrationAfterLaunch() async {
         let shouldHydrate = await MainActor.run {
-            hasAuthenticatedVenueOwnerSession
+            hasAuthenticatedVenueOwnerSession || isBusinessOwnerSessionRestorePending
         }
         guard shouldHydrate else { return }
 
@@ -3020,6 +3028,12 @@ extension MapViewModel {
 
         await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
         await MainActor.run {
+            if isBusinessOwnerSessionRestorePending, hasAuthenticatedVenueOwnerSession {
+                isBusinessOwnerSessionRestorePending = false
+#if DEBUG
+                print("[BusinessSessionRestoreDebug] restoreCompleted=deferredBusinessHydration")
+#endif
+            }
             checkVenueApprovalStatus()
         }
 
@@ -3816,7 +3830,6 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours,
         externalGameID: String? = nil,
         externalSource: String? = nil,
         importedFromAPI: Bool = false,
@@ -3842,7 +3855,6 @@ extension MapViewModel {
                 coverCharge: coverCharge,
                 reservationInfo: reservationInfo,
                 socialCoordination: socialCoordination,
-                cleanupDelayHours: cleanupDelayHours,
                 externalGameID: externalGameID,
                 externalSource: externalSource,
                 importedFromAPI: importedFromAPI,
@@ -3880,7 +3892,6 @@ extension MapViewModel {
         coverCharge: String,
         reservationInfo: String,
         socialCoordination: String,
-        cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours,
         externalGameID: String? = nil,
         externalSource: String? = nil,
         importedFromAPI: Bool = false,
@@ -3909,9 +3920,7 @@ extension MapViewModel {
             )
         }
 
-        let retentionHours = VenueOwnerGameDataRetentionHours.standardOptions.contains(cleanupDelayHours)
-            ? cleanupDelayHours
-            : VenueOwnerGameDataRetentionHours.defaultPickerHours
+        let retentionHours = VenueOwnerGameDataRetentionHours.fixedHoursAfterStart
         let trimmedExternalGameID = externalGameID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedExternalSource = externalSource?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let trimmedExternalLeague = externalLeague?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -3994,7 +4003,7 @@ extension MapViewModel {
             print(
                 "[DiscoverDotsSave] table=venue_events op=insert venue_id=\(vidStr) event_id=\(eid) event_date=\(row.event_date ?? "nil") scheduled_start_at=\(row.scheduled_start_at ?? "nil") sport=\(row.sport ?? "nil") admin_status=\(adm) (no status/is_visible columns on client venue_events model)"
             )
-            logVenueGameExpirationDebug(selectedDurationHours: retentionHours, row: row)
+            logVenueGameExpirationDebug(durationHours: retentionHours, row: row)
 #endif
             print("GAME LISTING SAVED")
             return .success(row)
@@ -4271,19 +4280,21 @@ extension MapViewModel {
         }
     }
 
-    /// Upcoming/active games for Manage Games **Scheduled** tab (`scheduled_start_at` in the future).
+    /// Upcoming/active games for Manage Games **Scheduled** tab, visible until the fixed venue auto-close window.
     func loadMyVenueScheduledGames() async -> [VenueEventRow] {
         do {
             let iso = ISO8601DateFormatter()
             iso.timeZone = TimeZone.current
             iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
-            let nowStr = iso.string(from: Date())
+            let now = Date()
+            let lowerBound = now.addingTimeInterval(-Double(VenueOwnerGameDataRetentionHours.fixedHoursAfterStart) * 3600)
+            let lowerBoundStr = iso.string(from: lowerBound)
 
             var query = supabase
                 .from("venue_events")
                 .select()
                 .eq("admin_status", value: "active")
-                .gte("scheduled_start_at", value: nowStr)
+                .gte("scheduled_start_at", value: lowerBoundStr)
 
             if let vid = ownerVenueDatabaseId {
                 query = query.eq("venue_id", value: vid.uuidString.lowercased())
@@ -4298,43 +4309,20 @@ extension MapViewModel {
                 .execute()
                 .value
 
-            return rows
+            return rows.filter { row in
+                guard let start = VenueGameExpiration.scheduledStartDate(for: row),
+                      let expiration = Calendar.current.date(
+                        byAdding: .hour,
+                        value: VenueOwnerGameDataRetentionHours.fixedHoursAfterStart,
+                        to: start
+                      ) else {
+                    return true
+                }
+                return expiration > now
+            }
         } catch {
             print("ERROR LOADING SCHEDULED VENUE GAMES:", error)
             return []
-        }
-    }
-
-    /// Updates retention for an owned `venue_events` row (`purge_after_at` is generated from `scheduled_start_at` + hours).
-    func updateVenueEventCleanupDelay(venueEventId: UUID, hours: Int) async -> String? {
-        guard VenueOwnerGameDataRetentionHours.allPersistedValues.contains(hours) else {
-            return "Cleanup delay must be one of: \(VenueOwnerGameDataRetentionHours.standardOptions.map(String.init).joined(separator: ", ")) hours (or a legacy saved value)."
-        }
-        do {
-            try await supabase
-                .from("venue_events")
-                .update(VenueEventCleanupDelayPatch(cleanup_delay_hours: hours))
-                .eq("id", value: venueEventId.uuidString.lowercased())
-                .execute()
-
-#if DEBUG
-            do {
-                let refreshed: [VenueEventRow] = try await supabase
-                    .from("venue_events")
-                    .select()
-                    .eq("id", value: venueEventId.uuidString.lowercased())
-                    .limit(1)
-                    .execute()
-                    .value
-                if let row = refreshed.first {
-                    logVenueGameExpirationDebug(selectedDurationHours: hours, row: row)
-                }
-            } catch {}
-#endif
-            return nil
-        } catch {
-            print("ERROR UPDATING VENUE EVENT CLEANUP DELAY:", error)
-            return error.localizedDescription
         }
     }
 
@@ -4476,7 +4464,7 @@ extension MapViewModel {
 
 #if DEBUG
     /// Debug-only: logs canonical start + purge threshold (`purge_after_at` from API when returned, else derived from `scheduled_start_at` + `cleanup_delay_hours`).
-    func logVenueGameExpirationDebug(selectedDurationHours: Int, row: VenueEventRow) {
+    func logVenueGameExpirationDebug(durationHours: Int, row: VenueEventRow) {
         let gameStart = row.scheduled_start_at ?? "nil"
         let removeAfter: String = {
             if let p = row.purge_after_at, !p.isEmpty { return p }
@@ -4490,7 +4478,7 @@ extension MapViewModel {
             f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             return f.string(from: end)
         }()
-        print("[VenueGameExpirationDebug] selectedDurationHours=\(selectedDurationHours)")
+        print("[VenueGameExpirationDebug] durationHours=\(durationHours)")
         print("[VenueGameExpirationDebug] game_start_at=\(gameStart)")
         print("[VenueGameExpirationDebug] remove_after_at=\(removeAfter)")
     }

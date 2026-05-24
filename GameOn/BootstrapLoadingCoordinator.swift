@@ -43,8 +43,15 @@ final class BootstrapLoadingCoordinator: ObservableObject {
             LaunchBootstrapState.markCriticalBootstrapCompleted()
         } else {
             bootstrapError = "Opening FanGeo while the rest finishes loading."
-            bootstrapTask.cancel()
+            print("[BusinessLogoutTrace] bootstrapTimeoutAuthRestoreContinues=true")
             shouldUseMainTabFallbackBootstrap = true
+            Task { [weak self, weak viewModel, weak chatViewModel] in
+                await bootstrapTask.value
+                guard let self, let viewModel, let chatViewModel else { return }
+                await MainActor.run {
+                    self.scheduleWarmPreload(viewModel: viewModel, chatViewModel: chatViewModel)
+                }
+            }
         }
 
         #if DEBUG

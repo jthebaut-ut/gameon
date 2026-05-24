@@ -1125,6 +1125,28 @@ struct MainTabView: View {
 
         let hasSession = await viewModel.hasValidSession()
         if !hasSession {
+            if viewModel.isAuthSessionRestoringForProfilePresentation || viewModel.authSessionState == .loadingSession {
+#if DEBUG
+                print("[BusinessSessionRestoreDebug] forceLogoutSuppressedDuringRestore=true reason=foregroundInvalidSession")
+#endif
+                return
+            }
+            let shouldPreserveForRestore = await MainActor.run {
+                viewModel.shouldPreserveMissingSessionForRestore()
+            }
+            if shouldPreserveForRestore {
+                await viewModel.markTransientMissingSessionPreserved(
+                    reason: "foregroundInvalidSession",
+                    source: "MainTabView.handleAppBecameActive"
+                )
+#if DEBUG
+                print("[BusinessLogoutTrace] transientMissingSessionPreserved=true reason=foregroundInvalidSession")
+#endif
+                Task {
+                    await viewModel.bootstrapAuthSessionOnly()
+                }
+                return
+            }
             await viewModel.forceLogout(reason: "foregroundInvalidSession", source: "MainTabView.handleAppBecameActive")
             await MainActor.run {
                 chatViewModel.clearForSignOut()

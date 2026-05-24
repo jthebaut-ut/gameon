@@ -49,17 +49,20 @@ extension MapViewModel {
         case .active:
             break
         case .missingSession:
-            let wasAuthenticated = await MainActor.run { isAuthenticatedForSocialFeatures }
-            if !wasAuthenticated {
-                await forceLogout(reason: "startupPrefetchMissingSession", source: "MapViewModel.runLightweightStartupPrefetch")
-            }
+            await markTransientMissingSessionPreserved(
+                reason: "startupPrefetchMissingSession",
+                source: "MapViewModel.runLightweightStartupPrefetch"
+            )
+#if DEBUG
+            print("[BusinessLogoutTrace] warmPreloadSkippedNoLogout=true")
+#endif
             logStartupPrefetchCompletion(
                 startedAt: startedAt,
                 profileLoaded: false,
                 avatarPrefetched: false,
                 goingLoaded: false,
                 favoriteTeamsLoaded: false,
-                skippedReason: "missingSession"
+                skippedReason: "missingSessionDuringRestore"
             )
             return
         case .refreshFailed(let error):

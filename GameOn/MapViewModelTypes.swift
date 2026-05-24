@@ -177,49 +177,17 @@ struct VenueEventInsert: Encodable {
     let admin_status: String
     /// ISO 8601 timestamptz string (UTC offset) for retention and Scheduled tab queries.
     let scheduled_start_at: String
-    /// Hours after start when purge may remove fan data (Manage Games: 6/12/18; legacy DB rows may be 24/48/72).
-    let cleanup_delay_hours: Int
-}
-
-struct VenueEventCleanupDelayPatch: Encodable {
+    /// Hours after start when purge may remove fan data. Venue-owner creation now always writes 12.
     let cleanup_delay_hours: Int
 }
 
 /// Retention duration for venue games (`venue_events.cleanup_delay_hours`; `purge_after_at` is generated server-side).
 nonisolated enum VenueOwnerGameDataRetentionHours {
-    static let standardOptions: [Int] = [6, 12, 18]
-    static let legacyOptions: [Int] = [24, 48, 72]
-    static let defaultPickerHours: Int = 12
+    static let fixedHoursAfterStart: Int = 12
+    static let legacyOptions: [Int] = [6, 18, 24, 48, 72]
 
     static var allPersistedValues: Set<Int> {
-        Set(standardOptions + legacyOptions)
-    }
-
-    /// Segmented picker: 6 / 12 / 18, plus the row’s current value when it is a legacy hour so SwiftUI selection stays valid.
-    static func segmentedPickerHours(currentSaved: Int?) -> [Int] {
-        let base = standardOptions
-        guard let h = currentSaved, !base.contains(h), allPersistedValues.contains(h) else {
-            return base
-        }
-        return (base + [h]).sorted()
-    }
-
-    static func segmentedLabel(for hours: Int) -> String {
-        switch hours {
-        case 6: return "6hr"
-        case 12: return "12hr"
-        case 18: return "18hr"
-        default: return "\(hours)hr"
-        }
-    }
-
-    static func longLabel(for hours: Int) -> String {
-        switch hours {
-        case 6: return "6hr after start"
-        case 12: return "12hr after start"
-        case 18: return "18hr after start"
-        default: return "\(hours)hr after start"
-        }
+        Set([fixedHoursAfterStart] + legacyOptions)
     }
 }
 
@@ -249,7 +217,7 @@ nonisolated enum VenueGameExpiration {
         return legacyStartFromEventDateTime(row: row)
     }
 
-    /// True when `now` is at or past the business-selected clear window (`purge_after_at`).
+    /// True when `now` is at or past the venue auto-close window (`purge_after_at`).
     static func isPastBusinessClearWindow(row: VenueEventRow, now: Date = Date()) -> Bool {
         guard let purge = purgeAfterDate(for: row, now: now) else { return false }
         return now >= purge
@@ -286,7 +254,7 @@ nonisolated enum VenueGameExpiration {
 
     private static func normalizedCleanupDelayHours(_ raw: Int?) -> Int {
         guard let raw, VenueOwnerGameDataRetentionHours.allPersistedValues.contains(raw) else {
-            return VenueOwnerGameDataRetentionHours.defaultPickerHours
+            return VenueOwnerGameDataRetentionHours.fixedHoursAfterStart
         }
         return raw
     }

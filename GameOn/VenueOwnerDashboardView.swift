@@ -58,6 +58,7 @@ enum VenueOwnerDashboardEntryPoint: Equatable {
 struct VenueOwnerDashboardView: View {
     @ObservedObject var viewModel: MapViewModel
     @ObservedObject private var fanUpdatesStore: FanUpdatesRealtimeStore
+    @ObservedObject private var businessProEntitlement = BusinessProEntitlementManager.shared
     var entryPoint: VenueOwnerDashboardEntryPoint = .allTabs
     @AppStorage(L10n.appLanguageKey) private var appLanguageRaw = L10n.defaultLanguageCode
     @Environment(\.colorScheme) private var colorScheme
@@ -178,11 +179,12 @@ struct VenueOwnerDashboardView: View {
     @State private var manageGamesFeedback = ""
     @State private var manageGamesError = ""
     @State private var isSavingNewGame = false
+    @State private var businessMembershipStatus: BusinessVenueGamePostingStatus?
+    @State private var showBusinessProSubscriptionSheet = false
     @State private var titleEditTarget: VenueOwnerGameTitleEditTarget?
     @State private var titleEditDraft = ""
     @State private var showCancelGameDialog = false
     @State private var cancelGameRowSnapshot: VenueEventRow?
-    @State private var cleanupDelayHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
     @State private var showVenueOwnerContactSupport = false
     @State private var showAddLocationSheet = false
     @State private var addLocationSubmitBanner: String?
@@ -302,6 +304,8 @@ struct VenueOwnerDashboardView: View {
                         sectionPicker
                     }
 
+                    businessProAccessSection
+
                     Group {
                         switch effectiveSection {
                         case .overview:
@@ -346,6 +350,7 @@ struct VenueOwnerDashboardView: View {
         }
         .onAppear {
             logBusinessDashboardRouteDebug()
+            logBusinessProVisibilityDebug(dashboardVisible: true)
             if entryPoint == .overviewDashboard {
                 selectedSection = .overview
 #if DEBUG
@@ -579,6 +584,15 @@ struct VenueOwnerDashboardView: View {
                 }
             }
         }
+        .sheet(isPresented: $showBusinessProSubscriptionSheet) {
+            BusinessProSubscriptionView()
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(FGAdaptiveSurface.sheetRoot)
+            .onAppear {
+                logBusinessProVisibilityDebug(dashboardVisible: true)
+            }
+        }
         }
     }
     
@@ -671,6 +685,53 @@ struct VenueOwnerDashboardView: View {
                     )
                 }
             }
+        }
+    }
+
+    private var businessProAccessSection: some View {
+        Button {
+            logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
+            showBusinessProSubscriptionSheet = true
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
+                    ZStack {
+                        Circle()
+                            .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                        Image(systemName: "sparkles.rectangle.stack.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(FGColor.accentGreen)
+                    }
+                    .frame(width: 34, height: 34)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Business Pro")
+                            .font(.subheadline.weight(.heavy))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        Text("Unlimited hosting through Aug 31, 2026")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FGAdaptiveSurface.controlFill)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.24 : 0.14), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            logBusinessProVisibilityDebug(dashboardVisible: true, rowRendered: true)
         }
     }
 
@@ -957,6 +1018,21 @@ struct VenueOwnerDashboardView: View {
 #if DEBUG
         print("[BusinessDashboardRouteDebug] entryPoint=\(String(describing: entryPoint))")
         print("[BusinessDashboardRouteDebug] effectiveSection=\(effectiveSection.rawValue)")
+#endif
+    }
+
+    private func logBusinessProVisibilityDebug(
+        dashboardVisible: Bool? = nil,
+        rowRendered: Bool? = nil
+    ) {
+#if DEBUG
+        if let dashboardVisible {
+            print("[BusinessProVisibilityDebug] dashboardVisible=\(dashboardVisible)")
+        }
+        print("[BusinessProVisibilityDebug] hasAuthenticatedVenueOwnerSession=\(viewModel.hasAuthenticatedVenueOwnerSession)")
+        if let rowRendered {
+            print("[BusinessProVisibilityDebug] rowRendered=\(rowRendered)")
+        }
 #endif
     }
 
@@ -2280,7 +2356,7 @@ struct VenueOwnerDashboardView: View {
                 .font(.title2)
                 .fontWeight(.bold)
 
-            Text("Upcoming listings at your venue. Past starts drop from this list after the game time passes.")
+            Text("Upcoming and recently started listings stay here until they automatically close 12 hours after kickoff.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -2350,21 +2426,6 @@ struct VenueOwnerDashboardView: View {
                                 titleEditDraft = item.row.event_title ?? ""
                                 titleEditTarget = VenueOwnerGameTitleEditTarget(id: item.id)
                             },
-                            onCleanupDelayChange: { hours in
-                                Task {
-                                    let err = await viewModel.updateVenueEventCleanupDelay(venueEventId: item.id, hours: hours)
-                                    await MainActor.run {
-                                        if let err {
-                                            manageGamesError = err
-                                            manageGamesFeedback = ""
-                                        } else {
-                                            manageGamesError = ""
-                                            manageGamesFeedback = "Retention updated."
-                                        }
-                                    }
-                                    await refreshManageGamesList(isInitialPick: false)
-                                }
-                            },
                             onCancel: {
                                 clearManageGamesBanners()
                                 guard item.row.id != nil else { return }
@@ -2398,6 +2459,8 @@ struct VenueOwnerDashboardView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            businessHostingUsageStatusCard
+
             gameCreationModePicker
 
             if gameCreationMode == .importLive {
@@ -2416,10 +2479,169 @@ struct VenueOwnerDashboardView: View {
             print("[BusinessGameImportDebug] selectedMode=\(gameCreationMode.rawValue)")
 #endif
         }
+        .task {
+            await businessProEntitlement.prepare()
+            businessMembershipStatus = await viewModel.businessVenueGamePostingStatus(
+                storeKitBusinessProActive: businessProEntitlement.businessProActive
+            )
+        }
         .onDisappear {
 #if DEBUG
             print("[ManageGamesAddPane] disappear")
 #endif
+        }
+    }
+
+    private var businessHostingUsageStatusCard: some View {
+        let status = businessHostingUsageStatusForDisplay
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(businessHostingUsageAccent(for: status).opacity(colorScheme == .dark ? 0.22 : 0.14))
+                    Image(systemName: businessHostingUsageIconName(for: status))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(businessHostingUsageAccent(for: status))
+                }
+                .frame(width: 34, height: 34)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(businessHostingUsageTitle(for: status))
+                        .font(.subheadline.weight(.heavy))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    Text(businessHostingUsagePrimaryLine(for: status))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let detailLine = businessHostingUsageDetailLine(for: status) {
+                        Text(detailLine)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let secondaryLine = businessHostingUsageSecondaryLine(for: status) {
+                        Text(secondaryLine)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+
+            if shouldShowBusinessHostingUsageProgress(for: status) {
+                VStack(alignment: .leading, spacing: 8) {
+                    businessHostingUsageProgressLine(
+                        title: "Venue listings",
+                        value: status?.businessVenueCount ?? 0,
+                        total: BusinessMembershipPolicy.freeVenueListingLimit,
+                        status: status
+                    )
+                    businessHostingUsageProgressLine(
+                        title: "Hosted games this month",
+                        value: status?.monthlyHostedGameCount ?? 0,
+                        total: BusinessMembershipPolicy.freeMonthlyVenueGameLimit,
+                        status: status
+                    )
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FGAdaptiveSurface.controlFill)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(businessHostingUsageAccent(for: status).opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 1)
+        }
+    }
+
+    private var businessHostingUsageStatusForDisplay: BusinessVenueGamePostingStatus? {
+        if let businessMembershipStatus { return businessMembershipStatus }
+        return nil
+    }
+
+    private func businessHostingUsageTitle(for status: BusinessVenueGamePostingStatus?) -> String {
+        if status?.businessProActive == true { return "Business Pro Active" }
+        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
+            return "Unlimited Summer Hosting & Venue Listings"
+        }
+        return "Free Business Limits"
+    }
+
+    private func businessHostingUsagePrimaryLine(for status: BusinessVenueGamePostingStatus?) -> String {
+        guard let status else { return "Checking business usage..." }
+        if status.businessProActive || status.limitsOverriddenBySummerPromo {
+            return businessHostingUsageVenueListingsLine(count: status.businessVenueCount)
+        }
+        return "venue listings: \(status.businessVenueCount) / \(BusinessMembershipPolicy.freeVenueListingLimit)"
+    }
+
+    private func businessHostingUsageDetailLine(for status: BusinessVenueGamePostingStatus?) -> String? {
+        guard let status else { return nil }
+        if status.businessProActive || status.limitsOverriddenBySummerPromo {
+            return businessHostingUsageHostedGamesLine(count: status.monthlyHostedGameCount)
+        }
+        return "hosted games this month: \(status.monthlyHostedGameCount) / \(BusinessMembershipPolicy.freeMonthlyVenueGameLimit)"
+    }
+
+    private func businessHostingUsageSecondaryLine(for status: BusinessVenueGamePostingStatus?) -> String? {
+        if status?.businessProActive == true { return nil }
+        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
+            return "Approved businesses get unlimited venue listings and hosted games through Aug 31, 2026."
+        }
+        return "Business Pro unlocks unlimited venue listings and hosted games."
+    }
+
+    private func businessHostingUsageVenueListingsLine(count: Int) -> String {
+        "\(count) \(count == 1 ? "venue listing" : "venue listings")"
+    }
+
+    private func businessHostingUsageHostedGamesLine(count: Int) -> String {
+        "\(count) \(count == 1 ? "game" : "games") hosted this month"
+    }
+
+    private func businessHostingUsageIconName(for status: BusinessVenueGamePostingStatus?) -> String {
+        if status?.businessProActive == true { return "sparkles.rectangle.stack.fill" }
+        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
+            return "sun.max.fill"
+        }
+        return "chart.bar.fill"
+    }
+
+    private func businessHostingUsageAccent(for status: BusinessVenueGamePostingStatus?) -> Color {
+        if status?.businessProActive == true { return FGColor.accentGreen }
+        if status?.limitsOverriddenBySummerPromo == true || (status == nil && BusinessMembershipPolicy.summerPromotionIsActive()) {
+            return Color.orange
+        }
+        return FGColor.accentBlue
+    }
+
+    private func shouldShowBusinessHostingUsageProgress(for status: BusinessVenueGamePostingStatus?) -> Bool {
+        guard let status else { return false }
+        return !status.limitsOverriddenBySummerPromo && !status.businessProActive
+    }
+
+    private func businessHostingUsageProgressLine(
+        title: String,
+        value: Int,
+        total: Int,
+        status: BusinessVenueGamePostingStatus?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Spacer(minLength: 8)
+                Text("\(value) / \(total)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+            }
+            ProgressView(value: Double(min(value, total)), total: Double(total))
+                .tint(businessHostingUsageAccent(for: status))
+                .controlSize(.small)
         }
     }
 
@@ -3091,19 +3313,28 @@ struct VenueOwnerDashboardView: View {
     }
 
     private var addGameCleanupDelayCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Remove game data after")
-                .font(.subheadline.weight(.semibold))
-            Text("Fan comments, vibes, and attendance rows are deleted; you keep a short summary in History.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Picker("Retention hours", selection: $cleanupDelayHours) {
-                ForEach(VenueOwnerGameDataRetentionHours.standardOptions, id: \.self) { h in
-                    Text(VenueOwnerGameDataRetentionHours.longLabel(for: h)).tag(h)
+        HStack(alignment: .top, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.20 : 0.12))
+                Image(systemName: "clock.badge.checkmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(FGColor.accentGreen)
+            }
+            .frame(width: 34, height: 34)
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("This game will automatically close 12 hours after kickoff.")
+                    .font(.subheadline.weight(.heavy))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Fan comments, vibes, and attendance cleanup happen automatically.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .pickerStyle(.segmented)
-        }
         .padding()
         .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -3661,6 +3892,23 @@ struct VenueOwnerDashboardView: View {
             clearManageGamesBanners()
         }
 
+        await businessProEntitlement.prepare()
+        let membershipStatus = await viewModel.businessVenueGamePostingStatus(
+            storeKitBusinessProActive: businessProEntitlement.businessProActive
+        )
+        await MainActor.run {
+            businessMembershipStatus = membershipStatus
+        }
+        if membershipStatus.freeLimitReached {
+            await MainActor.run {
+                isSavingNewGame = false
+                manageGamesFeedback = ""
+                manageGamesError = ""
+                showBusinessProSubscriptionSheet = true
+            }
+            return
+        }
+
         let snapshot = await MainActor.run {
             (
                 sport: viewModel.ownerVenuePrimarySport,
@@ -3677,7 +3925,6 @@ struct VenueOwnerDashboardView: View {
                 coverCharge: "",
                 reservationsAvailable: false,
                 waitlistAvailable: false,
-                cleanupDelayHours: cleanupDelayHours,
                 externalGameID: importedFromAPI ? importedExternalGameID : nil,
                 externalSource: importedFromAPI ? importedExternalSource : nil,
                 externalLeague: { () -> String? in
@@ -3725,7 +3972,6 @@ struct VenueOwnerDashboardView: View {
             coverCharge: snapshot.coverCharge,
             reservationInfo: snapshot.reservationsAvailable ? "Reservations available" : "",
             socialCoordination: snapshot.waitlistAvailable ? "Waitlist available" : "",
-            cleanupDelayHours: snapshot.cleanupDelayHours,
             externalGameID: snapshot.externalGameID,
             externalSource: snapshot.externalSource,
             importedFromAPI: snapshot.importedFromAPI,
@@ -3757,6 +4003,12 @@ struct VenueOwnerDashboardView: View {
 
         if case .success = result {
             await refreshManageGamesList(isInitialPick: false)
+            let refreshedStatus = await viewModel.businessVenueGamePostingStatus(
+                storeKitBusinessProActive: businessProEntitlement.businessProActive
+            )
+            await MainActor.run {
+                businessMembershipStatus = refreshedStatus
+            }
         }
     }
 
@@ -3772,7 +4024,6 @@ struct VenueOwnerDashboardView: View {
         seating = ""
         socialCoordination = ""
         initializeAddGameScheduleFromDefaults()
-        cleanupDelayHours = VenueOwnerGameDataRetentionHours.defaultPickerHours
         clearImportedGameMetadata()
     }
 
@@ -4565,10 +4816,7 @@ private struct VenueOwnerManageGameRow: View {
     let commentCount: Int
     let vibeTotal: Int
     let onEditTitle: () -> Void
-    let onCleanupDelayChange: (Int) -> Void
     let onCancel: () -> Void
-
-    @State private var retentionPickerHours: Int = VenueOwnerGameDataRetentionHours.defaultPickerHours
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -4640,17 +4888,13 @@ private struct VenueOwnerManageGameRow: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Remove game data after")
-                    .font(.caption2.weight(.semibold))
-                Picker("Retention hours", selection: $retentionPickerHours) {
-                    ForEach(VenueOwnerGameDataRetentionHours.segmentedPickerHours(currentSaved: row.cleanup_delay_hours), id: \.self) { h in
-                        Text(VenueOwnerGameDataRetentionHours.segmentedLabel(for: h)).tag(h)
-                    }
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                if let countdown = autoRemovalCountdownText(now: context.date) {
+                    Text(countdown)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
                 }
-                .pickerStyle(.segmented)
             }
-            .padding(.vertical, 4)
 
             HStack(spacing: 10) {
                 Button(action: onEditTitle) {
@@ -4682,21 +4926,29 @@ private struct VenueOwnerManageGameRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(FGAdaptiveSurface.controlFill)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .onAppear {
-            retentionPickerHours = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
+    }
+
+    private func autoRemovalCountdownText(now: Date) -> String? {
+        guard let start = VenueGameExpiration.scheduledStartDate(for: row),
+              let expiration = Calendar.current.date(
+                byAdding: .hour,
+                value: VenueOwnerGameDataRetentionHours.fixedHoursAfterStart,
+                to: start
+              ) else {
+            return nil
         }
-        .onChange(of: eventID) { _, _ in
-            retentionPickerHours = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
+        let remainingSeconds = expiration.timeIntervalSince(now)
+        guard remainingSeconds > 0 else { return nil }
+        if remainingSeconds <= 15 * 60 {
+            return "Closing soon"
         }
-        .onChange(of: row.cleanup_delay_hours) { _, newHours in
-            retentionPickerHours = newHours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
+        let totalMinutes = Int(ceil(remainingSeconds / 60))
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours > 0 {
+            return "Auto-removes in \(hours)h \(minutes)m"
         }
-        .onChange(of: retentionPickerHours) { _, newVal in
-            let cur = row.cleanup_delay_hours ?? VenueOwnerGameDataRetentionHours.defaultPickerHours
-            if newVal != cur {
-                onCleanupDelayChange(newVal)
-            }
-        }
+        return "Auto-removes in \(minutes)m"
     }
 }
 
