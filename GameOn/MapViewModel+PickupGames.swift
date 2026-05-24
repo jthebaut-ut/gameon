@@ -111,11 +111,13 @@ extension MapViewModel {
 
     func clearPickupMapSelection() {
         selectedPickupGameForMap = nil
+        selectedPickupPlaceForMap = nil
     }
 
     func selectPickupGameOnMap(_ row: PickupGameRow) {
         selectedBar = nil
         selectedEvent = nil
+        selectedPickupPlaceForMap = nil
         discoverRemotePreviewHoldVenueId = nil
         selectedPickupGameForMap = row
     }
@@ -154,6 +156,7 @@ extension MapViewModel {
         switch mode {
         case .venues:
             selectedPickupGameForMap = nil
+            selectedPickupPlaceForMap = nil
         case .pickupGames:
             selectedBar = nil
             selectedEvent = nil
@@ -164,6 +167,10 @@ extension MapViewModel {
     func onDiscoverMapBecamePickupGamesFromUserToggle() {
         Task { @MainActor in
             guard discoverMapContentMode == .pickupGames else { return }
+            guard discoverPickupSubMode == .games else {
+                await refreshPickupPlacesForDiscoverMap()
+                return
+            }
             guard pickupDiscoverCoordinatorDirty else { return }
             if pickupGamesForDiscoverMap.isEmpty {
                 setDiscoverMapStatus("Updating map…", isLoading: true)

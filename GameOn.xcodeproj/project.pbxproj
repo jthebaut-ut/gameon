@@ -297,6 +297,7 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "FanGeo uses Face ID to protect access to your private messages.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "When you center the map on your current location, FanGeo uses it to show nearby sports venues and keep what you see relevant to where you are. Location is used for this map experience on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "When you choose a profile or venue photo, FanGeo reads only the image you select so it can upload it to your account. Your library is not scanned in the background.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "FanGeo uses your data to show more relevant ads and support the app.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -352,6 +353,7 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "FanGeo uses Face ID to protect access to your private messages.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "When you center the map on your current location, FanGeo uses it to show nearby sports venues and keep what you see relevant to where you are. Location is used for this map experience on your device.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "When you choose a profile or venue photo, FanGeo reads only the image you select so it can upload it to your account. Your library is not scanned in the background.";
+				INFOPLIST_KEY_NSUserTrackingUsageDescription = "FanGeo uses your data to show more relevant ads and support the app.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-9637364906993742~5547329973</string>
-	<key>GADNativeAdValidatorEnabled</key>
-	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -17,8 +13,10 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>FanGeo uses your data to show more relevant ads and support the app.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-9637364906993742~5547329973</string>
+	<key>GADNativeAdValidatorEnabled</key>
+	<false/>
 	<key>SKAdNetworkItems</key>
 	<array>
 		<dict>

@@ -281,6 +281,29 @@ extension MapViewModel {
         return clusters
     }
 
+    func clusteredPickupPlaceBarsForDiscoverMap(rows: [BarVenue]) -> [VenueCluster] {
+        let source = rows.filter { CLLocationCoordinate2DIsValid($0.coordinate) }
+        guard !source.isEmpty else { return [] }
+
+        let grouped = Dictionary(grouping: source) { bar in
+            DiscoverVenueClusterTuning.clusterKey(
+                for: bar.coordinate,
+                visibleLatitudeDelta: visibleLatitudeDelta
+            )
+        }
+
+        return grouped.map { key, bars in
+            let avgLat = bars.map { $0.coordinate.latitude }.reduce(0, +) / Double(bars.count)
+            let avgLon = bars.map { $0.coordinate.longitude }.reduce(0, +) / Double(bars.count)
+            return VenueCluster(
+                id: "pp-\(key)",
+                bars: bars,
+                coordinate: CLLocationCoordinate2D(latitude: avgLat, longitude: avgLon)
+            )
+        }
+        .sorted { $0.id < $1.id }
+    }
+
     /// Grid-bucketed pickup pins for Discover (same spacing idea as ``clusteredBars()``). Lightweight memo for map body churn.
     func clusteredPickupGamesForDiscoverMap(rows: [PickupGameRow]) -> [PickupGameCluster] {
         let withCoords = rows.filter { $0.latitude != nil && $0.longitude != nil }

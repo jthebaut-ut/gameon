@@ -15,14 +15,14 @@ private let discoverVenueBusinessEmbedSelectSuffix =
     ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 
 private let discoverVenueRowSelectColumns =
-    "id,owner_email,business_id,venue_identity_key,origin_type,admin_status,supporter_country,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features," +
+    "id,owner_email,business_id,venue_identity_key,origin_type,admin_status,community_type,place_type,sport_tags,supporter_country,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,phone,website,description,features," +
     "screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,latitude,longitude," +
     "cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
     discoverVenueBusinessEmbedSelectSuffix
 
 private enum DiscoverVenueFastPinSelect {
     nonisolated static let columns =
-        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,origin_type,admin_status,supporter_country,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
+        "id,venue_name,address,address_line1,address_line2,city,state,zip_code,region,postal_code,country,formatted_address,latitude,longitude,owner_email,business_id,origin_type,admin_status,community_type,place_type,sport_tags,supporter_country,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
         ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 
@@ -95,6 +95,9 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
     let ownerEmail: String?
     let businessId: UUID?
     let adminStatus: String?
+    let communityType: String?
+    let placeType: String?
+    let sportTags: [String]?
     let venueOwnerEmailRaw: String?
     let businessOwnerEmailRaw: String?
     let contactEmailRaw: String?
@@ -128,6 +131,9 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
         ownerEmail = bar.ownerEmail
         businessId = bar.businessId
         adminStatus = bar.adminStatus
+        communityType = bar.communityType
+        placeType = bar.placeType
+        sportTags = bar.sportTags
         venueOwnerEmailRaw = bar.venueOwnerEmailRaw
         businessOwnerEmailRaw = bar.businessOwnerEmailRaw
         contactEmailRaw = bar.contactEmailRaw
@@ -162,6 +168,9 @@ nonisolated private struct DiscoverPersistedBarVenue: Codable {
             ownerEmail: ownerEmail,
             businessId: businessId,
             adminStatus: adminStatus,
+            communityType: communityType,
+            placeType: placeType,
+            sportTags: sportTags ?? [],
             venueOwnerEmailRaw: venueOwnerEmailRaw,
             businessOwnerEmailRaw: businessOwnerEmailRaw,
             contactEmailRaw: contactEmailRaw,
@@ -1802,7 +1811,11 @@ extension MapViewModel {
                 }
             }
             guard discoverSelectedDayRefreshRequestID == requestID else { return }
-            await refreshPickupGamesForDiscoverMap()
+            if discoverPickupSubMode == .games {
+                await refreshPickupGamesForDiscoverMap()
+            } else if bars.isEmpty {
+                await loadVenuesFromSupabase()
+            }
             guard discoverSelectedDayRefreshRequestID == requestID else { return }
             setDiscoverMapStatus("Updated just now", isLoading: false, autoClearAfter: 2.2)
             return
@@ -2140,6 +2153,9 @@ extension MapViewModel {
                     ownerEmail: bar.ownerEmail,
                     businessId: bar.businessId,
                     adminStatus: bar.adminStatus,
+                    communityType: bar.communityType,
+                    placeType: bar.placeType,
+                    sportTags: bar.sportTags,
                     venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
                     businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
                     contactEmailRaw: bar.contactEmailRaw,
@@ -2216,6 +2232,9 @@ extension MapViewModel {
                     ownerEmail: bar.ownerEmail,
                     businessId: bar.businessId,
                     adminStatus: bar.adminStatus,
+                    communityType: bar.communityType,
+                    placeType: bar.placeType,
+                    sportTags: bar.sportTags,
                     venueOwnerEmailRaw: bar.venueOwnerEmailRaw,
                     businessOwnerEmailRaw: bar.businessOwnerEmailRaw,
                     contactEmailRaw: bar.contactEmailRaw,

@@ -46,6 +46,7 @@ struct ContentView: View {
         }
         .onOpenURL { url in
             Task {
+                await viewModel.handleEmailVerificationDeepLink(url)
                 await viewModel.handlePasswordResetDeepLink(url)
             }
         }

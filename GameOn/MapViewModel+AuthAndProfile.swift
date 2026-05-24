@@ -13,6 +13,7 @@ extension MapViewModel {
     }
 
     static let fanPasswordResetRedirectURL = URL(string: "fangeo://reset-password")!
+    static let emailVerificationRedirectURL = URL(string: "fangeo://email-confirmed")!
 
     private static let storedAccountModeKey = "GameOn.storedAccountMode"
     private static let storedAccountAuthUserIdKey = "GameOn.storedAccountAuthUserId"
@@ -26,6 +27,37 @@ extension MapViewModel {
 #if DEBUG
         print("[Auth] manual login succeeded, logout marker cleared")
 #endif
+    }
+
+    @MainActor
+    func markEmailVerificationPending(email: String, kind: EmailVerificationAccountKind) {
+        pendingEmailVerificationEmail = OwnerBusinessEmail.normalized(email)
+        pendingEmailVerificationKind = kind
+        emailVerificationError = ""
+        emailVerificationMessage = kind == .business
+            ? "Check your email to verify your business account."
+            : "Check your email to verify your FanGeo account."
+        print("[EmailVerifyDebug] signupNeedsConfirmation=true")
+    }
+
+    @MainActor
+    func clearEmailVerificationPending() {
+        pendingEmailVerificationEmail = ""
+        pendingEmailVerificationKind = nil
+        emailVerificationError = ""
+        emailVerificationMessage = ""
+    }
+
+    static func isUnconfirmedEmailAuthError(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("email not confirmed")
+            || message.contains("email not verified")
+            || message.contains("confirm your email")
+            || message.contains("verify your email")
+    }
+
+    static func userEmailConfirmed(_ user: User) -> Bool {
+        user.emailConfirmedAt != nil || user.confirmedAt != nil
     }
 
     private func readPersistedAccountMode() -> (mode: StoredAccountMode, authUserId: String?) {
@@ -341,6 +373,15 @@ extension MapViewModel {
         userPasswordResetError = ""
         passwordResetUpdateMessage = ""
         passwordResetUpdateError = ""
+        applePendingFanSignupEmail = ""
+        appleAuthFanMessage = ""
+        appleAuthFanMessageIsError = false
+        appleAuthBusinessMessage = ""
+        appleAuthBusinessMessageIsError = false
+        appleAuthFanMessageAutoClearTask?.cancel()
+        appleAuthBusinessMessageAutoClearTask?.cancel()
+        appleAuthFanMessageAutoClearTask = nil
+        appleAuthBusinessMessageAutoClearTask = nil
         venueAuthErrorMessage = ""
         venuePasswordResetMessage = ""
         venuePasswordResetError = ""
@@ -781,13 +822,24 @@ extension MapViewModel {
         }
 
         do {
-            _ = try await supabase.auth.signUp(
+            let signUpResponse = try await supabase.auth.signUp(
                 email: fanEmail,
-                password: password
+                password: password,
+                redirectTo: Self.emailVerificationRedirectURL
             )
 
-            if let session = try? await supabase.auth.session,
-               await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+            let signUpSession = signUpResponse.session
+            let restoredSession = try? await supabase.auth.session
+            guard let activeSession = signUpSession ?? restoredSession,
+                  Self.userEmailConfirmed(activeSession.user) else {
+                await forceLogout(reason: "registerUserNeedsEmailConfirmation", source: "MapViewModel.registerUser")
+                await MainActor.run {
+                    markEmailVerificationPending(email: fanEmail, kind: .fan)
+                }
+                return
+            }
+
+            if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: activeSession.user.id) {
 #if DEBUG
                 print("[AuthAccountTypeGate] fan registration blocked businessEmail=\(fanEmail)")
 #endif
@@ -813,9 +865,7 @@ extension MapViewModel {
                 markAuthSignedIn(reason: "registerUser")
                 bumpCurrentUserAvatarDisplayRefresh()
             }
-            if let session = try? await supabase.auth.session {
-                await MainActor.run { currentUserAuthId = session.user.id }
-            }
+            await MainActor.run { currentUserAuthId = activeSession.user.id }
 
             await persistAccountModeForActiveAuthSession(.fanUser)
 
@@ -851,6 +901,16 @@ extension MapViewModel {
             guard let session = try? await supabase.auth.session else {
                 await forceLogout(reason: "loginUserSessionMissingAfterSignIn", source: "MapViewModel.loginUser")
                 await MainActor.run { authErrorMessage = "Unable to login." }
+                return
+            }
+
+            guard Self.userEmailConfirmed(session.user) else {
+                await forceLogout(reason: "loginUserEmailUnconfirmed", source: "MapViewModel.loginUser")
+                await MainActor.run {
+                    authErrorMessage = "Please verify your email before signing in."
+                    markEmailVerificationPending(email: fanEmail, kind: .fan)
+                    print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
+                }
                 return
             }
 
@@ -905,7 +965,11 @@ extension MapViewModel {
 
                 let message = error.localizedDescription.lowercased()
 
-                if message.contains("invalid login credentials") {
+                if Self.isUnconfirmedEmailAuthError(error) {
+                    authErrorMessage = "Please verify your email before signing in."
+                    markEmailVerificationPending(email: fanEmail, kind: .fan)
+                    print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
+                } else if message.contains("invalid login credentials") {
                     authErrorMessage = "No account found or incorrect password."
                 } else {
                     authErrorMessage = "Unable to login."
@@ -913,6 +977,60 @@ extension MapViewModel {
             }
 
             print("LOGIN ERROR:", error)
+        }
+    }
+
+    func resendEmailVerification(email: String? = nil, kind: EmailVerificationAccountKind? = nil) async {
+        let targetEmail = OwnerBusinessEmail.normalized(email ?? pendingEmailVerificationEmail)
+        let targetKind = kind ?? pendingEmailVerificationKind ?? .fan
+        guard OwnerBusinessEmail.isValidStrict(targetEmail) else {
+            await MainActor.run {
+                emailVerificationError = OwnerBusinessEmail.invalidOwnerEmailUserMessage
+            }
+            return
+        }
+
+        print("[EmailVerifyDebug] resendStarted=true")
+        do {
+            try await supabase.auth.resend(
+                email: targetEmail,
+                type: .signup,
+                emailRedirectTo: Self.emailVerificationRedirectURL
+            )
+            await MainActor.run {
+                pendingEmailVerificationEmail = targetEmail
+                pendingEmailVerificationKind = targetKind
+                emailVerificationError = ""
+                emailVerificationMessage = targetKind == .business
+                    ? "Verification email sent. Check your business email to continue."
+                    : "Verification email sent. Check your email to continue."
+            }
+            print("[EmailVerifyDebug] resendSuccess=true")
+        } catch {
+            await MainActor.run {
+                emailVerificationError = "Could not resend verification email. Please try again."
+            }
+            print("[EmailVerifyDebug] resendSuccess=false error=\(error.localizedDescription)")
+        }
+    }
+
+    func handleEmailVerificationDeepLink(_ url: URL) async {
+        guard Self.isEmailVerificationDeepLink(url) else { return }
+        print("[EmailVerifyDebug] confirmationDeepLinkReceived=true")
+
+        if let session = try? await supabase.auth.session(from: url) {
+            guard await passwordResetRecoverySessionIsAllowed(session: session) else {
+                return
+            }
+            await forceLogout(reason: "emailVerificationCompleted", source: "MapViewModel.handleEmailVerificationDeepLink")
+        }
+
+        await MainActor.run {
+            clearEmailVerificationPending()
+            authErrorMessage = "Email verified. You can now sign in."
+            venueAuthErrorMessage = "Email verified. You can now sign in."
+            emailVerificationMessage = "Email verified. You can now sign in."
+            emailVerificationError = ""
         }
     }
 
@@ -1126,6 +1244,16 @@ extension MapViewModel {
                 let sessionUid = session.user.id.uuidString.lowercased()
                 logBusinessOwnerSessionFlags(context: "bootstrap_session_loaded")
                 logSessionRestored(true, reason: "bootstrap", userId: session.user.id)
+
+                guard Self.userEmailConfirmed(session.user) else {
+                    await forceLogout(reason: "bootstrapEmailUnconfirmed", source: "MapViewModel.bootstrapAuthSessionOnly")
+                    await MainActor.run {
+                        markEmailVerificationPending(email: sessionEmail, kind: .fan)
+                        authErrorMessage = "Please verify your email before signing in."
+                        print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
+                    }
+                    return
+                }
 
                 if !(await checkCurrentUserAdminStatus()) {
                     print("SESSION RESTORE BLOCKED: account unavailable")
@@ -2650,6 +2778,16 @@ extension MapViewModel {
         let host = url.host?.lowercased() ?? ""
         let path = url.path.lowercased()
         return host == "reset-password" || path == "/reset-password"
+    }
+
+    private static func isEmailVerificationDeepLink(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "fangeo" else { return false }
+        let host = url.host?.lowercased() ?? ""
+        let path = url.path.lowercased()
+        return host == "email-confirmed"
+            || path == "/email-confirmed"
+            || host == "auth-callback"
+            || path == "/auth-callback"
     }
 
     private static func passwordResetDeepLinkParams(from url: URL) -> [String: String] {

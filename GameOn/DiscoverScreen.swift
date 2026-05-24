@@ -411,6 +411,10 @@ struct DiscoverScreen: View {
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
 
+    private var isPickupPlacesMode: Bool {
+        viewModel.discoverMapContentMode == .pickupGames && viewModel.discoverPickupSubMode == .places
+    }
+
     private var acceptedFriendUserIDs: Set<UUID> {
         guard viewModel.canUseFanSocialFeatures else { return [] }
         return Set(chatViewModel.friendshipChipByOtherUserId.compactMap { userID, kind in
@@ -806,7 +810,7 @@ struct DiscoverScreen: View {
 
             }
             .overlay(alignment: .top) {
-                discoverFixedTopOverlay
+                discoverFixedTopOverlay(layoutWidth: layoutWidth)
             }
             .overlay(alignment: .bottom) {
                 discoverFixedBottomOverlay(layoutWidth: layoutWidth)
@@ -869,9 +873,13 @@ struct DiscoverScreen: View {
             if phase == .active {
                 discoverMapLocationAuthVersion += 1
                 scheduleDiscoverWeatherRefresh(force: false)
-                if viewModel.discoverMapContentMode == .pickupGames {
+                if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                     Task {
                         await viewModel.refreshPickupGamesForDiscoverMap(force: true)
+                    }
+                } else if isPickupPlacesMode {
+                    Task {
+                        await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
                     }
                 }
             }
@@ -920,10 +928,29 @@ struct DiscoverScreen: View {
             }
             let anchorMonth = showDatePicker ? discoverCalendarDisplayedMonth : viewModel.selectedDate
             Task { @MainActor in
-                if newMode == .pickupGames {
+                if newMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                     await viewModel.refreshPickupGamesForDiscoverMap(force: false, preservePickupCalendarDotDatesCache: true)
+                } else if newMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
+                    await viewModel.refreshPickupPlacesForDiscoverMap(force: viewModel.pickupPlacesForDiscoverMap.isEmpty)
+                    lastMapVenueReloadRegion = viewModel.cameraPosition.region
                 }
                 viewModel.loadDiscoverCalendarDots(around: anchorMonth, reason: "mode_change")
+            }
+        }
+        .onChange(of: viewModel.discoverPickupSubMode) { _, subMode in
+            guard viewModel.discoverMapContentMode == .pickupGames else { return }
+            if subMode == .places {
+                viewModel.clearPickupMapSelection()
+                Task { @MainActor in
+                    await viewModel.refreshPickupPlacesForDiscoverMap(force: viewModel.pickupPlacesForDiscoverMap.isEmpty)
+                    lastMapVenueReloadRegion = viewModel.cameraPosition.region
+                }
+            } else {
+                viewModel.selectedBar = nil
+                viewModel.selectedPickupPlaceForMap = nil
+                Task { @MainActor in
+                    await viewModel.refreshPickupGamesForDiscoverMap(force: false, preservePickupCalendarDotDatesCache: true)
+                }
             }
         }
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
@@ -1581,11 +1608,19 @@ struct DiscoverScreen: View {
     }
 
     private var discoverPickupClustersForMap: [PickupGameCluster] {
+        guard viewModel.discoverPickupSubMode == .games else { return [] }
         let rows = viewModel.pickupGamesForDiscoverMap.filter { row in
             guard let lat = row.latitude, let lon = row.longitude else { return false }
             return CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: lat, longitude: lon))
         }
         return viewModel.clusteredPickupGamesForDiscoverMap(rows: rows)
+    }
+
+    private var discoverPickupPlaceClustersForMap: [PickupPlaceCluster] {
+        guard isPickupPlacesMode else { return [] }
+        return viewModel.clusteredPickupPlacesForDiscoverMap(
+            rows: viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds())
+        )
     }
 
     private var discoverVenueClustersForMap: [VenueCluster] {
@@ -1625,6 +1660,26 @@ struct DiscoverScreen: View {
 #endif
     }
 
+    private func logDiscoverModeFilteringDebug() {
+#if DEBUG
+        let communityTypeFilter: String
+        switch viewModel.discoverMapContentMode {
+        case .venues:
+            communityTypeFilter = "allow_null_and_non_play_exclude_play"
+        case .pickupGames:
+            communityTypeFilter = viewModel.discoverPickupSubMode == .places ? "pickup_places_bounds_only" : "none_pickup_games"
+        }
+        let visibleGameVenuesCount = viewModel.bars.filter { bar in
+            !bar.isPickupPlayPlace && viewModel.venueHasVisibleGameToday(bar)
+        }.count
+        DebugLogGate.noisy("[DiscoverModeDebug] topLevelMode=\(viewModel.discoverMapContentMode.rawValue)")
+        DebugLogGate.noisy("[DiscoverModeDebug] pickupSubMode=\(viewModel.discoverPickupSubMode.rawValue)")
+        DebugLogGate.noisy("[DiscoverModeDebug] communityTypeFilter=\(communityTypeFilter)")
+        DebugLogGate.noisy("[VenueEventsDebug] venueEventsCount=\(viewModel.venueEventRows.count)")
+        DebugLogGate.noisy("[VenueEventsDebug] visibleGameVenuesCount=\(visibleGameVenuesCount)")
+#endif
+    }
+
     /// Shows the system user location dot only after access is granted, so the map does not imply tracking before the user allows it.
     private func discoverMapShowsUserAnnotation() -> Bool {
         _ = discoverMapLocationAuthVersion
@@ -1638,12 +1693,14 @@ struct DiscoverScreen: View {
 
     private var mapLayer: some View {
         let pickupClusters = discoverPickupClustersForMap
+        let pickupPlaceClusters = discoverPickupPlaceClustersForMap
         let venueClusters = discoverVenueClustersForMap
         let isPickupModeActive = viewModel.discoverMapContentMode == .pickupGames
+        let _: Void = logDiscoverModeFilteringDebug()
         let _: Void = logPickupMapDebug(
             pickupGamesCount: viewModel.pickupGamesForDiscoverMap.count,
             isPickupModeActive: isPickupModeActive,
-            annotationsRendered: isPickupModeActive ? pickupClusters.count : 0
+            annotationsRendered: isPickupModeActive ? pickupClusters.count + pickupPlaceClusters.count : 0
         )
 
         return Map(position: $viewModel.cameraPosition) {
@@ -1667,7 +1724,7 @@ struct DiscoverScreen: View {
 
             }
 
-            if viewModel.discoverMapContentMode == .pickupGames {
+            if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                 ForEach(pickupClusters) { cluster in
                     Annotation(
                         cluster.count == 1 ? (cluster.rows.first?.title ?? "Pickup game") : "\(cluster.count) pickup games",
@@ -1677,6 +1734,21 @@ struct DiscoverScreen: View {
                             pickupGameMapPinButton(row: row)
                         } else {
                             multiPickupGameClusterAnnotation(cluster: cluster)
+                        }
+                    }
+                }
+            }
+
+            if isPickupPlacesMode {
+                ForEach(pickupPlaceClusters) { cluster in
+                    Annotation(
+                        cluster.count == 1 ? cluster.rows.first?.name ?? "Pickup place" : "\(cluster.count) pickup places",
+                        coordinate: cluster.coordinate
+                    ) {
+                        if cluster.count == 1, let place = cluster.rows.first {
+                            pickupPlaceMapPinButton(place: place)
+                        } else {
+                            multiPickupPlaceClusterAnnotation(cluster: cluster)
                         }
                     }
                 }
@@ -1709,10 +1781,12 @@ struct DiscoverScreen: View {
                     return
                 }
                 guard !Task.isCancelled else { return }
-                guard viewModel.discoverMapContentMode == .venues else {
+                let shouldReloadMapRows = viewModel.discoverMapContentMode == .venues
+                    || (viewModel.discoverMapContentMode == .pickupGames && viewModel.discoverPickupSubMode == .places)
+                guard shouldReloadMapRows else {
 #if DEBUG
                     print("[ManualMapReloadDebug] reloadScheduled=false")
-                    print("[ManualMapReloadDebug] reloadSkippedReason=notVenuesMode")
+                    print("[ManualMapReloadDebug] reloadSkippedReason=notVenueBackedMode")
 #endif
                     return
                 }
@@ -1743,7 +1817,11 @@ struct DiscoverScreen: View {
 #if DEBUG
                 print("[ManualMapReloadDebug] reloadScheduled=true")
 #endif
-                await viewModel.loadVenuesFromSupabase(logManualMapReload: true)
+                if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
+                    await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
+                } else {
+                    await viewModel.loadVenuesFromSupabase(logManualMapReload: true)
+                }
                 lastMapVenueReloadRegion = region
             }
         }
@@ -1751,7 +1829,7 @@ struct DiscoverScreen: View {
     }
     
     private var showDiscoverVisibleSearchEmptyHint: Bool {
-        let pickupAnnotationsCount = discoverPickupClustersForMap.count
+        let pickupAnnotationsCount = discoverPickupClustersForMap.count + discoverPickupPlaceClustersForMap.count
         let venueAnnotationsCount = discoverVenueClustersForMap.count
         let renderedAnnotationsCount = viewModel.discoverMapContentMode == .pickupGames
             ? pickupAnnotationsCount
@@ -1777,8 +1855,8 @@ struct DiscoverScreen: View {
 #endif
     }
 
-    private var discoverFixedTopOverlay: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private func discoverFixedTopOverlay(layoutWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             if let discoverLocationHint {
                 HStack(alignment: .top, spacing: FGSpacing.sm) {
                     Image(systemName: "location.slash.fill")
@@ -1798,7 +1876,7 @@ struct DiscoverScreen: View {
             HStack(spacing: 10) {
                 discoverWeatherPill
                 Spacer(minLength: 0)
-                discoverMapDisplayModeToggleCluster
+                discoverTopModeSpecificToggleControl(layoutWidth: layoutWidth)
             }
 
             if showDiscoverVisibleSearchEmptyHint {
@@ -1847,13 +1925,13 @@ struct DiscoverScreen: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 6)
-        .padding(.horizontal, 20)
+        .padding(.top, 4)
+        .padding(.horizontal, 18)
     }
 
     private func discoverFixedBottomOverlay(layoutWidth: CGFloat) -> some View {
         VStack(spacing: 0) {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 if let mapHint = viewModel.followingMapNavigationMessage, !mapHint.isEmpty {
                     HStack(alignment: .top, spacing: FGSpacing.sm) {
                         FGStatusPill(title: "Going", kind: .custom(tint: FGColor.accentBlue))
@@ -1884,7 +1962,7 @@ struct DiscoverScreen: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
-                if viewModel.selectedBar != nil || viewModel.selectedPickupGameForMap != nil {
+                if viewModel.selectedBar != nil || viewModel.selectedPickupGameForMap != nil || viewModel.selectedPickupPlaceForMap != nil {
                     discoverBottomLeadingCard
                         .padding(.bottom, 2)
                 }
@@ -1892,7 +1970,7 @@ struct DiscoverScreen: View {
                 discoverUnifiedInfoToggleControl(layoutWidth: layoutWidth)
             }
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 18)
 
             if isDiscoverTabSelected {
                 discoverBottomAdStrip(layoutWidth: layoutWidth)
@@ -1957,7 +2035,50 @@ struct DiscoverScreen: View {
     }
 
     private func discoverEmbeddedToggleWidth(for layoutWidth: CGFloat) -> CGFloat {
-        layoutWidth < 390 ? 128 : 140
+        layoutWidth < 390 ? 120 : 132
+    }
+
+    private func discoverTopModeSpecificToggleWidth(for layoutWidth: CGFloat) -> CGFloat {
+        let desiredWidth: CGFloat = viewModel.discoverMapContentMode == .venues ? 184 : 148
+        return max(138, min(layoutWidth - 132, desiredWidth))
+    }
+
+    @ViewBuilder
+    private func discoverTopModeSpecificToggleControl(layoutWidth: CGFloat) -> some View {
+        ZStack {
+            Capsule(style: .continuous)
+                .fill(colorScheme == .dark ? .thinMaterial : .ultraThinMaterial)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .fill(colorScheme == .dark ? Color.black.opacity(0.20) : Color.white.opacity(0.54))
+                }
+                .overlay {
+                    Capsule(style: .continuous)
+                        .strokeBorder(
+                            colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.045),
+                            lineWidth: 0.6
+                        )
+                }
+
+            if viewModel.discoverMapContentMode == .venues {
+                HStack(spacing: 0) {
+                    discoverBottomVenueDisplaySegment(mode: .allSpots, title: "All Spots")
+                    discoverBottomVenueDisplaySegment(mode: .gamesOnly, title: "Games Only")
+                }
+            } else {
+                HStack(spacing: 0) {
+                    discoverBottomPickupSubModeSegment(mode: .games)
+                    discoverBottomPickupSubModeSegment(mode: .places)
+                }
+            }
+        }
+        .frame(width: discoverTopModeSpecificToggleWidth(for: layoutWidth), height: 30)
+        .discoverLightGlassCard(cornerRadius: 16, style: .weather)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.06 : 0.025), radius: 4, y: 1.5)
+        .frame(minHeight: 44)
+        .animation(discoverBottomControlModeSpring, value: viewModel.discoverMapContentMode)
+        .animation(discoverBottomControlModeSpring, value: viewModel.mapDisplayMode)
+        .animation(discoverBottomControlModeSpring, value: viewModel.discoverPickupSubMode)
     }
 
     private func discoverUnifiedInfoToggleControl(layoutWidth: CGFloat) -> some View {
@@ -1969,11 +2090,11 @@ struct DiscoverScreen: View {
             discoverEmbeddedVenuePickupToggle(layoutWidth: layoutWidth)
                 .layoutPriority(1)
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 6)
-        .frame(width: discoverUnifiedControlMaxWidth(for: layoutWidth), height: 46)
-        .discoverLightGlassCard(cornerRadius: 24, style: .bottomControl)
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 10, y: 5)
+        .padding(.leading, 10)
+        .padding(.trailing, 5)
+        .frame(width: discoverUnifiedControlMaxWidth(for: layoutWidth), height: 42)
+        .discoverLightGlassCard(cornerRadius: 22, style: .bottomControl)
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.10 : 0.04), radius: 6, y: 2)
         .frame(maxWidth: .infinity)
     }
 
@@ -1983,10 +2104,11 @@ struct DiscoverScreen: View {
                 ProgressView()
                     .controlSize(.small)
             } else {
-                Image(systemName: viewModel.discoverMapContentMode == .pickupGames ? "figure.run" : "map.fill")
+                Image(systemName: isPickupPlacesMode ? "mappin.and.ellipse" : (viewModel.discoverMapContentMode == .pickupGames ? "figure.run" : "map.fill"))
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(FGColor.accentBlue)
+                    .foregroundStyle(isPickupPlacesMode ? Color.orange : FGColor.accentBlue)
                     .animation(discoverBottomControlModeSpring, value: viewModel.discoverMapContentMode)
+                    .animation(discoverBottomControlModeSpring, value: viewModel.discoverPickupSubMode)
             }
 
             Text(discoverInfoMessage)
@@ -2042,10 +2164,10 @@ struct DiscoverScreen: View {
                 textInputAutocapitalization: .words,
                 isFocused: $isSearchFocused,
                 horizontalPadding: 16,
-                verticalPadding: 14,
+                verticalPadding: 12,
                 cornerRadius: discoverLightGlassCornerRadius,
                 contentSpacing: 8,
-                textFont: .system(size: 16, weight: .regular, design: .rounded),
+                textFont: .system(size: 15, weight: .regular, design: .rounded),
                 showsBackground: false,
                 trailingAccessoryInset: 50
             )
@@ -2060,7 +2182,7 @@ struct DiscoverScreen: View {
             .padding(.trailing, 18)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 56)
+        .frame(height: 52)
         .discoverLightGlassCard(cornerRadius: discoverLightGlassCornerRadius, style: .searchBar)
     }
 
@@ -2121,12 +2243,50 @@ struct DiscoverScreen: View {
                 )
             }
             .padding(.horizontal, 4)
-            .padding(.vertical, 3)
+            .padding(.vertical, 2)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 42)
-        .discoverLightGlassCard(cornerRadius: 20, style: .sportsRow)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .frame(height: 40)
+        .discoverLightGlassCard(cornerRadius: 19, style: .sportsRow)
+        .clipShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var pickupSubModeToggleIfNeeded: some View {
+        if viewModel.discoverMapContentMode == .pickupGames {
+            HStack(spacing: 6) {
+                ForEach(DiscoverPickupSubMode.allCases) { mode in
+                    let isSelected = viewModel.discoverPickupSubMode == mode
+                    Button {
+                        guard viewModel.discoverPickupSubMode != mode else { return }
+                        FGInteractionHaptics.selection()
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                            viewModel.discoverPickupSubMode = mode
+                        }
+                    } label: {
+                        Text(mode.title)
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(isSelected ? Color.white : Color.orange.opacity(0.96))
+                            .padding(.horizontal, 14)
+                            .frame(height: 30)
+                            .background {
+                                Capsule(style: .continuous)
+                                    .fill(isSelected ? Color.orange.opacity(0.94) : Color.white.opacity(colorScheme == .dark ? 0.10 : 0.42))
+                            }
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .strokeBorder(Color.orange.opacity(isSelected ? 0.20 : 0.38), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
+            .discoverLightGlassCard(cornerRadius: 18, style: .sportsRow)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+        }
     }
 
     @ViewBuilder
@@ -2134,16 +2294,18 @@ struct DiscoverScreen: View {
         if let discoverWeather {
             HStack(spacing: 6) {
                 Image(systemName: discoverWeather.symbolName)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.orange)
                     .symbolRenderingMode(.multicolor)
                 Text("\(discoverWeather.temperature)°F")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .discoverLightGlassCard(cornerRadius: 18, style: .weather)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .discoverLightGlassCard(cornerRadius: 15, style: .weather)
+            .frame(minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
             .accessibilityLabel("Weather \(discoverWeather.temperature) degrees")
         }
     }
@@ -2409,6 +2571,15 @@ struct DiscoverScreen: View {
                     removal: .opacity
                 )
             )
+        } else if let place = viewModel.selectedPickupPlaceForMap {
+            discoverPickupPlacePreviewCard(place)
+                .id(place.id)
+                .transition(
+                    .asymmetric(
+                        insertion: .scale(scale: 0.94, anchor: .leading).combined(with: .opacity),
+                        removal: .opacity
+                    )
+                )
         }
     }
 
@@ -2450,10 +2621,16 @@ struct DiscoverScreen: View {
             return viewModel.visibleBarCountInCurrentMapRegion() > 0
         }
 
-        let bounds = viewModel.currentMapRegionBounds()
-        let allPickupPins = viewModel.pickupGamesVisibleAsMapPins(for: bounds)
-        let matchingPickupPins = discoverPickupPinsInBoundsMatchingSearch
-        guard matchingPickupPins == 0, !allPickupPins.isEmpty else { return false }
+        if isPickupPlacesMode {
+            let allPlaces = viewModel.pickupPlacesForDiscoverMap
+            let matchingPlaces = viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds())
+            guard matchingPlaces.isEmpty, !allPlaces.isEmpty else { return false }
+        } else {
+            let bounds = viewModel.currentMapRegionBounds()
+            let allPickupPins = viewModel.pickupGamesVisibleAsMapPins(for: bounds)
+            let matchingPickupPins = discoverPickupPinsInBoundsMatchingSearch
+            guard matchingPickupPins == 0, !allPickupPins.isEmpty else { return false }
+        }
         let sportFiltered = viewModel.selectedSport.trimmingCharacters(in: .whitespacesAndNewlines) != "All"
         let searchActive = !viewModel.effectiveDiscoverSearchQuery
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -2470,6 +2647,7 @@ struct DiscoverScreen: View {
 
     private var discoverUnifiedStatusText: String {
         if discoverSummaryLoadingFeedbackVisible {
+            if isPickupPlacesMode { return "Updating places…" }
             return viewModel.discoverMapContentMode == .pickupGames ? "Updating pickup…" : "Updating venues…"
         }
         if discoverUnifiedStatusSuggestsZoomOut {
@@ -2477,6 +2655,16 @@ struct DiscoverScreen: View {
         }
 
         if viewModel.discoverMapContentMode == .pickupGames {
+            if isPickupPlacesMode {
+                let count = viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds()).count
+                if count > 0 {
+                    if let sport = discoverStatusSportDescriptor() {
+                        return count == 1 ? "1 \(sport) place" : "\(count) \(sport) places"
+                    }
+                    return count == 1 ? "1 pickup place" : "\(count) pickup places"
+                }
+                return "No pickup places"
+            }
             let count = discoverPickupPinsInBoundsMatchingSearch
             if count > 0 {
                 if let sport = discoverStatusSportDescriptor() {
@@ -2539,8 +2727,11 @@ struct DiscoverScreen: View {
 #if DEBUG
             print("[DiscoverSearchDebug] keyboardDismissedAfterAddressSearch=true")
 #endif
-            if viewModel.discoverMapContentMode == .pickupGames {
+            if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                 await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
+            } else if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
+                await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
+                lastMapVenueReloadRegion = viewModel.cameraPosition.region
             } else {
                 await viewModel.loadVenuesFromSupabase(forceRefresh: true)
                 lastMapVenueReloadRegion = viewModel.cameraPosition.region
@@ -2568,7 +2759,7 @@ struct DiscoverScreen: View {
         print("[DiscoverCalendar] opened at today date=\(openedLogFormatter.string(from: selection))")
         #endif
         Task { @MainActor in
-            if viewModel.discoverMapContentMode == .pickupGames {
+            if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                 await viewModel.refreshPickupGamesForDiscoverMap(force: false, preservePickupCalendarDotDatesCache: true)
                 #if DEBUG
                 print("[PickupCalendarFix] pickup preload ensured count=\(viewModel.pickupGamesForDiscoverMap.count)")
@@ -2648,6 +2839,9 @@ struct DiscoverScreen: View {
     private var discoverSummaryDataLoading: Bool {
         switch viewModel.discoverMapContentMode {
         case .pickupGames:
+            if isPickupPlacesMode {
+                return viewModel.isLoadingPickupPlacesForMap
+            }
             return viewModel.isLoadingPickupGamesForMap
         case .venues:
             return viewModel.isLoadingEvents
@@ -2681,6 +2875,17 @@ struct DiscoverScreen: View {
 
     private var discoverNearbySummarySubtitle: String {
         if viewModel.discoverMapContentMode == .pickupGames {
+            if isPickupPlacesMode {
+                if viewModel.isLoadingPickupPlacesForMap {
+                    return "Updating places…"
+                }
+                let n = viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds()).count
+                let q = viewModel.effectiveDiscoverSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !q.isEmpty {
+                    return n > 0 ? "\(n) pickup places match your search in this area." : "No pickup places match your search in this area."
+                }
+                return n > 0 ? "Physical places to play in this map area." : "No pickup places in this area."
+            }
             if viewModel.isLoadingPickupGamesForMap {
                 return "Updating map…"
             }
@@ -2826,6 +3031,93 @@ struct DiscoverScreen: View {
         .accessibilityLabel("Pickup \(row.sport), \(needed) spots open, \(row.title)")
     }
 
+    private func pickupPlacePrimarySport(_ place: PickupPlaceRow) -> String {
+        let firstTag = place.sportTags.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !firstTag.isEmpty { return firstTag }
+        return "Pickup"
+    }
+
+    private func pickupPlaceSportSymbol(for place: PickupPlaceRow) -> String {
+        let text = ([pickupPlacePrimarySport(place), place.placeType ?? ""] + place.sportTags)
+            .joined(separator: " ")
+            .lowercased()
+        if text.contains("soccer") { return "soccerball" }
+        if text.contains("basketball") { return "basketball.fill" }
+        if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
+        if text.contains("tennis") || text.contains("pickleball") { return "figure.tennis" }
+        if text.contains("volleyball") { return "volleyball.fill" }
+        return "sportscourt.fill"
+    }
+
+    private func pickupPlaceMapPinButton(place: PickupPlaceRow) -> some View {
+        let isSelected = viewModel.selectedPickupPlaceForMap?.id == place.id
+        let symbolName = pickupPlaceSportSymbol(for: place)
+        let sportLabel = pickupPlacePrimarySport(place)
+#if DEBUG
+        let _: Void = DebugLogGate.noisy("[PickupPlacesDebug] markerRendered=true id=\(place.id.uuidString.lowercased())")
+#endif
+
+        return Button {
+            FGInteractionHaptics.selection()
+            withAnimation(.spring()) {
+                viewModel.centerMap(on: place)
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.gray.opacity(colorScheme == .dark ? 0.22 : 0.16))
+                    .frame(width: isSelected ? 46 : 40, height: isSelected ? 46 : 40)
+                    .blur(radius: 3)
+
+                Circle()
+                    .fill(colorScheme == .dark ? Color.black.opacity(0.82) : Color.white.opacity(0.92))
+                    .frame(width: isSelected ? 36 : 32, height: isSelected ? 36 : 32)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.gray.opacity(isSelected ? 0.86 : 0.48), lineWidth: isSelected ? 2 : 1)
+                    }
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 5, y: 2)
+
+                Image(systemName: symbolName)
+                    .font(.system(size: isSelected ? 16 : 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.82) : Color.gray.opacity(0.86))
+            }
+            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isSelected)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(sportLabel) pickup place, \(place.name)")
+    }
+
+    @ViewBuilder
+    private func multiPickupPlaceClusterAnnotation(cluster: PickupPlaceCluster) -> some View {
+        Button {
+            FGInteractionHaptics.selection()
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                viewModel.zoomTowardCluster(center: cluster.coordinate)
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.gray.opacity(colorScheme == .dark ? 0.24 : 0.16))
+                    .frame(width: 48, height: 48)
+                    .blur(radius: 4)
+                Circle()
+                    .fill(colorScheme == .dark ? Color.black.opacity(0.82) : Color.white.opacity(0.92))
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.gray.opacity(0.56), lineWidth: 1.25)
+                    }
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.12), radius: 5, y: 2)
+                Text("\(cluster.count)")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.82) : Color.gray.opacity(0.9))
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(cluster.count) pickup places")
+    }
+
     @ViewBuilder
     private func multiPickupGameClusterAnnotation(cluster: PickupGameCluster) -> some View {
         let sportHint = dominantPickupClusterSport(cluster.rows)
@@ -2847,6 +3139,90 @@ struct DiscoverScreen: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(cluster.count) pickup games")
+    }
+
+    private func discoverPickupPlacePreviewCard(_ place: PickupPlaceRow) -> some View {
+        let mainInk = colorScheme == .dark ? Color.white.opacity(0.92) : FGColor.primaryText(colorScheme)
+        let subInk = colorScheme == .dark ? Color.white.opacity(0.70) : FGColor.secondaryText(colorScheme)
+        let placeType = place.typeDisplay
+        let sport = pickupPlacePrimarySport(place)
+        let cityState = place.cityStateDisplay
+        let symbolName = pickupPlaceSportSymbol(for: place)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.gray.opacity(0.12))
+                        .frame(width: 46, height: 46)
+                    Image(systemName: symbolName)
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.82) : Color.gray.opacity(0.82))
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Pickup place")
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(subInk)
+                        .tracking(0.4)
+                    Text(place.name)
+                        .font(FGTypography.sectionTitle)
+                        .foregroundStyle(mainInk)
+                        .lineLimit(2)
+                    Text("\(sport) • \(placeType)")
+                        .font(FGTypography.metadata.weight(.medium))
+                        .foregroundStyle(subInk)
+                        .lineLimit(2)
+                    if !cityState.isEmpty {
+                        Label(cityState, systemImage: "mappin.circle.fill")
+                            .font(FGTypography.caption.weight(.medium))
+                            .foregroundStyle(subInk)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Button {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.88)) {
+                        viewModel.clearPickupMapSelection()
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.65) : Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss pickup place")
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    viewModel.openDirections(to: place)
+                } label: {
+                    Label("Directions", systemImage: "location.fill")
+                        .font(FGTypography.cardTitle)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.gray)
+
+                Button {
+                    viewModel.showSocialActionToast("Pickup game creation from places is coming soon.", isError: false)
+                } label: {
+                    Text("Create Pickup Game Here")
+                        .font(FGTypography.cardTitle)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.42), lineWidth: 1)
+        }
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.28 : 0.14), radius: 18, y: 10)
     }
 
     private func discoverPickupPreviewCard(
@@ -3128,7 +3504,7 @@ struct DiscoverScreen: View {
                     lineWidth: colorScheme == .dark ? 1 : 0.75
                 )
         }
-        .frame(width: discoverEmbeddedToggleWidth(for: layoutWidth), height: 36)
+        .frame(width: discoverEmbeddedToggleWidth(for: layoutWidth), height: 34)
         .animation(discoverBottomControlModeSpring, value: viewModel.discoverMapContentMode)
     }
 
@@ -3153,6 +3529,79 @@ struct DiscoverScreen: View {
         return colorScheme == .dark ? Color.white.opacity(0.86) : FGColor.primaryText(colorScheme)
     }
 
+    private func discoverBottomModeSelectionCapsule(tint: Color) -> some View {
+        Capsule(style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [tint.opacity(0.92), tint.opacity(0.72)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.24 : 0.16), lineWidth: 0.6)
+            }
+            .shadow(color: tint.opacity(colorScheme == .dark ? 0.20 : 0.11), radius: 3, y: 1)
+    }
+
+    private func discoverBottomModeSegmentText(_ title: String, selected: Bool) -> some View {
+        Text(title)
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .foregroundStyle(discoverModeToggleInactiveForeground(selected))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Capsule(style: .continuous))
+    }
+
+    private func discoverBottomVenueDisplaySegment(mode: DiscoverMapDisplayMode, title: String) -> some View {
+        let selected = viewModel.mapDisplayMode == mode
+        return Button {
+            guard viewModel.mapDisplayMode != mode else { return }
+            dismissDiscoverSearchKeyboard()
+            FGInteractionHaptics.softImpact()
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                viewModel.mapDisplayMode = mode
+            }
+            showMapDisplayModeHint(mode.title)
+        } label: {
+            ZStack {
+                if selected {
+                    discoverBottomModeSelectionCapsule(tint: FGColor.accentBlue)
+                        .padding(2)
+                        .matchedGeometryEffect(id: "discoverVenueDisplaySelection", in: discoverModeToggleNamespace)
+                }
+                discoverBottomModeSegmentText(title, selected: selected)
+            }
+        }
+        .buttonStyle(DiscoverModeSegmentButtonStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func discoverBottomPickupSubModeSegment(mode: DiscoverPickupSubMode) -> some View {
+        let selected = viewModel.discoverPickupSubMode == mode
+        return Button {
+            guard viewModel.discoverPickupSubMode != mode else { return }
+            dismissDiscoverSearchKeyboard()
+            FGInteractionHaptics.selection()
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                viewModel.discoverPickupSubMode = mode
+            }
+        } label: {
+            ZStack {
+                if selected {
+                    discoverBottomModeSelectionCapsule(tint: Color.orange)
+                        .padding(2)
+                        .matchedGeometryEffect(id: "discoverPickupSubModeSelection", in: discoverModeToggleNamespace)
+                }
+                discoverBottomModeSegmentText(mode.title, selected: selected)
+            }
+        }
+        .buttonStyle(DiscoverModeSegmentButtonStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     private func discoverFloatingModeSegment(
         mode: DiscoverMapContentMode,
         title: String,
@@ -3166,6 +3615,9 @@ struct DiscoverScreen: View {
             discoverLogBottomControlModeSwitch(to: mode)
             withAnimation(discoverBottomControlModeSpring) {
                 viewModel.clearDiscoverMapContentSelectionsWhenSwitching(to: mode)
+                if mode == .pickupGames {
+                    viewModel.discoverPickupSubMode = .games
+                }
                 viewModel.discoverMapContentMode = mode
             }
         } label: {
@@ -3178,9 +3630,9 @@ struct DiscoverScreen: View {
 
                 HStack(spacing: 2) {
                     Image(systemName: systemImage)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 9.5, weight: .semibold))
                     Text(title)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .font(.system(size: 9.5, weight: .semibold, design: .rounded))
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                 }
@@ -7750,13 +8202,13 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
         case .searchBar:
             return colorScheme == .dark ? 0.17 : 0.44
         case .sportsRow:
-            return colorScheme == .dark ? 0.13 : 0.33
+            return colorScheme == .dark ? 0.10 : 0.26
         case .weather:
-            return colorScheme == .dark ? 0.18 : 0.42
+            return colorScheme == .dark ? 0.13 : 0.30
         case .overlay:
             return colorScheme == .dark ? 0.16 : 0.39
         case .bottomControl:
-            return colorScheme == .dark ? 0.12 : 0.94
+            return colorScheme == .dark ? 0.09 : 0.78
         }
     }
 
@@ -7766,18 +8218,18 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
         case .searchBar:
             return 0.30
         case .sportsRow:
-            return 0.24
+            return 0.18
         case .weather, .overlay:
-            return 0.28
+            return style == .weather ? 0.20 : 0.28
         case .bottomControl:
-            return 0.34
+            return 0.26
         }
     }
 
     private var borderColor: Color {
         colorScheme == .dark
-            ? Color.white.opacity(style == .bottomControl ? 0.24 : 0.19)
-            : FGColor.divider(colorScheme)
+            ? Color.white.opacity(style == .bottomControl ? 0.18 : 0.15)
+            : FGColor.divider(colorScheme).opacity(style == .bottomControl ? 0.70 : 0.78)
     }
 
     private var shadowOpacity: Double {
@@ -7785,11 +8237,11 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
         case .searchBar:
             return colorScheme == .dark ? 0.24 : 0.081
         case .sportsRow:
-            return colorScheme == .dark ? 0.18 : 0.045
+            return colorScheme == .dark ? 0.12 : 0.032
         case .weather, .overlay:
-            return colorScheme == .dark ? 0.22 : 0.072
+            return style == .weather ? (colorScheme == .dark ? 0.12 : 0.038) : (colorScheme == .dark ? 0.22 : 0.072)
         case .bottomControl:
-            return colorScheme == .dark ? 0.28 : 0.1
+            return colorScheme == .dark ? 0.18 : 0.055
         }
     }
 
@@ -7798,11 +8250,11 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
         case .searchBar:
             return 6
         case .sportsRow:
-            return 4
+            return 3
         case .weather, .overlay:
-            return 5
+            return style == .weather ? 3 : 5
         case .bottomControl:
-            return 14
+            return 8
         }
     }
 
@@ -7813,9 +8265,9 @@ private struct DiscoverLightGlassCardModifier: ViewModifier {
         case .sportsRow:
             return 1.5
         case .weather, .overlay:
-            return 2
+            return style == .weather ? 1.5 : 2
         case .bottomControl:
-            return 5
+            return 3
         }
     }
 

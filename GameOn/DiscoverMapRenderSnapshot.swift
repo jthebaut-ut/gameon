@@ -209,6 +209,7 @@ private nonisolated enum DiscoverMapRenderSnapshotBuilder {
 
     private static func shouldShowVenueOnMap(_ venue: BarVenue, input: DiscoverMapSnapshotDetachedInput) throws -> Bool {
         guard venueIsActiveForMap(venue) else { return false }
+        guard !venue.isPickupPlayPlace else { return false }
 
         try checkCancellation(checkpoint: "venueLoop")
         let sportScopedEvents = try selectedDayEvents(for: venue, sportFilter: input.selectedSport, input: input)

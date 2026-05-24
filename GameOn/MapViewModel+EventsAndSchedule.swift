@@ -428,6 +428,7 @@ extension MapViewModel {
 
     func shouldShowVenueOnMap(_ venue: BarVenue) -> Bool {
         guard venueIsActiveForMap(venue) else { return false }
+        guard !venue.isPickupPlayPlace else { return false }
 
         let sportScopedEvents = selectedDayEventsForMap(venue)
         let allSportEvents = selectedDayEventsForMap(venue, sportFilter: "All")
@@ -451,6 +452,37 @@ extension MapViewModel {
         bars.filter { shouldShowVenueOnMap($0) }
     }
 
+    func pickupPlaceBarsForDiscoverMap() -> [BarVenue] {
+        bars.filter { shouldShowPickupPlaceOnMap($0) }
+    }
+
+    func shouldShowPickupPlaceOnMap(_ venue: BarVenue) -> Bool {
+        guard venueIsActiveForMap(venue) else { return false }
+        guard venue.isPickupPlayPlace else { return false }
+        guard pickupPlaceMatchesSelectedSport(venue) else { return false }
+        return pickupPlaceMatchesMapSearch(venue)
+    }
+
+    private func pickupPlaceMatchesSelectedSport(_ venue: BarVenue) -> Bool {
+        let selected = selectedSport.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard selected != "All" else { return true }
+        return venue.sportTags.contains { tag in
+            tag.localizedCaseInsensitiveContains(selected)
+                || selected.localizedCaseInsensitiveContains(tag)
+                || SportFilterCatalog.storedSport(tag, matchesSearchQuery: selected)
+        }
+    }
+
+    private func pickupPlaceMatchesMapSearch(_ venue: BarVenue) -> Bool {
+        let q = effectiveDiscoverSearchQuery
+        guard !q.isEmpty else { return true }
+        if venue.name.localizedCaseInsensitiveContains(q) || venue.address.localizedCaseInsensitiveContains(q) {
+            return true
+        }
+        if venue.placeType?.localizedCaseInsensitiveContains(q) == true { return true }
+        return venue.sportTags.contains { SportFilterCatalog.storedSport($0, matchesSearchQuery: q) || $0.localizedCaseInsensitiveContains(q) }
+    }
+
     /// Venues that host at least one matching event for the current Discover filters.
     var filteredBars: [BarVenue] {
         bars.filter { !matchingEventsForDiscoverFilter(bar: $0).isEmpty }
@@ -459,12 +491,18 @@ extension MapViewModel {
     /// Clears map preview selection when the venue is no longer present in loaded map data (e.g. region reload).
     /// Keeps ``selectedBar`` when the venue still exists in ``bars`` but has no games for the current date/sport filter (e.g. Following → saved venue).
     func pruneSelectionIfNeededAfterFilterChange() {
-        if discoverMapContentMode == .pickupGames, let row = selectedPickupGameForMap {
-            let pins = pickupGamesVisibleAsMapPinsWithDiscoverSearch(for: currentMapRegionBounds())
-            if !pins.contains(where: { $0.id == row.id }) {
-                clearPickupMapSelection()
+        if discoverMapContentMode == .pickupGames {
+            if discoverPickupSubMode == .places {
+                pruneSelectedPickupPlaceIfNeeded()
+                return
             }
-            return
+            if let row = selectedPickupGameForMap {
+                let pins = pickupGamesVisibleAsMapPinsWithDiscoverSearch(for: currentMapRegionBounds())
+                if !pins.contains(where: { $0.id == row.id }) {
+                    clearPickupMapSelection()
+                }
+                return
+            }
         }
         guard let bar = selectedBar else { return }
         if !bars.contains(where: { $0.id == bar.id }) {
@@ -482,6 +520,7 @@ extension MapViewModel {
         selectedBar = nil
         discoverRemotePreviewHoldVenueId = nil
         selectedPickupGameForMap = nil
+        selectedPickupPlaceForMap = nil
     }
 
     func selectedDayEventsForMap(_ venue: BarVenue, sportFilter: String? = nil) -> [SportsEvent] {
@@ -609,7 +648,7 @@ extension MapViewModel {
         let requestID = UUID()
         discoverSelectedDayRefreshRequestID = requestID
         markPickupDiscoverMapDataDirtyForNextRefresh()
-        if discoverMapContentMode == .pickupGames {
+        if discoverMapContentMode == .pickupGames, discoverPickupSubMode == .games {
             setDiscoverMapStatus("Updating map…", isLoading: true)
         } else if discoverCurrentVisibleVenueRows.isEmpty {
             setDiscoverMapStatus("Refreshing nearby venues...", isLoading: true)
@@ -680,6 +719,7 @@ extension MapViewModel {
         selectedEvent = nil
         selectedBar = nil
         selectedPickupGameForMap = nil
+        selectedPickupPlaceForMap = nil
         discoverRemotePreviewHoldVenueId = nil
 
         markPickupDiscoverMapDataDirtyForNextRefresh()
@@ -692,8 +732,10 @@ extension MapViewModel {
             scheduleDiscoverSelectedDayRefresh(requestID: requestID)
         }
         Task {
-            if discoverMapContentMode == .pickupGames {
+            if discoverMapContentMode == .pickupGames, discoverPickupSubMode == .games {
                 await refreshPickupGamesForDiscoverMap()
+            } else if discoverMapContentMode == .pickupGames, discoverPickupSubMode == .places {
+                await refreshPickupPlacesForDiscoverMap(force: pickupPlacesForDiscoverMap.isEmpty)
             }
         }
     }

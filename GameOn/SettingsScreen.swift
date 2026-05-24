@@ -3044,7 +3044,22 @@ private struct SettingsUserAuthSheet: View {
 
     var body: some View {
         Group {
-            if showRegisterMode {
+            if viewModel.pendingEmailVerificationKind == .fan {
+                ScrollView {
+                    EmailVerificationPendingView(
+                        viewModel: viewModel,
+                        kind: .fan,
+                        email: viewModel.pendingEmailVerificationEmail,
+                        onBackToSignIn: {
+                            showRegisterMode = false
+                            viewModel.authErrorMessage = ""
+                        }
+                    )
+                    .padding(.horizontal, FGSpacing.lg)
+                    .padding(.top, FGSpacing.lg)
+                }
+                .scrollIndicators(.hidden)
+            } else if showRegisterMode {
                 FanSignupView(
                     viewModel: viewModel,
                     prefilledEmail: email,
@@ -3216,7 +3231,17 @@ private struct SettingsVenueAuthSheet: View {
                     )
                 }
 
-                if viewModel.isVenueOwnerLoggedIn {
+                if viewModel.pendingEmailVerificationKind == .business {
+                    EmailVerificationPendingView(
+                        viewModel: viewModel,
+                        kind: .business,
+                        email: viewModel.pendingEmailVerificationEmail,
+                        onBackToSignIn: {
+                            showVenueRegisterMode = false
+                            viewModel.venueAuthErrorMessage = ""
+                        }
+                    )
+                } else if viewModel.isVenueOwnerLoggedIn {
                     SettingsVenueAuthSheetSignedInBody(
                         viewModel: viewModel,
                         onRequestVenueProfileDashboard: onRequestVenueProfileDashboard,
@@ -4129,6 +4154,17 @@ private struct SettingsFanLoginCard: View {
                     }
                 }
             } else {
+                FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .fan)
+
+                if !viewModel.appleAuthFanMessage.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: viewModel.appleAuthFanMessageIsError ? "Apple Sign In" : nil,
+                        message: viewModel.appleAuthFanMessage,
+                        tint: viewModel.appleAuthFanMessageIsError ? FGColor.dangerRed : FGColor.accentBlue,
+                        systemImage: viewModel.appleAuthFanMessageIsError ? "exclamationmark.triangle.fill" : "person.crop.circle.badge.checkmark"
+                    )
+                }
+
                 TextField("Email", text: $email)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
@@ -4158,6 +4194,9 @@ private struct SettingsFanLoginCard: View {
 
                 FGPrimaryButton(title: "Login") {
                     Task {
+                        await MainActor.run {
+                            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "emailPasswordSignIn")
+                        }
                         await viewModel.loginUser(email: email, password: password)
                         await MainActor.run {
                             password = ""
@@ -4198,6 +4237,15 @@ private struct SettingsFanLoginCard: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .onChange(of: email) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "emailEdited")
+        }
+        .onChange(of: password) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "passwordEdited")
+        }
+        .onDisappear {
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "sheetClosed")
         }
         .sheet(isPresented: $showFanPasswordResetSheet) {
             SettingsFanPasswordResetSheet(
@@ -5352,6 +5400,17 @@ private struct SettingsVenueOwnerCard: View {
                 )
             }
 
+            FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .business)
+
+            if !viewModel.appleAuthBusinessMessage.isEmpty {
+                SettingsSheetStatusBanner(
+                    title: viewModel.appleAuthBusinessMessageIsError ? "Apple Sign In" : nil,
+                    message: viewModel.appleAuthBusinessMessage,
+                    tint: viewModel.appleAuthBusinessMessageIsError ? FGColor.dangerRed : FGColor.accentBlue,
+                    systemImage: viewModel.appleAuthBusinessMessageIsError ? "exclamationmark.triangle.fill" : "person.crop.circle.badge.checkmark"
+                )
+            }
+
             TextField("Business email", text: $viewModel.venueOwnerEmail)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
@@ -5402,6 +5461,9 @@ private struct SettingsVenueOwnerCard: View {
 #if DEBUG
                             logSignupSubmitGates(reason: "register_branch_before_flags")
 #endif
+                            await MainActor.run {
+                                viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignUp")
+                            }
                             isSignupSubmitting = true
 #if DEBUG
                             print("[BusinessSignup] set isSignupSubmitting=true")
@@ -5468,6 +5530,9 @@ private struct SettingsVenueOwnerCard: View {
                                 venuePassword = ""
                             }
                         } else {
+                            await MainActor.run {
+                                viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailPasswordSignIn")
+                            }
                             await viewModel.loginVenueOwner(
                                 email: viewModel.venueOwnerEmail,
                                 password: venuePassword
@@ -5532,6 +5597,7 @@ private struct SettingsVenueOwnerCard: View {
         }
         .onChange(of: showVenueRegisterMode) { _, isRegister in
             venuePassword = ""
+            viewModel.clearAppleAuthMessage(accountMode: .business, reason: "accountModeChanged")
             viewModel.venueAuthErrorMessage = ""
             viewModel.venuePasswordResetMessage = ""
             viewModel.venuePasswordResetError = ""
@@ -5575,6 +5641,15 @@ private struct SettingsVenueOwnerCard: View {
                 signupCoverData = nil
                 signupMenuData = nil
             }
+        }
+        .onChange(of: viewModel.venueOwnerEmail) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .business, reason: "emailEdited")
+        }
+        .onChange(of: venuePassword) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .business, reason: "passwordEdited")
+        }
+        .onDisappear {
+            viewModel.clearAppleAuthMessage(accountMode: .business, reason: "sheetClosed")
         }
         .onChange(of: signupCountry) { _, newCountry in
             BusinessLocationCountryPolicy.clearDefaultRegionIfNeeded(&signupState, whenCountryChangesTo: newCountry)

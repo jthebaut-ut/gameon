@@ -160,6 +160,7 @@ enum DiscoverVenueLoadAssembler {
                 supportedSports.formUnion(sportsByOwner[ownerForBar] ?? [])
             }
             supportedSports.formUnion(sportsByVenueName[name] ?? [])
+            supportedSports.formUnion(row.sport_tags?.compactMap { normalizedSport($0) } ?? [])
 
             return BarVenue(
                 id: row.id ?? UUID(),
@@ -190,6 +191,9 @@ enum DiscoverVenueLoadAssembler {
                 ownerEmail: ownerForBar,
                 businessId: row.business_id,
                 adminStatus: row.admin_status,
+                communityType: row.community_type,
+                placeType: row.place_type,
+                sportTags: row.sport_tags ?? [],
                 venueOwnerEmailRaw: row.owner_email,
                 businessOwnerEmailRaw: row.businesses?.owner_email,
                 contactEmailRaw: nil,

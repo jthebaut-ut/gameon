@@ -41,6 +41,14 @@ struct FanSignupView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: FGSpacing.lg) {
+                if viewModel.pendingEmailVerificationKind == .fan {
+                    EmailVerificationPendingView(
+                        viewModel: viewModel,
+                        kind: .fan,
+                        email: viewModel.pendingEmailVerificationEmail.isEmpty ? email : viewModel.pendingEmailVerificationEmail,
+                        onBackToSignIn: onSwitchToSignIn
+                    )
+                } else {
                 FanGeoBrandHeroView(
                     title: "Create your fan profile",
                     subtitle: "Join the sports crowd around you.",
@@ -50,6 +58,17 @@ struct FanSignupView: View {
                     textAlignment: .center
                 )
                 .frame(maxWidth: .infinity)
+
+                FanGeoAppleSignInButton(viewModel: viewModel, accountMode: .fan, entryPoint: .fanSignup)
+
+                if !viewModel.appleAuthFanMessage.isEmpty {
+                    SettingsSheetStatusBanner(
+                        title: viewModel.appleAuthFanMessageIsError ? "Apple Sign In" : nil,
+                        message: viewModel.appleAuthFanMessage,
+                        tint: viewModel.appleAuthFanMessageIsError ? FGColor.dangerRed : FGColor.accentBlue,
+                        systemImage: viewModel.appleAuthFanMessageIsError ? "exclamationmark.triangle.fill" : "person.crop.circle.badge.checkmark"
+                    )
+                }
 
                 signupGlassCard
 
@@ -73,6 +92,7 @@ struct FanSignupView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isSubmitting)
+                }
             }
             .padding(.horizontal, FGSpacing.lg)
             .padding(.bottom, FGSpacing.md)
@@ -81,15 +101,32 @@ struct FanSignupView: View {
         .fanGeoScreenBackground()
         .onAppear {
             print("[SignupUX] render mode=create")
+            if isApplePendingProfile {
+                email = viewModel.applePendingFanSignupEmail
+                password = ""
+                return
+            }
             if email.isEmpty, !prefilledEmail.isEmpty {
                 email = prefilledEmail
             }
         }
         .onChange(of: handleDraft) { _, newValue in
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "signupEdited")
             handleDraft = FanGeoHandleRules.normalizeForStorage(newValue)
             scheduleHandleAvailabilityCheck()
         }
+        .onChange(of: email) { _, _ in
+            if !isApplePendingProfile {
+                viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "emailEdited")
+            }
+        }
+        .onChange(of: password) { _, _ in
+            if !isApplePendingProfile {
+                viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "passwordEdited")
+            }
+        }
         .onChange(of: displayNameDraft) { _, _ in
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "signupEdited")
             refreshDisplayNameValidation(markTouched: false)
         }
         .onChange(of: selectedAvatarItem) { _, item in
@@ -107,6 +144,19 @@ struct FanSignupView: View {
                 onDismissAfterSuccess()
             }
         }
+        .onChange(of: viewModel.applePendingFanSignupEmail) { _, newEmail in
+            let normalized = OwnerBusinessEmail.normalized(newEmail)
+            if !normalized.isEmpty {
+                email = normalized
+                password = ""
+                errorMessage = ""
+                emailError = ""
+                passwordError = ""
+            }
+        }
+        .onDisappear {
+            viewModel.clearAppleAuthMessage(accountMode: .fan, reason: "sheetClosed")
+        }
     }
 
     private var signupGlassCard: some View {
@@ -120,20 +170,22 @@ struct FanSignupView: View {
                     .autocorrectionDisabled()
                     .font(FGTypography.body)
                     .fanGeoInputFieldStyle()
-                    .disabled(profileRetryMode)
+                    .disabled(profileRetryMode || isApplePendingProfile)
             }
             if !emailError.isEmpty {
                 fieldError(emailError)
             }
 
-            labeledField(title: "Password", required: true) {
-                SecureField("Create a password", text: $password)
-                    .font(FGTypography.body)
-                    .fanGeoInputFieldStyle()
-                    .disabled(profileRetryMode)
-            }
-            if !passwordError.isEmpty {
-                fieldError(passwordError)
+            if !isApplePendingProfile {
+                labeledField(title: "Password", required: true) {
+                    SecureField("Create a password", text: $password)
+                        .font(FGTypography.body)
+                        .fanGeoInputFieldStyle()
+                        .disabled(profileRetryMode)
+                }
+                if !passwordError.isEmpty {
+                    fieldError(passwordError)
+                }
             }
 
             labeledField(title: "Display name", required: true) {
@@ -359,10 +411,16 @@ struct FanSignupView: View {
 
     private var submitButtonTitle: String {
         if isSubmitting {
+            if isApplePendingProfile {
+                return "Creating profile…"
+            }
             return profileRetryMode ? "Saving profile…" : "Creating account…"
         }
         if profileRetryMode {
             return "Retry saving profile"
+        }
+        if isApplePendingProfile {
+            return "Create profile"
         }
         return "Create FanGeo account"
     }
@@ -371,10 +429,19 @@ struct FanSignupView: View {
         if profileRetryMode {
             return profileFieldsValid && policiesAccepted
         }
+        if isApplePendingProfile {
+            return profileFieldsValid
+                && !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && policiesAccepted
+        }
         return profileFieldsValid
             && !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !password.isEmpty
             && policiesAccepted
+    }
+
+    private var isApplePendingProfile: Bool {
+        !OwnerBusinessEmail.normalized(viewModel.applePendingFanSignupEmail).isEmpty
     }
 
     private var profileFieldsValid: Bool {
@@ -481,7 +548,7 @@ struct FanSignupView: View {
             return false
         }
 
-        if password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !isApplePendingProfile, password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             passwordError = "Password is required."
             print("[SignupUX] submitFailed step=validation error=password")
             return false
@@ -531,6 +598,10 @@ struct FanSignupView: View {
     private func submitSignup() async {
         guard validateBeforeSubmit() else { return }
 
+        viewModel.clearAppleAuthMessage(
+            accountMode: .fan,
+            reason: isApplePendingProfile ? "appleProfileSubmit" : "emailPasswordSignUp"
+        )
         print("[SignupUX] submitStarted")
         isSubmitting = true
         defer { isSubmitting = false }
@@ -549,12 +620,38 @@ struct FanSignupView: View {
             return
         }
 
+        if isApplePendingProfile {
+            print("[FanSignupDebug] submitApplePendingProfile=true email=\(email)")
+            let outcome = await viewModel.completeAppleFanSignupProfile(
+                profile: profile,
+                recordFanGuidelinesAcceptance: policiesAccepted
+            )
+            if outcome.succeeded {
+                errorMessage = ""
+                profileRetryMode = false
+                onDismissAfterSuccess()
+                return
+            }
+            if outcome.authSucceeded {
+                profileRetryMode = true
+            }
+            errorMessage = outcome.errorMessage ?? "Couldn’t save your profile. Please try again."
+            return
+        }
+
         let outcome = await viewModel.registerFanAccountWithProfile(
             email: email,
             password: password,
             profile: profile,
             recordFanGuidelinesAcceptance: policiesAccepted
         )
+
+        if outcome.succeeded, !outcome.authSucceeded {
+            errorMessage = ""
+            profileRetryMode = false
+            password = ""
+            return
+        }
 
         if outcome.succeeded {
             errorMessage = ""

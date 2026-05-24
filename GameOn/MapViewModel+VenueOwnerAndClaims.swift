@@ -245,13 +245,15 @@ extension MapViewModel {
             return
         }
 
+        let signUpResponse: AuthResponse
         do {
 #if DEBUG
             print("[BusinessSignup] auth signup started email=\(ownerEmail)")
 #endif
-            _ = try await supabase.auth.signUp(
+            signUpResponse = try await supabase.auth.signUp(
                 email: ownerEmail,
-                password: password
+                password: password,
+                redirectTo: Self.emailVerificationRedirectURL
             )
         } catch {
 #if DEBUG
@@ -275,13 +277,16 @@ extension MapViewModel {
             return
         }
 
-        guard let session = try? await supabase.auth.session else {
+        let signUpSession = signUpResponse.session
+        let restoredSession = try? await supabase.auth.session
+        guard let session = signUpSession ?? restoredSession,
+              Self.userEmailConfirmed(session.user) else {
 #if DEBUG
             print("[BusinessSignup] auth signup no session after signUp (email confirmation or client state); signing out")
 #endif
-            await forceLogout(reason: "businessSignupNoSessionAfterSignUp", source: "MapViewModel.registerVenueOwner")
+            await forceLogout(reason: "businessSignupNeedsEmailConfirmation", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
-                venueAuthErrorMessage = "Account was created but there is no active session yet. Confirm your email if required, then sign in."
+                markEmailVerificationPending(email: ownerEmail, kind: .business)
             }
             return
         }
@@ -557,6 +562,18 @@ extension MapViewModel {
                 return
             }
 
+            guard Self.userEmailConfirmed(session.user) else {
+                await forceLogout(reason: "businessLoginEmailUnconfirmed", source: "MapViewModel.loginVenueOwner")
+                await MainActor.run {
+                    clearVenueOwnerOwnedBusinessCaches()
+                    ownerVenueDatabaseId = nil
+                    venueAuthErrorMessage = "Please verify your email before signing in."
+                    markEmailVerificationPending(email: ownerEmail, kind: .business)
+                    print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
+                }
+                return
+            }
+
             if await shouldBlockBusinessOwnerLogin(sessionEmail: ownerEmail, userId: session.user.id) {
 #if DEBUG
                 print("[AuthAccountTypeGate] business login blocked fanEmail=\(ownerEmail)")
@@ -612,7 +629,11 @@ extension MapViewModel {
 
                 let message = error.localizedDescription.lowercased()
 
-                if message.contains("invalid login credentials") {
+                if Self.isUnconfirmedEmailAuthError(error) {
+                    venueAuthErrorMessage = "Please verify your email before signing in."
+                    markEmailVerificationPending(email: ownerEmail, kind: .business)
+                    print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
+                } else if message.contains("invalid login credentials") {
                     venueAuthErrorMessage = "Venue owner account not found or incorrect password."
                 } else {
                     venueAuthErrorMessage = "Unable to login venue owner."

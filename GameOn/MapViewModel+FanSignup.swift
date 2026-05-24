@@ -157,8 +157,13 @@ extension MapViewModel {
             )
         }
 
+        let signUpResponse: AuthResponse
         do {
-            _ = try await supabase.auth.signUp(email: fanEmail, password: trimmedPassword)
+            signUpResponse = try await supabase.auth.signUp(
+                email: fanEmail,
+                password: trimmedPassword,
+                redirectTo: Self.emailVerificationRedirectURL
+            )
         } catch {
             let message = Self.userFacingAuthSignupErrorMessage(error)
             await MainActor.run { authErrorMessage = message }
@@ -173,8 +178,24 @@ extension MapViewModel {
 
         print("[SignupUX] authCreated")
 
-        if let session = try? await supabase.auth.session,
-           await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+        let signUpSession = signUpResponse.session
+        let restoredSession = try? await supabase.auth.session
+        let activeSession = signUpSession ?? restoredSession
+        guard let session = activeSession,
+              Self.userEmailConfirmed(session.user) else {
+            await forceLogout(reason: "fanSignupNeedsEmailConfirmation", source: "MapViewModel.registerFanAccountWithProfile")
+            await MainActor.run {
+                markEmailVerificationPending(email: fanEmail, kind: .fan)
+            }
+            return FanSignupSubmitOutcome(
+                succeeded: true,
+                failureStep: nil,
+                errorMessage: nil,
+                authSucceeded: false
+            )
+        }
+
+        if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
             let message = Self.fanLoginBlockedBecauseBusinessMessage
             await MainActor.run { authErrorMessage = message }
@@ -206,9 +227,7 @@ extension MapViewModel {
             bumpCurrentUserAvatarDisplayRefresh()
         }
 
-        if let session = try? await supabase.auth.session {
-            await MainActor.run { currentUserAuthId = session.user.id }
-        }
+        await MainActor.run { currentUserAuthId = session.user.id }
 
         await persistAccountModeForActiveAuthSession(.fanUser)
 
@@ -260,6 +279,106 @@ extension MapViewModel {
         }
         print("[SignupUX] profileCreated")
         Task { await refreshUserPersonalizationInBackground() }
+        return FanSignupSubmitOutcome(
+            succeeded: true,
+            failureStep: nil,
+            errorMessage: nil,
+            authSucceeded: true
+        )
+    }
+
+    /// Completes fan profile onboarding after native Apple auth has already established a Supabase session.
+    func completeAppleFanSignupProfile(
+        profile: FanSignupProfileInput,
+        recordFanGuidelinesAcceptance: Bool
+    ) async -> FanSignupSubmitOutcome {
+        let session: Session
+        do {
+            session = try await supabase.auth.session
+        } catch {
+            let message = "Continue with Apple again to finish creating your account."
+            await MainActor.run { authErrorMessage = message }
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: false
+            )
+        }
+
+        let fanEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+        guard OwnerBusinessEmail.isValidStrict(fanEmail) else {
+            let message = "Apple did not return a usable email address."
+            await MainActor.run { authErrorMessage = message }
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: true
+            )
+        }
+
+        if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+            await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+            let message = Self.fanLoginBlockedBecauseBusinessMessage
+            await MainActor.run { authErrorMessage = message }
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message,
+                authSucceeded: false
+            )
+        }
+
+        if await appleFanProfileConflictExists(email: fanEmail, currentUserId: session.user.id) {
+            let message = await MainActor.run { authErrorMessage }
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .auth,
+                errorMessage: message.isEmpty ? "Could not create your FanGeo profile." : message,
+                authSucceeded: false
+            )
+        }
+
+        await MainActor.run {
+            currentUserAuthId = session.user.id
+            currentUserEmail = fanEmail
+            currentUserIsBusinessAccount = false
+        }
+
+        if let profileSaveError = await finishFanSignupProfile(profile: profile) {
+            print("[SignupUX] submitFailed step=profile error=\(profileSaveError)")
+            return FanSignupSubmitOutcome(
+                succeeded: false,
+                failureStep: .profile,
+                errorMessage: profileSaveError,
+                authSucceeded: true
+            )
+        }
+
+        await MainActor.run {
+            isLoggedIn = true
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            authSessionState = .signedIn
+            applePendingFanSignupEmail = ""
+            authErrorMessage = ""
+            clearAppleAuthMessage(accountMode: .fan, reason: "profileCreated")
+            bumpCurrentUserAvatarDisplayRefresh()
+        }
+
+        await persistAccountModeForActiveAuthSession(.fanUser)
+        clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+        await registerFanActiveSessionOnLogin()
+
+        if recordFanGuidelinesAcceptance {
+            UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
+        }
+
+        print("[SignupUX] profileCreated")
+        print("[AppleAuthDebug] profileCreationSucceeded=true")
+        Task { await refreshUserPersonalizationInBackground() }
+
         return FanSignupSubmitOutcome(
             succeeded: true,
             failureStep: nil,

@@ -106,6 +106,21 @@ enum DiscoverMapContentMode: String, CaseIterable, Identifiable, Equatable {
     var id: String { rawValue }
 }
 
+/// Pickup-only map layer: user-created games vs physical places to play.
+enum DiscoverPickupSubMode: String, CaseIterable, Identifiable, Equatable {
+    case games
+    case places
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .games: return "Games"
+        case .places: return "Places"
+        }
+    }
+}
+
 /// Discover/Calendar day markers: green (venue games), orange (pickup games), red (pro games).
 enum DiscoverCalendarDotPalette: Equatable {
     case venueGames
@@ -451,6 +466,12 @@ struct VenueProfileRow: Decodable {
     let origin_type: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
+    /// Community place category, e.g. `play` for physical places to play sports.
+    let community_type: String?
+    /// Optional place subtype, e.g. `basketball_court` / `soccer_field`.
+    let place_type: String?
+    /// Sports supported by community play places.
+    let sport_tags: [String]?
     let supporter_country: String?
     let venue_name: String?
     let address: String?
@@ -499,6 +520,12 @@ struct VenueRow: Decodable {
     let origin_type: String?
     /// `public.venues.admin_status` (`active` / `archived`); omitted in older payloads.
     let admin_status: String?
+    /// Community place category, e.g. `play` for physical places to play sports.
+    let community_type: String?
+    /// Optional place subtype, e.g. `basketball_court` / `soccer_field`.
+    let place_type: String?
+    /// Sports supported by community play places.
+    let sport_tags: [String]?
     let supporter_country: String?
     let venue_name: String?
     let address: String?

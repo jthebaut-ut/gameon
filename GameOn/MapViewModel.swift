@@ -19,6 +19,21 @@ enum PasswordResetSheetMode: String {
     case createPassword
 }
 
+enum EmailVerificationAccountKind: String {
+    case fan
+    case business
+}
+
+enum AppleAuthAccountMode: String {
+    case fan
+    case business
+}
+
+enum AppleAuthEntryPoint: String {
+    case signIn
+    case fanSignup
+}
+
 /// Central `@MainActor` observable object: map camera and selection, venue and schedule data, Supabase auth, venue-owner tools, favorites, and social (interests, comments, vibes).
 ///
 /// Feature code is split across `MapViewModel+*.swift` extensions. This declaration holds `@Published` state, `EventKit` store, and static sample references.
@@ -163,6 +178,13 @@ final class MapViewModel: ObservableObject {
     @Published var venueIsApproved: Bool = false
     @Published var authErrorMessage = ""
     @Published var venueAuthErrorMessage = ""
+    @Published var appleAuthFanMessage = ""
+    @Published var appleAuthFanMessageIsError = false
+    @Published var appleAuthBusinessMessage = ""
+    @Published var appleAuthBusinessMessageIsError = false
+    @Published var applePendingFanSignupEmail = ""
+    var appleAuthFanMessageAutoClearTask: Task<Void, Never>?
+    var appleAuthBusinessMessageAutoClearTask: Task<Void, Never>?
     /// Set after a fan/user password-reset email is requested (`MapViewModel+AuthAndProfile`).
     @Published var userPasswordResetMessage = ""
     @Published var userPasswordResetError = ""
@@ -172,6 +194,10 @@ final class MapViewModel: ObservableObject {
     @Published var isPasswordResetRecoverySessionActive = false
     @Published var passwordResetUpdateMessage = ""
     @Published var passwordResetUpdateError = ""
+    @Published var pendingEmailVerificationEmail = ""
+    @Published var pendingEmailVerificationKind: EmailVerificationAccountKind?
+    @Published var emailVerificationMessage = ""
+    @Published var emailVerificationError = ""
     /// Set after a venue-owner password-reset email is requested (same Auth API, separate UI feedback).
     @Published var venuePasswordResetMessage = ""
     @Published var venuePasswordResetError = ""
@@ -670,6 +696,9 @@ final class MapViewModel: ObservableObject {
 
     @Published var pickupGamesForDiscoverMap: [PickupGameRow] = []
     @Published var selectedPickupGameForMap: PickupGameRow?
+    @Published var pickupPlacesForDiscoverMap: [PickupPlaceRow] = []
+    @Published var selectedPickupPlaceForMap: PickupPlaceRow?
+    @Published var isLoadingPickupPlacesForMap: Bool = false
     @Published var myPickupGamesForSettings: [PickupGameRow] = []
     /// Organizer soft-deleted games (`status = removed`), shown under History in Settings.
     @Published var myRemovedPickupGamesForSettings: [PickupGameRow] = []
@@ -697,8 +726,22 @@ final class MapViewModel: ObservableObject {
     @Published var pickupJoinRequesterAvatarTokenByUserId: [UUID: UUID] = [:]
     /// Discover map segmented control: venue clusters vs pickup pins only.
     @Published var discoverMapContentMode: DiscoverMapContentMode = .venues
+    /// Pickup-only sub-toggle: user-created games vs physical places to play.
+    @Published var discoverPickupSubMode: DiscoverPickupSubMode = .games {
+        didSet {
+            guard oldValue != discoverPickupSubMode else { return }
+            selectedBar = nil
+            selectedPickupGameForMap = nil
+            selectedPickupPlaceForMap = nil
+            discoverClusteredBarsCacheKey = nil
+            discoverClusteredBarsCache = nil
+            scheduleDiscoverMapRenderSnapshotRebuild(reason: "discoverPickupSubMode")
+        }
+    }
     /// When `true`, entering pickup map mode should run ``refreshPickupGamesForDiscoverMap()`` (cleared after a successful refresh).
     var pickupDiscoverCoordinatorDirty: Bool = true
+    /// Last visible-bounds window loaded from `public.pickup_places`.
+    var lastPickupPlacesFetchKey: String?
 
     // MARK: - Following tab (global; independent of Discover map region)
 

@@ -79,6 +79,12 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     let businessId: UUID?
     /// Supabase `venues.admin_status` when available; nil stays legacy-safe for old rows/snapshots.
     let adminStatus: String?
+    /// `venues.community_type`; `play` marks physical pickup places.
+    let communityType: String?
+    /// Optional physical play place subtype from `venues.place_type`.
+    let placeType: String?
+    /// Sports supported at this physical place from `venues.sport_tags`.
+    let sportTags: [String]
     /// Raw `venues.owner_email` from the last venue row fetch (DEBUG / diagnostics; may be invalid or empty).
     let venueOwnerEmailRaw: String?
     /// Raw `businesses.owner_email` from embedded fetch when `business_id` is set (DEBUG / diagnostics).
@@ -116,6 +122,9 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         ownerEmail: String? = nil,
         businessId: UUID? = nil,
         adminStatus: String? = nil,
+        communityType: String? = nil,
+        placeType: String? = nil,
+        sportTags: [String] = [],
         venueOwnerEmailRaw: String? = nil,
         businessOwnerEmailRaw: String? = nil,
         contactEmailRaw: String? = nil,
@@ -147,6 +156,9 @@ nonisolated struct BarVenue: Identifiable, Equatable {
         self.ownerEmail = ownerEmail
         self.businessId = businessId
         self.adminStatus = adminStatus
+        self.communityType = communityType
+        self.placeType = placeType
+        self.sportTags = sportTags
         self.venueOwnerEmailRaw = venueOwnerEmailRaw
         self.businessOwnerEmailRaw = businessOwnerEmailRaw
         self.contactEmailRaw = contactEmailRaw
@@ -179,6 +191,46 @@ nonisolated struct BarVenue: Identifiable, Equatable {
     var isUnclaimedCommunityVenue: Bool {
         originType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "community"
             && !hasBusinessVerifiedFeatures
+    }
+
+    var isPickupPlayPlace: Bool {
+        communityType?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "play"
+    }
+}
+
+nonisolated struct PickupPlaceRow: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let placeType: String?
+    let sportTags: [String]
+    let city: String?
+    let state: String?
+    let latitude: Double
+    let longitude: Double
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    var primarySport: String {
+        sportTags.first { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } ?? "Pickup"
+    }
+
+    var typeDisplay: String {
+        let raw = placeType?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !raw.isEmpty else { return "Place to play" }
+        return raw
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
+    }
+
+    var cityStateDisplay: String {
+        [city, state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
     }
 }
 
