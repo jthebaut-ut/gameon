@@ -198,6 +198,8 @@ final class MapViewModel: ObservableObject {
     @Published var pendingEmailVerificationKind: EmailVerificationAccountKind?
     @Published var emailVerificationMessage = ""
     @Published var emailVerificationError = ""
+    var pendingFanEmailSignupDraft: PendingFanEmailSignupDraft?
+    var pendingBusinessEmailSignupDraft: PendingBusinessEmailSignupDraft?
     /// Set after a venue-owner password-reset email is requested (same Auth API, separate UI feedback).
     @Published var venuePasswordResetMessage = ""
     @Published var venuePasswordResetError = ""

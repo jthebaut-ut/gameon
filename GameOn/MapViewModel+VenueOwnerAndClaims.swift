@@ -189,6 +189,7 @@ extension MapViewModel {
         menuPhotoJPEGData: Data?,
         recordVenueGuidelinesAcceptance: Bool = false
     ) async {
+        print("[EmailConfirmDebug] signupButtonTapped=true")
 #if DEBUG
         let coverExists = coverPhotoJPEGData.map { !$0.isEmpty } ?? false
         let menuExists = menuPhotoJPEGData.map { !$0.isEmpty } ?? false
@@ -207,6 +208,7 @@ extension MapViewModel {
             print("[BusinessSignup] validation failed invalid_owner_email")
 #endif
             await MainActor.run { venueAuthErrorMessage = OwnerBusinessEmail.invalidOwnerEmailUserMessage }
+            print("[EmailConfirmDebug] formValidationFailed reason=invalid_email")
             return
         }
 
@@ -215,6 +217,7 @@ extension MapViewModel {
             print("[BusinessSignup] validation failed main venue photo missing coverPhotoExists=false")
 #endif
             await MainActor.run { venueAuthErrorMessage = "Main venue photo is required." }
+            print("[EmailConfirmDebug] formValidationFailed reason=main_photo_required")
             return
         }
 
@@ -223,6 +226,7 @@ extension MapViewModel {
             print("[BusinessSignup] validation failed form_fields message=\(formError)")
 #endif
             await MainActor.run { venueAuthErrorMessage = formError }
+            print("[EmailConfirmDebug] formValidationFailed reason=business_form_fields")
             return
         }
         guard !businessName.isEmpty else {
@@ -230,35 +234,34 @@ extension MapViewModel {
             print("[BusinessSignup] validation failed business_name_empty")
 #endif
             await MainActor.run { venueAuthErrorMessage = "Please enter your business name." }
+            print("[EmailConfirmDebug] formValidationFailed reason=business_name_required")
             return
         }
 
 #if DEBUG
         print("[BusinessSignup] validation passed proceeding to auth.signUp")
 #endif
-
-        if await activeFanUserProfileExistsForEmail(ownerEmail) {
-#if DEBUG
-            print("[AuthAccountTypeGate] business registration blocked fanEmail=\(ownerEmail)")
-#endif
-            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
-            return
-        }
+        print("[EmailConfirmDebug] formValidationPassed=true")
 
         let signUpResponse: AuthResponse
         do {
 #if DEBUG
             print("[BusinessSignup] auth signup started email=\(ownerEmail)")
 #endif
+            print("[EmailConfirmDebug] callingAuthSignUp=true")
             signUpResponse = try await supabase.auth.signUp(
                 email: ownerEmail,
                 password: password,
                 redirectTo: Self.emailVerificationRedirectURL
             )
+            print("[EmailConfirmDebug] authSignUpSucceeded=true")
+            print("[EmailConfirmDebug] authSignUpUserId=\(signUpResponse.user.id.uuidString.lowercased())")
+            print("[EmailConfirmDebug] authSignUpSessionNil=\(signUpResponse.session == nil)")
         } catch {
 #if DEBUG
             print("[BusinessSignup] auth signup error localized=\(error.localizedDescription) full=\(error)")
 #endif
+            print("[EmailConfirmDebug] authSignUpFailed error=\(String(reflecting: error)) localized=\(error.localizedDescription)")
             await MainActor.run {
                 let message = error.localizedDescription.lowercased()
 
@@ -286,12 +289,30 @@ extension MapViewModel {
 #endif
             await forceLogout(reason: "businessSignupNeedsEmailConfirmation", source: "MapViewModel.registerVenueOwner")
             await MainActor.run {
+                pendingBusinessEmailSignupDraft = PendingBusinessEmailSignupDraft(
+                    email: ownerEmail,
+                    signup: signup,
+                    coverPhotoJPEGData: coverPhotoJPEGData,
+                    menuPhotoJPEGData: menuPhotoJPEGData,
+                    recordVenueGuidelinesAcceptance: recordVenueGuidelinesAcceptance
+                )
                 markEmailVerificationPending(email: ownerEmail, kind: .business)
             }
+            print("[EmailConfirmDebug] authUserCreatedPending=true")
+            print("[EmailConfirmDebug] businessCreationDeferred=true")
             return
         }
 
         let ownerUserId = session.user.id
+
+        if await activeFanUserProfileExistsForEmail(ownerEmail) {
+#if DEBUG
+            print("[AuthAccountTypeGate] business registration blocked fanEmail=\(ownerEmail)")
+#endif
+            await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            return
+        }
 
 #if DEBUG
         let jwtEmail = session.user.email ?? "nil"
@@ -303,8 +324,8 @@ extension MapViewModel {
         await MainActor.run {
             clearAuthenticatedSessionCaches()
             venueOwnerEmail = ownerEmail
-            isVenueOwnerLoggedIn = true
-            venueOwnerMode = true
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
             isLoggedIn = false
             currentUserEmail = ""
             venueAuthErrorMessage = ""
@@ -315,10 +336,6 @@ extension MapViewModel {
             venueOwnerJustCompletedRegistration = false
             hasUnackedRejectedVenueClaimForOwnerEmail = false
             currentUserAuthId = ownerUserId
-            authSessionState = .signedIn
-#if DEBUG
-            print("[AuthStateDebug] authStateTransition=businessSignup->signedIn")
-#endif
         }
 
         guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
@@ -473,6 +490,12 @@ extension MapViewModel {
 #endif
 
             await MainActor.run {
+                isVenueOwnerLoggedIn = true
+                venueOwnerMode = true
+                authSessionState = .signedIn
+#if DEBUG
+                print("[AuthStateDebug] authStateTransition=businessSignup->signedIn")
+#endif
                 venueClaimSubmitted = true
                 let statusRaw = inserted.approval_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
                 let approved = statusRaw == "approved"
@@ -532,6 +555,223 @@ extension MapViewModel {
             await refreshPendingVenueClaimsForSettings()
             checkVenueApprovalStatus()
         }
+    }
+
+    func completePendingBusinessSignupAfterConfirmation(
+        session: Session,
+        draft: PendingBusinessEmailSignupDraft
+    ) async -> Bool {
+        let ownerEmail = OwnerBusinessEmail.normalized(session.user.email ?? draft.email)
+        guard OwnerBusinessEmail.isValidStrict(ownerEmail),
+              Self.userEmailConfirmed(session.user) else {
+            return false
+        }
+
+        let signup = draft.signup
+        let businessName = signup.businessDisplayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let coverData = draft.coverPhotoJPEGData, !coverData.isEmpty else {
+            await MainActor.run {
+                venueAuthErrorMessage = "Main venue photo is required."
+                emailVerificationError = venueAuthErrorMessage
+            }
+            return true
+        }
+
+        if await activeFanUserProfileExistsForEmail(ownerEmail) {
+            await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+            await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }
+            return true
+        }
+
+        let ownerUserId = session.user.id
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            venueOwnerEmail = ownerEmail
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            isLoggedIn = false
+            currentUserEmail = ""
+            venueAuthErrorMessage = ""
+            venueClaimSubmitted = false
+            venueIsApproved = false
+            venueClaimStatus = "Not submitted"
+            venueClaimSubmittedDate = ""
+            venueOwnerJustCompletedRegistration = false
+            hasUnackedRejectedVenueClaimForOwnerEmail = false
+            currentUserAuthId = ownerUserId
+        }
+
+        guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
+            await forceLogout(reason: "businessSignupCoverUploadFailedAfterEmailConfirmation", source: "MapViewModel.completePendingBusinessSignupAfterConfirmation")
+            await MainActor.run {
+                venueAuthErrorMessage = VenueOwnerPhotoPickerCopy.pickFailureUserHint()
+                emailVerificationError = venueAuthErrorMessage
+            }
+            return true
+        }
+
+        var menuPublic = ""
+        if let menuData = draft.menuPhotoJPEGData, !menuData.isEmpty {
+            menuPublic = (await uploadVenuePhoto(data: menuData, fileName: "menu.jpg", assignToCurrentVenueProfile: false)) ?? ""
+        }
+
+        let loc = signup.firstLocation
+        let mergedLocationForm = AddLocationClaimForm(
+            venueName: loc.venueName,
+            address: loc.address,
+            addressLine2: loc.addressLine2,
+            city: loc.city,
+            state: loc.state,
+            country: loc.country,
+            zip: loc.zip,
+            phone: loc.phone,
+            website: loc.website,
+            description: loc.description,
+            proofNote: loc.proofNote,
+            screenCount: loc.screenCount,
+            servesFood: loc.servesFood,
+            hasWifi: loc.hasWifi,
+            hasGarden: loc.hasGarden,
+            hasProjector: loc.hasProjector,
+            petFriendly: loc.petFriendly,
+            familyFriendly: loc.familyFriendly,
+            parkingAvailable: loc.parkingAvailable,
+            easyParking: loc.easyParking,
+            handicapParking: loc.handicapParking,
+            liveMusic: loc.liveMusic,
+            poolTables: loc.poolTables,
+            rooftop: loc.rooftop,
+            djNights: loc.djNights,
+            karaoke: loc.karaoke,
+            cocktails: loc.cocktails,
+            craftBeer: loc.craftBeer,
+            coverPhotoURL: coverURL,
+            menuPhotoURL: menuPublic,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            formattedAddress: loc.formattedAddress
+        )
+
+        let businessPayload = BusinessInsertPayload(
+            display_name: businessName,
+            owner_email: ownerEmail,
+            owner_user_id: ownerUserId,
+            admin_status: "active"
+        )
+
+        let businessId: UUID
+        do {
+            let inserted: InsertedBusinessIdRow = try await supabase
+                .from("businesses")
+                .insert(businessPayload)
+                .select("id")
+                .single()
+                .execute()
+                .value
+            businessId = inserted.id
+        } catch {
+            await forceLogout(reason: "businessSignupBusinessInsertFailedAfterEmailConfirmation", source: "MapViewModel.completePendingBusinessSignupAfterConfirmation")
+            await MainActor.run {
+                venueAuthErrorMessage =
+                    "Could not create your business record. This is usually blocked by database permissions (RLS). An admin must allow authenticated business owners to insert into `businesses`, or creation must run on a secure backend."
+                emailVerificationError = venueAuthErrorMessage
+            }
+            print("BUSINESS INSERT ERROR (signup after confirmation):", error)
+            return true
+        }
+
+        if let dupMsg = await VenueClaimDuplicateCheck.rpcPreflight(
+            supabase: supabase,
+            businessId: businessId,
+            ownerEmail: ownerEmail,
+            venueName: mergedLocationForm.venueName.trimmingCharacters(in: .whitespacesAndNewlines),
+            venueAddress: mergedLocationForm.address.trimmingCharacters(in: .whitespacesAndNewlines),
+            venueCity: mergedLocationForm.city.trimmingCharacters(in: .whitespacesAndNewlines),
+            venueState: mergedLocationForm.state.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
+            venueZip: mergedLocationForm.zip.trimmingCharacters(in: .whitespacesAndNewlines)
+        ) {
+            await MainActor.run { venueAuthErrorMessage = dupMsg }
+            await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            await refreshPendingVenueClaimsForSettings()
+            checkVenueApprovalStatus()
+            return true
+        }
+
+        let claim = await venueClaimInsertForBusinessAddLocation(
+            ownerEmail: ownerEmail,
+            businessId: businessId,
+            form: mergedLocationForm
+        )
+
+        do {
+            let inserted: VenueClaimInsertedRow = try await supabase
+                .from("venue_claims")
+                .insert(claim)
+                .select("id,created_at,approval_status")
+                .single()
+                .execute()
+                .value
+
+            await MainActor.run {
+                isVenueOwnerLoggedIn = true
+                venueOwnerMode = true
+                authSessionState = .signedIn
+                venueClaimSubmitted = true
+                let statusRaw = inserted.approval_status?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+                let approved = statusRaw == "approved"
+                venueIsApproved = approved
+                if approved {
+                    venueClaimStatus = "Approved"
+                    hasUnackedRejectedVenueClaimForOwnerEmail = false
+                } else if statusRaw.contains("reject") {
+                    venueClaimStatus = "Rejected"
+                    hasUnackedRejectedVenueClaimForOwnerEmail = true
+                } else {
+                    venueClaimStatus = "Pending Review"
+                    hasUnackedRejectedVenueClaimForOwnerEmail = false
+                }
+                venueClaimSubmittedDate = inserted.created_at ?? ""
+                venueAuthErrorMessage = ""
+                venueOwnerJustCompletedRegistration = true
+                pendingBusinessEmailSignupDraft = nil
+                pendingEmailVerificationEmail = ""
+                pendingEmailVerificationKind = nil
+                emailVerificationError = ""
+                emailVerificationMessage = "Email verified. Your business account was created."
+            }
+
+            let notifyPayload = venueClaimAdminNotifyPayloadFromInsert(
+                claim: claim,
+                insertedId: inserted.id,
+                createdAt: inserted.created_at,
+                approvalStatus: inserted.approval_status,
+                claimKind: "new_location",
+                familyFriendly: mergedLocationForm.familyFriendly,
+                parkingAvailable: mergedLocationForm.parkingAvailable
+            )
+            notifyVenueClaimAdminEmail(payload: notifyPayload)
+
+            await persistAccountModeForActiveAuthSession(.businessOwner)
+            clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+            if draft.recordVenueGuidelinesAcceptance {
+                UserDefaults.standard.set(true, forKey: "venueGuidelinesAccepted")
+            }
+            await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            await refreshPendingVenueClaimsForSettings()
+        } catch {
+            print("VENUE CLAIM INSERT ERROR (signup after confirmation):", error)
+            let dup = VenueClaimDuplicateCheck.userMessageIfKnownInsertError(error)
+            await MainActor.run {
+                venueAuthErrorMessage = dup
+                    ?? "Your account and business were created, but submitting the location request failed: \(error.localizedDescription). Use Add location in Settings, or contact support."
+                emailVerificationError = venueAuthErrorMessage
+            }
+            await refreshOwnedBusinessesAndVenuesAfterOwnerLogin()
+            await refreshPendingVenueClaimsForSettings()
+            checkVenueApprovalStatus()
+        }
+
+        return true
     }
 
     // Signs in as venue owner and refreshes claim approval UI via `checkVenueApprovalStatus`.

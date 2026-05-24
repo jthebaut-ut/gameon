@@ -449,7 +449,6 @@ struct FanSignupView: View {
         return !trimmedName.isEmpty
             && trimmedName.count <= Self.displayNameMaxLength
             && FanGeoHandleRules.validate(handleDraft) == nil
-            && handleIsConfirmedAvailable
     }
 
     private func labeledField<Content: View>(
@@ -540,22 +539,26 @@ struct FanSignupView: View {
         if trimmedEmail.isEmpty {
             emailError = "Email is required."
             print("[SignupUX] submitFailed step=validation error=email")
+            print("[EmailConfirmDebug] formValidationFailed reason=email_required")
             return false
         }
         if !OwnerBusinessEmail.isValidStrict(OwnerBusinessEmail.normalized(trimmedEmail)) {
             emailError = OwnerBusinessEmail.invalidOwnerEmailUserMessage
             print("[SignupUX] submitFailed step=validation error=email")
+            print("[EmailConfirmDebug] formValidationFailed reason=invalid_email")
             return false
         }
 
         if !isApplePendingProfile, password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             passwordError = "Password is required."
             print("[SignupUX] submitFailed step=validation error=password")
+            print("[EmailConfirmDebug] formValidationFailed reason=password_required")
             return false
         }
 
         if !displayNameError.isEmpty {
             print("[SignupUX] submitFailed step=validation error=displayName")
+            print("[EmailConfirmDebug] formValidationFailed reason=display_name_invalid")
             return false
         }
 
@@ -563,20 +566,14 @@ struct FanSignupView: View {
             errorMessage = FanGeoHandleRules.validationMessage(for: issue)
             print("[SignupUX] submitFailed step=validation error=handle")
             print("[HandleValidationDebug] handleRejected reason=\(issue)")
-            return false
-        }
-
-        if !handleIsConfirmedAvailable {
-            errorMessage = handleStatusMessage.isEmpty
-                ? "Please choose an available @handle."
-                : handleStatusMessage
-            print("[SignupUX] submitFailed step=validation error=handle")
+            print("[EmailConfirmDebug] formValidationFailed reason=invalid_handle")
             return false
         }
 
         if !profileRetryMode, !policiesAccepted {
             errorMessage = "Accept the Terms of Service, Privacy Policy, and Community Guidelines to continue."
             print("[SignupUX] submitFailed step=validation error=policies")
+            print("[EmailConfirmDebug] formValidationFailed reason=policies_required")
             return false
         }
 
@@ -596,6 +593,9 @@ struct FanSignupView: View {
 
     @MainActor
     private func submitSignup() async {
+        if !isApplePendingProfile {
+            print("[EmailConfirmDebug] signupButtonTapped=true")
+        }
         guard validateBeforeSubmit() else { return }
 
         viewModel.clearAppleAuthMessage(

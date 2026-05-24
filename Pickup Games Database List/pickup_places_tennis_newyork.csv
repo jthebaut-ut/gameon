@@ -1,0 +1,150 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,40.6972327,-73.8578011,,,NY,,false,true,false,openstreetmap
+2,tennis,pitch,40.6972669,-73.8576284,,,NY,,false,true,false,openstreetmap
+3,tennis,pitch,40.6972971,-73.8574621,,,NY,,false,true,false,openstreetmap
+4,tennis,pitch,40.6973275,-73.8572926,,,NY,,false,true,false,openstreetmap
+5,tennis,pitch,40.6973603,-73.8571262,,,NY,,false,true,false,openstreetmap
+6,tennis,pitch,40.6973868,-73.8569522,,,NY,,false,true,false,openstreetmap
+7,tennis,pitch,40.6974169,-73.8567864,,,NY,,false,true,false,openstreetmap
+Abandoned,tennis,pitch,41.2638823,-73.8064278,,,NY,,false,true,false,openstreetmap
+Activity Court,tennis,pitch,41.9895636,-74.5004548,,,NY,,false,true,false,openstreetmap
+Alley Pond Tennis Center,tennis,sports_hall,40.7393265,-73.7358432,,,NY,,false,true,false,openstreetmap
+Audubon Tennis Courts,tennis,sports_centre,43.0171445,-78.7716659,,,NY,,false,true,false,openstreetmap
+Ausable Acres Tennis Courts,tennis,pitch,44.4129164,-73.7247135,,,NY,,false,true,false,openstreetmap
+Blackberry Woods,tennis,park,41.3305068,-73.8452058,,,NY,,false,true,false,openstreetmap
+Broadway Ave Park Tennis Courts,tennis,pitch,40.7525555,-73.0686852,,,NY,,false,true,false,openstreetmap
+Brookville Park Tennis Courts,tennis,sports_centre,40.6617569,-73.7444603,,,NY,,false,true,false,openstreetmap
+Central Park Tennis Center,tennis,sports_centre,40.7899092,-73.9620621,,,NY,,false,true,false,openstreetmap
+Chappaqua Swim and Tennis,tennis,pitch,41.1704815,-73.7898069,,,NY,,false,true,false,openstreetmap
+Country Point Tennis Courts,tennis,pitch,40.8488808,-72.9883707,,,NY,,false,true,false,openstreetmap
+County Tennis Club,tennis,pitch,41.0123573,-73.7930898,,,NY,,false,true,false,openstreetmap
+Court #1,tennis,pitch,43.1012858,-77.4571563,,,NY,,false,true,false,openstreetmap
+Court #2,tennis,pitch,43.101344,-77.4573019,,,NY,,false,true,false,openstreetmap
+Court #3,tennis,pitch,43.1009997,-77.4573746,,,NY,,false,true,false,openstreetmap
+Court #4,tennis,pitch,43.1010576,-77.4575189,,,NY,,false,true,false,openstreetmap
+Court #5,tennis,pitch,43.1007144,-77.4575916,,,NY,,false,true,false,openstreetmap
+Court #6,tennis,pitch,43.1007733,-77.4577364,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,44.7651672,-73.9826795,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.5604776,-77.5989398,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.1623914,-78.7391155,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.1025914,-77.2315995,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.880279,-76.9898413,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.9530243,-76.4284204,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.1664632,-78.9652481,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,43.1552823,-75.8925337,,,NY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,42.1210944,-77.011186,,,NY,,false,true,false,openstreetmap
+Court 10,tennis,pitch,40.748245,-73.8464654,,,NY,,false,true,false,openstreetmap
+Court 11,tennis,pitch,40.7491128,-73.8456379,,,NY,,false,true,false,openstreetmap
+Court 12,tennis,pitch,40.7492197,-73.8453143,,,NY,,false,true,false,openstreetmap
+Court 13,tennis,pitch,40.7484623,-73.8458312,,,NY,,false,true,false,openstreetmap
+Court 14,tennis,pitch,40.7485641,-73.8455304,,,NY,,false,true,false,openstreetmap
+Court 15,tennis,pitch,40.7486652,-73.8452288,,,NY,,false,true,false,openstreetmap
+Court 16,tennis,pitch,40.7487646,-73.8449271,,,NY,,false,true,false,openstreetmap
+Court 16,tennis,pitch,40.7522874,-73.9450302,,,NY,,true,false,false,openstreetmap
+Court 2,tennis,pitch,44.7651285,-73.9829627,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.560231,-77.5986461,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.1623939,-78.7389443,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.102619,-77.2314244,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.880281,-76.9896644,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.9530382,-76.4282002,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.1664689,-78.9650743,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,43.1553169,-75.8927166,,,NY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,42.1210964,-77.0109991,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,44.7651019,-73.9831525,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,42.5603822,-77.5990841,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,42.1623975,-78.7387707,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,42.1026461,-77.2312479,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,42.9530498,-76.4280113,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,42.1664766,-78.9648531,,,NY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,43.1553519,-75.8928988,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,44.7650758,-73.9833423,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,40.7487352,-73.8483787,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,42.5601386,-77.5987855,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,42.1026201,-77.2310162,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,42.8802861,-76.9893056,,,NY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,42.9526683,-76.4283815,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,44.7650488,-73.9835317,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,40.7488473,-73.8480438,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,42.5602897,-77.599225,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,42.1026482,-77.2308439,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,42.8802886,-76.9891272,,,NY,,false,true,false,openstreetmap
+Court 5,tennis,pitch,42.9526809,-76.4281588,,,NY,,false,true,false,openstreetmap
+Court 6,tennis,pitch,40.7489586,-73.8477092,,,NY,,false,true,false,openstreetmap
+Court 6,tennis,pitch,42.5600447,-77.5989269,,,NY,,false,true,false,openstreetmap
+Court 6,tennis,pitch,42.8802905,-76.9889477,,,NY,,false,true,false,openstreetmap
+Court 6,tennis,pitch,42.9526951,-76.4279706,,,NY,,false,true,false,openstreetmap
+Court 7,tennis,pitch,40.7485785,-73.8472273,,,NY,,false,true,false,openstreetmap
+Court 8,tennis,pitch,40.7480446,-73.8470678,,,NY,,false,true,false,openstreetmap
+Court 9,tennis,pitch,40.7481445,-73.8467678,,,NY,,false,true,false,openstreetmap
+Court3,tennis,pitch,42.8802832,-76.9894835,,,NY,,false,true,false,openstreetmap
+Erwin Park Lower Tennis Courts,tennis,pitch,43.4813679,-75.3266103,,,NY,,false,true,false,openstreetmap
+Glen Arms Tennis Court,tennis,pitch,40.8670588,-73.6330021,,,NY,,false,true,false,openstreetmap
+Grandstand,tennis,stadium,40.7480488,-73.8478257,,,NY,,false,true,false,openstreetmap
+Kenmore Tonawanda School district,tennis,pitch,42.9663761,-78.8574403,,,NY,,false,true,false,openstreetmap
+Louis Armstrong Stadium,tennis,pitch,40.7509881,-73.8454003,,,NY,,false,true,false,openstreetmap
+Lyman Tennis Center,tennis,pitch,43.132356,-77.6196982,,,NY,,false,true,false,openstreetmap
+Maine Town Park Tennis Court,tennis,sports_centre,42.2046531,-76.0604568,,,NY,,false,true,false,openstreetmap
+Matchpoint Tennis,tennis,fitness_centre,40.6164641,-73.9068868,2350 East 69th Street,,NY,11234,false,true,false,openstreetmap
+Meadow Lakes Tennis,tennis,pitch,43.0140971,-78.6765535,,,NY,,false,true,false,openstreetmap
+Miller Tennis Center,tennis,sports_centre,42.97483,-78.7136613,,,NY,,false,true,false,openstreetmap
+Murray Athletic Center,tennis,sports_centre,42.2137666,-76.8396819,,,NY,,false,true,false,openstreetmap
+Nike,tennis,pitch,40.7508328,-73.8446885,,,NY,,false,true,false,openstreetmap
+Outdoor Tennis Court 1,tennis,pitch,43.6938302,-73.5053373,,,NY,,false,true,false,openstreetmap
+Outdoor Tennis Court 2,tennis,pitch,43.6938246,-73.5051648,,,NY,,false,true,false,openstreetmap
+Over the Tracks 119th Street Tennis Courts,tennis,sports_centre,40.8120593,-73.9653744,,,NY,,false,true,false,openstreetmap
+Private,tennis,pitch,41.0047031,-73.7658725,,,NY,,false,true,false,openstreetmap
+Pro Shop,tennis,pitch,41.6190513,-73.8911379,,,NY,,false,true,false,openstreetmap
+Prospect Park Tennis Center,tennis,sports_centre,40.6512602,-73.9702657,,,NY,,false,true,false,openstreetmap
+Queens College Indoor Tennis Center,tennis,sports_hall,40.7382065,-73.8204807,148-50 Reeves Avenue,,NY,11367,false,true,false,openstreetmap
+Raananah Tennis Court,tennis,pitch,41.3518785,-74.138705,,,NY,,false,true,false,openstreetmap
+Racketball Court,tennis,pitch,40.7527619,-73.0682904,,,NY,,false,true,false,openstreetmap
+Red Clay Court,tennis,pitch,41.767352,-74.1584259,,,NY,,false,true,false,openstreetmap
+Red Clay Court,tennis,pitch,42.0729958,-74.5658642,,,NY,,false,true,false,openstreetmap
+Riverside Clay Tennis Association,tennis,pitch,40.7968789,-73.9770594,,,NY,,false,true,false,openstreetmap
+Salem Tennis Club,tennis,pitch,43.1798598,-73.3243732,,,NY,,false,true,false,openstreetmap
+Shannon Ross Tennis Courts,tennis,sports_centre,41.1517083,-73.8615506,,,NY,,false,true,false,openstreetmap
+Sportime Tennis,tennis,sports_centre,40.7931153,-73.9194639,25 Central Road,,NY,10035,false,true,false,openstreetmap
+Sunset Park Tennis Courts,tennis,pitch,40.6526662,-73.4605735,,,NY,,false,true,false,openstreetmap
+Sutton East Tennis Club,tennis,sports_centre,40.7589484,-73.9598017,,,NY,,false,true,false,openstreetmap
+Tabler Tennis,tennis,pitch,40.9104248,-73.1257811,,,NY,,false,true,false,openstreetmap
+Tahawus Club,tennis,pitch,43.9636914,-74.0468102,,,NY,,false,true,false,openstreetmap
+Tennis Court #1,tennis,pitch,42.0861481,-74.0103815,,,NY,,false,true,false,openstreetmap
+Tennis Court #2,tennis,pitch,42.0858357,-74.0096894,,,NY,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.5699723,-77.6978043,,,NY,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,43.491444,-74.353826,,,NY,,false,true,false,openstreetmap
+Tennis Courts (Hard Surface),tennis,pitch,42.2036274,-79.4611036,,,NY,,false,true,false,openstreetmap
+Tennis Courts (Hard Surface),tennis,pitch,42.2036463,-79.4609358,,,NY,,false,true,false,openstreetmap
+Tennis Courts (Hard Surface),tennis,pitch,42.2032959,-79.461035,,,NY,,false,true,false,openstreetmap
+Tennis Courts (Hard Surface),tennis,pitch,42.2033184,-79.4608429,,,NY,,false,true,false,openstreetmap
+Tennis Practice Wall,tennis,pitch,43.693186,-73.5054104,,,NY,,false,true,false,openstreetmap
+Village of Kinderhook,tennis,pitch,42.3961049,-73.7057286,,,NY,,false,true,false,openstreetmap
+Washington Market Park Tennis Court,tennis,pitch,40.7171732,-74.0122513,,,NY,,false,true,false,openstreetmap
+Washington Middle School Tennis Court #1,tennis,pitch,42.1125002,-79.2332789,,,NY,,false,true,false,openstreetmap
+Washington Middle School Tennis Court #2,tennis,pitch,42.1121686,-79.2332731,,,NY,,false,true,false,openstreetmap
+Washington Park Tennis Courts,tennis,pitch,42.6576999,-73.7756995,,,NY,,false,true,false,openstreetmap
+West Side Tennis Club,tennis,sports_centre,40.7198523,-73.8485929,,,NY,,false,true,false,openstreetmap
+Wilson,tennis,pitch,40.7504923,-73.8457307,,,NY,,false,true,false,openstreetmap
+Wynmor Park Tennis Court,tennis,pitch,40.9866283,-73.7737191,,,NY,,false,true,false,openstreetmap
+tennis courts,tennis,pitch,41.0395837,-73.7212378,,,NY,,false,true,false,openstreetmap
+Buffalo Tennis & Squash Club,tennis,sports_centre,42.9055513,-78.8775454,314 Elmwood Avenue,Buffalo,NY,14222,false,true,false,openstreetmap
+Arthur Ashe Stadium,tennis,stadium,40.7498889,-73.8470425,122-02 Roosevelt Avenue,Flushing,NY,11368,false,true,false,openstreetmap
+Chase Center,tennis,sports_centre,40.7501468,-73.8443214,18 Meridian Road,Flushing,NY,11368,false,true,false,openstreetmap
+Stadium 17,tennis,stadium,40.7491688,-73.8445564,123-40 Roosevelt Avenue,Flushing,NY,,false,true,false,openstreetmap
+USTA Billie Jean King National Tennis Center,tennis,sports_centre,40.7495808,-73.8462874,,Flushing,NY,11368,false,true,false,openstreetmap
+Eastlake Recreation Club,tennis,sports_centre,42.5152588,-76.5102406,19 Eastlake Road,Ithaca,NY,14850,false,true,false,openstreetmap
+Reis Tennis Center,tennis,sports_centre,42.4350271,-76.4652729,230 Pine Tree Road,Ithaca,NY,14850,false,true,false,openstreetmap
+Lloyd Point Tennis Club,tennis,pitch,40.9341026,-73.4832442,15 Lloyd Point Drive,Lloyd Harbor,NY,11743,false,true,false,openstreetmap
+Long Beach Tennis Center,tennis,sports_centre,40.5945234,-73.6557505,899 Monroe Boulevard,Long Beach,NY,11561,false,true,false,openstreetmap
+Manlius YMCA,tennis,sports_centre,42.9978222,-75.9821815,140 West Seneca Street,Manlius,NY,13104,false,true,false,openstreetmap
+Paragon Athletic Club,tennis,fitness_centre,43.0859049,-75.3284432,8387 seneca turnpike,New Hartford,NY,13413,false,true,false,openstreetmap
+Dick Savitt Tennis Center,tennis,pitch,40.8740652,-73.9168028,575 West 218th Street,New York,NY,10034,false,true,false,openstreetmap
+Roosevelt Island Racquet Club,tennis,sports_centre,40.7568014,-73.9545169,281 West Main Street,New York,NY,10044,false,true,false,openstreetmap
+Tennis Lab FX,tennis,pitch,40.7560214,-73.9687574,235 East 51st Street,New York,NY,10022,false,true,false,openstreetmap
+Yorkville Tennis Club,tennis,pitch,40.7783661,-73.9463143,1725 York Avenue,New York,NY,10128,false,true,false,openstreetmap
+Northport Tennis Club,tennis,sports_centre,40.9057434,-73.344062,Maple Circle,Northport,NY,11768,false,true,false,openstreetmap
+Cove Neck Tennis Court,tennis,sports_centre,40.8788191,-73.5039151,2 Tennis Court Road,Oyster Bay,NY,11771,false,true,false,openstreetmap
+Port Washington Tennis Academy,tennis,sports_centre,40.8410234,-73.6941668,100 Harbor Road,Port Washington,NY,11050,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.8403172,-73.7150202,Manorhaven Boulevard,Port Washington,NY,11050,false,true,false,openstreetmap
+SPORTIME Roslyn,tennis,sports_centre,40.8047903,-73.6479602,1 Bedells Landing Road,Roslyn,NY,11576,false,true,false,openstreetmap
+County Tennis Club,tennis,pitch,41.0128794,-73.7928337,5 Brook Lane,Scarsdale,NY,10583,false,true,false,openstreetmap
+Fox Meadow Tennis Club,tennis,pitch,40.9933802,-73.8015923,14 Wayside Lane,Scarsdale,NY,10583,false,true,false,openstreetmap

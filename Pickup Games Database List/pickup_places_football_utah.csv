@@ -1,0 +1,18 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bonneville High School Football Field,football,pitch,41.1743228,-111.9735086,,,UT,,false,true,false,openstreetmap
+Dozier Field,football,pitch,40.6665371,-111.4989155,,,UT,,false,true,false,openstreetmap
+LaVell Edwards Stadium,football,pitch,40.2575443,-111.6545205,,,UT,,false,true,false,openstreetmap
+Lehi High School Field,football,pitch,40.3897992,-111.838459,,,UT,,false,true,false,openstreetmap
+Merlin Olsen Field,football,pitch,41.7517579,-111.8116075,,,UT,,false,true,false,openstreetmap
+Orem High Football Field,football,pitch,40.293122,-111.6825161,,,UT,,false,true,false,openstreetmap
+Practice Field,football,pitch,41.7546281,-111.8090246,,,UT,,false,true,false,openstreetmap
+Practice Field,football,pitch,41.324711,-111.9848645,,,UT,,false,true,false,openstreetmap
+Provo High Football Field,football,pitch,40.2489277,-111.717348,,,UT,,false,true,false,openstreetmap
+RB Field,football,pitch,40.249419,-111.6552742,,,UT,,false,true,false,openstreetmap
+Rice Eccles Football Field,football,pitch,40.7599752,-111.8488472,,,UT,,false,true,false,openstreetmap
+Stan Laub Training Center,football,sports_centre,41.7546789,-111.8074242,,,UT,,false,true,false,openstreetmap
+Stewart Stadium,football,stadium,41.1919235,-111.9401639,,,UT,,false,true,false,openstreetmap
+Summit Academy High School Football Field,football,pitch,40.4812486,-111.9098441,,,UT,,false,true,false,openstreetmap
+West High School Football Field,football,pitch,40.775032,-111.9013863,,,UT,,false,true,false,openstreetmap
+West Little League Football Fields,football,pitch,40.7846555,-111.9342564,,,UT,,false,true,false,openstreetmap
+LaVell Edwards Stadium,football,stadium,40.2574692,-111.6545819,1700 N Canyon Rd.,Provo,UT,84604,false,true,false,openstreetmap

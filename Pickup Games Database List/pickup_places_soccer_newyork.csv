@@ -1,0 +1,224 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+"""The Fields""",soccer,pitch,40.5654252,-73.8937644,,,NY,,false,true,false,openstreetmap
+1,soccer,pitch,40.8656253,-73.8972639,,,NY,,false,true,false,openstreetmap
+101 Street Soccer Field,soccer,pitch,40.8001147,-73.9739148,,,NY,,false,true,false,openstreetmap
+50,soccer,pitch,40.7890445,-73.9261842,,,NY,,false,true,false,openstreetmap
+6,soccer,pitch,40.8016063,-73.9244396,,,NY,,false,true,false,openstreetmap
+71,soccer,pitch,40.7832777,-73.9303318,,,NY,,false,true,false,openstreetmap
+71st Street Riverside Soccer Field,soccer,pitch,40.7805657,-73.9882611,,,NY,,false,true,false,openstreetmap
+8,soccer,pitch,40.6500217,-73.9686319,,,NY,,false,true,false,openstreetmap
+8,soccer,pitch,40.8006652,-73.9219701,,,NY,,false,true,false,openstreetmap
+81,soccer,pitch,40.7836743,-73.9332352,,,NY,,false,true,false,openstreetmap
+AYSO Soccer Field,soccer,pitch,43.4818495,-75.3263831,,,NY,,false,true,false,openstreetmap
+Afrim's Bethlehem,soccer,sports_centre,42.5803111,-73.7892241,,,NY,,false,true,false,openstreetmap
+Afrim’s Soccer Shop,soccer,pitch,42.7246258,-73.7929437,,,NY,,false,true,false,openstreetmap
+Alumni Field,soccer,pitch,40.8975605,-73.9006371,,,NY,,false,true,false,openstreetmap
+Alumni Soccer Field,soccer,pitch,41.733655,-74.0882891,,,NY,,false,true,false,openstreetmap
+Asphalt Green,soccer,pitch,40.7785304,-73.9442049,,,NY,,false,true,false,openstreetmap
+Athletic Field,soccer,pitch,42.7115496,-77.8767948,,,NY,,false,true,false,openstreetmap
+Athletic Field,soccer,pitch,42.7109299,-77.8783124,,,NY,,false,true,false,openstreetmap
+Ayso Soccer Field,soccer,pitch,43.4806866,-75.3379241,,,NY,,false,true,false,openstreetmap
+Baruch Playground,soccer,pitch,40.7175968,-73.9766948,,,NY,,false,true,false,openstreetmap
+Baymen Soccer Fields,soccer,pitch,40.7441013,-73.0970817,,,NY,,false,true,false,openstreetmap
+Bear Cage,soccer,pitch,40.9265627,-73.1307382,,,NY,,false,true,false,openstreetmap
+Belson Stadium,soccer,pitch,40.7243207,-73.7928404,,,NY,,false,true,false,openstreetmap
+Bethlehem Town Park Field,soccer,pitch,42.5952797,-73.8416407,,,NY,,false,true,false,openstreetmap
+Bethlehem Town Park Field,soccer,pitch,42.5950028,-73.8412483,,,NY,,false,true,false,openstreetmap
+Bethlehem Town Park Field,soccer,pitch,42.5946955,-73.8407696,,,NY,,false,true,false,openstreetmap
+Brentwood State Park,soccer,park;sports_centre,40.7915821,-73.2713639,,,NY,,false,true,false,openstreetmap
+C1,soccer,pitch,42.827393,-78.7639009,,,NY,,false,true,false,openstreetmap
+C2,soccer,pitch,42.8273988,-78.7643816,,,NY,,false,true,false,openstreetmap
+C3,soccer,pitch,42.827043,-78.7638992,,,NY,,false,true,false,openstreetmap
+C4,soccer,pitch,42.8270522,-78.76439,,,NY,,false,true,false,openstreetmap
+Chappell Field,soccer,pitch,43.0280427,-76.0680355,,,NY,,false,true,false,openstreetmap
+Chelsea Waterside Field,soccer,pitch,40.7496613,-74.0076156,,,NY,,false,true,false,openstreetmap
+Chester Soccer Club,soccer,pitch,41.3440929,-74.2662186,,,NY,,false,true,false,openstreetmap
+Chris Chachis Soccer Field,soccer,pitch,41.4371824,-74.4290791,,,NY,,false,true,false,openstreetmap
+Clarence Soccer Club Field,soccer,pitch,42.9915729,-78.638542,,,NY,,false,true,false,openstreetmap
+Clinton Soccer Field,soccer,pitch,41.3938751,-73.9536433,,,NY,,false,true,false,openstreetmap
+College Park Field,soccer,pitch,42.8196807,-73.935747,,,NY,,false,true,false,openstreetmap
+Copenhagen Football Pitch,soccer,pitch,43.8904759,-75.678944,,,NY,,false,true,false,openstreetmap
+Cozzens Field,soccer,pitch,42.8587783,-76.9873535,,,NY,,false,true,false,openstreetmap
+Dirt Field,soccer,pitch,40.9910076,-73.6641343,,,NY,,false,true,false,openstreetmap
+Dr. R. Mark and Kathleen Sullivan Field,soccer,pitch,42.6364073,-73.7750708,,,NY,,false,true,false,openstreetmap
+Fallkill County Park,soccer,pitch,41.7482818,-73.9003493,,,NY,,false,true,false,openstreetmap
+Fayetteville Manlius Practice Fields,soccer,pitch,43.0135828,-75.9616448,,,NY,,false,true,false,openstreetmap
+Fayetteville Manlius Practice Fields,soccer,pitch,43.0135733,-75.9607853,,,NY,,false,true,false,openstreetmap
+Ferguson Intramural Fields,soccer,pitch,43.0536601,-75.4118577,,,NY,,false,true,false,openstreetmap
+Field #1,soccer,pitch,42.9329436,-75.8314669,,,NY,,false,true,false,openstreetmap
+Field #1,soccer,pitch,43.0715535,-77.4906525,,,NY,,false,true,false,openstreetmap
+Field #2,soccer,pitch,43.0724302,-77.4909852,,,NY,,false,true,false,openstreetmap
+Field #2,soccer,pitch,42.9318931,-75.8310014,,,NY,,false,true,false,openstreetmap
+Field #20,soccer,pitch,43.1147117,-77.5858829,,,NY,,false,true,false,openstreetmap
+Field #21,soccer,pitch,43.1138471,-77.5869807,,,NY,,false,true,false,openstreetmap
+Field #22,soccer,pitch,43.1147714,-77.5870356,,,NY,,false,true,false,openstreetmap
+Field #23,soccer,pitch,43.114717,-77.5848273,,,NY,,false,true,false,openstreetmap
+Field #24,soccer,pitch,43.1127242,-77.584226,,,NY,,false,true,false,openstreetmap
+Field #3,soccer,pitch,43.0733004,-77.4917642,,,NY,,false,true,false,openstreetmap
+Field #4,soccer,pitch,43.0748309,-77.4910256,,,NY,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.5905481,-73.7210922,,,NY,,false,true,false,openstreetmap
+Field 1N,soccer,pitch,43.3383682,-73.6928531,,,NY,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.5907546,-73.7228079,,,NY,,false,true,false,openstreetmap
+Field 2N,soccer,pitch,43.338438,-73.6918805,,,NY,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.590834,-73.7237837,,,NY,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.5909094,-73.724689,,,NY,,false,true,false,openstreetmap
+Field A,soccer,pitch,43.1639583,-77.4707543,,,NY,,false,true,false,openstreetmap
+Field A,soccer,pitch,42.8256135,-78.7665447,,,NY,,false,true,false,openstreetmap
+Field B,soccer,pitch,43.1636482,-77.4710529,,,NY,,false,true,false,openstreetmap
+Field B,soccer,pitch,42.8265077,-78.7652908,,,NY,,false,true,false,openstreetmap
+Field C,soccer,pitch,43.1629546,-77.4716627,,,NY,,false,true,false,openstreetmap
+Field D,soccer,pitch,43.1619928,-77.4724422,,,NY,,false,true,false,openstreetmap
+Field D,soccer,pitch,42.8262514,-78.7641373,,,NY,,false,true,false,openstreetmap
+Field E,soccer,pitch,42.8246049,-78.7642558,,,NY,,false,true,false,openstreetmap
+Field F,soccer,pitch,42.8250915,-78.7632987,,,NY,,false,true,false,openstreetmap
+Field G,soccer,pitch,42.8261763,-78.7632471,,,NY,,false,true,false,openstreetmap
+Field H,soccer,pitch,42.8274151,-78.7632397,,,NY,,false,true,false,openstreetmap
+Field J,soccer,pitch,42.8237953,-78.7655881,,,NY,,false,true,false,openstreetmap
+Field K,soccer,pitch,42.8238035,-78.7650187,,,NY,,false,true,false,openstreetmap
+Field L,soccer,pitch,42.8243274,-78.7634341,,,NY,,false,true,false,openstreetmap
+Field M,soccer,pitch,42.824281,-78.7651365,,,NY,,false,true,false,openstreetmap
+Field N,soccer,pitch,42.8278154,-78.7641326,,,NY,,false,true,false,openstreetmap
+Field P,soccer,pitch,42.8238058,-78.7642421,,,NY,,false,true,false,openstreetmap
+Field R,soccer,pitch,42.8253151,-78.7642088,,,NY,,false,true,false,openstreetmap
+Firefighters Field,soccer,pitch,40.757731,-73.9529345,,,NY,,false,true,false,openstreetmap
+Fitch Field,soccer,pitch,40.9252822,-73.129646,,,NY,,false,true,false,openstreetmap
+Footbik,soccer,pitch,40.5273125,-74.2330753,,,NY,,false,true,false,openstreetmap
+Forest Park Soccer Field,soccer,pitch,40.7013613,-73.8525201,,,NY,,false,true,false,openstreetmap
+Fox Valley Upper field,soccer,pitch,41.2947165,-73.6404756,,,NY,,false,true,false,openstreetmap
+Frankel Field,soccer,pitch,40.8987171,-73.9004182,,,NY,,false,true,false,openstreetmap
+Game Field,soccer,pitch,42.7951165,-77.8262493,,,NY,,false,true,false,openstreetmap
+Garis Field,soccer,pitch,42.8195676,-73.9254069,,,NY,,false,true,false,openstreetmap
+Glen Cove YMCA Soccer Field,soccer,pitch,40.8797093,-73.631096,,,NY,,false,true,false,openstreetmap
+Gordon Field,soccer,pitch,41.6853431,-73.902457,,,NY,,false,true,false,openstreetmap
+Granny Road Park Soccer,soccer,pitch,40.8509716,-72.9604844,,,NY,,false,true,false,openstreetmap
+Grant's Field at Pathfinder Village (Youth Soccer),soccer,pitch,42.701976,-75.2050866,,,NY,,false,true,false,openstreetmap
+Greenacres Fields,soccer,pitch,41.0116361,-73.7842616,,,NY,,false,true,false,openstreetmap
+Hawks Soccer Field,soccer,pitch,41.1316185,-74.0902668,,,NY,,false,true,false,openstreetmap
+Hayden Soccer Field,soccer,pitch,41.9900186,-74.5037871,,,NY,,false,true,false,openstreetmap
+Hector Aponte Field,soccer,pitch,40.8178119,-73.8727964,,,NY,,false,true,false,openstreetmap
+Hofstra Soccer stadium,soccer,pitch,40.7184568,-73.5986699,,,NY,,false,true,false,openstreetmap
+Holloway Field,soccer,pitch,42.589944,-76.2007643,,,NY,,false,true,false,openstreetmap
+Intramural Soccer Field,soccer,pitch,42.6846844,-73.8295668,,,NY,,false,true,false,openstreetmap
+Islip high school soccer field,soccer,pitch,40.7295934,-73.2218502,,,NY,,false,true,false,openstreetmap
+Jack McManus Field,soccer,pitch,40.7671375,-73.9458444,,,NY,,false,true,false,openstreetmap
+Juventus Club New York,soccer,pitch,40.6084421,-74.0039891,8513 Bay 16th Street,,NY,11214,false,true,false,openstreetmap
+Kevin Kolm Memorial Field,soccer,pitch,40.7688912,-73.5051649,,,NY,,false,true,false,openstreetmap
+Kosmos Soccer Field,soccer,pitch,40.7456963,-73.8169913,,,NY,,false,true,false,openstreetmap
+Lagana Field,soccer,pitch,41.0602331,-73.8546001,,,NY,,false,true,false,openstreetmap
+Lake Soccer Field,soccer,pitch,41.9859537,-74.5076842,,,NY,,false,true,false,openstreetmap
+Larkin Field,soccer,pitch,42.9291415,-78.8729698,,,NY,,false,true,false,openstreetmap
+Leonar 2 Sport Shop,soccer,pitch,40.6391424,-74.0163096,,,NY,,false,true,false,openstreetmap
+Lions Gate Field,soccer,pitch,40.7184588,-73.9932404,,,NY,,false,true,false,openstreetmap
+Little League Soccer Field,soccer,pitch,42.5947076,-74.7314957,,,NY,,false,true,false,openstreetmap
+Lorenzo Ferrari Soccer Complex,soccer,pitch,42.0243955,-73.9103866,,,NY,,false,true,false,openstreetmap
+Love Field,soccer,pitch,43.0528156,-75.4101961,,,NY,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,43.0403455,-76.0951067,,,NY,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,40.8719593,-73.5864218,,,NY,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,42.2136345,-76.8376141,,,NY,,false,true,false,openstreetmap
+Lower Playing Field,soccer,pitch,42.7126922,-73.6605659,,,NY,,false,true,false,openstreetmap
+Lower Practice Field,soccer,pitch,43.1019852,-77.5237171,,,NY,,false,true,false,openstreetmap
+MacArthur Lower Field,soccer,pitch,40.704898,-73.504417,,,NY,,false,true,false,openstreetmap
+Matthew Driscoll Field,soccer,pitch,43.2119121,-74.1403215,,,NY,,false,true,false,openstreetmap
+Meadow Lakes Soccer,soccer,pitch,43.0169298,-78.6755792,,,NY,,false,true,false,openstreetmap
+NY Cosmos Practice Facility,soccer,pitch,40.7262928,-73.6000387,,,NY,,false,true,false,openstreetmap
+Neville Colman Field,soccer,pitch,40.8039277,-73.9713337,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7486404,-73.8408435,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7474254,-73.8381794,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7501624,-73.838488,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7492542,-73.8365886,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7496999,-73.8397992,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.746513,-73.8416117,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7505264,-73.8338806,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7498414,-73.8336968,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7473721,-73.8400393,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,soccer,pitch,40.7681521,-73.9939394,,,NY,,false,true,false,openstreetmap
+Nike Field,soccer,pitch,40.7217709,-73.9915284,,,NY,,false,true,false,openstreetmap
+North Athletic Field,soccer,pitch,41.398162,-73.9624174,,,NY,,false,true,false,openstreetmap
+North Field,soccer,pitch,43.1331183,-77.6188485,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 1,soccer,pitch,40.7925803,-73.9607023,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 2,soccer,pitch,40.7918393,-73.9604615,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 3,soccer,pitch,40.7926982,-73.9592485,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 4,soccer,pitch,40.7921531,-73.9574472,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 5,soccer,pitch,40.7928636,-73.9561582,,,NY,,false,true,false,openstreetmap
+North Meadow Soccer Field 6,soccer,pitch,40.791216,-73.9573554,,,NY,,false,true,false,openstreetmap
+North Rockland Soccer Association Fields,soccer,pitch,41.218941,-74.0298117,,,NY,,false,true,false,openstreetmap
+Oneonta Soccer Field,soccer,pitch,42.4717961,-75.0491997,,,NY,,false,true,false,openstreetmap
+Ossining High School,soccer,pitch,41.159516,-73.8577247,,,NY,,false,true,false,openstreetmap
+PCS Soccer Fields,soccer,pitch,42.030925,-78.3312696,,,NY,,false,true,false,openstreetmap
+Paul Smiths College Sports Field,soccer,pitch,44.44116,-74.2449086,,,NY,,false,true,false,openstreetmap
+Pelini Park,soccer,park,40.7152827,-73.5264196,,,NY,,false,true,false,openstreetmap
+Peter A. Spina Field,soccer,pitch,43.1371648,-75.2263858,,,NY,,false,true,false,openstreetmap
+Pier 42 Soccer Field,soccer,pitch,40.7100123,-73.9819752,,,NY,,false,true,false,openstreetmap
+Queens College Soccer Field,soccer,pitch,40.7363649,-73.8221978,,,NY,,false,true,false,openstreetmap
+RIT Club Practice Field 1,soccer,pitch,43.0891548,-77.673017,,,NY,,false,true,false,openstreetmap
+Red Dragon Soccer Field,soccer,pitch,42.4678086,-75.0656209,,,NY,,false,true,false,openstreetmap
+Red Hook 4,soccer,pitch,40.6705156,-74.0072684,,,NY,,false,true,false,openstreetmap
+Red Hook 5,soccer,pitch,40.6707418,-74.0080809,,,NY,,false,true,false,openstreetmap
+Red Hook Soccer Field 1,soccer,pitch,40.6709239,-74.002548,,,NY,,false,true,false,openstreetmap
+Red Hook Soccer Field 6,soccer,pitch,40.6718316,-74.0017429,,,NY,,false,true,false,openstreetmap
+Red Hook Soccer Field 7,soccer,pitch,40.6730589,-74.0056813,,,NY,,false,true,false,openstreetmap
+Red Hook Soccer Field 8,soccer,pitch,40.6735056,-74.0054481,,,NY,,false,true,false,openstreetmap
+Richard J. Benjamin Memorial Soccer Fields,soccer,pitch,43.4270604,-76.5072138,,,NY,,false,true,false,openstreetmap
+Robert Moses Playground Athletic Field,soccer,pitch,40.7482833,-73.9696026,,,NY,,false,true,false,openstreetmap
+S,soccer,pitch,42.8252323,-78.7650835,,,NY,,false,true,false,openstreetmap
+STAC soccer field,soccer,pitch,41.0368965,-73.9327138,,,NY,,false,true,false,openstreetmap
+Sahlen's Sports Park,soccer,sports_centre,42.8026125,-78.6641106,,,NY,,false,true,false,openstreetmap
+Sahlen's Sports Park,soccer,pitch,42.8015703,-78.6639329,,,NY,,false,true,false,openstreetmap
+Salamanca HS Soccer Field,soccer,pitch,42.1600085,-78.7337416,,,NY,,false,true,false,openstreetmap
+Sandy MacAllaster Soccer Field,soccer,pitch,44.5846154,-75.1627047,,,NY,,false,true,false,openstreetmap
+Saratoga Field,soccer,pitch,42.7944062,-77.8226836,,,NY,,false,true,false,openstreetmap
+Saturdays Football,soccer,pitch,40.7590246,-73.9799527,55 West 49th Street,,NY,10020,false,true,false,openstreetmap
+Schenectady Soccer Club,soccer,pitch,42.7947228,-73.9061471,,,NY,,false,true,false,openstreetmap
+Senior Soccer Field,soccer,pitch,42.6354378,-77.0714599,,,NY,,false,true,false,openstreetmap
+Shenendehowa Varisty Soccer Field,soccer,pitch,42.861196,-73.8087424,,,NY,,false,true,false,openstreetmap
+Silver Lake Soccer Academy,soccer,pitch,40.5394132,-74.2368077,,,NY,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,41.4310064,-74.4343575,,,NY,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,41.9869794,-74.5030484,,,NY,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,42.0917326,-73.9513997,,,NY,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,41.8382965,-73.9629722,,,NY,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,42.090852,-73.9526148,,,NY,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,41.8361599,-73.9617722,,,NY,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,40.6720535,-74.0069718,,,NY,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,42.0919202,-73.9524823,,,NY,,false,true,false,openstreetmap
+Soccer Field 4,soccer,pitch,42.0919667,-73.9504252,,,NY,,false,true,false,openstreetmap
+Soccer Field 5,soccer,pitch,42.092062,-73.9531597,,,NY,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,41.394707,-73.9540925,,,NY,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,41.7340052,-74.0894,,,NY,,false,true,false,openstreetmap
+Socceroof,soccer,sports_centre,40.677439,-73.9342477,1700 Atlantic Avenue,,NY,11213,false,true,false,openstreetmap
+St John's Field,soccer,pitch,40.7562734,-73.037559,,,NY,,false,true,false,openstreetmap
+Stadium Field,soccer,pitch,42.7947694,-77.8247705,,,NY,,false,true,false,openstreetmap
+T,soccer,pitch,42.8252307,-78.7648408,,,NY,,false,true,false,openstreetmap
+TZ Practice soccer field,soccer,pitch,41.05037,-73.9519799,,,NY,,false,true,false,openstreetmap
+Table Rock Fields,soccer,pitch,42.4567196,-75.077694,,,NY,,false,true,false,openstreetmap
+Taylor Field,soccer,pitch,41.6840299,-73.9023677,,,NY,,false,true,false,openstreetmap
+The Metropolitan Oval,soccer,pitch,40.7146582,-73.907229,,,NY,,false,true,false,openstreetmap
+The Pit,soccer,pitch,40.719239,-73.9928259,,,NY,,false,true,false,openstreetmap
+Thorpe Athletic Field,soccer,pitch,40.885566,-73.6443266,,,NY,,false,true,false,openstreetmap
+U,soccer,pitch,42.8249608,-78.7650818,,,NY,,false,true,false,openstreetmap
+U11-U12: Field #1,soccer,pitch,42.9981302,-77.3921017,,,NY,,false,true,false,openstreetmap
+U8-U10: Field #2,soccer,pitch,42.9982618,-77.3942713,,,NY,,false,true,false,openstreetmap
+Upper 90 Soccer Brooklyn,soccer,pitch,40.6876531,-73.9862283,359 Atlantic Avenue,,NY,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,43.039578,-76.0947135,,,NY,,false,true,false,openstreetmap
+Upper Gedney Field,soccer,pitch,41.1844302,-73.7975277,,,NY,,false,true,false,openstreetmap
+Upper Pitch,soccer,pitch,43.8895208,-75.6796994,,,NY,,false,true,false,openstreetmap
+V,soccer,pitch,42.8249575,-78.764844,,,NY,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,43.1946568,-76.8327631,,,NY,,false,true,false,openstreetmap
+Village of Tarrytown,soccer,pitch,41.0806146,-73.8492196,,,NY,,false,true,false,openstreetmap
+W,soccer,pitch,42.8246795,-78.7650827,,,NY,,false,true,false,openstreetmap
+Wachenheim Field,soccer,pitch,43.0939813,-73.7880287,,,NY,,false,true,false,openstreetmap
+Walton School Soccer Field,soccer,pitch,42.1591354,-75.1287095,,,NY,,false,true,false,openstreetmap
+Warsaw Tigers,soccer,pitch,42.7458015,-78.1364547,,,NY,,false,true,false,openstreetmap
+William Smith Field,soccer,pitch,42.8584986,-76.9908451,,,NY,,false,true,false,openstreetmap
+X,soccer,pitch,42.8246808,-78.7648485,,,NY,,false,true,false,openstreetmap
+Delaware Soccer Club,soccer,pitch,42.9478696,-78.8554094,1424 Hertel Avenue,Buffalo,NY,14216,false,true,false,openstreetmap
+Field of Dreams,soccer,pitch,40.7353869,-73.5449931,406 Salisbury Park Drive,East Meadow,NY,,false,true,false,openstreetmap
+Sahlen's Sports Park,soccer,sports_centre,42.8029364,-78.663726,7070 Seneca Street,Elma,NY,14059,false,true,false,openstreetmap
+Napoli Soccer Club,soccer,pitch,40.867823,-73.6306911,106 School Street,Glen Cove,NY,11542,false,true,false,openstreetmap
+Tech City Soccer Fields,soccer,sports_centre,41.9650814,-73.9943498,76 Boices Lane,Kingston,NY,12401,false,true,false,openstreetmap
+Syracuse Indoor Sports Center,soccer,sports_centre,43.1094719,-76.1718145,4989 Hopkins Road,Liverpool,NY,13088,false,true,false,openstreetmap
+North Bedford Road Field,soccer,pitch,41.2183292,-73.7213284,333 North Bedford Road,Mount Kisco,NY,10549,false,true,false,openstreetmap
+Soccer Stars,soccer,sports_centre,40.7887083,-73.9708122,606 Columbus Avenue,New York,NY,10024,false,true,false,openstreetmap
+Upper 90 Soccer,soccer,pitch,40.7884138,-73.9771822,250 West 86th Street,New York,NY,10024,false,true,false,openstreetmap
+KASL Fields,soccer,pitch,41.9985225,-73.9666752,1 Kukuk Lane,Saugerties,NY,12477,false,true,false,openstreetmap
+Fireman's Field,soccer,pitch,41.3264054,-73.6924984,258 United States Highway 202,Somers,NY,10589,false,true,false,openstreetmap
+Rising Stars Soccer Club of CNY,soccer,sports_centre,43.1088435,-75.4027968,4980 Route 233,Westmoreland,NY,13490,false,true,false,openstreetmap

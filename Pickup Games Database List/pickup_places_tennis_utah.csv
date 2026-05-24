@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BYU outdoor tennis courts,tennis,pitch,40.2456468,-111.6552065,,,UT,,false,true,false,openstreetmap
+Edman Tennis Courts,tennis,sports_centre,41.1902403,-111.9413404,,,UT,,false,true,false,openstreetmap
+Indoor Tennis Courts,tennis,sports_centre,40.1036521,-111.6535305,,,UT,,false,true,false,openstreetmap
+Ivory Ridge Indoor Courts,tennis,pitch,40.4287774,-111.848085,,,UT,,true,false,false,openstreetmap
+Lagoon Tennis Courts,tennis,pitch,40.9833527,-111.8965781,,,UT,,false,true,false,openstreetmap
+Layton City,tennis,pitch,41.0927377,-111.9254155,,,UT,,false,true,false,openstreetmap
+Layton City,tennis,pitch,41.0747008,-111.9337711,,,UT,,false,true,false,openstreetmap
+Logan High School Tennis Courts,tennis,sports_centre,41.7267338,-111.8384023,,,UT,,false,true,false,openstreetmap
+Provo High Tennis Courts,tennis,pitch,40.2494355,-111.7186538,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.7632066,-111.8310412,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.7632056,-111.8308297,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.7628238,-111.8309236,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.7628238,-111.8311322,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.7624614,-111.8309258,,,UT,,false,true,false,openstreetmap
+Sports Academy,tennis,pitch,41.762462,-111.831136,,,UT,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.7140345,-112.1050776,,,UT,84044,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.6072478,-110.8061084,,,UT,,false,true,false,openstreetmap
+Tennis Courts Building,tennis,pitch,40.2466608,-111.6540816,,,UT,,false,true,false,openstreetmap
+Thunderbird Tennis Courts,tennis,sports_centre,37.6738093,-113.0769101,,,UT,,false,true,false,openstreetmap
+Trappers Ridge Homeowners Association,tennis,pitch,41.3212508,-111.8091912,,,UT,,false,true,false,openstreetmap

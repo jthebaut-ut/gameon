@@ -18,6 +18,7 @@ struct FanGeoAppleSignInButton: View {
             currentNonce = nonce
             isAuthorizing = true
             print("[AppleAuthDebug] buttonTapped=true accountMode=\(accountMode.rawValue) entryPoint=\(entryPoint.rawValue)")
+            print("[AppleAuthDebug] bypassEmailPasswordSignup=true")
             if entryPoint == .fanSignup {
                 print("[FanSignupDebug] appleButtonTapped=true")
             }

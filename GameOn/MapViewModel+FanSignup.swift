@@ -72,6 +72,7 @@ extension MapViewModel {
         guard OwnerBusinessEmail.isValidStrict(fanEmail) else {
             let message = OwnerBusinessEmail.invalidOwnerEmailUserMessage
             await MainActor.run { authErrorMessage = message }
+            print("[EmailConfirmDebug] formValidationFailed reason=invalid_email")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -84,6 +85,7 @@ extension MapViewModel {
         guard !trimmedPassword.isEmpty else {
             let message = "Password is required."
             await MainActor.run { authErrorMessage = message }
+            print("[EmailConfirmDebug] formValidationFailed reason=password_required")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -94,6 +96,7 @@ extension MapViewModel {
 
         let displayName = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !displayName.isEmpty else {
+            print("[EmailConfirmDebug] formValidationFailed reason=display_name_required")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -104,6 +107,7 @@ extension MapViewModel {
 
         if ModerationService.containsProfanity(displayName) {
             let message = ModerationService.profanityRejectionUserMessage()
+            print("[EmailConfirmDebug] formValidationFailed reason=display_name_profanity")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -114,6 +118,7 @@ extension MapViewModel {
 
         if let issue = FanGeoHandleRules.validate(profile.handle) {
             print("[HandleValidationDebug] handleRejected reason=\(issue)")
+            print("[EmailConfirmDebug] formValidationFailed reason=invalid_handle")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .validation,
@@ -122,52 +127,26 @@ extension MapViewModel {
             )
         }
 
-        let storedHandle = FanGeoHandleRules.normalizeForStorage(profile.handle)
-        if let available = await checkUsernameAvailableForSignup(profile.handle) {
-            print("[SignupUX] handleCheck username=\(storedHandle) available=\(available)")
-            print("[HandleValidationDebug] handleAvailable=\(available)")
-            guard available else {
-                print("[HandleValidationDebug] handleRejected reason=already_taken")
-                return FanSignupSubmitOutcome(
-                    succeeded: false,
-                    failureStep: .validation,
-                    errorMessage: "That handle is already taken.",
-                    authSucceeded: false
-                )
-            }
-        } else {
-            return FanSignupSubmitOutcome(
-                succeeded: false,
-                failureStep: .validation,
-                errorMessage: "Could not verify whether this handle is available. Please try again.",
-                authSucceeded: false
-            )
-        }
-
         await MainActor.run { authErrorMessage = "" }
 
-        if await businessAccountExistsForOwnerEmailOnly(fanEmail) {
-            let message = Self.fanLoginBlockedBecauseBusinessMessage
-            await MainActor.run { authErrorMessage = message }
-            return FanSignupSubmitOutcome(
-                succeeded: false,
-                failureStep: .auth,
-                errorMessage: message,
-                authSucceeded: false
-            )
-        }
+        print("[EmailConfirmDebug] formValidationPassed=true")
 
         let signUpResponse: AuthResponse
         do {
+            print("[EmailConfirmDebug] callingAuthSignUp=true")
             signUpResponse = try await supabase.auth.signUp(
                 email: fanEmail,
                 password: trimmedPassword,
                 redirectTo: Self.emailVerificationRedirectURL
             )
+            print("[EmailConfirmDebug] authSignUpSucceeded=true")
+            print("[EmailConfirmDebug] authSignUpUserId=\(signUpResponse.user.id.uuidString.lowercased())")
+            print("[EmailConfirmDebug] authSignUpSessionNil=\(signUpResponse.session == nil)")
         } catch {
             let message = Self.userFacingAuthSignupErrorMessage(error)
             await MainActor.run { authErrorMessage = message }
             print("[SignupUX] submitFailed step=auth error=\(message)")
+            print("[EmailConfirmDebug] authSignUpFailed error=\(String(reflecting: error)) localized=\(error.localizedDescription)")
             return FanSignupSubmitOutcome(
                 succeeded: false,
                 failureStep: .auth,
@@ -185,8 +164,15 @@ extension MapViewModel {
               Self.userEmailConfirmed(session.user) else {
             await forceLogout(reason: "fanSignupNeedsEmailConfirmation", source: "MapViewModel.registerFanAccountWithProfile")
             await MainActor.run {
+                pendingFanEmailSignupDraft = PendingFanEmailSignupDraft(
+                    email: fanEmail,
+                    profile: profile,
+                    recordFanGuidelinesAcceptance: recordFanGuidelinesAcceptance
+                )
                 markEmailVerificationPending(email: fanEmail, kind: .fan)
             }
+            print("[EmailConfirmDebug] authUserCreatedPending=true")
+            print("[EmailConfirmDebug] profileCreationDeferred=true")
             return FanSignupSubmitOutcome(
                 succeeded: true,
                 failureStep: nil,
@@ -385,6 +371,74 @@ extension MapViewModel {
             errorMessage: nil,
             authSucceeded: true
         )
+    }
+
+    func completePendingEmailFanSignupAfterConfirmation(
+        session: Session,
+        draft: PendingFanEmailSignupDraft
+    ) async -> Bool {
+        let fanEmail = OwnerBusinessEmail.normalized(session.user.email ?? draft.email)
+        guard OwnerBusinessEmail.isValidStrict(fanEmail),
+              Self.userEmailConfirmed(session.user) else {
+            return false
+        }
+
+        if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
+            await undoPartialSupabaseSessionAfterAccountTypeMismatch()
+            let message = Self.fanLoginBlockedBecauseBusinessMessage
+            await MainActor.run { authErrorMessage = message }
+            return true
+        }
+
+        await MainActor.run {
+            clearAuthenticatedSessionCaches()
+            resetProfilePresentationLoadStateForNewAuth()
+            currentUserAuthId = session.user.id
+            currentUserEmail = fanEmail
+            currentUserDisplayName = ""
+            currentUserUsername = ""
+            currentUserBio = ""
+            currentUserIsBusinessAccount = false
+            currentUserAvatarURL = ""
+            currentUserAvatarThumbnailURL = ""
+            isLoggedIn = false
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            bumpCurrentUserAvatarDisplayRefresh()
+        }
+
+        if let profileSaveError = await finishFanSignupProfile(profile: draft.profile) {
+            await forceLogout(reason: "emailConfirmedFanProfileSaveFailed", source: "MapViewModel.completePendingEmailFanSignupAfterConfirmation")
+            await MainActor.run {
+                authErrorMessage = profileSaveError
+                emailVerificationError = profileSaveError
+            }
+            print("[SignupUX] submitFailed step=profile error=\(profileSaveError)")
+            return true
+        }
+
+        await MainActor.run {
+            isLoggedIn = true
+            isVenueOwnerLoggedIn = false
+            venueOwnerMode = false
+            authSessionState = .signedIn
+            pendingFanEmailSignupDraft = nil
+            pendingEmailVerificationEmail = ""
+            pendingEmailVerificationKind = nil
+            emailVerificationError = ""
+            emailVerificationMessage = "Email verified. Your FanGeo profile is ready."
+        }
+        await persistAccountModeForActiveAuthSession(.fanUser)
+        clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+        await registerFanActiveSessionOnLogin()
+
+        if draft.recordFanGuidelinesAcceptance {
+            UserDefaults.standard.set(true, forKey: "fanGuidelinesAccepted")
+        }
+
+        print("[SignupUX] profileCreated")
+        Task { await refreshUserPersonalizationInBackground() }
+        return true
     }
 
     private func finishFanSignupProfile(profile: FanSignupProfileInput) async -> String? {

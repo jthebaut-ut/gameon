@@ -1,0 +1,291 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,37.7126978,-121.8565069,,,CA,,false,true,false,openstreetmap
+1,tennis,pitch,37.5569785,-121.9605529,,,CA,,false,true,false,openstreetmap
+10,tennis,pitch,37.5573033,-121.9598781,,,CA,,false,true,false,openstreetmap
+11,tennis,pitch,37.5573035,-121.9596711,,,CA,,false,true,false,openstreetmap
+12,tennis,pitch,37.5573036,-121.9594641,,,CA,,false,true,false,openstreetmap
+13,tennis,pitch,37.5576563,-121.9598761,,,CA,,false,true,false,openstreetmap
+14,tennis,pitch,37.5576565,-121.9596691,,,CA,,false,true,false,openstreetmap
+15,tennis,pitch,37.5576568,-121.959462,,,CA,,false,true,false,openstreetmap
+16,tennis,pitch,37.5579823,-121.9598735,,,CA,,false,true,false,openstreetmap
+17,tennis,pitch,37.5579824,-121.9596664,,,CA,,false,true,false,openstreetmap
+18,tennis,pitch,37.5579826,-121.9594594,,,CA,,false,true,false,openstreetmap
+2,tennis,pitch,37.5569781,-121.9603482,,,CA,,false,true,false,openstreetmap
+2,tennis,pitch,37.7126999,-121.8563438,,,CA,,false,true,false,openstreetmap
+3,tennis,pitch,37.5569777,-121.9601435,,,CA,,false,true,false,openstreetmap
+3,tennis,pitch,37.7127009,-121.8561755,,,CA,,false,true,false,openstreetmap
+4,tennis,pitch,37.5569773,-121.9598807,,,CA,,false,true,false,openstreetmap
+4,tennis,pitch,37.712702,-121.8560112,,,CA,,false,true,false,openstreetmap
+4 minitennis,tennis,pitch,33.7417572,-116.4006591,,,CA,,false,true,false,openstreetmap
+4 minitennis,tennis,pitch,33.7417969,-116.400465,,,CA,,false,true,false,openstreetmap
+5,tennis,pitch,37.5569775,-121.9596738,,,CA,,false,true,false,openstreetmap
+6,tennis,pitch,37.5569778,-121.9594668,,,CA,,false,true,false,openstreetmap
+7,tennis,pitch,37.5573064,-121.9605519,,,CA,,false,true,false,openstreetmap
+8,tennis,pitch,37.557306,-121.9603472,,,CA,,false,true,false,openstreetmap
+9,tennis,pitch,37.5573053,-121.9601425,,,CA,,false,true,false,openstreetmap
+963,tennis,pitch,37.409415,-122.0603737,,,CA,,false,true,false,openstreetmap
+Abandoned,tennis,pitch,37.4358065,-122.2378584,,,CA,,false,true,false,openstreetmap
+Albert A. Hutler Tennis Center,tennis,sports_centre,32.8754701,-117.2170612,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6778373,-118.188666,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6778408,-118.1884998,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6778436,-118.188341,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6778422,-118.1881786,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6781686,-118.1881768,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6781731,-118.1883393,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6781701,-118.1884963,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,tennis,pitch,34.6781672,-118.1886622,,,CA,,false,true,false,openstreetmap
+Aragon tennis courts,tennis,pitch,37.5491538,-122.3289813,,,CA,,false,true,false,openstreetmap
+Arnhold Tennis Center,tennis,sports_centre,34.4168298,-119.8508813,,,CA,,false,true,false,openstreetmap
+Aztec Tennis Center,tennis,sports_centre,32.7742125,-117.0805902,,,CA,,false,true,false,openstreetmap
+Bay Club Tennis Courts,tennis,pitch,37.5189914,-122.2509481,,,CA,,false,true,false,openstreetmap
+Beach Cove Apartments,tennis,pitch,37.5526732,-122.2585367,,,CA,,false,true,false,openstreetmap
+Bernardo Pines Tennis Court,tennis,pitch,33.0335563,-117.0751461,,,CA,,false,true,false,openstreetmap
+Bodega Harbor Tennis Court 1,tennis,pitch,38.3127618,-123.0267946,,,CA,,false,true,false,openstreetmap
+Bodega Harbor Tennis Court 2,tennis,pitch,38.3124821,-123.0270151,,,CA,,false,true,false,openstreetmap
+Buena Vista Park Tennis Courts,tennis,sports_centre,37.7694874,-122.439356,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6362103,-117.6573628,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6362082,-117.6571524,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6362055,-117.6569504,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6362029,-117.6567505,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6358709,-117.6567527,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6358735,-117.6569526,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6358762,-117.6571547,,,CA,,false,true,false,openstreetmap
+Burroughs High School,tennis,pitch,35.6358781,-117.6573652,,,CA,,false,true,false,openstreetmap
+BusterPro Tennis,tennis,pitch,34.0528241,-118.4670142,,,CA,,false,true,false,openstreetmap
+Calabasas Park Estates Tennis Courts West,tennis,pitch,34.1386487,-118.6672206,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.786164,-122.4378222,1770 Scott Street,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7861075,-122.4380154,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7861276,-122.4378507,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7861544,-122.4376418,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.786175,-122.4374873,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7861946,-122.4373338,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7857835,-122.4377753,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7858045,-122.4376146,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7858251,-122.4374526,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7858578,-122.4372511,,,CA,,false,true,false,openstreetmap
+California Tennis Club,tennis,pitch,37.7858757,-122.4370976,,,CA,,false,true,false,openstreetmap
+Carnelian Woods,tennis,pitch,39.2287716,-120.0802261,,,CA,,false,true,false,openstreetmap
+Carnelian Woods,tennis,pitch,39.2288676,-120.0804021,,,CA,,false,true,false,openstreetmap
+Carnelian Woods,tennis,pitch,39.2289881,-120.0805617,,,CA,,false,true,false,openstreetmap
+Castellucci Family Tennis Center,tennis,pitch,37.9800173,-122.5181136,,,CA,,false,true,false,openstreetmap
+Claremont Tennis Shop,tennis,pitch,37.8357015,-122.2471515,,,CA,,false,true,false,openstreetmap
+Community Tennis Court,tennis,pitch,38.0172914,-121.8768246,,,CA,,false,true,false,openstreetmap
+Community Tennis Courts,tennis,pitch,33.9710267,-117.7513003,,,CA,,false,true,false,openstreetmap
+Country Club Tennis Courts,tennis,pitch,34.18542,-118.1209056,,,CA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,33.1596903,-117.2849387,,,CA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,35.2115802,-120.626032,,,CA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,33.1596898,-117.2850971,,,CA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,35.2116108,-120.6262238,,,CA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,33.1596889,-117.2852548,,,CA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,35.2112909,-120.6263084,,,CA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,33.160021,-117.2849452,,,CA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,35.2113253,-120.6265063,,,CA,,false,true,false,openstreetmap
+Court 5,tennis,pitch,33.1600213,-117.2851012,,,CA,,false,true,false,openstreetmap
+Court 5,tennis,pitch,35.2110326,-120.6265352,,,CA,,false,true,false,openstreetmap
+Court 6,tennis,pitch,33.1600185,-117.2852577,,,CA,,false,true,false,openstreetmap
+Court 6,tennis,pitch,35.2108806,-120.6266409,,,CA,,false,true,false,openstreetmap
+Crystyl Ranch Tennis Courts,tennis,pitch,37.9323478,-121.9764897,,,CA,,false,true,false,openstreetmap
+Cyprus Landing Tennis Courts,tennis,pitch,36.6882801,-121.6570675,,,CA,,false,true,false,openstreetmap
+Degheri Tennis Center,tennis,pitch,37.3484354,-121.9350141,,,CA,,false,true,false,openstreetmap
+Demuth Tennis Court,tennis,pitch,33.8077867,-116.4975931,,,CA,,false,true,false,openstreetmap
+Dignity Health Tennis Center,tennis,stadium,33.8625153,-118.261101,,,CA,,false,true,false,openstreetmap
+Don Johnson Tennis Courts,tennis,sports_centre,37.3529111,-121.884935,,,CA,,false,true,false,openstreetmap
+Douglas F. Manchester Tennis Center,tennis,pitch,32.8415998,-117.2770777,,,CA,,false,true,false,openstreetmap
+Dutch Flat Community Center,tennis,pitch,39.2045879,-120.8373599,,,CA,,false,true,false,openstreetmap
+East Tennis Courts,tennis,pitch,32.7742563,-117.1818083,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4162481,-119.7403504,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4163269,-119.740167,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4159417,-119.7399892,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4158557,-119.7401875,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4155932,-119.7398685,,,CA,,false,true,false,openstreetmap
+Elings Park Tennis Courts,tennis,pitch,34.4155114,-119.7400525,,,CA,,false,true,false,openstreetmap
+Flint Canyon Tennis Club,tennis,sports_centre,34.1887663,-118.1820183,265 Berkshire Avenue,,CA,,false,true,false,openstreetmap
+Frances M. McAteer Tennis Courts,tennis,pitch,37.7349865,-122.4782693,,,CA,,false,true,false,openstreetmap
+Glorietta Park Tennis Courts,tennis,pitch,34.1879267,-118.2275493,,,CA,,false,true,false,openstreetmap
+Golden State Tennis,tennis,pitch,37.7803765,-122.4745015,5129 Geary Boulevard,,CA,,false,true,false,openstreetmap
+Handball Court,tennis,pitch,36.0608029,-119.5519383,,,CA,,false,true,false,openstreetmap
+Harilela International Tennis Stadium,tennis,sports_centre,34.0392854,-118.7096136,,,CA,,false,true,false,openstreetmap
+Hellman Tennis Center,tennis,sports_centre,37.8699679,-122.2650522,,,CA,,false,true,false,openstreetmap
+J. Mark Bledstein '67 Family Court,tennis,pitch,34.4171278,-119.8509564,,,CA,,false,true,false,openstreetmap
+Jastro Park Tennis Courts,tennis,sports_centre,35.3737366,-119.035691,TRUXTUN AVE,,CA,,false,true,false,openstreetmap
+Junior tennis courts,tennis,pitch,37.5566636,-121.9596332,,,CA,,false,true,false,openstreetmap
+Junior tennis courts,tennis,pitch,37.5564632,-121.9597433,,,CA,,false,true,false,openstreetmap
+Koret Teaching and Learning Center,tennis,pitch,37.7699489,-122.4596201,,,CA,,false,true,false,openstreetmap
+LACC Tennis Courts,tennis,pitch,34.0848189,-118.2933695,,,CA,,false,true,false,openstreetmap
+La Cienega Tennis Center,tennis,pitch,34.0611607,-118.3767506,,,CA,,false,true,false,openstreetmap
+Lake Gregory Tennis Court,tennis,pitch,34.2426555,-117.2776576,,,CA,,false,true,false,openstreetmap
+Leonard Andrews Tennis Center,tennis,sports_centre,33.8929725,-117.9261323,,,CA,,false,true,false,openstreetmap
+Lifetime Tennis,tennis,pitch,37.7702779,-122.4594942,,,CA,,false,true,false,openstreetmap
+Lin Court,tennis,pitch,41.0600087,-124.1427985,,,CA,,false,true,false,openstreetmap
+Los Angeles Tennis Club,tennis,sports_centre,34.0824102,-118.3302288,,,CA,,false,true,false,openstreetmap
+Lower Tennis Court,tennis,pitch,34.12348,-117.737272,,,CA,,false,true,false,openstreetmap
+Lower Tennis Court,tennis,pitch,34.1234805,-117.7374702,,,CA,,false,true,false,openstreetmap
+Lower Tennis Court,tennis,pitch,34.1234812,-117.7376693,,,CA,,false,true,false,openstreetmap
+Mango Park Tennis Courts,tennis,pitch,37.3598173,-122.0519515,,,CA,,false,true,false,openstreetmap
+Manteca High Tennis,tennis,pitch,37.7950854,-121.2077233,,,CA,,false,true,false,openstreetmap
+Maple Community Park,tennis,sports_centre,38.5190378,-121.471831,,,CA,,false,true,false,openstreetmap
+Marlin Park Tennis Courts,tennis,pitch,37.5315169,-122.2481806,,,CA,,false,true,false,openstreetmap
+Matador Tennis Complex,tennis,pitch,34.2441487,-118.524015,,,CA,,false,true,false,openstreetmap
+Meadow Creek Tennis Court,tennis,pitch,37.8032791,-121.9460115,,,CA,,false,true,false,openstreetmap
+Middle Beach Tennis Courts,tennis,pitch,37.0092232,-122.0437476,,,CA,,false,true,false,openstreetmap
+Milpitas High Tennis Courts,tennis,sports_centre,37.4514389,-121.9038029,,,CA,,false,true,false,openstreetmap
+Mission Blue Tennis Courts,tennis,pitch,37.69238,-122.4146898,,,CA,,false,true,false,openstreetmap
+Mission Dolores Park,tennis,sports_centre,37.7610402,-122.4271904,,,CA,,false,true,false,openstreetmap
+Mission Dolores Park,tennis,sports_centre,37.7610743,-122.4266148,,,CA,,false,true,false,openstreetmap
+Muir Tennis Courts,tennis,pitch,32.8778405,-117.2428826,,,CA,,false,true,false,openstreetmap
+Mulholland Tennis Club,tennis,sports_centre,34.1180724,-118.3912133,,,CA,,false,true,false,openstreetmap
+Mulholland Tennis Club,tennis,pitch,34.1183179,-118.3906597,,,CA,,false,true,false,openstreetmap
+NMHS Tennis Courts,tennis,pitch,37.5210627,-122.0040518,,,CA,,false,true,false,openstreetmap
+Newport Beach Tennis Club,tennis,sports_centre,33.641829,-117.8749477,,,CA,,false,true,false,openstreetmap
+North Tennis Courts,tennis,pitch,34.1423404,-118.3401477,,,CA,,false,true,false,openstreetmap
+Northview Tennis Courts,tennis,pitch,32.8900874,-117.2416276,,,CA,,false,true,false,openstreetmap
+Oak Park Tennis Courts,tennis,pitch,34.4312315,-119.7275046,,,CA,,false,true,false,openstreetmap
+Oak Park Tennis Courts,tennis,pitch,34.4311817,-119.7273632,,,CA,,false,true,false,openstreetmap
+Oasis Tennis Court,tennis,pitch,33.7404283,-116.3264358,,,CA,,false,true,false,openstreetmap
+Oasis Tennis Courts,tennis,pitch,33.7403168,-116.327071,,,CA,,false,true,false,openstreetmap
+Palisades Canyon HOA,tennis,pitch,33.9792768,-117.7282159,,,CA,,false,true,false,openstreetmap
+Palm Springs Tennis Club,tennis,sports_centre,33.8188095,-116.5531219,,,CA,,false,true,false,openstreetmap
+Pauley Tennis Courts,tennis,sports_centre,34.0984026,-117.7087806,,,CA,,false,true,false,openstreetmap
+Pauley Tennis Courts (Lower),tennis,sports_centre,34.0988789,-117.7077045,,,CA,,false,true,false,openstreetmap
+Pauley Tennis Courts (Upper),tennis,sports_centre,34.0993297,-117.7080984,,,CA,,false,true,false,openstreetmap
+PayPal Tennis Court,tennis,pitch,37.376325,-121.924032,,,CA,,false,true,false,openstreetmap
+Peter Folger Tennis Courts,tennis,pitch,37.7366586,-122.440206,,,CA,,false,true,false,openstreetmap
+Pickleball,tennis,pitch,33.0295253,-117.2582785,,,CA,,false,true,false,openstreetmap
+Pine Hollow Tennis Courts,tennis,pitch,37.9409456,-121.9634315,,,CA,,false,true,false,openstreetmap
+Pine Hollow Tennis Courts,tennis,pitch,37.9408869,-121.96316,,,CA,,false,true,false,openstreetmap
+Pool Tennis Court,tennis,pitch,34.1249396,-117.7379425,,,CA,,false,true,false,openstreetmap
+Practice Court,tennis,pitch,33.8803994,-117.8916821,,,CA,,false,true,false,openstreetmap
+Practice Court,tennis,pitch,35.1279089,-120.6202297,,,CA,,false,true,false,openstreetmap
+Practice Court 1,tennis,pitch,33.7228924,-116.3058109,,,CA,,false,true,false,openstreetmap
+Practice Court 10,tennis,pitch,33.7221548,-116.3065225,,,CA,,false,true,false,openstreetmap
+Practice Court 11,tennis,pitch,33.7221551,-116.3062752,,,CA,,false,true,false,openstreetmap
+Practice Court 12,tennis,pitch,33.7221556,-116.3060727,,,CA,,false,true,false,openstreetmap
+Practice Court 13,tennis,pitch,33.7221561,-116.3058092,,,CA,,false,true,false,openstreetmap
+Practice Court 14,tennis,pitch,33.7221564,-116.3056063,,,CA,,false,true,false,openstreetmap
+Practice Court 15,tennis,pitch,33.7221657,-116.3052648,,,CA,,false,true,false,openstreetmap
+Practice Court 16,tennis,pitch,33.7221659,-116.3049233,,,CA,,false,true,false,openstreetmap
+Practice Court 17,tennis,pitch,33.7221666,-116.3045505,,,CA,,false,true,false,openstreetmap
+Practice Court 18,tennis,pitch,33.7221666,-116.3042088,,,CA,,false,true,false,openstreetmap
+Practice Court 19,tennis,pitch,33.722167,-116.303836,,,CA,,false,true,false,openstreetmap
+Practice Court 2,tennis,pitch,33.7228927,-116.3056072,,,CA,,false,true,false,openstreetmap
+Practice Court 20,tennis,pitch,33.7221671,-116.303496,,,CA,,false,true,false,openstreetmap
+Practice Court 3,tennis,pitch,33.7225251,-116.3056063,,,CA,,false,true,false,openstreetmap
+Practice Court 4,tennis,pitch,33.7225251,-116.3058092,,,CA,,false,true,false,openstreetmap
+Practice Court 5,tennis,pitch,33.7225247,-116.3060743,,,CA,,false,true,false,openstreetmap
+Practice Court 6,tennis,pitch,33.7225239,-116.3062762,,,CA,,false,true,false,openstreetmap
+Practice Court 7,tennis,pitch,33.7225239,-116.3065242,,,CA,,false,true,false,openstreetmap
+Practice Court 8,tennis,pitch,33.7225231,-116.3067269,,,CA,,false,true,false,openstreetmap
+Practice Court 9,tennis,pitch,33.7221541,-116.3067248,,,CA,,false,true,false,openstreetmap
+Quail Run Tennis Court,tennis,pitch,36.3372114,-119.3521111,,,CA,,false,true,false,openstreetmap
+Rancho Upper Tennis Courts,tennis,pitch,37.8628141,-122.0851196,,,CA,,false,true,false,openstreetmap
+Ray Love Tennis Center,tennis,sports_centre,33.0765477,-117.0614541,,,CA,,false,true,false,openstreetmap
+Residence Inn Tennis Courts,tennis,pitch,34.2312094,-119.197853,,,CA,,false,true,false,openstreetmap
+Riviera Tennis Club,tennis,sports_centre,34.0510914,-118.4991764,,,CA,,false,true,false,openstreetmap
+Roman Pool,tennis,pitch,35.6859694,-121.167116,,,CA,,false,true,false,openstreetmap
+San Mateo High Tennis Court,tennis,pitch,37.5786414,-122.3289958,,,CA,,false,true,false,openstreetmap
+Santa Monica Tennis Center,tennis,pitch,34.0356467,-118.478207,,,CA,,false,true,false,openstreetmap
+Saugus High School Tennis Court,tennis,pitch,34.4403467,-118.5174258,,,CA,,false,true,false,openstreetmap
+Shorebird Park Tennis Courts,tennis,pitch,37.5347273,-122.2543704,,,CA,,false,true,false,openstreetmap
+South Campus Tennis Courts,tennis,sports_centre,34.0952271,-117.7116623,,,CA,,false,true,false,openstreetmap
+Spartan Tennis Complex,tennis,sports_centre,37.321575,-121.8677536,,,CA,,false,true,false,openstreetmap
+Stadium 1,tennis,stadium,33.7239269,-116.306009,,,CA,,false,true,false,openstreetmap
+Stadium 2,tennis,stadium,33.7245829,-116.3033307,,,CA,,false,true,false,openstreetmap
+Stadium 3,tennis,pitch,33.7234404,-116.3039099,,,CA,,false,true,false,openstreetmap
+Stadium 3,tennis,stadium,33.7234366,-116.3039218,,,CA,,false,true,false,openstreetmap
+Stadium 4,tennis,pitch,33.7227708,-116.3050667,,,CA,,false,true,false,openstreetmap
+Stadium 5,tennis,pitch,33.7226479,-116.3045537,,,CA,,false,true,false,openstreetmap
+Stadium 6,tennis,pitch,33.7226479,-116.3042097,,,CA,,false,true,false,openstreetmap
+Stadium 7,tennis,pitch,33.7227876,-116.3033114,,,CA,,false,true,false,openstreetmap
+Stadium 8,tennis,pitch,33.7231936,-116.3033104,,,CA,,false,true,false,openstreetmap
+Stadium 9,tennis,pitch,33.7236009,-116.3033114,,,CA,,false,true,false,openstreetmap
+Stadium Tennis Courts,tennis,sports_centre,34.4189822,-119.854142,,,CA,,false,true,false,openstreetmap
+Steve Davis '93 & Amparos-Davis '94 Family Court,tennis,pitch,34.4171261,-119.8507569,,,CA,,false,true,false,openstreetmap
+Sun Oaks Tennis & Fitness,tennis,sports_centre,40.5571661,-122.3067561,,,CA,,false,true,false,openstreetmap
+Surf & Turf Tennis Club,tennis,pitch,32.9771199,-117.2530823,,,CA,,false,true,false,openstreetmap
+Sycamore Park Tennis Club,tennis,sports_centre,34.0262685,-118.7649238,,,CA,,false,true,false,openstreetmap
+Taube Family Championship Court,tennis,pitch,37.7700389,-122.4588633,,,CA,,false,true,false,openstreetmap
+Taube Family Feature Court,tennis,pitch,37.7700264,-122.4593076,,,CA,,false,true,false,openstreetmap
+Taube Tennis Center,tennis,stadium,37.4306337,-122.1623919,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,37.9194505,-122.0015597,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.6567998,-117.6657357,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9707966,-117.3785687,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9592742,-117.3493369,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9592914,-117.3495387,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9592407,-117.3497292,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9596527,-117.3495994,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9599817,-117.3496939,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9600367,-117.3494999,,,CA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.9596662,-117.3493232,,,CA,,false,true,false,openstreetmap
+Tennis / Arena Soccer Courts,tennis,track,36.8498197,-121.4072475,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,34.7416135,-120.0919824,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,38.8814352,-120.0707636,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,36.0602135,-119.5508816,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6789402,-117.1687433,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,34.03939,-118.6778878,,,CA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6487647,-117.7058396,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,34.1180994,-118.1462887,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,38.654973,-121.1053972,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,38.1020126,-122.2129132,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,38.7303736,-120.8950239,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,38.0728718,-122.2089851,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.517969,-117.6677685,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,38.275145,-122.2762575,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,35.9749086,-118.5389468,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,34.1482406,-118.0181602,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.9320117,-116.8788099,,,CA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,37.1044363,-121.6346492,,,CA,,false,true,false,openstreetmap
+Tennis Warehouse,tennis,pitch,35.2421408,-120.669464,,,CA,,false,true,false,openstreetmap
+Tennis court,tennis,pitch,39.3276716,-120.1751226,,,CA,,false,true,false,openstreetmap
+The Biszantz Family Tennis Center,tennis,sports_centre,34.0986126,-117.7050191,,,CA,,false,true,false,openstreetmap
+The Courts,tennis,sports_centre,33.2572782,-116.3953527,,,CA,,false,true,false,openstreetmap
+The Preserve Tennis Courts,tennis,pitch,37.5410679,-122.2483734,,,CA,,false,true,false,openstreetmap
+The Tennis Club at Monarch Beach,tennis,pitch,33.4829101,-117.7136656,,,CA,,false,true,false,openstreetmap
+Titus Park - Tennis Courts,tennis,pitch,36.5683601,-121.7073647,,,CA,,false,true,false,openstreetmap
+Upland High School Tennis Courts,tennis,pitch,34.1064268,-117.6583211,,,CA,,false,true,false,openstreetmap
+Upper Hearst Parking Structure,tennis,parking,37.8757565,-122.257367,,,CA,,false,true,false,openstreetmap
+Upper Tennis Court,tennis,pitch,34.1259459,-117.7383148,,,CA,,false,true,false,openstreetmap
+Upper Tennis Court,tennis,pitch,34.1259909,-117.7385053,,,CA,,false,true,false,openstreetmap
+V - Tennis Courts,tennis,pitch,36.6725788,-121.6687296,,,CA,,false,true,false,openstreetmap
+Valencia Hills Tennis Court,tennis,pitch,34.3874156,-118.5564069,,,CA,,false,true,false,openstreetmap
+Vermont Canyon Tennis Courts,tennis,pitch,34.1214617,-118.2933922,,,CA,,false,true,false,openstreetmap
+Villa Balboa Tennis Court A,tennis,pitch,33.625068,-117.9316603,,,CA,,false,true,false,openstreetmap
+Villa Balboa Tennis Court B,tennis,pitch,33.6247754,-117.9315583,,,CA,,false,true,false,openstreetmap
+Vista Tennis Club,tennis,sports_centre,33.2278354,-117.2337121,,,CA,,false,true,false,openstreetmap
+WC Tennis Center,tennis,sports_centre,34.1861307,-118.5959432,6336,,CA,,false,true,false,openstreetmap
+Weisshaar Park,tennis,park,37.4190044,-122.1522533,,,CA,,false,true,false,openstreetmap
+West Tennis Courts,tennis,pitch,32.7729701,-117.1943336,,,CA,,false,true,false,openstreetmap
+Westdale Park Tennis / Pickleball Courts,tennis,pitch,35.3695655,-119.1607016,,,CA,,false,true,false,openstreetmap
+Woodbridge High School Tennis Center,tennis,sports_centre,33.6767884,-117.8047364,,,CA,,false,true,false,openstreetmap
+YLHS Tennis Courts,tennis,pitch,33.897615,-117.7929197,,,CA,,false,true,false,openstreetmap
+backboard,tennis,pitch,32.8524234,-117.2583079,,,CA,,false,true,false,openstreetmap
+iTennis Andulka Park,tennis,pitch,33.9597121,-117.3491395,,,CA,,false,true,false,openstreetmap
+iTennis Andulka Park,tennis,pitch,33.9592912,-117.3489912,,,CA,,false,true,false,openstreetmap
+iTennis Pasadena,tennis,sports_centre,34.1423592,-118.1248779,,,CA,,false,true,false,openstreetmap
+tennis,tennis,pitch,32.8963323,-117.2061218,,,CA,,false,true,false,openstreetmap
+tennis,tennis,pitch,32.8963405,-117.2059213,,,CA,,false,true,false,openstreetmap
+1,tennis,pitch,37.8857462,-122.2634618,,Berkeley,CA,,false,true,false,openstreetmap
+2,tennis,pitch,37.8857284,-122.2632227,,Berkeley,CA,,false,true,false,openstreetmap
+3,tennis,pitch,37.8858448,-122.2630343,,Berkeley,CA,,false,true,false,openstreetmap
+Strawberry Creek Park Tennis Court,tennis,pitch,37.8657752,-122.2861044,,Berkeley,CA,,false,true,false,openstreetmap
+Burbank Tennis Center,tennis,sports_centre,34.1921947,-118.3208516,249 Amherst Drive,Burbank,CA,91504,false,true,false,openstreetmap
+REAXN Performance Training,tennis,fitness_centre,34.1920971,-118.3207901,249 Amherst Drive,Burbank,CA,91504,false,true,false,openstreetmap
+Bay Club Broadway Tennis,tennis,sports_centre,37.5927581,-122.3666346,60 Edwards Court,Burlingame,CA,94010,false,true,false,openstreetmap
+Racket Supply,tennis,pitch,37.3147333,-122.031411,10570 South De Anza Boulevard,Cupertino,CA,95014-4450,false,true,false,openstreetmap
+Monte Vista Tennis Courts,tennis,pitch,37.8426358,-121.9836322,3131 Stone Valley Road,Danville,CA,,false,true,false,openstreetmap
+Indian Wells Tennis Garden,tennis,sports_centre,33.7227501,-116.3042854,78-200 Miles Avenue,Indian Wells,CA,92210,false,true,false,openstreetmap
+South County Tennis,tennis,pitch,33.6108185,-117.7141108,24191 Paseo de Valencia,Lake Forest,CA,92630,false,true,false,openstreetmap
+The Racket Doctor,tennis,pitch,34.1177921,-118.2606176,3214 Glendale Boulevard,Los Angeles,CA,90039,false,true,false,openstreetmap
+Malibu Racquet Club,tennis,sports_centre,34.0380252,-118.6946194,23847 Stuart Ranch Road,Malibu,CA,90265,false,true,false,openstreetmap
+Tennis Town & Country,tennis,pitch,37.4388952,-122.1590356,855 Town and Country Village,Palo Alto,CA,94301,false,true,false,openstreetmap
+Balboa Park Tennis Club,tennis,pitch,32.7395149,-117.1408984,2221 Morley Field,San Diego,CA,92104,false,true,false,openstreetmap
+DuPont Tennis Courts,tennis,sports_centre,37.7826865,-122.4908608,336 31st Avenue,San Francisco,CA,94121,false,true,false,openstreetmap
+San Marino Tennis Club,tennis,sports_centre,34.1209418,-118.1241668,1196 Saint Albans Road,San Marino,CA,91108,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4225249,-119.6649496,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4225703,-119.6645405,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4226168,-119.6643328,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4225577,-119.6640863,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4226032,-119.6638783,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4225906,-119.6636505,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4226321,-119.6634408,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4226247,-119.6632183,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap
+Municipal Tennis and Pickleball Center,tennis,pitch,34.4226702,-119.6630085,1414 Park Place,Santa Barbara,CA,93103,false,true,false,openstreetmap

@@ -1,0 +1,256 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,26.2148723,-97.6761981,,,TX,,false,true,false,openstreetmap
+2,tennis,pitch,26.2148727,-97.6760441,,,TX,,false,true,false,openstreetmap
+3,tennis,pitch,26.2145,-97.6761974,,,TX,,false,true,false,openstreetmap
+4,tennis,pitch,26.2145009,-97.6760408,,,TX,,false,true,false,openstreetmap
+Adaptive and Wheelchair Tennis Courts,tennis,sports_centre,29.7522235,-95.4010764,,,TX,,false,true,false,openstreetmap
+Alamo Heights Tennis Center,tennis,sports_centre,29.5258571,-98.4860795,705 Trafalgar,,TX,,false,true,false,openstreetmap
+Backboard,tennis,pitch,29.7768491,-95.4359082,,,TX,,false,true,false,openstreetmap
+Barton Creek Tennis Courts,tennis,pitch,30.2924903,-97.8604045,,,TX,,false,true,false,openstreetmap
+Berkner Tennis Center,tennis,pitch,32.9354062,-96.6926268,,,TX,,false,true,false,openstreetmap
+Berkner Tennis Center,tennis,pitch,32.9353683,-96.6927929,,,TX,,false,true,false,openstreetmap
+Bluffview Estates Tennis Courts,tennis,pitch,29.5749044,-98.5003106,,,TX,,false,true,false,openstreetmap
+Bluffview Estates Tennis Courts,tennis,pitch,29.5748087,-98.5004306,,,TX,,false,true,false,openstreetmap
+Boniuk Family Indoor Tennis Center,tennis,sports_centre,29.6733999,-95.485724,,,TX,,false,true,false,openstreetmap
+Bridlegate Tennis Court,tennis,pitch,29.7502924,-98.3730709,,,TX,,false,true,false,openstreetmap
+Bryan Indoor Tennis Courts,tennis,sports_centre,30.6818246,-96.3336554,,,TX,,false,true,false,openstreetmap
+Calallen HS Tennis Courts,tennis,pitch,27.8589511,-97.6347389,,,TX,,false,true,false,openstreetmap
+Candlelight Hills HOA Tennis Courts,tennis,pitch,30.0371037,-95.454583,,,TX,,false,true,false,openstreetmap
+Canton High School Tennis Courts,tennis,sports_centre,32.5459087,-95.888802,,,TX,,false,true,false,openstreetmap
+Chapel Hill ISD Tennis Courts,tennis,sports_centre,32.3081127,-95.1884372,,,TX,,false,true,false,openstreetmap
+Colonies House,tennis,pitch,29.533349,-98.5530195,,,TX,,false,true,false,openstreetmap
+Colonies House,tennis,pitch,29.5333425,-98.5531524,,,TX,,false,true,false,openstreetmap
+Colonies House,tennis,pitch,29.5337228,-98.5530742,,,TX,,false,true,false,openstreetmap
+Colonies House,tennis,pitch,29.5337191,-98.5532218,,,TX,,false,true,false,openstreetmap
+Comanche High School Tennis Court,tennis,pitch,31.9110135,-98.5939485,,,TX,,false,true,false,openstreetmap
+Comanche High School Tennis Court,tennis,pitch,31.9110104,-98.5937934,,,TX,,false,true,false,openstreetmap
+Comanche High School Tennis Court,tennis,pitch,31.9110059,-98.5936401,,,TX,,false,true,false,openstreetmap
+Crawford Park Tennis Court #1,tennis,pitch,32.5956289,-96.9555183,,,TX,,false,true,false,openstreetmap
+Crawford Park Tennis Court #2,tennis,pitch,32.5956268,-96.9553448,,,TX,,false,true,false,openstreetmap
+Cypresswood HOA Tennis Courts,tennis,pitch,30.0354662,-95.4688165,,,TX,,false,true,false,openstreetmap
+DeCordova Tennis Court,tennis,pitch,32.4270907,-97.6930428,,,TX,,false,true,false,openstreetmap
+Delavan Tennis Stadium,tennis,pitch,29.4589473,-98.4837946,,,TX,,false,true,false,openstreetmap
+EPHS Tennis Courts,tennis,sports_centre,31.7735589,-106.4885537,,,TX,,false,true,false,openstreetmap
+Fair Oaks Tennis Center,tennis,pitch,32.8766084,-96.7446364,,,TX,,false,true,false,openstreetmap
+Falcon Pointe Tennis Courts,tennis,pitch,30.4651309,-97.5820033,,,TX,,false,true,false,openstreetmap
+Faulkner Tennis Complex,tennis,sports_centre,32.2522013,-95.3162537,,,TX,,false,true,false,openstreetmap
+Flower Mound Highschool Tennis Courts,tennis,pitch,33.0347686,-97.0805494,,,TX,,false,true,false,openstreetmap
+George & Frances Cree Tennis Center,tennis,sports_centre,30.0310478,-99.1286772,,,TX,,false,true,false,openstreetmap
+George Pappas Tennis Center,tennis,sports_centre,27.5032578,-99.4829644,,,TX,,false,true,false,openstreetmap
+George R. Brown Tennis Center,tennis,sports_centre,29.718367,-95.4078636,,,TX,,false,true,false,openstreetmap
+Green Trails-Kingsland Tennis Courts,tennis,pitch,29.7748306,-95.7167914,,,TX,,false,true,false,openstreetmap
+Green Trails-Kingsland Tennis Courts,tennis,pitch,29.7748425,-95.7166389,,,TX,,false,true,false,openstreetmap
+Green Trails-Kingsland Tennis Courts,tennis,pitch,29.7748582,-95.7164511,,,TX,,false,true,false,openstreetmap
+Herman E Utley Tennis Courts,tennis,sports_centre,32.9149203,-96.4465079,,,TX,,false,true,false,openstreetmap
+Hill Tennis Center,tennis,pitch,32.8916451,-96.7996014,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,pitch,29.6530407,-95.4798303,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,pitch,29.7293042,-95.478704,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,pitch,29.7293068,-95.4785512,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,pitch,29.6529702,-95.4799578,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,sports_centre,29.653003,-95.4798916,,,TX,,false,true,false,openstreetmap
+Houston Parks and Recreation Department,tennis,sports_centre,29.7293028,-95.4786289,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7642882,-95.4988588,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7642327,-95.4990098,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7639795,-95.498347,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7640347,-95.4981864,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7640933,-95.4980278,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7636658,-95.4980298,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7637253,-95.4978672,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7636088,-95.4981884,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7635196,-95.4984371,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7634669,-95.498579,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7633785,-95.4988258,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7633267,-95.4989717,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7632621,-95.4991479,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7630957,-95.4984397,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7630419,-95.4985857,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7629896,-95.4987326,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7629262,-95.4989032,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7628755,-95.4990428,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7632478,-95.498009,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7631844,-95.4981815,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7626123,-95.4991217,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7627394,-95.4981829,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7628042,-95.4980097,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7628909,-95.4977578,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.762943,-95.4976187,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7629984,-95.497459,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7630475,-95.4973167,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.762566,-95.4974773,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7625026,-95.4976515,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7623051,-95.4992157,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7637225,-95.4990465,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7637889,-95.4988721,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7633221,-95.497805,,,TX,,false,true,false,openstreetmap
+Houston Racquet Club,tennis,pitch,29.7633847,-95.4976273,,,TX,,false,true,false,openstreetmap
+Huber Tennis Academy,tennis,sports_centre,30.0018851,-95.7265963,,,TX,,false,true,false,openstreetmap
+Huntwick Tennis Courts,tennis,pitch,29.9902169,-95.5205935,,,TX,,false,true,false,openstreetmap
+Hurd Tennis Center,tennis,stadium,31.5502531,-97.109302,,,TX,,false,true,false,openstreetmap
+Hutchinson Middle School Tennis Courts,tennis,pitch,33.5663724,-101.8778802,,,TX,,false,true,false,openstreetmap
+JVHS Tennis Courts,tennis,sports_centre,29.880917,-95.5572347,,,TX,,false,true,false,openstreetmap
+Ken Sumrow Center Court,tennis,pitch,33.0583869,-96.7005585,,,TX,,false,true,false,openstreetmap
+Kirby Creek Tennis Court,tennis,pitch,32.6950031,-97.0368791,,,TX,,false,true,false,openstreetmap
+LHS Tennis Facility,tennis,sports_centre,32.0120595,-102.1307279,,,TX,,false,true,false,openstreetmap
+Lakes Tennis Academy,tennis,sports_centre,33.1124616,-96.8385105,,,TX,,false,true,false,openstreetmap
+Laredo Independent School District,tennis,sports_centre,27.5212426,-99.5076351,,,TX,,false,true,false,openstreetmap
+Lindbergh Park,tennis,park,29.3813761,-98.5571766,,,TX,,false,true,false,openstreetmap
+MC Tennis Facility,tennis,pitch,32.030318,-102.105024,,,TX,,false,true,false,openstreetmap
+MHS Tennis Courts,tennis,sports_centre,31.9989069,-102.0876887,,,TX,,false,true,false,openstreetmap
+Mabel Graven Tennis Courts,tennis,pitch,33.2431032,-97.1079337,,,TX,,false,true,false,openstreetmap
+McFarlin Tennis Center,tennis,sports_centre,29.4479763,-98.50078,,,TX,,false,true,false,openstreetmap
+Memorial Forest Club,tennis,pitch,29.7637735,-95.5405407,,,TX,,false,true,false,openstreetmap
+Memorial Forest Club,tennis,pitch,29.7637767,-95.540312,,,TX,,false,true,false,openstreetmap
+Memorial Forest Club,tennis,pitch,29.7637748,-95.5401555,,,TX,,false,true,false,openstreetmap
+Mesquite Westlake Tennis Center,tennis,pitch,32.7721247,-96.6180387,,,TX,,false,true,false,openstreetmap
+MetCenter Tennis Courts,tennis,pitch,30.2167124,-97.6893146,,,TX,,false,true,false,openstreetmap
+Mira Vista Indoor Tennis,tennis,sports_centre,32.6564641,-97.4339382,6551 Mira Vista Boulevard,,TX,,false,true,false,openstreetmap
+Mira Vista Tennis Office,tennis,sports_centre,32.6562176,-97.4339609,6551 Mira Vista Boulevard,,TX,,false,true,false,openstreetmap
+Northside Tennis Center,tennis,sports_centre,29.5568754,-98.6857536,,,TX,,false,true,false,openstreetmap
+Orville Cox Tennis Center,tennis,pitch,26.3041124,-98.170777,,,TX,,false,true,false,openstreetmap
+Paducah Independent School District,tennis,pitch,34.014422,-100.3131129,,,TX,,false,true,false,openstreetmap
+Paducah Independent School District,tennis,pitch,34.0144161,-100.3132602,,,TX,,false,true,false,openstreetmap
+Parkhill Jr. High tennis courts,tennis,pitch,32.9745245,-96.7897544,,,TX,,false,true,false,openstreetmap
+Parkside Pickleball & Tennis Court,tennis,pitch,33.1405445,-96.7077235,,,TX,,false,true,false,openstreetmap
+Pepperdale Park Tennis Courts,tennis,pitch,30.1894754,-95.5780481,,,TX,,false,true,false,openstreetmap
+Port Isabel High School Tennis Courts,tennis,pitch,26.0776325,-97.2468418,,,TX,,false,true,false,openstreetmap
+Poteet High School Tennis Court,tennis,pitch,32.8067948,-96.608174,,,TX,,false,true,false,openstreetmap
+Privet,tennis,pitch,30.5541399,-98.6275343,,,TX,,false,true,false,openstreetmap
+Richards Park Tennis Courts,tennis,pitch,31.1292575,-99.3520869,,,TX,,false,true,false,openstreetmap
+Robert P. Brabham Middle School Tennis Courts,tennis,pitch,30.3930244,-95.4970911,,,TX,,false,true,false,openstreetmap
+Russell Tennis Center,tennis,sports_centre,33.6490176,-96.6012391,,,TX,,false,true,false,openstreetmap
+S.N.A.P Tennis Court,tennis,pitch,32.4834232,-100.4108633,,,TX,,false,true,false,openstreetmap
+Settlers Park Tennis Courts,tennis,sports_centre,29.5771546,-95.5975533,,,TX,,false,true,false,openstreetmap
+Shavano Park Tennis Club,tennis,sports_centre,29.5974322,-98.564345,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,tennis,pitch,33.1332813,-96.7872628,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,tennis,pitch,33.1333159,-96.7874404,,,TX,,false,true,false,openstreetmap
+Silvermill Tennis Court,tennis,pitch,29.8171844,-95.7076613,,,TX,,false,true,false,openstreetmap
+Southlake Tennis Center,tennis,sports_centre,32.9429439,-97.1534995,,,TX,,false,true,false,openstreetmap
+Sports Court,tennis,pitch,33.1630527,-97.8507687,,,TX,,false,true,false,openstreetmap
+Spring Creek Park Tennis Courts,tennis,pitch,30.0993512,-95.6551425,,,TX,,false,true,false,openstreetmap
+Sulphur Springs High School Tenis,tennis,pitch,33.138619,-95.6217563,,,TX,,false,true,false,openstreetmap
+Sunray Tennis,tennis,pitch,36.0185704,-101.8205429,,,TX,,false,true,false,openstreetmap
+Tarleton Tennis Courts,tennis,pitch,32.214283,-98.2212161,,,TX,,false,true,false,openstreetmap
+Tarleton Tennis Courts,tennis,pitch,32.2140022,-98.220999,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.5794238,-100.9652483,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5970161,-101.9211558,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5966438,-101.9216775,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5333503,-102.0016815,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6089511,-101.9086844,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5731273,-101.9114022,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5708139,-101.9135683,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5250111,-101.6825379,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5768707,-101.9170449,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5759299,-101.91178,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5755381,-101.9125332,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5732562,-101.9136358,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5744134,-101.9113181,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5746903,-101.9172729,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5743968,-101.9167238,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5859022,-101.9417053,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1113061,-101.8983994,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1113035,-101.8982123,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1113039,-101.8978863,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1113016,-101.8976959,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1109375,-101.8984008,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1109361,-101.8982101,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1109347,-101.8978855,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.1109333,-101.8976952,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.8654758,-98.4397029,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.8654101,-98.4395428,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5836957,-101.6760081,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5836995,-101.6758544,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.583699,-101.6756673,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5836957,-101.6755094,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5404568,-101.902504,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5404561,-101.9023447,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5400622,-101.9024981,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5400629,-101.9023447,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1681462,-101.8053994,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1681452,-101.8052493,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,29.6971334,-99.3040032,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1884369,-102.8240497,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1884363,-102.8239077,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1884368,-102.8237636,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1880501,-102.8240474,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1880512,-102.8239029,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.1880538,-102.8237603,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.6276722,-100.7508572,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.6277212,-100.7506777,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.8156019,-102.1642807,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.8155996,-102.1641221,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.8151933,-102.1643003,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.8151918,-102.1641554,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5840677,-101.9136754,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5840673,-101.9135178,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6733221,-101.5326558,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6733196,-101.5324989,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6029313,-102.6179063,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6029286,-102.617745,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.6029256,-102.6175844,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,34.378959,-103.0351738,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,34.3789599,-103.0350127,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.4286433,-101.1729309,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.4287122,-101.1727867,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.4283545,-101.1727288,,,TX,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.4284349,-101.1725535,,,TX,,false,true,false,openstreetmap
+Tennis Court 1,tennis,pitch,29.7613622,-95.4874598,,,TX,,false,true,false,openstreetmap
+Tennis Court 10,tennis,pitch,29.7622644,-95.4871199,,,TX,,false,true,false,openstreetmap
+Tennis Court 12,tennis,pitch,29.76236,-95.4878505,,,TX,,false,true,false,openstreetmap
+Tennis Court 13,tennis,pitch,29.76243,-95.487677,,,TX,,false,true,false,openstreetmap
+Tennis Court 14,tennis,pitch,29.7624784,-95.4875286,,,TX,,false,true,false,openstreetmap
+Tennis Court 15,tennis,pitch,29.762549,-95.4873565,,,TX,,false,true,false,openstreetmap
+Tennis Court 16,tennis,pitch,29.7625974,-95.4872082,,,TX,,false,true,false,openstreetmap
+Tennis Court 2,tennis,pitch,29.7614277,-95.4872899,,,TX,,false,true,false,openstreetmap
+Tennis Court 3,tennis,pitch,29.7614921,-95.4871198,,,TX,,false,true,false,openstreetmap
+Tennis Court 4,tennis,pitch,29.7617521,-95.4874641,,,TX,,false,true,false,openstreetmap
+Tennis Court 5,tennis,pitch,29.761816,-95.4872935,,,TX,,false,true,false,openstreetmap
+Tennis Court 6,tennis,pitch,29.7618793,-95.4871248,,,TX,,false,true,false,openstreetmap
+Tennis Court 8,tennis,pitch,29.7621232,-95.4874997,,,TX,,false,true,false,openstreetmap
+Tennis Court 9,tennis,pitch,29.7622027,-95.4872915,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,29.7271833,-95.3467179,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5869468,-101.9281962,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5869365,-101.9268376,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5406882,-101.9105875,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5773678,-101.8218112,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5334979,-102.0012259,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5330584,-102.0012243,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.5330585,-102.0021422,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.533498,-102.002144,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.4915367,-101.9095755,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,32.3058056,-95.2538292,,,TX,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,32.3058091,-95.2540207,,,TX,,false,true,false,openstreetmap
+The Courts of McKinney Tennis Center,tennis,pitch,33.1680295,-96.7111475,,,TX,,false,true,false,openstreetmap
+Turpin Stadium,tennis,pitch,32.8361219,-96.7804104,,,TX,,false,true,false,openstreetmap
+Unity of Wimberley Tennis,tennis,pitch,30.0038944,-98.0427382,,,TX,,false,true,false,openstreetmap
+WJHS Tennis Courts,tennis,sports_centre,32.2306315,-95.2309793,,,TX,,false,true,false,openstreetmap
+Waterview Tennis Court,tennis,pitch,32.9382684,-96.5323987,,,TX,,false,true,false,openstreetmap
+Westbury Courts,tennis,sports_centre,29.6503015,-95.4791237,,,TX,,false,true,false,openstreetmap
+Williamson County Tennis Center,tennis,sports_centre,30.558341,-97.7681083,,,TX,,false,true,false,openstreetmap
+Windsong Tennis Courts,tennis,pitch,33.225777,-96.8725453,,,TX,,false,true,false,openstreetmap
+Wood Glen Community Tennis Court,tennis,pitch,30.5365369,-97.7047726,,,TX,,false,true,false,openstreetmap
+Woodland Hills Tennis Court,tennis,pitch,30.3973978,-95.5035252,,,TX,,false,true,false,openstreetmap
+Woodland Hills Tennis Court,tennis,pitch,30.3974782,-95.5030885,,,TX,,false,true,false,openstreetmap
+mission hills tennis court,tennis,pitch,31.7908967,-106.5018488,,,TX,,false,true,false,openstreetmap
+part of a residence- NOT FOR PUBLIC USE,tennis,pitch,30.2708129,-97.8225884,,,TX,,false,true,false,openstreetmap
+Dottie Lynn Recreation Center Tennis Court,tennis,pitch,32.7229808,-97.1598738,3200 Norwood Lane,Arlington,TX,76013,false,true,false,openstreetmap
+Austin High Tennis Center,tennis,sports_centre,30.2744716,-97.7689487,1717 West Cesar Chavez Street,Austin,TX,78703,false,true,false,openstreetmap
+"Burnett ""Blondie"" Pharr Tennis Center",tennis,sports_centre,30.2959778,-97.7091137,4201 Brookview Road,Austin,TX,78722,false,true,false,openstreetmap
+Caswell Tennis Center,tennis,sports_centre,30.2878048,-97.7522862,2312 Shoal Creek Boulevard,Austin,TX,78705,false,true,false,openstreetmap
+South Austin Neighborhood Park,tennis,park,30.2422027,-97.7688818,1100 Cumberland Road,Austin,TX,78704,false,true,false,openstreetmap
+South Austin Tennis Center,tennis,sports_centre,30.2414828,-97.7670332,1000 Cumberland Road,Austin,TX,78704,false,true,false,openstreetmap
+Nabers Tennis Center,tennis,stadium,31.7127381,-98.9882796,301 2nd Street,Brownwood,TX,76801,false,true,false,openstreetmap
+Crandall ISD Tennis Courts,tennis,sports_centre,32.6156133,-96.4634362,FM 3039,Crandall,TX,,false,true,false,openstreetmap
+Life Time Fitness,tennis,pitch,32.9299793,-97.3150774,10761 Founders Way,Fort Worth,TX,76177,false,true,false,openstreetmap
+Grand Prairie High School Tennis Courts,tennis,pitch,32.7543694,-97.0042664,101 High School Drive,Grand Prairie,TX,75050,false,true,false,openstreetmap
+Bellaire Tennis Courts,tennis,sports_centre,29.7030534,-95.4695826,7008 South 5th Street,Houston,TX,77401,false,true,false,openstreetmap
+Lee LeClear Tennis Center,tennis,sports_centre,29.6788277,-95.5300103,9506 South Gessner Drive,Houston,TX,77074,false,true,false,openstreetmap
+Memorial Park Tennis Center,tennis,pitch,29.7763455,-95.4350485,1500 East Memorial Loop Drive,Houston,TX,77007,false,true,false,openstreetmap
+Memorial Park Tennis Center,tennis,sports_centre,29.7763669,-95.4362623,1500 East Memorial Loop Drive,Houston,TX,77007,false,true,false,openstreetmap
+Prestonwood Forest Tennis Courts,tennis,pitch,29.9867158,-95.5534136,14533 Ravenhurst Lane,Houston,TX,77070,false,true,false,openstreetmap
+HEB Municipal Tennis Center,tennis,sports_centre,30.0581494,-99.1240983,801 Tennis Street,Kerrville,TX,78028,false,true,false,openstreetmap
+City of Laredo Tennis Complex at TAMIU,tennis,sports_centre,27.5751827,-99.4321152,5201 University Boulevard,Laredo,TX,78041,false,true,false,openstreetmap
+Richland Tennis Center,tennis,sports_centre,32.8403088,-97.2300992,7111 Northeast Loop 820,NO,TX,76180,false,true,false,openstreetmap
+Lake Forest HOA Tennis Court,tennis,pitch,30.4982105,-97.6207032,2774 Lake Forest Drive,Round Rock,TX,78665,false,true,false,openstreetmap
+Fairchild Park,tennis,park,29.4229738,-98.4691766,1214 East Crockett Street,San Antonio,TX,78202,false,true,false,openstreetmap
+The Tennis Park at Whispering Oaks,tennis,sports_centre,29.546789,-98.5428893,11515 Whisper Forest,San Antonio,TX,78230,false,true,false,openstreetmap
+Joann Medlock Murphy Tennis Center,tennis,sports_centre,32.3371643,-95.2797045,East Devine Street,Tyler,TX,,false,true,false,openstreetmap

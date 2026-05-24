@@ -46,6 +46,8 @@ extension MapViewModel {
         pendingEmailVerificationKind = nil
         emailVerificationError = ""
         emailVerificationMessage = ""
+        pendingFanEmailSignupDraft = nil
+        pendingBusinessEmailSignupDraft = nil
     }
 
     static func isUnconfirmedEmailAuthError(_ error: Error) -> Bool {
@@ -1022,6 +1024,11 @@ extension MapViewModel {
             guard await passwordResetRecoverySessionIsAllowed(session: session) else {
                 return
             }
+            let confirmedAt = session.user.emailConfirmedAt ?? session.user.confirmedAt
+            print("[EmailConfirmDebug] emailConfirmedAt=\(confirmedAt?.description ?? "nil")")
+            if await completePendingEmailSignupAfterConfirmationIfPossible(session: session) {
+                return
+            }
             await forceLogout(reason: "emailVerificationCompleted", source: "MapViewModel.handleEmailVerificationDeepLink")
         }
 
@@ -1032,6 +1039,27 @@ extension MapViewModel {
             emailVerificationMessage = "Email verified. You can now sign in."
             emailVerificationError = ""
         }
+    }
+
+    private func completePendingEmailSignupAfterConfirmationIfPossible(session: Session) async -> Bool {
+        guard Self.userEmailConfirmed(session.user) else { return false }
+        let sessionEmail = OwnerBusinessEmail.normalized(session.user.email ?? "")
+
+        if pendingEmailVerificationKind == .fan,
+           let draft = pendingFanEmailSignupDraft,
+           OwnerBusinessEmail.normalized(draft.email) == sessionEmail {
+            print("[EmailConfirmDebug] creatingProfileAfterConfirmation=true")
+            return await completePendingEmailFanSignupAfterConfirmation(session: session, draft: draft)
+        }
+
+        if pendingEmailVerificationKind == .business,
+           let draft = pendingBusinessEmailSignupDraft,
+           OwnerBusinessEmail.normalized(draft.email) == sessionEmail {
+            print("[EmailConfirmDebug] creatingProfileAfterConfirmation=true")
+            return await completePendingBusinessSignupAfterConfirmation(session: session, draft: draft)
+        }
+
+        return false
     }
 
     /// Verifies the signed-in profile has not been disabled or deleted.

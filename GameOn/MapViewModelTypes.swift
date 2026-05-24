@@ -761,6 +761,20 @@ struct BusinessOwnerSignupPayload: Sendable {
     let firstLocation: AddLocationClaimForm
 }
 
+struct PendingFanEmailSignupDraft: Sendable {
+    let email: String
+    let profile: FanSignupProfileInput
+    let recordFanGuidelinesAcceptance: Bool
+}
+
+struct PendingBusinessEmailSignupDraft: Sendable {
+    let email: String
+    let signup: BusinessOwnerSignupPayload
+    let coverPhotoJPEGData: Data?
+    let menuPhotoJPEGData: Data?
+    let recordVenueGuidelinesAcceptance: Bool
+}
+
 struct VenueClaimInsert: Encodable {
     let owner_email: String
     /// ``public.businesses.id`` when the claim is filed under a multi-venue business (Phase C1 add-location); omit or nil for legacy / Discover-only claims.

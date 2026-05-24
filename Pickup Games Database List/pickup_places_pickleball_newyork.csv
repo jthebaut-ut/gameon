@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Fogelsonger Park Pickleball Courts,pickleball,pitch,42.9888987,-78.6820487,,,NY,,false,true,false,openstreetmap
+Naples Rotary Pickleball Complex,pickleball,pitch,42.6233831,-77.3843656,,,NY,,false,true,false,openstreetmap
+OOCC Pickleball center,pickleball,pitch,41.0398239,-73.7224514,,,NY,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,42.8868372,-73.9374941,,,NY,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,43.6935153,-73.5052182,,,NY,,false,true,false,openstreetmap
+Pickleball Smash-It,pickleball,pitch,40.5816322,-74.1646051,,,NY,,false,true,false,openstreetmap
+Red Hook Pickleball Club,pickleball,pitch,40.680523,-74.009793,,,NY,,false,true,false,openstreetmap
+Dinkers Pickleball,pickleball,sports_hall,43.1151886,-77.4809287,131 Despatch Drive,East Rochester,NY,14445,false,true,false,openstreetmap
+Erie Canal Pickleball Center,pickleball,sports_centre,43.0551638,-76.0746923,3179 Erie Boulevard East,Syracuse,NY,13214,false,true,false,openstreetmap

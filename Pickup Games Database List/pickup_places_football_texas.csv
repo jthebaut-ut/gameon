@@ -1,0 +1,406 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Abe Martin Stadium,football,stadium,31.3354607,-94.6850528,,,TX,,false,true,false,openstreetmap
+Alexander Durley Sports Complex,football,stadium,29.7209741,-95.3623685,,,TX,,false,true,false,openstreetmap
+"Alfredo ""Boxer"" Hernandez Field",football,pitch,26.2123283,-98.2161223,,,TX,,false,true,false,openstreetmap
+Alice Memorial Stadium,football,pitch,27.7542365,-98.0559991,,,TX,,false,true,false,openstreetmap
+Allan Sepkowitz Stadium,football,pitch,31.9082952,-106.4149494,,,TX,,false,true,false,openstreetmap
+Amon G. Carter Stadium,football,pitch,32.7097506,-97.3680863,,,TX,,false,true,false,openstreetmap
+Anna Coyotes,football,pitch,33.3614827,-96.5523812,,,TX,,false,true,false,openstreetmap
+Antelope Field,football,pitch,33.6028912,-102.6189313,,,TX,,false,true,false,openstreetmap
+Antelope Stadium,football,pitch,33.8302201,-101.8487132,,,TX,,false,true,false,openstreetmap
+Anthony Field at Wildcat Stadium,football,pitch,32.4735207,-99.7089585,,,TX,,false,true,false,openstreetmap
+Antonian Football field,football,pitch,29.5222212,-98.5290133,,,TX,,false,true,false,openstreetmap
+Apple Stadium,football,pitch,33.6457907,-96.5997423,,,TX,,false,true,false,openstreetmap
+Argyle Middle School Football Field,football,pitch,33.106528,-97.1881081,,,TX,,false,true,false,openstreetmap
+Arp Tigers Stadium,football,pitch,32.2308637,-95.0560653,,,TX,,false,true,false,openstreetmap
+Atlanta Rabbit Stadium,football,stadium,33.1225169,-94.1437636,,,TX,,false,true,false,openstreetmap
+Badger Field,football,pitch,28.8867013,-97.8899852,,,TX,,false,true,false,openstreetmap
+Band Practice / Event Bus Parking,football,pitch,26.2238485,-98.2388502,,,TX,,false,true,false,openstreetmap
+Band Practice Field,football,pitch,30.5102551,-97.6987929,,,TX,,false,true,false,openstreetmap
+Barnett Junior High School Football Field,football,pitch,32.6496173,-97.0733908,,,TX,,false,true,false,openstreetmap
+Barrow Field,football,pitch,32.8575609,-97.223305,,,TX,,false,true,false,openstreetmap
+Barry Field,football,pitch,29.3427456,-99.1370518,,,TX,,false,true,false,openstreetmap
+Barwise Junior High School Field,football,pitch,33.8718537,-98.5304848,,,TX,,false,true,false,openstreetmap
+Bastrop Erhard Stadium,football,pitch,30.1181113,-97.3139952,,,TX,,false,true,false,openstreetmap
+Bear Stadium,football,pitch,32.7486337,-97.4550404,,,TX,,false,true,false,openstreetmap
+Bear Stadium,football,pitch,27.8289282,-97.5791409,,,TX,,false,true,false,openstreetmap
+Bear Stadium,football,stadium,30.3871039,-95.7168497,,,TX,,false,true,false,openstreetmap
+Beaver Field,football,pitch,28.9792992,-98.0254044,,,TX,,false,true,false,openstreetmap
+Beckville Bearcats,football,pitch,32.2468463,-94.4598268,,,TX,,false,true,false,openstreetmap
+Berkner Track and Field,football,pitch,32.9351823,-96.6938825,,,TX,,false,true,false,openstreetmap
+Birkelbach Field,football,pitch,30.6631529,-97.6624025,,,TX,,false,true,false,openstreetmap
+Blackshear Football Field,football,pitch,30.0911951,-95.9942782,,,TX,,false,true,false,openstreetmap
+Bobcat Stadium,football,pitch,30.1154607,-94.643411,,,TX,,false,true,false,openstreetmap
+Bosqueville Football Stadium,football,stadium,31.6183366,-97.1921689,,,TX,,false,true,false,openstreetmap
+Bronco Stadium,football,stadium,30.0413787,-94.8904953,,,TX,,false,true,false,openstreetmap
+Bronco Stadium,football,pitch,30.6612387,-96.3678747,,,TX,,false,true,false,openstreetmap
+Bronco Stadium,football,pitch,34.940561,-100.8974434,,,TX,,false,true,false,openstreetmap
+Brooks Conover Field,football,pitch,32.3414872,-97.4011333,,,TX,,false,true,false,openstreetmap
+Brownfield Cubs Stadium,football,pitch,33.1941123,-102.2638561,,,TX,,false,true,false,openstreetmap
+Bruele Field,football,stadium,30.3915892,-96.0861955,,,TX,,false,true,false,openstreetmap
+Buck Stadium,football,stadium,35.431973,-101.1692682,,,TX,,false,true,false,openstreetmap
+Buck Stadium,football,pitch,35.4321488,-101.1696285,,,TX,,false,true,false,openstreetmap
+Bud Moody Stadium,football,stadium,32.8009712,-95.4453635,,,TX,,false,true,false,openstreetmap
+Bulldog Field,football,pitch,30.7737772,-98.2285494,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,30.6181056,-97.2025657,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,stadium,31.6838785,-98.8001456,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,stadium,32.374374,-99.7811092,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,35.6636525,-101.4053894,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,32.4748019,-98.6846484,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,30.7962776,-97.4211706,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,31.4282351,-97.403024,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,29.680155,-97.1031421,,,TX,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,31.1278461,-99.3434049,,,TX,,false,true,false,openstreetmap
+Burges High School Football Stadium,football,pitch,31.7847159,-106.3820226,,,TX,,false,true,false,openstreetmap
+Burleson Boys and Girls Club,football,pitch,32.5384913,-97.3163914,,,TX,,false,true,false,openstreetmap
+Burnet ECU Elementary School,football,pitch,29.2635362,-94.8386382,,,TX,,false,true,false,openstreetmap
+Burnett Stadium,football,pitch,26.4694136,-97.774731,,,TX,,false,true,false,openstreetmap
+Calallen MS Football Field,football,pitch,27.8654061,-97.6248448,,,TX,,false,true,false,openstreetmap
+Cam'Ron Matthews Field,football,stadium,31.658998,-95.073525,,,TX,,false,true,false,openstreetmap
+Cameron Yoe Football Field,football,pitch,30.8596989,-96.971147,,,TX,,false,true,false,openstreetmap
+Campbell MS Football Pitch,football,pitch,29.9371214,-95.5737604,,,TX,,false,true,false,openstreetmap
+Canton Eagles Stadium,football,pitch,32.5468082,-95.8863125,,,TX,,false,true,false,openstreetmap
+Central Texas Christian School Football Field,football,pitch,31.0408016,-97.4132747,,,TX,,false,true,false,openstreetmap
+Championship Center,football,pitch,33.2879231,-96.5412709,,,TX,,true,false,false,openstreetmap
+Chaparral Stadium,football,pitch,30.2776317,-97.8132937,,,TX,,false,true,false,openstreetmap
+China PeeWee Football Field,football,pitch,30.0546226,-94.3387005,,,TX,,false,true,false,openstreetmap
+Cleburne Yellow Jacket Practice Field,football,pitch,32.345178,-97.424364,,,TX,,false,true,false,openstreetmap
+Cody Campbell Field,football,pitch,33.5910965,-101.8729168,,,TX,,false,true,false,openstreetmap
+Comanche Field,football,pitch,35.8209833,-101.4499862,,,TX,,false,true,false,openstreetmap
+Commerce High School Football Stadium,football,pitch,33.2415281,-95.927454,,,TX,,false,true,false,openstreetmap
+Comstock Field,football,pitch,33.1296311,-96.8454589,,,TX,,false,true,false,openstreetmap
+Converse Park Football Field,football,pitch,29.5108315,-98.3178693,,,TX,,false,true,false,openstreetmap
+Cooley Stadium,football,pitch,33.1552663,-96.8231273,,,TX,,false,true,false,openstreetmap
+Coombes Field,football,pitch,32.0196643,-102.1298711,,,TX,,false,true,false,openstreetmap
+Courville Stadium,football,pitch,29.2951209,-94.7960781,,,TX,,false,true,false,openstreetmap
+Cowboy Field,football,pitch,27.363924,-98.1300686,,,TX,,false,true,false,openstreetmap
+Cowboy Field,football,pitch,33.1912187,-102.8236779,,,TX,,false,true,false,openstreetmap
+Cowboy Field,football,pitch,33.1663901,-98.3830553,,,TX,,false,true,false,openstreetmap
+Cowboys Field,football,stadium,32.9757898,-97.0006026,,,TX,,false,true,false,openstreetmap
+Cox Field,football,pitch,32.7078706,-97.3660919,,,TX,,false,true,false,openstreetmap
+Cravens Field,football,pitch,32.7627058,-97.1237976,,,TX,,false,true,false,openstreetmap
+Creekside Intermediate School Football Field,football,pitch,29.4968536,-95.1422305,,,TX,,false,true,false,openstreetmap
+Darrell K Royal-Texas Memorial Stadium,football,stadium,30.2838217,-97.732614,,,TX,,false,true,false,openstreetmap
+Delay Middle School Football Field,football,pitch,33.0760128,-97.0198496,,,TX,,false,true,false,openstreetmap
+Dillingham Field,football,pitch,31.5473706,-99.1187302,,,TX,,false,true,false,openstreetmap
+Dr. R. L. Peters Jr. Field,football,pitch,30.5072231,-97.6953585,,,TX,,false,true,false,openstreetmap
+Dragon Stadium,football,stadium,31.644639,-94.6254269,,,TX,,false,true,false,openstreetmap
+Dumas Football Stadium,football,pitch,35.846711,-101.9666026,,,TX,,false,true,false,openstreetmap
+Duncan Field,football,pitch,35.2402721,-100.6025532,,,TX,,false,true,false,openstreetmap
+Durley Stadium,football,stadium,30.0801179,-94.194507,,,TX,,false,true,false,openstreetmap
+E.L. 'Sam' Bass Stadium,football,stadium,36.3419222,-102.0781279,,,TX,,false,true,false,openstreetmap
+EISD Maverick Stadium,football,stadium,32.4009126,-98.8081709,,,TX,,false,true,false,openstreetmap
+ENHS Football Field,football,pitch,26.3313878,-98.1605574,,,TX,,false,true,false,openstreetmap
+EPHS training field,football,pitch,31.7747918,-106.4887941,,,TX,,false,true,false,openstreetmap
+Eagle Field,football,pitch,31.0461261,-104.8375564,,,TX,,false,true,false,openstreetmap
+Eagle Field,football,pitch,33.583058,-101.6773577,,,TX,,false,true,false,openstreetmap
+Eagle Stadium,football,pitch,32.5779722,-97.3788908,,,TX,,false,true,false,openstreetmap
+Eagle Stadium,football,stadium,30.4870848,-99.7801046,,,TX,,false,true,false,openstreetmap
+Eagle Stadium,football,stadium,31.8418708,-100.9898559,,,TX,,false,true,false,openstreetmap
+Eagle Stadium (B.W. Durham Stadium),football,pitch,33.2424599,-96.7961664,,,TX,,false,true,false,openstreetmap
+Earl Campbell Field,football,pitch,32.3421609,-95.32399,,,TX,,false,true,false,openstreetmap
+Earl Campbell–Ricky Williams Field,football,pitch,30.2836648,-97.7325447,,,TX,,false,true,false,openstreetmap
+East Turf Field,football,pitch,33.5171307,-102.0031995,,,TX,,false,true,false,openstreetmap
+Ed Sykora Field,football,pitch,31.8629851,-96.9315694,,,TX,,false,true,false,openstreetmap
+El Paso Field,football,pitch,35.214598,-100.2376543,,,TX,,false,true,false,openstreetmap
+Ernest Hawkins Field,football,pitch,33.2460347,-95.910175,,,TX,,false,true,false,openstreetmap
+Eschenburg Field,football,pitch,29.1451075,-98.1515745,,,TX,,false,true,false,openstreetmap
+Fair Park Stadium,football,stadium,33.5904715,-99.246738,,,TX,,false,true,false,openstreetmap
+Fair Park Stadium,football,stadium,34.4316139,-100.2058531,,,TX,,false,true,false,openstreetmap
+Faith Christian School Football Field,football,pitch,32.9356938,-97.0706404,,,TX,,false,true,false,openstreetmap
+Falcon Field,football,pitch,31.5536223,-97.1290562,,,TX,,false,true,false,openstreetmap
+Falcon Field,football,pitch,31.5398272,-97.146468,,,TX,,false,true,false,openstreetmap
+Falcons Stadium,football,stadium,35.2052799,-102.0623054,,,TX,,false,true,false,openstreetmap
+Farmer Stadium,football,stadium,33.1733267,-96.3705734,,,TX,,false,true,false,openstreetmap
+Farrington Field,football,pitch,32.7458336,-97.3602919,,,TX,,false,true,false,openstreetmap
+Featherston Field,football,pitch,31.2844357,-97.0596537,,,TX,,false,true,false,openstreetmap
+Field 10,football,pitch,32.339312,-97.3721944,,,TX,,false,true,false,openstreetmap
+Field 11,football,pitch,32.3396492,-97.3714913,,,TX,,false,true,false,openstreetmap
+Field 4,football,pitch,30.4119699,-97.5582859,,,TX,,false,true,false,openstreetmap
+Field 5,football,pitch,30.4115819,-97.5574314,,,TX,,false,true,false,openstreetmap
+Field 6,football,pitch,30.4111657,-97.556639,,,TX,,false,true,false,openstreetmap
+First United Field,football,pitch,34.9860122,-101.9117958,,,TX,,false,true,false,openstreetmap
+Football Field,football,pitch,33.1698241,-96.8144546,,,TX,,false,true,false,openstreetmap
+Football Field,football,pitch,33.1699821,-96.815621,,,TX,,false,true,false,openstreetmap
+Football Field,football,pitch,32.9308082,-97.537082,,,TX,,false,true,false,openstreetmap
+Football Field,football,pitch,32.8904596,-97.5309764,,,TX,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,32.8096171,-96.6305239,,,TX,,false,true,false,openstreetmap
+Football Practice Fields,football,pitch,33.5889203,-101.8714994,,,TX,,false,true,false,openstreetmap
+Ford Center,football,stadium,33.1104448,-96.8283009,,,TX,,false,true,false,openstreetmap
+Forestburg Independent School District Football Field,football,pitch,33.5199762,-97.5599101,,,TX,,false,true,false,openstreetmap
+Forester Stadium,football,pitch,32.7718969,-96.6779682,,,TX,,false,true,false,openstreetmap
+"Fr. Michael Alchediak, S.J. Field",football,pitch,29.7103396,-95.5420711,,,TX,,false,true,false,openstreetmap
+Frasier Field,football,pitch,32.7650963,-96.6317977,,,TX,,false,true,false,openstreetmap
+Gainesville Leopards,football,pitch,33.6066638,-97.1614214,,,TX,,false,true,false,openstreetmap
+Galena Park ISD Stadium,football,pitch,29.8082992,-95.176479,,,TX,,false,true,false,openstreetmap
+George Kieffer Football Practice Fields,football,pitch,29.576019,-97.9847576,,,TX,,false,true,false,openstreetmap
+Georgetown High School Practice Field,football,pitch,30.662433,-97.6640708,,,TX,,false,true,false,openstreetmap
+Glen Rose High School Stadium,football,pitch,32.2305204,-97.7664962,,,TX,,false,true,false,openstreetmap
+Glory Field,football,pitch,31.7762793,-106.5072248,,,TX,,false,true,false,openstreetmap
+Gosch Athletic Field,football,pitch,28.678971,-99.1714929,,,TX,,false,true,false,openstreetmap
+Granbury High School Football Field,football,pitch,32.4415867,-97.8083832,,,TX,,false,true,false,openstreetmap
+Griffin Middle School Football Field,football,pitch,33.0961044,-96.8784038,,,TX,,false,true,false,openstreetmap
+Griffith Stadium,football,stadium,31.900818,-100.4878668,,,TX,,false,true,false,openstreetmap
+Griggs Field,football,pitch,29.137469,-95.6484031,,,TX,,false,true,false,openstreetmap
+Gruy Stadium,football,pitch,27.3162928,-98.680634,,,TX,,false,true,false,openstreetmap
+HJH Athletic Practice Field,football,pitch,32.209843,-98.2375845,,,TX,,false,true,false,openstreetmap
+HJH Football Field,football,pitch,32.210432,-98.2363494,,,TX,,false,true,false,openstreetmap
+Happy Hill Farm Academy Football Field,football,pitch,32.2899071,-97.7248816,,,TX,,false,true,false,openstreetmap
+Harmony School of Science Football Stadium,football,pitch,29.4580052,-98.7349366,,,TX,,false,true,false,openstreetmap
+Harvester Field,football,pitch,35.5523967,-100.9644382,,,TX,,false,true,false,openstreetmap
+Hedrick Field,football,pitch,31.0236592,-96.4999962,,,TX,,false,true,false,openstreetmap
+Hobart Wisdom Field,football,pitch,32.9310542,-96.4516767,,,TX,,false,true,false,openstreetmap
+Holy Spirit field,football,pitch,29.5200145,-98.5287038,,,TX,,false,true,false,openstreetmap
+Holy Trinity Catholic High School Football Field,football,pitch,31.1201389,-97.4125974,,,TX,,false,true,false,openstreetmap
+Hornet Field,football,stadium,32.912701,-97.540148,,,TX,,false,true,false,openstreetmap
+Hornet Stadium,football,pitch,30.1579758,-94.7345748,,,TX,,false,true,false,openstreetmap
+Hornet Stadium,football,pitch,35.2489576,-101.6575597,,,TX,,false,true,false,openstreetmap
+Hornets Field,football,pitch,31.4327948,-97.7220013,,,TX,,false,true,false,openstreetmap
+Hotze Field,football,pitch,29.7632111,-95.4062971,,,TX,,false,true,false,openstreetmap
+House Park,football,pitch,30.2788953,-97.750018,,,TX,,false,true,false,openstreetmap
+Indian Stadium,football,stadium,30.9797784,-98.7065283,,,TX,,false,true,false,openstreetmap
+Indoor Practice Facility,football,pitch,30.2862924,-97.7265611,2501 Red River Street,,TX,78705,true,false,false,openstreetmap
+Indoor Practice Field,football,pitch,32.3948333,-94.8720231,,,TX,,true,false,false,openstreetmap
+Indoor Practice Field,football,sports_centre,32.8496705,-96.8074411,,,TX,,false,true,false,openstreetmap
+Intramural Field 2,football,pitch,29.7191269,-95.4040595,,,TX,,false,true,false,openstreetmap
+Intramural Field 6,football,pitch,29.714917,-95.4021489,,,TX,,false,true,false,openstreetmap
+Italy Gladiator Stadium,football,pitch,32.1796057,-96.8747768,,,TX,,false,true,false,openstreetmap
+Ivan Croak Field,football,pitch,30.1204885,-94.0061071,,,TX,,false,true,false,openstreetmap
+J. Lewis Boggus Stadium,football,stadium,26.1936938,-97.6814605,,,TX,,false,true,false,openstreetmap
+J. M. King Memorial Stadium,football,pitch,32.0255494,-101.8965268,,,TX,,false,true,false,openstreetmap
+J.M. White Field,football,stadium,32.1376144,-97.3974785,,,TX,,false,true,false,openstreetmap
+JHS Football Field,football,pitch,30.8200298,-97.6270391,,,TX,,false,true,false,openstreetmap
+Jack V Murphy Stadium,football,stadium,32.5491259,-94.9660296,,,TX,,false,true,false,openstreetmap
+Jackrabbit Field,football,pitch,33.6822868,-101.3806627,,,TX,,false,true,false,openstreetmap
+"James ""Doc"" Dodson Midland Memorial Stadium",football,pitch,32.0018462,-102.0984159,,,TX,,false,true,false,openstreetmap
+James Ray Henry Stadium,football,stadium,32.6581766,-96.5366355,,,TX,,false,true,false,openstreetmap
+Jerry Vance Field,football,pitch,30.6831594,-97.9504951,,,TX,,false,true,false,openstreetmap
+Joe T. Coleman Field,football,pitch,31.8493823,-102.3838386,,,TX,,false,true,false,openstreetmap
+John Eddie Williams Field,football,pitch,31.5582124,-97.1156388,,,TX,,false,true,false,openstreetmap
+John Herbert Eakin Stadium,football,stadium,31.9065443,-94.388224,,,TX,,false,true,false,openstreetmap
+John O'Quinn Field,football,pitch,29.7219968,-95.3491839,,,TX,,false,true,false,openstreetmap
+John Outlaw Memorial Field,football,pitch,31.3354496,-94.68504,,,TX,,false,true,false,openstreetmap
+John Wilkins Field,football,pitch,31.8846202,-102.3581076,,,TX,,false,true,false,openstreetmap
+Johnson Field,football,pitch,32.9706549,-101.8276379,,,TX,,false,true,false,openstreetmap
+KMS Stadium,football,pitch,32.9397845,-97.2476841,,,TX,,false,true,false,openstreetmap
+Keller Independent School District Athletic Complex,football,pitch,32.9396317,-97.2313679,,,TX,,false,true,false,openstreetmap
+Kelly Lane MS Field,football,pitch,30.4627617,-97.5871348,,,TX,,false,true,false,openstreetmap
+Kennedy Middle School Football Field,football,pitch,32.7118962,-96.9993143,,,TX,,false,true,false,openstreetmap
+Kermit Dauber Field,football,pitch,31.8534664,-103.0827152,,,TX,,false,true,false,openstreetmap
+Kevin Kipper Memorial Stadium,football,stadium,32.9466313,-96.0994743,,,TX,,false,true,false,openstreetmap
+Kilgore Football Booster Club,football,pitch,32.3717852,-94.875495,,,TX,,false,true,false,openstreetmap
+Kirby Stadium,football,pitch,30.355962,-94.1789032,,,TX,,false,true,false,openstreetmap
+Knights Stadium,football,pitch,32.9218059,-97.4325247,,,TX,,false,true,false,openstreetmap
+Krueger Field,football,pitch,27.5748697,-99.4783193,,,TX,,false,true,false,openstreetmap
+Kyle Field,football,stadium,30.6099046,-96.3403893,,,TX,,false,true,false,openstreetmap
+LIberty Football Field,football,pitch,33.1432912,-96.7437453,,,TX,,false,true,false,openstreetmap
+Lago Vista Stadium,football,pitch,30.4781436,-97.9785495,,,TX,,false,true,false,openstreetmap
+Lake Jackson Intermediate School Football Field,football,pitch,29.0460281,-95.444007,,,TX,,false,true,false,openstreetmap
+Lamar ISD Practice Field,football,pitch,29.5605264,-95.7741269,,,TX,,false,true,false,openstreetmap
+Lamar ISD Practice Field,football,pitch,29.5604756,-95.7750389,,,TX,,false,true,false,openstreetmap
+Lamar Practice Field 1,football,pitch,29.55984,-95.7818261,,,TX,,false,true,false,openstreetmap
+Lamar Practice Field 2,football,pitch,29.5605969,-95.7822206,,,TX,,false,true,false,openstreetmap
+Lancaster Tigers,football,pitch,32.6151959,-96.7617768,,,TX,,false,true,false,openstreetmap
+Lang Field,football,pitch,29.4594107,-98.4892415,,,TX,,false,true,false,openstreetmap
+Lewisville High School Football Field,football,pitch,33.041125,-97.0170257,,,TX,,false,true,false,openstreetmap
+Lexington ISD Eagle Stadium,football,pitch,30.4120147,-97.0049337,,,TX,,false,true,false,openstreetmap
+Lighted Football Field #1,football,pitch,29.8685618,-95.0732169,,,TX,,false,true,false,openstreetmap
+Lighted Football Field #2,football,pitch,29.86844,-95.0720786,,,TX,,false,true,false,openstreetmap
+Lion Stadium,football,pitch,30.3767419,-94.335303,,,TX,,false,true,false,openstreetmap
+Lions Field,football,pitch,28.8308092,-97.8555362,,,TX,,false,true,false,openstreetmap
+Lobo Stadium,football,pitch,30.6525208,-96.3952205,,,TX,,false,true,false,openstreetmap
+Longhorn Field,football,pitch,30.3022038,-99.2460126,,,TX,,false,true,false,openstreetmap
+Longhorn Field,football,pitch,35.2450308,-102.4176688,,,TX,,false,true,false,openstreetmap
+Longhorn Stadium,football,stadium,32.5832452,-96.948386,,,TX,,false,true,false,openstreetmap
+Longhorn Stadium,football,stadium,32.5528681,-98.367913,,,TX,,false,true,false,openstreetmap
+Lovelace and McNatt Families Practice Facility,football,fitness_centre,33.2017567,-97.1592948,,,TX,,false,true,false,openstreetmap
+Lowrance Field,football,pitch,32.5840196,-95.2108094,,,TX,,false,true,false,openstreetmap
+Mack Laxson Field,football,stadium,28.8974216,-99.0884758,,,TX,,false,true,false,openstreetmap
+Madison High School Football Field and Track,football,pitch,29.6301032,-95.4372501,,,TX,,false,true,false,openstreetmap
+Mansfield Tigers,football,pitch,32.576661,-97.0927722,,,TX,,false,true,false,openstreetmap
+Marble Falls Middle School Stadium,football,stadium,30.5852997,-98.2777926,,,TX,,false,true,false,openstreetmap
+Marion Field,football,pitch,33.1517353,-96.9399738,,,TX,,false,true,false,openstreetmap
+Matador Stadium,football,pitch,31.9015101,-106.4003024,,,TX,,false,true,false,openstreetmap
+Max Goldsmith Stadium,football,sports_centre,33.0411168,-97.017024,1098 W. Main St.,,TX,75067,false,true,false,openstreetmap
+McAllen Veterans Memorial Stadium,football,pitch,26.223888,-98.2373019,,,TX,,false,true,false,openstreetmap
+McDade Bulldog Field,football,pitch,30.2811224,-97.2399849,,,TX,,false,true,false,openstreetmap
+McKinney High Football Field,football,pitch,33.1869709,-96.6306735,,,TX,,false,true,false,openstreetmap
+Memorial Stadium,football,pitch,29.5260109,-96.0652371,,,TX,,false,true,false,openstreetmap
+Merk Field,football,pitch,30.9288478,-97.2283499,,,TX,,false,true,false,openstreetmap
+Mesquite Memorial Stadium,football,pitch,32.7638265,-96.634718,,,TX,,false,true,false,openstreetmap
+Mewbourne Field,football,pitch,32.32098,-95.347279,,,TX,,false,true,false,openstreetmap
+Mickler Memorial Field,football,pitch,29.5294241,-98.2964194,,,TX,,false,true,false,openstreetmap
+Mike Johnston Field,football,pitch,29.8000313,-95.8054537,,,TX,,false,true,false,openstreetmap
+Mitchell-Zimmerman Field,football,sports_centre,34.1234336,-101.4362636,,,TX,,false,true,false,openstreetmap
+Moncrief Field,football,pitch,32.7096462,-97.3681039,,,TX,,false,true,false,openstreetmap
+Morris Practice Field,football,pitch,32.7077793,-97.3676287,,,TX,,false,true,false,openstreetmap
+Morris Practice Field,football,pitch,32.7078628,-97.3670386,,,TX,,false,true,false,openstreetmap
+Multipurpose Field,football,pitch,29.6943226,-95.4958046,,,TX,,false,true,false,openstreetmap
+Mustang Field,football,pitch,30.2116615,-103.2436272,,,TX,,false,true,false,openstreetmap
+Mustang Field,football,pitch,33.944392,-98.558699,,,TX,,false,true,false,openstreetmap
+Mustang Stadium,football,pitch,35.1051579,-101.3660701,,,TX,,false,true,false,openstreetmap
+Mustang-Panther Stadium,football,pitch,32.9205998,-97.1130413,,,TX,,false,true,false,openstreetmap
+Neil E. Wilson Jaguar Stadium,football,stadium,33.0310033,-97.0825318,,,TX,,false,true,false,openstreetmap
+Newcomb Field,football,pitch,29.6694536,-95.1848662,,,TX,,false,true,false,openstreetmap
+Nicholson Field,football,pitch,35.4507127,-100.2735529,,,TX,,false,true,false,openstreetmap
+Nixon-Smiley CISD Football Field,football,pitch,29.2787885,-97.7631271,,,TX,,false,true,false,openstreetmap
+Noland Stadium,football,pitch,33.7308571,-101.8407846,,,TX,,false,true,false,openstreetmap
+Northwest ISD Stadium,football,stadium,33.031658,-97.319574,,,TX,,false,true,false,openstreetmap
+Old Bobcat Football Stadium,football,pitch,26.2420655,-97.5824975,,,TX,,false,true,false,openstreetmap
+Overton Football Field,football,pitch,32.2757981,-94.9729365,,,TX,,false,true,false,openstreetmap
+Owl Field,football,pitch,34.8704842,-100.6560922,,,TX,,false,true,false,openstreetmap
+PCHS Football Field,football,pitch,33.2118348,-96.8614157,,,TX,,false,true,false,openstreetmap
+Panther Field,football,pitch,31.8826847,-97.0780445,,,TX,,false,true,false,openstreetmap
+Panther Stadium,football,stadium,30.0911652,-95.9943687,,,TX,,false,true,false,openstreetmap
+Panther Stadium,football,pitch,35.3526768,-101.3847326,,,TX,,false,true,false,openstreetmap
+Panther Stadium,football,stadium,36.4355331,-100.1399357,,,TX,,false,true,false,openstreetmap
+Panther Stadium,football,stadium,33.6320839,-96.40386,,,TX,,false,true,false,openstreetmap
+Panther Stadium,football,pitch,30.90407,-102.8919722,,,TX,,false,true,false,openstreetmap
+Panthers,football,pitch,32.6075941,-97.3957483,,,TX,,false,true,false,openstreetmap
+Paris Wildcats,football,pitch,33.633028,-95.5195066,,,TX,,false,true,false,openstreetmap
+Pat Hartley Field,football,pitch,32.3332232,-95.2794389,,,TX,,false,true,false,openstreetmap
+Perry Middle School Football Field,football,pitch,32.955794,-96.8961823,,,TX,,false,true,false,openstreetmap
+Phil Danaher Field,football,pitch,27.8577109,-97.638239,,,TX,,false,true,false,openstreetmap
+Pioneer Stadium,football,pitch,32.8778859,-97.412931,,,TX,,false,true,false,openstreetmap
+Pirate Stadium,football,pitch,33.0038239,-94.9743379,,,TX,,false,true,false,openstreetmap
+Pirate Stadium,football,pitch,32.4410079,-97.8104937,,,TX,,false,true,false,openstreetmap
+Poteet High School Football Stadium,football,pitch,29.0482819,-98.5673431,,,TX,,false,true,false,openstreetmap
+Powell Field,football,pitch,34.8453882,-100.2143796,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,29.7109255,-95.5433254,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,32.5614146,-94.3755063,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,28.9797169,-98.0241755,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,29.7178171,-95.4096191,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,29.5103833,-98.3173066,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,30.2728227,-97.7672659,,,TX,,false,true,false,openstreetmap
+Practice Field,football,pitch,33.0292933,-97.084036,,,TX,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,29.725333,-95.3497522,,,TX,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,29.7251548,-95.3491958,,,TX,,false,true,false,openstreetmap
+Practice field,football,pitch,32.0781105,-96.5026476,,,TX,,false,true,false,openstreetmap
+Pugh Field,football,pitch,30.1737629,-95.5246784,,,TX,,false,true,false,openstreetmap
+R L Anderson Stadium,football,stadium,32.5664806,-97.1319299,,,TX,,false,true,false,openstreetmap
+R.R. Jones Stadium,football,stadium,31.7727704,-106.4897088,,,TX,,false,true,false,openstreetmap
+Raider Field,football,pitch,26.2151882,-97.67685,,,TX,,false,true,false,openstreetmap
+Raider Stadium,football,pitch,30.2551452,-94.2205035,,,TX,,false,true,false,openstreetmap
+Ram Stadium Football Field,football,pitch,32.8153468,-98.0794553,,,TX,,false,true,false,openstreetmap
+Rattlers Field,football,pitch,26.2118617,-98.2824016,,,TX,,false,true,false,openstreetmap
+Rawlinson Patriots,football,pitch,29.5747655,-98.584479,,,TX,,false,true,false,openstreetmap
+Ray Akins Wildcat Stadium,football,pitch,27.9004981,-97.3228974,,,TX,,false,true,false,openstreetmap
+Reid Field,football,pitch,33.2857355,-96.5284686,,,TX,,false,true,false,openstreetmap
+Rice Stadium,football,stadium,29.7161607,-95.4093248,,,TX,,false,true,false,openstreetmap
+Rosacker Field,football,pitch,32.6922874,-97.4107439,,,TX,,false,true,false,openstreetmap
+Rowe Football Stadium,football,pitch,26.2263051,-98.2632814,,,TX,,false,true,false,openstreetmap
+SHS Football Practice Field,football,pitch,32.2155427,-98.2381921,,,TX,,false,true,false,openstreetmap
+Sam Parker Field,football,pitch,33.1795974,-94.9925693,,,TX,,false,true,false,openstreetmap
+San Benito Greyhounds,football,pitch,26.1420059,-97.646858,,,TX,,false,true,false,openstreetmap
+Sandcrab Stadium,football,pitch,28.6201366,-96.6375268,,,TX,,false,true,false,openstreetmap
+Sandcrab Stadium,football,stadium,28.6197621,-96.6374758,,,TX,,false,true,false,openstreetmap
+Sanger Indians,football,pitch,33.3682478,-97.1582237,,,TX,,false,true,false,openstreetmap
+Sealy HS Football,football,pitch,29.7623621,-96.1777723,,,TX,,false,true,false,openstreetmap
+Shaw Field,football,pitch,35.4374733,-100.8098077,,,TX,,false,true,false,openstreetmap
+Slaughter Field,football,stadium,33.4600853,-102.4840873,,,TX,,false,true,false,openstreetmap
+Somerset Stadium,football,stadium,29.2275876,-98.6552152,,,TX,,false,true,false,openstreetmap
+Spring Hill Panthers Football Field,football,pitch,32.562847,-94.7964915,,,TX,,false,true,false,openstreetmap
+Stanton Football Field,football,pitch,32.1310507,-101.8063936,,,TX,,false,true,false,openstreetmap
+Stingaree Field,football,pitch,29.3919452,-94.9182859,,,TX,,false,true,false,openstreetmap
+Switzer Field,football,pitch,31.8193325,-98.7909112,,,TX,,false,true,false,openstreetmap
+Tatum Eagle Stadium,football,stadium,32.3220282,-94.5151956,,,TX,,false,true,false,openstreetmap
+Taylor Stadium,football,pitch,30.5479092,-97.4280428,,,TX,,false,true,false,openstreetmap
+Thomas Edison High School Football Field,football,pitch,29.4732129,-98.5066106,,,TX,,false,true,false,openstreetmap
+Tiger Field,football,pitch,33.4410325,-101.6519739,,,TX,,false,true,false,openstreetmap
+Tiger Field,football,pitch,35.2055336,-101.1100055,,,TX,,false,true,false,openstreetmap
+Tiger Stadium,football,pitch,30.3435359,-94.1504901,,,TX,,false,true,false,openstreetmap
+Tiger Stadium,football,pitch,33.4279401,-94.0621845,,,TX,,false,true,false,openstreetmap
+Tiger Stadium,football,pitch,31.4187546,-97.5106993,,,TX,,false,true,false,openstreetmap
+Tom Bean Football Field,football,pitch,33.5286848,-96.4989491,,,TX,,false,true,false,openstreetmap
+Tom Landry Stadium,football,pitch,26.2209965,-98.3301238,,,TX,,false,true,false,openstreetmap
+Tomato Bowl Stadium,football,pitch,31.9656092,-95.267047,,,TX,,false,true,false,openstreetmap
+Tomato Bowl Stadium,football,stadium,31.9655699,-95.2672028,,,TX,,false,true,false,openstreetmap
+Tomball Independent School District Stadium,football,stadium,30.0566762,-95.7010379,,,TX,,false,true,false,openstreetmap
+Tomball Memorial High School,football,pitch,30.0360568,-95.6294462,,,TX,,false,true,false,openstreetmap
+Touchdown Alley,football,pitch,31.5554841,-97.1123593,,,TX,,false,true,false,openstreetmap
+Track & Football Field,football,pitch,29.9044835,-95.6650542,,,TX,,false,true,false,openstreetmap
+Trojan Field,football,stadium,33.5756231,-98.4413348,,,TX,,false,true,false,openstreetmap
+Truett Linehan Field,football,pitch,32.7789776,-97.2069152,,,TX,,false,true,false,openstreetmap
+UISD Stadium,football,stadium,27.4983982,-99.4370666,,,TX,,false,true,false,openstreetmap
+UTPB Football Field,football,pitch,31.8927639,-102.3278356,,,TX,,false,true,false,openstreetmap
+Van Alstyne Panthers,football,pitch,33.4403466,-96.5879852,,,TX,,false,true,false,openstreetmap
+Vandeventer Football Field,football,pitch,33.1267078,-96.7520752,,,TX,,false,true,false,openstreetmap
+WA Football Field,football,pitch,32.9859128,-97.2151531,,,TX,,false,true,false,openstreetmap
+WS “Bud” Leonard Field,football,pitch,30.0432271,-94.069952,,,TX,,false,true,false,openstreetmap
+Walton Field,football,stadium,31.8517899,-103.0919613,,,TX,,false,true,false,openstreetmap
+Warrior Field,football,pitch,32.7987345,-96.7205781,,,TX,,false,true,false,openstreetmap
+Weldon Willig Field,football,pitch,30.1936928,-95.5065879,,,TX,,false,true,false,openstreetmap
+West Turf Field,football,pitch,33.5171305,-102.0038781,,,TX,,false,true,false,openstreetmap
+Westfield Athletics Complex,football,pitch,30.0047708,-95.4476546,,,TX,,false,true,false,openstreetmap
+Westlake High School - Field 3,football,pitch,30.2739985,-97.8153947,,,TX,,false,true,false,openstreetmap
+Westlake Practice Field #1,football,pitch,30.2753721,-97.8120754,,,TX,,false,true,false,openstreetmap
+Westlake Practice Field #2,football,pitch,30.2751304,-97.811599,,,TX,,false,true,false,openstreetmap
+Westlake Practice Fields 1&2,football,sports_centre,30.2752424,-97.8118333,,,TX,,false,true,false,openstreetmap
+Whiteface Stadium,football,pitch,34.8322308,-102.4122972,,,TX,,false,true,false,openstreetmap
+Wigwam Stadium,football,stadium,32.7245911,-102.6513779,,,TX,,false,true,false,openstreetmap
+Wildcat Field,football,pitch,31.7551744,-103.1509501,,,TX,,false,true,false,openstreetmap
+Wildcat Field,football,pitch,30.3682452,-97.4056218,,,TX,,false,true,false,openstreetmap
+Wildcat Ram Stadium,football,pitch,32.8869606,-96.7291682,,,TX,,false,true,false,openstreetmap
+Wildcat Stadium,football,stadium,29.1979482,-95.4170893,,,TX,,false,true,false,openstreetmap
+Wildcat Stadium,football,pitch,35.3076155,-101.8367583,,,TX,,false,true,false,openstreetmap
+Wildcat Stadium,football,stadium,31.75528,-103.1510186,,,TX,,false,true,false,openstreetmap
+Wildorado Mustang Field,football,pitch,35.1845045,-102.2001647,,,TX,,false,true,false,openstreetmap
+Wilkerson-Sanders Memorial Stadium,football,stadium,32.9165261,-96.4468939,,,TX,,false,true,false,openstreetmap
+Willowridge High School Football Field,football,pitch,29.5857587,-95.4797093,,,TX,,false,true,false,openstreetmap
+Wimberley Texan Stadium,football,pitch,30.0028771,-98.1120921,,,TX,,false,true,false,openstreetmap
+Womack Field,football,pitch,32.486865,-94.7501912,,,TX,,false,true,false,openstreetmap
+Woodforest Bank Stadium,football,stadium,30.1858543,-95.446884,,,TX,,false,true,false,openstreetmap
+Woodson Field,football,pitch,31.103552,-97.3475236,,,TX,,false,true,false,openstreetmap
+Wylie ISD,football,pitch,33.0312897,-96.5554925,,,TX,,false,true,false,openstreetmap
+Yellowjacket Stadium,football,pitch,31.9296837,-97.6533407,,,TX,,false,true,false,openstreetmap
+Younger Field,football,pitch,34.5400906,-101.75614,,,TX,,false,true,false,openstreetmap
+practice field,football,pitch,32.940835,-97.2305401,,,TX,,false,true,false,openstreetmap
+practice field,football,pitch,32.940833,-97.2297182,,,TX,,false,true,false,openstreetmap
+Jackson Field,football,stadium,30.3581618,-103.6527599,204 South Cockrell Street,Alpine,TX,79830,false,true,false,openstreetmap
+AT&T Stadium,football,stadium,32.7478475,-97.092837,900 East Randol Mill Road,Arlington,TX,76011,false,true,false,openstreetmap
+Bruce Field,football,stadium,32.2016912,-95.8490781,480 Royal Street,Athens,TX,75751,false,true,false,openstreetmap
+Pennington Field,football,stadium,32.8327173,-97.1363919,1501 Central Drive,Bedford,TX,76022,false,true,false,openstreetmap
+Crusader Stadium,football,stadium,31.0673596,-97.466747,905 University Drive,Belton,TX,76513,false,true,false,openstreetmap
+Buckaroo Stadium,football,stadium,32.7603391,-98.9085987,706 North Smith Street,Breckenridge,TX,76424,false,true,false,openstreetmap
+Bain-Schaeffer Buffalo Stadium,football,stadium,34.9861452,-101.9118252,2609 Russell Long Boulevard,Canyon,TX,79016,false,true,false,openstreetmap
+Happy State Bank Stadium,football,stadium,35.0118414,-101.9165805,2800 North 23rd Street,Canyon,TX,79015,false,true,false,openstreetmap
+Panther Stadium,football,stadium,29.3432724,-98.8368301,8449 FM 471 South,Castroville,TX,78009,false,true,false,openstreetmap
+Pirate Stadium,football,stadium,29.9536534,-99.034735,111 Stoneleigh Road,Center Point,TX,78010,false,true,false,openstreetmap
+Chapel Hill Bulldogs Football Stadium,football,stadium,32.3073088,-95.1885193,TX 64,Chapel Hill,TX,,false,true,false,openstreetmap
+Yellow Jacket Stadium,football,stadium,32.341501,-97.4011417,1201 West Henderson Street,Cleburne,TX,76033,false,true,false,openstreetmap
+Slade Field,football,pitch,29.0260114,-95.419745,302 Brazoswood Drive,Clute,TX,77531,false,true,false,openstreetmap
+Pirates Field,football,pitch,31.5376307,-97.434028,523 East 4th Street,Crawford,TX,76638,false,true,false,openstreetmap
+Cotton Bowl Stadium,football,stadium,32.7796103,-96.7595962,3750 The Midway,Dallas,TX,75210,false,true,false,openstreetmap
+Gerald J. Ford Stadium,football,stadium,32.8378483,-96.782798,5801 Bush Avenue,Dallas,TX,75205,false,true,false,openstreetmap
+DATCU Stadium,football,stadium,33.204191,-97.1594204,1251 South Bonnie Brae Street,Denton,TX,76207,false,true,false,openstreetmap
+Benny Layton Memorial Stadium,football,stadium,26.299734,-97.9806124,4 Mile Yellow Jacket Drive,Edcouch,TX,78538,false,true,false,openstreetmap
+Sun Bowl Stadium,football,stadium,31.7733684,-106.5079616,2701 Sun Bowl Drive,El Paso,TX,79902,false,true,false,openstreetmap
+J W Spain Athletic Complex,football,pitch,33.1691613,-96.3505677,205 Murchison Street,Farmersville,TX,75442,false,true,false,openstreetmap
+Forrest Field,football,stadium,32.6153613,-99.8191042,800 1st Street,Hawley,TX,79525,false,true,false,openstreetmap
+Delmar Stadium,football,stadium,29.8036589,-95.4562287,2020 Mangum Road,Houston,TX,77092,false,true,false,openstreetmap
+Fun Stadium,football,sports_centre,29.6942695,-95.495809,6400 Bissonnet Street,Houston,TX,77074,false,true,false,openstreetmap
+Practice Football Field,football,pitch,29.7263507,-95.3492676,3820 Holman Street,Houston,TX,77204,false,true,false,openstreetmap
+TDECU Stadium,football,stadium,29.7219293,-95.3493218,3847 Holman Street,Houston,TX,77204,false,true,false,openstreetmap
+Bulldog Stadium,football,stadium,33.5122394,-96.6101139,709 North Denny Street,Howe,TX,75459,false,true,false,openstreetmap
+Hawk Stadium,football,stadium,33.9622216,-98.6921392,1000 Johnson Road,Iowa Park,TX,76367,false,true,false,openstreetmap
+Shockley Field,football,pitch,30.2824555,-98.4082115,100 Victory Lane,Johnson City,TX,78636,false,true,false,openstreetmap
+Antler Stadium,football,stadium,30.0568074,-99.1317751,1310 Sidney Baker Street,Kerrville,TX,78028,false,true,false,openstreetmap
+Levelland Football Field,football,stadium,33.5991979,-102.3422075,1408 East Ellis Street,Levelland,TX,79336,false,true,false,openstreetmap
+Jones AT&T Stadium,football,stadium,33.5911756,-101.8729912,2526 Mac Davis Lane,Lubbock,TX,79409,false,true,false,openstreetmap
+Lowrey Field at Plains Capital Park,football,stadium,33.5327806,-101.8511704,1301 66th Street,Lubbock,TX,79412,false,true,false,openstreetmap
+Pirate Stadium at First United Park,football,stadium,33.4489587,-101.8495799,1302 Woodrow Road,Lubbock,TX,79423,false,true,false,openstreetmap
+Sports Performance Center,football,sports_centre,33.5895011,-101.8731021,2621 Drive of Champions,Lubbock,TX,,false,true,false,openstreetmap
+Cardinal Stadium,football,stadium,33.2888239,-96.5763449,2950 Cardnal Drive,Melissa,TX,75454,false,true,false,openstreetmap
+Homer Bryce Stadium,football,stadium,31.625732,-94.6444041,,Nacogdoches,TX,75965,false,true,false,openstreetmap
+Randall Reed Stadium,football,sports_centre,30.1359474,-95.2332516,,New Caney,TX,77357,false,true,false,openstreetmap
+Ranger Field,football,stadium,36.3867187,-100.817618,1301 Michigan Street,Perryton,TX,79070,false,true,false,openstreetmap
+Eagle Stadium,football,stadium,32.2285027,-97.3739506,200 Capps Street,Rio Vista,TX,76093,false,true,false,openstreetmap
+H Govan Memorial Stadium,football,stadium,32.8545079,-100.4586266,700 East Sammy Baugh Avenue,Rotan,TX,79546,false,true,false,openstreetmap
+Chisholm Trail Football Field,football,pitch,30.5019546,-97.7037993,500 Oakridge Drive,Round Rock,TX,78681,false,true,false,openstreetmap
+Salado Eagle Field,football,stadium,30.9502067,-97.5453733,640 Thomas Arnold Road,Salado,TX,76571,false,true,false,openstreetmap
+San Angelo Stadium,football,stadium,31.4304975,-100.460037,1919 Knickerbocker Road,San Angelo,TX,76904,false,true,false,openstreetmap
+Heroes Stadium,football,stadium,29.5369135,-98.3978123,4799 Thousand Oaks Drive,San Antonio,TX,78233,false,true,false,openstreetmap
+Comanche Stadium,football,stadium,29.4473262,-97.1856256,600 County Road 348,Shiner,TX,77984,false,true,false,openstreetmap
+Art Briles Stadium,football,stadium,32.2113143,-98.2391846,935 North Wolfe Nursery Road,Stephenville,TX,76401,false,true,false,openstreetmap
+Terrell Memorial Stadium,football,stadium,32.7399278,-96.2945789,68 Lions Club Park,Terrell,TX,75160,false,true,false,openstreetmap
+Lumpkins Stadium,football,stadium,32.4139414,-96.8347798,1000 Dallas Highway,Waxahachie,TX,75165,false,true,false,openstreetmap

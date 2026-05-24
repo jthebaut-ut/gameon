@@ -1,0 +1,79 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Acrisure Bounce House,football,stadium,28.6081847,-81.1926937,,,FL,,false,true,false,openstreetmap
+Bayside Bears,football,pitch,27.9486555,-80.6753431,,,FL,,false,true,false,openstreetmap
+Bobby Bowden Field,football,pitch,30.4381463,-84.3044095,,,FL,,false,true,false,openstreetmap
+Bragg Memorial Stadium,football,stadium,30.4260566,-84.2917839,,,FL,,false,true,false,openstreetmap
+Brandon Bears Football & Cheer Field,football,pitch,27.8955568,-82.3167629,,,FL,,false,true,false,openstreetmap
+Brick City Park Field,football,pitch,29.1666004,-82.1220532,,,FL,,false,true,false,openstreetmap
+Bryant Stadium,football,stadium,28.0584704,-81.9565992,,,FL,,false,true,false,openstreetmap
+Bushy Stadium,football,stadium,28.2992225,-81.5720003,,,FL,,false,true,false,openstreetmap
+CCHS Football Field,football,pitch,26.0457605,-80.2752439,,,FL,,false,true,false,openstreetmap
+Camping World Stadium,football,stadium,28.5390171,-81.4027504,,,FL,,false,true,false,openstreetmap
+Cawthon Field,football,pitch,30.306389,-81.704527,,,FL,,false,true,false,openstreetmap
+Coraci Athletics Field,football,pitch,29.1175318,-81.0631351,,,FL,,false,true,false,openstreetmap
+D. B. Milne Footbal Field,football,pitch,30.3569115,-81.605496,,,FL,,false,true,false,openstreetmap
+East Practice Field,football,pitch,30.440181,-84.3050395,,,FL,,false,true,false,openstreetmap
+FAU Stadium,football,stadium,26.3760708,-80.1019601,,,FL,,false,true,false,openstreetmap
+Field 25,football,pitch,28.3398375,-81.5571366,,,FL,,false,true,false,openstreetmap
+Field 27,football,pitch,28.339829,-81.556305,,,FL,,false,true,false,openstreetmap
+Field 6,football,pitch,28.2486303,-80.7267298,,,FL,,false,true,false,openstreetmap
+Field 7,football,pitch,28.335426,-81.556301,,,FL,,false,true,false,openstreetmap
+Field 7,football,pitch,28.248629,-80.7260158,,,FL,,false,true,false,openstreetmap
+Field A,football,pitch,28.0634913,-80.6849601,,,FL,,false,true,false,openstreetmap
+Field B,football,pitch,28.0634895,-80.6842812,,,FL,,false,true,false,openstreetmap
+Field C,football,pitch,28.0634644,-80.6834532,,,FL,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,30.3581424,-81.6058897,,,FL,,false,true,false,openstreetmap
+Football Practice Field 1,football,pitch,29.0361728,-81.2990867,,,FL,,false,true,false,openstreetmap
+Football Practice Field 2,football,pitch,29.0361819,-81.2984854,,,FL,,false,true,false,openstreetmap
+Gary Condron Field,football,pitch,29.6505798,-82.3526131,,,FL,,true,false,false,openstreetmap
+George Mullen Activity Center,football,pitch,27.0744227,-82.2041829,,,FL,,false,true,false,openstreetmap
+George Smith Field,football,pitch,26.1090641,-80.1818566,,,FL,,false,true,false,openstreetmap
+Half-field (practice),football,pitch,26.5475163,-81.9042872,,,FL,,false,true,false,openstreetmap
+Hard Rock Stadium,football,pitch,25.9579317,-80.2388466,,,FL,,false,true,false,openstreetmap
+Harlee Stadium,football,stadium,27.5314683,-82.5799524,,,FL,,false,true,false,openstreetmap
+Heavener Football Complex,football,sports_centre,29.6490261,-82.3494053,,,FL,,false,true,false,openstreetmap
+Hernando High School Football Field,football,pitch,28.5664527,-82.3830207,,,FL,,false,true,false,openstreetmap
+Hurley W. Rudd Field,football,pitch,30.403712,-84.2730265,,,FL,,false,true,false,openstreetmap
+Keiser University Football Field,football,pitch,26.7117261,-80.1059339,,,FL,,false,true,false,openstreetmap
+Keswick Christian School,football,pitch,27.8243062,-82.7793418,,,FL,,false,true,false,openstreetmap
+Lake Lorna Doone Football Field,football,pitch,28.5411856,-81.3999419,,,FL,,false,true,false,openstreetmap
+Lemon Bay Practice Field,football,pitch,26.9280311,-82.3304967,,,FL,,false,true,false,openstreetmap
+Mallison Field,football,pitch,30.3230075,-81.7081641,,,FL,,false,true,false,openstreetmap
+Melbourne Bulldogs,football,pitch,28.0914822,-80.6201099,,,FL,,false,true,false,openstreetmap
+North Brandon Cowboys,football,pitch,27.9690732,-82.279424,,,FL,,false,true,false,openstreetmap
+Oviedo High School Football Field,football,pitch,28.6712317,-81.2183942,,,FL,,false,true,false,openstreetmap
+PAL Game Field,football,pitch,26.0327342,-80.1524689,,,FL,,false,true,false,openstreetmap
+Pedro Menendez Football Field,football,pitch,29.7559224,-81.3306276,,,FL,,false,true,false,openstreetmap
+PenAir Field,football,pitch,30.5462607,-87.2230201,,,FL,,false,true,false,openstreetmap
+Pete Edwards Field,football,pitch,30.1836446,-85.7638488,,,FL,,false,true,false,openstreetmap
+Pony Field,football,pitch,29.6398857,-82.3509379,,,FL,,false,true,false,openstreetmap
+Raymond James Stadium,football,stadium,27.9759685,-82.5033558,,,FL,,false,true,false,openstreetmap
+Roger Scarborough Memorial Field,football,pitch,27.2994182,-81.3607168,,,FL,,false,true,false,openstreetmap
+Ronald L Book Athletic Stadium,football,pitch,25.9165222,-80.1487853,,,FL,,false,true,false,openstreetmap
+Sanders Football Practice Fields,football,sports_centre,29.6507127,-82.3532038,,,FL,,false,true,false,openstreetmap
+Seminole High School Football Field,football,pitch,27.8503116,-82.8168147,,,FL,,false,true,false,openstreetmap
+Shark Field,football,pitch,29.7920053,-85.2917339,,,FL,,false,true,false,openstreetmap
+Shark Stadium,football,pitch,27.7573306,-80.5169348,,,FL,,false,true,false,openstreetmap
+Showalter Field,football,pitch,28.594386,-81.3198808,,,FL,,false,true,false,openstreetmap
+Spec Martin Stadium,football,pitch,29.0200441,-81.2999946,,,FL,,false,true,false,openstreetmap
+Stamps Family Field,football,pitch,25.7383236,-80.226493,,,FL,,false,true,false,openstreetmap
+Steve Spurrier-Florida Field,football,pitch,29.6499271,-82.3486264,,,FL,,false,true,false,openstreetmap
+Tropical Park Stadium,football,pitch,25.7300837,-80.3230698,,,FL,,false,true,false,openstreetmap
+WHS Football Field,football,pitch,26.1028866,-80.327312,,,FL,,false,true,false,openstreetmap
+WPHS Football & Track Stadium,football,sports_centre,28.5945023,-81.3198197,,,FL,,false,true,false,openstreetmap
+Wayne Densch Practice Complex,football,sports_centre,28.6064517,-81.1922817,,,FL,,false,true,false,openstreetmap
+West Practice Field,football,pitch,30.4401858,-84.3056294,,,FL,,false,true,false,openstreetmap
+Windermere HS Football and Track and Field Stadium,football,pitch,28.4653548,-81.587987,,,FL,,false,true,false,openstreetmap
+Phillip Jones Field,football,pitch,27.9803482,-82.785951,1240 Russell Street,Clearwater,FL,33755,false,true,false,openstreetmap
+Ben Hill Griffin Stadium,football,stadium,29.6500337,-82.3488406,157 Gale Lemerand Drive,Gainesville,FL,32611,false,true,false,openstreetmap
+Gator Sportshop (North End Zone),football,pitch,29.6509095,-82.3479235,157 Gale Lemerand Drive,Gainesville,FL,32611,false,true,false,openstreetmap
+Gator Sportshop (South End Zone),football,pitch,29.6489688,-82.3491513,157 Gale Lemerand Drive,Gainesville,FL,32611,false,true,false,openstreetmap
+Indoor Football Practice Facility,football,pitch,29.6505919,-82.3526143,2101 Southwest 2nd Avenue,Gainesville,FL,32611,false,true,false,openstreetmap
+Milton Lewis Stadium,football,stadium,29.6618786,-82.3064365,1400 Northeast 8th Avenue,Gainesville,FL,32601,false,true,false,openstreetmap
+Ring of Honor,football,pitch,29.650811,-82.3486245,,Gainesville,FL,,false,true,false,openstreetmap
+EverBank Stadium,football,stadium,30.3239388,-81.6372764,1 EverBank Stadium Drive,Jacksonville,FL,32202,false,true,false,openstreetmap
+Paul Langford Stadium,football,stadium,30.2955934,-82.9885687,302 Parshley Street Southwest,Live Oak,FL,32064,false,true,false,openstreetmap
+Baptist Health Training Complex,football,sports_centre,25.9595423,-80.2445298,20000 Northwest 27th Avenue,Miami Gardens,FL,33056,false,true,false,openstreetmap
+Doak S. Campbell Stadium,football,stadium,30.4381331,-84.3043818,,Tallahassee,FL,,false,true,false,openstreetmap
+Tampa Bay Buccaneers,football,pitch,27.9798841,-82.4948576,1 Buccaneer Place,Tampa,FL,33603,false,true,false,openstreetmap
+Walker Football Field,football,pitch,28.5615738,-81.591026,415 South Park Avenue,Winter Garden,FL,,false,true,false,openstreetmap
