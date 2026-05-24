@@ -492,6 +492,66 @@ struct LiveScreen: View {
         case crowdBuilding = "crowdBuildingSection"
     }
 
+    private enum LiveGameFeedRow: Identifiable {
+        case match(LiveMatch)
+        case nativeAd(slotIndex: Int, insertionIndex: Int)
+
+        var id: String {
+            switch self {
+            case .match(let match):
+                return "live-match-\(match.id)"
+            case .nativeAd(let slotIndex, let insertionIndex):
+                return "live-native-ad-\(slotIndex)-after-\(insertionIndex)"
+            }
+        }
+    }
+
+    private enum LiveFeedAdPlacement {
+        static let debugFrequency = 2
+        static let releaseFrequency = 4
+
+        static var insertionFrequency: Int {
+#if DEBUG
+            debugFrequency
+#else
+            releaseFrequency
+#endif
+        }
+
+        static func listItems(for matches: [LiveMatch]) -> [LiveGameFeedRow] {
+            let frequency = insertionFrequency
+            guard frequency > 0, matches.count >= frequency else {
+                return matches.map { .match($0) }
+            }
+
+            var items: [LiveGameFeedRow] = []
+            items.reserveCapacity(matches.count + (matches.count / frequency))
+
+            var slotIndex = 0
+            for (index, match) in matches.enumerated() {
+                items.append(.match(match))
+                let insertionIndex = index + 1
+                if insertionIndex.isMultiple(of: frequency) {
+                    items.append(.nativeAd(slotIndex: slotIndex, insertionIndex: insertionIndex))
+                    slotIndex += 1
+                }
+            }
+
+            return items
+        }
+
+        static func logPlan(matchCount: Int) {
+            guard AdDiagnostics.enabled else { return }
+            let insertionIndexes = stride(from: insertionFrequency, through: matchCount, by: insertionFrequency)
+                .map { $0 }
+            print("[LiveFeedAdDebug] releaseFrequency=\(releaseFrequency)")
+            print("[LiveFeedAdDebug] debugFrequency=\(debugFrequency)")
+            for insertionIndex in insertionIndexes {
+                print("[LiveFeedAdDebug] insertionIndex=\(insertionIndex)")
+            }
+        }
+    }
+
     private enum LivePanelKind {
         case liveGames
         case venuesPickup
@@ -617,6 +677,8 @@ struct LiveScreen: View {
             matchedWorldCupGames: worldCupMatches
         )
         let _: Void = logLiveNowSectionDebug(liveNowExpanded: liveNowExpanded, liveNowCount: matches.count)
+        let feedRows = LiveFeedAdPlacement.listItems(for: matches)
+        let _: Void = LiveFeedAdPlacement.logPlan(matchCount: matches.count)
 
         return liveCollapsiblePanelSection(
             kind: .liveGames,
@@ -644,8 +706,13 @@ struct LiveScreen: View {
                     }
                 } else {
                     VStack(spacing: 10) {
-                        ForEach(matches) { match in
-                            liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                        ForEach(feedRows) { row in
+                            switch row {
+                            case .match(let match):
+                                liveMatchCard(match, relatedItems: liveMatchRelatedItems(for: match, in: rankedItems))
+                            case .nativeAd(let slotIndex, _):
+                                liveFeedNativeAdCard(slotIndex: slotIndex)
+                            }
                         }
                     }
                     .animation(.spring(response: 0.34, dampingFraction: 0.86), value: liveGamesSportFilter)
@@ -1418,6 +1485,21 @@ struct LiveScreen: View {
             print("[LiveSportDetected] id=\(match.id) presentationType=\(sportType.rawValue) accent=\(accent)")
 #endif
         }
+    }
+
+    private func liveFeedNativeAdCard(slotIndex: Int) -> some View {
+        GeometryReader { geometry in
+            CompactNativeAdCard(
+                placement: "live.feed",
+                hostTabRaw: "live",
+                slotIndex: slotIndex,
+                layoutWidth: max(280, geometry.size.width),
+                prefersLightChrome: false,
+                animatesLoadState: true
+            )
+        }
+        .frame(height: CompactNativeAdLayout.preferredHeight)
+        .clipped()
     }
 
     private func liveMatchScoreboard(_ match: LiveMatch, accent: Color) -> some View {
