@@ -105,6 +105,8 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserEmail: String = ""
     /// Supabase Auth user id; mirrors ``supabase.auth.session.user.id`` when signed in (fan session).
     @Published var currentUserAuthId: UUID?
+    @Published var activeAccountBan: FanGeoAccountBan?
+    @Published var isCheckingActiveBan = false
     @Published var isBusinessOwnerSessionRestorePending = false
     var authSessionRestoreID: UUID?
     /// Bumped whenever private authenticated state is explicitly cleared so sibling view models can synchronously wipe their own caches.

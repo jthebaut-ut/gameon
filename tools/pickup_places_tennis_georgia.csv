@@ -1,0 +1,305 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+6,tennis,pitch,32.8635404,-83.712327,,,GA,,false,true,false,openstreetmap
+Adams Park,tennis,pitch,34.0229428,-84.6209514,,,GA,,false,true,false,openstreetmap
+Adams Park,tennis,pitch,34.0229515,-84.6211107,,,GA,,false,true,false,openstreetmap
+Apartment Tennis Court,tennis,pitch,32.0406637,-81.0197603,,,GA,,false,true,false,openstreetmap
+Arbors at Lake View,tennis,pitch,34.2326477,-84.206225,,,GA,,false,true,false,openstreetmap
+Arbors at Lake View,tennis,pitch,34.2326119,-84.2063783,,,GA,,false,true,false,openstreetmap
+Arbors at Lake View,tennis,pitch,34.232244,-84.2062446,,,GA,,false,true,false,openstreetmap
+Arbors at Lake View,tennis,pitch,34.2322785,-84.2060924,,,GA,,false,true,false,openstreetmap
+Augusta Commons Apartments,tennis,pitch,33.9360586,-84.481828,,,GA,,false,true,false,openstreetmap
+Austin Lake Tennis Court,tennis,pitch,33.8638865,-84.53626,,,GA,,false,true,false,openstreetmap
+Austin Lake Tennis Court,tennis,pitch,33.8638666,-84.5361025,,,GA,,false,true,false,openstreetmap
+Avonlea Riverside,tennis,pitch,33.8989263,-84.4560951,,,GA,,false,true,false,openstreetmap
+Avonlea Riverside,tennis,pitch,33.8989325,-84.455937,,,GA,,false,true,false,openstreetmap
+Bell Kennesaw Mountain,tennis,pitch,33.9991797,-84.6010191,,,GA,,false,true,false,openstreetmap
+Bethany Creek Tennis Courts,tennis,pitch,34.1168745,-84.2674669,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,tennis,pitch,34.0019313,-84.6234835,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,tennis,pitch,34.0019317,-84.6233189,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,tennis,pitch,34.0015412,-84.6239294,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,tennis,pitch,34.0015397,-84.6237662,,,GA,,false,true,false,openstreetmap
+Blakeford Homeowners Association,tennis,pitch,34.0008078,-84.4422354,,,GA,,false,true,false,openstreetmap
+Bonnie Glen Condominiums,tennis,pitch,33.9344352,-84.4823941,,,GA,,false,true,false,openstreetmap
+Bridgehampton,tennis,pitch,34.1512954,-84.2337414,,,GA,,false,true,false,openstreetmap
+Bridgehampton,tennis,pitch,34.1513432,-84.2335913,,,GA,,false,true,false,openstreetmap
+Byers Tennis Courts,tennis,pitch,33.7661895,-84.2953359,,,GA,,false,true,false,openstreetmap
+Cambridge Apartments,tennis,pitch,33.9260866,-83.3447403,,,GA,,false,true,false,openstreetmap
+Campbell Middle School,tennis,pitch,33.8743517,-84.4977478,,,GA,,false,true,false,openstreetmap
+Campbell Middle School,tennis,pitch,33.8742812,-84.4976131,,,GA,,false,true,false,openstreetmap
+Centennial Tennis Courts,tennis,sports_centre,33.0775035,-83.2339886,,,GA,,false,true,false,openstreetmap
+Central Park Tennis Courts,tennis,pitch,33.7684125,-84.3774355,,,GA,,false,true,false,openstreetmap
+Central Park Tennis Courts,tennis,pitch,33.7679647,-84.3774403,,,GA,,false,true,false,openstreetmap
+Central Park Tennis Courts,tennis,pitch,33.7679639,-84.3772821,,,GA,,false,true,false,openstreetmap
+Central Park Tennis Courts,tennis,pitch,33.7684121,-84.3772775,,,GA,,false,true,false,openstreetmap
+Chamblee High School,tennis,pitch,33.8993636,-84.3070742,,,GA,,false,true,false,openstreetmap
+Chamblee High School,tennis,pitch,33.8992709,-84.3069608,,,GA,,false,true,false,openstreetmap
+Chamblee High School,tennis,pitch,33.8991793,-84.3068516,,,GA,,false,true,false,openstreetmap
+Chamblee Middle Tennis Court,tennis,pitch,33.8977036,-84.3103838,,,GA,,false,true,false,openstreetmap
+Chattahoochee High School,tennis,pitch,34.0501196,-84.2079945,,,GA,,false,true,false,openstreetmap
+Chula Baptist Church,tennis,pitch,31.5509552,-83.5471067,,,GA,,false,true,false,openstreetmap
+Clarke Central High School,tennis,pitch,33.952057,-83.3907879,,,GA,,false,true,false,openstreetmap
+Clarke Central High School,tennis,pitch,33.9520204,-83.390939,,,GA,,false,true,false,openstreetmap
+Clarke Central High School,tennis,pitch,33.9519531,-83.3911988,,,GA,,false,true,false,openstreetmap
+Clover Apartments,tennis,pitch,33.8994869,-84.4578287,,,GA,,false,true,false,openstreetmap
+Collingswood,tennis,pitch,34.0768403,-84.4859278,,,GA,,false,true,false,openstreetmap
+Collingswood,tennis,pitch,34.076836,-84.4857694,,,GA,,false,true,false,openstreetmap
+Colonial Grand at Berkeley Lake,tennis,pitch,33.9970718,-84.1669435,,,GA,,false,true,false,openstreetmap
+Colonial Grand at Berkeley Lake,tennis,pitch,33.9970674,-84.1667847,,,GA,,false,true,false,openstreetmap
+Community Tennis Court,tennis,pitch,34.1221018,-84.1048093,,,GA,,false,true,false,openstreetmap
+Community Tennis Court,tennis,pitch,34.1281163,-84.1134891,,,GA,,false,true,false,openstreetmap
+Community Tennis Courts,tennis,pitch,34.1223746,-84.10449,,,GA,,false,true,false,openstreetmap
+Community Tennis Courts,tennis,pitch,34.1216395,-84.1290896,,,GA,,false,true,false,openstreetmap
+Coomunity Tennis Courts,tennis,pitch,34.071232,-84.1854376,,,GA,,false,true,false,openstreetmap
+Cooper Creek Tennis Center,tennis,sports_centre,32.5143609,-84.9116257,,,GA,,false,true,false,openstreetmap
+Courtcraft Tennis,tennis,pitch,33.8860095,-84.061485,,,GA,,false,true,false,openstreetmap
+Cove Lake Property Owners Association,tennis,pitch,34.4265843,-84.3016214,,,GA,,false,true,false,openstreetmap
+Cross Court Sports,tennis,pitch,32.515137,-84.9120257,,,GA,,false,true,false,openstreetmap
+D'Youville tennis courts,tennis,pitch,33.9099865,-84.3116013,,,GA,,false,true,false,openstreetmap
+Dan Magill Tennis Complex,tennis,sports_centre,33.9403549,-83.3776239,,,GA,,false,true,false,openstreetmap
+Dawson County High School,tennis,pitch,34.4148118,-84.1033262,,,GA,,false,true,false,openstreetmap
+Dawson County High School,tennis,pitch,34.4148093,-84.1031686,,,GA,,false,true,false,openstreetmap
+Dawson County High School,tennis,pitch,34.4151416,-84.1033157,,,GA,,false,true,false,openstreetmap
+Dawson County High School,tennis,pitch,34.4151397,-84.1031557,,,GA,,false,true,false,openstreetmap
+DeKalb Tennis Center,tennis,pitch,33.8071506,-84.3051458,1400,,GA,,false,true,false,openstreetmap
+Deer Lick Park Tennis Courts,tennis,pitch,33.7476009,-84.6847813,,,GA,,false,true,false,openstreetmap
+Deer Valley Tennis Courts,tennis,pitch,34.0885938,-84.0928227,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1394295,-84.8159682,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1393572,-84.8158355,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.139284,-84.8156998,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1392104,-84.8155686,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1390965,-84.8153652,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1390257,-84.8152343,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.138953,-84.8151007,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.140206,-84.8153583,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1401958,-84.8151994,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1401851,-84.8150406,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.140174,-84.8148827,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1401627,-84.8147258,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1397675,-84.8148186,,,GA,,false,true,false,openstreetmap
+Dellinger Park,tennis,pitch,34.1397704,-84.8146574,,,GA,,false,true,false,openstreetmap
+Echo Mill Neighborhood Association,tennis,pitch,33.9232026,-84.7143215,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.2804507,-83.1493918,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.2804398,-83.1495556,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.2804277,-83.1497209,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.2807818,-83.1493809,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.280795,-83.1492156,,,GA,,false,true,false,openstreetmap
+Emannuel University,tennis,pitch,34.2808055,-83.1490537,,,GA,,false,true,false,openstreetmap
+Fannin County High School,tennis,pitch,34.8493042,-84.3302095,,,GA,,false,true,false,openstreetmap
+Fannin County High School,tennis,pitch,34.8494241,-84.3300687,,,GA,,false,true,false,openstreetmap
+Fannin County High School,tennis,pitch,34.849543,-84.3299292,,,GA,,false,true,false,openstreetmap
+Fannin County High School,tennis,pitch,34.8496607,-84.3297911,,,GA,,false,true,false,openstreetmap
+Flowers Crossing Tennis Courts,tennis,pitch,33.906315,-84.0230993,,,GA,,false,true,false,openstreetmap
+Flowers Crossing at the Mill Tennis Courts #1 and #2,tennis,pitch,33.9059111,-84.02229,,,GA,,false,true,false,openstreetmap
+Flowers Crossing at the Mill Tennis Courts #3 and #4,tennis,pitch,33.9062391,-84.0224781,,,GA,,false,true,false,openstreetmap
+Fullers Park,tennis,pitch,33.9721671,-84.4534574,,,GA,,false,true,false,openstreetmap
+Fullers Park,tennis,pitch,33.9721739,-84.4536251,,,GA,,false,true,false,openstreetmap
+Fullers Park,tennis,pitch,33.9721804,-84.4538227,,,GA,,false,true,false,openstreetmap
+Fullers Park,tennis,pitch,33.9721871,-84.4539918,,,GA,,false,true,false,openstreetmap
+Gilmer High School,tennis,pitch,34.6783344,-84.4987675,,,GA,,false,true,false,openstreetmap
+Gilmer High School,tennis,pitch,34.6784524,-84.4992442,,,GA,,false,true,false,openstreetmap
+Gilmer High School,tennis,pitch,34.6783749,-84.4989312,,,GA,,false,true,false,openstreetmap
+Gilmer High School,tennis,pitch,34.6784127,-84.4990842,,,GA,,false,true,false,openstreetmap
+Glenlake Tennis Center,tennis,pitch,33.7835881,-84.2925556,,,GA,,false,true,false,openstreetmap
+Hanner Tennis Courts,tennis,sports_centre,32.4281746,-81.7789195,,,GA,,false,true,false,openstreetmap
+Hanover West Tennis Courts,tennis,pitch,33.8230182,-84.433521,,,GA,,false,true,false,openstreetmap
+Haralson County High School,tennis,pitch,33.7657308,-85.2463595,,,GA,,false,true,false,openstreetmap
+Haralson County High School,tennis,pitch,33.7657406,-85.2461996,,,GA,,false,true,false,openstreetmap
+Haralson County High School,tennis,pitch,33.7657473,-85.2460221,,,GA,,false,true,false,openstreetmap
+Haralson County High School,tennis,pitch,33.7657561,-85.2458621,,,GA,,false,true,false,openstreetmap
+Harlow West,tennis,pitch,34.0529693,-84.3168827,,,GA,,false,true,false,openstreetmap
+Harlow West,tennis,pitch,34.0529667,-84.3167235,,,GA,,false,true,false,openstreetmap
+Hawthorne Wildwood Apartment Homes,tennis,pitch,33.9099982,-84.4680214,,,GA,,false,true,false,openstreetmap
+Hawthorne Wildwood Apartment Homes,tennis,pitch,33.909999,-84.4677672,,,GA,,false,true,false,openstreetmap
+Hicks Park,tennis,pitch,34.1806714,-84.8192447,,,GA,,false,true,false,openstreetmap
+Hicks Park,tennis,pitch,34.1806797,-84.8190858,,,GA,,false,true,false,openstreetmap
+Hicks Park,tennis,pitch,34.1806861,-84.8189269,,,GA,,false,true,false,openstreetmap
+Hillbrooke Swim & Tennis,tennis,sports_centre,34.0622155,-84.2019413,5450 North Hillbrooke Trace,,GA,,false,true,false,openstreetmap
+Howell Tennis Courts,tennis,pitch,33.8737862,-84.333942,,,GA,,false,true,false,openstreetmap
+Hurt Road Park,tennis,pitch,33.8664212,-84.583549,,,GA,,false,true,false,openstreetmap
+Hurt Road Park,tennis,pitch,33.8664698,-84.5834057,,,GA,,false,true,false,openstreetmap
+Hurt Road Park,tennis,pitch,33.8664346,-84.5829411,,,GA,,false,true,false,openstreetmap
+Hurt Road Park,tennis,pitch,33.866482,-84.5827956,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9619722,-84.4364829,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9619906,-84.4366411,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9622993,-84.4364267,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9623182,-84.4365822,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9615668,-84.4374177,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9615668,-84.4371958,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9612148,-84.4372166,,,GA,,false,true,false,openstreetmap
+Indian Hills Country Club,tennis,pitch,33.9612138,-84.4374352,,,GA,,false,true,false,openstreetmap
+James Creek Tennis Court,tennis,pitch,34.1307318,-84.1352946,,,GA,,false,true,false,openstreetmap
+James Creek Tennis Court,tennis,pitch,34.1309262,-84.1348549,,,GA,,false,true,false,openstreetmap
+James Creek Tennis Court,tennis,pitch,34.1304281,-84.1348677,,,GA,,false,true,false,openstreetmap
+James Creek Tennis Court,tennis,pitch,34.1307257,-84.1343813,,,GA,,false,true,false,openstreetmap
+Jasper City Park,tennis,pitch,34.4736883,-84.4275364,,,GA,,false,true,false,openstreetmap
+Jasper City Park,tennis,pitch,34.4736227,-84.4276751,,,GA,,false,true,false,openstreetmap
+John Drew Smith Tennis Center,tennis,sports_centre,32.8884027,-83.6792033,3280 North Ingle Place,,GA,31210,false,true,false,openstreetmap
+Ken Byers Tennis Complex,tennis,sports_centre,33.7806443,-84.3943301,,,GA,,false,true,false,openstreetmap
+LBC Court 1&2,tennis,pitch,33.8601428,-84.2554343,,,GA,,false,true,false,openstreetmap
+LBC Court 3&4,tennis,pitch,33.8602525,-84.2550861,,,GA,,false,true,false,openstreetmap
+LBC Court 5,tennis,pitch,33.860558,-84.2553082,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9482946,-84.5730097,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.947779,-84.5729511,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9477623,-84.573458,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9477367,-84.5739462,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9484653,-84.5734969,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9481472,-84.5740829,,,GA,,false,true,false,openstreetmap
+Laurel Park,tennis,pitch,33.9485502,-84.5739894,,,GA,,false,true,false,openstreetmap
+Leafmore Creek Park Club,tennis,sports_centre,33.8202877,-84.2876244,,,GA,,false,true,false,openstreetmap
+Lessie Smithgall Tennis Complex,tennis,pitch,34.3047827,-83.819391,,,GA,,false,true,false,openstreetmap
+Liberty Commons Homeowners Association,tennis,pitch,34.0337734,-84.6478613,,,GA,,false,true,false,openstreetmap
+Life University,tennis,pitch,33.9288628,-84.5132488,,,GA,,false,true,false,openstreetmap
+Life University,tennis,pitch,33.9288199,-84.5130995,,,GA,,false,true,false,openstreetmap
+Loreley Resort,tennis,pitch,34.6989499,-83.7145273,,,GA,,false,true,false,openstreetmap
+Lost Creek Subdivision Tennis Courts,tennis,pitch,33.9630955,-84.6919982,,,GA,,false,true,false,openstreetmap
+Macland Park Homeowners Association,tennis,pitch,33.9023682,-84.6156206,,,GA,,false,true,false,openstreetmap
+Macland Park Homeowners Association,tennis,pitch,33.9023464,-84.6160189,,,GA,,false,true,false,openstreetmap
+Manor North,tennis,pitch,34.1899846,-84.2746409,,,GA,,false,true,false,openstreetmap
+Manor North,tennis,pitch,34.1899834,-84.2744805,,,GA,,false,true,false,openstreetmap
+Manor North,tennis,pitch,34.1899827,-84.2743239,,,GA,,false,true,false,openstreetmap
+Manor North,tennis,pitch,34.1899381,-84.2733952,,,GA,,false,true,false,openstreetmap
+Manor North,tennis,pitch,34.1899399,-84.2732379,,,GA,,false,true,false,openstreetmap
+Marta Torrey Tennis Center,tennis,sports_centre,31.1845557,-81.4841296,,,GA,,false,true,false,openstreetmap
+Matthew Hill Park,tennis,pitch,34.1734351,-84.8047966,,,GA,,false,true,false,openstreetmap
+Matthew Hill Park,tennis,pitch,34.173445,-84.8046394,,,GA,,false,true,false,openstreetmap
+McNutts Creek,tennis,pitch,33.923683,-83.4111618,,,GA,,false,true,false,openstreetmap
+Merritt Park,tennis,pitch,33.9640173,-84.5153375,,,GA,,false,true,false,openstreetmap
+Midtown Athletic Club,tennis,pitch,33.9027629,-84.4661643,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,tennis,pitch,33.986861,-84.610538,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,tennis,pitch,33.9867625,-84.6106954,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,tennis,pitch,33.9866652,-84.6108532,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,tennis,pitch,33.9865665,-84.6110164,,,GA,,false,true,false,openstreetmap
+North Harbor Tennis,tennis,pitch,33.9376673,-84.4055254,,,GA,,false,true,false,openstreetmap
+North Murray High School,tennis,pitch,34.8087662,-84.8118461,,,GA,,false,true,false,openstreetmap
+North Murray High School,tennis,pitch,34.8087675,-84.8116866,,,GA,,false,true,false,openstreetmap
+North Murray High School,tennis,pitch,34.8088322,-84.811491,,,GA,,false,true,false,openstreetmap
+North Murray High School,tennis,pitch,34.808835,-84.8113353,,,GA,,false,true,false,openstreetmap
+North Murray High School,tennis,pitch,34.8088373,-84.8111548,,,GA,,false,true,false,openstreetmap
+Notting Hill HOA,tennis,pitch,34.2208978,-84.2249308,,,GA,,false,true,false,openstreetmap
+Notting Hill HOA,tennis,pitch,34.2209766,-84.2248043,,,GA,,false,true,false,openstreetmap
+Old Forge Courts,tennis,pitch,33.9982798,-84.4006164,,,GA,,false,true,false,openstreetmap
+Osborne Park,tennis,pitch,34.1442226,-84.9316458,,,GA,,false,true,false,openstreetmap
+Osborne Park,tennis,pitch,34.144113,-84.9317323,,,GA,,false,true,false,openstreetmap
+Oxford Manor Homeowners Inc.,tennis,pitch,34.0733111,-84.5151235,,,GA,,false,true,false,openstreetmap
+Parkwood Place Condominiums,tennis,pitch,33.9019822,-84.4618293,,,GA,,false,true,false,openstreetmap
+Pebblepocket Tennis Courts,tennis,pitch,33.3979759,-84.5849543,,,GA,,false,true,false,openstreetmap
+Public Tennis Court,tennis,pitch,34.06355,-84.2092954,,,GA,,false,true,false,openstreetmap
+Racquetball Court,tennis,pitch,30.8866155,-84.6028266,,,GA,,false,true,false,openstreetmap
+Raintree Forest Neighborhood Tennis Court,tennis,pitch,34.0522868,-84.4399289,,,GA,,false,true,false,openstreetmap
+Renaissance Middle School,tennis,pitch,33.6165107,-84.6208136,,,GA,,false,true,false,openstreetmap
+Renaissance Middle School,tennis,pitch,33.6165842,-84.6206764,,,GA,,false,true,false,openstreetmap
+Renaissance Middle School,tennis,pitch,33.616859,-84.6208956,,,GA,,false,true,false,openstreetmap
+Renaissance Middle School,tennis,pitch,33.6167884,-84.621022,,,GA,,false,true,false,openstreetmap
+Residence Inn,tennis,pitch,34.0362752,-84.5758238,,,GA,,false,true,false,openstreetmap
+Residence Inn Atlanta - Cumberland,tennis,pitch,33.8856815,-84.4757928,,,GA,,false,true,false,openstreetmap
+Rhyne Park,tennis,pitch,33.8525597,-84.5180262,,,GA,,false,true,false,openstreetmap
+Rhyne Park,tennis,pitch,33.852624,-84.5178888,,,GA,,false,true,false,openstreetmap
+Rhyne Park,tennis,pitch,33.8524714,-84.5186465,,,GA,,false,true,false,openstreetmap
+Rhyne Park,tennis,pitch,33.8525707,-84.5185246,,,GA,,false,true,false,openstreetmap
+River Club Apartments,tennis,pitch,33.9116594,-83.3959916,,,GA,,false,true,false,openstreetmap
+River Club Apartments,tennis,pitch,33.9116439,-83.39615,,,GA,,false,true,false,openstreetmap
+River Colony Tennis Court 1,tennis,pitch,33.971489,-84.0461163,,,GA,,false,true,false,openstreetmap
+River Colony Tennis Court 2,tennis,pitch,33.971094,-84.0462045,,,GA,,false,true,false,openstreetmap
+River Park,tennis,pitch,34.1385059,-84.513312,,,GA,,false,true,false,openstreetmap
+River Park,tennis,pitch,34.138485,-84.5139974,,,GA,,false,true,false,openstreetmap
+River Park,tennis,pitch,34.1385972,-84.5134393,,,GA,,false,true,false,openstreetmap
+River Park,tennis,pitch,34.1385802,-84.5141269,,,GA,,false,true,false,openstreetmap
+Riverbend Club,tennis,pitch,33.9260676,-83.3690539,,,GA,,false,true,false,openstreetmap
+Riverwood International Charter School,tennis,pitch,33.9176706,-84.416071,,,GA,,false,true,false,openstreetmap
+Riverwood International Charter School,tennis,pitch,33.9174171,-84.4158182,,,GA,,false,true,false,openstreetmap
+Rome Floyd Tennis Center,tennis,pitch,34.2576959,-85.1753553,,,GA,,false,true,false,openstreetmap
+Rose Garden Park,tennis,pitch,33.8862957,-84.4982603,,,GA,,false,true,false,openstreetmap
+Serious Tennis,tennis,pitch,33.8137145,-84.3099052,3017 North Druid Hills Road Northeast,,GA,,false,true,false,openstreetmap
+Shailendra Tennis Complex,tennis,sports_centre,33.6621857,-84.4354202,,,GA,,false,true,false,openstreetmap
+Sharon E. Lester Tennis Center,tennis,sports_centre,33.787435,-84.3738803,,,GA,,false,true,false,openstreetmap
+Steve & Virginia Tumlin Park at Hickory Hills,tennis,pitch,33.9354584,-84.5633348,,,GA,,false,true,false,openstreetmap
+Steve & Virginia Tumlin Park at Hickory Hills,tennis,pitch,33.935457,-84.5635381,,,GA,,false,true,false,openstreetmap
+Stonemill Creek Community Association,tennis,pitch,33.9201968,-84.7221072,,,GA,,false,true,false,openstreetmap
+Stratford Condominiums,tennis,pitch,33.9290959,-83.3413503,,,GA,,false,true,false,openstreetmap
+Stratford Condominiums,tennis,pitch,33.9289892,-83.3414467,,,GA,,false,true,false,openstreetmap
+Summerbrooke Homeowners Association,tennis,pitch,34.0181213,-84.6417094,,,GA,,false,true,false,openstreetmap
+Summerbrooke Homeowners Association,tennis,pitch,34.0181626,-84.6418628,,,GA,,false,true,false,openstreetmap
+Sweetbriar HOA,tennis,pitch,34.2216587,-84.2329913,,,GA,,false,true,false,openstreetmap
+Sweetbriar HOA,tennis,pitch,34.221671,-84.2328336,,,GA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,33.5304268,-84.9245008,,,GA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,32.5814807,-82.1561459,,,GA,,false,true,false,openstreetmap
+Tennis Center Covered Courts,tennis,sports_centre,33.393804,-84.5985941,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.7664221,-84.3363485,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.7664221,-84.3361853,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.7667527,-84.3363478,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.7667532,-84.3361864,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.9593207,-83.2623473,,,GA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.8531019,-83.2704514,,,GA,,false,true,false,openstreetmap
+Tennis Court #1,tennis,pitch,31.8501586,-81.5838476,,,GA,,false,true,false,openstreetmap
+Tennis Court #2,tennis,pitch,31.8502115,-81.5837139,,,GA,,false,true,false,openstreetmap
+Tennis Court #3,tennis,pitch,31.8502654,-81.58359,,,GA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,34.4158925,-84.1031303,,,GA,,false,true,false,openstreetmap
+Terrell Mill Park,tennis,pitch,33.9379883,-84.4645967,,,GA,,false,true,false,openstreetmap
+Terrell Mill Park,tennis,pitch,33.9376034,-84.4647329,,,GA,,false,true,false,openstreetmap
+The Estates at Johns Creek,tennis,pitch,34.0651469,-84.2069133,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.167983,-84.2602697,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1679801,-84.2601096,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1679808,-84.2598524,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1679808,-84.2596954,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1679808,-84.2594962,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1679808,-84.2593371,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1676182,-84.2598847,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1676174,-84.2597251,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1676174,-84.2595264,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1676169,-84.2593694,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.167616,-84.2591712,,,GA,,false,true,false,openstreetmap
+The Manor Golf & Country Club,tennis,pitch,34.1676165,-84.2590116,,,GA,,false,true,false,openstreetmap
+The Preserve at Terrell Mill,tennis,pitch,33.9140568,-84.472449,,,GA,,false,true,false,openstreetmap
+The Reserve at Athens,tennis,pitch,33.925801,-83.3480378,,,GA,,false,true,false,openstreetmap
+The Reserve at Athens,tennis,pitch,33.9258441,-83.3478894,,,GA,,false,true,false,openstreetmap
+The Walker School,tennis,pitch,33.9714671,-84.5382445,,,GA,,false,true,false,openstreetmap
+Three Chimneys Farm Tennis Courts,tennis,pitch,34.1174069,-84.1459103,,,GA,,false,true,false,openstreetmap
+Three Chimneys Farm Tennis Courts,tennis,pitch,34.1171925,-84.1451756,,,GA,,false,true,false,openstreetmap
+Three Chimneys Farm Tennis Courts,tennis,pitch,34.1173061,-84.145574,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.8669959,-84.5188046,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.8669981,-84.5189642,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.8670031,-84.51916,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.8670075,-84.5193189,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.867335,-84.5191479,,,GA,,false,true,false,openstreetmap
+Tolleson Park,tennis,pitch,33.8673391,-84.5193066,,,GA,,false,true,false,openstreetmap
+UNG Tennis Courts,tennis,sports_centre,34.2355069,-83.8705415,,,GA,,false,true,false,openstreetmap
+UNG Tennis Courts,tennis,sports_centre,34.2357598,-83.8709714,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9311438,-83.3763339,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.931123,-83.3761782,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9311009,-83.376013,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9310779,-83.375856,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9310348,-83.3755386,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9310144,-83.3753831,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9309931,-83.3752202,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9309714,-83.3750627,,,GA,,false,true,false,openstreetmap
+University of Georgia Student Affairs,tennis,pitch,33.9309505,-83.3749055,,,GA,,false,true,false,openstreetmap
+Valencia Hill,tennis,pitch,33.9165939,-84.4643747,,,GA,,false,true,false,openstreetmap
+Village North Highlands HOA Tennis,tennis,pitch,34.0461917,-84.4361895,,,GA,,false,true,false,openstreetmap
+Villages of Devinshire Tennis Courts,tennis,pitch,34.0993406,-84.2650619,,,GA,,false,true,false,openstreetmap
+Walk-in Tennis Court,tennis,pitch,34.0551561,-84.633435,,,GA,,false,true,false,openstreetmap
+Walton High School Tennis Complex,tennis,pitch,33.9844638,-84.4409797,3753 Providence Road Northeast,,GA,,false,true,false,openstreetmap
+Ward Park,tennis,pitch,33.8900268,-84.5305909,,,GA,,false,true,false,openstreetmap
+Ward Park,tennis,pitch,33.8900313,-84.5307492,,,GA,,false,true,false,openstreetmap
+Ward Park,tennis,pitch,33.8900369,-84.530943,,,GA,,false,true,false,openstreetmap
+Ward Park,tennis,pitch,33.8900412,-84.5311041,,,GA,,false,true,false,openstreetmap
+Watermark,tennis,pitch,33.9711121,-84.4933287,,,GA,,false,true,false,openstreetmap
+Watermark,tennis,pitch,33.971087,-84.4931729,,,GA,,false,true,false,openstreetmap
+Wellington Pointe Tennis Court,tennis,pitch,34.034019,-83.7359049,,,GA,,false,true,false,openstreetmap
+Westminster Square,tennis,pitch,33.9062553,-84.4809024,,,GA,,false,true,false,openstreetmap
+Westminster Square,tennis,pitch,33.9062519,-84.4807503,,,GA,,false,true,false,openstreetmap
+Westminster Square,tennis,pitch,33.9062585,-84.4810541,,,GA,,false,true,false,openstreetmap
+Windermere Tennis Courts,tennis,pitch,34.1345932,-84.1230688,,,GA,,false,true,false,openstreetmap
+Windermere Tennis Courts,tennis,pitch,34.1346556,-84.122618,,,GA,,false,true,false,openstreetmap
+Windermere Tennis Courts,tennis,pitch,34.1350621,-84.1225881,,,GA,,false,true,false,openstreetmap
+Windermere Tennis Courts,tennis,pitch,34.1349458,-84.1235522,,,GA,,false,true,false,openstreetmap
+Windermere Tennis Courts,tennis,pitch,34.1350032,-84.1230725,,,GA,,false,true,false,openstreetmap
+Athens-Clarke County Tennis Center,tennis,sports_centre,33.9253506,-83.303049,4460 Lexington Road,Athens,GA,30605,false,true,false,openstreetmap
+Polo Club,tennis,pitch,33.923729,-83.3449126,110 International Drive,Athens,GA,30605,false,true,false,openstreetmap
+Newman Tennis Center Clubhouse,tennis,pitch,33.4710827,-82.0479593,3103 Wrightsboro Road,Augusta,GA,30909,false,true,false,openstreetmap
+Hardcore Tennis,tennis,pitch,33.9065397,-84.4655237,2000 Powers Ferry Road Southeast,Marietta,GA,30067,false,true,false,openstreetmap
+Laurel Park Tennis Center,tennis,pitch,33.9481338,-84.5734427,151 Manning Road,Marietta,GA,30064,false,true,false,openstreetmap
+Oak Creek Swim & Tennis Club,tennis,pitch,34.029473,-84.5010522,1658 Oak Crest Court,Marietta,GA,30066,false,true,false,openstreetmap
+Your Serve Tennis,tennis,pitch,33.9770579,-84.4191739,1205 Johnson Ferry Road Northeast,Marietta,GA,30068,false,true,false,openstreetmap
+Peachtree City Tennis Center,tennis,sports_centre,33.3948776,-84.598726,10 Planterra Way,Peachtree City,GA,30269,false,true,false,openstreetmap
+Mill Creek Tennis Complex,tennis,sports_centre,32.4517269,-81.7365726,888 GA-24,Statesboro,GA,30461,false,true,false,openstreetmap
+Harry B. Anderson Tennis Center,tennis,sports_centre,30.8645351,-83.2907232,113 Burton Street,Valdosta,GA,31602,false,true,false,openstreetmap

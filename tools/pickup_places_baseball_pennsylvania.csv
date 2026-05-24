@@ -1,0 +1,672 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+(Old) Baseball field,baseball,pitch,41.7377411,-79.7572376,,,PA,,false,true,false,openstreetmap
+20th & Tioga Field,baseball,pitch,40.0078513,-75.1618994,,,PA,,false,true,false,openstreetmap
+2nd Street Field,baseball,pitch,40.3699066,-75.2918097,,,PA,,false,true,false,openstreetmap
+33rd Street Field,baseball,pitch,40.7732379,-80.327749,,,PA,,false,true,false,openstreetmap
+37th Street Ballparks,baseball,sports_centre,40.7786366,-80.3278125,,,PA,,false,true,false,openstreetmap
+6th Street Field,baseball,pitch,41.3180461,-75.8377398,,,PA,,false,true,false,openstreetmap
+AA Field,baseball,pitch,40.0952189,-75.2615816,,,PA,,false,true,false,openstreetmap
+AAA Field,baseball,pitch,40.0946207,-75.2622923,,,PA,,false,true,false,openstreetmap
+AMS Field,baseball,pitch,40.2787806,-79.5418663,,,PA,,false,true,false,openstreetmap
+Academy Park Baseball Field,baseball,pitch,39.9113462,-75.2678868,,,PA,,false,true,false,openstreetmap
+Advanced Instructional Field,baseball,pitch,40.0949184,-75.2610041,,,PA,,false,true,false,openstreetmap
+Aiken 1,baseball,pitch,40.4232079,-80.0422736,,,PA,,false,true,false,openstreetmap
+Aiken 2,baseball,pitch,40.4224392,-80.0422018,,,PA,,false,true,false,openstreetmap
+Albert P. Gettings Field,baseball,pitch,41.020378,-80.3299952,,,PA,,false,true,false,openstreetmap
+All-Star Baseball Academy,baseball,sports_centre,39.9619408,-75.3377701,,,PA,,false,true,false,openstreetmap
+All-Star Sports Academy,baseball,sports_centre,39.9723841,-75.3192356,,,PA,,false,true,false,openstreetmap
+Allport Little League Field,baseball,pitch,40.9796251,-78.2063131,,,PA,,false,true,false,openstreetmap
+Altman Rand Ballfield,baseball,pitch,40.3353493,-79.5968675,,,PA,,false,true,false,openstreetmap
+Alumni Field,baseball,pitch,40.0247881,-75.1924149,,,PA,,false,true,false,openstreetmap
+Amosland Baseball Field 1,baseball,pitch,39.8989021,-75.315384,,,PA,,false,true,false,openstreetmap
+Amosland Baseball Field 2,baseball,pitch,39.8998393,-75.3155092,,,PA,,false,true,false,openstreetmap
+Amosland Baseball Field 3,baseball,pitch,39.8994735,-75.3159796,,,PA,,false,true,false,openstreetmap
+Antietam Athletic Field Baseball,baseball,pitch,40.3325502,-75.8816222,,,PA,,false,true,false,openstreetmap
+Apple Hill Baseball Field,baseball,pitch,40.4080984,-79.5778873,,,PA,,false,true,false,openstreetmap
+Argenta A Field,baseball,pitch,40.4149849,-80.2241757,,,PA,,false,true,false,openstreetmap
+Argenta B Field,baseball,pitch,40.4149633,-80.2249893,,,PA,,false,true,false,openstreetmap
+Armed Forces Field,baseball,pitch,41.1928466,-75.4129031,,,PA,,false,true,false,openstreetmap
+Art Keefer Field,baseball,pitch,41.5386149,-75.9338538,,,PA,,false,true,false,openstreetmap
+Athletic Field,baseball,pitch,40.4459396,-75.3986745,,,PA,,false,true,false,openstreetmap
+Avoca Dupont Little League Field,baseball,pitch,41.3375212,-75.744281,,,PA,,false,true,false,openstreetmap
+Avoca Dupont Teener Field,baseball,pitch,41.3384647,-75.7476078,,,PA,,false,true,false,openstreetmap
+Avon Grove Little League Field,baseball,pitch,39.8231825,-75.8183431,,,PA,,false,true,false,openstreetmap
+Babe Ruth Baseball Field,baseball,pitch,40.2385329,-74.8240018,,,PA,,false,true,false,openstreetmap
+Babe Ruth Baseball Field and Soccer Field (H),baseball,pitch,40.2355817,-74.8232115,,,PA,,false,true,false,openstreetmap
+Babe Ruth Field,baseball,pitch,40.9952458,-76.0573778,,,PA,,false,true,false,openstreetmap
+Baker Field,baseball,pitch,40.397008,-75.5059877,,,PA,,false,true,false,openstreetmap
+Ball Field 5,baseball,pitch,40.5807265,-79.6189431,,,PA,,false,true,false,openstreetmap
+Ball field 4,baseball,pitch,40.5805634,-79.6204322,,,PA,,false,true,false,openstreetmap
+Ball field 6,baseball,pitch,40.5798948,-79.6189657,,,PA,,false,true,false,openstreetmap
+Ballfield 1 & 2,baseball,pitch,40.3183402,-77.1893836,,,PA,,false,true,false,openstreetmap
+Ballfield 3,baseball,pitch,40.318957,-77.1901556,,,PA,,false,true,false,openstreetmap
+Ballfield 4,baseball,pitch,40.3196111,-77.1908634,,,PA,,false,true,false,openstreetmap
+Barkdoll Field,baseball,pitch,39.7943913,-77.727133,,,PA,,false,true,false,openstreetmap
+Barry G. Schell Field,baseball,pitch,40.5210027,-80.0404627,,,PA,,false,true,false,openstreetmap
+Barry North Field,baseball,pitch,39.916106,-75.1792219,,,PA,,false,true,false,openstreetmap
+Barry South Field,baseball,pitch,39.9155638,-75.1793533,,,PA,,false,true,false,openstreetmap
+Baseball,baseball,pitch,41.6940516,-75.1383465,,,PA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,39.7699533,-76.6839904,,,PA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,40.6552045,-79.930576,,,PA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,40.6864532,-75.434076,,,PA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,40.6558739,-79.9307182,,,PA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,40.6880593,-75.4351939,,,PA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,40.6558597,-79.9312144,,,PA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,40.688214,-75.43604,,,PA,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,40.6857098,-75.439178,,,PA,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,40.6865894,-75.4384366,,,PA,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,40.6558211,-79.9293288,,,PA,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,40.6873942,-75.4372447,,,PA,,false,true,false,openstreetmap
+Baseball Field 7,baseball,pitch,40.6551353,-79.9289371,,,PA,,false,true,false,openstreetmap
+Baseball Field 8,baseball,pitch,40.6552126,-79.9295407,,,PA,,false,true,false,openstreetmap
+Baseball Field/Diamond,baseball,pitch,41.8011208,-77.0787236,,,PA,,false,true,false,openstreetmap
+Baseball Fields,baseball,pitch,40.3229762,-79.6937329,,,PA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,40.3686813,-75.2957462,,,PA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,40.272176,-75.1419962,,,PA,,false,true,false,openstreetmap
+Batting Cages,baseball,yes,39.9544126,-76.70863,,,PA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,40.1786115,-76.3083054,,,PA,,false,true,false,openstreetmap
+Bear Stadium,baseball,pitch,40.3351557,-75.6285333,,,PA,,false,true,false,openstreetmap
+Bechtelsville Baseball Field,baseball,pitch,40.3696967,-75.6292331,,,PA,,false,true,false,openstreetmap
+Becker Field,baseball,pitch,40.9512811,-76.8909632,,,PA,,false,true,false,openstreetmap
+Bedford Varsity Softball Field,baseball,pitch,40.0147373,-78.4945938,,,PA,,false,true,false,openstreetmap
+Bellefonte Teener League Field,baseball,pitch,40.9178389,-77.754571,,,PA,,false,true,false,openstreetmap
+Ben Killian Field,baseball,pitch,40.4942517,-79.9083931,,,PA,,false,true,false,openstreetmap
+Berwind Park,baseball,pitch,41.4223791,-78.5635539,,,PA,,false,true,false,openstreetmap
+Bill Mazeroski Field,baseball,pitch,40.348308,-79.5574161,,,PA,,false,true,false,openstreetmap
+Black Knights Baseball Field,baseball,pitch,40.826392,-78.3982927,,,PA,,false,true,false,openstreetmap
+Bob Owens Field,baseball,pitch,39.9751787,-75.5897542,,,PA,,false,true,false,openstreetmap
+Bob Rute Field,baseball,pitch,40.6954015,-75.2440542,,,PA,,false,true,false,openstreetmap
+Bob Schultz Field,baseball,pitch,41.531471,-75.9368826,,,PA,,false,true,false,openstreetmap
+Bodine Baseball field,baseball,pitch,41.2437117,-76.7273546,,,PA,,false,true,false,openstreetmap
+Bollinger Baseball Field,baseball,pitch,40.7959534,-76.8794919,,,PA,,false,true,false,openstreetmap
+Boyce Field,baseball,pitch,40.0324469,-75.2070426,,,PA,,false,true,false,openstreetmap
+Bracken Field,baseball,pitch,41.9310612,-79.6453556,,,PA,,false,true,false,openstreetmap
+Bruder Athletic Fields,baseball,pitch,39.8779144,-75.4430675,,,PA,,false,true,false,openstreetmap
+Bucktail Baseball Field,baseball,pitch,41.3392791,-77.7061162,,,PA,,false,true,false,openstreetmap
+Butz Baseball Field,baseball,pitch,40.5373594,-75.3833743,,,PA,,false,true,false,openstreetmap
+CBP Baseball Field #1,baseball,pitch,40.6289291,-75.5605027,,,PA,,false,true,false,openstreetmap
+CBP Baseball Field #2,baseball,pitch,40.6288313,-75.5592441,,,PA,,false,true,false,openstreetmap
+CBP Baseball Field #4,baseball,pitch,40.6279086,-75.5612136,,,PA,,false,true,false,openstreetmap
+CCAC Boyce baseball field,baseball,pitch,40.4557158,-79.7462489,,,PA,,false,true,false,openstreetmap
+California Borough Ballfield #1,baseball,pitch,40.0646687,-79.8967148,,,PA,,false,true,false,openstreetmap
+California Borough Ballfield #2,baseball,pitch,40.0642495,-79.8960867,,,PA,,false,true,false,openstreetmap
+Calvary A.A. Baseball Fields,baseball,sports_centre,40.080928,-74.9749858,,,PA,,false,true,false,openstreetmap
+Campus Athletic Field,baseball,pitch,39.9441671,-79.661071,,,PA,,false,true,false,openstreetmap
+Carl Harris Little League Complex,baseball,sports_centre,41.2211944,-80.4094831,,,PA,,false,true,false,openstreetmap
+Carlson Field,baseball,pitch,40.966378,-80.2292075,,,PA,,false,true,false,openstreetmap
+Carlynton Baseball Field,baseball,pitch,40.4263114,-80.0979699,,,PA,,false,true,false,openstreetmap
+Carson Middle School Baseball Field,baseball,pitch,40.5671217,-80.0316788,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 1,baseball,pitch,40.5804942,-75.5492648,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 1,baseball,pitch,40.580808,-75.5508289,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 3,baseball,pitch,40.5805635,-75.5480131,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 4,baseball,pitch,40.5813448,-75.5478512,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 5,baseball,pitch,40.5816179,-75.5495193,,,PA,,false,true,false,openstreetmap
+Cedar Creek Field 6,baseball,pitch,40.5804256,-75.5437783,,,PA,,false,true,false,openstreetmap
+Central High School Baseball Field,baseball,pitch,40.0363119,-75.1488334,,,PA,,false,true,false,openstreetmap
+Charles Boehm Baseball Field,baseball,pitch,40.2089404,-74.8252125,,,PA,,false,true,false,openstreetmap
+Charles Flack Memorial Field,baseball,pitch,41.3052587,-75.8529487,,,PA,,false,true,false,openstreetmap
+Charles L. Cost Field,baseball,pitch,40.4451859,-79.966163,,,PA,,false,true,false,openstreetmap
+Chartiers-Houston High School Baseball Field,baseball,pitch,40.2316121,-80.2296414,,,PA,,false,true,false,openstreetmap
+Chester Marburger Memorial Field,baseball,pitch,40.6959595,-80.0194268,,,PA,,false,true,false,openstreetmap
+Chiccino Field,baseball,pitch,40.1041863,-75.3496689,,,PA,,false,true,false,openstreetmap
+Chris Strumski Field,baseball,pitch,41.5316238,-75.9354808,,,PA,,false,true,false,openstreetmap
+Chuck Tanner Field,baseball,pitch,40.9689323,-80.3142413,,,PA,,false,true,false,openstreetmap
+Citizens Bank Park,baseball,stadium,39.9058833,-75.1664422,,,PA,,false,true,false,openstreetmap
+Citizens Phan Field,baseball,pitch,39.9067261,-75.1653379,,,PA,,false,true,false,openstreetmap
+Clark Ball Field,baseball,pitch,41.2774211,-80.4159516,,,PA,,false,true,false,openstreetmap
+Clarkson Field,baseball,pitch,40.3277199,-79.6272745,,,PA,,false,true,false,openstreetmap
+Class of 1952 Baseball Field,baseball,pitch,40.0137345,-75.3036699,,,PA,,false,true,false,openstreetmap
+Class of 1995 Field,baseball,pitch,40.0058968,-75.3086854,,,PA,,false,true,false,openstreetmap
+Clayton Park Little League Field,baseball,pitch,39.8606244,-75.485672,,,PA,,false,true,false,openstreetmap
+Clint Seymour Field,baseball,pitch,40.3730422,-80.0574031,,,PA,,false,true,false,openstreetmap
+Coca-Cola Park,baseball,stadium,40.6259018,-75.4525871,,,PA,,false,true,false,openstreetmap
+Coca-Cola Park,baseball,sports_centre,40.625637,-75.4513841,,,PA,,false,true,false,openstreetmap
+Concession Stand,baseball,pitch,40.4826523,-78.7301842,,,PA,,false,true,false,openstreetmap
+Conemaugh Township Baseball Field,baseball,pitch,40.2291394,-78.9414363,,,PA,,false,true,false,openstreetmap
+Conlin Field,baseball,pitch,40.0333509,-76.3090166,,,PA,,false,true,false,openstreetmap
+Constitution Square Baseball Field,baseball,pitch,40.1072728,-76.3493243,,,PA,,false,true,false,openstreetmap
+Corpus Christi CYO Baseball Field,baseball,pitch,40.222831,-75.3155587,,,PA,,false,true,false,openstreetmap
+Coryville Field,baseball,pitch,41.8814659,-78.4013154,,,PA,,false,true,false,openstreetmap
+Courtdale Field,baseball,pitch,41.2815182,-75.9156692,,,PA,,false,true,false,openstreetmap
+Cowley Athletic Field,baseball,pitch,40.461641,-79.9860638,,,PA,,false,true,false,openstreetmap
+Crabapple Park Batting Cage,baseball,pitch,40.2584382,-79.721528,,,PA,,false,true,false,openstreetmap
+Crawford Park Ballfield,baseball,pitch,39.8934343,-80.1777991,,,PA,,false,true,false,openstreetmap
+Cresson Little Baseball League,baseball,pitch,40.4666077,-78.5913638,,,PA,,false,true,false,openstreetmap
+Crew Field,baseball,pitch,39.9479284,-75.5339474,,,PA,,false,true,false,openstreetmap
+Crop Field,baseball,pitch,39.7713354,-75.9161368,,,PA,,false,true,false,openstreetmap
+Dagus Mines Field,baseball,pitch,41.353738,-78.6046743,,,PA,,false,true,false,openstreetmap
+Dan Hedlund Memorial Field,baseball,pitch,42.1457009,-79.9686331,,,PA,,false,true,false,openstreetmap
+Dan Marino Field,baseball,pitch,40.4292438,-79.9546277,,,PA,,false,true,false,openstreetmap
+Dandy Lion Little League,baseball,pitch,41.3382679,-75.5030735,,,PA,,false,true,false,openstreetmap
+Danny Conniff Memorial Field,baseball,pitch,41.4441145,-75.6479776,,,PA,,false,true,false,openstreetmap
+Delage Landen Field,baseball,pitch,40.0697053,-75.4542462,,,PA,,false,true,false,openstreetmap
+Denny Robinson Field,baseball,pitch,41.5399226,-75.9345546,,,PA,,false,true,false,openstreetmap
+Depew Field,baseball,pitch,40.9522009,-76.8915732,,,PA,,false,true,false,openstreetmap
+Derek Shanefild Memorial Filed,baseball,pitch,40.667201,-78.7089914,,,PA,,false,true,false,openstreetmap
+Dermond Field,baseball,park,39.9617687,-75.3047159,,,PA,,false,true,false,openstreetmap
+Devil's Elbow Field,baseball,pitch,40.5851971,-79.9968896,,,PA,,false,true,false,openstreetmap
+Devon Prep Field,baseball,pitch,40.0544327,-75.4233378,,,PA,,false,true,false,openstreetmap
+Dick LaBar Memorial Playing Field,baseball,pitch,40.4592148,-79.6719831,,,PA,,false,true,false,openstreetmap
+Dick's Sporting Goods Baseball Field,baseball,pitch,40.5098878,-80.2655475,,,PA,,false,true,false,openstreetmap
+Dickson Field,baseball,pitch,42.147404,-79.9693302,,,PA,,false,true,false,openstreetmap
+Diller Field,baseball,pitch,39.7977042,-77.0047777,,,PA,,false,true,false,openstreetmap
+Ding-A-Ling's Field,baseball,pitch,40.7984497,-79.3357708,,,PA,,false,true,false,openstreetmap
+Division Street Ball Field,baseball,pitch,41.8546499,-79.3255751,,,PA,,false,true,false,openstreetmap
+Dixon Field,baseball,pitch,40.3744577,-80.0565314,,,PA,,false,true,false,openstreetmap
+Dodson Street Little League Field,baseball,pitch,40.6019654,-75.4022863,,,PA,,false,true,false,openstreetmap
+"Don ""Pop"" Staley Field",baseball,pitch,40.1135159,-76.5054443,,,PA,,false,true,false,openstreetmap
+Donora Field,baseball,pitch,40.5894395,-79.9841781,,,PA,,false,true,false,openstreetmap
+Doylestown Baseball Field,baseball,pitch,40.3294955,-75.1203192,,,PA,,false,true,false,openstreetmap
+Drifting Ball Field,baseball,pitch,41.0296944,-78.1088389,,,PA,,false,true,false,openstreetmap
+Duquesne Baseball Field,baseball,pitch,40.3797504,-79.8595201,,,PA,,false,true,false,openstreetmap
+Duryea Little League,baseball,pitch,41.3492092,-75.7529603,,,PA,,false,true,false,openstreetmap
+ESSA Field,baseball,pitch,41.0432236,-75.3111547,,,PA,,false,true,false,openstreetmap
+Earl M. Gross Ball Field,baseball,pitch,40.5378616,-75.6314317,,,PA,,false,true,false,openstreetmap
+East Baseball Practice Field,baseball,pitch,40.2866652,-76.7978014,,,PA,,false,true,false,openstreetmap
+East End Baseball,baseball,pitch,40.5226845,-78.3797042,,,PA,,false,true,false,openstreetmap
+East End Park,baseball,pitch,40.8145969,-76.1260583,,,PA,,false,true,false,openstreetmap
+East Side Memorial Little League,baseball,pitch,40.6065708,-75.4509493,,,PA,,false,true,false,openstreetmap
+Ed Schneider Field,baseball,pitch,40.3503529,-80.108636,,,PA,,false,true,false,openstreetmap
+Ehrenfeld Park,baseball,pitch,40.3701345,-78.777947,,,PA,,false,true,false,openstreetmap
+Elkins Field,baseball,pitch,40.1184534,-75.0691954,,,PA,,false,true,false,openstreetmap
+Elmer Valo Field,baseball,pitch,40.7993172,-75.6077811,,,PA,,false,true,false,openstreetmap
+FNB Field,baseball,pitch,40.256222,-76.8897741,,,PA,,false,true,false,openstreetmap
+Fairchild Field,baseball,pitch,40.065495,-77.5244719,,,PA,,false,true,false,openstreetmap
+Faith Christian Athletic Field,baseball,pitch,40.4439096,-75.3995159,,,PA,,false,true,false,openstreetmap
+Falcon Field,baseball,pitch,40.364806,-78.7803168,,,PA,,false,true,false,openstreetmap
+Falconi Sports Complex,baseball,park,40.2681338,-80.1842219,,,PA,,false,true,false,openstreetmap
+Farmers Valley Field,baseball,pitch,41.8565741,-78.4492325,,,PA,,false,true,false,openstreetmap
+Ferguson Lions Club Baseball Field,baseball,pitch,40.7298474,-77.8958178,,,PA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.3976873,-80.0796708,,,PA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,40.3981017,-80.0793679,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.257277,-75.2229363,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.5834631,-79.9375225,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.2212567,-76.8627161,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.2778364,-76.9422033,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.9004874,-75.1825693,,,PA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.4199888,-79.7705329,,,PA,,false,true,false,openstreetmap
+Field 10,baseball,pitch,42.1467915,-79.96521,,,PA,,false,true,false,openstreetmap
+Field 11,baseball,pitch,42.1480265,-79.9664564,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.2579742,-75.2245609,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.5825219,-79.9373247,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.2205757,-76.8628887,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.2775872,-76.9409621,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.9005903,-75.1818529,,,PA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.4193273,-79.7703293,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.2585997,-75.2238173,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.5818577,-79.9375961,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.2199973,-76.8632629,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.2757598,-76.9408771,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.900705,-75.1809589,,,PA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.419481,-79.769466,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.2748231,-76.9404598,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.2195895,-76.862258,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.1482142,-79.9701203,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.2577441,-75.2224355,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.9054943,-75.1794583,,,PA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.4201418,-79.769664,,,PA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,40.2742107,-76.9405254,,,PA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,40.2212291,-76.8644381,,,PA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,40.2216617,-76.864321,,,PA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,40.2787619,-76.9441682,,,PA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,42.1463149,-79.9658821,,,PA,,false,true,false,openstreetmap
+Field 8,baseball,pitch,40.2737802,-76.9357131,,,PA,,false,true,false,openstreetmap
+Field 9,baseball,pitch,42.1465012,-79.9646147,,,PA,,false,true,false,openstreetmap
+Field D,baseball,pitch,41.2374429,-76.9781517,,,PA,,false,true,false,openstreetmap
+Field H,baseball,pitch,40.7067743,-80.1276746,,,PA,,false,true,false,openstreetmap
+Field I,baseball,pitch,40.7069366,-80.1264341,,,PA,,false,true,false,openstreetmap
+Field J,baseball,pitch,40.7059189,-80.1265481,,,PA,,false,true,false,openstreetmap
+Field K,baseball,pitch,40.7058033,-80.1274858,,,PA,,false,true,false,openstreetmap
+Field L,baseball,pitch,40.7048921,-80.1276173,,,PA,,false,true,false,openstreetmap
+Field M,baseball,pitch,40.7054892,-80.1277377,,,PA,,false,true,false,openstreetmap
+Field Number 1,baseball,pitch,40.0126001,-76.2889211,,,PA,,false,true,false,openstreetmap
+Field Number 2,baseball,pitch,40.0133314,-76.2859481,,,PA,,false,true,false,openstreetmap
+Field Number 4,baseball,pitch,40.0197402,-76.2807715,,,PA,,false,true,false,openstreetmap
+Fifty-Seventh Street-ARCO Baseball Field,baseball,pitch,40.4860326,-79.946364,,,PA,,false,true,false,openstreetmap
+Fineview Field,baseball,pitch,40.4598866,-80.0042086,,,PA,,false,true,false,openstreetmap
+First National Bank Stadium,baseball,pitch,40.2561255,-76.8898964,,,PA,,false,true,false,openstreetmap
+Fisk Field,baseball,pitch,40.6930491,-75.2387481,,,PA,,false,true,false,openstreetmap
+Fleeland Little League,baseball,pitch,41.0144901,-75.9013475,,,PA,,false,true,false,openstreetmap
+Flemington Field 1,baseball,pitch,41.1295656,-77.4702382,,,PA,,false,true,false,openstreetmap
+Forty Fort Little League,baseball,pitch,41.282027,-75.8790553,,,PA,,false,true,false,openstreetmap
+Founders’ Field,baseball,pitch,40.3344274,-80.0728781,,,PA,,false,true,false,openstreetmap
+Four Leaf Clover Baseball Field,baseball,pitch,40.9464082,-78.221827,,,PA,,false,true,false,openstreetmap
+Four Leaf Clover Baseball Field,baseball,pitch,40.9457315,-78.2220254,,,PA,,false,true,false,openstreetmap
+Frank Ricco Field,baseball,pitch,40.0160598,-79.9096341,,,PA,,false,true,false,openstreetmap
+Frank Wolfgang Baseball Field,baseball,pitch,40.2978289,-75.1652922,,,PA,,false,true,false,openstreetmap
+Freedom Field,baseball,pitch,41.1882265,-75.4137453,,,PA,,false,true,false,openstreetmap
+Freshman Softball,baseball,pitch,40.1026636,-75.2631114,,,PA,,false,true,false,openstreetmap
+Friedens Ballfield,baseball,pitch,40.7332294,-75.6206346,,,PA,,false,true,false,openstreetmap
+Fun Fore All Batting Cage,baseball,pitch,40.7097851,-80.1055506,,,PA,,false,true,false,openstreetmap
+Galaxy Field,baseball,pitch,40.4887915,-80.1812976,,,PA,,false,true,false,openstreetmap
+Game Field,baseball,pitch,39.7693047,-75.9149102,,,PA,,false,true,false,openstreetmap
+Gaugler Field,baseball,pitch,40.1638249,-75.4090287,,,PA,,false,true,false,openstreetmap
+Gestl 4,baseball,pitch,40.7739441,-75.4106494,,,PA,,false,true,false,openstreetmap
+Gibbey Field,baseball,pitch,41.2456002,-75.9131776,,,PA,,false,true,false,openstreetmap
+Gill Field,baseball,pitch,40.7718138,-77.8752743,,,PA,,false,true,false,openstreetmap
+Gillespie Field,baseball,pitch,40.628254,-75.37664,,,PA,,false,true,false,openstreetmap
+Girardville Little League Complex,baseball,pitch,40.7934973,-76.2797553,,,PA,,false,true,false,openstreetmap
+Girardville Teener League Field,baseball,pitch,40.7923566,-76.296246,,,PA,,false,true,false,openstreetmap
+Glen Eden Baseball Field,baseball,pitch,40.7221615,-80.1221968,,,PA,,false,true,false,openstreetmap
+Gochnauer Field,baseball,pitch,40.3899238,-75.9230305,,,PA,,false,true,false,openstreetmap
+Governor Mifflin Varsity Baseball Field,baseball,pitch,40.2991805,-75.9557856,,,PA,,false,true,false,openstreetmap
+Grant Street Field,baseball,pitch,39.9391279,-77.6515785,,,PA,,false,true,false,openstreetmap
+Green Ridge Little League,baseball,pitch,41.438382,-75.6367842,,,PA,,false,true,false,openstreetmap
+Greenville Little League Fields,baseball,pitch,41.4107058,-80.3897822,,,PA,,false,true,false,openstreetmap
+Grimm Field,baseball,pitch,40.2556105,-75.657358,,,PA,,false,true,false,openstreetmap
+Grove City Baseball Fields,baseball,pitch,41.1701259,-80.0762549,,,PA,,false,true,false,openstreetmap
+Halderman Field,baseball,pitch,39.9364008,-75.3433661,,,PA,,false,true,false,openstreetmap
+Halfmoon Little League,baseball,pitch,40.7947579,-78.0205648,,,PA,,false,true,false,openstreetmap
+Hammer Field,baseball,pitch,40.4205181,-79.9465834,,,PA,,false,true,false,openstreetmap
+Hammermill Field,baseball,pitch,41.128962,-77.4563533,,,PA,,false,true,false,openstreetmap
+Hank DeVincent Field,baseball,pitch,40.0367224,-75.1527201,,,PA,,false,true,false,openstreetmap
+Hanover LIttle League,baseball,pitch,39.7988127,-76.9616075,,,PA,,false,true,false,openstreetmap
+Harmony Park Baseball Field,baseball,pitch,39.823853,-75.8324638,,,PA,,false,true,false,openstreetmap
+Harold L. Brindle Memorial Field,baseball,pitch,40.4178361,-80.2359493,,,PA,,false,true,false,openstreetmap
+Harry & Joetta McQueeney Memorial Field,baseball,pitch,42.1468183,-79.9664398,,,PA,,false,true,false,openstreetmap
+Harry C. Story Ball Field,baseball,pitch,40.5051946,-80.1437845,,,PA,,false,true,false,openstreetmap
+Hasbrouck Park Baseball Field 1,baseball,pitch,41.649833,-79.7237246,,,PA,,false,true,false,openstreetmap
+Hastings Little league field,baseball,pitch,40.6669859,-78.7058083,,,PA,,false,true,false,openstreetmap
+Hastings Softball Field,baseball,pitch,40.6670951,-78.7041881,,,PA,,false,true,false,openstreetmap
+Hazleton Little League Complex,baseball,pitch,40.9687814,-75.9585661,,,PA,,false,true,false,openstreetmap
+Hebner Field,baseball,pitch,40.3535803,-79.7082833,,,PA,,false,true,false,openstreetmap
+Heisey’s,baseball,pitch,40.3654151,-76.4643249,,,PA,,false,true,false,openstreetmap
+Helen Richey Field,baseball,pitch,40.3409642,-79.828409,,,PA,,false,true,false,openstreetmap
+Hemlock 1,baseball,pitch,40.4227502,-80.0440157,,,PA,,false,true,false,openstreetmap
+Hemlock 2,baseball,pitch,40.422245,-80.0433296,,,PA,,false,true,false,openstreetmap
+Hempfield Park Upper Baseball/Softball Feild,baseball,pitch,40.3500741,-79.5593218,,,PA,,false,true,false,openstreetmap
+Heritage Valley Baseball Field,baseball,pitch,40.7139753,-80.3184429,,,PA,,false,true,false,openstreetmap
+Hidden Pond Baseball Field,baseball,pitch,40.2431159,-75.1134654,,,PA,,false,true,false,openstreetmap
+Hilton Rahn ’51 Field,baseball,pitch,40.7379724,-75.2382219,,,PA,,false,true,false,openstreetmap
+Hoffman Softball Field #1,baseball,pitch,39.9551932,-76.707674,,,PA,,false,true,false,openstreetmap
+Hoffman Softball Field #2,baseball,pitch,39.9554705,-76.7062176,,,PA,,false,true,false,openstreetmap
+Hoffman Softball Field #3,baseball,pitch,39.9545828,-76.7059945,,,PA,,false,true,false,openstreetmap
+Hoffman Softball Field #4,baseball,pitch,39.9538296,-76.7047046,,,PA,,false,true,false,openstreetmap
+Hoffman Softball Field #5,baseball,pitch,39.9520384,-76.7064534,,,PA,,false,true,false,openstreetmap
+Hoffman Stadium,baseball,pitch,39.9530204,-76.7081264,,,PA,,false,true,false,openstreetmap
+Hollidaysburg Area School District Baseball Field,baseball,pitch,40.4430871,-78.3999447,,,PA,,false,true,false,openstreetmap
+Holy Family School Baseball Diamond,baseball,pitch,40.7422165,-75.322571,,,PA,,false,true,false,openstreetmap
+Hunt Club Field,baseball,pitch,40.2119897,-75.2358761,,,PA,,false,true,false,openstreetmap
+Hurley Field,baseball,pitch,40.2927191,-76.7843599,,,PA,,false,true,false,openstreetmap
+Indian Lane Baseball Feild,baseball,pitch,39.9048503,-75.4055088,,,PA,,false,true,false,openstreetmap
+Ironton Ballfields,baseball,pitch,40.6633681,-75.565135,,,PA,,false,true,false,openstreetmap
+Irwin Field,baseball,pitch,40.9329203,-75.5335233,,,PA,,false,true,false,openstreetmap
+Isaac Smith Park Baseball Diamond,baseball,pitch,40.3365298,-75.4686181,,,PA,,false,true,false,openstreetmap
+J Henry Donharl Memorial Field,baseball,pitch,39.9221231,-77.2334788,,,PA,,false,true,false,openstreetmap
+J. David Walker Field,baseball,pitch,40.5829641,-75.3580811,,,PA,,false,true,false,openstreetmap
+J.M. Cegielkowski Baseball Field,baseball,pitch,40.0800946,-75.0926346,,,PA,,false,true,false,openstreetmap
+JV Baseball,baseball,pitch,40.1001206,-75.2676866,,,PA,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,39.9802787,-75.3912624,,,PA,,false,true,false,openstreetmap
+JV Softball,baseball,pitch,40.1003192,-75.2609645,,,PA,,false,true,false,openstreetmap
+Jack Horgan Memorial Field,baseball,pitch,40.0676196,-75.2367481,,,PA,,false,true,false,openstreetmap
+Jack McDonald Memorial Field,baseball,pitch,39.955888,-75.3344405,,,PA,,false,true,false,openstreetmap
+Jack Schaub memorial baseball diamond,baseball,pitch,39.8544747,-76.0783431,,,PA,,false,true,false,openstreetmap
+Jacobus Ballpark,baseball,pitch,39.8773228,-76.7116618,,,PA,,false,true,false,openstreetmap
+Jacquet Field,baseball,pitch,39.9471762,-76.7251205,,,PA,,false,true,false,openstreetmap
+James H. Jeffery Athletic Field,baseball,pitch,40.6907446,-75.2435622,,,PA,,false,true,false,openstreetmap
+James S Clark Field,baseball,pitch,40.7167506,-76.1242509,,,PA,,false,true,false,openstreetmap
+Jan Hutchinson Field,baseball,pitch,41.0182901,-76.4501926,,,PA,,false,true,false,openstreetmap
+Jay Dunlap Memorial Field,baseball,pitch,40.1618881,-74.9831744,,,PA,,false,true,false,openstreetmap
+Jaycees Baseball Field,baseball,pitch,39.8030392,-76.9997697,,,PA,,false,true,false,openstreetmap
+Joe Deco Field,baseball,pitch,40.3494631,-80.1080257,,,PA,,false,true,false,openstreetmap
+Joe M. Sheetz Field,baseball,pitch,40.4389178,-78.3950673,,,PA,,false,true,false,openstreetmap
+"John Kozloff, Jr. Memorial Field",baseball,pitch,40.4162567,-80.2222256,,,PA,,false,true,false,openstreetmap
+John Voinski Memorial Field,baseball,pitch,41.4370277,-75.6493691,,,PA,,false,true,false,openstreetmap
+John W. Smithson Field,baseball,pitch,39.9956222,-75.2454655,,,PA,,false,true,false,openstreetmap
+Joseph G. Mastroianni FIeld,baseball,pitch,40.5468016,-75.5942751,,,PA,,false,true,false,openstreetmap
+Jr High Softball Field,baseball,pitch,40.8256648,-78.4008675,,,PA,,false,true,false,openstreetmap
+Judd Field,baseball,pitch,40.8287909,-79.5285158,,,PA,,false,true,false,openstreetmap
+Kannerstein Field,baseball,pitch,40.0065361,-75.3097935,,,PA,,false,true,false,openstreetmap
+Kauffman Field,baseball,pitch,40.2813941,-76.8341924,,,PA,,false,true,false,openstreetmap
+Keith Dunkle Memorial Field,baseball,pitch,42.1485946,-79.9668655,,,PA,,false,true,false,openstreetmap
+Kelchner Field,baseball,pitch,40.3623952,-75.9090099,,,PA,,false,true,false,openstreetmap
+Kelly Automotive Park,baseball,pitch,40.8592268,-79.9053913,,,PA,,false,true,false,openstreetmap
+Kendrick Recreation Center,baseball,pitch,40.028881,-75.21251,,,PA,,false,true,false,openstreetmap
+Kendrick Recreation Center,baseball,pitch,40.0283189,-75.2119768,,,PA,,false,true,false,openstreetmap
+Kenny Ross Back Field,baseball,pitch,40.4889658,-80.1882331,,,PA,,false,true,false,openstreetmap
+Kenny Ross Field,baseball,pitch,40.4893699,-80.1872309,,,PA,,false,true,false,openstreetmap
+Kiefer Field,baseball,pitch,40.7828611,-75.1326206,,,PA,,false,true,false,openstreetmap
+Kisslings Field,baseball,pitch,40.4428319,-76.1212915,,,PA,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,40.5420915,-75.4880563,,,PA,,false,true,false,openstreetmap
+Kiwanis Park Baseball Field,baseball,pitch,40.1896928,-76.7313521,,,PA,,false,true,false,openstreetmap
+Knothole Little League Park,baseball,sports_centre,41.3402231,-80.1107323,,,PA,,false,true,false,openstreetmap
+Koenig Baseball Field,baseball,pitch,40.4329832,-79.8880083,,,PA,,false,true,false,openstreetmap
+Koenig Baseball Field #2,baseball,pitch,40.4321717,-79.8880787,,,PA,,false,true,false,openstreetmap
+Krane Field,baseball,pitch,40.4882885,-80.1891641,,,PA,,false,true,false,openstreetmap
+Kunkle Field,baseball,pitch,40.1141724,-76.500987,,,PA,,false,true,false,openstreetmap
+Kurtz Field,baseball,pitch,41.0159076,-78.4429401,,,PA,,false,true,false,openstreetmap
+LVC Softball Park,baseball,pitch,40.3348215,-76.5105113,,,PA,,false,true,false,openstreetmap
+LYA Evangelista Field,baseball,pitch,40.0471405,-75.6613399,,,PA,,false,true,false,openstreetmap
+Lafayette Field,baseball,pitch,40.6304454,-75.3673503,,,PA,,false,true,false,openstreetmap
+Lampus Field,baseball,pitch,40.538106,-79.7773372,,,PA,,false,true,false,openstreetmap
+Langdon Goodale Field,baseball,pitch,40.4990129,-78.0127354,,,PA,,false,true,false,openstreetmap
+Laury's AA Baseball Field,baseball,pitch,40.7166198,-75.5294253,,,PA,,false,true,false,openstreetmap
+Lawrence Field,baseball,pitch,41.1434309,-77.4677584,,,PA,,false,true,false,openstreetmap
+Leaders Heights Elementary School Baseball Field,baseball,pitch,39.9118198,-76.7166012,,,PA,,false,true,false,openstreetmap
+Lehighton High School - JV Baseball Field,baseball,pitch,40.829668,-75.724774,,,PA,,false,true,false,openstreetmap
+Lehighton High School - JV Softball Field,baseball,pitch,40.8251001,-75.7241719,,,PA,,false,true,false,openstreetmap
+Lehighton High School - Varsity Baseball Field,baseball,pitch,40.829391,-75.7231723,,,PA,,false,true,false,openstreetmap
+Lehighton High School - Varsity Softball Field,baseball,pitch,40.8248849,-75.7253661,,,PA,,false,true,false,openstreetmap
+Lemon Hill Fields,baseball,pitch,39.9726218,-75.1868939,,,PA,,false,true,false,openstreetmap
+Limeport Stadium,baseball,stadium,40.5088633,-75.4452079,,,PA,,false,true,false,openstreetmap
+Lincoln University Baseball Complex,baseball,pitch,39.806241,-75.9323093,,,PA,,false,true,false,openstreetmap
+Lions Sky Lodge Fields,baseball,pitch,41.112148,-78.7077661,,,PA,,false,true,false,openstreetmap
+Little League,baseball,pitch,40.7941605,-80.1272091,,,PA,,false,true,false,openstreetmap
+Little League Baseball Fields,baseball,pitch,41.5125523,-78.2190509,,,PA,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,39.7491617,-77.5782192,,,PA,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,40.9636013,-78.519977,,,PA,,false,true,false,openstreetmap
+Litwhiler Field,baseball,pitch,41.0174337,-76.4471977,,,PA,,false,true,false,openstreetmap
+Llewellyn Fireman's Grove,baseball,pitch,40.6750823,-76.2831038,,,PA,,false,true,false,openstreetmap
+Logan Field,baseball,pitch,40.1322203,-75.3365051,,,PA,,false,true,false,openstreetmap
+Lone Pine Field,baseball,pitch,40.5885273,-79.9834787,,,PA,,false,true,false,openstreetmap
+Lou Huebner Memorial Field,baseball,pitch,40.4182476,-80.2351783,,,PA,,false,true,false,openstreetmap
+Lower Field,baseball,pitch,39.8541752,-75.7116867,,,PA,,false,true,false,openstreetmap
+Lower Little League,baseball,pitch,41.0528293,-75.3271984,,,PA,,false,true,false,openstreetmap
+Lower Mount Bethel Township Field,baseball,pitch,40.8258858,-75.0865203,,,PA,,false,true,false,openstreetmap
+Lutes Field,baseball,pitch,41.8070973,-77.0685529,,,PA,,false,true,false,openstreetmap
+Lynne Field,baseball,pitch,40.3316724,-79.7204766,,,PA,,false,true,false,openstreetmap
+MCMS High School baseball field,baseball,pitch,40.173878,-76.3874077,,,PA,,false,true,false,openstreetmap
+MacPhail Field,baseball,pitch,40.1990057,-77.215751,,,PA,,false,true,false,openstreetmap
+Mackey Field,baseball,pitch,40.3236432,-75.6346769,,,PA,,false,true,false,openstreetmap
+Madison Park Ballfield,baseball,pitch,40.2468724,-79.6746211,,,PA,,false,true,false,openstreetmap
+Mahanoy City Little League,baseball,pitch,40.8117256,-76.1334821,,,PA,,false,true,false,openstreetmap
+Maintenance Field,baseball,pitch,39.7702234,-75.9156539,,,PA,,false,true,false,openstreetmap
+Majors Field,baseball,pitch,40.0951418,-75.2631722,,,PA,,false,true,false,openstreetmap
+Malden Yards Baseball Field,baseball,pitch,40.0436304,-79.9290803,,,PA,,false,true,false,openstreetmap
+Mansfield High School Softball,baseball,pitch,41.8043472,-77.0797907,,,PA,,false,true,false,openstreetmap
+Marion Heights Baseball Field,baseball,pitch,40.8054182,-76.4694719,,,PA,,false,true,false,openstreetmap
+Marlow Field,baseball,pitch,40.1126395,-75.1867214,,,PA,,false,true,false,openstreetmap
+Maropis Field,baseball,pitch,40.4176411,-80.2348108,,,PA,,false,true,false,openstreetmap
+Mars Baseball Association Fields,baseball,sports_centre,40.6951294,-79.9872358,,,PA,,false,true,false,openstreetmap
+Martins Creek Ballfield,baseball,pitch,40.779902,-75.1823706,,,PA,,false,true,false,openstreetmap
+Mary D Baseball Field,baseball,pitch,40.7624628,-76.0531605,,,PA,,false,true,false,openstreetmap
+Mastandrea Field,baseball,pitch,40.3625269,-80.0183358,,,PA,,false,true,false,openstreetmap
+Mavrik Field,baseball,pitch,40.2552045,-75.7943728,,,PA,,false,true,false,openstreetmap
+Mayfield Little League,baseball,pitch,41.5359519,-75.5271975,,,PA,,false,true,false,openstreetmap
+Mazeroski Field,baseball,pitch,40.4414276,-79.952058,,,PA,,false,true,false,openstreetmap
+McCarthy Field,baseball,pitch,40.1280275,-75.3437527,,,PA,,false,true,false,openstreetmap
+McGill Baseball Field,baseball,pitch,40.3347802,-76.5202471,,,PA,,false,true,false,openstreetmap
+Medecisin Field,baseball,pitch,40.0708779,-75.4549354,,,PA,,false,true,false,openstreetmap
+Medlar Field,baseball,pitch,40.8122592,-77.8518229,,,PA,,false,true,false,openstreetmap
+Meiklejohn Stadium,baseball,stadium,39.9437525,-75.1938328,,,PA,,false,true,false,openstreetmap
+Mellon Park Field 1,baseball,pitch,40.4552408,-79.9153043,,,PA,,false,true,false,openstreetmap
+Mellon Park Field 2,baseball,pitch,40.4545193,-79.91615,,,PA,,false,true,false,openstreetmap
+Mellon Park Field 3,baseball,pitch,40.4542901,-79.9167352,,,PA,,false,true,false,openstreetmap
+Memorial Field,baseball,stadium,40.4438836,-75.3405732,,,PA,,false,true,false,openstreetmap
+Merchandiser Field,baseball,pitch,40.1133774,-76.5065333,,,PA,,false,true,false,openstreetmap
+Middle Field,baseball,pitch,40.3736681,-80.0570746,,,PA,,false,true,false,openstreetmap
+Mifflin County High School Softball/Baseball Field,baseball,pitch,40.6221188,-77.5714646,,,PA,,false,true,false,openstreetmap
+Mike Chiampi Stadium,baseball,pitch,41.3201563,-75.8237021,,,PA,,false,true,false,openstreetmap
+Mike Pepicello Memorial Field,baseball,pitch,42.1466833,-79.9680941,,,PA,,false,true,false,openstreetmap
+Mini Golf Field,baseball,pitch,39.7700998,-75.9151485,,,PA,,false,true,false,openstreetmap
+Minor League,baseball,pitch,40.7944017,-80.1263684,,,PA,,false,true,false,openstreetmap
+Minors field,baseball,pitch,40.4063816,-75.4970973,,,PA,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,40.4545852,-79.6233823,,,PA,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,40.3327721,-80.1096287,,,PA,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,40.4544474,-79.6234008,,,PA,,false,true,false,openstreetmap
+Miracle League of Blair County,baseball,pitch,40.4655717,-78.4227571,,,PA,,false,true,false,openstreetmap
+Mitterling Field,baseball,pitch,40.9941384,-75.1708625,,,PA,,false,true,false,openstreetmap
+Monaca Little League Field,baseball,pitch,40.6750876,-80.2659742,,,PA,,false,true,false,openstreetmap
+Montresor Field,baseball,pitch,40.7710751,-77.8750519,,,PA,,false,true,false,openstreetmap
+Moosic Little League,baseball,pitch,41.3576798,-75.7301463,,,PA,,false,true,false,openstreetmap
+Moree Field,baseball,pitch,40.6090346,-80.2612127,,,PA,,false,true,false,openstreetmap
+Mother Cabrini Baseball,baseball,pitch,40.7851992,-76.5422023,,,PA,,false,true,false,openstreetmap
+Mount Wolf Baseball Field,baseball,pitch,40.0597099,-76.7051196,,,PA,,false,true,false,openstreetmap
+Mountville VFW Memorial Baseball Field,baseball,pitch,40.0381759,-76.4294582,,,PA,,false,true,false,openstreetmap
+Mountz Memorial Park Baseball Field,baseball,pitch,40.7544566,-78.4274283,,,PA,,false,true,false,openstreetmap
+New Germantown Baseball Field,baseball,pitch,40.3105771,-77.5695916,,,PA,,false,true,false,openstreetmap
+New Germany Recreation Park Baseball Diamond,baseball,pitch,40.4119328,-78.7596159,,,PA,,false,true,false,openstreetmap
+New Philadelphia Little League,baseball,pitch,40.716812,-76.1239587,,,PA,,false,true,false,openstreetmap
+Newhouse Park,baseball,park,40.4105569,-79.5762651,,,PA,,false,true,false,openstreetmap
+Nicely Field,baseball,pitch,41.2610218,-76.9253401,,,PA,,false,true,false,openstreetmap
+Nittany Orchard Baseball Field,baseball,pitch,40.8062896,-77.8147524,,,PA,,false,true,false,openstreetmap
+Norman Behnke Hall,baseball,pitch,40.8434639,-75.2908288,,,PA,,false,true,false,openstreetmap
+North Ballfield,baseball,pitch,39.8688114,-76.104056,,,PA,,false,true,false,openstreetmap
+North Central Little League,baseball,pitch,40.6373253,-75.3733815,,,PA,,false,true,false,openstreetmap
+North Field,baseball,pitch,40.173651,-77.0000365,,,PA,,false,true,false,openstreetmap
+North Rochester Ballfield,baseball,pitch,40.703247,-80.2696211,,,PA,,false,true,false,openstreetmap
+North Wilkes-Barre Little League,baseball,pitch,41.2596993,-75.8400126,,,PA,,false,true,false,openstreetmap
+Northern Blair Rec Center Baseball Field,baseball,pitch,40.6252274,-78.3008964,,,PA,,false,true,false,openstreetmap
+Northwest Little League,baseball,pitch,40.6356331,-75.4074825,,,PA,,false,true,false,openstreetmap
+Northwestern Lehigh Baseball Field,baseball,pitch,40.6819928,-75.7236245,,,PA,,false,true,false,openstreetmap
+Norwood Fontbonne Academy Baseball Field,baseball,pitch,40.0807788,-75.2170434,,,PA,,false,true,false,openstreetmap
+Novak Field,baseball,pitch,40.2558687,-75.6567323,,,PA,,false,true,false,openstreetmap
+O'Brien Field,baseball,pitch,40.3713152,-80.0137931,,,PA,,false,true,false,openstreetmap
+Oak Hills Baseball Field,baseball,pitch,40.2038383,-76.7287721,,,PA,,false,true,false,openstreetmap
+Officer Eric G. Kelly Memorial Baseball Field,baseball,pitch,40.4836164,-79.9335789,,,PA,,false,true,false,openstreetmap
+Officer Paul J Sciullo Memorial Field,baseball,pitch,40.4623461,-79.9546934,,,PA,,false,true,false,openstreetmap
+Officer Stephen J. Mayhle Memorial Field,baseball,pitch,40.3904739,-80.0069571,,,PA,,false,true,false,openstreetmap
+Oil City Little League Field,baseball,pitch,41.4400706,-79.6910826,,,PA,,false,true,false,openstreetmap
+Oil City Minor League Field,baseball,pitch,41.4391421,-79.6909992,,,PA,,false,true,false,openstreetmap
+Oil City Senior League Field,baseball,pitch,41.440072,-79.6900016,,,PA,,false,true,false,openstreetmap
+Oreland-Wyndmoor Little League,baseball,pitch,40.1122449,-75.186106,,,PA,,false,true,false,openstreetmap
+Ormsby Field,baseball,pitch,40.4298734,-79.9740617,,,PA,,false,true,false,openstreetmap
+PNC Field,baseball,stadium,41.3604388,-75.6840394,,,PA,,false,true,false,openstreetmap
+PNC Park,baseball,stadium,40.4469262,-80.0057173,,,PA,,false,true,false,openstreetmap
+PV Baseball Field,baseball,pitch,40.2651291,-80.117865,,,PA,,false,true,false,openstreetmap
+Packard Park,baseball,pitch,41.408702,-80.393091,,,PA,,false,true,false,openstreetmap
+Paxtonia Baseball Fields,baseball,pitch,40.3186371,-76.7816167,,,PA,,false,true,false,openstreetmap
+Pedora Park,baseball,park,40.4151248,-79.59591,,,PA,,false,true,false,openstreetmap
+Pee-Wee,baseball,pitch,40.7919936,-80.1313951,,,PA,,false,true,false,openstreetmap
+Pennridge LL Machine Pitch Field,baseball,pitch,40.3623482,-75.3040768,,,PA,,false,true,false,openstreetmap
+Pennridge LL Minors Field 1,baseball,pitch,40.3633015,-75.3048487,,,PA,,false,true,false,openstreetmap
+Pennridge LL Minors Field 2,baseball,pitch,40.3628137,-75.3045542,,,PA,,false,true,false,openstreetmap
+Pennridge LL T-Ball Field,baseball,pitch,40.3627481,-75.3036022,,,PA,,false,true,false,openstreetmap
+Pennsburg Community Ball Field,baseball,pitch,40.3911827,-75.4903898,,,PA,,false,true,false,openstreetmap
+Phillip D Hirtzel Field,baseball,pitch,42.2213358,-79.8361314,,,PA,,false,true,false,openstreetmap
+Pie Traynor Field,baseball,pitch,40.5873885,-79.991293,,,PA,,false,true,false,openstreetmap
+Play mar Field,baseball,pitch,40.09474,-75.2825371,,,PA,,false,true,false,openstreetmap
+Plowville Lutheran Ballfield,baseball,pitch,40.2206326,-75.9041389,,,PA,,false,true,false,openstreetmap
+Plymouth Little League,baseball,pitch,41.2447937,-75.9566923,,,PA,,false,true,false,openstreetmap
+Police Field,baseball,pitch,39.802826,-77.000476,,,PA,,false,true,false,openstreetmap
+Pony / Colt League Field,baseball,pitch,39.74907,-77.5795428,,,PA,,false,true,false,openstreetmap
+Pony League,baseball,pitch,40.7929498,-80.1285114,,,PA,,false,true,false,openstreetmap
+Pool Field,baseball,pitch,39.7686082,-75.9189184,,,PA,,false,true,false,openstreetmap
+Pop Murray Field,baseball,pitch,40.395529,-80.0422861,,,PA,,false,true,false,openstreetmap
+Port Carbon Little League,baseball,pitch,40.7056144,-76.1611281,,,PA,,false,true,false,openstreetmap
+R1,baseball,pitch,40.6412272,-75.5042447,,,PA,,false,true,false,openstreetmap
+Radnor HS baseball field,baseball,pitch,40.0385111,-75.3569172,,,PA,,false,true,false,openstreetmap
+Randy Martain Field,baseball,pitch,42.1488782,-79.9658566,,,PA,,false,true,false,openstreetmap
+Rathburn Family Field,baseball,pitch,41.955523,-78.6646454,,,PA,,false,true,false,openstreetmap
+Rec Field,baseball,pitch,40.8238619,-78.3557641,,,PA,,false,true,false,openstreetmap
+Rec Park Baseball Field,baseball,pitch,40.5982531,-77.5650088,,,PA,,false,true,false,openstreetmap
+Recreational Baseball Field,baseball,pitch,40.927138,-75.9094401,,,PA,,false,true,false,openstreetmap
+Rehrersburg Baseball Diamond,baseball,pitch,40.4567037,-76.2457605,,,PA,,false,true,false,openstreetmap
+Renovo Little League Field,baseball,pitch,41.3343174,-77.7293901,,,PA,,false,true,false,openstreetmap
+Renovo Little League Field,baseball,pitch,41.3336413,-77.7294754,,,PA,,false,true,false,openstreetmap
+Renovo Little League Field,baseball,pitch,41.3334432,-77.7289228,,,PA,,false,true,false,openstreetmap
+Rex Antinozzi Baseball Field,baseball,pitch,40.9746372,-75.9749629,,,PA,,false,true,false,openstreetmap
+Richie Ashburn Field,baseball,pitch,39.8995654,-75.1822339,,,PA,,false,true,false,openstreetmap
+Riverside Park,baseball,pitch,40.3775801,-78.7602402,,,PA,,false,true,false,openstreetmap
+Robert C Hoffman Cal Ripken Field,baseball,pitch,39.9187279,-77.2405237,,,PA,,false,true,false,openstreetmap
+Rocktenn Baseball Field,baseball,pitch,40.9932664,-75.1396528,,,PA,,false,true,false,openstreetmap
+Roosevelt Recreation Area,baseball,pitch,41.2857764,-75.8841183,,,PA,,false,true,false,openstreetmap
+Ross Baseball Field,baseball,pitch,40.5247446,-80.0006241,,,PA,,false,true,false,openstreetmap
+Ross U. Rosencrance Memorial Ballfield,baseball,pitch,41.4848891,-74.9895915,,,PA,,false,true,false,openstreetmap
+Rotowdi Field,baseball,pitch,41.2608369,-76.9268141,,,PA,,false,true,false,openstreetmap
+Route 29 Sports Complex-Baseball Field,baseball,pitch,41.198571,-75.9157365,,,PA,,false,true,false,openstreetmap
+Rt 29 Baseball,baseball,pitch,40.1177145,-75.5196581,,,PA,,false,true,false,openstreetmap
+Ryan Field,baseball,pitch,40.4053899,-80.1852284,,,PA,,false,true,false,openstreetmap
+SLHS JV Baseball Field,baseball,pitch,40.5325419,-75.4004835,,,PA,,false,true,false,openstreetmap
+Saint John Park Ballfield #1,baseball,pitch,40.2772587,-79.5885405,,,PA,,false,true,false,openstreetmap
+Saint John Park Ballfield #2,baseball,pitch,40.2767978,-79.5881542,,,PA,,false,true,false,openstreetmap
+Sam Fairbanks Memorial Field,baseball,pitch,41.9673741,-76.5269134,,,PA,,false,true,false,openstreetmap
+Sam Nemec Field,baseball,pitch,40.1962809,-79.726521,,,PA,,false,true,false,openstreetmap
+Schultz Field,baseball,pitch,40.4022122,-75.5053577,,,PA,,false,true,false,openstreetmap
+Scotland Baseball Field B,baseball,pitch,39.9678681,-77.5894253,,,PA,,false,true,false,openstreetmap
+Scotland Baseball Field C,baseball,pitch,39.9688213,-77.5894249,,,PA,,false,true,false,openstreetmap
+Scott Township Baseball Diamond,baseball,pitch,40.3845506,-80.0867969,,,PA,,false,true,false,openstreetmap
+Scott Twp Municipal Park,baseball,pitch,41.5290104,-75.6204308,,,PA,,false,true,false,openstreetmap
+Scranton High Baseball Field,baseball,pitch,41.4201981,-75.6687392,,,PA,,false,true,false,openstreetmap
+Seaman Field,baseball,pitch,40.4032926,-76.649873,,,PA,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,40.0956445,-75.2643872,,,PA,,false,true,false,openstreetmap
+Sertoma Softball Field,baseball,pitch,39.953611,-76.7062123,,,PA,,false,true,false,openstreetmap
+Shadyside Park Baseball,baseball,pitch,39.9638025,-75.7262228,,,PA,,false,true,false,openstreetmap
+Shaner Field,baseball,pitch,40.7885732,-77.7014762,,,PA,,false,true,false,openstreetmap
+Sharon Hill Baseball Field - C,baseball,pitch,39.9064185,-75.2692694,,,PA,,false,true,false,openstreetmap
+Sharpsville Baseball Field,baseball,pitch,41.2588236,-80.4768998,,,PA,,false,true,false,openstreetmap
+Shaute Baseball Field,baseball,pitch,41.7999145,-77.0706423,,,PA,,false,true,false,openstreetmap
+Showcase Field,baseball,pitch,39.8997763,-75.1804294,,,PA,,false,true,false,openstreetmap
+Shower's Field,baseball,pitch,41.1179073,-78.7545214,,,PA,,false,true,false,openstreetmap
+Sichler Field,baseball,pitch,40.7865076,-77.8094456,,,PA,,false,true,false,openstreetmap
+Side Field,baseball,pitch,39.8535203,-75.7123795,,,PA,,false,true,false,openstreetmap
+Siles Field,baseball,pitch,40.1531657,-74.9748469,,,PA,,false,true,false,openstreetmap
+Sinton Field,baseball,pitch,39.8540476,-75.7126349,,,PA,,false,true,false,openstreetmap
+Skookum Field,baseball,pitch,40.4401809,-80.0284677,,,PA,,false,true,false,openstreetmap
+Small Steel field,baseball,pitch,39.9568093,-75.3338369,,,PA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,40.4674337,-78.1986629,,,PA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,40.2383012,-74.8250739,,,PA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,41.4162629,-75.6671105,,,PA,,false,true,false,openstreetmap
+Softball Field #1,baseball,pitch,40.0263555,-76.7051297,,,PA,,false,true,false,openstreetmap
+Softball Field #2,baseball,pitch,40.0256027,-76.7043623,,,PA,,false,true,false,openstreetmap
+Softball Field #3,baseball,pitch,40.0266687,-76.7040515,,,PA,,false,true,false,openstreetmap
+South Ardmore Park Baseball Field A,baseball,pitch,39.9969508,-75.2880552,,,PA,,false,true,false,openstreetmap
+South Ardmore Park Baseball Field B,baseball,pitch,39.9976489,-75.2884974,,,PA,,false,true,false,openstreetmap
+South Ardmore Park Baseball Field C,baseball,pitch,39.9957157,-75.2896458,,,PA,,false,true,false,openstreetmap
+South Ardmore Park Baseball Field D,baseball,pitch,39.9970772,-75.2899925,,,PA,,false,true,false,openstreetmap
+South Ballfield,baseball,pitch,39.8678827,-76.10437,,,PA,,false,true,false,openstreetmap
+South Field,baseball,pitch,40.1728857,-77.0005446,,,PA,,false,true,false,openstreetmap
+South Street Park,baseball,pitch,40.8225966,-75.8745735,,,PA,,false,true,false,openstreetmap
+Spangler 7,baseball,pitch,40.7718048,-75.4059701,,,PA,,false,true,false,openstreetmap
+Spider Field,baseball,pitch,39.8267577,-77.8975114,,,PA,,false,true,false,openstreetmap
+Spinner Field,baseball,pitch,40.3645861,-80.0884908,,,PA,,false,true,false,openstreetmap
+SpringFord Little League,baseball,pitch,40.171117,-75.5516436,,,PA,,false,true,false,openstreetmap
+Springfield Township Middle School Baseball Field,baseball,pitch,40.1029342,-75.1941714,,,PA,,false,true,false,openstreetmap
+St Leo Field #1,baseball,pitch,40.0573498,-76.3647143,,,PA,,false,true,false,openstreetmap
+St Leo Field #2,baseball,pitch,40.0568223,-76.3652909,,,PA,,false,true,false,openstreetmap
+St Leo Field #3,baseball,pitch,40.0565835,-76.3648121,,,PA,,false,true,false,openstreetmap
+St. Barbra's Baseball/Softball Field,baseball,pitch,40.812907,-78.3493785,,,PA,,false,true,false,openstreetmap
+St. Clair Little League,baseball,pitch,40.7230921,-76.1874098,,,PA,,false,true,false,openstreetmap
+Stargell Field,baseball,pitch,40.1078412,-79.7565488,,,PA,,false,true,false,openstreetmap
+Steidle Field,baseball,pitch,40.6848741,-76.2162838,,,PA,,false,true,false,openstreetmap
+Stephen P Barry Memorial Field,baseball,pitch,40.3431044,-79.828295,,,PA,,false,true,false,openstreetmap
+Stern Family Field,baseball,pitch,41.1228727,-78.7610231,,,PA,,false,true,false,openstreetmap
+Strath Haven Baseball,baseball,pitch,39.8974428,-75.3693665,,,PA,,false,true,false,openstreetmap
+Strunk Field,baseball,pitch,41.0100622,-78.4392445,,,PA,,false,true,false,openstreetmap
+Student Athletic Field,baseball,pitch,39.9441671,-79.661071,,,PA,,false,true,false,openstreetmap
+Stumpf Field,baseball,pitch,40.0587955,-76.3136984,,,PA,,false,true,false,openstreetmap
+Sturges Field,baseball,pitch,41.4929156,-75.5848511,,,PA,,false,true,false,openstreetmap
+Sullivan Field,baseball,pitch,40.4625003,-79.9635308,,,PA,,false,true,false,openstreetmap
+Sun Bowl Baseball,baseball,pitch,40.0869115,-75.482522,,,PA,,false,true,false,openstreetmap
+Sundstrom Field,baseball,pitch,40.2545928,-75.6567913,,,PA,,false,true,false,openstreetmap
+Susquehanna Township Baseball Field,baseball,pitch,40.2814564,-76.8355791,,,PA,,false,true,false,openstreetmap
+Sutersville Ballfield #1,baseball,pitch,40.2335461,-79.7950405,,,PA,,false,true,false,openstreetmap
+Sutersville Ballfield #2,baseball,pitch,40.2333331,-79.7957593,,,PA,,false,true,false,openstreetmap
+Sweet Briar Vale Field,baseball,pitch,39.9773436,-75.2040617,,,PA,,false,true,false,openstreetmap
+Swoyersville Little League,baseball,pitch,41.292983,-75.8775066,,,PA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,41.1212633,-78.7605171,,,PA,,false,true,false,openstreetmap
+T-ball field,baseball,pitch,40.7046812,-78.129485,,,PA,,false,true,false,openstreetmap
+Taggart Field 1,baseball,pitch,41.1297766,-77.4498246,,,PA,,false,true,false,openstreetmap
+Taggart Field 2,baseball,pitch,41.1288836,-77.4495672,,,PA,,false,true,false,openstreetmap
+Tamaqua High School Baseball Field,baseball,pitch,40.7900378,-75.9824607,,,PA,,false,true,false,openstreetmap
+Tavianini 6,baseball,pitch,40.7728731,-75.4072897,,,PA,,false,true,false,openstreetmap
+Taylor Teener Field,baseball,pitch,41.3956699,-75.6954985,,,PA,,false,true,false,openstreetmap
+Tee-Ball,baseball,pitch,40.7931621,-80.1293242,,,PA,,false,true,false,openstreetmap
+Teener Field,baseball,pitch,40.1738174,-77.0029191,,,PA,,false,true,false,openstreetmap
+Temple University Ambler Baseball Field,baseball,pitch,40.1658269,-75.197085,,,PA,,false,true,false,openstreetmap
+Temple University Ambler Softball Field,baseball,pitch,40.165942,-75.1988258,,,PA,,false,true,false,openstreetmap
+Texas Field,baseball,pitch,40.3259841,-80.0110371,,,PA,,false,true,false,openstreetmap
+The Coop Baseball Field,baseball,pitch,39.7368886,-76.6873932,,,PA,,false,true,false,openstreetmap
+The Karl W. Kephart Memorial Field,baseball,pitch,41.1857202,-77.3215208,,,PA,,false,true,false,openstreetmap
+The Shed,baseball,sports_centre,39.8543311,-75.7122353,,,PA,,false,true,false,openstreetmap
+Theory Field,baseball,pitch,41.0172602,-76.0005172,,,PA,,false,true,false,openstreetmap
+Throop Little League,baseball,pitch,41.4483656,-75.6214083,,,PA,,false,true,false,openstreetmap
+Tom Robison Field,baseball,pitch,39.7465884,-77.5723297,,,PA,,false,true,false,openstreetmap
+Tom Troup Field,baseball,pitch,40.1959775,-79.727397,,,PA,,false,true,false,openstreetmap
+Tommy Lasorda Field,baseball,pitch,39.9437133,-75.1938328,,,PA,,false,true,false,openstreetmap
+Top Field,baseball,pitch,40.174109,-77.0016323,,,PA,,false,true,false,openstreetmap
+Tower Field,baseball,pitch,40.4137394,-80.0399737,,,PA,,false,true,false,openstreetmap
+Townsend Park Baseball Diamond,baseball,pitch,40.4583933,-79.6712356,,,PA,,false,true,false,openstreetmap
+Trooper Philip C. Melley Memorial Field,baseball,pitch,40.8293549,-75.8666975,,,PA,,false,true,false,openstreetmap
+Tulpehocken Area High School Baseball Field,baseball,pitch,40.4481847,-76.1768447,,,PA,,false,true,false,openstreetmap
+Tulpehocken Area High School Softball Field,baseball,pitch,40.4493666,-76.1777016,,,PA,,false,true,false,openstreetmap
+Union Field,baseball,pitch,40.2645484,-75.7906335,,,PA,,false,true,false,openstreetmap
+Upper Adams Youth Baseball Field,baseball,pitch,39.9194715,-77.2403225,,,PA,,false,true,false,openstreetmap
+Upper Dublin Batting Cages,baseball,sports_centre,40.1502294,-75.2012635,,,PA,,false,true,false,openstreetmap
+Upper Little Leage,baseball,pitch,41.0594036,-75.3296546,,,PA,,false,true,false,openstreetmap
+Upper field,baseball,pitch,40.7052216,-78.1301292,,,PA,,false,true,false,openstreetmap
+Valley West Little League,baseball,pitch,40.994676,-76.0577587,,,PA,,false,true,false,openstreetmap
+Vanucci Field,baseball,pitch,40.4148392,-80.0174914,,,PA,,false,true,false,openstreetmap
+Varsity Baseball,baseball,pitch,40.1010942,-75.2669913,,,PA,,false,true,false,openstreetmap
+Varsity Softball,baseball,pitch,40.1010966,-75.2622207,,,PA,,false,true,false,openstreetmap
+Veterans Memorial Field,baseball,pitch,40.5396218,-79.7774842,,,PA,,false,true,false,openstreetmap
+Visitation B.V.M. baseball field,baseball,pitch,40.1445557,-75.3847765,,,PA,,false,true,false,openstreetmap
+Volunteers Field,baseball,pitch,40.3971857,-79.9935809,,,PA,,false,true,false,openstreetmap
+Wally Rose Field,baseball,pitch,41.0632844,-80.0482267,,,PA,,false,true,false,openstreetmap
+"Walter ""Bud"" Ryan Memorial Field",baseball,pitch,40.0597584,-75.2400764,,,PA,,false,true,false,openstreetmap
+Waltz Field,baseball,pitch,40.0088485,-75.6191512,,,PA,,false,true,false,openstreetmap
+Ward Field,baseball,pitch,40.0992056,-75.1913965,,,PA,,false,true,false,openstreetmap
+Warrior's Mark Little League,baseball,pitch,40.7050915,-78.1281648,,,PA,,false,true,false,openstreetmap
+Waterfront Baseball Field,baseball,pitch,41.0304041,-75.1314199,,,PA,,false,true,false,openstreetmap
+Way Memorial Field,baseball,pitch,41.1215857,-78.759793,,,PA,,false,true,false,openstreetmap
+Wayne W Weibley Memorial Field,baseball,pitch,40.4539423,-77.3460398,,,PA,,false,true,false,openstreetmap
+Wayne Wentz Field,baseball,pitch,40.8409602,-75.6879902,,,PA,,false,true,false,openstreetmap
+Waynesburg University Ballfield #1,baseball,pitch,39.8958339,-80.2258524,,,PA,,false,true,false,openstreetmap
+Waynesburg University Ballfield #2,baseball,pitch,39.8958751,-80.2250156,,,PA,,false,true,false,openstreetmap
+Weirman Field,baseball,pitch,40.1362329,-75.3368122,,,PA,,false,true,false,openstreetmap
+Weirman Field,baseball,pitch,40.1359043,-75.337558,,,PA,,false,true,false,openstreetmap
+WellSpan Park,baseball,stadium,39.9679355,-76.7285449,,,PA,,false,true,false,openstreetmap
+West End Field,baseball,pitch,40.2626201,-76.7220034,,,PA,,false,true,false,openstreetmap
+West Field,baseball,pitch,40.1731567,-77.0019583,,,PA,,false,true,false,openstreetmap
+West Hazleton Complex,baseball,pitch,40.9620548,-76.0016914,,,PA,,false,true,false,openstreetmap
+West Pittston Little League,baseball,pitch,41.3289615,-75.8059047,,,PA,,false,true,false,openstreetmap
+West Pittston Little League,baseball,pitch,41.3288853,-75.8058451,,,PA,,false,true,false,openstreetmap
+Weston Park Baseball Field,baseball,pitch,41.4414243,-75.6504273,,,PA,,false,true,false,openstreetmap
+Whispering Woods Athletic Field,baseball,pitch,40.5306475,-80.2686042,,,PA,,false,true,false,openstreetmap
+Wiffleball Field,baseball,pitch,41.6952023,-75.1401756,,,PA,,false,true,false,openstreetmap
+"William T ""Doc"" Dougherty Veterans Memorial Field",baseball,pitch,40.5020226,-79.9480865,,,PA,,false,true,false,openstreetmap
+William T Dougherty Memorial Field,baseball,pitch,40.5015978,-79.9474495,,,PA,,false,true,false,openstreetmap
+Williams Street Field,baseball,pitch,40.5428331,-75.4878073,,,PA,,false,true,false,openstreetmap
+Williamsburg Baseball Field,baseball,pitch,40.4644086,-78.1973148,,,PA,,false,true,false,openstreetmap
+Willow Park,baseball,pitch,40.7790105,-76.3471068,,,PA,,false,true,false,openstreetmap
+Willy Sherbondy Field,baseball,pitch,40.1964924,-79.7271886,,,PA,,false,true,false,openstreetmap
+Windsor Township Baseball Field,baseball,pitch,39.9298553,-76.6107612,,,PA,,false,true,false,openstreetmap
+Wolfdale Park,baseball,pitch,40.1932627,-80.2903103,,,PA,,false,true,false,openstreetmap
+Womelsdorf Ball Park,baseball,pitch,40.366375,-76.1822097,,,PA,,false,true,false,openstreetmap
+Woodland Little League Field,baseball,pitch,40.9974974,-78.3476286,,,PA,,false,true,false,openstreetmap
+Woods Field,baseball,pitch,40.5871693,-79.9871943,,,PA,,false,true,false,openstreetmap
+Wyoming Area School District Baseball Field,baseball,pitch,41.3219899,-75.8061799,,,PA,,false,true,false,openstreetmap
+Youth Baseball field,baseball,pitch,40.4640435,-78.2024375,,,PA,,false,true,false,openstreetmap
+Yukon Lions Park's Baseball Field 1,baseball,pitch,40.2214716,-79.6813208,,,PA,,false,true,false,openstreetmap
+Yukon Lions Park's Baseball Field 2,baseball,pitch,40.2203957,-79.6807392,,,PA,,false,true,false,openstreetmap
+Yukon Lions Park's Baseball Field 3,baseball,pitch,40.219926,-79.6805318,,,PA,,false,true,false,openstreetmap
+Zimbar Field,baseball,pitch,40.9930683,-75.1726857,,,PA,,false,true,false,openstreetmap
+Sherwood Ball Field,baseball,pitch,40.6387788,-75.4285031,1915 Sherwood Street,Allentown,PA,18109,false,true,false,openstreetmap
+Upper Deck Academy,baseball,fitness_centre,40.6265315,-75.4293127,1716 East Tremont Street,Allentown,PA,18109,false,true,false,openstreetmap
+Brandywine Youth Club Fields,baseball,pitch,39.857675,-75.5166531,198 Kirk Road,Bethel Township,PA,19060,false,true,false,openstreetmap
+Matt McGloin Baseball Field,baseball,pitch,41.4424339,-75.6239145,120 Ridge View Drive,Dunmore,PA,18512,false,true,false,openstreetmap
+John Konawalik Field,baseball,pitch,41.0050236,-75.1894037,115 Walnut Street,East Stroudsburg,PA,18301,false,true,false,openstreetmap
+Kevin Scott Boyd Stadium,baseball,stadium,40.1493555,-76.5863712,1 Alpha Drive,Elizabethtown,PA,17022-2298,false,true,false,openstreetmap
+Kevin Scott Boyd Stadium,baseball,pitch,40.148782,-76.5865712,1 Alpha Drive,Elizabethtown,PA,17022-2298,false,true,false,openstreetmap
+Ainsworth Field,baseball,stadium,42.1043404,-80.1022708,2300 Washington Place,Erie,PA,16502,false,true,false,openstreetmap
+UPMC Park,baseball,stadium,42.1271417,-80.080127,110 East 10th Street,Erie,PA,16502,false,true,false,openstreetmap
+Jack Ponsford Baseball Complex,baseball,sports_centre,42.0298308,-80.2611578,,Fairview,PA,16415,false,true,false,openstreetmap
+Miracle League of the Lehigh Valley Field,baseball,pitch,40.6811194,-75.6603752,5858 Sell Road,Germansville,PA,18053,false,true,false,openstreetmap
+Colonial 3 Athletic Club,baseball,sports_centre,40.0108233,-79.8143099,3321 3rd Street,Grindstone,PA,15442,false,true,false,openstreetmap
+Jersey Shore HS Baseball Field,baseball,pitch,41.2002109,-77.2611888,427 Thompson Street,Jersey Shore,PA,17740,false,true,false,openstreetmap
+Penn Medicine Park,baseball,stadium,40.0488088,-76.3108575,650 North Prince Street,Lancaster,PA,17603,false,true,false,openstreetmap
+Winding Hills Park East,baseball,pitch,40.1897793,-76.954931,901 East Winding Hill Road,Mechanicsburg,PA,17055,false,true,false,openstreetmap
+Bennett J. Cooper Baseball Field,baseball,pitch,39.9999773,-76.3612375,221 North Prince Street,Millersville,PA,17551,false,true,false,openstreetmap
+Nesquehoning Little League Field,baseball,pitch,40.8611379,-75.8169122,335 West Railroad Street,Nesquehoning,PA,18240,false,true,false,openstreetmap
+Kevin W. Walsh Memorial Field,baseball,pitch,40.1372516,-75.3589891,1725 Sterigere Street,Norristown,PA,,false,true,false,openstreetmap
+Easton Rotary Field,baseball,pitch,40.6849358,-75.2724684,4100 Green Pond Road,Palmer,PA,18045,false,true,false,openstreetmap
+Pennridge LL AAA Field,baseball,pitch,40.3679626,-75.2965131,200 West Walnut Street,Perkasie,PA,18944,false,true,false,openstreetmap
+Pennridge LL Majors Field,baseball,pitch,40.3681258,-75.2956947,200 West Walnut Street,Perkasie,PA,18944,false,true,false,openstreetmap
+Meyer Middleton Park,baseball,sports_centre,40.4297587,-80.0803886,249 Ewing Avenue,Pittsburgh,PA,15205,false,true,false,openstreetmap
+Pete Haschak Memorial Baseball Field,baseball,pitch,40.3867626,-78.6860771,1508 Caldwell Avenue,Portage,PA,15946,false,true,false,openstreetmap
+FirstEnergy Stadium,baseball,stadium,40.3655189,-75.933722,1900 Centre Avenue,Reading,PA,19605,false,true,false,openstreetmap
+Scott Twp Municipal Park,baseball,pitch,41.5287211,-75.6206891,279 Commerce Drive,Scott,PA,18447,false,true,false,openstreetmap
+Battaglia-Cawley Field,baseball,pitch,41.4091165,-75.6801912,Oxford Street,Scranton,PA,18504,false,true,false,openstreetmap
+Charles J. Volpe Family Field,baseball,pitch,41.4029484,-75.6731358,Broadway Street,Scranton,PA,,false,true,false,openstreetmap
+Ohio Township Ballfield,baseball,sports_centre,40.5649293,-80.1032778,525 Nicholson Road,Sewickley,PA,15143,false,true,false,openstreetmap
+Jack Critchfield Park,baseball,stadium,41.0609314,-80.03854,100 Stadium Drive,Slippery Rock,PA,16057,false,true,false,openstreetmap
+Slippery Rock University,baseball,pitch,41.061104,-80.0338693,241 Harmony Road,Slippery Rock,PA,16057,false,true,false,openstreetmap
+All Star Baseball Academy,baseball,pitch,39.9070837,-75.5655757,52 Penn Oaks Drive,Thornbury Township,PA,,false,true,false,openstreetmap
+Medlar Field at Lubrano Park,baseball,stadium,40.8123499,-77.8522335,112 Medlar Field at Lubrano Park,University Park,PA,16802,false,true,false,openstreetmap
+EQT Park,baseball,stadium,40.1543607,-80.2836764,1 Washington Federal Way,Washington,PA,15301,false,true,false,openstreetmap
+Serpico Stadium,baseball,sports_centre,39.9423892,-75.5989906,855 South New Street,West Chester,PA,19383,false,true,false,openstreetmap
+West Chester University Softball Field,baseball,sports_centre,39.9407441,-75.6016085,855 South New Street,West Chester,PA,19383,false,true,false,openstreetmap
+Steven Micklo Memorial Complex,baseball,sports_centre,40.3714071,-79.8762866,750 Saint Agnes Lane,West Mifflin,PA,15122,false,true,false,openstreetmap
+Hitter's Edge,baseball,sports_centre,40.65186,-75.4935033,3679 Eberhart Road,Whitehall,PA,18052,false,true,false,openstreetmap
+Muncy Bank Ballpark at Historic Bowman Field,baseball,pitch,41.2422998,-77.0469125,1700 West 4th Street,Williamsport,PA,17701,false,true,false,openstreetmap
+Muncy Bank Ballpark at Historic Bowman Field,baseball,stadium,41.242306,-77.0469433,1700 West 4th Street,Williamsport,PA,17701,false,true,false,openstreetmap

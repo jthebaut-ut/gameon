@@ -1,0 +1,179 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,soccer,pitch,35.0609602,-80.7415843,,,NC,,false,true,false,openstreetmap
+#1,soccer,pitch,35.3002749,-80.8323043,,,NC,,false,true,false,openstreetmap
+#2,soccer,pitch,35.0598681,-80.742197,,,NC,,false,true,false,openstreetmap
+#2,soccer,pitch,35.3006605,-80.8316166,,,NC,,false,true,false,openstreetmap
+#3,soccer,pitch,35.0604888,-80.7432266,,,NC,,false,true,false,openstreetmap
+#3,soccer,pitch,35.2996402,-80.8313413,,,NC,,false,true,false,openstreetmap
+#4,soccer,pitch,35.0616687,-80.7434895,,,NC,,false,true,false,openstreetmap
+#5,soccer,pitch,35.0615975,-80.7444856,,,NC,,false,true,false,openstreetmap
+1992 Team Field,soccer,pitch,35.5011559,-80.8387695,,,NC,,false,true,false,openstreetmap
+Adams Farm Soccer Field,soccer,pitch,36.0209998,-79.9041211,,,NC,,false,true,false,openstreetmap
+Avocet Soccer Field,soccer,pitch,35.6074829,-78.8713566,,,NC,,false,true,false,openstreetmap
+BWE Soccer Field,soccer,pitch,35.1320512,-80.8349483,,,NC,,false,true,false,openstreetmap
+Barton College Soccer,soccer,pitch,35.743629,-77.9151928,,,NC,,false,true,false,openstreetmap
+Bennett Wellness Complex Field,soccer,pitch,36.065359,-79.7783639,,,NC,,false,true,false,openstreetmap
+Brandon Oaks Soccer Field,soccer,pitch,35.0450047,-80.6633092,,,NC,,false,true,false,openstreetmap
+CDS Soccer Field,soccer,pitch,36.0849719,-80.3532211,,,NC,,false,true,false,openstreetmap
+CHSS Soccer Field,soccer,pitch,35.2662436,-75.5417466,,,NC,,false,true,false,openstreetmap
+Ceda Academy,soccer,sports_centre,35.61014,-78.8888146,,,NC,,false,true,false,openstreetmap
+Dail Soccer Field,soccer,pitch,35.7816847,-78.6692979,,,NC,,false,true,false,openstreetmap
+Dorrance Field,soccer,pitch,35.9086918,-79.0444694,,,NC,,false,true,false,openstreetmap
+E.B. Frock Field,soccer,stadium,35.6928366,-80.4896897,,,NC,,false,true,false,openstreetmap
+Ebb Gantt Park,soccer,pitch,35.2401036,-81.0268368,,,NC,,false,true,false,openstreetmap
+Ebb Gantt Park,soccer,pitch,35.2393772,-81.0252135,,,NC,,false,true,false,openstreetmap
+FVAA Fields - Bakertown Complex,soccer,pitch,35.5448776,-78.8716941,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.8819866,-78.5485581,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.1262489,-80.9067918,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.6108907,-78.8885965,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,36.0718491,-79.5510201,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.0611944,-80.8894861,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.8434677,-78.8191117,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.9228678,-79.0220333,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.1124026,-80.6946971,,,NC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,36.1668156,-79.7451056,,,NC,,false,true,false,openstreetmap
+Field 10,soccer,pitch,35.8850841,-78.5438796,,,NC,,false,true,false,openstreetmap
+Field 10,soccer,pitch,35.1248073,-80.9068472,,,NC,,false,true,false,openstreetmap
+Field 10,soccer,pitch,35.1083743,-80.7013318,,,NC,,false,true,false,openstreetmap
+Field 11,soccer,pitch,35.885169,-78.542972,,,NC,,false,true,false,openstreetmap
+Field 11,soccer,pitch,35.1252571,-80.9050989,,,NC,,false,true,false,openstreetmap
+Field 11,soccer,pitch,35.1034163,-80.9804438,,,NC,,false,true,false,openstreetmap
+Field 11,soccer,pitch,35.107699,-80.7002992,,,NC,,false,true,false,openstreetmap
+Field 12,soccer,pitch,35.8865801,-78.5433239,,,NC,,false,true,false,openstreetmap
+Field 13,soccer,pitch,35.8864068,-78.5442729,,,NC,,false,true,false,openstreetmap
+Field 14,soccer,pitch,35.8860686,-78.547105,,,NC,,false,true,false,openstreetmap
+Field 14,soccer,pitch,35.101539,-80.980128,,,NC,,false,true,false,openstreetmap
+Field 15,soccer,pitch,35.8859403,-78.5478546,,,NC,,false,true,false,openstreetmap
+Field 16,soccer,pitch,35.8858151,-78.5486106,,,NC,,false,true,false,openstreetmap
+Field 17,soccer,pitch,35.885664,-78.5493995,,,NC,,false,true,false,openstreetmap
+Field 17,soccer,pitch,36.1695454,-79.7422179,,,NC,,false,true,false,openstreetmap
+Field 18,soccer,pitch,35.8854902,-78.5502679,,,NC,,false,true,false,openstreetmap
+Field 18,soccer,pitch,36.1689093,-79.7410354,,,NC,,false,true,false,openstreetmap
+Field 19,soccer,pitch,35.8853175,-78.5511674,,,NC,,false,true,false,openstreetmap
+Field 19,soccer,pitch,36.1683514,-79.7417405,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.1261466,-80.9054925,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.6099953,-78.8886027,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,36.0718326,-79.5502389,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.061526,-80.8885041,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.8821095,-78.5479761,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.8420884,-78.8189895,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.9392462,-81.5248596,,,NC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.1127018,-80.6938864,,,NC,,false,true,false,openstreetmap
+Field 20,soccer,pitch,35.8851854,-78.5520506,,,NC,,false,true,false,openstreetmap
+Field 20,soccer,pitch,36.1678273,-79.7424083,,,NC,,false,true,false,openstreetmap
+Field 21,soccer,pitch,35.8842941,-78.5498389,,,NC,,false,true,false,openstreetmap
+Field 22,soccer,pitch,35.884108,-78.5509088,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.883268,-78.5499194,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.1272876,-80.905827,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.6099901,-78.8877942,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,36.0718257,-79.5494327,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.0604395,-80.8881925,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.9394484,-81.5243805,,,NC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.1134018,-80.6952505,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.8236319,-78.820772,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.8833737,-78.5492204,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.1277111,-80.9068894,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.6092159,-78.8884409,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,36.0706558,-79.5510478,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.0598654,-80.8877618,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.9400203,-81.5250213,,,NC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.1137074,-80.6944572,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.8233761,-78.8214991,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.8835262,-78.5483782,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.1274013,-80.9076931,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,36.0706346,-79.5502477,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.0593074,-80.8873301,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.940152,-81.5245301,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.109849,-80.6983861,,,NC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.0745929,-80.7787305,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.8846947,-78.5481982,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.1268614,-80.908445,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,36.070617,-79.5494563,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.0587627,-80.8869127,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.9404477,-81.5239791,,,NC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.1087713,-80.6977426,,,NC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,35.8842809,-78.5454244,,,NC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,35.1263269,-80.9091634,,,NC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,36.1681136,-79.7495485,,,NC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,35.9408833,-81.5240171,,,NC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,35.1101714,-80.6975536,,,NC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,35.8852127,-78.5457014,,,NC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,35.1257021,-80.9081822,,,NC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,36.1682703,-79.748727,,,NC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,35.9409934,-81.5236832,,,NC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,35.1091054,-80.6969047,,,NC,,false,true,false,openstreetmap
+Field 9,soccer,pitch,35.1246017,-80.9076707,,,NC,,false,true,false,openstreetmap
+Field 9,soccer,pitch,35.884352,-78.5430822,,,NC,,false,true,false,openstreetmap
+Field 9,soccer,pitch,35.941685,-81.5213607,,,NC,,false,true,false,openstreetmap
+Field 9,soccer,pitch,35.1094411,-80.6960629,,,NC,,false,true,false,openstreetmap
+Fields 2,soccer,pitch,35.8254455,-78.81734,,,NC,,false,true,false,openstreetmap
+Founders Field,soccer,stadium,35.1464141,-80.7711402,,,NC,,false,true,false,openstreetmap
+Greene-Harbison Soccer Stadium,soccer,pitch,35.2450083,-81.6714725,,,NC,,false,true,false,openstreetmap
+Guy Field,soccer,pitch,35.1449634,-80.771125,,,NC,,false,true,false,openstreetmap
+Harris Field,soccer,pitch,36.1470252,-79.836306,,,NC,,false,true,false,openstreetmap
+Hathaway Field,soccer,pitch,35.9728372,-80.0885808,,,NC,,false,true,false,openstreetmap
+John B. Lewis Soccer Complex Field 1,soccer,pitch,35.5791489,-82.4922102,,,NC,,false,true,false,openstreetmap
+John B. Lewis Soccer Complex Field 2,soccer,pitch,35.5776245,-82.4923433,,,NC,,false,true,false,openstreetmap
+John B. Lewis Soccer Complex Field 3,soccer,pitch,35.5761938,-82.4915402,,,NC,,false,true,false,openstreetmap
+John B. Lewis Soccer Complex Field 4,soccer,pitch,35.575049,-82.4908324,,,NC,,false,true,false,openstreetmap
+Jt Soccar Field,soccer,pitch,35.2661499,-80.8427893,,,NC,,false,true,false,openstreetmap
+Kennedy Soccer Field,soccer,pitch,35.973106,-80.0876319,,,NC,,false,true,false,openstreetmap
+Knights Field,soccer,pitch,34.7477378,-79.4817848,,,NC,,false,true,false,openstreetmap
+Legion Stadium,soccer,stadium,34.2020926,-77.9380622,,,NC,,false,true,false,openstreetmap
+Lower Miller Field,soccer,pitch,35.7827088,-78.6744185,,,NC,,false,true,false,openstreetmap
+Lower Soccer Field,soccer,pitch,35.6253705,-82.364199,,,NC,,false,true,false,openstreetmap
+MACU Soccer Field,soccer,pitch,36.3048,-76.2152176,,,NC,,false,true,false,openstreetmap
+Matthews Christian Academy Soccer Field,soccer,pitch,35.1603634,-80.7313041,,,NC,,false,true,false,openstreetmap
+McCaskill Soccer Center,soccer,stadium,35.9087461,-79.0444742,,,NC,,false,true,false,openstreetmap
+Method Soccer Field,soccer,pitch,35.7875696,-78.6929941,,,NC,,false,true,false,openstreetmap
+Method Soccer Field,soccer,pitch,35.7885936,-78.6930216,,,NC,,false,true,false,openstreetmap
+Nancy and Murray Duggins Soccer Stadium,soccer,stadium,35.1326518,-78.8755934,,,NC,,false,true,false,openstreetmap
+North Buncombe High Soccor Field,soccer,pitch,35.7410727,-82.5604715,,,NC,,false,true,false,openstreetmap
+Parrish Womble Soccer Field A,soccer,pitch,35.6453921,-78.8274016,,,NC,,false,true,false,openstreetmap
+Parrish Womble Soccer Field B,soccer,pitch,35.645363,-78.8262419,,,NC,,false,true,false,openstreetmap
+Parrish Womble Soccer Field C,soccer,pitch,35.6448841,-78.827424,,,NC,,false,true,false,openstreetmap
+Parrish Womble Soccer Field D,soccer,pitch,35.6448528,-78.8262624,,,NC,,false,true,false,openstreetmap
+PeeWee Soccer,soccer,pitch,36.4210649,-80.7217787,,,NC,,false,true,false,openstreetmap
+Pride Park,soccer,stadium,34.9852535,-80.4394211,,,NC,,false,true,false,openstreetmap
+Rainbow Soccer,soccer,pitch,35.9195711,-79.0244652,,,NC,,false,true,false,openstreetmap
+Rainbow Soccer Complex,soccer,pitch,35.9224732,-79.0241813,,,NC,,false,true,false,openstreetmap
+Rayburn Soccer Field,soccer,pitch,35.1912544,-80.8099912,,,NC,,false,true,false,openstreetmap
+Ron Benson Field,soccer,pitch,35.9439495,-79.0807515,,,NC,,false,true,false,openstreetmap
+Rudd Field,soccer,pitch,36.1082622,-79.5062914,,,NC,,false,true,false,openstreetmap
+Rugby Raiders Soccer Field,soccer,pitch,35.3595542,-82.513145,,,NC,,false,true,false,openstreetmap
+Salem  Academy football field,soccer,pitch,36.0865017,-80.2381099,,,NC,,false,true,false,openstreetmap
+Scalf Field,soccer,pitch,36.0142873,-77.7756601,,,NC,,false,true,false,openstreetmap
+Schrader Soccer Field,soccer,pitch,35.3129323,-83.1863351,,,NC,,false,true,false,openstreetmap
+Soccer #1,soccer,pitch,35.1937616,-80.8420191,,,NC,,false,true,false,openstreetmap
+Soccer #2,soccer,pitch,35.1940414,-80.8426452,,,NC,,false,true,false,openstreetmap
+Soccer #3,soccer,pitch,35.1944033,-80.843213,,,NC,,false,true,false,openstreetmap
+Soccer Complex,soccer,pitch,34.9852531,-80.4394298,,,NC,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.2249147,-82.2482353,,,NC,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.224142,-82.249149,,,NC,,false,true,false,openstreetmap
+Soccer Field at Holcomb Woods,soccer,pitch,35.2691982,-80.6657331,,,NC,,false,true,false,openstreetmap
+Spry Soccer Stadium,soccer,stadium,36.1384475,-80.278615,,,NC,,false,true,false,openstreetmap
+Tate Field,soccer,pitch,36.1543453,-81.8736165,,,NC,,false,true,false,openstreetmap
+Taylor Field,soccer,pitch,36.1015333,-80.3863582,,,NC,,false,true,false,openstreetmap
+Ted Mackorell Field,soccer,pitch,36.2268,-81.6442718,,,NC,,false,true,false,openstreetmap
+Ted Mackorell Field,soccer,pitch,36.2254574,-81.6437529,,,NC,,false,true,false,openstreetmap
+Ting Park Soccer Field A,soccer,pitch,35.6683467,-78.8384621,,,NC,,false,true,false,openstreetmap
+Ting Park Soccer Field B,soccer,pitch,35.667811,-78.8384612,,,NC,,false,true,false,openstreetmap
+Ting Park Soccer Field C,soccer,pitch,35.6683466,-78.8376705,,,NC,,false,true,false,openstreetmap
+Ting Park Soccer Field D,soccer,pitch,35.667812,-78.8376704,,,NC,,false,true,false,openstreetmap
+Transamerica Field,soccer,pitch,35.3054997,-80.7381058,,,NC,,false,true,false,openstreetmap
+Truist Sports Park,soccer,sports_centre,36.0168256,-80.4236296,,,NC,,false,true,false,openstreetmap
+Turf Field/ HS Field,soccer,pitch,36.4191129,-80.7214803,,,NC,,false,true,false,openstreetmap
+UNCW Soccer Stadium,soccer,stadium,34.222356,-77.8761673,,,NC,,false,true,false,openstreetmap
+United Therapeutics Soccer Pitch,soccer,pitch,35.9184296,-78.8754245,,,NC,,false,true,false,openstreetmap
+Upper Miller Field,soccer,pitch,35.7820474,-78.6747835,,,NC,,false,true,false,openstreetmap
+Upper Soccer Field,soccer,pitch,36.4213419,-80.7205915,,,NC,,false,true,false,openstreetmap
+Upper Soccer Fields,soccer,pitch,36.4217934,-80.7215896,,,NC,,false,true,false,openstreetmap
+Village of Raintree Athletic Field,soccer,pitch,35.0953612,-80.7878298,,,NC,,false,true,false,openstreetmap
+Western Alamance Middle School Soccer Field,soccer,pitch,36.1606616,-79.5014624,,,NC,,false,true,false,openstreetmap
+Charlotte Eagles Soccer Club,soccer,pitch,35.1526171,-80.7504104,8510 McAlpine Park Drive,Charlotte,NC,28211,false,true,false,openstreetmap
+Dickson Field,soccer,pitch,35.1587668,-80.8548453,2229 Tyvola Road,Charlotte,NC,28210,false,true,false,openstreetmap
+Dave & Buster's Soccer Complex,soccer,sports_centre,35.4367048,-80.6376072,3400 Davidson Highway,Concord,NC,28027,false,true,false,openstreetmap
+Mack Cook Stadium,soccer,stadium,35.9109292,-81.5445951,1114 College Avenue Southwest,Lenoir,NC,28645,false,true,false,openstreetmap
+N. E. Lefko Field,soccer,pitch,35.4861277,-80.279075,27480 Gibson Lake Drive,Misenheimer,NC,28109,false,true,false,openstreetmap
+CSA OrthoCarolina Sportsplex,soccer,sports_centre,35.0609725,-80.8877363,13301 Dorman Road,Pineville,NC,28134,false,true,false,openstreetmap
+NCFC Youth WRAL Soccer Park,soccer,sports_centre,35.8844024,-78.5478074,7700 Perry Creek Road,Raleigh,NC,27616,false,true,false,openstreetmap

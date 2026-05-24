@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cincinnati Open Sporting Club - Pickleball Courts,pickleball,pitch,39.348604,-84.2777525,,,OH,,false,true,false,openstreetmap
+Court 1,pickleball,pitch,38.7346318,-82.8579659,,,OH,,false,true,false,openstreetmap
+Court 2,pickleball,pitch,38.7346043,-82.8580646,,,OH,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,41.6316962,-81.3768174,,,OH,,false,true,false,openstreetmap
+The Pickle Lodge Lunken Landing,pickleball,pitch,39.1133417,-84.4190682,669 Wilmer Avenue,Cincinnati,OH,45226,false,true,false,openstreetmap
+Pickle Zone,pickleball,pitch,41.6196794,-83.7040616,6826 Village Meadows Trail,Holland,OH,43528,true,false,false,openstreetmap
+Grand Lake Pickleball,pickleball,sports_centre,40.533972,-84.3912629,575 Greenville Road,Saint Marys,OH,45885,false,true,false,openstreetmap
+Ace's Pickleball Club,pickleball,pitch,41.3938463,-81.4444167,6025 Kruse Drive,Solon,OH,44139,false,true,false,openstreetmap
+The Pickle Lodge,pickleball,pitch,39.3526657,-84.3728368,7373 Kingsgate Way,West Chester Township,OH,45069,false,true,false,openstreetmap

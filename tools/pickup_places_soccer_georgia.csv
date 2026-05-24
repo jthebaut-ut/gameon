@@ -1,0 +1,266 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10A,soccer,pitch,34.0573641,-84.0535244,,,GA,,false,true,false,openstreetmap
+10B,soccer,pitch,34.0573039,-84.053381,,,GA,,false,true,false,openstreetmap
+11A,soccer,pitch,34.0570423,-84.0532645,,,GA,,false,true,false,openstreetmap
+11B,soccer,pitch,34.0569821,-84.0531212,,,GA,,false,true,false,openstreetmap
+12A,soccer,pitch,34.0571913,-84.0536298,,,GA,,false,true,false,openstreetmap
+12B,soccer,pitch,34.0571311,-84.0534865,,,GA,,false,true,false,openstreetmap
+13A,soccer,pitch,34.0577549,-84.0521054,,,GA,,false,true,false,openstreetmap
+13B,soccer,pitch,34.0576859,-84.0519137,,,GA,,false,true,false,openstreetmap
+14A,soccer,pitch,34.0579834,-84.0519881,,,GA,,false,true,false,openstreetmap
+14B,soccer,pitch,34.0579144,-84.0517963,,,GA,,false,true,false,openstreetmap
+15A,soccer,pitch,34.0582161,-84.0518668,,,GA,,false,true,false,openstreetmap
+15B,soccer,pitch,34.0581471,-84.0516751,,,GA,,false,true,false,openstreetmap
+16A,soccer,pitch,34.0580783,-84.0525934,,,GA,,false,true,false,openstreetmap
+16A,soccer,pitch,34.0579223,-84.0526754,,,GA,,false,true,false,openstreetmap
+16B,soccer,pitch,34.0579905,-84.0523477,,,GA,,false,true,false,openstreetmap
+16B,soccer,pitch,34.0578345,-84.0524298,,,GA,,false,true,false,openstreetmap
+17A,soccer,pitch,34.0584036,-84.0524232,,,GA,,false,true,false,openstreetmap
+17A,soccer,pitch,34.0582466,-84.0525058,,,GA,,false,true,false,openstreetmap
+17B,soccer,pitch,34.0581588,-84.0522601,,,GA,,false,true,false,openstreetmap
+17B,soccer,pitch,34.0583157,-84.0521775,,,GA,,false,true,false,openstreetmap
+18A,soccer,pitch,34.0582715,-84.0531426,,,GA,,false,true,false,openstreetmap
+18A,soccer,pitch,34.0581156,-84.0532247,,,GA,,false,true,false,openstreetmap
+18B,soccer,pitch,34.0581837,-84.0528969,,,GA,,false,true,false,openstreetmap
+18B,soccer,pitch,34.0580278,-84.052979,,,GA,,false,true,false,openstreetmap
+19A,soccer,pitch,34.0584398,-84.053055,,,GA,,false,true,false,openstreetmap
+19A,soccer,pitch,34.0585968,-84.0529724,,,GA,,false,true,false,openstreetmap
+19B,soccer,pitch,34.058509,-84.0527267,,,GA,,false,true,false,openstreetmap
+19B,soccer,pitch,34.058352,-84.0528093,,,GA,,false,true,false,openstreetmap
+1A,soccer,pitch,34.0569198,-84.0527393,,,GA,,false,true,false,openstreetmap
+1B,soccer,pitch,34.0568327,-84.0527797,,,GA,,false,true,false,openstreetmap
+2A,soccer,pitch,34.0568657,-84.052553,,,GA,,false,true,false,openstreetmap
+2B,soccer,pitch,34.0567787,-84.0525933,,,GA,,false,true,false,openstreetmap
+3,soccer,pitch,33.969575,-84.1870951,,,GA,,false,true,false,openstreetmap
+3A,soccer,pitch,34.0571591,-84.0526238,,,GA,,false,true,false,openstreetmap
+3B,soccer,pitch,34.0570721,-84.0526641,,,GA,,false,true,false,openstreetmap
+4,soccer,pitch,33.9677266,-84.1886872,,,GA,,false,true,false,openstreetmap
+4A,soccer,pitch,34.057102,-84.0524449,,,GA,,false,true,false,openstreetmap
+4B,soccer,pitch,34.0570149,-84.0524852,,,GA,,false,true,false,openstreetmap
+5,soccer,pitch,33.968534,-84.1892824,,,GA,,false,true,false,openstreetmap
+5A,soccer,pitch,34.0573666,-84.0529956,,,GA,,false,true,false,openstreetmap
+5B,soccer,pitch,34.0573192,-84.0528821,,,GA,,false,true,false,openstreetmap
+6A,soccer,pitch,34.0575579,-84.0531211,,,GA,,false,true,false,openstreetmap
+6B,soccer,pitch,34.0574748,-84.0531722,,,GA,,false,true,false,openstreetmap
+7A,soccer,pitch,34.057608,-84.0532399,,,GA,,false,true,false,openstreetmap
+7B,soccer,pitch,34.057525,-84.0532909,,,GA,,false,true,false,openstreetmap
+8A,soccer,pitch,34.0576578,-84.053356,,,GA,,false,true,false,openstreetmap
+8B,soccer,pitch,34.0575747,-84.0534071,,,GA,,false,true,false,openstreetmap
+9A,soccer,pitch,34.0572191,-84.053161,,,GA,,false,true,false,openstreetmap
+9B,soccer,pitch,34.0571589,-84.0530178,,,GA,,false,true,false,openstreetmap
+Adrian's Soccer,soccer,pitch,33.917806,-84.1157779,,,GA,,false,true,false,openstreetmap
+Arizona Ave Soccer Fields,soccer,pitch,33.7575718,-84.3307056,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9333892,-84.4980448,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9327321,-84.497755,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9330915,-84.4995298,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.934218,-84.4999194,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9338259,-84.4966702,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9344575,-84.4961746,,,GA,,false,true,false,openstreetmap
+Atlanta United Training Center,soccer,pitch,33.9334097,-84.5001029,,,GA,,false,true,false,openstreetmap
+Bender,soccer,pitch,33.856097,-84.1166114,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,soccer,pitch,34.0017416,-84.6202715,,,GA,,false,true,false,openstreetmap
+Big Shanty Park,soccer,pitch,34.0016582,-84.6187817,,,GA,,false,true,false,openstreetmap
+Bivings Field,soccer,pitch,33.6174732,-83.869908,,,GA,,false,true,false,openstreetmap
+Bloomfield Park Soccer Field,soccer,pitch,32.791089,-83.6804374,,,GA,,false,true,false,openstreetmap
+Cartersville Soccer Complex,soccer,pitch,34.1346493,-84.826618,,,GA,,false,true,false,openstreetmap
+Cartersville Soccer Complex,soccer,pitch,34.1346387,-84.8258527,,,GA,,false,true,false,openstreetmap
+Cartersville Soccer Complex,soccer,pitch,34.1346224,-84.8250759,,,GA,,false,true,false,openstreetmap
+Cartersville Soccer Complex,soccer,pitch,34.1338602,-84.8266061,,,GA,,false,true,false,openstreetmap
+Central Park Soccer Field,soccer,pitch,33.7693101,-84.3770045,,,GA,,false,true,false,openstreetmap
+Chattahoochee High School,soccer,pitch,34.0506728,-84.2082946,,,GA,,false,true,false,openstreetmap
+Crossroads,soccer,pitch,33.8564244,-84.113375,,,GA,,false,true,false,openstreetmap
+Custer Park,soccer,pitch,33.9627939,-84.5331866,,,GA,,false,true,false,openstreetmap
+Custer Park,soccer,pitch,33.9631555,-84.5330631,,,GA,,false,true,false,openstreetmap
+Custer Park,soccer,pitch,33.9633066,-84.5342057,,,GA,,false,true,false,openstreetmap
+Custer Park,soccer,pitch,33.9633047,-84.5338044,,,GA,,false,true,false,openstreetmap
+Custer Park,soccer,pitch,33.9633109,-84.5346124,,,GA,,false,true,false,openstreetmap
+Daves Creek Elementary Baseball/Soccer Field,soccer,pitch,34.1378007,-84.1432959,,,GA,,false,true,false,openstreetmap
+Eagles Soccer Academy,soccer,pitch,33.900163,-84.1201281,,,GA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,34.2897552,-84.1832979,,,GA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,34.039574,-84.6878421,,,GA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,34.2023753,-84.2193302,,,GA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,33.9497714,-84.4181795,,,GA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,33.9501633,-84.4172529,,,GA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,34.2910704,-84.1832963,,,GA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,34.0406477,-84.687574,,,GA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,33.9505636,-84.4165567,,,GA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,34.2899443,-84.1809746,,,GA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,34.0406261,-84.6868072,,,GA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,33.951755,-84.4162308,,,GA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,34.289162,-84.1797483,,,GA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,34.0395138,-84.6870608,,,GA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,34.2716677,-84.0897856,,,GA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,33.9516638,-84.4171451,,,GA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,34.1482222,-84.2083987,,,GA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,34.1482209,-84.2074129,,,GA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,33.9509117,-84.4179864,,,GA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,34.1482199,-84.2065075,,,GA,,false,true,false,openstreetmap
+Field #8,soccer,pitch,34.146872,-84.206507,,,GA,,false,true,false,openstreetmap
+Field #9,soccer,pitch,34.1468743,-84.2074661,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,34.0517472,-84.1165307,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,33.9281457,-84.4956816,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,31.8464,-81.5769802,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,33.2859003,-84.3116972,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,34.1539765,-84.4755483,,,GA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,33.3867917,-84.6706914,,,GA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,31.9998579,-81.0931584,,,GA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,34.1532351,-84.4790423,,,GA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,31.9998509,-81.0940519,,,GA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,34.1544697,-84.4790907,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,34.0519374,-84.1178036,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.5547864,-82.1729208,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.9272272,-84.4958198,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,31.8463871,-81.57591,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.2858929,-84.3105773,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,34.1539501,-84.4744157,,,GA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.3867979,-84.6711145,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,32.0012544,-81.0961407,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,34.0522061,-84.1191131,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.5537411,-82.1729375,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.2859743,-84.3095863,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,34.1538769,-84.4729965,,,GA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.3868057,-84.671537,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,32.0017055,-81.0955389,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,34.0530325,-84.119175,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,33.5538695,-82.1739404,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,33.285939,-84.3086388,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,34.1538977,-84.4718621,,,GA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,33.3868107,-84.6719581,,,GA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,32.0021708,-81.0949343,,,GA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,33.2854204,-84.307698,,,GA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,34.1525882,-84.4740433,,,GA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,34.1159904,-84.4957185,,,GA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,33.3868091,-84.6724382,,,GA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,32.0025896,-81.0943633,,,GA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,33.286023,-84.3074084,,,GA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,34.1516302,-84.4736495,,,GA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,34.1153456,-84.4956987,,,GA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,33.3873827,-84.672467,,,GA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,32.0030187,-81.0937938,,,GA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,34.1516963,-84.4750218,,,GA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,33.3878919,-84.6715986,,,GA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,32.0033744,-81.0933375,,,GA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,34.152498,-84.4750143,,,GA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,33.388045,-84.6708155,,,GA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,31.9998684,-81.0922406,,,GA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,34.153507,-84.4783441,,,GA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,33.3880462,-84.6700477,,,GA,,false,true,false,openstreetmap
+Founders,soccer,pitch,33.8571267,-84.1154774,,,GA,,false,true,false,openstreetmap
+Fredericka Park Field,soccer,pitch,31.2389212,-81.3555379,,,GA,,false,true,false,openstreetmap
+GSU Soccer Field,soccer,pitch,33.6855111,-84.2850063,,,GA,,false,true,false,openstreetmap
+Gilmer County Soccer Complex,soccer,sports_centre,34.67085,-84.4953805,,,GA,,false,true,false,openstreetmap
+Glenloch Multi-Use Field,soccer,pitch,33.4055531,-84.5629195,,,GA,,false,true,false,openstreetmap
+Griffiths,soccer,pitch,33.857561,-84.1160647,,,GA,,false,true,false,openstreetmap
+Grizzard Park,soccer,pitch,34.2337484,-85.1147835,,,GA,,false,true,false,openstreetmap
+Grizzard Park,soccer,pitch,34.2337173,-85.1140217,,,GA,,false,true,false,openstreetmap
+Grizzard Park,soccer,pitch,34.2358634,-85.1141037,,,GA,,false,true,false,openstreetmap
+Grizzard Park,soccer,pitch,34.2352668,-85.1141335,,,GA,,false,true,false,openstreetmap
+Grizzard Park,soccer,pitch,34.2368899,-85.114286,,,GA,,false,true,false,openstreetmap
+Gwinnett Soccer Academy,soccer,sports_centre,33.8581587,-84.1158268,,,GA,,false,true,false,openstreetmap
+Harry W. Livingston Jr. Field,soccer,pitch,33.9271048,-84.494713,,,GA,,false,true,false,openstreetmap
+Holman,soccer,pitch,33.8580927,-84.1166119,,,GA,,false,true,false,openstreetmap
+Hurricane Field,soccer,pitch,32.0609913,-84.2192148,,,GA,,false,true,false,openstreetmap
+Jekyll Island Soccer Complex,soccer,sports_centre,31.0187787,-81.4235017,,,GA,,false,true,false,openstreetmap
+Lions Field,soccer,pitch,34.6195593,-83.522731,,,GA,,false,true,false,openstreetmap
+MARTA Kensington Station Soccer,soccer,pitch,33.7742403,-84.251127,,,GA,,false,true,false,openstreetmap
+MARTA Kensington Station Soccer,soccer,pitch,33.7741669,-84.2507393,,,GA,,false,true,false,openstreetmap
+MOBA,soccer,pitch,33.3447668,-84.5442365,,,GA,,false,true,false,openstreetmap
+MOBA,soccer,pitch,33.3458314,-84.5440803,,,GA,,false,true,false,openstreetmap
+MOBA,soccer,pitch,33.3468365,-84.5446771,,,GA,,false,true,false,openstreetmap
+Miller,soccer,pitch,33.8587443,-84.1168959,,,GA,,false,true,false,openstreetmap
+Morgan County Soccer Complex,soccer,sports_centre,33.5890182,-83.4451059,1811 Old Buckhead Road,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,soccer,pitch,33.9873974,-84.6113695,,,GA,,false,true,false,openstreetmap
+Mount Paran North Church of God,soccer,pitch,33.9796081,-84.5027017,,,GA,,false,true,false,openstreetmap
+New Hope Soccer Fields,soccer,pitch,33.9487192,-84.8243438,,,GA,,false,true,false,openstreetmap
+New Hope Soccer Fields,soccer,pitch,33.9498708,-84.8233901,,,GA,,false,true,false,openstreetmap
+New Hope Soccer Fields,soccer,pitch,33.950782,-84.8228072,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0661326,-84.5347689,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0654251,-84.534802,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0616411,-84.5354507,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0620611,-84.5353773,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0625425,-84.5353456,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0629949,-84.5352894,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0636599,-84.5350674,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0643299,-84.5350442,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0596736,-84.5340645,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0591175,-84.5335304,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0565261,-84.5326012,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0574861,-84.5335668,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0584149,-84.5343179,,,GA,,false,true,false,openstreetmap
+Noonday Creek Park,soccer,pitch,34.0592904,-84.5350367,,,GA,,false,true,false,openstreetmap
+Northgate Practice Field,soccer,pitch,33.4687676,-84.6639131,,,GA,,false,true,false,openstreetmap
+Nuesoft Technologies Field,soccer,pitch,33.9371904,-84.5271293,,,GA,,false,true,false,openstreetmap
+Oakhurst Rec Field,soccer,pitch,33.7602526,-84.3091156,,,GA,,false,true,false,openstreetmap
+Oconee County Middle School Micro Fields,soccer,pitch,33.8740304,-83.4472449,,,GA,,false,true,false,openstreetmap
+Parade Field,soccer,pitch,33.6636163,-84.4420724,,,GA,,false,true,false,openstreetmap
+Players,soccer,pitch,33.8567773,-84.1151002,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0528647,-84.5307922,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0520479,-84.5301083,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0533325,-84.5315962,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.053579,-84.5311774,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0543704,-84.5319701,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0542017,-84.531829,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.054024,-84.5316844,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0537761,-84.5318775,,,GA,,false,true,false,openstreetmap
+Quest Park,soccer,pitch,34.0512858,-84.5292545,,,GA,,false,true,false,openstreetmap
+River Line Park,soccer,pitch,33.8044165,-84.508639,,,GA,,false,true,false,openstreetmap
+River Line Park,soccer,pitch,33.8045209,-84.5075212,,,GA,,false,true,false,openstreetmap
+River Line Park,soccer,pitch,33.8040271,-84.5078142,,,GA,,false,true,false,openstreetmap
+River Line Park,soccer,pitch,33.8038224,-84.5072933,,,GA,,false,true,false,openstreetmap
+River Line Park,soccer,pitch,33.8042369,-84.5069666,,,GA,,false,true,false,openstreetmap
+Ronald R. Nix Field A,soccer,pitch,34.7861166,-84.9601109,,,GA,,false,true,false,openstreetmap
+Ronald R.Nix Field B,soccer,pitch,34.786121,-84.9592473,,,GA,,false,true,false,openstreetmap
+Rush Field 1,soccer,pitch,34.1296034,-84.3424836,,,GA,,false,true,false,openstreetmap
+Rush Field 2,soccer,pitch,34.13019,-84.3411992,,,GA,,false,true,false,openstreetmap
+Rush Field 3,soccer,pitch,34.1310888,-84.3403152,,,GA,,false,true,false,openstreetmap
+Rush Field 4,soccer,pitch,34.1303112,-84.3401006,,,GA,,false,true,false,openstreetmap
+Rush Field 5,soccer,pitch,34.1290421,-84.3391367,,,GA,,false,true,false,openstreetmap
+Rush Field 6,soccer,pitch,34.1315364,-84.3393185,,,GA,,false,true,false,openstreetmap
+Rush Union Soccer,soccer,pitch,34.1291648,-84.3412722,,,GA,,false,true,false,openstreetmap
+Schrader,soccer,pitch,33.855952,-84.1147288,,,GA,,false,true,false,openstreetmap
+Scotland Yard Soccer Field,soccer,pitch,34.9594119,-85.3787249,,,GA,,false,true,false,openstreetmap
+Screaming Eagle Soccer Field,soccer,pitch,34.5894262,-83.3489,,,GA,,false,true,false,openstreetmap
+Shadowlands Soccer Field,soccer,pitch,34.9563791,-85.3805067,,,GA,,false,true,false,openstreetmap
+Soccer Complex,soccer,sports_centre,32.9851289,-82.7932196,,,GA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,34.9055356,-84.3439364,,,GA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.7129794,-84.7202391,,,GA,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,31.8450957,-81.5708327,,,GA,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,31.8446735,-81.5714895,,,GA,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,31.8441343,-81.572299,,,GA,,false,true,false,openstreetmap
+Soccer Soccer Field #1,soccer,pitch,31.8470675,-81.5713999,,,GA,,false,true,false,openstreetmap
+Soccer Soccer Field #2,soccer,pitch,31.8462054,-81.5713983,,,GA,,false,true,false,openstreetmap
+Soccer Soccer Field #3,soccer,pitch,31.8458983,-81.5717803,,,GA,,false,true,false,openstreetmap
+Soccer Soccer Field #4,soccer,pitch,31.8458175,-81.5726146,,,GA,,false,true,false,openstreetmap
+Spencer,soccer,pitch,33.8593963,-84.1171774,,,GA,,false,true,false,openstreetmap
+Station Soccer - Lindbergh,soccer,pitch,33.8240791,-84.3705056,,,GA,,false,true,false,openstreetmap
+Station Soccer-Lindbergh,soccer,pitch,33.8240638,-84.3702734,,,GA,,false,true,false,openstreetmap
+Terrell Mill Park,soccer,pitch,33.9380851,-84.4632847,,,GA,,false,true,false,openstreetmap
+The Polo Fields,soccer,pitch,34.1816307,-84.2146757,,,GA,,false,true,false,openstreetmap
+The Walker School,soccer,pitch,33.9721132,-84.5365271,,,GA,,false,true,false,openstreetmap
+Tolleson Park,soccer,pitch,33.8674566,-84.5201065,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8577601,-84.6182989,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8567583,-84.6187288,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8567173,-84.6180717,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8564858,-84.6182146,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.855843,-84.6192973,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.859679,-84.6171154,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8606766,-84.616583,,,GA,,false,true,false,openstreetmap
+Tramore Park,soccer,pitch,33.8616127,-84.6161271,,,GA,,false,true,false,openstreetmap
+Turf Fields,soccer,pitch,33.9499184,-84.4163085,,,GA,,false,true,false,openstreetmap
+UNG Soccer Complex,soccer,pitch,34.5250151,-83.9904357,,,GA,,false,true,false,openstreetmap
+UNG Soccer Fields,soccer,pitch,34.5241162,-83.995439,,,GA,,false,true,false,openstreetmap
+Upper 10,soccer,pitch,33.855914,-84.1157433,,,GA,,false,true,false,openstreetmap
+Upper Athletic Field,soccer,pitch,34.6594618,-83.8654127,,,GA,,false,true,false,openstreetmap
+Valwood School,soccer,pitch,30.9219691,-83.3450033,,,GA,,false,true,false,openstreetmap
+Ward Park,soccer,pitch,33.8901412,-84.5282158,,,GA,,false,true,false,openstreetmap
+Weber School Soccer Field,soccer,pitch,33.9384447,-84.3739061,,,GA,,false,true,false,openstreetmap
+Willingham Soccer Field,soccer,pitch,33.6683784,-84.4405543,,,GA,,false,true,false,openstreetmap
+Woodland Middle School at Euharlee,soccer,pitch,34.14663,-84.9269479,,,GA,,false,true,false,openstreetmap
+Woodruff Soccer Field,soccer,pitch,33.792453,-84.3264588,,,GA,,false,true,false,openstreetmap
+field 1,soccer,pitch,33.5549929,-82.1739082,,,GA,,false,true,false,openstreetmap
+Evolve Soccer ATL,soccer,sports_centre,33.9263534,-84.2810457,2600 Chestnut Drive,Doraville,GA,30360,false,true,false,openstreetmap
+Children’s Healthcare of Atlanta Training Ground,soccer,sports_centre,33.933703,-84.4979168,861 Franklin Gateway Southeast,Marietta,GA,30067,false,true,false,openstreetmap
+Custer Park Soccer Complex,soccer,sports_centre,33.9630575,-84.5336613,600 Kenneth Marcus Way Northeast,Marietta,GA,30060,false,true,false,openstreetmap
+Marietta Indoor Sports,soccer,pitch,33.9443279,-84.5184909,316 Cobb Parkway South,Marietta,GA,30060,false,true,false,openstreetmap
+Mud Creek Soccer Complex,soccer,park,33.8927335,-84.6350879,5600 Ernest W. Barrett Parkway,Powder Springs,GA,30127,false,true,false,openstreetmap
+Legion Futbol Club Complex,soccer,sports_centre,32.544304,-83.6741801,110 Snellgrove Drive,Warner Robins,GA,31088,false,true,false,openstreetmap

@@ -1,0 +1,387 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,41.7047093,-88.1994761,,,IL,,false,true,false,openstreetmap
+1,baseball,pitch,41.9679917,-87.646653,,,IL,,false,true,false,openstreetmap
+1,baseball,pitch,41.6777761,-88.2224598,,,IL,,false,true,false,openstreetmap
+1,baseball,pitch,41.9628719,-87.64869,,,IL,,false,true,false,openstreetmap
+1,baseball,pitch,42.0077907,-87.780884,,,IL,,false,true,false,openstreetmap
+1,baseball,pitch,40.8062126,-89.5677098,,,IL,,false,true,false,openstreetmap
+1 | Ball Field,baseball,pitch,37.7337252,-88.5293484,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.703642,-88.1994667,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.9674289,-87.6466948,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.9628807,-87.6480789,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.7678212,-89.6853007,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.4388096,-90.1451209,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,41.6779983,-88.2205341,,,IL,,false,true,false,openstreetmap
+2,baseball,pitch,40.806796,-89.5677262,,,IL,,false,true,false,openstreetmap
+2 | Ball Field,baseball,pitch,37.7341482,-88.5284932,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.703631,-88.2008922,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.9690084,-87.6461994,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.9636305,-87.6485115,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.4382857,-90.1448635,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,42.0072796,-87.780156,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.7857296,-87.7631474,,,IL,,false,true,false,openstreetmap
+3,baseball,pitch,41.6775035,-88.2163844,,,IL,,false,true,false,openstreetmap
+3 | Ball Field,baseball,pitch,37.7341395,-88.5277055,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,41.7046982,-88.2008896,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,41.9684053,-87.6458157,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,41.9643421,-87.6489699,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,42.0065929,-87.78012,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,41.4382992,-90.1454669,,,IL,,false,true,false,openstreetmap
+4,baseball,pitch,40.8081729,-89.5676234,,,IL,,false,true,false,openstreetmap
+4 | Ball Field,baseball,pitch,37.7339985,-88.5269414,,,IL,,false,true,false,openstreetmap
+5,baseball,pitch,41.9680039,-87.6454803,,,IL,,false,true,false,openstreetmap
+5,baseball,pitch,41.703704,-88.2023043,,,IL,,false,true,false,openstreetmap
+5,baseball,pitch,40.8082939,-89.5663484,,,IL,,false,true,false,openstreetmap
+5 | Tee-Ball Field,baseball,pitch,37.7334487,-88.5265269,,,IL,,false,true,false,openstreetmap
+6,baseball,pitch,41.704476,-88.2023179,,,IL,,false,true,false,openstreetmap
+6,baseball,pitch,40.8074448,-89.5662419,,,IL,,false,true,false,openstreetmap
+7,baseball,pitch,41.7063563,-88.2025995,,,IL,,false,true,false,openstreetmap
+8,baseball,pitch,41.7063573,-88.2015642,,,IL,,false,true,false,openstreetmap
+A,baseball,pitch,38.9468113,-90.198367,,,IL,,false,true,false,openstreetmap
+A,baseball,pitch,41.7347077,-88.3883121,,,IL,,false,true,false,openstreetmap
+AL Field,baseball,pitch,42.2320202,-88.3421,,,IL,,false,true,false,openstreetmap
+Abe Martin Field,baseball,pitch,37.7044935,-89.2208948,,,IL,,false,true,false,openstreetmap
+Aberdeen Park,baseball,pitch,42.3263898,-88.9135707,,,IL,,false,true,false,openstreetmap
+Al Grosche Field,baseball,pitch,42.385749,-87.8291727,,,IL,,false,true,false,openstreetmap
+Alfred D. Boyer Stadium,baseball,stadium,40.4729939,-90.6865811,,,IL,,false,true,false,openstreetmap
+Alpiner Park,baseball,park,41.1206241,-87.8746322,,,IL,,false,true,false,openstreetmap
+Alumni Field,baseball,pitch,41.7686883,-88.1441767,,,IL,,false,true,false,openstreetmap
+Americal Legion Field,baseball,pitch,41.8151799,-88.0156831,,,IL,,false,true,false,openstreetmap
+Andrews Field,baseball,pitch,41.7740323,-88.2956876,,,IL,,false,true,false,openstreetmap
+B,baseball,pitch,38.9467101,-90.1968971,,,IL,,false,true,false,openstreetmap
+B,baseball,pitch,41.7356906,-88.3891478,,,IL,,false,true,false,openstreetmap
+Ball Field #2,baseball,pitch,37.8147561,-89.2374032,,,IL,,false,true,false,openstreetmap
+Barrett Rochman Field,baseball,pitch,37.7162022,-89.2129694,,,IL,,false,true,false,openstreetmap
+Baseball,baseball,pitch,39.0006924,-90.5155206,,,IL,,false,true,false,openstreetmap
+Baseball Backstop,baseball,pitch,42.310963,-89.0232371,,,IL,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,39.2752145,-89.8708645,,,IL,,false,true,false,openstreetmap
+Baseball Fields,baseball,pitch,42.3766768,-88.2737895,,,IL,,false,true,false,openstreetmap
+Baseball diamond,baseball,pitch,41.9749798,-88.1879547,,,IL,,false,true,false,openstreetmap
+Baseball diamond,baseball,pitch,41.9742271,-88.1879883,,,IL,,false,true,false,openstreetmap
+Baseball/Softball Field,baseball,pitch,40.8860231,-87.6130417,,,IL,,false,true,false,openstreetmap
+Batting Cage,baseball,sports_centre,42.0904566,-88.8439682,,,IL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,41.8282221,-88.2115822,,,IL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,40.4571947,-87.6639364,,,IL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,39.4875567,-88.1667291,,,IL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,37.7055501,-89.2211639,,,IL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.9150924,-87.9535956,,,IL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,39.9499211,-91.3497435,,,IL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.9011743,-88.2703043,,,IL,,false,true,false,openstreetmap
+Bernard Dolan Field,baseball,pitch,41.7743552,-88.2951938,,,IL,,false,true,false,openstreetmap
+Big Ball Park,baseball,pitch,41.8339903,-87.8154938,,,IL,,false,true,false,openstreetmap
+Bill Schulz Field,baseball,pitch,40.7059663,-89.2761101,,,IL,,false,true,false,openstreetmap
+Blemler Field,baseball,pitch,40.5213723,-88.9985555,,,IL,,false,true,false,openstreetmap
+Blodgett Field,baseball,pitch,40.9419511,-90.3689054,,,IL,,false,true,false,openstreetmap
+Borden Field,baseball,pitch,41.845865,-89.4994758,,,IL,,false,true,false,openstreetmap
+Bradford Baseball field,baseball,pitch,41.1794459,-89.659418,,,IL,,false,true,false,openstreetmap
+Bradley Knights Baseball Field,baseball,pitch,41.1383412,-87.8547002,,,IL,,false,true,false,openstreetmap
+Brennan Field,baseball,pitch,41.6044882,-88.0767406,,,IL,,false,true,false,openstreetmap
+Bronco,baseball,pitch,42.0680999,-87.8646938,,,IL,,false,true,false,openstreetmap
+Brown County Little League,baseball,pitch,39.9908844,-90.772631,,,IL,,false,true,false,openstreetmap
+Brussels Boy's Baseball Field,baseball,pitch,38.948325,-90.5879766,,,IL,,false,true,false,openstreetmap
+Bryant Field,baseball,pitch,38.5015887,-90.2120598,,,IL,,false,true,false,openstreetmap
+C,baseball,pitch,38.9460932,-90.1966738,,,IL,,false,true,false,openstreetmap
+C,baseball,pitch,41.7362642,-88.3883373,,,IL,,false,true,false,openstreetmap
+CHS Baseball Field,baseball,pitch,39.487103,-88.1661115,,,IL,,false,true,false,openstreetmap
+CLC baseball field,baseball,pitch,37.8209164,-89.029521,,,IL,,false,true,false,openstreetmap
+CNB Bank & Trust Field,baseball,pitch,39.2716178,-89.8916461,,,IL,,false,true,false,openstreetmap
+COD Baseball Field,baseball,pitch,41.8395167,-88.0662612,,,IL,,false,true,false,openstreetmap
+COD Softball Field,baseball,pitch,41.8407696,-88.0664811,,,IL,,false,true,false,openstreetmap
+Cahokia Park Baseball Diamond,baseball,pitch,38.5582716,-90.1758124,,,IL,,false,true,false,openstreetmap
+Calvin Fries Field,baseball,pitch,38.4472721,-90.1984916,,,IL,,false,true,false,openstreetmap
+Carl L. Nierstheimer Legion Baseball Field,baseball,pitch,40.4872062,-89.0129345,,,IL,,false,true,false,openstreetmap
+Carl William Stern - Memorial Field,baseball,pitch,37.8147201,-89.2389759,,,IL,,false,true,false,openstreetmap
+Cary-Grove Field 1,baseball,pitch,42.2214742,-88.2440862,,,IL,,false,true,false,openstreetmap
+Cary-Grove Field 2,baseball,pitch,42.2224992,-88.2437321,,,IL,,false,true,false,openstreetmap
+Centennial Park Baseball Field,baseball,pitch,41.7711231,-88.1597372,,,IL,,false,true,false,openstreetmap
+Children's Home Baseball Diamond,baseball,pitch,38.3263442,-88.9195529,,,IL,,false,true,false,openstreetmap
+Cisco Field,baseball,pitch,39.2715048,-89.8900886,,,IL,,false,true,false,openstreetmap
+Clarence Hicks Baseball Field,baseball,pitch,42.2439974,-89.1279749,,,IL,,false,true,false,openstreetmap
+Claude Kracik Baseball Field,baseball,pitch,39.7227223,-89.6086497,,,IL,,false,true,false,openstreetmap
+Coal CIty High Park,baseball,pitch,41.2844839,-88.3036199,,,IL,,false,true,false,openstreetmap
+Colt,baseball,pitch,42.0692728,-87.8649969,,,IL,,false,true,false,openstreetmap
+Cornjerkers Baseball Field,baseball,pitch,40.4566224,-87.664259,,,IL,,false,true,false,openstreetmap
+Cornjerkers Softball Field,baseball,pitch,40.4565808,-87.6615124,,,IL,,false,true,false,openstreetmap
+Covell Ball Park,baseball,pitch,40.4407437,-89.1069272,,,IL,,false,true,false,openstreetmap
+Crowley East,baseball,pitch,42.0677197,-87.8330231,,,IL,,false,true,false,openstreetmap
+Crowley Pinto,baseball,pitch,42.0682835,-87.8338918,,,IL,,false,true,false,openstreetmap
+Crowley West,baseball,pitch,42.0677592,-87.8340543,,,IL,,false,true,false,openstreetmap
+D,baseball,pitch,38.9459304,-90.1974656,,,IL,,false,true,false,openstreetmap
+D,baseball,pitch,41.7357141,-88.3874944,,,IL,,false,true,false,openstreetmap
+David Montez Field,baseball,pitch,41.7486524,-87.8040827,,,IL,,false,true,false,openstreetmap
+Depaul University,baseball,pitch,41.924082,-87.652117,,,IL,,false,true,false,openstreetmap
+Diamond Point Park,baseball,sports_centre,41.2117114,-87.8910513,,,IL,,false,true,false,openstreetmap
+Divernon Elementary Field,baseball,pitch,39.5661915,-89.6525677,,,IL,,false,true,false,openstreetmap
+Donovan School Baseball Field,baseball,pitch,40.887212,-87.6128129,,,IL,,false,true,false,openstreetmap
+Dorris Heights Baseball Complex,baseball,park,37.748383,-88.546396,,,IL,,false,true,false,openstreetmap
+DuPage Medical Group Field,baseball,pitch,41.5260095,-88.0775574,,,IL,,false,true,false,openstreetmap
+Dugout,baseball,bench,41.9030247,-87.7991824,,,IL,,false,true,false,openstreetmap
+Dugout,baseball,bench,41.9028564,-87.7989563,,,IL,,false,true,false,openstreetmap
+Dundee Crown Baseball field,baseball,pitch,42.1351112,-88.2668936,,,IL,,false,true,false,openstreetmap
+E,baseball,pitch,41.7255202,-88.3861109,,,IL,,false,true,false,openstreetmap
+EP Field,baseball,pitch,39.8054461,-88.9016012,,,IL,,false,true,false,openstreetmap
+Echlin Field 1,baseball,pitch,39.1683065,-89.6446988,,,IL,,false,true,false,openstreetmap
+Echlind Baseball Field #1,baseball,pitch,39.1685675,-89.6455761,,,IL,,false,true,false,openstreetmap
+Ed Glancy Field,baseball,pitch,41.8391687,-87.6242227,,,IL,,false,true,false,openstreetmap
+Epperly Park,baseball,sports_centre,41.4461287,-90.5908787,,,IL,,false,true,false,openstreetmap
+Escue Field,baseball,pitch,40.7119402,-89.4108126,,,IL,,false,true,false,openstreetmap
+Eugene Field Basketball,baseball,pitch,41.9746442,-87.7208847,,,IL,,false,true,false,openstreetmap
+Eugene Field Basketball,baseball,pitch,41.9751359,-87.7208677,,,IL,,false,true,false,openstreetmap
+Evergreen Baseball Field,baseball,pitch,37.6994104,-89.2323386,,,IL,,false,true,false,openstreetmap
+F,baseball,pitch,41.7255148,-88.3875932,,,IL,,false,true,false,openstreetmap
+FNB Field,baseball,pitch,38.3811364,-88.3938086,,,IL,,false,true,false,openstreetmap
+Fairmount Baseball Diamond,baseball,pitch,40.040652,-87.8337076,,,IL,,false,true,false,openstreetmap
+Falcon Field,baseball,pitch,42.3527136,-88.0249582,,,IL,,false,true,false,openstreetmap
+Fans Field,baseball,pitch,39.8618684,-88.9353521,,,IL,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.9028696,-87.7991701,,,IL,,false,true,false,openstreetmap
+Field #2,baseball,pitch,38.6258797,-90.1226113,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.7509659,-89.6499967,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.7122701,-88.1294765,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.8360564,-87.9508934,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.7473314,-90.2638457,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.7603377,-88.1570904,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.9226603,-88.1329433,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.7736742,-89.7374403,,,IL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.4978627,-89.8117915,,,IL,,false,true,false,openstreetmap
+Field 12,baseball,pitch,41.8439416,-88.0867503,,,IL,,false,true,false,openstreetmap
+Field 15,baseball,pitch,42.2223746,-87.9516523,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.7505226,-89.6517527,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.711811,-88.1308772,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.8361625,-87.9498863,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.7473509,-90.2653242,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.7607989,-88.1559524,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.9200697,-88.1329219,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.7736104,-89.7360898,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.2220814,-87.9495185,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.4978144,-89.8111184,,,IL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.0518623,-89.9497435,,,IL,,false,true,false,openstreetmap
+Field 24,baseball,pitch,42.2222158,-87.9556932,,,IL,,false,true,false,openstreetmap
+Field 26,baseball,pitch,42.2212303,-87.9556171,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.7112075,-88.1322452,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.8367692,-87.9502255,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.7614218,-88.1563351,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.9206707,-88.1323006,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.7725775,-89.73602,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.2211243,-87.9495493,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.4977923,-89.8100709,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.7462123,-90.2654785,,,IL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.0528891,-89.9501694,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.7126354,-88.1323559,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.837272,-87.9499317,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.7619608,-88.1571051,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.9201379,-88.1315293,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.2210729,-87.948169,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.4988029,-89.8113287,,,IL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.7458994,-90.2643089,,,IL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.7128513,-88.1312235,,,IL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.7465745,-90.2635291,,,IL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.7625285,-88.1572647,,,IL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,38.4988212,-89.8098849,,,IL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.7448741,-90.2651714,,,IL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,41.7623752,-88.1559973,,,IL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,38.4969548,-89.8107788,,,IL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,41.7636306,-88.1571222,,,IL,,false,true,false,openstreetmap
+Field A,baseball,pitch,38.5579884,-89.8983631,,,IL,,false,true,false,openstreetmap
+Field B,baseball,pitch,38.5575073,-89.8961576,,,IL,,false,true,false,openstreetmap
+Forresters Softball,baseball,pitch,42.2433125,-87.8287678,,,IL,,false,true,false,openstreetmap
+Frank Repp Field,baseball,pitch,42.2521062,-88.3184495,,,IL,,false,true,false,openstreetmap
+Franke Ballpark,baseball,pitch,39.0280226,-90.6592385,,,IL,,false,true,false,openstreetmap
+Future Champions Sport Complex,baseball,park,39.7461964,-90.2647075,,,IL,,false,true,false,openstreetmap
+G,baseball,pitch,41.7266236,-88.3875947,,,IL,,false,true,false,openstreetmap
+Gaillaert Field,baseball,pitch,41.4820289,-90.3566362,,,IL,,false,true,false,openstreetmap
+Gardner Baseball Field,baseball,pitch,41.1936485,-88.3074874,,,IL,,false,true,false,openstreetmap
+Gardner Baseball Field,baseball,pitch,41.1944046,-88.3057812,,,IL,,false,true,false,openstreetmap
+Gaskins City Baseball Complex,baseball,park,37.7336673,-88.5282184,,,IL,,false,true,false,openstreetmap
+George Curtis Field,baseball,pitch,40.7119792,-89.4096655,,,IL,,false,true,false,openstreetmap
+Glen Oak Baseball Diamond,baseball,pitch,40.7156759,-89.5753852,,,IL,,false,true,false,openstreetmap
+H,baseball,pitch,41.726712,-88.3860004,,,IL,,false,true,false,openstreetmap
+Haggerty Field,baseball,pitch,41.7777267,-87.5881245,,,IL,,false,true,false,openstreetmap
+Hap Bruno Field,baseball,pitch,41.5112711,-87.6407455,,,IL,,false,true,false,openstreetmap
+Henry Sand Field,baseball,pitch,40.7146606,-89.2638087,,,IL,,false,true,false,openstreetmap
+Henry Shotton Field,baseball,pitch,37.7434246,-88.9174931,,,IL,,false,true,false,openstreetmap
+Hoosier Grove Baseball Field,baseball,pitch,42.0191994,-88.1943784,,,IL,,false,true,false,openstreetmap
+Horenberger Field,baseball,pitch,40.4948192,-88.9917519,,,IL,,false,true,false,openstreetmap
+Hull Baseball Field,baseball,pitch,39.7119354,-91.2085481,,,IL,,false,true,false,openstreetmap
+Husmann Park,baseball,park,38.544007,-89.2631268,,,IL,,false,true,false,openstreetmap
+Indian Gardens,baseball,pitch,41.8171528,-87.8279161,,,IL,,false,true,false,openstreetmap
+Indian Gardens,baseball,pitch,41.8177329,-87.8276245,,,IL,,false,true,false,openstreetmap
+Island Lake Village North Baseball field,baseball,pitch,42.27502,-88.1893647,,,IL,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,38.5215048,-89.9508785,,,IL,,false,true,false,openstreetmap
+Jackie Giles Field,baseball,pitch,37.7441985,-88.917522,,,IL,,false,true,false,openstreetmap
+Jan Smith Field,baseball,pitch,40.7115116,-89.4084627,,,IL,,false,true,false,openstreetmap
+Jay Thompson Field,baseball,pitch,37.7487062,-88.5461781,,,IL,,false,true,false,openstreetmap
+Jim Sundburg Field,baseball,pitch,40.9669819,-90.3921187,,,IL,,false,true,false,openstreetmap
+Joe Ramirez Field,baseball,pitch,39.7800617,-89.646035,,,IL,,false,true,false,openstreetmap
+"John Wettsetin, Jr. Ball Diamond",baseball,pitch,40.705351,-89.2753584,,,IL,,false,true,false,openstreetmap
+Johnsburg High School Baseball 1,baseball,pitch,42.4067359,-88.2350496,,,IL,,false,true,false,openstreetmap
+Johnsburg High School Baseball 2,baseball,pitch,42.4057214,-88.2351206,,,IL,,false,true,false,openstreetmap
+Keithley Field 3,baseball,pitch,40.8073828,-89.5677093,,,IL,,false,true,false,openstreetmap
+Kelli Hogan Field,baseball,pitch,39.7654994,-89.6325921,,,IL,,false,true,false,openstreetmap
+Kendall County Forest Preserve District,baseball,pitch,41.6381741,-88.4753258,,,IL,,false,true,false,openstreetmap
+Kishwaukee Cougars Baseball field,baseball,pitch,41.9365784,-88.8852911,,,IL,,false,true,false,openstreetmap
+Klatt Field,baseball,pitch,41.6660585,-88.5260607,,,IL,,false,true,false,openstreetmap
+Kocal Field,baseball,pitch,42.3513085,-87.8572758,,,IL,,false,true,false,openstreetmap
+Koldyke Family Field,baseball,pitch,42.0680468,-87.6926546,,,IL,,false,true,false,openstreetmap
+L R Christian Memorial Field,baseball,pitch,41.3974817,-90.4679345,,,IL,,false,true,false,openstreetmap
+LaPidus Dugout,baseball,pitch,42.0682723,-87.6931802,,,IL,,false,true,false,openstreetmap
+Ladd Field,baseball,pitch,41.8659501,-87.6531144,,,IL,,false,true,false,openstreetmap
+Leclaire Baseball Field,baseball,pitch,38.8047716,-89.9504283,,,IL,,false,true,false,openstreetmap
+Lee Pfund Stadium,baseball,pitch,41.8908715,-88.1246661,,,IL,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,37.7940947,-89.3332843,,,IL,,false,true,false,openstreetmap
+Leroy Franke Field,baseball,pitch,38.4649213,-90.0984261,,,IL,,false,true,false,openstreetmap
+Les Miller Field,baseball,pitch,41.9348329,-88.7799328,,,IL,,false,true,false,openstreetmap
+Libertyville High School Baseball Stadium,baseball,pitch,42.2837452,-87.9646992,,,IL,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,38.7723436,-88.8560754,,,IL,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,39.2715409,-89.8890016,,,IL,,false,true,false,openstreetmap
+Little Cubs Field,baseball,stadium,41.9061488,-87.7050573,,,IL,,false,true,false,openstreetmap
+Little Cubs Field,baseball,pitch,42.2875813,-89.6409777,,,IL,,false,true,false,openstreetmap
+Louis Marsch - PMRA (Main Field),baseball,pitch,39.4158131,-89.4656492,,,IL,,false,true,false,openstreetmap
+Loyola Varsity Baseball Field,baseball,pitch,42.0936442,-87.8083879,,,IL,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,41.5648626,-89.1350791,,,IL,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,41.5651747,-89.1363102,,,IL,,false,true,false,openstreetmap
+MHS JV Baseball Field,baseball,pitch,40.4419551,-90.6749647,,,IL,,false,true,false,openstreetmap
+MHS Softball Field,baseball,pitch,40.4449825,-90.6741034,,,IL,,false,true,false,openstreetmap
+Margate Baseball Field,baseball,pitch,41.9731254,-87.650077,,,IL,,false,true,false,openstreetmap
+Marinelli Field,baseball,stadium,42.2497797,-89.1011367,,,IL,,false,true,false,openstreetmap
+Marshall Bell Field,baseball,pitch,39.753088,-89.5521517,,,IL,,false,true,false,openstreetmap
+Mary Peacock Field,baseball,pitch,42.2540854,-88.3200502,,,IL,,false,true,false,openstreetmap
+Massac County High School Baseball Field,baseball,pitch,37.1807968,-88.7245865,,,IL,,false,true,false,openstreetmap
+Maurice Elbert Memorial Field,baseball,pitch,40.7849202,-89.366114,,,IL,,false,true,false,openstreetmap
+McKinley Park,baseball,pitch,41.3693987,-88.4177046,,,IL,,false,true,false,openstreetmap
+McLaren Memorial Field,baseball,pitch,37.7431715,-88.9195016,,,IL,,false,true,false,openstreetmap
+McMillen Baseball Park,baseball,pitch,40.4719187,-88.3715825,,,IL,,false,true,false,openstreetmap
+McMurray Park,baseball,pitch,39.5682396,-89.6553514,,,IL,,false,true,false,openstreetmap
+Meier Field,baseball,pitch,40.1124592,-88.0561965,,,IL,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,39.4218965,-89.4621858,,,IL,,false,true,false,openstreetmap
+Momence High School Baseball Field,baseball,pitch,41.1625428,-87.6744252,,,IL,,false,true,false,openstreetmap
+Momence High School Softball Field,baseball,pitch,41.1636898,-87.6721936,,,IL,,false,true,false,openstreetmap
+Monier Field,baseball,pitch,39.4781687,-88.180814,,,IL,,false,true,false,openstreetmap
+Morton Community Bank Field,baseball,pitch,40.634618,-89.4807891,,,IL,,false,true,false,openstreetmap
+Mt. Zion High School Baseball Field,baseball,pitch,39.7748417,-88.8926578,,,IL,,false,true,false,openstreetmap
+Mustang,baseball,pitch,42.0684843,-87.8653458,,,IL,,false,true,false,openstreetmap
+Naperville Central Baseball Field,baseball,pitch,41.7655731,-88.1558416,,,IL,,false,true,false,openstreetmap
+Nelson Field,baseball,pitch,40.4567119,-88.1046548,,,IL,,false,true,false,openstreetmap
+North Field,baseball,pitch,41.8413599,-87.8659019,,,IL,,false,true,false,openstreetmap
+North Field,baseball,pitch,41.6740982,-87.809392,,,IL,,false,true,false,openstreetmap
+North Park Baseball and Softball Field 1,baseball,pitch,40.8668036,-89.6747848,,,IL,,false,true,false,openstreetmap
+North Park Baseball and Softball Field 2,baseball,pitch,40.8674513,-89.6745468,,,IL,,false,true,false,openstreetmap
+North Park Baseball and Softball Field 3,baseball,pitch,40.8669649,-89.6739231,,,IL,,false,true,false,openstreetmap
+PMRA Field 2,baseball,pitch,39.4158385,-89.4667517,,,IL,,false,true,false,openstreetmap
+Palos South Baseball Diamond,baseball,pitch,41.6497229,-87.8206255,,,IL,,false,true,false,openstreetmap
+Paul Schnarre Softball Field,baseball,pitch,38.4262317,-87.7821598,,,IL,,false,true,false,openstreetmap
+Peirce Park North Batting Cages,baseball,pitch,41.8079907,-87.9131004,,,IL,,false,true,false,openstreetmap
+Peirce Park South Batting Cages,baseball,pitch,41.8067571,-87.9135932,,,IL,,false,true,false,openstreetmap
+Peirce Park West Baseball Field,baseball,pitch,41.8061987,-87.9165966,,,IL,,false,true,false,openstreetmap
+Peoria Heights Community Unit School District 325,baseball,pitch,40.7435921,-89.5868662,,,IL,,false,true,false,openstreetmap
+Pepsi Ball Field,baseball,pitch,39.949299,-91.3508478,,,IL,,false,true,false,openstreetmap
+Ping Tom Baseball Field,baseball,pitch,41.8582063,-87.6329169,,,IL,,false,true,false,openstreetmap
+Pinto Field,baseball,pitch,41.6718615,-87.8101231,,,IL,,false,true,false,openstreetmap
+Pittsfield,baseball,pitch,39.6116772,-90.7999711,,,IL,,false,true,false,openstreetmap
+Pittsfield,baseball,pitch,39.5998865,-90.8450347,,,IL,,false,true,false,openstreetmap
+Players Choice Academy,baseball,sports_centre,42.1475593,-88.3524529,,,IL,,false,true,false,openstreetmap
+Ponting Field,baseball,pitch,39.6410777,-89.1900763,,,IL,,false,true,false,openstreetmap
+Pony,baseball,pitch,42.0686839,-87.8640194,,,IL,,false,true,false,openstreetmap
+Pony Field,baseball,pitch,41.6729656,-87.8090638,,,IL,,false,true,false,openstreetmap
+Pop Mason Field,baseball,pitch,38.502427,-90.2119842,,,IL,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,41.8860904,-88.1195332,,,IL,,false,true,false,openstreetmap
+Quarry,baseball,sports_centre,41.6460767,-88.0771436,,,IL,,false,true,false,openstreetmap
+Ralph Gale Field,baseball,pitch,40.1492212,-89.3671402,,,IL,,false,true,false,openstreetmap
+Redbird Baseball Field,baseball,pitch,40.5153315,-88.9993056,,,IL,,false,true,false,openstreetmap
+Richard R. Ferrell Memorial Field,baseball,pitch,41.7101589,-87.7158598,,,IL,,false,true,false,openstreetmap
+Roanoke Benson CUSD #60,baseball,pitch,40.8032755,-89.1978851,,,IL,,false,true,false,openstreetmap
+Robert E. Smith Field,baseball,pitch,38.8805537,-89.4072369,,,IL,,false,true,false,openstreetmap
+Robert Gasaway Field,baseball,pitch,40.0218347,-89.2858885,,,IL,,false,true,false,openstreetmap
+Robin May Field,baseball,pitch,37.4875768,-89.4263618,,,IL,,false,true,false,openstreetmap
+Roy E Lee Field,baseball,pitch,38.7989296,-90.0180551,,,IL,,false,true,false,openstreetmap
+Saint Viator Baseball Field,baseball,pitch,42.0931186,-87.9701044,,,IL,,false,true,false,openstreetmap
+Salt Fork South Baseball Diamond,baseball,pitch,39.9706472,-87.8206328,,,IL,,false,true,false,openstreetmap
+Schrei Field,baseball,pitch,41.6622785,-87.6712672,,,IL,,false,true,false,openstreetmap
+Scott and Erica Myers Bullpen,baseball,pitch,42.0680894,-87.6926333,,,IL,,false,true,false,openstreetmap
+Sesser Sports Complex,baseball,sports_centre,38.0942682,-89.0372747,,,IL,,false,true,false,openstreetmap
+Shalk A Field,baseball,pitch,39.1744577,-89.6536334,,,IL,,false,true,false,openstreetmap
+Shalk B Field,baseball,pitch,39.1746217,-89.6540686,,,IL,,false,true,false,openstreetmap
+Shanower Family Field,baseball,pitch,41.7682285,-88.141891,,,IL,,false,true,false,openstreetmap
+Shelton Field,baseball,pitch,41.9242809,-87.8399126,,,IL,,false,true,false,openstreetmap
+Sholem Farm Field,baseball,pitch,40.0990047,-88.2825641,,,IL,,false,true,false,openstreetmap
+Simmons Cooper Baseball Complex,baseball,sports_centre,38.7989416,-90.0184433,,,IL,,false,true,false,openstreetmap
+Skyler Field,baseball,pitch,37.7421,-88.916993,,,IL,,false,true,false,openstreetmap
+Softball Field 1,baseball,pitch,41.9272425,-88.1407439,,,IL,,false,true,false,openstreetmap
+Softball Field 2,baseball,pitch,41.9279984,-88.1408325,,,IL,,false,true,false,openstreetmap
+South Field,baseball,pitch,41.8410064,-87.8662418,,,IL,,false,true,false,openstreetmap
+Spalding Park Baseball Field,baseball,pitch,40.1245442,-88.2509889,,,IL,,false,true,false,openstreetmap
+Spring Rock Park Batting Cages,baseball,pitch,41.8066085,-87.9077165,,,IL,,false,true,false,openstreetmap
+St. Brigids Baseball Field,baseball,pitch,39.8868722,-91.1091357,,,IL,,false,true,false,openstreetmap
+St. Patrick's Softball Field,baseball,pitch,41.1656998,-87.6683178,,,IL,,false,true,false,openstreetmap
+Starr Field,baseball,pitch,39.2706468,-89.8890376,,,IL,,false,true,false,openstreetmap
+Stella's Batting Cages,baseball,sports_centre,41.8207658,-87.8207217,,,IL,,false,true,false,openstreetmap
+Streamwood Little League,baseball,sports_centre,42.0173099,-88.169924,,,IL,,false,true,false,openstreetmap
+Stu Jameson Field,baseball,pitch,39.8260232,-89.6317159,,,IL,,false,true,false,openstreetmap
+Symonds Puckett Field,baseball,stadium,41.913612,-87.8380361,,,IL,,false,true,false,openstreetmap
+Tee-Ball,baseball,pitch,41.9043844,-87.7547027,,,IL,,false,true,false,openstreetmap
+Teutopolis Church Diamond,baseball,pitch,39.1341229,-88.4711877,,,IL,,false,true,false,openstreetmap
+Teutopolis High School Diamond,baseball,pitch,39.1284476,-88.4897206,,,IL,,false,true,false,openstreetmap
+The Pit,baseball,pitch,39.7730973,-88.8804986,,,IL,,false,true,false,openstreetmap
+Three Springs Park Trail,baseball,pitch,38.5687032,-89.9133963,,,IL,,false,true,false,openstreetmap
+Three Springs Park Trail,baseball,pitch,38.568657,-89.9132193,,,IL,,false,true,false,openstreetmap
+Tonica Park Baseball Field,baseball,pitch,41.2209238,-89.0667884,,,IL,,false,true,false,openstreetmap
+US Steel Ball Fields,baseball,sports_centre,38.7010255,-90.1236615,,,IL,,false,true,false,openstreetmap
+Village of Minooka,baseball,pitch,41.4675248,-88.3001902,,,IL,,false,true,false,openstreetmap
+Village of Minooka,baseball,pitch,41.4675268,-88.3015107,,,IL,,false,true,false,openstreetmap
+Village of Minooka,baseball,pitch,41.4665842,-88.3014616,,,IL,,false,true,false,openstreetmap
+Village of Minooka,baseball,pitch,41.4666481,-88.3003293,,,IL,,false,true,false,openstreetmap
+Voyles Field,baseball,pitch,40.9758372,-90.3565982,,,IL,,false,true,false,openstreetmap
+Voyles Field,baseball,pitch,40.9752419,-90.3561717,,,IL,,false,true,false,openstreetmap
+Walker Park Batting Cages,baseball,pitch,41.7930263,-87.9573045,,,IL,,false,true,false,openstreetmap
+Walton Park Baseball Field,baseball,pitch,39.1544619,-89.6571361,,,IL,,false,true,false,openstreetmap
+Warder-Stotlar Memorial Field,baseball,pitch,37.7423694,-88.9190083,,,IL,,false,true,false,openstreetmap
+Warren Township Varsity Baseball Field,baseball,pitch,42.3555512,-87.9799321,,,IL,,false,true,false,openstreetmap
+Weber Field,baseball,pitch,42.4528732,-89.0613748,,,IL,,false,true,false,openstreetmap
+Westbrook East,baseball,pitch,42.0798392,-87.8350461,,,IL,,false,true,false,openstreetmap
+Westbrook North,baseball,pitch,42.0798626,-87.8358075,,,IL,,false,true,false,openstreetmap
+Westbrook South,baseball,pitch,42.0791895,-87.8358159,,,IL,,false,true,false,openstreetmap
+White Oak Park Diamond,baseball,pitch,40.4934997,-89.0112898,,,IL,,false,true,false,openstreetmap
+White Sox Miracle Field,baseball,pitch,41.6893005,-87.7164992,,,IL,,false,true,false,openstreetmap
+Woodruff High School Baseball Diamond,baseball,pitch,40.7095411,-89.5733398,,,IL,,false,true,false,openstreetmap
+Wyatt Patterson Field,baseball,pitch,39.9536728,-89.5382664,,,IL,,false,true,false,openstreetmap
+York Community High School Baseball Field,baseball,pitch,41.8911542,-87.9507787,,,IL,,false,true,false,openstreetmap
+diamond 1,baseball,pitch,37.81138,-89.017764,,,IL,,false,true,false,openstreetmap
+diamond 2,baseball,pitch,37.8121386,-89.017866,,,IL,,false,true,false,openstreetmap
+diamond 3,baseball,pitch,37.8128866,-89.017882,,,IL,,false,true,false,openstreetmap
+diamond 4,baseball,pitch,37.8133867,-89.0179947,,,IL,,false,true,false,openstreetmap
+diamond 5,baseball,pitch,37.8139716,-89.0180108,,,IL,,false,true,false,openstreetmap
+diamond 6,baseball,pitch,37.8144928,-89.0179988,,,IL,,false,true,false,openstreetmap
+Lloyd Hopkins Field,baseball,stadium,38.9036437,-90.1077355,,Alton Township,IL,62018,false,true,false,openstreetmap
+Richard Schneider Memorial Field,baseball,pitch,38.5350562,-90.0267811,South 44th Street,Belleville,IL,62220,false,true,false,openstreetmap
+Whitey Herzog Field,baseball,pitch,38.5303033,-90.0234396,South 44th Street,Belleville,IL,62220,false,true,false,openstreetmap
+Shira Baseball Complex,baseball,sports_centre,40.4569415,-88.9047676,4007 Ireland Grove Road,Bloomington,IL,,false,true,false,openstreetmap
+"Richard ""Itchy"" Jones Stadium",baseball,stadium,37.7049349,-89.2214616,455 Saluki Drive,Carbondale,IL,62901,false,true,false,openstreetmap
+Post Office Baseball Field,baseball,pitch,41.915959,-88.1085683,450 Fullerton Avenue,Carol Stream,IL,,false,true,false,openstreetmap
+Illinois Field,baseball,stadium,40.0970042,-88.2296354,1601 East Kirby Avenue,Champaign,IL,61820,false,true,false,openstreetmap
+Zahnd Park,baseball,park,40.0822812,-88.3125419,2502 Staley Road,Champaign,IL,61822,false,true,false,openstreetmap
+Canaryville Little League,baseball,pitch,41.8115655,-87.6378027,445 West 45th Place,Chicago,IL,60609,false,true,false,openstreetmap
+Grandstand,baseball,pitch,41.8310764,-87.6414974,600 West 35th Street,Chicago,IL,60616,false,true,false,openstreetmap
+Les Miller Field,baseball,pitch,41.8654904,-87.6487808,901 West Roosevelt Road,Chicago,IL,60608,false,true,false,openstreetmap
+Rate Field,baseball,stadium,41.8296742,-87.6337933,333 West 35th Street,Chicago,IL,60616,false,true,false,openstreetmap
+Sports World,baseball,pitch,41.9470546,-87.6561443,3555 North Clark Street,Chicago,IL,60657,false,true,false,openstreetmap
+Wrigley Field,baseball,stadium,41.9481667,-87.6555572,1060 West Addison Street,Chicago,IL,60613,false,true,false,openstreetmap
+Plummer Family Park,baseball,park,38.7848002,-89.9040643,3501 Sports Park Drive,Edwardsville,IL,62025,false,true,false,openstreetmap
+West Diamond Baseball Field,baseball,pitch,42.2810481,-89.6788975,2998 West Pearl City Road,Freeport,IL,61032,false,true,false,openstreetmap
+1,baseball,pitch,41.4396524,-90.1450522,South Chicago Street,Geneseo,IL,61254,false,true,false,openstreetmap
+JF Edwards Sports Complex,baseball,sports_centre,41.4410916,-90.1453139,South Chicago Street,Geneseo,IL,61254,false,true,false,openstreetmap
+Stone Field,baseball,pitch,41.4395193,-90.1691506,,Geneseo,IL,61254,false,true,false,openstreetmap
+Duly Health and Care Field,baseball,stadium,41.5260108,-88.0776887,1 Art Schultz Drive,Joliet,IL,60432,false,true,false,openstreetmap
+Duly Health and Care Field,baseball,stadium,41.5256456,-88.0780696,1 Art Schultz Drive,Joliet,IL,60432,false,true,false,openstreetmap
+Marion Stadium,baseball,stadium,37.7476706,-88.962342,1000 Miners Drive,Marion,IL,,false,true,false,openstreetmap
+The Cage,baseball,pitch,41.8100491,-89.9686249,222 West Main Street,Morrison,IL,61270,false,true,false,openstreetmap
+Naperville Little League,baseball,pitch,41.7805179,-88.157879,530 West 5th Avenue,Naperville,IL,60563,false,true,false,openstreetmap
+The Corn Crib,baseball,stadium,40.5340575,-89.0039751,1000 West Raab Road,Normal,IL,61761,false,true,false,openstreetmap
+Dozer Park,baseball,stadium,40.6874785,-89.5976421,730 Southwest Jefferson Avenue,Peoria,IL,61605,false,true,false,openstreetmap
+Louisville Slugger Sports Complex,baseball,sports_centre,40.7892725,-89.675692,8400 North Orange Prairie Road,Peoria,IL,61615,false,true,false,openstreetmap
+Peoria High School Baseball Field,baseball,pitch,40.7098517,-89.6020444,600 West Nebraska Avenue,Peoria,IL,,false,true,false,openstreetmap
+Peoria High School Softball Field,baseball,pitch,40.7089747,-89.6024297,1701 North Sheridan Road,Peoria,IL,,false,true,false,openstreetmap
+Rocky Sophomore Baseball Field,baseball,pitch,41.480266,-90.5513867,3400 30th Avenue,Rock Island,IL,61201,false,true,false,openstreetmap
+Chicago Bandits Stadium at the Ballpark,baseball,pitch,41.9810914,-87.8720204,27 Jennie Finch Way,Rosemont,IL,60018,false,true,false,openstreetmap
+Impact Field,baseball,stadium,41.9780661,-87.8710568,9850 Balmoral Avenue,Rosemont,IL,60018,false,true,false,openstreetmap
+The Ballpark at Rosemont,baseball,stadium,41.9807986,-87.8723471,27 Jennie Finch Way,Rosemont,IL,60018,false,true,false,openstreetmap
+Wintrust Field,baseball,stadium,41.9931193,-88.117683,1999 South Springsguth Road,Schaumburg,IL,60193,false,true,false,openstreetmap
+REC Park Softball Diamond,baseball,pitch,39.729119,-89.622591,1 University Plaza,Springfield,IL,62703,false,true,false,openstreetmap

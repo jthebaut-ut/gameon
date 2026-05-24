@@ -77,6 +77,11 @@ extension MapViewModel {
                 print("[AppleAuthDebug] relayEmailUsed=true")
             }
 
+            if await refreshActiveBanGate(reason: "appleLogin") {
+                clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+                return
+            }
+
             switch accountMode {
             case .fan:
                 await finishAppleFanSignIn(

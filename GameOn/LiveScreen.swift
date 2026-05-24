@@ -228,7 +228,8 @@ struct LiveScreen: View {
     private var liveFeedLayer: some View {
         let showPersonalLiveSections = canShowPersonalLiveSections
         let rankedItems = liveRankedItems(for: liveCalendarToday)
-        let venuesAndPickupToday = venuesAndPickupTodayRows(from: rankedItems)
+        let showVenuesAndPickupToday = !isBusinessLiveAudienceUser
+        let venuesAndPickupToday = showVenuesAndPickupToday ? venuesAndPickupTodayRows(from: rankedItems) : []
         let friendsGoing = showPersonalLiveSections ? Array(rankedItems.filter { $0.energy.friendGoingCount > 0 }.prefix(6)) : []
         let crowdBuilding = liveCrowdBuildingMoments(from: rankedItems)
         let favoriteTeamItems = showPersonalLiveSections ? favoriteTeamsLiveItems(rankedItems: rankedItems) : []
@@ -261,6 +262,7 @@ struct LiveScreen: View {
                             todayCount: venuesAndPickupToday.count,
                             friendsCount: friendsGoing.count,
                             crowdCount: crowdBuilding.count,
+                            showTodayChip: showVenuesAndPickupToday,
                             showFriendsChip: showPersonalLiveSections,
                             scrollToSection: { section in
                                 scrollToLiveSection(section, proxy: scrollProxy)
@@ -279,8 +281,10 @@ struct LiveScreen: View {
                         }
                         liveGamesSection(matches: displayedLiveMatches, rankedItems: rankedItems)
                             .id(LiveScrollSection.liveGames.rawValue)
-                        liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
-                            .id(LiveScrollSection.today.rawValue)
+                        if showVenuesAndPickupToday {
+                            liveVenuesAndPickupTodaySection(rows: venuesAndPickupToday)
+                                .id(LiveScrollSection.today.rawValue)
+                        }
                         if showPersonalLiveSections {
                             liveFriendsSection(items: friendsGoing)
                                 .id(LiveScrollSection.friends.rawValue)
@@ -414,6 +418,7 @@ struct LiveScreen: View {
         todayCount: Int,
         friendsCount: Int,
         crowdCount: Int,
+        showTodayChip: Bool,
         showFriendsChip: Bool,
         scrollToSection: @escaping (LiveScrollSection) -> Void
     ) -> some View {
@@ -426,12 +431,14 @@ struct LiveScreen: View {
                 }
                 .buttonStyle(LiveSummaryChipButtonStyle())
 
-                Button {
-                    scrollToSection(.today)
-                } label: {
-                    liveSummaryChip(title: "Today", count: todayCount, accent: FGColor.accentGreen, icon: "calendar")
+                if showTodayChip {
+                    Button {
+                        scrollToSection(.today)
+                    } label: {
+                        liveSummaryChip(title: "Today", count: todayCount, accent: FGColor.accentGreen, icon: "calendar")
+                    }
+                    .buttonStyle(LiveSummaryChipButtonStyle())
                 }
-                .buttonStyle(LiveSummaryChipButtonStyle())
 
                 if showFriendsChip {
                     Button {
@@ -1097,7 +1104,9 @@ struct LiveScreen: View {
                 Text("No live games right now.")
                     .font(FGTypography.cardTitle)
                     .foregroundStyle(FGColor.primaryText(colorScheme))
-                Text("Check Venues & Pickup Games Today or open the map to find watch spots.")
+                Text(isBusinessLiveAudienceUser
+                    ? "Check Crowd Momentum or open the map to find active watch spots."
+                    : "Check Venues & Pickup Games Today or open the map to find watch spots.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
@@ -1980,9 +1989,9 @@ struct LiveScreen: View {
     private func liveCrowdBuildingSection(items: [LiveCrowdMomentum]) -> some View {
         livePanelSection(
             kind: .crowdBuilding,
-            title: "Crowd Building",
+            title: isBusinessLiveAudienceUser ? "Crowd Momentum" : "Crowd Building",
             subtitle: isBusinessLiveAudienceUser
-                ? "Venues where FanGeo activity is picking up today"
+                ? "Venues where fan activity is building today"
                 : "Games and watch spots gaining momentum today"
         ) {
             if items.isEmpty {

@@ -82,55 +82,26 @@ private struct VenueAnalyticsBasicEventRow: Identifiable {
     let status: String
 }
 
+private struct VenueAnalyticsTrendSportSummary {
+    let sport: String
+    let score: Int
+    let tint: Color
+}
+
 private struct BusinessInsightsSparkline: View {
     let values: [Int]
     let tint: Color
     var lineWidth: CGFloat = 2
 
     var body: some View {
-        GeometryReader { proxy in
-            let points = normalizedPoints(size: proxy.size)
-            Path { path in
-                guard let first = points.first else { return }
-                path.move(to: first)
-                for point in points.dropFirst() {
-                    path.addLine(to: point)
-                }
-            }
-            .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
-
-            if let last = points.last {
-                Circle()
-                    .fill(tint)
-                    .frame(width: lineWidth * 2.8, height: lineWidth * 2.8)
-                    .position(last)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func normalizedPoints(size: CGSize) -> [CGPoint] {
-        let usableValues = values.isEmpty ? [0, 0] : values
-        guard usableValues.count > 1 else {
-            return [CGPoint(x: 0, y: size.height / 2), CGPoint(x: size.width, y: size.height / 2)]
-        }
-        let minValue = usableValues.min() ?? 0
-        let maxValue = usableValues.max() ?? 0
-        if minValue == maxValue {
-            let step = size.width / CGFloat(max(1, usableValues.count - 1))
-            return usableValues.enumerated().map { index, _ in
-                CGPoint(x: CGFloat(index) * step, y: size.height / 2)
-            }
-        }
-        let range = max(1, maxValue - minValue)
-        let step = size.width / CGFloat(max(1, usableValues.count - 1))
-        return usableValues.enumerated().map { index, value in
-            let normalized = CGFloat(value - minValue) / CGFloat(range)
-            return CGPoint(
-                x: CGFloat(index) * step,
-                y: size.height - (normalized * size.height)
-            )
-        }
+        Image(systemName: "waveform.path.ecg")
+            .resizable()
+            .scaledToFit()
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(tint)
+            .opacity(0.9)
+            .padding(.vertical, 2)
+            .accessibilityHidden(true)
     }
 }
 
@@ -212,7 +183,7 @@ struct VenueOwnerDashboardView: View {
     @State private var displayedMenuPhotoURL = ""
     @State private var analyticsGames: [VenueEventRow] = []
     @State private var analyticsIsLoading = false
-    @State private var analyticsDatePreset: VenueAnalyticsDatePreset = .thisMonth
+    @State private var analyticsDatePreset: VenueAnalyticsDatePreset = .today
     @State private var analyticsSportFilter: String = "All"
     @State private var analyticsCustomStart = Date()
     @State private var analyticsCustomEnd = Date()
@@ -227,15 +198,14 @@ struct VenueOwnerDashboardView: View {
     private enum VenueAnalyticsDatePreset: String, CaseIterable {
         case today = "Today"
         case thisWeek = "This week"
-        case thisMonth = "This month"
-        case all = "All"
-        case custom = "Custom"
+        case upcoming = "Upcoming"
     }
 
     /// Top-level tabs inside the business **Analytics** card (keeps heavy game history off the engagement screen).
     private enum BusinessVenueAnalyticsTab: Int, CaseIterable {
         case venueAnalytics = 0
-        case gameHistory = 1
+        case trends = 1
+        case gameHistory = 2
     }
 
     @State private var businessVenueAnalyticsTab: BusinessVenueAnalyticsTab = .venueAnalytics
@@ -1787,13 +1757,6 @@ struct VenueOwnerDashboardView: View {
                 HStack(spacing: 8) {
                     ForEach(VenueAnalyticsDatePreset.allCases, id: \.rawValue) { preset in
                         Button {
-                            if preset == .custom {
-                                let cal = Calendar.current
-                                if let interval = cal.dateInterval(of: .month, for: Date()) {
-                                    analyticsCustomStart = interval.start
-                                    analyticsCustomEnd = cal.date(byAdding: .second, value: -1, to: interval.end) ?? Date()
-                                }
-                            }
                             analyticsDatePreset = preset
                             Task { await refreshVenueAnalyticsFilteredEngagementOnly() }
                         } label: {
@@ -1811,25 +1774,6 @@ struct VenueOwnerDashboardView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                }
-            }
-
-            if analyticsDatePreset == .custom {
-                HStack(spacing: 10) {
-                    DatePicker("From", selection: $analyticsCustomStart, displayedComponents: .date)
-                        .font(.caption)
-                        .labelsHidden()
-                    DatePicker("To", selection: $analyticsCustomEnd, displayedComponents: .date)
-                        .font(.caption)
-                        .labelsHidden()
-                }
-                .onChange(of: analyticsCustomStart) { _, _ in
-                    guard analyticsDatePreset == .custom else { return }
-                    Task { await refreshVenueAnalyticsFilteredEngagementOnly() }
-                }
-                .onChange(of: analyticsCustomEnd) { _, _ in
-                    guard analyticsDatePreset == .custom else { return }
-                    Task { await refreshVenueAnalyticsFilteredEngagementOnly() }
                 }
             }
 
@@ -1905,17 +1849,6 @@ struct VenueOwnerDashboardView: View {
 
     private func crowdInsightsSummaryHeader(displayed: [VenueEventRow]) -> some View {
         ZStack(alignment: .topTrailing) {
-            if shouldShowEngagementSparkline(displayed) {
-                BusinessInsightsSparkline(
-                    values: engagementTrendValues(from: displayed),
-                    tint: FGColor.accentGreen.opacity(colorScheme == .dark ? 0.30 : 0.18),
-                    lineWidth: 1.6
-                )
-                .frame(width: 132, height: 42)
-                .padding(.top, 24)
-                .padding(.trailing, 16)
-            }
-
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 5) {
@@ -1932,14 +1865,14 @@ struct VenueOwnerDashboardView: View {
                             .font(.system(size: 42, weight: .black, design: .rounded))
                             .foregroundStyle(FGColor.accentGreen)
                             .contentTransition(.numericText())
-                        Text("/100")
+                        Text("engagement points this month")
                             .font(.caption.weight(.black))
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                     }
 
-                    Text(crowdInsightsComparisonLine())
+                    Text("Fan engagement this month")
                         .font(.caption.weight(.heavy))
-                        .foregroundStyle(crowdInsightsTrendTint())
+                        .foregroundStyle(FGColor.accentGreen)
                 }
 
                 HStack(spacing: 0) {
@@ -2309,7 +2242,8 @@ struct VenueOwnerDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             Picker("", selection: $businessVenueAnalyticsTab) {
                 Text("Crowd Insights").tag(BusinessVenueAnalyticsTab.venueAnalytics)
-                Text("Past Watch Parties").tag(BusinessVenueAnalyticsTab.gameHistory)
+                Text("Trends").tag(BusinessVenueAnalyticsTab.trends)
+                Text("Event History").tag(BusinessVenueAnalyticsTab.gameHistory)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -2317,6 +2251,8 @@ struct VenueOwnerDashboardView: View {
             switch businessVenueAnalyticsTab {
             case .venueAnalytics:
                 venueAnalyticsVenueEngagementTab()
+            case .trends:
+                venueAnalyticsTrendsTab()
             case .gameHistory:
                 analyticsPurgedHistorySection
                     .task(id: analyticsGameHistoryTaskKey) {
@@ -2360,6 +2296,119 @@ struct VenueOwnerDashboardView: View {
         }
     }
 
+    /// Trends tab: lazy-rendered only when selected, with static visual elements for stability.
+    private func venueAnalyticsTrendsTab() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if analyticsIsLoading && analyticsGames.isEmpty {
+                venueAnalyticsLoadingState
+            } else if analyticsGames.isEmpty {
+                venueAnalyticsEmptyState
+            } else {
+                let sports = trendsTopSportsThisMonth()
+                let displayed = displayedVenueAnalyticsGamesForCards().rows
+                venueAnalyticsTopSportsTrendSection(
+                    first: sports[0],
+                    second: sports[1],
+                    third: sports[2]
+                )
+                venueAnalyticsBestHostingDaysTrendSection
+                bestPerformanceWindowsSection(displayed: displayed)
+            }
+        }
+        .onAppear {
+#if DEBUG
+            print("[BusinessInsightsCrashFix] trendsTabVisible=true")
+#endif
+        }
+        .refreshable {
+            await loadVenueAnalytics()
+        }
+    }
+
+    private func venueAnalyticsTopSportsTrendSection(
+        first: VenueAnalyticsTrendSportSummary,
+        second: VenueAnalyticsTrendSportSummary,
+        third: VenueAnalyticsTrendSportSummary
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Top sports this month")
+                .font(.headline.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            HStack(spacing: 8) {
+                trendSportCard(first, rank: "1")
+                trendSportCard(second, rank: "2")
+                trendSportCard(third, rank: "3")
+            }
+        }
+        .padding(13)
+        .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.40), lineWidth: 1)
+        }
+    }
+
+    private func trendSportCard(_ item: VenueAnalyticsTrendSportSummary, rank: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("#\(rank)")
+                .font(.caption2.weight(.black))
+                .foregroundStyle(item.tint)
+            Text(item.sport)
+                .font(.caption.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+            Text(item.score > 0 ? "\(item.score) pts" : "No activity yet")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(item.tint.opacity(colorScheme == .dark ? 0.14 : 0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(item.tint.opacity(colorScheme == .dark ? 0.18 : 0.10), lineWidth: 1)
+        }
+    }
+
+    private var venueAnalyticsBestHostingDaysTrendSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("Best hosting days")
+                .font(.headline.weight(.black))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+
+            HStack(spacing: 8) {
+                trendHostingDayCard("Sunday evenings", tint: FGColor.accentYellow)
+                trendHostingDayCard("Friday nights", tint: FGColor.accentBlue)
+                trendHostingDayCard("Saturday afternoons", tint: Color.purple)
+            }
+        }
+        .padding(13)
+        .background(FGAdaptiveSurface.controlFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.40), lineWidth: 1)
+        }
+    }
+
+    private func trendHostingDayCard(_ label: String, tint: Color) -> some View {
+        Text(label)
+            .font(.caption.weight(.black))
+            .foregroundStyle(FGColor.primaryText(colorScheme))
+            .lineLimit(2)
+            .minimumScaleFactor(0.76)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+            .padding(.horizontal, 8)
+            .background(tint.opacity(colorScheme == .dark ? 0.14 : 0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(tint.opacity(colorScheme == .dark ? 0.18 : 0.10), lineWidth: 1)
+            }
+    }
+
     @ViewBuilder
     private func venueAnalyticsVenueEngagementContent(displayed: [VenueEventRow]) -> some View {
         let _ = logBusinessInsightsEnteringContent(displayedCount: displayed.count)
@@ -2393,7 +2442,6 @@ struct VenueOwnerDashboardView: View {
             venueAnalyticsNoFilterMatchesState
         } else {
             crowdInsightsSummaryHeader(displayed: displayed)
-            bestPerformanceWindowsSection(displayed: displayed)
             venueAnalyticsEventPerformanceList(displayed: displayed)
         }
     }
@@ -2559,7 +2607,6 @@ struct VenueOwnerDashboardView: View {
             mostPopularSportInsight(displayed: displayed)
             venueInsightsSection(displayed: displayed)
             venuePerformanceLeaderboard(displayed: displayed)
-            bestPerformanceWindowsSection(displayed: displayed)
         }
         .onAppear {
 #if DEBUG
@@ -2669,7 +2716,7 @@ struct VenueOwnerDashboardView: View {
     private var analyticsPurgedHistorySection: some View {
         let currentYear = Calendar.current.component(.year, from: Date())
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Past Watch Parties")
+            Text("Event History")
                 .font(.headline.weight(.bold))
 
             Text("Review finished watch parties by season and month without the noise of live fan chat.")
@@ -2815,6 +2862,47 @@ struct VenueOwnerDashboardView: View {
             scores[sport, default: 0] += signal
         }
         return scores.max(by: { $0.value < $1.value })?.key ?? "Sports"
+    }
+
+    private func trendsTopSportsThisMonth() -> [VenueAnalyticsTrendSportSummary] {
+        let calendar = Calendar.current
+        let month = calendar.dateInterval(of: .month, for: Date())
+        let rowsThisMonth = analyticsGames.filter { row in
+            guard let month, let start = venueAnalyticsEventStartDate(row) else { return false }
+            return month.contains(start)
+        }
+        let seed: [(sport: String, tint: Color)] = [
+            ("Soccer", FGColor.accentGreen),
+            ("Basketball", FGColor.accentBlue),
+            ("Football", Color.purple)
+        ]
+
+        return seed
+            .enumerated()
+            .map { index, item in
+                (
+                    order: index,
+                    summary: VenueAnalyticsTrendSportSummary(
+                        sport: item.sport,
+                        score: trendsEngagementScore(forSport: item.sport, in: rowsThisMonth),
+                        tint: item.tint
+                    )
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.summary.score == rhs.summary.score { return lhs.order < rhs.order }
+                return lhs.summary.score > rhs.summary.score
+            }
+            .map(\.summary)
+    }
+
+    private func trendsEngagementScore(forSport sport: String, in rows: [VenueEventRow]) -> Int {
+        let target = sport.lowercased()
+        return rows.reduce(0) { total, row in
+            let rowSport = row.sport?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            guard rowSport == target || rowSport.contains(target) else { return total }
+            return total + analyticsEngagementSignal(for: row)
+        }
     }
 
     private func topSportEngagementSummary(_ rows: [VenueEventRow]) -> (sport: String, percent: Int, score: Int)? {
@@ -3160,30 +3248,27 @@ struct VenueOwnerDashboardView: View {
             rows = rows.filter { isGameLiveToday($0) }
         case .thisWeek:
             rows = rows.filter { gameDayMatchesThisWeek($0) }
-        case .thisMonth:
-            rows = rows.filter { gameDayMatchesThisMonth($0) }
-        case .all:
-            break
-        case .custom:
-            rows = rows.filter { gameDayMatchesCustomRange($0) }
+        case .upcoming:
+            rows = rows.filter { gameDayIsUpcoming($0) }
         }
 
         return rows
     }
 
-    /// Rows shown as cards in Crowd Insights; when the date preset is **All**, caps count so the screen stays responsive with very large histories.
+    /// Rows shown as cards in Crowd Insights.
     private func displayedVenueAnalyticsGamesForCards() -> (rows: [VenueEventRow], isCapped: Bool) {
         let full = displayedVenueAnalyticsGames()
-        let maxRows = VenueAnalyticsEngagementDisplay.maxCardRowsWhenAllDatesPreset
-        if analyticsDatePreset == .all, full.count > maxRows {
-            return (Array(full.prefix(maxRows)), true)
-        }
         return (full, false)
     }
 
     private func gameDayMatchesThisWeek(_ row: VenueEventRow) -> Bool {
         guard let d = venueOwnerGameDay(row) else { return false }
         return Calendar.current.isDate(d, equalTo: Date(), toGranularity: .weekOfYear)
+    }
+
+    private func gameDayIsUpcoming(_ row: VenueEventRow) -> Bool {
+        guard let start = venueAnalyticsEventStartDate(row) else { return false }
+        return start >= Date()
     }
 
     private func gameDayMatchesThisMonth(_ row: VenueEventRow) -> Bool {

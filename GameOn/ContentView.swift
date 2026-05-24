@@ -6,6 +6,7 @@ struct ContentView: View {
     @StateObject private var viewModel = MapViewModel()
     @StateObject private var chatViewModel = ChatViewModel()
     @StateObject private var bootstrapCoordinator = BootstrapLoadingCoordinator()
+    @Environment(\.scenePhase) private var scenePhase
     #if DEBUG
     @State private var debugSplashMinimumElapsed = false
     #endif
@@ -18,6 +19,9 @@ struct ContentView: View {
             if shouldShowSplash {
                 FanGeoSplashView()
                     .zIndex(1)
+            } else if let ban = viewModel.activeAccountBan {
+                AccountSuspensionGateView(viewModel: viewModel, ban: ban)
+                    .zIndex(2)
             } else {
                 PublicProfilePresentationHost(
                     viewModel: viewModel,
@@ -43,6 +47,16 @@ struct ContentView: View {
             #if DEBUG
             print("[LaunchPathDebug] isBootstrapping=\(bootstrapCoordinator.isBootstrapping)")
             #endif
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                if viewModel.activeAccountBan != nil {
+                    await viewModel.refreshActiveBanGateAndRestoreSessionIfAllowed(reason: "foreground")
+                } else {
+                    await viewModel.refreshActiveBanGate(reason: "foreground")
+                }
+            }
         }
         .onOpenURL { url in
             Task {
@@ -74,6 +88,118 @@ struct ContentView: View {
         #else
         return bootstrapCoordinator.isBootstrapping
         #endif
+    }
+}
+
+private struct AccountSuspensionGateView: View {
+    @ObservedObject var viewModel: MapViewModel
+    let ban: FanGeoAccountBan
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer(minLength: 32)
+
+            Image(systemName: "hand.raised.fill")
+                .font(.system(size: 46, weight: .bold))
+                .foregroundStyle(FGColor.dangerRed)
+
+            VStack(spacing: 10) {
+                Text("Account suspended")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+
+                Text(primaryMessage)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+
+                if let remainingMessage {
+                    Text(remainingMessage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .multilineTextAlignment(.center)
+                }
+
+                Text("For questions, contact support@fangeosports.com.")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
+            }
+            .padding(22)
+            .frame(maxWidth: 420)
+            .background(FGAdaptiveSurface.cardElevated, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
+            }
+
+            Button {
+                Task {
+                    await viewModel.refreshActiveBanGateAndRestoreSessionIfAllowed(reason: "manualSuspensionRefresh")
+                }
+            } label: {
+                Text(viewModel.isCheckingActiveBan ? "Checking..." : "Check status")
+                    .font(.headline.weight(.bold))
+                    .frame(maxWidth: 260)
+                    .padding(.vertical, 14)
+                    .background(FGColor.accentBlue, in: Capsule())
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isCheckingActiveBan)
+
+            Spacer(minLength: 32)
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fanGeoScreenBackground()
+    }
+
+    private var primaryMessage: String {
+        if ban.isPermanent {
+            return "Your account has been permanently suspended."
+        }
+        return "Your account is suspended until \(formattedBanEnd)."
+    }
+
+    private var remainingMessage: String? {
+        guard !ban.isPermanent else { return nil }
+        guard let remainingSeconds = ban.remainingSeconds else {
+            return "You can return after the suspension expires."
+        }
+        return "You can return in \(Self.remainingTimeText(seconds: remainingSeconds))."
+    }
+
+    private var formattedBanEnd: String {
+        guard let bannedUntil = ban.bannedUntil else {
+            return ban.bannedUntilRaw ?? "the scheduled end time"
+        }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: bannedUntil)
+    }
+
+    private static func remainingTimeText(seconds: Int) -> String {
+        let clamped = max(0, seconds)
+        let days = clamped / 86_400
+        let hours = (clamped % 86_400) / 3_600
+        let minutes = (clamped % 3_600) / 60
+
+        if days > 0 {
+            return hours > 0 ? "\(days)d \(hours)h" : "\(days)d"
+        }
+        if hours > 0 {
+            return minutes > 0 ? "\(hours)h \(minutes)m" : "\(hours)h"
+        }
+        if minutes > 0 {
+            return "\(minutes)m"
+        }
+        return "less than 1 minute"
     }
 }
 

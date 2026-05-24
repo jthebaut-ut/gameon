@@ -1241,6 +1241,11 @@ extension MapViewModel {
                 return
             }
 
+            if await refreshActiveBanGate(reason: "emailPasswordFanLogin") {
+                clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+                return
+            }
+
             if await businessAccountExistsForOwnerEmailOrUserId(email: fanEmail, userId: session.user.id) {
 #if DEBUG
                 print("[AuthAccountTypeGate] fan login blocked businessEmail=\(fanEmail)")
@@ -1783,6 +1788,10 @@ extension MapViewModel {
                         authErrorMessage = "Please verify your email before signing in."
                         print("[EmailVerifyDebug] signInBlockedUnconfirmed=true")
                     }
+                    return
+                }
+
+                if await refreshActiveBanGate(reason: "sessionRestore") {
                     return
                 }
 

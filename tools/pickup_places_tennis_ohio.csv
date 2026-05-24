@@ -1,0 +1,77 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+11,tennis,pitch,39.3499415,-84.2767937,,,OH,,false,true,false,openstreetmap
+12,tennis,pitch,39.3499667,-84.277006,,,OH,,false,true,false,openstreetmap
+13,tennis,pitch,39.3499962,-84.277254,,,OH,,false,true,false,openstreetmap
+14,tennis,pitch,39.3500212,-84.2774634,,,OH,,false,true,false,openstreetmap
+3,tennis,pitch,39.3497041,-84.274772,,,OH,,false,true,false,openstreetmap
+4,tennis,pitch,39.3496173,-84.274136,,,OH,,false,true,false,openstreetmap
+5,tennis,pitch,39.3500953,-84.273903,,,OH,,false,true,false,openstreetmap
+6,tennis,pitch,39.3501431,-84.2743024,,,OH,,false,true,false,openstreetmap
+7,tennis,pitch,39.3501908,-84.2747012,,,OH,,false,true,false,openstreetmap
+8,tennis,pitch,39.3502927,-84.2755714,,,OH,,false,true,false,openstreetmap
+9,tennis,pitch,39.3503399,-84.275971,,,OH,,false,true,false,openstreetmap
+Ashley Creek Tennis Court,tennis,pitch,39.9286496,-82.755544,,,OH,,false,true,false,openstreetmap
+Blesser Courts,tennis,pitch,41.5112558,-82.0210948,,,OH,,false,true,false,openstreetmap
+Blue Herron Tennis Court,tennis,pitch,41.1067653,-81.8044879,,,OH,,false,true,false,openstreetmap
+Camargo Racquet Club,tennis,sports_centre,39.1941844,-84.3470751,,,OH,,false,true,false,openstreetmap
+Catawba Island Club Tennis Courts,tennis,pitch,41.5669044,-82.8519793,,,OH,,false,true,false,openstreetmap
+Center Court,tennis,pitch,39.3489918,-84.2762367,,,OH,,false,true,false,openstreetmap
+Centerville High School Tennis Courts,tennis,pitch,39.6227319,-84.1481615,,,OH,,false,true,false,openstreetmap
+Court 1,tennis,pitch,40.5813464,-83.1192205,,,OH,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.9082869,-82.5726866,,,OH,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.7642729,-82.8893434,,,OH,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.7237802,-82.8464579,,,OH,,false,true,false,openstreetmap
+Court 1 Tennis,tennis,sports_centre,41.4005551,-82.6610126,,,OH,,false,true,false,openstreetmap
+Court 2,tennis,pitch,40.5813471,-83.119067,,,OH,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.9083227,-82.572868,,,OH,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.764258,-82.8891842,,,OH,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.7237618,-82.8462887,,,OH,,false,true,false,openstreetmap
+Court 3,tennis,pitch,40.5813486,-83.1188733,,,OH,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.9083552,-82.5730555,,,OH,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.764244,-82.8890317,,,OH,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.7237441,-82.8461235,,,OH,,false,true,false,openstreetmap
+Court 4,tennis,pitch,40.5813516,-83.118707,,,OH,,false,true,false,openstreetmap
+Eagle Tennis Center,tennis,sports_centre,39.7537594,-84.1925589,,,OH,,false,true,false,openstreetmap
+Four Bridges Clay Courts,tennis,pitch,39.3782841,-84.347093,,,OH,,false,true,false,openstreetmap
+Four Bridges Clay Courts,tennis,pitch,39.3782695,-84.3468933,,,OH,,false,true,false,openstreetmap
+Four Bridges Clay Courts,tennis,pitch,39.3782549,-84.3466571,,,OH,,false,true,false,openstreetmap
+Four Bridges Clay Courts,tennis,pitch,39.3782384,-84.3464567,,,OH,,false,true,false,openstreetmap
+Four Bridges Tennis Court,tennis,pitch,39.3778456,-84.3465104,,,OH,,false,true,false,openstreetmap
+Grandstand Court,tennis,pitch,39.3481491,-84.2763976,,,OH,,false,true,false,openstreetmap
+Green Tennis Club,tennis,pitch,40.9614933,-81.4401861,,,OH,,false,true,false,openstreetmap
+Hablitzel-Von Thron Tennis Center,tennis,sports_centre,41.5048257,-82.93608,,,OH,,false,true,false,openstreetmap
+Heritage Oak Tennis Courts,tennis,sports_centre,39.367238,-84.3011657,,,OH,,false,true,false,openstreetmap
+Howland Tennis Courts,tennis,pitch,41.2388263,-80.7459401,,,OH,,false,true,false,openstreetmap
+Howland Tennis Courts,tennis,pitch,41.238808,-80.7455831,,,OH,,false,true,false,openstreetmap
+Howland Tennis Courts,tennis,pitch,41.2388359,-80.7461249,,,OH,,false,true,false,openstreetmap
+Howland Tennis Courts,tennis,pitch,41.2388173,-80.7457649,,,OH,,false,true,false,openstreetmap
+Hudson High School Tennis Court,tennis,pitch,41.2556085,-81.4124198,,,OH,,false,true,false,openstreetmap
+Joan Davis Conn Tennis Center,tennis,sports_centre,39.2777627,-84.3362518,,,OH,,false,true,false,openstreetmap
+Johnson-Murdoch Tennis Complex,tennis,sports_centre,39.7542611,-83.8138679,,,OH,,false,true,false,openstreetmap
+Library Courts,tennis,pitch,41.5096012,-82.0141267,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1283314,-84.501075,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1286439,-84.5009371,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1286035,-84.5007703,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1285638,-84.5006059,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1285223,-84.5004428,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.12829,-84.5009111,,,OH,,false,true,false,openstreetmap
+Losantiville Recreation Area,tennis,pitch,39.1282507,-84.5007429,,,OH,,false,true,false,openstreetmap
+Mariemont Racquet Club,tennis,sports_centre,39.1473589,-84.378291,,,OH,,false,true,false,openstreetmap
+Medical Mutual Pavilion,tennis,pitch,41.5041717,-81.6768758,,,OH,,false,true,false,openstreetmap
+Montgomery Hills Tennis Court,tennis,pitch,39.3072928,-84.2739602,,,OH,,false,true,false,openstreetmap
+Pickleball Courts,tennis,pitch,39.7538038,-83.8145403,,,OH,,false,true,false,openstreetmap
+Rolling Hills Park Tennis Court,tennis,pitch,41.2552004,-81.8301483,,,OH,,false,true,false,openstreetmap
+Samuels Tennisport,tennis,pitch,39.1984008,-84.3809419,,,OH,,false,true,false,openstreetmap
+Stratford Chase Tennis Court,tennis,pitch,40.1338886,-83.0041458,,,OH,,false,true,false,openstreetmap
+Tennis,tennis,pitch,40.8648479,-81.4402151,,,OH,,false,true,false,openstreetmap
+Towpath Tennis Center,tennis,sports_centre,41.146147,-81.5630416,,,OH,,false,true,false,openstreetmap
+Wickertree Tennis Club,tennis,sports_centre,40.0885299,-82.9590262,,,OH,,false,true,false,openstreetmap
+Wilson Tennis Courts,tennis,pitch,39.5094378,-84.7259344,,,OH,,false,true,false,openstreetmap
+Keefe Tennis Courts,tennis,stadium,41.3808542,-83.6267541,Stadium Drive,Bowling Green,OH,43403,false,true,false,openstreetmap
+Hyde Park Tennis Club,tennis,sports_centre,39.1400062,-84.4390858,2820 Erie Avenue,Cincinnati,OH,45208,false,true,false,openstreetmap
+Olympic Indoor Tennis,tennis,pitch,40.0344482,-82.9993566,3480 Indianola Avenue,Columbus,OH,43214,false,true,false,openstreetmap
+Scarborough East Tennis Club,tennis,sports_centre,39.9287431,-82.8413197,5641 Alshire Road,Columbus,OH,43232,false,true,false,openstreetmap
+Roosevelt Tennis Courts,tennis,sports_centre,41.1703919,-81.3546844,1400 North Mantua Street,Kent,OH,44240,false,true,false,openstreetmap
+Lindner Family Tennis Center,tennis,sports_centre,39.348592,-84.2756955,6100 Legacy Park Way,Mason,OH,45040,false,true,false,openstreetmap
+Perrysburg Tennis Center,tennis,sports_centre,41.5138145,-83.637097,1750 Progress Drive,Perrysburg,OH,43551,false,true,false,openstreetmap
+Paramount Tennis Club,tennis,sports_centre,41.4712204,-81.9681144,31550 Viking Parkway,Westlake,OH,44145,false,true,false,openstreetmap

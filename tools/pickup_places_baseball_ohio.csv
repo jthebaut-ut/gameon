@@ -1,0 +1,421 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,40.1192157,-82.9114202,,,OH,,false,true,false,openstreetmap
+1,baseball,pitch,41.712983,-83.7553255,,,OH,,false,true,false,openstreetmap
+1,baseball,pitch,40.0418202,-83.0211587,,,OH,,false,true,false,openstreetmap
+2,baseball,pitch,40.1191014,-82.9107146,,,OH,,false,true,false,openstreetmap
+2,baseball,pitch,41.7126906,-83.7541077,,,OH,,false,true,false,openstreetmap
+2,baseball,pitch,40.0418902,-83.0223056,,,OH,,false,true,false,openstreetmap
+3,baseball,pitch,40.1182141,-82.9106527,,,OH,,false,true,false,openstreetmap
+3,baseball,pitch,41.7117877,-83.7544886,,,OH,,false,true,false,openstreetmap
+3,baseball,pitch,40.0425107,-83.0222113,,,OH,,false,true,false,openstreetmap
+4,baseball,pitch,41.7120459,-83.7556822,,,OH,,false,true,false,openstreetmap
+4,baseball,pitch,40.0424878,-83.0213839,,,OH,,false,true,false,openstreetmap
+5,baseball,pitch,41.7109927,-83.755178,,,OH,,false,true,false,openstreetmap
+5,baseball,pitch,40.0418205,-83.0237064,,,OH,,false,true,false,openstreetmap
+6,baseball,pitch,41.7108745,-83.7539978,,,OH,,false,true,false,openstreetmap
+6,baseball,pitch,40.0415424,-83.0242592,,,OH,,false,true,false,openstreetmap
+7,baseball,pitch,41.7099695,-83.7543464,,,OH,,false,true,false,openstreetmap
+8,baseball,pitch,41.7101858,-83.7555723,,,OH,,false,true,false,openstreetmap
+American Legion Post 183 Baeball Park,baseball,sports_centre,41.4162815,-83.4555586,,,OH,,false,true,false,openstreetmap
+Angelo Gaudino Field,baseball,pitch,41.4253719,-81.7040357,,,OH,,false,true,false,openstreetmap
+Ball Field #1,baseball,pitch,41.119832,-81.5229365,,,OH,,false,true,false,openstreetmap
+Ball Field #2,baseball,pitch,41.1188302,-81.5239628,,,OH,,false,true,false,openstreetmap
+Ball Field #3,baseball,pitch,41.1190977,-81.523014,,,OH,,false,true,false,openstreetmap
+Ball Field #4,baseball,pitch,41.1231631,-81.5227683,,,OH,,false,true,false,openstreetmap
+Barker Field,baseball,pitch,40.1130856,-83.2738138,,,OH,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,39.6803211,-84.1480538,,,OH,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,39.6796006,-84.1482137,,,OH,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,41.6856441,-83.7159787,,,OH,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,40.0876532,-82.8128071,,,OH,,false,true,false,openstreetmap
+Baseball Field - A,baseball,pitch,39.1851626,-84.3697443,,,OH,,false,true,false,openstreetmap
+Baseball Field - A,baseball,pitch,39.1834999,-84.3696512,,,OH,,false,true,false,openstreetmap
+Baseball Field - B,baseball,pitch,39.1844448,-84.3689726,,,OH,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,39.3673961,-84.2999983,,,OH,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,39.0450336,-84.0203099,,,OH,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,39.3680201,-84.299885,,,OH,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,39.0443711,-84.0205512,,,OH,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,39.367676,-84.2989769,,,OH,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,39.0451044,-84.0210876,,,OH,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,39.3685313,-84.3014437,,,OH,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,39.0444837,-84.0213344,,,OH,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,39.3679779,-84.3022754,,,OH,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,39.0435087,-84.0216348,,,OH,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,39.367463,-84.302968,,,OH,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,39.0426337,-84.0218924,,,OH,,false,true,false,openstreetmap
+Baseball Field 7,baseball,pitch,39.367261,-84.3019352,,,OH,,false,true,false,openstreetmap
+Baseball Field 8,baseball,pitch,39.3659316,-84.2997058,,,OH,,false,true,false,openstreetmap
+Baseball Field 9,baseball,pitch,39.3660033,-84.2991358,,,OH,,false,true,false,openstreetmap
+Baseball North,baseball,stadium,39.2109821,-84.5052831,,,OH,,false,true,false,openstreetmap
+Baseball Stadium,baseball,pitch,41.2444146,-80.8015912,,,OH,,false,true,false,openstreetmap
+Baseball diamond,baseball,pitch,41.2847942,-81.2181181,,,OH,,false,true,false,openstreetmap
+Baseball diamond,baseball,pitch,41.2842782,-81.2188397,,,OH,,false,true,false,openstreetmap
+Bath Baseball Field,baseball,pitch,40.7716011,-84.0530141,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,39.9389317,-83.0030293,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,41.517501,-83.6804317,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,38.9403222,-83.5891071,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,38.6921729,-83.5923696,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,38.877697,-82.373239,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,38.9045043,-82.5660676,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,39.2379071,-82.1889484,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,40.7873136,-81.4639222,,,OH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,40.7876103,-81.4512656,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.3962577,-82.5710882,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.7260743,-82.8487781,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.7261883,-82.8488029,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.8784645,-82.3743963,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.9059361,-82.5742928,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,39.9479338,-81.5578785,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,40.880398,-81.5657167,,,OH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.0402864,-81.9601527,,,OH,,false,true,false,openstreetmap
+Berea-Midpark Titans Baseball Diamond,baseball,park,41.3798947,-81.8772668,,,OH,,false,true,false,openstreetmap
+Berkshire Baseball Field,baseball,pitch,41.4694541,-81.1483691,,,OH,,false,true,false,openstreetmap
+Betty Doughman Dillahunt Field,baseball,stadium,39.9414723,-83.818404,,,OH,,false,true,false,openstreetmap
+Big Blue Field,baseball,pitch,41.0802769,-80.7223823,,,OH,,false,true,false,openstreetmap
+Big Red Baseball Field,baseball,pitch,40.0763932,-82.5171275,,,OH,,false,true,false,openstreetmap
+Big Red Softball Field,baseball,pitch,40.0765136,-82.5185044,,,OH,,false,true,false,openstreetmap
+Bill Davis Stadium,baseball,sports_centre,40.0096989,-83.0260229,,,OH,,false,true,false,openstreetmap
+Bluffton Softball Field,baseball,pitch,40.8967945,-83.9034891,,,OH,,false,true,false,openstreetmap
+Bob Wren Stadium,baseball,pitch,39.32468,-82.108591,,,OH,,false,true,false,openstreetmap
+Bowling Green State University,baseball,pitch,41.3805792,-83.6260037,,,OH,,false,true,false,openstreetmap
+Bracken Field,baseball,pitch,41.4915824,-81.5259993,,,OH,,false,true,false,openstreetmap
+Branch Rickey Park,baseball,sports_centre,38.7293214,-82.9755804,,,OH,,false,true,false,openstreetmap
+Brian Wilson Field,baseball,pitch,39.0625826,-84.2154932,,,OH,,false,true,false,openstreetmap
+Brookside Field 1,baseball,pitch,40.8731959,-82.3297966,,,OH,,false,true,false,openstreetmap
+Brookside Field 2,baseball,pitch,40.8743525,-82.3296269,,,OH,,false,true,false,openstreetmap
+Brookside Field 3,baseball,pitch,40.8698855,-82.3304169,,,OH,,false,true,false,openstreetmap
+Buckeye Field,baseball,pitch,40.0119236,-83.025971,,,OH,,false,true,false,openstreetmap
+Buckeye Field,baseball,pitch,41.0637747,-80.6150616,,,OH,,false,true,false,openstreetmap
+C. L. Harrison Field,baseball,pitch,39.11878,-84.4464463,,,OH,,false,true,false,openstreetmap
+CHS Baseball Field,baseball,pitch,38.8037197,-82.9798455,,,OH,,false,true,false,openstreetmap
+Camp Warsaw Field,baseball,pitch,40.335622,-81.9944033,,,OH,,false,true,false,openstreetmap
+Canal Lewisville Rec Field A,baseball,pitch,40.3006173,-81.8410036,,,OH,,false,true,false,openstreetmap
+Canal Lewisville Rec Field B,baseball,pitch,40.3008969,-81.8418908,,,OH,,false,true,false,openstreetmap
+Cecil Arthur Field,baseball,pitch,39.1291854,-82.5391314,,,OH,,false,true,false,openstreetmap
+Ceil Geitz Field,baseball,pitch,39.1307574,-82.5410868,,,OH,,false,true,false,openstreetmap
+Chan Field,baseball,pitch,40.8752796,-82.2941959,,,OH,,false,true,false,openstreetmap
+Charles E. Seddon Memorial Field,baseball,pitch,39.9816469,-82.8667342,,,OH,,false,true,false,openstreetmap
+Chris Hardman Field,baseball,pitch,41.6696337,-83.6337813,,,OH,,false,true,false,openstreetmap
+Chris Nelms All-Star Field,baseball,stadium,39.1049724,-84.5269641,,,OH,,false,true,false,openstreetmap
+Civitan Field,baseball,pitch,41.0419411,-83.6478994,,,OH,,false,true,false,openstreetmap
+Clowsen Field,baseball,pitch,39.960813,-82.9466604,,,OH,,false,true,false,openstreetmap
+Coal Grove Baseball Field,baseball,pitch,38.5048832,-82.646411,,,OH,,false,true,false,openstreetmap
+Columbus State Cougars Field,baseball,pitch,39.9368421,-83.0121163,,,OH,,false,true,false,openstreetmap
+Cooper Stadium,baseball,pitch,39.9469188,-83.0285808,,,OH,,false,true,false,openstreetmap
+Craig & Mary Lou Anderson Field,baseball,pitch,41.0825654,-83.6542665,,,OH,,false,true,false,openstreetmap
+Crosley Field,baseball,pitch,39.2771753,-84.3622177,,,OH,,false,true,false,openstreetmap
+Dale Miller Field,baseball,pitch,41.4266043,-81.8239846,,,OH,,false,true,false,openstreetmap
+Damascus Community Baseball Field,baseball,pitch,40.8986869,-80.9568624,,,OH,,false,true,false,openstreetmap
+Dann Field,baseball,pitch,41.0834702,-80.580891,,,OH,,false,true,false,openstreetmap
+David Ousley Field,baseball,pitch,39.1301249,-82.5410673,,,OH,,false,true,false,openstreetmap
+Day Air Ballpark,baseball,stadium,39.7642589,-84.1852442,,,OH,,false,true,false,openstreetmap
+DeLost Field,baseball,pitch,41.046943,-80.5776322,,,OH,,false,true,false,openstreetmap
+Delaney–Tewksbury Baseball Diamond,baseball,stadium,39.4384055,-83.8187017,,,OH,,false,true,false,openstreetmap
+Dick Wriland Field,baseball,pitch,39.1248656,-84.5884302,,,OH,,false,true,false,openstreetmap
+Donges Field,baseball,pitch,40.8535945,-82.3184435,,,OH,,false,true,false,openstreetmap
+Donnell Pemberton Park,baseball,pitch,41.0669836,-80.6350913,,,OH,,false,true,false,openstreetmap
+East Field,baseball,pitch,40.7915144,-81.2876539,,,OH,,false,true,false,openstreetmap
+Eastwood Field,baseball,pitch,41.2187776,-80.7549391,,,OH,,false,true,false,openstreetmap
+Edison Ball Park,baseball,sports_centre,40.5570711,-82.8572028,,,OH,,false,true,false,openstreetmap
+Emmons Field,baseball,pitch,40.8811589,-82.3186171,,,OH,,false,true,false,openstreetmap
+Emory South 1,baseball,pitch,41.0152094,-83.6399904,,,OH,,false,true,false,openstreetmap
+Emory South 2,baseball,pitch,41.0141096,-83.6392154,,,OH,,false,true,false,openstreetmap
+Emory South 3,baseball,pitch,41.0143264,-83.6403868,,,OH,,false,true,false,openstreetmap
+Emory South 4,baseball,pitch,41.0154823,-83.6392379,,,OH,,false,true,false,openstreetmap
+Erie Blacktop Field,baseball,pitch,41.4508017,-82.7255201,,,OH,,false,true,false,openstreetmap
+Evans Field,baseball,pitch,41.0479165,-80.577688,,,OH,,false,true,false,openstreetmap
+FOE Softball Field,baseball,pitch,41.631687,-81.4171881,,,OH,,false,true,false,openstreetmap
+Fairbanks Athletics Fields,baseball,pitch,40.1752638,-83.4307408,,,OH,,false,true,false,openstreetmap
+Fath Field,baseball,pitch,39.1336665,-84.6104794,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,39.1194808,-84.2298782,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.4606663,-82.1950591,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.6519807,-81.3017076,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.1367003,-81.3411423,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.4125578,-81.9331878,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.4438253,-81.886603,,,OH,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.2650578,-83.3492563,,,OH,,false,true,false,openstreetmap
+Field #10,baseball,pitch,39.1190148,-84.2309082,,,OH,,false,true,false,openstreetmap
+Field #11,baseball,pitch,39.1185902,-84.2316806,,,OH,,false,true,false,openstreetmap
+Field #12,baseball,pitch,39.117171,-84.2317825,,,OH,,false,true,false,openstreetmap
+Field #13,baseball,pitch,39.1167672,-84.231289,,,OH,,false,true,false,openstreetmap
+Field #14,baseball,pitch,39.1163801,-84.2318469,,,OH,,false,true,false,openstreetmap
+Field #15,baseball,pitch,39.1168588,-84.2323297,,,OH,,false,true,false,openstreetmap
+Field #16,baseball,pitch,39.1170295,-84.232952,,,OH,,false,true,false,openstreetmap
+Field #17,baseball,pitch,39.1162969,-84.2328447,,,OH,,false,true,false,openstreetmap
+Field #18,baseball,pitch,39.1158765,-84.2324477,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,39.1198679,-84.2288803,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,41.459741,-82.1950201,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,41.1367069,-81.3398783,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,41.4134089,-81.933634,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,41.4444795,-81.8867726,,,OH,,false,true,false,openstreetmap
+Field #2,baseball,pitch,40.2651175,-83.3479424,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,39.119098,-84.2281776,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,41.4591728,-82.1953942,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,40.6532997,-81.3007141,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,41.1358624,-81.3398684,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,41.4142346,-81.9333121,,,OH,,false,true,false,openstreetmap
+Field #3,baseball,pitch,40.266183,-83.3480121,,,OH,,false,true,false,openstreetmap
+Field #4,baseball,pitch,39.1187441,-84.2292666,,,OH,,false,true,false,openstreetmap
+Field #4,baseball,pitch,41.4591047,-82.1945142,,,OH,,false,true,false,openstreetmap
+Field #4,baseball,pitch,41.1358557,-81.3411313,,,OH,,false,true,false,openstreetmap
+Field #4,baseball,pitch,41.4167822,-81.9329956,,,OH,,false,true,false,openstreetmap
+Field #4,baseball,pitch,40.2661183,-83.3493295,,,OH,,false,true,false,openstreetmap
+Field #5,baseball,pitch,39.1179534,-84.2281883,,,OH,,false,true,false,openstreetmap
+Field #5,baseball,pitch,41.4175987,-81.9338197,,,OH,,false,true,false,openstreetmap
+Field #6,baseball,pitch,39.1174623,-84.2292237,,,OH,,false,true,false,openstreetmap
+Field #7,baseball,pitch,39.1170419,-84.2299425,,,OH,,false,true,false,openstreetmap
+Field #8,baseball,pitch,39.1176621,-84.2305219,,,OH,,false,true,false,openstreetmap
+Field #9,baseball,pitch,39.1180575,-84.2297387,,,OH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.1626511,-84.2803438,,,OH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,40.8795633,-82.3461252,,,OH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.3961542,-82.5701993,,,OH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.0596283,-80.5912709,,,OH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.9381184,-83.0028188,,,OH,,false,true,false,openstreetmap
+Field 10,baseball,pitch,39.1674158,-84.2818158,,,OH,,false,true,false,openstreetmap
+Field 10,baseball,pitch,39.9374978,-83.0066685,,,OH,,false,true,false,openstreetmap
+Field 11,baseball,pitch,39.1680315,-84.281833,,,OH,,false,true,false,openstreetmap
+Field 11,baseball,pitch,39.9363884,-83.0066748,,,OH,,false,true,false,openstreetmap
+Field 12,baseball,pitch,39.1681545,-84.2825926,,,OH,,false,true,false,openstreetmap
+Field 12,baseball,pitch,39.9363894,-83.0080188,,,OH,,false,true,false,openstreetmap
+Field 13,baseball,pitch,39.1685438,-84.2817643,,,OH,,false,true,false,openstreetmap
+Field 13,baseball,pitch,39.937504,-83.0080167,,,OH,,false,true,false,openstreetmap
+Field 14,baseball,pitch,39.9341275,-83.0070908,,,OH,,false,true,false,openstreetmap
+Field 15,baseball,pitch,39.9330288,-83.0070908,,,OH,,false,true,false,openstreetmap
+Field 16,baseball,pitch,39.933126,-83.0085888,,,OH,,false,true,false,openstreetmap
+Field 17,baseball,pitch,39.9342009,-83.0085366,,,OH,,false,true,false,openstreetmap
+Field 18,baseball,pitch,39.1688333,-84.280949,,,OH,,false,true,false,openstreetmap
+Field 18,baseball,pitch,39.9317914,-83.0070995,,,OH,,false,true,false,openstreetmap
+Field 19,baseball,pitch,39.9307843,-83.0069003,,,OH,,false,true,false,openstreetmap
+Field 2,baseball,pitch,40.878574,-82.3460901,,,OH,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.3959767,-82.5716316,,,OH,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.0599124,-80.5894564,,,OH,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.9388683,-83.0040775,,,OH,,false,true,false,openstreetmap
+Field 20,baseball,pitch,39.9294335,-83.0071332,,,OH,,false,true,false,openstreetmap
+Field 21,baseball,pitch,39.9295007,-83.0085796,,,OH,,false,true,false,openstreetmap
+Field 22,baseball,pitch,39.9297045,-83.0097377,,,OH,,false,true,false,openstreetmap
+Field 23,baseball,pitch,39.9306162,-83.0095232,,,OH,,false,true,false,openstreetmap
+Field 24,baseball,pitch,39.9312632,-83.0081507,,,OH,,false,true,false,openstreetmap
+Field 25,baseball,pitch,39.9304456,-83.0083146,,,OH,,false,true,false,openstreetmap
+Field 26,baseball,pitch,39.9287942,-83.0099982,,,OH,,false,true,false,openstreetmap
+Field 27,baseball,pitch,39.9285778,-83.0088484,,,OH,,false,true,false,openstreetmap
+Field 28,baseball,pitch,39.9281433,-83.0080515,,,OH,,false,true,false,openstreetmap
+Field 29,baseball,pitch,39.9272529,-83.0084126,,,OH,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.164557,-84.2797465,,,OH,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.1630019,-84.5239383,,,OH,,false,true,false,openstreetmap
+Field 3,baseball,pitch,40.8775545,-82.346253,,,OH,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.3967224,-82.5716204,,,OH,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.0599195,-80.5879115,,,OH,,false,true,false,openstreetmap
+Field 30,baseball,pitch,39.9265653,-83.0086131,,,OH,,false,true,false,openstreetmap
+Field 31,baseball,pitch,39.9268026,-83.010001,,,OH,,false,true,false,openstreetmap
+Field 32,baseball,pitch,39.9276302,-83.0098218,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.1643947,-84.2816184,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.876998,-82.3482542,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,40.8769092,-82.3470571,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.3959749,-82.5726848,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.9368842,-83.0029051,,,OH,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.5419465,-81.4662552,,,OH,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.1658577,-84.2797738,,,OH,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.5419363,-81.4653703,,,OH,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.3967158,-82.5727081,,,OH,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.9368595,-83.0044214,,,OH,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.1659818,-84.281709,,,OH,,false,true,false,openstreetmap
+Field 6,baseball,pitch,41.5412951,-81.4654108,,,OH,,false,true,false,openstreetmap
+Field 6,baseball,pitch,41.3960466,-82.5735103,,,OH,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.9382078,-83.0065381,,,OH,,false,true,false,openstreetmap
+Field 7,baseball,pitch,39.1659424,-84.280627,,,OH,,false,true,false,openstreetmap
+Field 7,baseball,pitch,41.5412815,-81.4662597,,,OH,,false,true,false,openstreetmap
+Field 7,baseball,pitch,41.3966334,-82.5735563,,,OH,,false,true,false,openstreetmap
+Field 7,baseball,pitch,39.9355815,-83.0081766,,,OH,,false,true,false,openstreetmap
+Field 8,baseball,pitch,39.1673427,-84.2824725,,,OH,,false,true,false,openstreetmap
+Field 8,baseball,pitch,41.3940436,-82.5730563,,,OH,,false,true,false,openstreetmap
+Field 8,baseball,pitch,39.9354084,-83.0067167,,,OH,,false,true,false,openstreetmap
+Field 9,baseball,pitch,39.1669567,-84.2817343,,,OH,,false,true,false,openstreetmap
+Field 9,baseball,pitch,41.3932185,-82.5729638,,,OH,,false,true,false,openstreetmap
+Field 9,baseball,pitch,39.9382373,-83.0078015,,,OH,,false,true,false,openstreetmap
+Fifth Third Field,baseball,pitch,41.0834245,-83.6546437,,,OH,,false,true,false,openstreetmap
+Fifth-Third Field,baseball,stadium,41.6485515,-83.5385284,,,OH,,false,true,false,openstreetmap
+Fireman's Field,baseball,pitch,41.0262256,-80.6063511,,,OH,,false,true,false,openstreetmap
+Firestone Stadium,baseball,stadium,41.0412574,-81.5283777,,,OH,,false,true,false,openstreetmap
+Fodor Field,baseball,pitch,40.0953351,-80.7270415,,,OH,,false,true,false,openstreetmap
+For Inmates,baseball,pitch,41.1325633,-80.6319804,,,OH,,false,true,false,openstreetmap
+Frank J. Damien Field,baseball,pitch,39.9942801,-82.9389294,,,OH,,false,true,false,openstreetmap
+Franklin D. Roosevelt Memorial Field,baseball,pitch,41.0875186,-80.5813329,,,OH,,false,true,false,openstreetmap
+GHS Baseball Field,baseball,pitch,38.6182091,-82.8458245,,,OH,,false,true,false,openstreetmap
+Gant Park Municipal Stadium,baseball,stadium,39.9451552,-82.0269125,,,OH,,false,true,false,openstreetmap
+"George ""Shotgun"" Shuba Field",baseball,pitch,41.105542,-80.6900763,,,OH,,false,true,false,openstreetmap
+Giammarco Field,baseball,pitch,40.8759039,-81.3789445,,,OH,,false,true,false,openstreetmap
+Great American Ball Park,baseball,stadium,39.0972588,-84.5066425,,,OH,,false,true,false,openstreetmap
+Grossman Field,baseball,pitch,41.3908143,-81.7135421,,,OH,,false,true,false,openstreetmap
+Grove City Christian School,baseball,pitch,39.8624499,-83.0681925,,,OH,,false,true,false,openstreetmap
+Grove City Christian School,baseball,pitch,39.8635534,-83.0681201,,,OH,,false,true,false,openstreetmap
+Hardman Field,baseball,pitch,40.1616767,-84.2587143,,,OH,,false,true,false,openstreetmap
+Harmon Field,baseball,pitch,40.3630757,-83.7736435,,,OH,,false,true,false,openstreetmap
+Hayden Field,baseball,stadium,39.149762,-84.4767103,,,OH,,false,true,false,openstreetmap
+Howell Field,baseball,pitch,39.7848453,-84.2006564,,,OH,,false,true,false,openstreetmap
+Hubbard High School Baseball Stadium,baseball,pitch,41.150195,-80.5831867,,,OH,,false,true,false,openstreetmap
+Hubbard High School Softball,baseball,pitch,41.1549632,-80.5822891,,,OH,,false,true,false,openstreetmap
+Hudson High School Baseball Field,baseball,pitch,41.2544511,-81.4121209,,,OH,,false,true,false,openstreetmap
+Huntington Park,baseball,stadium,39.9686428,-83.0109686,,,OH,,false,true,false,openstreetmap
+Indian Hill High School Baseball Fields,baseball,pitch,39.1884598,-84.3458981,,,OH,,false,true,false,openstreetmap
+Intramural Field,baseball,pitch,38.8772275,-82.3773134,,,OH,,false,true,false,openstreetmap
+Iriti Field,baseball,pitch,41.0830088,-83.655755,,,OH,,false,true,false,openstreetmap
+J. T. Stottman Ballfield,baseball,pitch,39.2730767,-84.2606262,,,OH,,false,true,false,openstreetmap
+Jim Bushman Memorial Baseball Complex,baseball,sports_centre,39.0633377,-84.2154662,,,OH,,false,true,false,openstreetmap
+Jim Wright Field,baseball,pitch,39.9258342,-82.0092087,,,OH,,false,true,false,openstreetmap
+John Heisler Park,baseball,sports_centre,39.2181824,-84.1592863,,,OH,,false,true,false,openstreetmap
+Johnston Fire Station Field,baseball,pitch,41.3875129,-80.6603072,,,OH,,false,true,false,openstreetmap
+Jones Field,baseball,pitch,41.162542,-80.5626355,,,OH,,false,true,false,openstreetmap
+José Ramírez Field,baseball,pitch,41.4726929,-81.6865897,,,OH,,false,true,false,openstreetmap
+Kaiser Field,baseball,pitch,40.1122692,-83.2737896,,,OH,,false,true,false,openstreetmap
+Ken Beamer Field,baseball,pitch,40.4159969,-81.4267307,,,OH,,false,true,false,openstreetmap
+Ken Cleveland Park Baseball Field,baseball,pitch,41.1193777,-81.8576033,,,OH,,false,true,false,openstreetmap
+Kiwanis Ball Field,baseball,pitch,39.4453159,-83.8081098,,,OH,,false,true,false,openstreetmap
+Koehler Feild,baseball,pitch,41.0294466,-83.6416852,,,OH,,false,true,false,openstreetmap
+Lady Jacket Softball Field,baseball,pitch,39.7573779,-83.815062,,,OH,,false,true,false,openstreetmap
+Lagonda Field,baseball,pitch,39.9398479,-83.7814245,,,OH,,false,true,false,openstreetmap
+Lee R. Jackson Baseball Field,baseball,stadium,41.0733146,-81.5119155,,,OH,,false,true,false,openstreetmap
+Lee R. Jackson Softball Field,baseball,stadium,41.0744189,-81.5103158,,,OH,,false,true,false,openstreetmap
+Leonard A. Rob Field,baseball,pitch,41.3927938,-81.7808098,,,OH,,false,true,false,openstreetmap
+Lincoln Lee Sports Complex,baseball,sports_centre,39.266866,-84.6614575,,,OH,,false,true,false,openstreetmap
+Little Fenway Park,baseball,stadium,39.20713,-84.7021976,,,OH,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,40.4375928,-81.3669579,,,OH,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,41.5254295,-81.2124187,,,OH,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,41.525459,-81.2114337,,,OH,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,41.5254961,-81.2106099,,,OH,,false,true,false,openstreetmap
+Logan-Hocking School District,baseball,pitch,39.5134475,-82.3725915,,,OH,,false,true,false,openstreetmap
+Lou Groza Field,baseball,pitch,41.3536175,-81.870761,,,OH,,false,true,false,openstreetmap
+Lynn Kirk Park Baseball Field,baseball,pitch,41.0659128,-80.7259899,,,OH,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,38.6918445,-83.5922863,,,OH,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,38.6919796,-83.5916381,,,OH,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,38.6927834,-83.5923119,,,OH,,false,true,false,openstreetmap
+MHS Baseball Field,baseball,pitch,38.692461,-83.5894068,,,OH,,false,true,false,openstreetmap
+Major League Field,baseball,pitch,41.524347,-81.2106766,,,OH,,false,true,false,openstreetmap
+Maplewood Elementary Baseball Field,baseball,pitch,41.3870364,-80.6687439,,,OH,,false,true,false,openstreetmap
+McKie Field,baseball,stadium,39.513242,-84.7324209,,,OH,,false,true,false,openstreetmap
+Mecca Baseball Field,baseball,pitch,41.3852059,-80.7310694,,,OH,,false,true,false,openstreetmap
+Medvec Field,baseball,pitch,41.0482704,-80.5781627,,,OH,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,41.0264674,-84.0428783,,,OH,,false,true,false,openstreetmap
+Memorial Park Field,baseball,pitch,41.0232963,-81.7392817,,,OH,,false,true,false,openstreetmap
+Meserve Softball Field,baseball,pitch,41.3807975,-83.6255299,,,OH,,false,true,false,openstreetmap
+Metzger North Ballfield,baseball,pitch,40.8270595,-81.2469546,,,OH,,false,true,false,openstreetmap
+Metzger South Ballfield,baseball,pitch,40.8252346,-81.2467659,,,OH,,false,true,false,openstreetmap
+Meyer Field,baseball,pitch,41.5487828,-83.6186207,,,OH,,false,true,false,openstreetmap
+Miles Playfield,baseball,pitch,41.4431196,-81.5711049,,,OH,,false,true,false,openstreetmap
+Miller Field,baseball,pitch,40.8794802,-82.3070584,,,OH,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,40.0963174,-83.1982057,,,OH,,false,true,false,openstreetmap
+Miracle Park,baseball,pitch,41.081995,-83.6569054,,,OH,,false,true,false,openstreetmap
+Mount Vernon Nazarene University Softball Dimond,baseball,pitch,40.3716779,-82.4793369,,,OH,,false,true,false,openstreetmap
+Municipal Stadium,baseball,stadium,39.9389328,-83.7880067,,,OH,,false,true,false,openstreetmap
+Mural Field,baseball,pitch,41.1360509,-81.3424087,,,OH,,false,true,false,openstreetmap
+Murray Baseball Field,baseball,stadium,40.8125448,-81.9304079,,,OH,,false,true,false,openstreetmap
+NAHS Baseball Field,baseball,pitch,38.9400715,-83.5885071,,,OH,,false,true,false,openstreetmap
+NAHS Softball Field,baseball,pitch,38.9407531,-83.5907731,,,OH,,false,true,false,openstreetmap
+NDHS Baseball Field,baseball,pitch,38.7497714,-82.9838847,,,OH,,false,true,false,openstreetmap
+National Lime & Stone Field,baseball,pitch,41.0821247,-83.6558834,,,OH,,false,true,false,openstreetmap
+Newton Baseball Diamonds,baseball,pitch,40.0563432,-84.3406713,,,OH,,false,true,false,openstreetmap
+Nick Swisher Field,baseball,pitch,40.009858,-83.0258829,,,OH,,false,true,false,openstreetmap
+Nobby's Ballpark,baseball,pitch,41.5152561,-81.6036854,,,OH,,false,true,false,openstreetmap
+North End Athletic Field,baseball,sports_centre,39.4068641,-84.5495836,,,OH,,false,true,false,openstreetmap
+North Field,baseball,pitch,41.2304933,-81.4298337,,,OH,,false,true,false,openstreetmap
+Northridge Baseball Field,baseball,pitch,39.8151513,-84.1954741,,,OH,,false,true,false,openstreetmap
+OCU Softball Field,baseball,pitch,39.6109733,-82.9102148,,,OH,,false,true,false,openstreetmap
+OHHS Baseball Field,baseball,pitch,38.906349,-82.5730711,,,OH,,false,true,false,openstreetmap
+Old Forge Field,baseball,pitch,41.0871206,-81.4955906,,,OH,,false,true,false,openstreetmap
+Olson Field,baseball,pitch,39.6107816,-82.9075592,,,OH,,false,true,false,openstreetmap
+PHS Baseball Field,baseball,pitch,38.7352638,-82.9925062,,,OH,,false,true,false,openstreetmap
+PNC Field,baseball,pitch,39.1235587,-84.4660727,,,OH,,false,true,false,openstreetmap
+PWHS Baseball Field,baseball,pitch,38.7166568,-83.0494647,,,OH,,false,true,false,openstreetmap
+Paul Kramer Field,baseball,pitch,39.1176194,-84.446618,,,OH,,false,true,false,openstreetmap
+Paul Serra Field,baseball,pitch,41.5990671,-81.523875,,,OH,,false,true,false,openstreetmap
+Pearl Kisor Field,baseball,pitch,39.1300874,-82.5401579,,,OH,,false,true,false,openstreetmap
+"Pearley A. Hurst, Sr. Memorial Field",baseball,pitch,39.7487586,-82.6511025,,,OH,,false,true,false,openstreetmap
+Pony Field,baseball,pitch,40.1116825,-83.273508,,,OH,,false,true,false,openstreetmap
+Powers Field,baseball,pitch,41.3933098,-81.7820594,,,OH,,false,true,false,openstreetmap
+Price Field,baseball,pitch,40.8961684,-83.6477145,,,OH,,false,true,false,openstreetmap
+Railway Park Field 1,baseball,pitch,41.5908511,-83.4962067,,,OH,,false,true,false,openstreetmap
+Railway Park Field 2,baseball,pitch,41.5917037,-83.4964212,,,OH,,false,true,false,openstreetmap
+Rakestraw Memorial Field,baseball,pitch,39.1146146,-84.4395768,,,OH,,false,true,false,openstreetmap
+Rather Field,baseball,pitch,41.4418448,-82.700935,,,OH,,false,true,false,openstreetmap
+Retting Field,baseball,pitch,41.0820334,-83.6547804,,,OH,,false,true,false,openstreetmap
+Robert S. Gardner Stadium,baseball,stadium,39.2787157,-84.3364199,,,OH,,false,true,false,openstreetmap
+Ron Hudson Field,baseball,pitch,39.1307353,-82.5402802,,,OH,,false,true,false,openstreetmap
+Ron Oester Field,baseball,pitch,39.1441896,-84.4529462,,,OH,,false,true,false,openstreetmap
+Roosevelt Park,baseball,pitch,41.1699605,-81.3575156,,,OH,,false,true,false,openstreetmap
+Rosevelt Baseball Diamond,baseball,pitch,40.6698559,-81.263295,,,OH,,false,true,false,openstreetmap
+Rotary Field,baseball,pitch,39.445962,-83.8083781,,,OH,,false,true,false,openstreetmap
+Runyan Field,baseball,pitch,39.4312317,-84.2053632,,,OH,,false,true,false,openstreetmap
+Russell Jones Field,baseball,pitch,40.652699,-81.3011486,,,OH,,false,true,false,openstreetmap
+Ryman Field 1,baseball,pitch,39.9827753,-83.921837,,,OH,,false,true,false,openstreetmap
+Ryman Field 2,baseball,pitch,39.9834947,-83.920453,,,OH,,false,true,false,openstreetmap
+Ryman Field 3,baseball,pitch,39.9836981,-83.9196429,,,OH,,false,true,false,openstreetmap
+Ryman Field 4,baseball,pitch,39.9826211,-83.9196189,,,OH,,false,true,false,openstreetmap
+Ryman Field 5,baseball,pitch,39.9827527,-83.9206515,,,OH,,false,true,false,openstreetmap
+Ryman Field 6,baseball,pitch,39.9822882,-83.9204879,,,OH,,false,true,false,openstreetmap
+SPHS Baseball Field,baseball,pitch,38.4405818,-82.5788642,,,OH,,false,true,false,openstreetmap
+Sandora Field,baseball,pitch,41.0476301,-80.5769208,,,OH,,false,true,false,openstreetmap
+Schott Brothers Athletic Field,baseball,pitch,40.9757961,-82.1082064,,,OH,,false,true,false,openstreetmap
+Schweickert Field,baseball,pitch,41.4913708,-81.525093,,,OH,,false,true,false,openstreetmap
+Shakira Johnson Field,baseball,pitch,41.4627573,-81.6175836,,,OH,,false,true,false,openstreetmap
+Shatto Field,baseball,pitch,41.1161116,-81.5757258,,,OH,,false,true,false,openstreetmap
+Shinew Field,baseball,pitch,41.3231065,-83.6478379,,,OH,,false,true,false,openstreetmap
+Sidney High School Baseball Field,baseball,pitch,40.2774886,-84.1748113,,,OH,,false,true,false,openstreetmap
+Sims Field,baseball,pitch,39.4471592,-83.8087483,,,OH,,false,true,false,openstreetmap
+Softball Diamond,baseball,pitch,41.3109409,-81.3471033,,,OH,,false,true,false,openstreetmap
+Softball Field 1,baseball,pitch,40.4378601,-81.3688374,,,OH,,false,true,false,openstreetmap
+Softball Field 2,baseball,pitch,40.4370137,-81.366538,,,OH,,false,true,false,openstreetmap
+South Campus Field,baseball,stadium,39.2065728,-84.5028672,,,OH,,false,true,false,openstreetmap
+Southern Star Field,baseball,pitch,40.7907936,-81.2896757,,,OH,,false,true,false,openstreetmap
+Southside 2,baseball,pitch,40.9168432,-81.0218516,,,OH,,false,true,false,openstreetmap
+Southside 2 - Dale Beckett Field,baseball,pitch,40.9170627,-81.021425,,,OH,,false,true,false,openstreetmap
+Southside 3,baseball,pitch,40.9177053,-81.0219481,,,OH,,false,true,false,openstreetmap
+Southside 4 - Joe Caskey Field,baseball,pitch,40.9177368,-81.0227593,,,OH,,false,true,false,openstreetmap
+Sprau 2,baseball,pitch,41.450808,-82.7239771,,,OH,,false,true,false,openstreetmap
+Springboro Community City Schools,baseball,pitch,39.5348453,-84.2380676,,,OH,,false,true,false,openstreetmap
+Stanley Field,baseball,pitch,40.7915335,-81.2884862,,,OH,,false,true,false,openstreetmap
+Start High School Baseball Field,baseball,pitch,41.7025505,-83.5877248,,,OH,,false,true,false,openstreetmap
+Stebbins high school baseball field,baseball,stadium,39.7971026,-84.1259901,,,OH,,false,true,false,openstreetmap
+Steller Field,baseball,pitch,41.3809814,-83.6283111,,,OH,,false,true,false,openstreetmap
+Steubenville High School Baseball Field,baseball,pitch,40.3658505,-80.6431073,,,OH,,false,true,false,openstreetmap
+Stowell Park,baseball,park,40.7807576,-82.5938369,,,OH,,false,true,false,openstreetmap
+Sycamore High School Baseball Field,baseball,stadium,39.267425,-84.3490634,,,OH,,false,true,false,openstreetmap
+Tabernacle Baseball Field,baseball,pitch,41.0708726,-80.7342264,,,OH,,false,true,false,openstreetmap
+The David and Peggy Edmonds Baseball and Softball Training Facility,baseball,sports_centre,41.1369479,-81.3429699,,,OH,,false,true,false,openstreetmap
+Time Warner Cable Stadium,baseball,stadium,39.7345904,-84.2033223,,,OH,,false,true,false,openstreetmap
+Tom Gardner Field,baseball,pitch,40.3326198,-81.5197186,,,OH,,false,true,false,openstreetmap
+UC Baseball Stadium,baseball,stadium,39.130107,-84.5136679,,,OH,,false,true,false,openstreetmap
+University of Toledo - Connelly Field,baseball,pitch,41.6413289,-83.594357,,,OH,,false,true,false,openstreetmap
+VFW Post 1380,baseball,pitch,39.7040391,-82.589836,,,OH,,false,true,false,openstreetmap
+Vaccaro Field,baseball,pitch,40.3790866,-80.6235765,,,OH,,false,true,false,openstreetmap
+Vaccaro Field,baseball,stadium,40.3790606,-80.6236408,,,OH,,false,true,false,openstreetmap
+Victory Field,baseball,pitch,41.1072258,-80.6231318,,,OH,,false,true,false,openstreetmap
+WHS Baseball Field,baseball,pitch,38.725883,-82.8492073,,,OH,,false,true,false,openstreetmap
+WHS Veterans Field,baseball,pitch,39.1334875,-82.5425573,,,OH,,false,true,false,openstreetmap
+WRA Baseball Field,baseball,pitch,41.2489887,-81.432697,,,OH,,false,true,false,openstreetmap
+WRA Varsity Baseball Field,baseball,pitch,41.248954,-81.4299877,,,OH,,false,true,false,openstreetmap
+WUHS Baseball Field,baseball,pitch,38.8166595,-83.5849917,,,OH,,false,true,false,openstreetmap
+Washington Township Public Recreation Area,baseball,sports_centre,40.6683541,-82.8412565,,,OH,,false,true,false,openstreetmap
+WaterWorks Park Field C,baseball,pitch,40.2824712,-81.7549351,,,OH,,false,true,false,openstreetmap
+WaterWorks Park Field D,baseball,pitch,40.2824595,-81.7559335,,,OH,,false,true,false,openstreetmap
+WaterWorks Park Field E,baseball,pitch,40.2817587,-81.7559689,,,OH,,false,true,false,openstreetmap
+Wauseon Baseball Diamond,baseball,pitch,41.5522617,-84.1260448,,,OH,,false,true,false,openstreetmap
+Williamsburg Junior Athletic Association Sports Complex,baseball,sports_centre,39.0436949,-84.0209138,,,OH,,false,true,false,openstreetmap
+Willow Park Baseball Diamond,baseball,pitch,41.3291272,-80.7204422,,,OH,,false,true,false,openstreetmap
+Wyoming High School Baseball Field,baseball,pitch,39.234466,-84.4692496,,,OH,,false,true,false,openstreetmap
+Yellow Jacket Baseball Field,baseball,pitch,39.7560815,-83.8148162,,,OH,,false,true,false,openstreetmap
+Zooks Field,baseball,pitch,41.2973757,-81.0800325,,,OH,,false,true,false,openstreetmap
+softball diamond,baseball,pitch,40.7689042,-84.1204138,,,OH,,false,true,false,openstreetmap
+Gaumer Park,baseball,park,40.0732455,-81.8822153,,Adamsville,OH,43802,false,true,false,openstreetmap
+Akron RubberDucks Field at Forest Lodge,baseball,pitch,41.1006488,-81.5687175,1260 Jefferson Avenue,Akron,OH,44320,false,true,false,openstreetmap
+Canal Park,baseball,stadium,41.0780764,-81.5220204,,Akron,OH,,false,true,false,openstreetmap
+Mercy Health Stadium,baseball,stadium,41.4597559,-82.0611308,2009 Baseball Boulevard,Avon,OH,44011,false,true,false,openstreetmap
+Hutchinson Field,baseball,pitch,41.3895672,-81.5497346,350 West Grace Street,Bedford,OH,44146,false,true,false,openstreetmap
+VA Memorial Stadium,baseball,stadium,39.3891472,-83.0177738,17273 State Route 104,Chillicothe,OH,45601,false,true,false,openstreetmap
+Progressive Field,baseball,stadium,41.4960317,-81.6853512,2401 Ontario Street,Cleveland,OH,44115,false,true,false,openstreetmap
+Columbus Clippers,baseball,pitch,39.9684094,-83.0118794,330 Huntington Park Lane,Columbus,OH,43215,false,true,false,openstreetmap
+Ted Mills Baseball Instruction,baseball,pitch,39.7634071,-84.183621,142 Sears Street,Dayton,OH,45402,false,true,false,openstreetmap
+Classic Park,baseball,stadium,41.6412058,-81.4360119,35300 Vine Street,Eastlake,OH,44095,false,true,false,openstreetmap
+Classic Park,baseball,stadium,41.6410997,-81.4357923,35300 Vine Street,Eastlake,OH,44095,false,true,false,openstreetmap
+"Hamilton Joes Baseball Club, Inc.",baseball,stadium,39.3886265,-84.5675073,1140 South Front Street,Hamilton,OH,45011,false,true,false,openstreetmap
+M.V.P. Sportspark,baseball,sports_centre,39.2385692,-84.7950306,Campbell Road,Harrison,OH,45030,false,true,false,openstreetmap
+Schoonover Stadium,baseball,stadium,41.1359937,-81.342528,,Kent,OH,,false,true,false,openstreetmap
+Don Schaly Stadium,baseball,stadium,39.4142674,-81.4337151,Mulholland Drive,Marietta,OH,,false,true,false,openstreetmap
+Davis Ballfields,baseball,sports_centre,41.0474471,-80.5771873,100 Katherine Street,Struthers,OH,44471,false,true,false,openstreetmap

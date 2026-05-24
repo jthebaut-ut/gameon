@@ -814,6 +814,11 @@ extension MapViewModel {
                 return
             }
 
+            if await refreshActiveBanGate(reason: "emailPasswordBusinessLogin") {
+                clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+                return
+            }
+
             guard await businessAccountAccessIsAllowedForAuthenticatedSession(
                 ownerEmail: ownerEmail,
                 userId: session.user.id,

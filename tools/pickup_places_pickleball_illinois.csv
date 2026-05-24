@@ -1,0 +1,34 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Big City Pickle,pickleball,pitch,41.9131725,-87.6613406,,,IL,,false,true,false,openstreetmap
+Big City Pickle,pickleball,pitch,41.9085661,-87.6600925,,,IL,,false,true,false,openstreetmap
+Fabbrini Park Pickleball Courts,pickleball,pitch,42.0596609,-88.110641,,,IL,,false,true,false,openstreetmap
+Pickle Haus,pickleball,pitch,42.1507254,-88.3325003,,,IL,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,41.8524785,-88.0787499,,,IL,,false,true,false,openstreetmap
+Roosevelt Park Pickleball Court,pickleball,pitch,41.8678605,-87.6301481,,,IL,,false,true,false,openstreetmap
+Saint Boniface Park - Pickleball Court,pickleball,pitch,41.5945413,-87.7844928,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7797762,-89.6469998,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7797784,-89.6468878,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7797805,-89.646779,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7797808,-89.6466698,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7796156,-89.6466688,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7796164,-89.6467775,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7796141,-89.6468888,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.7796137,-89.6469976,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8057988,-89.6674216,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8058015,-89.6673061,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8058023,-89.6671888,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8056349,-89.6671813,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8056341,-89.6672986,,,IL,,false,true,false,openstreetmap
+Springfield Park District,pickleball,pitch,39.8056314,-89.6674141,,,IL,,false,true,false,openstreetmap
+The DREY Pickleball Complex,pickleball,sports_centre,38.7414342,-88.0799807,,,IL,,false,true,false,openstreetmap
+Village of Minooka,pickleball,pitch,41.4670887,-88.303242,,,IL,,false,true,false,openstreetmap
+Village of Minooka,pickleball,pitch,41.4673142,-88.3032439,,,IL,,false,true,false,openstreetmap
+Wheeling Park Chambers Pickle Ball Court,pickleball,pitch,42.1429907,-87.9138249,,,IL,,false,true,false,openstreetmap
+Martens Center at Human Kinetics Park,pickleball,sports_centre,40.1317312,-88.2396863,1515 North Market Street,Champaign,IL,61820,false,true,false,openstreetmap
+Pickleball Complex,pickleball,sports_centre,40.1086952,-88.2837619,2203 West John Street,Champaign,IL,61821,false,true,false,openstreetmap
+GameChangers Pickleball & More,pickleball,pitch,41.4311518,-88.227484,25334 West Eames Street,Channahon,IL,60410,false,true,false,openstreetmap
+Big City Pickle,pickleball,pitch,41.8851753,-87.6492147,170 North Green Street,Chicago,IL,60607,false,true,false,openstreetmap
+Roosevelt Park Pickleball Court,pickleball,pitch,41.8676979,-87.6301442,62 West Roosevelt Road,Chicago,IL,60605,false,true,false,openstreetmap
+SPF Chicago,pickleball,sports_centre,41.9207882,-87.6615387,2121 North Clybourn Avenue,Chicago,IL,60614,false,true,false,openstreetmap
+The Picklr,pickleball,sports_centre,40.5094844,-88.9588862,1503 East College Avenue,Normal,IL,,false,true,false,openstreetmap
+Pickled!,pickleball,sports_centre,41.8874046,-88.1037531,288 East Geneva Road,Wheaton,IL,60187,false,true,false,openstreetmap

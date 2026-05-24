@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Crabapple Pickleball Court,pickleball,pitch,40.2585999,-79.7216983,,,PA,,false,true,false,openstreetmap
+Devlin Park Pickleball Courts,pickleball,pitch,40.5902545,-80.02022,,,PA,,false,true,false,openstreetmap
+Dink City Pickleball Club,pickleball,sports_centre,40.0573424,-75.3905573,,,PA,,false,true,false,openstreetmap
+Meadowcroft Park Pickleball Courts,pickleball,sports_centre,40.3884063,-80.0473608,,,PA,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,40.1766562,-76.0484362,,,PA,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,39.8500835,-75.7072314,,,PA,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,40.9291706,-76.1424571,,,PA,,false,true,false,openstreetmap
+Pocono Farms Country Club Association,pickleball,pitch,41.1697855,-75.3796562,,,PA,,false,true,false,openstreetmap
+Pocono Farms Country Club Association,pickleball,pitch,41.1696234,-75.3796985,,,PA,,false,true,false,openstreetmap
+Saucon Valley Country Club,pickleball,sports_centre,40.5471972,-75.3841916,,,PA,,false,true,false,openstreetmap
+The Pickleball Bank,pickleball,pitch,41.1203113,-78.7264618,,,PA,,true,false,false,openstreetmap
+tlc pickleball,pickleball,pitch,41.0439236,-75.3095055,,,PA,,false,true,false,openstreetmap
+Boyertown Pickleball,pickleball,pitch,40.3246266,-75.6341981,417 Madison Street,Boyertown,PA,19512,false,true,false,openstreetmap
+Picklr,pickleball,fitness_centre,40.0292786,-75.6348116,201 West Lincoln Highway,Exton,PA,19341,false,true,false,openstreetmap
+Bounce Pickleball Club,pickleball,sports_centre,40.0446096,-75.5244379,10 South Morehall Road,Malvern,PA,19355,false,true,false,openstreetmap
+Smash Point Pickleball,pickleball,sports_centre,40.2363661,-76.9815457,97 Gateway Drive,Mechanicsburg,PA,17050,false,true,false,openstreetmap
+The Pickleball Warehouse,pickleball,pitch,40.4567923,-79.9063743,6815 Hamilton Avenue,Pittsburgh,PA,15208,true,false,false,openstreetmap
+West Reading Pickleball,pickleball,pitch,40.3262234,-75.9484545,915 Old Wyomissing Road,Reading,PA,19611,false,true,false,openstreetmap

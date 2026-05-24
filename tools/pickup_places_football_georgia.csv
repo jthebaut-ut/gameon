@@ -1,0 +1,120 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+A. J. McClung Memorial Stadium,football,stadium,32.4515874,-84.9849182,4th Street,,GA,31901,false,true,false,openstreetmap
+ASU Coliseum,football,stadium,31.5729512,-84.1370009,,,GA,,false,true,false,openstreetmap
+Aarow Field,football,pitch,34.0145312,-84.4762049,,,GA,,false,true,false,openstreetmap
+Albert Matthews Field,football,pitch,34.0407614,-84.6496283,,,GA,,false,true,false,openstreetmap
+B. T. Harvey Stadium,football,pitch,33.7457281,-84.4162182,,,GA,,false,true,false,openstreetmap
+Bacon Park Football Field,football,pitch,32.0120939,-81.0798183,,,GA,,false,true,false,openstreetmap
+Baker Field,football,pitch,33.9093743,-84.4156086,,,GA,,false,true,false,openstreetmap
+Band Practice Field,football,pitch,34.7198734,-85.2633203,,,GA,,false,true,false,openstreetmap
+Barron Stadium,football,pitch,34.2570578,-85.1769267,,,GA,,false,true,false,openstreetmap
+Bell Memorial Field,football,pitch,32.1557823,-81.9169428,,,GA,,false,true,false,openstreetmap
+Ben Brady Field,football,pitch,34.2608561,-85.1915629,,,GA,,false,true,false,openstreetmap
+Billy Henderson Stadium,football,pitch,33.9507827,-83.3910967,,,GA,,false,true,false,openstreetmap
+Bobby Dodd Stadium,football,stadium,33.7725515,-84.3929615,,,GA,,false,true,false,openstreetmap
+Brock Football Practice Facility,football,pitch,33.778837,-84.3949325,,,GA,,false,true,false,openstreetmap
+Calvary Christian School - Football Field,football,pitch,32.558869,-84.9337308,,,GA,,false,true,false,openstreetmap
+Campbell High School,football,pitch,33.8901556,-84.5239731,,,GA,,false,true,false,openstreetmap
+Campbell Middle School,football,pitch,33.8749416,-84.4967295,,,GA,,false,true,false,openstreetmap
+Chattahoochee High School,football,pitch,34.0507148,-84.2071619,,,GA,,false,true,false,openstreetmap
+Clark Atlanta Staduim,football,pitch,33.7530816,-84.4114507,,,GA,,false,true,false,openstreetmap
+Cleveland Field,football,pitch,30.8459632,-83.2839761,,,GA,,false,true,false,openstreetmap
+Corky Kell,football,pitch,34.0670673,-84.5132363,,,GA,,false,true,false,openstreetmap
+Cousins Middle School Football Field,football,pitch,33.6130212,-83.8807975,,,GA,,false,true,false,openstreetmap
+Dawson County High School,football,pitch,34.4141755,-84.1021887,,,GA,,false,true,false,openstreetmap
+Deer Lick Football Field,football,pitch,33.7502246,-84.6859707,,,GA,,false,true,false,openstreetmap
+Dellinger Park,football,pitch,34.1366912,-84.8144129,,,GA,,false,true,false,openstreetmap
+Dooley Field,football,pitch,33.9498033,-83.3733631,,,GA,,false,true,false,openstreetmap
+Doughboy Stadium,football,pitch,32.3661739,-84.9632604,,,GA,,false,true,false,openstreetmap
+Dunwoody High School Football Field,football,pitch,33.945878,-84.3141926,,,GA,,false,true,false,openstreetmap
+Ed DeFore Sports Complex,football,pitch,32.8180041,-83.7524471,,,GA,,false,true,false,openstreetmap
+Eddie S. Henderson Stadium,football,pitch,33.7807425,-84.3705849,,,GA,,false,true,false,openstreetmap
+Emory Sewell Stadium,football,stadium,34.0407855,-84.6495748,,,GA,,false,true,false,openstreetmap
+Fahring Field,football,pitch,34.0148564,-84.0179307,,,GA,,false,true,false,openstreetmap
+Fannin County High School,football,pitch,34.8540606,-84.3279105,,,GA,,false,true,false,openstreetmap
+Field #1,football,pitch,34.3138082,-84.0356814,,,GA,,false,true,false,openstreetmap
+Field #10,football,pitch,34.1167366,-84.162093,,,GA,,false,true,false,openstreetmap
+Field #10,football,pitch,34.2467831,-84.1011927,,,GA,,false,true,false,openstreetmap
+Field #10,football,pitch,34.2581986,-84.214984,,,GA,,false,true,false,openstreetmap
+Field #2,football,pitch,34.3138072,-84.0345614,,,GA,,false,true,false,openstreetmap
+Field #3,football,pitch,34.3157238,-84.0363555,,,GA,,false,true,false,openstreetmap
+Field #4,football,pitch,34.3157318,-84.0352635,,,GA,,false,true,false,openstreetmap
+Field #9,football,pitch,34.2021448,-84.2128261,,,GA,,false,true,false,openstreetmap
+Field #9,football,pitch,34.1172929,-84.1628788,,,GA,,false,true,false,openstreetmap
+Field #9,football,pitch,34.257095,-84.2149056,,,GA,,false,true,false,openstreetmap
+Field 1,football,pitch,34.116594,-84.4937681,,,GA,,false,true,false,openstreetmap
+Field 2,football,pitch,34.1157943,-84.4945528,,,GA,,false,true,false,openstreetmap
+Field 3,football,pitch,33.5769742,-85.1013018,,,GA,,false,true,false,openstreetmap
+Field 4,football,pitch,33.5763277,-85.1018021,,,GA,,false,true,false,openstreetmap
+Flag Football Field,football,pitch,34.4914085,-84.9641963,,,GA,,false,true,false,openstreetmap
+Football,football,pitch,31.5575167,-84.1722127,,,GA,,false,true,false,openstreetmap
+Football,football,pitch,32.5805417,-82.1533601,,,GA,,false,true,false,openstreetmap
+Football Field,football,pitch,30.9579598,-83.263338,,,GA,,false,true,false,openstreetmap
+Football Field,football,pitch,34.9052189,-84.3424514,,,GA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,32.5328609,-83.893902,,,GA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,34.0086541,-84.2911466,,,GA,,false,true,false,openstreetmap
+French Johnson Field,football,pitch,33.9547969,-84.5595608,,,GA,,false,true,false,openstreetmap
+Graham Hixon Field,football,pitch,33.6629033,-84.4398849,,,GA,,false,true,false,openstreetmap
+Haralson County High School,football,pitch,33.7645441,-85.245996,,,GA,,false,true,false,openstreetmap
+Henderson Memorial Stadium,football,pitch,32.8232957,-83.6770021,,,GA,,false,true,false,openstreetmap
+Henderson Stadium,football,stadium,33.9688405,-84.2151623,,,GA,,false,true,false,openstreetmap
+Herschel Walker Field,football,pitch,32.725681,-82.731227,,,GA,,false,true,false,openstreetmap
+Herschel Walker Field,football,stadium,32.7257684,-82.7311419,,,GA,,false,true,false,openstreetmap
+Hughes Spalding Stadium,football,stadium,33.9001156,-84.336842,,,GA,,false,true,false,openstreetmap
+Hyundai Field (Historic Grant Field),football,pitch,33.7724999,-84.3928562,,,GA,,false,true,false,openstreetmap
+JCHS Football Field,football,pitch,32.9893473,-83.5298786,,,GA,,false,true,false,openstreetmap
+Jardine Stadium,football,pitch,31.5483595,-82.8591237,,,GA,,false,true,false,openstreetmap
+Jaycee Stadium,football,pitch,31.6127465,-81.9019488,,,GA,,false,true,false,openstreetmap
+Jimmy and Crispin Gilbert Field,football,pitch,31.7740705,-84.7969695,,,GA,,false,true,false,openstreetmap
+Kinnett Stadium,football,sports_centre,32.5575667,-84.915209,,,GA,,false,true,false,openstreetmap
+Lakeside Middle Football field,football,pitch,33.5357043,-82.1036405,,,GA,,false,true,false,openstreetmap
+Lower Field,football,pitch,33.741394,-84.7434163,,,GA,,false,true,false,openstreetmap
+Lower Field,football,pitch,33.6958133,-84.7193427,,,GA,,false,true,false,openstreetmap
+Mack Tharpe Stadium,football,stadium,31.1712278,-83.795753,,,GA,,false,true,false,openstreetmap
+Maloof Field,football,pitch,33.8644047,-84.2942431,,,GA,,false,true,false,openstreetmap
+Marietta Sixth Grade Academy,football,pitch,33.9443209,-84.530004,,,GA,,false,true,false,openstreetmap
+McEachern High School,football,pitch,33.8959081,-84.677138,,,GA,,false,true,false,openstreetmap
+Milt Miller Field,football,pitch,31.5339751,-83.8276464,,,GA,,false,true,false,openstreetmap
+Monroe County Achievement Center,football,pitch,33.0254187,-83.9248839,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,football,pitch,33.9834412,-84.6081868,,,GA,,false,true,false,openstreetmap
+Mount Paran Christian School,football,pitch,33.9854994,-84.6097876,,,GA,,false,true,false,openstreetmap
+Mountain View Athletic Association,football,pitch,34.0005084,-83.9305868,,,GA,,false,true,false,openstreetmap
+New Hope Football Field,football,pitch,33.945971,-84.8235144,,,GA,,false,true,false,openstreetmap
+North DeKalb Stadium,football,pitch,33.897013,-84.3087227,,,GA,,false,true,false,openstreetmap
+Northcutt Stadium,football,stadium,33.9548122,-84.559487,,,GA,,false,true,false,openstreetmap
+Northside Highschool Football Field,football,pitch,32.5730578,-84.9344324,,,GA,,false,true,false,openstreetmap
+Paulson Stadium,football,stadium,32.4121947,-81.7833378,,,GA,,false,true,false,openstreetmap
+Pete Petit Field,football,pitch,33.7355469,-84.3895959,,,GA,,false,true,false,openstreetmap
+Piedmont Academy Field,football,pitch,33.3088751,-83.6977033,,,GA,,false,true,false,openstreetmap
+Putnam County Middle School,football,pitch,33.3341411,-83.3675382,,,GA,,false,true,false,openstreetmap
+RA-LIN Field,football,pitch,33.5802399,-85.1204522,,,GA,,false,true,false,openstreetmap
+RMS Football Field,football,pitch,32.0843068,-82.1239282,,,GA,,false,true,false,openstreetmap
+Raider Field,football,pitch,34.1190679,-83.2111414,,,GA,,false,true,false,openstreetmap
+Raider Valley,football,stadium,34.2787279,-84.1079864,,,GA,,false,true,false,openstreetmap
+Redcoat Band Practice Field,football,pitch,33.9289604,-83.3759453,,,GA,,false,true,false,openstreetmap
+Riverwatch Middle School Football Field,football,pitch,34.1238735,-84.1112928,,,GA,,false,true,false,openstreetmap
+Riverwood International Charter School,football,pitch,33.9165885,-84.4187174,,,GA,,false,true,false,openstreetmap
+Robinson Field,football,pitch,33.9683674,-84.2151118,,,GA,,false,true,false,openstreetmap
+Rose Bowl Field,football,pitch,33.7788157,-84.3941487,,,GA,,false,true,false,openstreetmap
+Rose Bowl Field,football,pitch,33.3063139,-83.6860834,,,GA,,false,true,false,openstreetmap
+Standifer Field,football,pitch,31.3729674,-84.9422854,,,GA,,false,true,false,openstreetmap
+The Swamp,football,stadium,30.8412175,-82.0037538,,,GA,,false,true,false,openstreetmap
+Titan Stadium,football,stadium,34.0573021,-84.3910751,,,GA,,false,true,false,openstreetmap
+Trojan Field,football,pitch,33.078082,-83.223425,,,GA,,false,true,false,openstreetmap
+University of Georgia,football,pitch,33.9428456,-83.3795246,,,GA,,false,true,false,openstreetmap
+VRHS Football,football,pitch,33.7265353,-84.9456382,,,GA,,false,true,false,openstreetmap
+Valwood School,football,pitch,30.9210069,-83.3447912,,,GA,,false,true,false,openstreetmap
+Vaught Field,football,pitch,33.902899,-84.135523,,,GA,,false,true,false,openstreetmap
+Whitefield Wolfpack,football,pitch,33.8226327,-84.509046,,,GA,,false,true,false,openstreetmap
+Wildcat Stadium,football,pitch,32.5335956,-83.8953904,,,GA,,false,true,false,openstreetmap
+Wildcat Stadium,football,pitch,33.3503551,-84.0578325,,,GA,,false,true,false,openstreetmap
+Woodland High School,football,pitch,34.1207403,-84.8315423,,,GA,,false,true,false,openstreetmap
+Woodland High School,football,pitch,34.1200873,-84.8296927,,,GA,,false,true,false,openstreetmap
+Woodruff Field,football,pitch,33.9437309,-83.3801505,,,GA,,false,true,false,openstreetmap
+Sanford Stadium,football,stadium,33.9497693,-83.373316,200 Sanford Drive,Athens,GA,30334,false,true,false,openstreetmap
+William Porter Payne & Porter Otis Payne Indoor Athletic Facility,football,fitness_centre,33.9423508,-83.380206,East Rutherford Street,Athens,GA,,false,true,false,openstreetmap
+Center Parc Stadium,football,stadium,33.7355282,-84.3893969,755 Hank Aaron Drive SE,Atlanta,GA,30315,false,true,false,openstreetmap
+NeSmith Field,football,pitch,32.3764089,-83.3355622,374 Highway 87 Business,Cochran,GA,31014,false,true,false,openstreetmap
+Fifth Third Bank Stadium,football,stadium,34.0287628,-84.5678035,3200 George Busbee Parkway Northwest,Kennesaw,GA,30144,false,true,false,openstreetmap
+Centennial High School Football Stadium,football,stadium,34.007322,-84.2929792,,Roswell,GA,30076,false,true,false,openstreetmap
+Gene Brodie Field,football,stadium,31.4621294,-83.5188558,790 8th Street West,Tifton,GA,31794,false,true,false,openstreetmap

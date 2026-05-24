@@ -1,0 +1,58 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10th Ave Park Court,basketball,pitch,42.2555126,-89.084223,,,IL,,false,true,false,openstreetmap
+3 Point Challenge,basketball,pitch,42.3676002,-87.9346341,,,IL,,false,true,false,openstreetmap
+Aberdeen Park,basketball,pitch,42.3258694,-88.9130842,,,IL,,false,true,false,openstreetmap
+Arlington Ridge Center Outdoor Basketball Court,basketball,pitch,42.0897012,-87.9909487,,,IL,,false,true,false,openstreetmap
+Basket Ball Court,basketball,pitch,42.170289,-87.9664642,,,IL,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,40.8783298,-90.1161074,,,IL,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,42.1352794,-87.9421148,,,IL,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,42.1319579,-87.945448,,,IL,,false,true,false,openstreetmap
+Basketball Court (613),basketball,pitch,41.708754,-87.9745738,,,IL,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,41.9790578,-87.8148107,,,IL,,false,true,false,openstreetmap
+Basketball Hoop,basketball,sports_centre,42.3915325,-88.0622207,,,IL,,false,true,false,openstreetmap
+Batchtown Basketball Court,basketball,pitch,39.033125,-90.6567716,,,IL,,false,true,false,openstreetmap
+Brussels School Gym,basketball,pitch,38.9485557,-90.5886295,,,IL,,false,true,false,openstreetmap
+Chicago Park District,basketball,sports_centre,41.8773293,-87.7653947,,,IL,,false,true,false,openstreetmap
+East End Basketball Court,basketball,pitch,38.8597135,-90.0748791,,,IL,,false,true,false,openstreetmap
+Eugene Field Basketball,basketball,pitch,41.9747977,-87.7236611,,,IL,,false,true,false,openstreetmap
+Fairmount Apartments Basketball Court,basketball,pitch,37.1555937,-88.7186205,,,IL,,false,true,false,openstreetmap
+Glenbrook Park Basketball Courts,basketball,pitch,42.0352783,-88.1580915,,,IL,,false,true,false,openstreetmap
+Gym 2,basketball,pitch,40.1005978,-88.2356429,,,IL,,false,true,false,openstreetmap
+Gym 3,basketball,pitch,40.1005916,-88.2363584,,,IL,,false,true,false,openstreetmap
+Gymnasium,basketball,pitch,38.5143282,-89.9238542,,,IL,,false,true,false,openstreetmap
+John Gage Park Basketball Court,basketball,pitch,42.3316975,-88.0065853,,,IL,,false,true,false,openstreetmap
+Kendall County Forest Preserve District,basketball,pitch,41.7180884,-88.38629,,,IL,,false,true,false,openstreetmap
+Kendall County Forest Preserve District,basketball,pitch,41.7181801,-88.3862889,,,IL,,false,true,false,openstreetmap
+Le terrain de basket,basketball,pitch,41.9642889,-87.6774703,,,IL,,false,true,false,openstreetmap
+Lincoln Park Lighted Basketball Hoops,basketball,pitch,41.5006626,-90.5473124,,,IL,,false,true,false,openstreetmap
+Lincoln School Basketball Courts,basketball,pitch,41.8685736,-87.7959232,,,IL,,false,true,false,openstreetmap
+Lou Henson Court,basketball,pitch,40.0962602,-88.2359088,,,IL,,true,false,false,openstreetmap
+Maple Park Basketball Court,basketball,pitch,42.0718861,-87.6908249,,,IL,,false,true,false,openstreetmap
+Nashville Community Center Gym,basketball,fitness_centre,38.3407262,-89.3860468,,,IL,,false,true,false,openstreetmap
+Nokomis Memorial Park Basketball Courts,basketball,pitch,39.3047657,-89.2943913,,,IL,,false,true,false,openstreetmap
+Northwestern Basketball court,basketball,pitch,42.2623292,-89.0854835,,,IL,,false,true,false,openstreetmap
+Panther Dome,basketball,stadium,38.5857999,-89.9008018,,,IL,,false,true,false,openstreetmap
+Peirce Park Basketball Court,basketball,pitch,41.8062929,-87.9160864,,,IL,,false,true,false,openstreetmap
+Saint Boniface Park - Basketball Half-Court,basketball,pitch,41.5945041,-87.7843367,,,IL,,false,true,false,openstreetmap
+Spalding Park Basketball Courts,basketball,pitch,40.1233551,-88.2528216,,,IL,,false,true,false,openstreetmap
+Sports Core Basketball Court,basketball,pitch,41.9752366,-88.3475172,,,IL,,false,true,false,openstreetmap
+Spring Rock Park Basketball Court,basketball,pitch,41.8066121,-87.9067409,,,IL,,false,true,false,openstreetmap
+Titan Dome,basketball,stadium,42.0899171,-87.8514304,,,IL,,false,true,false,openstreetmap
+Tower Park,basketball,park,38.7861506,-89.9392217,,,IL,,false,true,false,openstreetmap
+Unity Court,basketball,pitch,42.2477849,-89.0993417,,,IL,,false,true,false,openstreetmap
+Village of Minooka Public Works,basketball,pitch,41.4484813,-88.2560832,,,IL,,false,true,false,openstreetmap
+Wharton Field House,basketball,sports_centre,41.4918415,-90.5104277,,,IL,,false,true,false,openstreetmap
+Chicagoland Youth Basketball Network,basketball,pitch,41.7410636,-88.2278858,888 South Frontenac Street,Aurora,IL,60504,false,true,false,openstreetmap
+Banterra Center,basketball,stadium,37.7082999,-89.218718,1415 Arena Drive,Carbondale,IL,62901,false,true,false,openstreetmap
+State Farm Center,basketball,pitch,40.0962904,-88.2359038,1800 South First Street,Champaign,IL,61820,false,true,false,openstreetmap
+Advocate Chicago Bulls Training Center,basketball,pitch,41.8810117,-87.6711434,15 South Wood Street,Chicago,IL,60612,false,true,false,openstreetmap
+Dvorak Park Fieldhouse,basketball,sports_centre,41.8550191,-87.6539422,1119 West Cullerton Street,Chicago,IL,60608,false,true,false,openstreetmap
+McGrath-Phillips Arena,basketball,sports_hall,41.9239135,-87.6531456,2323 North Sheffield Avenue,Chicago,IL,60614,false,true,false,openstreetmap
+Starting With Me Basketball,basketball,pitch,41.7843042,-87.6525584,6028 South Aberdeen Street,Chicago,IL,60621,false,true,false,openstreetmap
+Union Park Gymnasium,basketball,sports_hall,41.8851378,-87.6660694,1545 West Lake Street,Chicago,IL,60612,false,true,false,openstreetmap
+Wintrust Arena,basketball,stadium,41.8536605,-87.6213757,200 East Cermak Road,Chicago,IL,60616,false,true,false,openstreetmap
+Blomquist Recreation Center,basketball,sports_centre,42.0542944,-87.6782117,617 Foster Street,Evanston,IL,60201,false,true,false,openstreetmap
+McGaw Memorial Hall,basketball,stadium,42.066968,-87.6924425,2705 Ashland Avenue,Evanston,IL,60201,false,true,false,openstreetmap
+Kiwanis Stadium Basketball Court,basketball,pitch,39.7267261,-89.6163744,1 University Plaza,Springfield,IL,62703,false,true,false,openstreetmap
+REC Park Outdoor Basketball Court,basketball,pitch,39.7291174,-89.6215443,1 University Plaza,Springfield,IL,62703,false,true,false,openstreetmap
+Sunflower Court Basketball Court,basketball,pitch,39.7257027,-89.612489,1 University Plaza,Springfield,IL,62703,false,true,false,openstreetmap

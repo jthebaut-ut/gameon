@@ -1,0 +1,68 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ashbury Elementary School,basketball,pitch,39.9012727,-82.8653861,,,OH,,false,true,false,openstreetmap
+Aux Gym,basketball,pitch,41.7119476,-83.7103149,,,OH,,false,true,false,openstreetmap
+BGSU Champions Court,basketball,pitch,41.3749979,-83.6269655,,,OH,,true,false,false,openstreetmap
+Bales Arena,basketball,sports_centre,39.729083,-84.0690723,1321 Research Park Drive,,OH,,false,true,false,openstreetmap
+Basketball Corut,basketball,pitch,39.7717211,-84.2300622,,,OH,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,41.6706223,-83.5495355,,,OH,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,40.6430489,-83.0775668,,,OH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,39.7535704,-83.8145435,,,OH,,false,true,false,openstreetmap
+Beaverdam Village Park,basketball,pitch,40.8307042,-83.9735993,,,OH,,false,true,false,openstreetmap
+Bowling Green State University,basketball,pitch,41.3774842,-83.6387483,,,OH,,true,false,false,openstreetmap
+Bowling Green State University,basketball,pitch,41.3752715,-83.6263269,,,OH,,true,false,false,openstreetmap
+Bowling Green State University,basketball,sports_centre,41.3770821,-83.6387776,,,OH,,false,true,false,openstreetmap
+Bowling Green State University,basketball,pitch,41.3763851,-83.6316647,,,OH,,false,true,false,openstreetmap
+Bowling Green State University,basketball,pitch,41.3765395,-83.631665,,,OH,,false,true,false,openstreetmap
+Camp CHOF basketball court,basketball,pitch,40.8090472,-81.6433064,,,OH,,false,true,false,openstreetmap
+Canal Lewisville Methodist Ball Court,basketball,pitch,40.3014102,-81.835991,,,OH,,false,true,false,openstreetmap
+Carlton Basketball Court,basketball,pitch,41.5008253,-81.6009705,,,OH,,false,true,false,openstreetmap
+Celina Fieldhouse,basketball,pitch,40.551336,-84.561551,,,OH,,false,true,false,openstreetmap
+Court 1,basketball,pitch,41.3791914,-83.6308917,,,OH,,true,false,false,openstreetmap
+Court 2,basketball,pitch,41.3790807,-83.6308917,,,OH,,true,false,false,openstreetmap
+Court 3,basketball,pitch,41.3789942,-83.630897,,,OH,,true,false,false,openstreetmap
+Court 4,basketball,pitch,41.3788694,-83.6308997,,,OH,,true,false,false,openstreetmap
+FHS Main Gym,basketball,sports_centre,41.0564804,-83.6664654,,,OH,,false,true,false,openstreetmap
+Fitness Center,basketball,sports_centre,41.0774588,-83.6208825,,,OH,,false,true,false,openstreetmap
+Grangeview Acres,basketball,pitch,39.7677193,-84.0826075,,,OH,,false,true,false,openstreetmap
+Half Basketball Court,basketball,pitch,40.8363103,-81.3712561,,,OH,,false,true,false,openstreetmap
+Half Court,basketball,pitch,40.7895935,-81.4184996,,,OH,,false,true,false,openstreetmap
+Heritage Oak Basketball Court,basketball,pitch,39.3676662,-84.3010153,,,OH,,false,true,false,openstreetmap
+Hermann Court,basketball,sports_centre,39.4410819,-83.8173388,,,OH,,false,true,false,openstreetmap
+IM Gym,basketball,sports_centre,41.4908973,-81.5289679,,,OH,,false,true,false,openstreetmap
+Jace Howard Memorial Basketball Court,basketball,pitch,40.531808,-84.3870821,,,OH,,false,true,false,openstreetmap
+James A. Rhodes Arena,basketball,sports_centre,41.0759317,-81.5086424,,,OH,,false,true,false,openstreetmap
+Johnston Fire Station Court,basketball,pitch,41.3879796,-80.6608535,,,OH,,false,true,false,openstreetmap
+Judge William Rayen Stadium,basketball,stadium,41.12725,-80.6475133,,,OH,,false,true,false,openstreetmap
+Ken Cleveland Park Basketball Courts,basketball,pitch,41.1194207,-81.8567774,,,OH,,false,true,false,openstreetmap
+Kosta Koufos Basketball Court,basketball,pitch,40.867853,-81.3514974,,,OH,,false,true,false,openstreetmap
+Lake Sherman Basketball Court,basketball,pitch,40.7092349,-81.4549976,,,OH,,false,true,false,openstreetmap
+Lamb-Schwier Courts,basketball,pitch,39.7065602,-83.8801153,,,OH,,false,true,false,openstreetmap
+Marathon Park Basketball Court,basketball,pitch,39.146992,-84.006928,,,OH,,false,true,false,openstreetmap
+Marimor School,basketball,pitch,40.7569877,-84.057303,,,OH,,false,true,false,openstreetmap
+Michael Lucey Memorial Basketball Courts,basketball,pitch,40.1136723,-82.7908681,,,OH,,false,true,false,openstreetmap
+NV Gym,basketball,pitch,41.7119694,-83.7100856,,,OH,,false,true,false,openstreetmap
+Navarre Courts,basketball,pitch,40.7199629,-81.5277527,,,OH,,false,true,false,openstreetmap
+North basketball court,basketball,pitch,41.5121357,-81.6062072,,,OH,,false,true,false,openstreetmap
+Pam Evans Smith Arena,basketball,sports_centre,39.9373132,-83.8135898,,,OH,,false,true,false,openstreetmap
+Perkins Park Basketball Courts,basketball,pitch,41.0773611,-81.5496178,,,OH,,false,true,false,openstreetmap
+Perkins Park Basketball Courts,basketball,pitch,41.0773684,-81.5494009,,,OH,,false,true,false,openstreetmap
+Pomeroy Park,basketball,park,39.029657,-82.0278857,,,OH,,false,true,false,openstreetmap
+Portsmouth Trojans Basketball Gym,basketball,sports_centre,38.7358894,-82.9897376,,,OH,,false,true,false,openstreetmap
+Potter Fieldhouse,basketball,pitch,40.6274006,-80.568369,,,OH,,false,true,false,openstreetmap
+Rollings Hills Park Basketball Court,basketball,pitch,41.2552459,-81.8305145,,,OH,,false,true,false,openstreetmap
+Schiller Park Basketball Court,basketball,pitch,39.9418065,-82.9908276,,,OH,,false,true,false,openstreetmap
+Sleepy Hollow Basketball court,basketball,pitch,41.7155724,-83.7130638,,,OH,,false,true,false,openstreetmap
+Student Activities Center,basketball,sports_hall,39.0783986,-84.195652,,,OH,,false,true,false,openstreetmap
+Tree Sparrow Trail,basketball,pitch,41.3442742,-81.4598846,,,OH,,false,true,false,openstreetmap
+Urban Community School,basketball,pitch,41.4763642,-81.7200436,,,OH,,false,true,false,openstreetmap
+Wade E. Miller Arena,basketball,sports_centre,39.5221635,-84.3488391,,,OH,,false,true,false,openstreetmap
+ΦΚΤ,basketball,pitch,41.0761289,-81.5079611,,,OH,,false,true,false,openstreetmap
+Eppler Center 102,basketball,sports_centre,41.3775548,-83.6387501,,Bowling Green,OH,43403,false,true,false,openstreetmap
+Berning Gym,basketball,sports_centre,39.2083358,-84.5049922,600 West North Bend Road,Cincinnati,OH,45224-1424,false,true,false,openstreetmap
+Ellis Gym,basketball,sports_centre,39.2089013,-84.50484,600 West North Bend Road,Cincinnati,OH,45224-1424,false,true,false,openstreetmap
+Fifth Third Arena,basketball,sports_centre,39.1311654,-84.5141109,2700 O’Varsity Way,Cincinnati,OH,45221,true,false,false,openstreetmap
+Ronnie Grandison Sports Academy,basketball,sports_centre,39.2804474,-84.3458052,7950 East Kemper Road,Cincinnati,OH,45249,false,true,false,openstreetmap
+Cleveland State University Wolstein Center,basketball,stadium,41.4992374,-81.6766485,,Cleveland,OH,,false,true,false,openstreetmap
+University of Dayton Arena,basketball,sports_centre,39.7354984,-84.199908,1801 South Edwin C. Moses Boulevard,Dayton,OH,45417,false,true,false,openstreetmap
+Newton Elementary School Basketball Court,basketball,sports_centre,40.054778,-84.3411567,201 North Long Street,Pleasant Hill,OH,45359,false,true,false,openstreetmap
+Newton High School Basketball Court,basketball,sports_centre,40.0547718,-84.3420102,201 North Long Street,Pleasant Hill,OH,45359,false,true,false,openstreetmap

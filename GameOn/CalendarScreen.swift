@@ -19,7 +19,31 @@ struct CalendarScreen: View {
     @State private var calendarProGamesWorldCupOnly = false
     @State private var calendarPickupDetailToken: PickupDetailNavigationToken?
 
-    private let calendarVisibleGameFilters: [CalendarTabGameFilter] = [.venueGames, .pickupGames, .proGames]
+    private var isBusinessCalendarAccess: Bool {
+        viewModel.currentUserIsBusinessAccount || viewModel.isVenueOwnerLoggedIn || viewModel.hasAuthenticatedVenueOwnerSession
+    }
+
+    private var calendarVisibleGameFilters: [CalendarTabGameFilter] {
+        isBusinessCalendarAccess ? [.venueGames, .proGames] : [.venueGames, .pickupGames, .proGames]
+    }
+
+    private var effectiveCalendarGameFilter: CalendarTabGameFilter {
+        isBusinessCalendarAccess && viewModel.calendarTabGameFilter == .pickupGames
+            ? .venueGames
+            : viewModel.calendarTabGameFilter
+    }
+
+    private var calendarGameFilterBinding: Binding<CalendarTabGameFilter> {
+        Binding(
+            get: { effectiveCalendarGameFilter },
+            set: { newValue in
+                viewModel.calendarTabGameFilter = isBusinessCalendarAccess && newValue == .pickupGames
+                    ? .venueGames
+                    : newValue
+            }
+        )
+    }
+
     private let calendarProVisibleSportFilters: [(selection: String, display: String?)] = [
         ("All", nil),
         ("Soccer", nil),
@@ -37,7 +61,7 @@ struct CalendarScreen: View {
         viewModel.calendarScreenDisplayedEvents(
             selectedDate: viewModel.calendarTabSelectedDate,
             searchQuery: gameSearchText,
-            filter: viewModel.calendarTabGameFilter
+            filter: effectiveCalendarGameFilter
         )
     }
 
@@ -51,7 +75,7 @@ struct CalendarScreen: View {
     }
 
     private var isProGamesSelected: Bool {
-        viewModel.calendarTabGameFilter == .proGames
+        effectiveCalendarGameFilter == .proGames
     }
 
     private var calendarTabSelectedDayIsTodayOrFuture: Bool {
@@ -59,66 +83,8 @@ struct CalendarScreen: View {
         return cal.startOfDay(for: viewModel.calendarTabSelectedDate) >= cal.startOfDay(for: Date())
     }
 
-    /// Same business-session gate as ``FollowingScreen`` (`hasAuthenticatedVenueOwnerSession`).
-    private var businessCalendarLockedContent: some View {
-        ZStack {
-            Color.clear
-                .fanGeoScreenBackground()
-                .ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 24)
-
-                VStack(spacing: 18) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 44, weight: .semibold))
-                        .foregroundStyle(FGColor.accentBlue)
-
-                    Text("Business accounts can't use Calendar")
-                        .font(FGTypography.screenTitle)
-                        .fontWeight(.bold)
-                        .foregroundStyle(FGColor.primaryText(calendarColorScheme))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text("Calendar is a fan-only feature. Sign in with a regular FanGeo account to view venue games, pickup games, and saved plans.")
-                        .font(FGTypography.body)
-                        .foregroundStyle(FGColor.secondaryText(calendarColorScheme))
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.vertical, FGSpacing.xxl)
-                .padding(.horizontal, FGSpacing.xxl)
-                .frame(maxWidth: 420)
-                .background(
-                    RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
-                        .fill(FGColor.cardBackground(calendarColorScheme))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: FGRadius.card, style: .continuous)
-                        .strokeBorder(FGColor.divider(calendarColorScheme), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(calendarColorScheme == .dark ? 0.35 : 0.08), radius: 24, y: 14)
-
-                Spacer(minLength: 24)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.horizontal, FGSpacing.lg)
-            .padding(.bottom, 110)
-        }
-        .onAppear {
-            viewModel.logBusinessUserGateBlocked(action: "calendarTab")
-        }
-    }
-
     var body: some View {
-        Group {
-            if viewModel.hasAuthenticatedVenueOwnerSession {
-                businessCalendarLockedContent
-            } else {
-                fanCalendarRoot
-            }
-        }
+        fanCalendarRoot
     }
 
     private var fanCalendarRoot: some View {
@@ -159,6 +125,7 @@ struct CalendarScreen: View {
                         viewModel.selectedBar = nil
                         viewModel.selectedEvent = nil
                         viewModel.calendarEventsListCache.removeAll()
+                        sanitizeBusinessCalendarFilterIfNeeded()
                         viewModel.loadCalendarTabCalendarDotsAroundMonth(
                             viewModel.calendarTabSelectedDate,
                             reason: "calendar_tab_sheet_done"
@@ -203,6 +170,7 @@ struct CalendarScreen: View {
         }
         .onChange(of: viewModel.calendarTabGameFilter) { _, _ in
             guard isCalendarTabSelected else { return }
+            sanitizeBusinessCalendarFilterIfNeeded()
             viewModel.calendarEventsListCache.removeAll()
             viewModel.loadCalendarTabCalendarDotsAroundMonth(
                 viewModel.calendarTabSelectedDate,
@@ -223,6 +191,7 @@ struct CalendarScreen: View {
             }
         }
         .onAppear {
+            sanitizeBusinessCalendarFilterIfNeeded()
             guard isCalendarTabSelected else {
 #if DEBUG
                 print("[PerfPhase1D] deferredCalendarWork reason=calendarScreenOnAppearPickupRefresh")
@@ -237,6 +206,7 @@ struct CalendarScreen: View {
         }
         .onChange(of: isCalendarTabSelected) { _, active in
             guard active else { return }
+            sanitizeBusinessCalendarFilterIfNeeded()
             refreshCalendarProGamesIfNeeded(reason: "calendar_tab_selected")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
@@ -246,6 +216,7 @@ struct CalendarScreen: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             guard isCalendarTabSelected else { return }
+            sanitizeBusinessCalendarFilterIfNeeded()
             refreshCalendarProGamesIfNeeded(reason: "calendar_scene_active")
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
@@ -254,14 +225,24 @@ struct CalendarScreen: View {
         }
         .onChange(of: viewModel.calendarTabSelectedDate) { _, _ in
             guard isCalendarTabSelected else { return }
+            sanitizeBusinessCalendarFilterIfNeeded()
             guard viewModel.canFanUsePickupGamesUI else { return }
             Task {
                 await viewModel.refreshCalendarTabPickupSources()
             }
         }
+        .onChange(of: isBusinessCalendarAccess) { _, _ in
+            sanitizeBusinessCalendarFilterIfNeeded()
+        }
         .sheet(item: $calendarPickupDetailToken) { token in
             DiscoverPickupGameDetailSheet(viewModel: viewModel, gameId: token.id)
         }
+    }
+
+    private func sanitizeBusinessCalendarFilterIfNeeded() {
+        guard isBusinessCalendarAccess, viewModel.calendarTabGameFilter == .pickupGames else { return }
+        viewModel.calendarTabGameFilter = .venueGames
+        viewModel.calendarEventsListCache.removeAll()
     }
 
     private var header: some View {
@@ -288,7 +269,7 @@ struct CalendarScreen: View {
                     accessibilityLabel: "Show \(filter.segmentTitle)"
                 )
             },
-            selection: $viewModel.calendarTabGameFilter
+            selection: calendarGameFilterBinding
         )
         .padding(.horizontal)
     }
@@ -350,7 +331,7 @@ struct CalendarScreen: View {
     }
 
     private var eventsHeaderTitle: String {
-        switch viewModel.calendarTabGameFilter {
+        switch effectiveCalendarGameFilter {
         case .venueGames:
             return "Venue Games"
         case .pickupGames:
@@ -572,7 +553,9 @@ struct CalendarScreen: View {
     @ViewBuilder
     private func calendarEventCard(_ event: SportsEvent) -> some View {
         if event.league == MapViewModel.calendarTabPickupLeagueMarker {
-            pickupCalendarEventCard(event)
+            if !isBusinessCalendarAccess {
+                pickupCalendarEventCard(event)
+            }
         } else {
             venueCalendarEventCard(event)
         }
