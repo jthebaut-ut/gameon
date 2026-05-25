@@ -1,0 +1,49 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Castle Rock Golf & Recreation,golf,golf_course,37.3054338,-80.6395677,,,VA,,false,true,false,openstreetmap
+CitySwing,golf,sports_centre,38.9585188,-77.3566666,1805 Discovery Street,,VA,20190,false,true,false,openstreetmap
+Club Champion,golf,pitch,38.0779685,-78.4785545,800 Twentyninth Place,,VA,,false,true,false,openstreetmap
+Driving Range,golf,pitch,37.056831,-76.5077285,,,VA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,38.8637546,-77.3607429,,,VA,,false,true,false,openstreetmap
+Golf Indoor Practice Facility,golf,sports_centre,36.8315813,-79.4025104,,,VA,,false,true,false,openstreetmap
+Green Club,golf,sports_centre,37.4106323,-77.6492936,,,VA,,false,true,false,openstreetmap
+Heron Ridge Golf Club,golf,golf_course,36.7335456,-76.0350413,,,VA,,false,true,false,openstreetmap
+Jefferson District Golf Course Clubhouse,golf,pitch,38.8774321,-77.21488,,,VA,,false,true,false,openstreetmap
+Lambert's Point Golf Course,golf,golf_course,36.8830011,-76.3195525,,,VA,,false,true,false,openstreetmap
+Main Practice green,golf,pitch,37.5284742,-77.6533867,,,VA,,false,true,false,openstreetmap
+Mountain Greens Golf Shop,golf,pitch,38.4106526,-78.7501738,,,VA,,false,true,false,openstreetmap
+Old Course,golf,golf_course,38.0034196,-79.822783,,,VA,,false,true,false,openstreetmap
+Penderbrook Golf Clubhouse,golf,pitch,38.8740698,-77.3581711,3700 Golf Trail Lane,,VA,22033,false,true,false,openstreetmap
+Peninsula Golf Club,golf,golf_course,37.0420964,-76.3600394,,,VA,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.4370277,-77.6518279,,,VA,,false,true,false,openstreetmap
+Reston National Driving Range,golf,pitch,38.9449569,-77.3544223,,,VA,,false,true,false,openstreetmap
+Skyland Lakes Golf Club,golf,golf_course,36.6464537,-80.7291042,,,VA,,false,true,false,openstreetmap
+Stoneleigh Golf and Country Club,golf,golf_course,39.1210995,-77.7872928,,,VA,,false,true,false,openstreetmap
+Tomcat Hole 15,golf,pitch,36.7991028,-76.0326721,,,VA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,37.5775417,-77.4779053,2308 Westwood Avenue,,VA,23230,false,true,false,openstreetmap
+X Golf,golf,sports_centre,37.5158552,-77.692162,,,VA,,true,false,false,openstreetmap
+Upton Hill Miniature Golf Course,golf,miniature_golf,38.8707454,-77.1443854,6060 Wilson Boulevard,Arlington,VA,22205,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.0524154,-77.4466699,20356 Commonwealth Center Drive,Ashburn,VA,20147,false,true,false,openstreetmap
+Anytime Golf,golf,pitch,38.0625606,-78.4874024,2109 India Road,Charlottesville,VA,22901,false,true,false,openstreetmap
+Golf Headquarters,golf,pitch,36.7714027,-76.2354749,741 Eden Way,Chesapeake,VA,23320,false,true,false,openstreetmap
+The Golf Loft,golf,pitch,36.9436757,-82.4651448,405 Front Street East,Coeburn,VA,24230,false,true,false,openstreetmap
+Club Champion,golf,pitch,38.8636489,-77.2875325,9940 Fairfax Boulevard,Fairfax,VA,22030,false,true,false,openstreetmap
+Parsons Xtreme Golf,golf,pitch,38.8429505,-77.2743392,9600 Main Street,Fairfax,VA,22031,false,true,false,openstreetmap
+Jefferson Falls Mini Golf,golf,miniature_golf,38.8763037,-77.2156275,7900 Route 29,Falls Church,VA,22042,false,true,false,openstreetmap
+The Back Nine Golf,golf,sports_centre,37.3751329,-79.2499504,17860 Forest Road,Forest,VA,24551,false,true,false,openstreetmap
+Club Champion,golf,pitch,38.3037334,-77.5108261,1688 Carl D Silver Parkway,Fredericksburg,VA,22401,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,37.6473146,-77.5961947,2000 Old Brick Road,Glen Allen,VA,23060,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,37.6453872,-77.5851606,10941 West Broad Street,Glen Allen,VA,23060,false,true,false,openstreetmap
+TDGolf Studio,golf,pitch,38.9565878,-77.3750139,271 Sunset Park Drive,Herndon,VA,20170,false,true,false,openstreetmap
+The Omni Homestead,golf,pitch,37.9969234,-79.8300116,7696 Sam Snead Highway,Hot Springs,VA,24445,false,true,false,openstreetmap
+The Golf Club at Lansdowne,golf,golf_course,39.0817546,-77.4783039,44050 Woodridge Parkway,Lansdowne,VA,20176,false,true,false,openstreetmap
+Lake of the Woods Golf Club,golf,pitch,38.3362255,-77.7513097,108 Fairway Drive,Locust Grove,VA,22508,false,true,false,openstreetmap
+The Magic Putting Place,golf,miniature_golf,38.7622359,-77.4621535,8902 Mathis Avenue,Manassas,VA,20110,false,true,false,openstreetmap
+The Brookwoods Golf Club,golf,pitch,37.5087389,-77.1712733,7325 Club Drive,Quinton,VA,23141,false,true,false,openstreetmap
+Club Champion,golf,pitch,37.6519153,-77.6210013,11747 West Broad Street,Richmond,VA,23233,false,true,false,openstreetmap
+Gypsy Hill Park and Golf Course,golf,park,38.1599662,-79.0864093,600 Churchville Avenue,Staunton,VA,24401,false,true,false,openstreetmap
+The Club at Ironwood,golf,golf_course,38.1731016,-79.0098319,62 Country Club Circle,Verona,VA,24482,false,true,false,openstreetmap
+Club Champion,golf,pitch,36.8431178,-76.1381127,4625 Virginia Beach Boulevard,Virginia Beach,VA,23462,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,36.8431437,-76.1146743,4000 Virginia Beach Boulevard,Virginia Beach,VA,23452,false,true,false,openstreetmap
+Bunker Valley Golf Range,golf,pitch,38.0433228,-79.0028039,3413 Stuarts Draft Highway,Waynesboro,VA,22980,false,true,false,openstreetmap
+Addicted to Golf,golf,pitch,37.307741,-76.7311116,3032 Richmond Road,Williamsburg,VA,23185,false,true,false,openstreetmap
+New Post Golf Driving Range,golf,golf_course,38.2293133,-77.4034623,9815 Sandy Lane Drive,Woodford,VA,22580,false,true,false,openstreetmap

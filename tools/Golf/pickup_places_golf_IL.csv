@@ -1,0 +1,79 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anchor,golf,pitch,41.6971649,-87.5793963,,,IL,,false,true,false,openstreetmap
+Bauer Golf,golf,pitch,40.5000489,-88.994748,,,IL,,false,true,false,openstreetmap
+Beach,golf,pitch,41.6949976,-87.5803558,,,IL,,false,true,false,openstreetmap
+Buccaneers Cove,golf,pitch,41.6891892,-87.5882337,,,IL,,false,true,false,openstreetmap
+Cast Off,golf,pitch,41.6914364,-87.5890556,,,IL,,false,true,false,openstreetmap
+Club Champion,golf,pitch,41.7527937,-87.9429572,,,IL,,false,true,false,openstreetmap
+Club House,golf,pitch,39.8027493,-88.9912719,,,IL,,false,true,false,openstreetmap
+Clubhouse 540,golf,sports_centre,41.7781806,-88.1107935,,,IL,,true,false,false,openstreetmap
+Deception,golf,pitch,41.6984047,-87.5911388,,,IL,,false,true,false,openstreetmap
+Decision,golf,pitch,41.7773694,-88.1265117,,,IL,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.8496292,-87.9064689,,,IL,,false,true,false,openstreetmap
+Driving Range,golf,pitch,40.7035693,-89.4366959,,,IL,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.6339234,-87.7460794,,,IL,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.9188797,-87.8304227,,,IL,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.967075,-87.7955546,,,IL,,false,true,false,openstreetmap
+Edge,golf,pitch,41.6962767,-87.5826625,,,IL,,false,true,false,openstreetmap
+Edwin Watts Golf,golf,pitch,41.7567071,-87.9439347,,,IL,,false,true,false,openstreetmap
+Elevation Golf,golf,sports_centre,41.7544173,-87.9117482,,,IL,,false,true,false,openstreetmap
+Emerald Isle,golf,pitch,41.6966987,-87.5852688,,,IL,,false,true,false,openstreetmap
+Far,golf,pitch,41.6978159,-87.5870832,,,IL,,false,true,false,openstreetmap
+Five of a Kind,golf,pitch,41.6975572,-87.5887944,,,IL,,false,true,false,openstreetmap
+Gof Mohr Golf Course,golf,golf_course,41.5528244,-90.3813451,,,IL,,false,true,false,openstreetmap
+Golf Etc.,golf,pitch,40.1377866,-88.261017,,,IL,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.6044266,-87.8545243,,,IL,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,38.5964115,-89.9871853,,,IL,,false,true,false,openstreetmap
+Golf Nation,golf,sports_centre,42.1173628,-88.0623332,,,IL,,false,true,false,openstreetmap
+Half Mast,golf,pitch,41.6878834,-87.5938441,,,IL,,false,true,false,openstreetmap
+Hard Alee,golf,pitch,41.6884687,-87.591853,,,IL,,false,true,false,openstreetmap
+Horizon,golf,pitch,41.7003578,-87.5816555,,,IL,,false,true,false,openstreetmap
+ISU Golf Course Pro Shop,golf,pitch,40.5176535,-89.004493,,,IL,,false,true,false,openstreetmap
+Indoor Golf Dome,golf,sports_centre,41.9425482,-88.0097889,,,IL,,false,true,false,openstreetmap
+Land's End,golf,pitch,41.6943704,-87.5781547,,,IL,,false,true,false,openstreetmap
+Lauritsen/Wohlers Outdoor Practice Facility,golf,sports_centre,40.0931968,-88.2263344,,,IL,,false,true,false,openstreetmap
+Liberty Call,golf,pitch,41.6933041,-87.5856735,,,IL,,false,true,false,openstreetmap
+Marooned,golf,pitch,41.6878545,-87.5954537,,,IL,,false,true,false,openstreetmap
+Mate's Choice,golf,pitch,41.6989928,-87.5828698,,,IL,,false,true,false,openstreetmap
+More Sand,golf,pitch,41.689352,-87.5910931,,,IL,,false,true,false,openstreetmap
+Narrow Passage,golf,pitch,41.7021495,-87.5855603,,,IL,,false,true,false,openstreetmap
+Northern Exposure,golf,pitch,41.6990717,-87.5900094,,,IL,,false,true,false,openstreetmap
+Old Orchard Country Club,golf,golf_course,39.6103307,-90.7662211,,,IL,,false,true,false,openstreetmap
+Onward,golf,pitch,41.6987432,-87.5814891,,,IL,,false,true,false,openstreetmap
+Overlook,golf,pitch,41.6994014,-87.5919102,,,IL,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,41.833988,-88.0130587,,,IL,,false,true,false,openstreetmap
+Postage Stamp,golf,pitch,41.7014458,-87.584076,,,IL,,false,true,false,openstreetmap
+Pullman's Perch,golf,pitch,41.6958326,-87.5923657,,,IL,,false,true,false,openstreetmap
+Sand,golf,pitch,41.6901845,-87.5922293,,,IL,,false,true,false,openstreetmap
+Sandy Lair,golf,pitch,41.701394,-87.588172,,,IL,,false,true,false,openstreetmap
+Silver Lake Country Club,golf,golf_course,41.6209825,-87.8266652,,,IL,,false,true,false,openstreetmap
+Siren's Song,golf,pitch,41.7003278,-87.5860299,,,IL,,false,true,false,openstreetmap
+Solid Impact Golf Center,golf,pitch,38.865856,-90.0816035,,,IL,,false,true,false,openstreetmap
+Stoney's Row,golf,pitch,41.7006225,-87.5808775,,,IL,,false,true,false,openstreetmap
+The Bunker - Golf Inc.,golf,sports_centre,40.5396299,-89.6320223,,,IL,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,42.0644913,-88.0567499,,,IL,,false,true,false,openstreetmap
+Treachery,golf,pitch,41.697764,-87.584037,,,IL,,false,true,false,openstreetmap
+True Meridian,golf,pitch,41.6985462,-87.5860817,,,IL,,false,true,false,openstreetmap
+Twist of Fate,golf,pitch,41.6974612,-87.5817567,,,IL,,false,true,false,openstreetmap
+Underway,golf,pitch,41.6991529,-87.5880786,,,IL,,false,true,false,openstreetmap
+Western Acres Golf Course,golf,golf_course,41.8353319,-88.0483084,,,IL,,false,true,false,openstreetmap
+White Eagle Clubhouse,golf,pitch,41.7229563,-88.2160676,,,IL,,false,true,false,openstreetmap
+Mistwood Golf Dome,golf,sports_centre,41.7208629,-88.0653595,730 North Bolingbrook Drive,Bolingbrook,IL,60440,false,true,false,openstreetmap
+Chicago Women's Golf Club,golf,pitch,41.7263435,-87.5728214,2100 East 93rd Street,Chicago,IL,60617,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,41.9234825,-87.6713199,1745 West Fullerton Avenue,Chicago,IL,60614,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.8998016,-87.6245843,900 North Michigan Avenue,Chicago,IL,60611,false,true,false,openstreetmap
+Red Tail Run Golf Club,golf,pitch,39.8051394,-88.9641584,520 West Grove Road,Decatur,IL,62521,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.8357933,-88.0204237,1434 Butterfield Road,Downers Grove,IL,60515,false,true,false,openstreetmap
+Boulder Range,golf,pitch,42.07877,-88.2254995,2900 Beverly Road,Hoffman Estates,IL,60192,false,true,false,openstreetmap
+Monticello Driving Range,golf,pitch,40.0192515,-88.5886029,604 Allerton Road,Monticello,IL,61856,false,true,false,openstreetmap
+Topgolf Chicago - Naperville;Topgolf,golf,sports_centre,41.8081515,-88.2090177,3211 Odyssey Court,Naperville,IL,60563,false,true,false,openstreetmap
+X Golf,golf,sports_centre,41.7835061,-88.164681,790 Royal Saint George Drive,Naperville,IL,60563,true,false,false,openstreetmap
+Condor Club 24/7 Golf Simulator,golf,sports_centre,40.5464803,-88.98462,109 East Northtown Road,Normal,IL,61761,false,true,false,openstreetmap
+PXG Chicago North,golf,pitch,42.116072,-87.8283318,1955 Techny Road,Northbrook,IL,60062,false,true,false,openstreetmap
+PXG Chicago West,golf,pitch,41.8588652,-87.9754712,17W705 East Roosevelt Road,Oakbrook Terrace,IL,60181,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,41.6206445,-87.8553552,14830 South La Grange Road,Orland Park,IL,60462,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.0489606,-88.0578725,905 East Golf Road,Schaumburg,IL,60173,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,42.049382,-88.0471223,1319 East Golf Road,Schaumburg,IL,60173,false,true,false,openstreetmap
+Pro Circle Golf Center,golf,pitch,42.4375742,-88.2323717,1810 Route 12,Spring Grove,IL,60081,false,true,false,openstreetmap
+Eagle Golf and Grill,golf,restaurant,39.7425902,-89.7133369,3941 Pintail Drive,Springfield,IL,62711,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,42.2431289,-87.9551738,295 Center Drive,Vernon Hills,IL,60061,false,true,false,openstreetmap

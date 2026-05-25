@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Deer Creek Golf Club,golf,golf_course,38.8921486,-94.660734,,,KS,,false,true,false,openstreetmap
+Elm Creek Park North,golf,disc_golf_course,37.9117814,-95.4055684,,,KS,,false,true,false,openstreetmap
+Hillsboro Municipal Golf - Driving Range,golf,pitch,38.3405232,-97.211785,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.9422062,-101.2833499,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.8259909,-97.5653184,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.8259271,-97.5670533,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.7684814,-100.0117656,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.7675151,-100.050214,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.7660694,-100.050371,,,KS,,false,true,false,openstreetmap
+Practice Green,golf,pitch,37.5783473,-101.7357264,,,KS,,false,true,false,openstreetmap
+Putting Green,golf,pitch,37.9426743,-101.2828598,,,KS,,false,true,false,openstreetmap
+Putting Green,golf,pitch,38.0909942,-97.8480453,,,KS,,false,true,false,openstreetmap
+Spring Hill Golf Course,golf,pitch,37.0966366,-97.0392226,3202 North Summit Street,,KS,67005,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,37.7368812,-97.2060559,,,KS,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,38.9116726,-94.66228,6621 West 119th Street,Overland Park,KS,66209,false,true,false,openstreetmap
+PXG Kansas City,golf,pitch,38.9122812,-94.6739407,7517 West 119th Street,Overland Park,KS,66213,false,true,false,openstreetmap
+Tap Ins at the Greenhouse,golf,restaurant,38.9542043,-94.665064,9575 Metcalf Ave,Overland Park,KS,66212,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.9366491,-94.6480731,10611 Nall Avenue,Overland Park,KS,66207,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.936609,-94.6472069,10611 Nall Avenue,Overland Park,KS,66207,false,true,false,openstreetmap
+Pure Golf Topeka,golf,golf_course,39.0273276,-95.796601,7523 Southwest 21st Street,Topeka,KS,66615,false,true,false,openstreetmap

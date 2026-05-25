@@ -1,0 +1,35 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bluestone Country Club,golf,pitch,40.1597371,-75.2660404,,,PA,,false,true,false,openstreetmap
+Bob O'Connor Golf Course,golf,golf_course,40.4374376,-79.9383261,,,PA,,false,true,false,openstreetmap
+Corsi's Indoor Golf,golf,pitch,40.3029572,-79.5175516,,,PA,,false,true,false,openstreetmap
+Eagles Crossing Golf Club,golf,golf_course,40.2164422,-77.2469525,501 Conodogquinet Avenue,,PA,17015,false,true,false,openstreetmap
+Golf Etc,golf,pitch,40.0598843,-76.3076304,1264 Lititz Pike,,PA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.6335924,-75.4768086,700,,PA,,false,true,false,openstreetmap
+Heisler's Driving Range,golf,practice_pitch,40.7288734,-76.0227027,,,PA,,false,true,false,openstreetmap
+Hole 1,golf,pitch,39.9341641,-76.6676763,,,PA,,false,true,false,openstreetmap
+John Capelli Golf Range,golf,park,40.037449,-75.3687489,,,PA,,false,true,false,openstreetmap
+Laurel Valley Golf Club,golf,pitch,40.2244614,-79.2394036,,,PA,,false,true,false,openstreetmap
+Morgan Hills Golf Course,golf,golf_course,41.2309036,-76.1644498,,,PA,,false,true,false,openstreetmap
+Newfoundland Golf Course,golf,golf_course,41.2917249,-75.327538,,,PA,,false,true,false,openstreetmap
+Pine Creek Golf Center,golf,sports_centre,40.5658521,-79.9721381,,,PA,,false,true,false,openstreetmap
+South Park Golf Course,golf,golf_course,40.32482,-80.0006786,,,PA,,false,true,false,openstreetmap
+Two T’s Driving Range,golf,pitch,40.7401319,-75.2345739,,,PA,,false,true,false,openstreetmap
+Ventry at Edgmont Preserve,golf,pitch,39.9679991,-75.4614241,,,PA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.0677822,-75.4494596,470 Swedesford Road,Berwyn,PA,19312,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.3669044,-80.1227217,400 Presto-Sygan Road,Bridgeville,PA,15017,false,true,false,openstreetmap
+Mayapple Golf Club,golf,golf_course,40.1817006,-77.1480581,1 Mayapple Drive,Carlisle,PA,17015,false,true,false,openstreetmap
+XGolf,golf,sports_centre,40.0720161,-75.6807229,12 Pottstown Pike,Chester Springs,PA,19425,false,true,false,openstreetmap
+PXG Philadelphia,golf,pitch,40.0797456,-75.3559444,555 South Henderson Road,King of Prussia,PA,19406,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.0936542,-75.4145366,588 North Gulph Road,King of Prussia,PA,19406,false,true,false,openstreetmap
+Bent Creek Country Club,golf,golf_course,40.1180157,-76.3517082,620 Bent Creek Drive,Lititz,PA,17543,false,true,false,openstreetmap
+Belles Springs Golf Course,golf,golf_course,41.0624494,-77.4577534,417 Fairground Road,Mill Hall,PA,17751,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.2417878,-75.241268,31 Airport Square,North Wales,PA,19454,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.1066145,-75.0029414,2140 Byberry Road,Philadelphia,PA,19116,false,true,false,openstreetmap
+Umbria Indoor Driving Range,golf,sports_centre,40.0374045,-75.2379186,5091 Umbria Street,Philadelphia,PA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.4491982,-80.161321,6530 Steubenville Pike,Pittsburgh,PA,15205,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,40.105755,-75.294283,2410 Chemical Road,Plymouth Meeting,PA,19462,false,true,false,openstreetmap
+Big Screen Golf,golf,pitch,40.2657164,-75.6631722,381 Circle of Progress Drive,Pottstown,PA,19464,false,true,false,openstreetmap
+Fawnwood Golf Complex,golf,pitch,41.4305334,-75.6947473,50 Forest Glen Drive,Scranton,PA,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,41.1707677,-75.3789611,163 Lake Road,Tobyhanna,PA,18466,false,true,false,openstreetmap
+Club Champion,golf,pitch,40.0734722,-75.4332231,179 East Swedesford Road,Wayne,PA,19087,false,true,false,openstreetmap
+X Golf Garnet Valley,golf,sports_centre,39.8818599,-75.5490068,176-178 Painters Crossing,West Chester,PA,19382,true,false,false,openstreetmap

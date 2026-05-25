@@ -73,6 +73,7 @@ SPORT_MAP = {
     "pickleball": "pickleball",
     "baseball": "baseball",
     "softball": "softball",
+    "golf": "golf",
 }
 
 FIELDNAMES = [

@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cedar Creek Golf Club Practice Range,golf,pitch,33.4517014,-81.657811,,,SC,,false,true,false,openstreetmap
+Edisto Driving Range,golf,pitch,32.5147567,-80.2975296,,,SC,,false,true,false,openstreetmap
+HHI Golf Shoppe,golf,pitch,32.1694774,-80.7399104,,,SC,,false,true,false,openstreetmap
+James Clyburn Driving Range,golf,sports_centre,34.025627,-81.022041,,,SC,,false,true,false,openstreetmap
+Musgrove Mill Golf Club,golf,golf_course,34.5925661,-81.8427003,,,SC,,false,true,false,openstreetmap
+Par Paradise,golf,sports_centre,32.8631023,-79.9059631,,,SC,,false,true,false,openstreetmap
+Practice Green,golf,pitch,33.0305077,-80.2309475,,,SC,,false,true,false,openstreetmap
+Spring Park Driving Range,golf,pitch,34.9630733,-82.4427421,,,SC,,false,true,false,openstreetmap
+The Reserve Driving Range & Practice Facility,golf,pitch,33.489563,-81.745475,,,SC,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.8693572,-80.0164764,,,SC,,false,true,false,openstreetmap
+Tap-In: Putts & Brews,golf,sports_centre,34.6923019,-82.848324,894 Tiger Boulevard,Clemson,SC,29631,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,34.8354574,-82.3083261,1025 Woodruff Road,Greenville,SC,29607,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,34.8324052,-82.3019462,1117 Woodruff Road,Greenville,SC,29607,false,true,false,openstreetmap
+Topgolf Greenville,golf,sports_centre,34.8569266,-82.2601945,201 Clifton Court,Greenville,SC,29615,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.7219089,-78.8809284,1400 29th Avenue North,Myrtle Beach,SC,29577,false,true,false,openstreetmap
+TopGolf,golf,sports_centre,33.7139289,-78.8719213,2850 Robert M. Grissom Parkway,Myrtle Beach,SC,29577,false,true,false,openstreetmap
+TopGolf,golf,sports_centre,33.7139094,-78.872054,2850 Robert M. Grissom Parkway,Myrtle Beach,SC,29577,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.8702038,-80.0163042,5000 Top Golf Way,North Charleston,SC,29418,false,true,false,openstreetmap
+Streaking Birdies,golf,sports_centre,34.9486465,-81.9361508,226 West Main Street,Spartanburg,SC,29306,false,true,false,openstreetmap
+The Club House,golf,sports_centre,34.9495288,-81.9293355,122 South Liberty Street,Spartanburg,SC,29306,false,true,false,openstreetmap

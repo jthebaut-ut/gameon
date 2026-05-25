@@ -29,6 +29,10 @@ struct FollowingScreen: View {
     @State private var followingMyPickupDeleteTarget: PickupGameRow?
     @State private var followingMyPickupOrganizerRequestsGame: PickupGameRow?
     @State private var followingMyPickupDetailGame: PickupGameRow?
+    @State private var followingPickupInviteGame: PickupGameRow?
+    @State private var followingPickupInviteDetail: PickupGameInviteDisplay?
+    @State private var followingPendingPostCreateInviteGame: PickupGameRow?
+    @State private var pickupInviteResponseInFlightId: UUID?
     @State private var followingMyPickupBanner: String?
     @State private var followingMyPickupDidScheduleExpiryRefresh = false
     @State private var selectedGoingMode: GoingParticipationMode = .venueGames
@@ -82,6 +86,7 @@ struct FollowingScreen: View {
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
             await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
             await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "goingTabActivation")
+            await viewModel.loadIncomingPickupGameInvites()
         }
         .sheet(item: $pickupDetailNav, onDismiss: {
             Task {
@@ -96,7 +101,10 @@ struct FollowingScreen: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, isFollowingTabSelected else { return }
             guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canFanUsePickupGamesUI else { return }
-            Task { await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "foreground") }
+            Task {
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "foreground")
+                await viewModel.loadIncomingPickupGameInvites()
+            }
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
             Task { await syncFollowingAfterAuthChange() }
@@ -113,7 +121,13 @@ struct FollowingScreen: View {
         }
         .sheet(item: $followingMyPickupFormMode) { mode in
             NavigationStack {
-                SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
+                SettingsPickupGameFormView(
+                    viewModel: viewModel,
+                    mode: mode,
+                    onCreated: { row in
+                        followingPendingPostCreateInviteGame = row
+                    }
+                ) {
                     followingMyPickupFormMode = nil
                     Task {
                         await viewModel.loadMyPickupGamesForSettings()
@@ -122,6 +136,30 @@ struct FollowingScreen: View {
                     }
                 }
             }
+        }
+        .onChange(of: followingMyPickupFormMode) { _, newValue in
+            guard newValue == nil, let row = followingPendingPostCreateInviteGame else { return }
+            followingPendingPostCreateInviteGame = nil
+            followingPickupInviteGame = row
+        }
+        .sheet(item: $followingPickupInviteGame, onDismiss: {
+            Task {
+                await viewModel.loadIncomingPickupGameInvites()
+                await viewModel.loadMyPickupGamesForSettings()
+            }
+        }) { game in
+            PickupGameInviteFriendsSheet(viewModel: viewModel, game: game)
+                .environmentObject(chatViewModel)
+        }
+        .sheet(item: $followingPickupInviteDetail) { item in
+            PickupGameInviteDetailSheet(
+                item: item,
+                isResponding: pickupInviteResponseInFlightId == item.id,
+                onRespond: { status in
+                    await respondToPickupInvite(item, status: status)
+                    followingPickupInviteDetail = nil
+                }
+            )
         }
         .sheet(item: $followingMyPickupOrganizerRequestsGame, onDismiss: {
             Task {
@@ -157,6 +195,10 @@ struct FollowingScreen: View {
                         onManageRequests: {
                             followingMyPickupDetailGame = nil
                             followingMyPickupOrganizerRequestsGame = game
+                        },
+                        onInvite: {
+                            followingMyPickupDetailGame = nil
+                            followingPickupInviteGame = game
                         }
                     )
                     .environmentObject(chatViewModel)
@@ -357,6 +399,8 @@ struct FollowingScreen: View {
                 }
 
                 Spacer(minLength: 8)
+
+                goingInviteBellButton
             }
 
             if let favoriteActionBanner {
@@ -375,6 +419,40 @@ struct FollowingScreen: View {
                 goingHubActivityStrip
             }
         }
+    }
+
+    private var goingInviteBellButton: some View {
+        let count = viewModel.incomingPickupGameInvites.count
+        return Button {
+            selectedGoingMode = .pickupGames
+            selectedGoingGamesTab = .invites
+        } label: {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bell")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .overlay(
+                        Circle()
+                            .strokeBorder(FGColor.divider(followingColorScheme).opacity(0.7), lineWidth: 1)
+                    )
+
+                if count > 0 {
+                    Text(count > 9 ? "9+" : "\(count)")
+                        .font(.system(size: 9, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                        .frame(minWidth: 16, minHeight: 16)
+                        .padding(.horizontal, count > 9 ? 3 : 0)
+                        .background(Color.red.opacity(0.95), in: Capsule())
+                        .offset(x: 3, y: -2)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(count > 0 ? "\(count) pickup game invites" : "Pickup game invites")
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: count)
     }
 
     private var goingHubContent: some View {
@@ -446,9 +524,9 @@ struct FollowingScreen: View {
                     id: GoingParticipationMode.pickupGames,
                     title: GoingParticipationMode.pickupGames.title,
                     tint: GoingParticipationMode.pickupGames.tint,
-                    showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0,
+                    showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0 || !viewModel.incomingPickupGameInvites.isEmpty,
                     accessibilityLabel: "Pickup and community games",
-                    activityAccessibilityLabel: "Players waiting"
+                    activityAccessibilityLabel: "Pickup activity waiting"
                 )
             ],
             selection: $selectedGoingMode
@@ -489,7 +567,8 @@ struct FollowingScreen: View {
             GameOnSegmentedControl(
                 tabs: [
                     GameOnSegmentedTab(id: GoingGamesTab.playing, title: "Playing", badge: pickupPlayingTabBadge, tint: FGColor.accentGreen),
-                    GameOnSegmentedTab(id: GoingGamesTab.hosting, title: "Hosting", badge: pickupHostingTabBadge, tint: Color.orange)
+                    GameOnSegmentedTab(id: GoingGamesTab.hosting, title: "Hosting", badge: pickupHostingTabBadge, tint: Color.orange),
+                    GameOnSegmentedTab(id: GoingGamesTab.invites, title: "Invites", badge: pickupInvitesTabBadge, tint: FGColor.accentBlue)
                 ],
                 selection: $selectedGoingGamesTab
             )
@@ -500,6 +579,8 @@ struct FollowingScreen: View {
                     playingGamesContent
                 case .hosting:
                     hostingGamesContent
+                case .invites:
+                    invitesGamesContent
                 }
             }
             .id(selectedGoingGamesTab)
@@ -515,14 +596,16 @@ struct FollowingScreen: View {
                     title: "Games unavailable",
                     subtitle: "Switch to a fan account to join and play games."
                 )
-            } else if playingGameCards.isEmpty {
-                emptyCard(
-                    icon: "figure.run",
-                    title: "No games you’re playing yet.",
-                    subtitle: "Join a game to see it here."
-                )
             } else {
-                joinedGamesListContent
+                if playingGameCards.isEmpty {
+                    emptyCard(
+                        icon: "figure.run",
+                        title: "No games you’re playing yet.",
+                        subtitle: "Join a game to see it here."
+                    )
+                } else {
+                    joinedGamesListContent
+                }
             }
         }
         .padding(.top, 6)
@@ -569,9 +652,36 @@ struct FollowingScreen: View {
         }
     }
 
+    private var invitesGamesContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !viewModel.canFanUsePickupGamesUI {
+                emptyCard(
+                    icon: "envelope",
+                    title: "Invites unavailable",
+                    subtitle: "Switch to a fan account to receive pickup game invites."
+                )
+            } else if viewModel.incomingPickupGameInvites.isEmpty {
+                emptyCard(
+                    icon: "envelope.open",
+                    title: "No pending invites",
+                    subtitle: "Friend invites to pickup, practice, and scrimmage games will appear here."
+                )
+            } else {
+                incomingPickupGameInvitesContent
+            }
+        }
+        .padding(.top, 6)
+        .onAppear {
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            Task { await viewModel.loadIncomingPickupGameInvites() }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: viewModel.incomingPickupGameInvites.count)
+    }
+
     private var pickupPlayingTabBadge: String? {
-        guard viewModel.pickupActivityCount > 0 else { return nil }
-        return viewModel.pickupActivityCount > 9 ? "9+ new" : "\(viewModel.pickupActivityCount) new"
+        let count = viewModel.pickupActivityCount
+        guard count > 0 else { return nil }
+        return count > 9 ? "9+ new" : "\(count) new"
     }
 
     private var playingGameCards: [PickupGameJoinRequestCardDisplay] {
@@ -583,6 +693,12 @@ struct FollowingScreen: View {
         guard count > 0 else { return nil }
         if count == 1 { return "1 waiting" }
         return count > 9 ? "9+ waiting" : "\(count) waiting"
+    }
+
+    private var pickupInvitesTabBadge: String? {
+        let count = viewModel.incomingPickupGameInvites.count
+        guard count > 0 else { return nil }
+        return count > 9 ? "9+" : "\(count)"
     }
 
     private func goingTabbedPanel<Tabs: View, Content: View>(
@@ -916,6 +1032,172 @@ struct FollowingScreen: View {
         }
     }
 
+    @ViewBuilder
+    private var incomingPickupGameInvitesContent: some View {
+        if !viewModel.incomingPickupGameInvites.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(viewModel.incomingPickupGameInvites) { item in
+                    pickupGameInviteCard(item)
+                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+            }
+        }
+    }
+
+    private func pickupGameInviteCard(_ item: PickupGameInviteDisplay) -> some View {
+        let game = item.game
+        let inviterName = pickupInviteInviterName(item)
+        let location = [game.address, game.city, game.state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        let isBusy = pickupInviteResponseInFlightId == item.id
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                pickupInviteInviterAvatar(item, size: 40)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(inviterName) invited you")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    HStack(alignment: .top, spacing: 8) {
+                        SportArtworkIconView(sport: game.sport, diameter: 30)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(game.title)
+                                .font(FGTypography.cardTitle)
+                                .foregroundStyle(FGColor.primaryText(followingColorScheme))
+                                .lineLimit(2)
+                            GameFormatBadgeView(format: game.gameFormat, colorScheme: followingColorScheme)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+
+            if let dateLine = game.pickupDateWithCompactTimeRange {
+                Label(dateLine, systemImage: "calendar")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+            }
+            if !location.isEmpty {
+                Label(location, systemImage: "mappin.and.ellipse")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                    .lineLimit(2)
+            }
+            Label(spotsOpenLine(for: game), systemImage: "person.3")
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+
+            Button {
+                followingPickupInviteDetail = item
+            } label: {
+                HStack(spacing: 6) {
+                    Text("View invite details")
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .font(FGTypography.caption.weight(.semibold))
+                .foregroundStyle(FGColor.accentBlue)
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 8) {
+                pickupInviteResponseButton("Accept", tint: FGColor.accentGreen, disabled: isBusy) {
+                    await respondToPickupInvite(item, status: "accepted")
+                }
+                pickupInviteResponseButton("Maybe", tint: Color.orange, disabled: isBusy) {
+                    await respondToPickupInvite(item, status: "maybe")
+                }
+                pickupInviteResponseButton("Decline", tint: Color.red.opacity(0.9), disabled: isBusy) {
+                    await respondToPickupInvite(item, status: "declined")
+                }
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.orange.opacity(followingColorScheme == .dark ? 0.38 : 0.24), lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .onTapGesture {
+            followingPickupInviteDetail = item
+        }
+    }
+
+    private func pickupInviteResponseButton(
+        _ title: String,
+        tint: Color,
+        disabled: Bool,
+        action: @escaping () async -> Void
+    ) -> some View {
+        Button {
+            Task { await action() }
+        } label: {
+            if disabled {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            } else {
+                Text(title)
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+        }
+        .buttonStyle(.bordered)
+        .tint(tint)
+        .disabled(disabled)
+    }
+
+    private func respondToPickupInvite(_ item: PickupGameInviteDisplay, status: String) async {
+        pickupInviteResponseInFlightId = item.id
+        let priorInvites = viewModel.incomingPickupGameInvites
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+            viewModel.incomingPickupGameInvites.removeAll { $0.id == item.id }
+        }
+        if status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "accepted" {
+            FGInteractionHaptics.success()
+        } else {
+            FGInteractionHaptics.selection()
+        }
+        defer {
+            pickupInviteResponseInFlightId = nil
+            if viewModel.incomingPickupGameInvites.isEmpty && priorInvites.count > 1 {
+                Task { await viewModel.loadIncomingPickupGameInvites() }
+            }
+        }
+        await viewModel.respondToPickupGameInvite(item.invite, status: status)
+    }
+
+    private func pickupInviteInviterAvatar(_ item: PickupGameInviteDisplay, size: CGFloat) -> some View {
+        UserAvatarView(
+            avatarThumbnailURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
+            avatarURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
+            avatarDisplayRefreshToken: UUID(),
+            displayName: pickupInviteInviterName(item),
+            email: item.inviterProfile?.email ?? "",
+            size: size,
+            fallbackStyle: followingColorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+        )
+    }
+
+    private func pickupInviteInviterName(_ item: PickupGameInviteDisplay) -> String {
+        let display = item.inviterProfile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !display.isEmpty { return display }
+        let username = item.inviterProfile?.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !username.isEmpty { return username }
+        return "A friend"
+    }
+
+    private func spotsOpenLine(for game: PickupGameRow) -> String {
+        let open = game.pickupOpenSlotsRemaining
+        if open == 1 { return "1 spot open" }
+        return "\(open) spots open"
+    }
+
     private var hostedGamesListContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
@@ -946,6 +1228,10 @@ struct FollowingScreen: View {
                         onOpenDetails: {
                             logFollowingMyPickupGames(action: "openDetailSheet", selectedGameId: row.id)
                             followingMyPickupDetailGame = row
+                        },
+                        onInvite: {
+                            logFollowingMyPickupGames(action: "inviteTap", selectedGameId: row.id)
+                            followingPickupInviteGame = row
                         }
                     )
                     .environmentObject(chatViewModel)
@@ -1017,6 +1303,7 @@ struct FollowingScreen: View {
         viewModel.favoriteVenueIDs = []
         viewModel.venueEventInterestIDs = []
         viewModel.interestedVenueEventKeys = []
+        viewModel.incomingPickupGameInvites = []
     }
 
     private func reloadFollowingDataForCurrentUser() async {
@@ -1025,6 +1312,7 @@ struct FollowingScreen: View {
             forceRefresh: true,
             reason: "authOrInitialReload"
         )
+        await viewModel.loadIncomingPickupGameInvites()
     }
 
 #if DEBUG
@@ -2168,6 +2456,196 @@ private enum GoingParticipationMode: Hashable {
     }
 }
 
+private struct PickupGameInviteDetailSheet: View {
+    let item: PickupGameInviteDisplay
+    let isResponding: Bool
+    let onRespond: (String) async -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    private var game: PickupGameRow { item.game }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: FGSpacing.lg) {
+                    hero
+                    inviterLine
+                    gameFacts
+                    actionRow
+                }
+                .padding(FGSpacing.lg)
+            }
+            .scrollContentBackground(.hidden)
+            .fanGeoScreenBackground()
+            .navigationTitle("Invitation")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var hero: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [
+                    FGColor.accentGreen.opacity(colorScheme == .dark ? 0.34 : 0.18),
+                    FGColor.accentBlue.opacity(colorScheme == .dark ? 0.30 : 0.14),
+                    Color.orange.opacity(colorScheme == .dark ? 0.22 : 0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            SportArtworkIconView(sport: game.sport, diameter: 86)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.trailing, 24)
+                .opacity(0.92)
+
+            VStack(alignment: .leading, spacing: 8) {
+                GameFormatBadgeView(format: game.gameFormat, colorScheme: colorScheme)
+                Text(game.title)
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(game.sport)
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+            }
+            .padding(FGSpacing.lg)
+        }
+        .frame(minHeight: 168)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.26 : 0.08), radius: 14, y: 6)
+    }
+
+    private var inviterLine: some View {
+        HStack(spacing: 10) {
+            UserAvatarView(
+                avatarThumbnailURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
+                avatarURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
+                avatarDisplayRefreshToken: UUID(),
+                displayName: inviterName,
+                email: item.inviterProfile?.email ?? "",
+                size: 44,
+                fallbackStyle: colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
+            )
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(inviterName) invited you to")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                Text(game.title)
+                    .font(FGTypography.cardTitle)
+                    .foregroundStyle(FGColor.primaryText(colorScheme))
+                    .lineLimit(2)
+            }
+        }
+        .padding(FGSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        )
+    }
+
+    private var gameFacts: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let dateLine = game.pickupDateWithCompactTimeRange {
+                factRow("calendar", dateLine)
+            }
+            if !locationLine.isEmpty {
+                factRow("mappin.and.ellipse", locationLine)
+            }
+            factRow("person.3", spotsOpenLine)
+            if let lat = game.latitude, let lon = game.longitude {
+                Button {
+                    if let url = URL(string: "http://maps.apple.com/?ll=\(lat),\(lon)&q=Pickup%20game") {
+                        openURL(url)
+                    }
+                } label: {
+                    Label("View on map", systemImage: "map")
+                        .font(FGTypography.metadata.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.bordered)
+                .tint(FGColor.accentBlue)
+            }
+        }
+        .padding(FGSpacing.md)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.55), lineWidth: 1)
+        )
+    }
+
+    private func factRow(_ systemImage: String, _ text: String) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(FGTypography.caption.weight(.semibold))
+            .foregroundStyle(FGColor.secondaryText(colorScheme))
+            .lineLimit(3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var actionRow: some View {
+        HStack(spacing: 8) {
+            responseButton("Accept", status: "accepted", tint: FGColor.accentGreen)
+            responseButton("Maybe", status: "maybe", tint: Color.orange)
+            responseButton("Decline", status: "declined", tint: Color.red.opacity(0.9))
+        }
+    }
+
+    private func responseButton(_ title: String, status: String, tint: Color) -> some View {
+        Button {
+            Task { await onRespond(status) }
+        } label: {
+            if isResponding {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            } else {
+                Text(title)
+                    .font(FGTypography.metadata.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(tint)
+        .disabled(isResponding)
+    }
+
+    private var inviterName: String {
+        let display = item.inviterProfile?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !display.isEmpty { return display }
+        let username = item.inviterProfile?.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !username.isEmpty { return username }
+        return "A friend"
+    }
+
+    private var locationLine: String {
+        [game.address, game.city, game.state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
+
+    private var spotsOpenLine: String {
+        let open = game.pickupOpenSlotsRemaining
+        return open == 1 ? "1 spot open" : "\(open) spots open"
+    }
+}
+
 private enum GoingVenueTab: Hashable {
     case games
     case saved
@@ -2176,6 +2654,7 @@ private enum GoingVenueTab: Hashable {
 private enum GoingGamesTab: Hashable {
     case playing
     case hosting
+    case invites
 }
 
 private func decodeInterestedOnlyUUIDs(from encoded: String) -> Set<UUID> {

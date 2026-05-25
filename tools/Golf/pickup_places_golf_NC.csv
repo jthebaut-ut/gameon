@@ -1,0 +1,56 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Blowing Rock Country Club,golf,golf_course,36.12522,-81.6615956,,,NC,,false,true,false,openstreetmap
+Club Champion,golf,pitch,35.4850212,-82.5534675,,,NC,,false,true,false,openstreetmap
+Club Champion,golf,pitch,35.156823,-80.8234251,,,NC,,false,true,false,openstreetmap
+Country Club of North Carolina,golf,pitch,35.164963,-79.4406567,,,NC,,false,true,false,openstreetmap
+Elon Driving Range and Putting Green,golf,pitch,36.0970399,-79.4996868,,,NC,,false,true,false,openstreetmap
+Galaxy Golf,golf,pitch,35.9792724,-75.6370554,,,NC,,false,true,false,openstreetmap
+Golf Etc,golf,pitch,35.7998135,-78.8151954,,,NC,,false,true,false,openstreetmap
+Governor's Club,golf,pitch,35.8483377,-79.0398343,,,NC,,false,true,false,openstreetmap
+Hole #1 Green,golf,pitch,35.1697361,-80.906471,,,NC,,false,true,false,openstreetmap
+Hole #10 Green,golf,pitch,35.1737739,-80.915548,,,NC,,false,true,false,openstreetmap
+Hole #11 Green,golf,pitch,35.1738984,-80.9176827,,,NC,,false,true,false,openstreetmap
+Hole #12 Green,golf,pitch,35.1776549,-80.9186675,,,NC,,false,true,false,openstreetmap
+Hole #13 Green,golf,pitch,35.1795845,-80.9166199,,,NC,,false,true,false,openstreetmap
+Hole #14 Green,golf,pitch,35.1755382,-80.9177758,,,NC,,false,true,false,openstreetmap
+Hole #15 Green,golf,pitch,35.1783978,-80.9146935,,,NC,,false,true,false,openstreetmap
+Hole #16 Green,golf,pitch,35.1754828,-80.9150353,,,NC,,false,true,false,openstreetmap
+Hole #17 Green,golf,pitch,35.1784124,-80.9135531,,,NC,,false,true,false,openstreetmap
+Hole #18 Green,golf,pitch,35.1755578,-80.912351,,,NC,,false,true,false,openstreetmap
+Hole #2 Green,golf,pitch,35.1675124,-80.9090186,,,NC,,false,true,false,openstreetmap
+Hole #3 Green,golf,pitch,35.1670068,-80.9111721,,,NC,,false,true,false,openstreetmap
+Hole #4 Green,golf,pitch,35.1701504,-80.9151184,,,NC,,false,true,false,openstreetmap
+Hole #5 Green,golf,pitch,35.1720703,-80.9145559,,,NC,,false,true,false,openstreetmap
+Hole #6 Green,golf,pitch,35.1695921,-80.9135608,,,NC,,false,true,false,openstreetmap
+Hole #7 Green,golf,pitch,35.1675852,-80.9106697,,,NC,,false,true,false,openstreetmap
+Hole #8 Green,golf,pitch,35.1703242,-80.9079857,,,NC,,false,true,false,openstreetmap
+Hole #9 Green,golf,pitch,35.1731182,-80.9108489,,,NC,,false,true,false,openstreetmap
+Keith Hills Golf Club,golf,pitch,35.4017887,-78.7520966,,,NC,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,35.8202293,-78.6213537,,,NC,,false,true,false,openstreetmap
+Pinewild Country Club,golf,pitch,35.2065197,-79.5121537,,,NC,,false,true,false,openstreetmap
+Plymouth Country Club,golf,golf_course,35.8553139,-76.7612348,,,NC,,false,true,false,openstreetmap
+Pro Golf,golf,pitch,34.2436144,-77.8597839,,,NC,,false,true,false,openstreetmap
+Tanglewood Pro Shop,golf,pitch,35.9924998,-80.4054339,,,NC,,false,true,false,openstreetmap
+The Golf Center,golf,pitch,35.7430451,-79.5575629,,,NC,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,35.878603,-78.8337438,,,NC,,false,true,false,openstreetmap
+Woodlake Resort and Country Club,golf,pitch,35.2392295,-79.2037219,,,NC,,false,true,false,openstreetmap
+The Albatross,golf,amusement_arcade,35.7872936,-78.77983,140 East Chatham Street,Cary,NC,27511,false,true,false,openstreetmap
+Governor's Club,golf,sports_centre,35.8462164,-79.0394762,11000 Club Drive,Chapel Hill,NC,27517,false,true,false,openstreetmap
+PXG Charlotte,golf,pitch,35.2861181,-80.7690126,7101 Macfarlane Boulevard,Charlotte,NC,28262,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,35.1536709,-80.9448451,8024 Savoy Corporate Drive,Charlotte,NC,28273,false,true,false,openstreetmap
+Topgolf Charlotte - University,golf,sports_centre,35.2880956,-80.7692302,9110 Drivers Way,Charlotte,NC,28262,false,true,false,openstreetmap
+Topgolf Durham,golf,sports_centre,35.8792991,-78.8342685,4901 Topgolf Way,Durham,NC,,false,true,false,openstreetmap
+Foxfire Resort & Golf,golf,sports_centre,35.1735488,-79.5748405,9 Foxfire Boulevard,Foxfire Village,NC,27281,false,true,false,openstreetmap
+Randy's Golf Center & Range,golf,sports_centre,36.0578074,-79.4218144,1706 Hanford Road,Graham,NC,27253,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,36.0565295,-79.8860337,4217 West Wendover Avenue,Greensboro,NC,,false,true,false,openstreetmap
+Keith Hills Golf Club,golf,sports_centre,35.3984519,-78.7516261,100 Keith Hills Road,Lillington,NC,27546,false,true,false,openstreetmap
+Forest Creek Golf Club,golf,sports_centre,35.2295257,-79.4214428,200 Meyer Farm Drive,Pinehurst,NC,28374,false,true,false,openstreetmap
+Pinewild Country Club,golf,sports_centre,35.2014335,-79.5110396,,Pinehurst,NC,28374,false,true,false,openstreetmap
+Greater Golf Express,golf,pitch,35.0926481,-80.8775741,10400 Centrum Parkway,Pineville,NC,28134,false,true,false,openstreetmap
+Drive Shack,golf,sports_centre,35.801606,-78.7392564,6901 Play Golf Way,Raleigh,NC,27607,false,true,false,openstreetmap
+Carolina Trace Country Club,golf,sports_centre,35.4133017,-79.1037005,2100 Country Club Drive,Sanford,NC,27332,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,35.1667781,-79.4187288,345 Carolina Green Parkway,Southern Pines,NC,28387,false,true,false,openstreetmap
+Knollwood Fairways & Driving Range,golf,sports_centre,35.1975386,-79.4075808,1470 Midland Road,Southern Pines,NC,28387,false,true,false,openstreetmap
+Woodlake Resort and Country Club,golf,sports_centre,35.2408719,-79.2011873,150 Woodlake Boulevard,Vass,NC,28394,false,true,false,openstreetmap
+Country Club of Whispering Pines,golf,sports_centre,35.260467,-79.3761759,2 Clubhouse Boulevard,Whispering Pines,NC,28327,false,true,false,openstreetmap
+Whiteville Country Club,golf,golf_course,34.367987,-78.7189806,2333 James B White Highway North,Whiteville,NC,28472,false,true,false,openstreetmap

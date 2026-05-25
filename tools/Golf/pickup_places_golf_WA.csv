@@ -1,0 +1,38 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bear Creek Golf Course,golf,golf_course,48.457864,-120.13118,,,WA,,false,true,false,openstreetmap
+Bunker #1,golf,pitch,46.9729344,-122.9139664,,,WA,,false,true,false,openstreetmap
+Bunker #2,golf,pitch,46.9725009,-122.9159011,,,WA,,false,true,false,openstreetmap
+Bunker #3,golf,pitch,46.9718318,-122.9137317,,,WA,,false,true,false,openstreetmap
+Bunker #4,golf,pitch,46.9720675,-122.9119305,,,WA,,false,true,false,openstreetmap
+Bunker #5,golf,pitch,46.9714447,-122.9119842,,,WA,,false,true,false,openstreetmap
+Camaloch Golf Course,golf,golf_course,48.2213554,-122.4715542,,,WA,,false,true,false,openstreetmap
+Crystal Springs Golf Course,golf,golf_course,46.4683131,-117.5862757,,,WA,,false,true,false,openstreetmap
+Five Iron Golf,golf,bar,47.6146451,-122.318365,,,WA,,false,true,false,openstreetmap
+Gateway Golf Course,golf,golf_course,48.5220945,-122.213475,,,WA,,false,true,false,openstreetmap
+Hartwood Golf Course,golf,golf_course,45.7140829,-122.5204088,,,WA,,false,true,false,openstreetmap
+Interbay Family Golf Center Driving Range,golf,golf_course,47.6453121,-122.3777931,,,WA,,false,true,false,openstreetmap
+Jefferson Park Driving Range,golf,golf_course,47.5682637,-122.3079777,,,WA,,false,true,false,openstreetmap
+Lake Wilderness Golf Course,golf,golf_course,47.3727357,-122.0431966,,,WA,,false,true,false,openstreetmap
+Meadow Springs Country Club,golf,golf_course,46.2215322,-119.2598918,,,WA,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,47.6253799,-122.2331913,,,WA,,false,true,false,openstreetmap
+Puetz Golf Superstore,golf,pitch,47.6266269,-122.154828,,,WA,,false,true,false,openstreetmap
+Putting Green,golf,pitch,46.971223,-122.9175782,,,WA,,false,true,false,openstreetmap
+Quail Ridge Golf Course,golf,golf_course,46.3671935,-117.0811528,,,WA,,false,true,false,openstreetmap
+Skagit Golf & Country Club,golf,golf_course,48.463612,-122.3895079,,,WA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,47.4948722,-122.2062157,,,WA,,false,true,false,openstreetmap
+Topgolf Swing Suite,golf,sports_centre,47.6170359,-122.2012926,,,WA,,false,true,false,openstreetmap
+Tri-City Country Club,golf,pitch,46.2127357,-119.1469569,,,WA,,false,true,false,openstreetmap
+University of Washington Golf Driving Range,golf,golf_course,47.6597443,-122.2977596,,,WA,,false,true,false,openstreetmap
+X Golf,golf,sports_centre,46.2083245,-119.1613624,,,WA,,true,false,false,openstreetmap
+Swinomish Golf Links,golf,golf_course,48.4564316,-122.5764237,12518 Christianson Road,Anacortes,WA,98221,false,true,false,openstreetmap
+Club Champion,golf,pitch,47.6194333,-122.198602,10622 Northeast 10th Street,Bellevue,WA,98004,false,true,false,openstreetmap
+PXG Seattle,golf,pitch,47.6284748,-122.1634527,13238 Northeast 20th Street,Bellevue,WA,98005,false,true,false,openstreetmap
+Pin Seeker Indoor Golf,golf,sports_centre,47.6160865,-122.6277497,5960 State Highway 303 Northeast,Bremerton,WA,98311,false,true,false,openstreetmap
+Rolling Hills Golf Course,golf,golf_course,47.6207785,-122.616644,2485 Northeast McWilliams Road,Bremerton,WA,98311,false,true,false,openstreetmap
+Red Wolf Golf Club,golf,golf_course,46.4171776,-117.0786416,1676 Elm Street,Clarkson,WA,99403,false,true,false,openstreetmap
+Dave's Golf Shop,golf,pitch,46.4256788,-117.0458747,725 Port Drive,Clarkston,WA,99403,false,true,false,openstreetmap
+Village Greens Golf Course,golf,golf_course,47.528167,-122.595347,2298 Fir Crest Drive Southeast,Port Orchard,WA,,false,true,false,openstreetmap
+Puetz Golf,golf,pitch,47.7161939,-122.3430201,11762 Aurora Avenue North,Seattle,WA,98133,false,true,false,openstreetmap
+golfTEC,golf,training,47.6204418,-122.3306242,255 Yale Avenue North,Seattle,WA,98109,false,true,false,openstreetmap
+Snohomish Valley Golf Center,golf,sports_centre,47.9008737,-122.1174331,8511 Marsh Road,Snohomish,WA,98296,false,true,false,openstreetmap
+GolfTec,golf,pitch,47.6683468,-117.417519,1207 North Washington Street,Spokane,WA,,false,true,false,openstreetmap

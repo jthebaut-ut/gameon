@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Driving Range & Practice Facility,golf,pitch,45.5042238,-98.4143477,,,SD,,false,true,false,openstreetmap
+Executive Golf Course,golf,golf_course,44.0868948,-103.2371845,,,SD,,false,true,false,openstreetmap
+Hillcrest Golf & Country Club,golf,golf_course,42.8971005,-97.3822442,,,SD,,false,true,false,openstreetmap
+Practice Green,golf,recreation_ground,44.287985,-96.763111,,,SD,,false,true,false,openstreetmap
+The Bluffs,golf,golf_course,42.7738,-96.9002159,2021 East Main Street,Vermillion,SD,57069,false,true,false,openstreetmap

@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ackley Country Club,golf,golf_course,42.5468819,-93.0490004,,,IA,,false,true,false,openstreetmap
+Aplington Recreation Complex,golf,golf_course,42.5819124,-92.8954617,,,IA,,false,true,false,openstreetmap
+Beaver Hills Country Club,golf,golf_course,42.565821,-92.5198362,,,IA,,false,true,false,openstreetmap
+Cedar Valley Golf Course,golf,golf_course,41.7085218,-91.0752272,,,IA,,false,true,false,openstreetmap
+Eagle Grove Country Club,golf,golf_course,42.66583,-93.9466104,,,IA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.5784663,-90.5247559,,,IA,,false,true,false,openstreetmap
+Hoak Family Golf Complex,golf,sports_centre,41.6575623,-91.5698699,,,IA,,false,true,false,openstreetmap
+Linn Grove Country Club,golf,golf_course,42.9827298,-93.1946321,,,IA,,false,true,false,openstreetmap
+PinSocial,golf,sports_centre,41.7191214,-91.6436096,,,IA,,false,true,false,openstreetmap
+Prairie Links Golf Course & Event Center,golf,golf_course,42.7049339,-92.46418,,,IA,,false,true,false,openstreetmap
+South Hardin Recreation Area,golf,golf_course,42.2469986,-93.0692926,,,IA,,false,true,false,openstreetmap
+Traer Golf Club,golf,golf_course,42.2017614,-92.4627161,,,IA,,false,true,false,openstreetmap
+Wahkonsa Country Club,golf,golf_course,41.6017147,-90.9542781,,,IA,,false,true,false,openstreetmap
+Wapsie Ridge Golf Course,golf,golf_course,42.6602855,-92.1342025,,,IA,,false,true,false,openstreetmap
+Golfletics,golf,pitch,41.67212,-91.5658496,308 1st Ave,Coralville,IA,52241,false,true,false,openstreetmap
+Des Moines Driving Range,golf,golf_course,41.6786843,-93.6577434,2944 Northeast 66th Avenue,Des Moines,IA,50313,false,true,false,openstreetmap
+RiverView Country Club,golf,pitch,40.7286255,-91.9698931,217 Riverview Drive,Keosauqua,IA,52565,false,true,false,openstreetmap
+Silver Lake Country Club,golf,golf_course,43.4367972,-95.3481448,165 Country Club Drive,Lake Park,IA,51347,false,true,false,openstreetmap
+Austad's Golf,golf,pitch,42.0292438,-91.6232227,1436 Twixt Town Road Northeast,Marion,IA,52302,false,true,false,openstreetmap
+CityView Golf,golf,sports_centre,42.9982167,-96.0479317,713 8th Street SE,Orange City,IA,51041,false,true,false,openstreetmap
+Nederlanders Tap & Golf,golf,restaurant,41.4037633,-92.9158052,514 1/2 Main Street,Pella,IA,50219,false,true,false,openstreetmap
+Golf Headquarters,golf,pitch,42.4697989,-92.3878983,1850 West Ridgeway Avenue,Waterloo,IA,50701,false,true,false,openstreetmap
+Sunnyside Country Club,golf,golf_course,42.4620001,-92.384614,1600 Olympic Drive,Waterloo,IA,50701,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.5987415,-93.7661132,4520 University Avenue,West Des Moines,IA,50266,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.5627494,-93.8133701,7680 Coachlight Drive,West Des Moines,IA,50266,false,true,false,openstreetmap
+Lincoln Valley Golf Course / City of State Center,golf,golf_course,42.0115153,-93.1218298,1538 235th st,state center,IA,50247,false,true,false,openstreetmap

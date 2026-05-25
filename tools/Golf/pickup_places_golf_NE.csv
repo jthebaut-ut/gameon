@@ -1,0 +1,20 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Driving & Practice Range,golf,pitch,41.2466872,-96.2111798,,,NE,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.3333338,-96.3673555,,,NE,,false,true,false,openstreetmap
+Driving Range,golf,pitch,41.8354591,-103.6838639,,,NE,,false,true,false,openstreetmap
+Golf Driving & Practice Range,golf,pitch,41.461546,-96.5050296,,,NE,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,41.4002383,-96.5064774,,,NE,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,41.4102732,-96.5338096,,,NE,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.2261969,-96.1364924,3425 Oak View Drive,,NE,68144,false,true,false,openstreetmap
+Highlands Golf Course,golf,golf_course,40.8651547,-96.7432393,,,NE,,false,true,false,openstreetmap
+OCC Driving & Practice Range,golf,pitch,41.3281773,-96.0174025,,,NE,,false,true,false,openstreetmap
+Skyline Woods Country Club,golf,pitch,41.2347976,-96.2549707,,,NE,,false,true,false,openstreetmap
+Valley View Golf Course,golf,golf_course,41.3977117,-96.5087452,1126 County Road X,Fremont,NE,68025,false,true,false,openstreetmap
+Whitetail Run Golf Course,golf,pitch,41.4118944,-96.5331357,2725 Reed Lane,Fremont,NE,68025,false,true,false,openstreetmap
+Whitetail Run Golf Course,golf,golf_course,41.4125904,-96.5343405,2725 Reed Lane,Fremont,NE,68025,false,true,false,openstreetmap
+Monument Shadows Golf,golf,golf_course,41.8397485,-103.6829132,2550 Clubhouse Drive,Gering,NE,69341,false,true,false,openstreetmap
+Hidden Valley Golf Club,golf,golf_course,40.7369873,-96.5705345,10501 Pine Lake Road,Lincoln,NE,68526,false,true,false,openstreetmap
+Links at Lincoln,golf,golf_course,40.8682092,-96.7154474,419 Fletcher Avenue,Lincoln,NE,68521,false,true,false,openstreetmap
+Wellington Greens Golf Course,golf,golf_course,40.7899979,-96.6212939,7600 Old Post Road,Lincoln,NE,68506,false,true,false,openstreetmap
+Elkhorn Ridge Golf Course,golf,golf_course,41.2690065,-96.2274247,20033 Elkhorn Ridge Drive,Omaha,NE,68022,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.2671425,-96.0736705,908 North 102nd Street,Omaha,NE,68114,false,true,false,openstreetmap

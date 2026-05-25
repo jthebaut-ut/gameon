@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Club Champion,golf,pitch,32.4336006,-90.147567,,,MS,,false,true,false,openstreetmap
+Whisper Lake Driving Range,golf,pitch,32.4962425,-90.1899359,,,MS,,false,true,false,openstreetmap
+Hattiesburg Country Club,golf,social_club,31.3530168,-89.3820051,61 Classic Drive,Hattiesburg,MS,39402,false,true,false,openstreetmap
+Millbrook Golf & Country Club,golf,golf_course,30.5592727,-89.6545929,600 Country Club Road,Picayune,MS,39466,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.4480088,-90.1389348,102 Topgolf Way,Ridgeland,MS,39157,false,true,false,openstreetmap

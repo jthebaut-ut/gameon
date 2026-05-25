@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+H. Smith Richardson Driving Range,golf,golf_course,41.2193624,-73.2781856,,,CT,,false,true,false,openstreetmap
+Pine Orchard Yacht & Country Club,golf,golf_course,41.2696479,-72.7720975,,,CT,,false,true,false,openstreetmap
+Full Circle Golf,golf,sports_centre,41.6400178,-72.7435585,170 Deming Road,Berlin,CT,06037,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.2389471,-73.0337406,1355 Boston Post Road,Milford,CT,06460,false,true,false,openstreetmap
+Chris Cote's Golf Shop,golf,pitch,41.6088692,-72.903312,125 Jude Lane,Southington,CT,06489,false,true,false,openstreetmap
+Back 9 Social,golf,amusement_arcade,41.4776702,-72.8132384,805 North Colony Road,Wallingford,CT,06492,false,true,false,openstreetmap
+Be Under Par,golf,sports_hall,41.9211827,-73.070481,390 Main Street,Winsted,CT,06098,false,true,false,openstreetmap

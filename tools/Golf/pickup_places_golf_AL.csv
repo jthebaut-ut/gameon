@@ -1,0 +1,13 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Craig Field Putting Green,golf,pitch,32.3504352,-86.9778699,,,AL,,false,true,false,openstreetmap
+Golf Center Driving Range,golf,practice_pitch,30.2928513,-87.6069693,,,AL,,false,true,false,openstreetmap
+Madison Golf Center,golf,sports_centre,34.6776119,-86.7356067,,,AL,,false,true,false,openstreetmap
+Marion Military Institute Golf Course,golf,golf_course,32.6165449,-87.3250908,,,AL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,34.6971919,-86.665532,,,AL,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,34.7389326,-86.6689114,,,AL,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.529763,-86.8069436,1111 24th Street North,Birmingham,AL,35234,false,true,false,openstreetmap
+The Country Club of Alabama,golf,pitch,31.8198689,-85.1609302,101 Merion Drive,Eufaula,AL,36072,false,true,false,openstreetmap
+Launch House Golf,golf,amusement_arcade,34.7103592,-86.596551,2809 Newby Road Southwest,Huntsville,AL,35805,true,false,false,openstreetmap
+Topgolf,golf,sports_centre,30.6523995,-88.1196129,1250 Satchel Paige Drive,Mobile,AL,36606,false,true,false,openstreetmap
+Pinseekers,golf,sports_centre,33.9472836,-86.4745111,316 2nd Avenue East,Oneonta,AL,,false,true,false,openstreetmap
+Crimson Reserve,golf,pitch,33.2219038,-87.5142983,1425 Jack Warner Parkway Northeast,Tuscaloosa,AL,35404,false,true,false,openstreetmap

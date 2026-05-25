@@ -649,6 +649,7 @@ extension MapViewModel {
         lastMyPickupGamesLightweightLoadAt = nil
         pendingPickupGameJoinRequestCount = 0
         myPickupGameJoinRequestCards = []
+        incomingPickupGameInvites = []
         pickupGamesFollowingTabCache.removeAll()
         pickupJoinRequestLatestByPickupGameIdForFan.removeAll()
         pickupCreatorPublicRatingStatsByUserId = [:]

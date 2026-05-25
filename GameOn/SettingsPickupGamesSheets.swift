@@ -468,6 +468,7 @@ struct SettingsPickupMyGameListCard: View {
     var onManageRequests: () -> Void
     var displayStyle: SettingsPickupMyGameListCardDisplayStyle = .settingsFull
     var onOpenDetails: (() -> Void)? = nil
+    var onInvite: (() -> Void)? = nil
 
     @State private var rosterActionUserId: UUID?
     @State private var showRosterPlayerActions: Bool = false
@@ -748,6 +749,16 @@ struct SettingsPickupMyGameListCard: View {
                 }
 
                 HStack(spacing: 10) {
+                    if !usesExpiredArchivedStyle, let onInvite {
+                        Button(action: onInvite) {
+                            Label("Invite", systemImage: "person.badge.plus")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color.orange)
+                    }
+
                     if !(isFollowingCompact && isExpiredClearing) {
                         Button(action: onEdit) {
                             Label(gameStarted ? "Manage" : "Edit", systemImage: "pencil")
@@ -1374,6 +1385,7 @@ struct SettingsPickupGameFormView: View {
     @ObservedObject var viewModel: MapViewModel
     let mode: PickupGameFormMode
     var pickupPlacePrefill: PickupPlaceRow? = nil
+    var onCreated: ((PickupGameRow) -> Void)? = nil
     var onFinished: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
@@ -2384,7 +2396,7 @@ struct SettingsPickupGameFormView: View {
                     print("[PickupHostPrefillDebug] savedPickupPlaceLocation=true placeId=\(appliedPickupPlacePrefill.id.uuidString.lowercased()) address=\(addr) city=\(c) state=\(st) zip=\(trimmedZipCode) latitude=\(latFinal) longitude=\(lonFinal)")
                 }
 #endif
-                _ = try await viewModel.insertPickupGame(
+                let created = try await viewModel.insertPickupGame(
                     title: trimmedTitle,
                     sport: sport,
                     description: desc.isEmpty ? nil : desc,
@@ -2404,6 +2416,7 @@ struct SettingsPickupGameFormView: View {
                     maxPlayers: maxP,
                     gameFormat: gameFormat
                 )
+                onCreated?(created)
             case .edit(let row):
                 let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(start)
                 let endISO = PickupGameModels.encodeSupabaseTimestamptz(end)

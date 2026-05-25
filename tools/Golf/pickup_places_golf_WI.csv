@@ -1,0 +1,16 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Club Champion,golf,pitch,43.0302344,-88.108588,,,WI,,false,true,false,openstreetmap
+GOLFTEC,golf,training,43.0357505,-88.124633,,,WI,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,44.2668815,-88.4767681,,,WI,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,43.0368439,-88.1132673,,,WI,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.9494563,-88.0052105,,,WI,,false,true,false,openstreetmap
+Kohler Swing Studio & Golf Shop,golf,pitch,43.7447265,-87.7841327,,,WI,,false,true,false,openstreetmap
+Nevada Bob's Golf,golf,pitch,43.057289,-89.5140392,,,WI,,false,true,false,openstreetmap
+Tee to Green,golf,pitch,44.5167714,-88.0697148,,,WI,,false,true,false,openstreetmap
+Topgolf Swing Suite,golf,sports_centre,43.038385,-87.9141861,,,WI,,false,true,false,openstreetmap
+Fairway Lounge,golf,sports_centre,43.0146834,-89.4303087,2949 Triverton Pike Drive,Fitchburg,WI,53711,false,true,false,openstreetmap
+bogibox Hudson,golf,sports_centre,44.9530649,-92.7348832,1601 Industrial Street,Hudson,WI,54016,true,false,false,openstreetmap
+Club Champion,golf,pitch,43.0604217,-89.4964716,6629 Mineral Point Road,Madison,WI,53705,false,true,false,openstreetmap
+Nine Below,golf,miniature_golf,43.0599924,-87.8866584,1905 East North Avenue,Milwaukee,WI,53202,true,false,false,openstreetmap
+Moorland Road Golf Center,golf,golf_course,42.9352825,-88.1108994,5900 South Moorland Road,New Berlin,WI,53151,false,true,false,openstreetmap
+Under Cover Golf,golf,pitch,45.5045087,-91.7347537,19 West Marshall Street,Rice Lake,WI,54868,false,true,false,openstreetmap

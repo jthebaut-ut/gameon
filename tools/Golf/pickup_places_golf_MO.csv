@@ -1,0 +1,20 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Chipping Green,golf,pitch,38.9151039,-92.3607282,,,MO,,false,true,false,openstreetmap
+Club of Porto Cima Clubhouse,golf,pitch,38.1722065,-92.6504838,,,MO,,false,true,false,openstreetmap
+Driving Range,golf,pitch,37.1161137,-93.2187548,,,MO,,false,true,false,openstreetmap
+Driving Range,golf,pitch,38.9892883,-94.5248852,,,MO,,false,true,false,openstreetmap
+Driving Range,golf,pitch,38.9154136,-92.3579371,,,MO,,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.1723449,-92.6517676,,,MO,,false,true,false,openstreetmap
+Practice green,golf,pitch,38.7420669,-93.7460921,,,MO,,false,true,false,openstreetmap
+Pro Shop,golf,sports_centre,38.6666155,-90.4332754,,,MO,,false,true,false,openstreetmap
+Tiffany Greens Golf Club,golf,golf_course,39.280377,-94.6433335,,,MO,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.6707918,-90.5825799,16851 North Outer 40,,MO,63005,false,true,false,openstreetmap
+X Golf Springfield,golf,sports_centre,37.1457557,-93.2929609,,,MO,,true,false,false,openstreetmap
+Ballwin Golf Course & Event Center,golf,golf_course,38.6039401,-90.544608,333 Holloway Road,Ballwin,MO,63011,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,38.6023756,-90.4347908,11955 Manchester Road,Des Peres,MO,63131,false,true,false,openstreetmap
+All Seasons Indoor Golf Club,golf,amusement_arcade,38.9411819,-94.6065549,1225 West 103rd Street,Kansas City,MO,64114,false,true,false,openstreetmap
+Rock Port Golf and Country Club,golf,golf_course,40.4069444,-95.5094462,18757 North Country Club Drive,Rock Port,MO,64482,false,true,false,openstreetmap
+Topgolf St. Louis - Midtown,golf,sports_centre,38.6261679,-90.2314325,3201 Chouteau Avenue,Saint Louis,MO,63103,false,true,false,openstreetmap
+Paradise Point Driving Range,golf,pitch,39.424529,-94.5510488,Golf Course Road,Smithville,MO,64089,false,true,false,openstreetmap
+Golf Headquarters,golf,pitch,37.1613927,-93.2918071,319 East Battlefield Road,Springfield,MO,65807,false,true,false,openstreetmap
+The Club,golf,restaurant,38.7620404,-93.7596902,77 Northwest Division Road,Warrensburg,MO,64093,false,true,false,openstreetmap

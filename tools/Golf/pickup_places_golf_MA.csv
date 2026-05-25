@@ -1,0 +1,26 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Andover Country Club,golf,golf_course,42.6687485,-71.1705032,,,MA,,false,true,false,openstreetmap
+Bedfordshire Golf Club,golf,pitch,42.5063672,-71.254061,,,MA,,false,true,false,openstreetmap
+Dave DiRico's Golf,golf,pitch,42.132503,-72.6268862,21 Myron Street,,MA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.484817,-71.2188276,,,MA,,false,true,false,openstreetmap
+Hingham Driving Range,golf,pitch,42.2228006,-70.8716766,,,MA,,false,true,false,openstreetmap
+Indian Ridge Golf Club,golf,golf_course,42.6426026,-71.1673794,,,MA,,false,true,false,openstreetmap
+Kelly Greens Clubhouse,golf,pitch,42.4216391,-70.9292155,1 Willow Road,,MA,01908-1420,false,true,false,openstreetmap
+Max's Country Golf Driving Range,golf,pitch,42.6937343,-71.4324546,,,MA,,false,true,false,openstreetmap
+Mully's Indoor Golf Lounge,golf,amusement_arcade,42.5539447,-71.8420348,,,MA,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,42.297471,-71.3911744,1394 Worcester Street,,MA,,false,true,false,openstreetmap
+PXG Boston,golf,pitch,42.2984244,-71.4198752,571 Worcester Road,,MA,01701,false,true,false,openstreetmap
+Practice green,golf,pitch,42.2714223,-71.0396386,,,MA,,false,true,false,openstreetmap
+Vesper Country Club,golf,golf_course,42.6554769,-71.3905646,,,MA,,false,true,false,openstreetmap
+Vesper Country Club,golf,golf_course,42.6533886,-71.3946754,,,MA,,false,true,false,openstreetmap
+Weathervane Golf Academy,golf,sports_centre,42.1869864,-70.911388,306 Whiting Street,,MA,,false,true,false,openstreetmap
+X Golf,golf,pitch,42.39336,-71.5983732,,,MA,,false,true,false,openstreetmap
+XGolf,golf,sports_centre,42.4824292,-71.4150174,,,MA,,true,false,false,openstreetmap
+Inspire Fitness Studio,golf,fitness_centre,42.4212448,-71.1666918,43R Dudley Street,Arlington,MA,02476,false,true,false,openstreetmap
+PGA TOUR Superstore,golf,pitch,42.2156384,-70.9993466,450 Grossman,Braintree,MA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,42.1949295,-71.1517334,777 Dedham Street,Canton,MA,02021,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.302698,-71.3935225,1 Worcester Road,Framingham,MA,01701,false,true,false,openstreetmap
+Charter Oak Country Club,golf,golf_course,42.3832013,-71.5031468,394 Chestnut,Hudson,MA,01749,false,true,false,openstreetmap
+X Golf,golf,sports_centre,42.7441516,-71.1598208,90 Pleasant Valley Street,Methuen,MA,01844,true,false,false,openstreetmap
+Atlantic Golf Center,golf,pitch,41.91668,-71.3557845,754 Newport Avenue,South Attleboro,MA,02703,false,true,false,openstreetmap
+Fit to a Tee Golf,golf,pitch,41.654787,-70.2098998,928D Main Street,South Yarmouth,MA,02664,false,true,false,openstreetmap

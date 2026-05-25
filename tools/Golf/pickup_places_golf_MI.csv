@@ -1,0 +1,103 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Beech Woods Heated Tees,golf,pitch,42.4546686,-83.2947529,,,MI,,false,true,false,openstreetmap
+Bonnie Brook Golf Range,golf,golf_course,42.4413952,-83.2757091,,,MI,,false,true,false,openstreetmap
+Club Champion,golf,pitch,43.0010926,-85.5882671,2048 East Beltline Avenue Northeast,,MI,49525,false,true,false,openstreetmap
+Driving Range Tee Box,golf,pitch,42.7933014,-83.0577655,,,MI,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.6257194,-82.9720676,,,MI,,false,true,false,openstreetmap
+Greenfield Golf Center,golf,pitch,42.2900865,-83.1755341,,,MI,,false,true,false,openstreetmap
+Greystone #1 2,golf,pitch,42.7934997,-83.0564491,,,MI,,false,true,false,openstreetmap
+Greystone #1 2,golf,pitch,42.7962501,-83.0555294,,,MI,,false,true,false,openstreetmap
+Greystone #1 2,golf,pitch,42.7957919,-83.0557778,,,MI,,false,true,false,openstreetmap
+Greystone #1 3,golf,pitch,42.794108,-83.0560566,,,MI,,false,true,false,openstreetmap
+Greystone #1 3,golf,pitch,42.796324,-83.0554389,,,MI,,false,true,false,openstreetmap
+Greystone #2 1,golf,pitch,42.7974172,-83.0545619,,,MI,,false,true,false,openstreetmap
+Greystone #2 1,golf,pitch,42.7970809,-83.0550595,,,MI,,false,true,false,openstreetmap
+Greystone #2 1,golf,pitch,42.7980517,-83.0548103,,,MI,,false,true,false,openstreetmap
+Greystone #2 1,golf,pitch,42.7981047,-83.054895,,,MI,,false,true,false,openstreetmap
+Greystone #2 1,golf,pitch,42.7982532,-83.0545502,,,MI,,false,true,false,openstreetmap
+Greystone #2 3,golf,pitch,42.7972618,-83.0550027,,,MI,,false,true,false,openstreetmap
+Greystone #2 3,golf,pitch,42.7982736,-83.0549755,,,MI,,false,true,false,openstreetmap
+Greystone #2 4,golf,pitch,42.7975073,-83.055042,,,MI,,false,true,false,openstreetmap
+Greystone #2 4,golf,pitch,42.7983986,-83.0549982,,,MI,,false,true,false,openstreetmap
+Greystone #2 5,golf,pitch,42.7976262,-83.0549893,,,MI,,false,true,false,openstreetmap
+Greystone #3 1,golf,pitch,42.7991201,-83.0556338,,,MI,,false,true,false,openstreetmap
+Greystone #3 1,golf,pitch,42.7962432,-83.0567621,,,MI,,false,true,false,openstreetmap
+Greystone #3 2,golf,pitch,42.7989608,-83.0556749,,,MI,,false,true,false,openstreetmap
+Greystone #3 2,golf,pitch,42.7960918,-83.0564918,,,MI,,false,true,false,openstreetmap
+Greystone #4 1,golf,pitch,42.7953696,-83.058116,,,MI,,false,true,false,openstreetmap
+Greystone #4 1,golf,pitch,42.7973476,-83.0566659,,,MI,,false,true,false,openstreetmap
+Greystone #4 2,golf,pitch,42.7955891,-83.0580499,,,MI,,false,true,false,openstreetmap
+Greystone #4 2,golf,pitch,42.7993067,-83.0567905,,,MI,,false,true,false,openstreetmap
+Greystone #4 3,golf,pitch,42.7957488,-83.0579948,,,MI,,false,true,false,openstreetmap
+Greystone #4 3,golf,pitch,42.7993215,-83.0568951,,,MI,,false,true,false,openstreetmap
+Greystone #5 1,golf,pitch,42.8003406,-83.0539565,,,MI,,false,true,false,openstreetmap
+Greystone #5 1,golf,pitch,42.8000074,-83.0566094,,,MI,,false,true,false,openstreetmap
+Greystone #5 2,golf,pitch,42.8007515,-83.0530731,,,MI,,false,true,false,openstreetmap
+Greystone #5 2,golf,pitch,42.8000265,-83.0563798,,,MI,,false,true,false,openstreetmap
+Greystone #5 3,golf,pitch,42.8007859,-83.0528954,,,MI,,false,true,false,openstreetmap
+Greystone #5 3,golf,pitch,42.8000249,-83.0561636,,,MI,,false,true,false,openstreetmap
+Greystone #5 4,golf,pitch,42.8004801,-83.052857,,,MI,,false,true,false,openstreetmap
+Greystone #6 1,golf,pitch,42.8013849,-83.051557,,,MI,,false,true,false,openstreetmap
+Greystone #6 1,golf,pitch,42.8012485,-83.0496454,,,MI,,false,true,false,openstreetmap
+Greystone #6 1,golf,pitch,42.8011167,-83.0495298,,,MI,,false,true,false,openstreetmap
+Greystone #6 2,golf,pitch,42.8013567,-83.0512743,,,MI,,false,true,false,openstreetmap
+Greystone #6 2,golf,pitch,42.801101,-83.0493276,,,MI,,false,true,false,openstreetmap
+Greystone #6 2,golf,pitch,42.8009913,-83.0491392,,,MI,,false,true,false,openstreetmap
+Greystone #6 3,golf,pitch,42.8013351,-83.0510815,,,MI,,false,true,false,openstreetmap
+Greystone #6 3,golf,pitch,42.8010236,-83.0493678,,,MI,,false,true,false,openstreetmap
+Greystone #6 4,golf,pitch,42.8013203,-83.0508576,,,MI,,false,true,false,openstreetmap
+Greystone #6 5,golf,pitch,42.8014765,-83.0503381,,,MI,,false,true,false,openstreetmap
+Greystone #7 1,golf,pitch,42.7993651,-83.0488705,,,MI,,false,true,false,openstreetmap
+Greystone #7 1,golf,pitch,42.7998665,-83.0510982,,,MI,,false,true,false,openstreetmap
+Greystone #7 1,golf,pitch,42.8008095,-83.0522647,,,MI,,false,true,false,openstreetmap
+Greystone #7 2,golf,pitch,42.7994269,-83.0490879,,,MI,,false,true,false,openstreetmap
+Greystone #7 2,golf,pitch,42.8004948,-83.0517785,,,MI,,false,true,false,openstreetmap
+Greystone #7 2,golf,pitch,42.8007285,-83.0522194,,,MI,,false,true,false,openstreetmap
+Greystone #7 3,golf,pitch,42.7995035,-83.0495384,,,MI,,false,true,false,openstreetmap
+Greystone #7 3,golf,pitch,42.8007036,-83.0521151,,,MI,,false,true,false,openstreetmap
+Greystone #7 4,golf,pitch,42.8008206,-83.0517948,,,MI,,false,true,false,openstreetmap
+Greystone #8 1,golf,pitch,42.8001195,-83.0528104,,,MI,,false,true,false,openstreetmap
+Greystone #8 1,golf,pitch,42.7978739,-83.0536065,,,MI,,false,true,false,openstreetmap
+Greystone #8 1,golf,pitch,42.7975493,-83.0534297,,,MI,,false,true,false,openstreetmap
+Greystone #8 2,golf,pitch,42.7994152,-83.0533813,,,MI,,false,true,false,openstreetmap
+Greystone #8 2,golf,pitch,42.7966719,-83.0540731,,,MI,,false,true,false,openstreetmap
+Greystone #8 2,golf,pitch,42.7964826,-83.0535785,,,MI,,false,true,false,openstreetmap
+Greystone #8 3,golf,pitch,42.7989088,-83.0535593,,,MI,,false,true,false,openstreetmap
+Greystone #8 3,golf,pitch,42.7962592,-83.0539768,,,MI,,false,true,false,openstreetmap
+Greystone #8 4,golf,pitch,42.7961969,-83.0546897,,,MI,,false,true,false,openstreetmap
+Greystone #8 5,golf,pitch,42.7959908,-83.054507,,,MI,,false,true,false,openstreetmap
+Greystone #9 1,golf,pitch,42.795698,-83.0548594,,,MI,,false,true,false,openstreetmap
+Greystone #9 1,golf,pitch,42.7930038,-83.0558981,,,MI,,false,true,false,openstreetmap
+Greystone #9 2,golf,pitch,42.7954343,-83.0547429,,,MI,,false,true,false,openstreetmap
+Greystone #9 2,golf,pitch,42.7928969,-83.0555086,,,MI,,false,true,false,openstreetmap
+Greystone #9 3,golf,pitch,42.795361,-83.0549482,,,MI,,false,true,false,openstreetmap
+Greystone #9 4,golf,pitch,42.7947277,-83.0550391,,,MI,,false,true,false,openstreetmap
+Marquette Golf Club,golf,golf_course,46.5360888,-87.4239324,,,MI,,false,true,false,openstreetmap
+Mickey's Golf Range,golf,golf_course,42.3082414,-83.4164737,,,MI,,false,true,false,openstreetmap
+Oakland University Golf and Learning Center,golf,golf_course,42.6658033,-83.2050306,,,MI,,false,true,false,openstreetmap
+Practice Putting Green,golf,pitch,42.792688,-83.0565323,,,MI,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,42.301133,-83.273602,,,MI,,false,true,false,openstreetmap
+The Meadows at Grand Valley State University,golf,golf_course,42.9678511,-85.8984028,,,MI,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,42.7009266,-83.2882537,,,MI,,false,true,false,openstreetmap
+X Golf,golf,sports_centre,42.8156657,-86.0876147,,,MI,,true,false,false,openstreetmap
+X Golf,golf,sports_centre,42.8768219,-85.7587302,,,MI,,true,false,false,openstreetmap
+X-Golf,golf,sports_centre,42.4918672,-83.4852765,,,MI,,false,true,false,openstreetmap
+Bogey's Indoor Golf,golf,sports_centre,45.0619014,-83.4925422,2060 M-32 West,Alpena,MI,49707,false,true,false,openstreetmap
+Indoor Golf Simulator,golf,amusement_arcade,45.0631071,-83.4336811,123 West Chisholm Street,Alpena,MI,49707,false,true,false,openstreetmap
+Stonebridge Golf Club,golf,golf_course,42.2104671,-83.7645132,1825 Clubhouse Drive,Ann Arbor,MI,48108,false,true,false,openstreetmap
+Carl's Golfland,golf,pitch,42.6091652,-83.3030526,1976 South Telegraph Road,Bloomfield Hills,MI,48302,false,true,false,openstreetmap
+Detroit Golf Club,golf,golf_course,42.4245981,-83.1245076,17911 Hamilton Road,Detroit,MI,48203,false,true,false,openstreetmap
+Downriver Golf Factory,golf,fitness_centre,42.0946276,-83.1952562,13990 Middle Gibraltar Road,Gibraltar,MI,48173,false,true,false,openstreetmap
+X-Golf Grand Rapids,golf,sports_centre,42.9137071,-85.5255241,5761 28th Street Southeast,Grand Rapids,MI,49546,true,false,false,openstreetmap
+Idyl Wyld Golf Course,golf,pitch,42.3977231,-83.3969388,35786 5 Mile Road,Livonia,MI,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,42.440629,-83.4372754,21061 Haggerty Road,Novi,MI,48375,false,true,false,openstreetmap
+X Golf,golf,sports_centre,42.7252701,-84.4150334,4946 Marsh Road,Okemos,MI,48864,true,false,false,openstreetmap
+Petoskey Golf Center,golf,golf_course,45.3970498,-84.8880778,1900 North US-31 Highway,Petoskey,MI,49770,false,true,false,openstreetmap
+A & M's Sim & Gym,golf,sports_centre,45.4203372,-83.8174525,221 North Third Street,Rogers City,MI,49779,false,true,false,openstreetmap
+Jawor's Golf Center,golf,sports_centre,42.5376304,-82.9086569,32900 Gratiot Avenue,Roseville,MI,48066,false,true,false,openstreetmap
+Royal Oak Golf Center,golf,sports_centre,42.5194887,-83.1809997,3500 Edgar Avenue,Royal Oak,MI,48073,false,true,false,openstreetmap
+X-Golf,golf,pitch,42.5164147,-83.1864729,30955 Woodward Avenue,Royal Oak,MI,48073,false,true,false,openstreetmap
+Brookside Golf Course,golf,golf_course,42.1950442,-83.7887114,6451 Ann Arbor-Saline Road,Saline,MI,48176,false,true,false,openstreetmap
+Raven Golf Ball Company,golf,pitch,42.6700364,-83.0430085,6931 23 Mile Road,Shelby Township,MI,48316,false,true,false,openstreetmap
+Traverse City Golf Performance Center,golf,pitch,44.7167056,-85.7024149,6270 Secor Road,Traverse City,MI,49685,false,true,false,openstreetmap
+PXG Detroit,golf,pitch,42.5487225,-83.1839964,2830 West Maple Road,Troy,MI,48084,false,true,false,openstreetmap

@@ -1,0 +1,12 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Fossil Island Golf Club,golf,golf_course,41.8068835,-110.5383917,,,WY,,false,true,false,openstreetmap
+Fox Run Golf Course,golf,golf_course,41.2871243,-105.6656321,,,WY,,false,true,false,openstreetmap
+RGCC,golf,golf_course,41.567354,-109.5386864,,,WY,,false,true,false,openstreetmap
+Rochelle Ranch Golf Course,golf,golf_course,41.7939709,-107.1914304,,,WY,,false,true,false,openstreetmap
+Shooting Star,golf,golf_course,43.5749495,-110.8298051,,,WY,,false,true,false,openstreetmap
+Teton Pines,golf,golf_course,43.5236755,-110.8480763,,,WY,,false,true,false,openstreetmap
+Trail Ruts Golf Course,golf,golf_course,42.2544529,-104.7396112,,,WY,,false,true,false,openstreetmap
+Valli Vu Golf Course,golf,golf_course,42.7035324,-110.9294127,1420 South Washington Street,Afton,WY,83110,false,true,false,openstreetmap
+Targhee Village Golf Course,golf,golf_course,43.7369169,-111.0320066,530 Perimeter Drive,Alta,WY,,false,true,false,openstreetmap
+Bell Nob Golf Course,golf,golf_course,44.2808033,-105.5595565,4600 Overdale Drive,Gillette,WY,82718,false,true,false,openstreetmap
+Gillette Golf Club,golf,golf_course,44.266476,-105.4726972,1800 Country Club Road,Gillette,WY,82718,false,true,false,openstreetmap

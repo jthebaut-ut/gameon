@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Club Champion,golf,pitch,30.0015492,-90.1459912,,,LA,,false,true,false,openstreetmap
+Edwin Watts Golf,golf,pitch,30.0067534,-90.2341938,2436 Veterans Memorial Boulevard,,LA,,false,true,false,openstreetmap
+Golf Connection,golf,pitch,30.1872422,-92.0116952,,,LA,,false,true,false,openstreetmap
+Oaak Knoll Country Club,golf,golf_course,30.5204883,-90.4024748,,,LA,,false,true,false,openstreetmap
+Oakbourne Country Club,golf,golf_course,30.2195793,-91.9762424,,,LA,,false,true,false,openstreetmap
+Top Golf,golf,sports_centre,30.154769,-92.0408377,,,LA,,false,true,false,openstreetmap
+Top Golf,golf,sports_centre,30.3744163,-91.0559186,,,LA,,false,true,false,openstreetmap
+Edwin Watts Golf,golf,pitch,30.4070839,-91.0510125,5235 South Sherwood Forest Boulevard,Baton Rouge,LA,70816,false,true,false,openstreetmap
+Schneider's Golf Mechanics,golf,pitch,30.3986508,-91.0854597,5454 Bluebonnet Boulevard,Baton Rouge,LA,70809,false,true,false,openstreetmap

@@ -1,0 +1,46 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Aqua Golf Driving Range,golf,pitch,39.6571881,-104.9425409,,,CO,,false,true,false,openstreetmap
+CCCC Driving Range,golf,pitch,39.6740222,-104.8825921,,,CO,,false,true,false,openstreetmap
+Chipeta Golf Club,golf,golf_course,39.0375425,-108.5082558,,,CO,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,39.7164939,-104.965402,,,CO,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,39.7134173,-104.9659815,,,CO,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,39.7056207,-104.8783904,,,CO,,false,true,false,openstreetmap
+Chipping Greens,golf,pitch,39.6429845,-105.0101184,,,CO,,false,true,false,openstreetmap
+Cobble Creek Golf Community,golf,golf_course,38.4398975,-107.8819827,,,CO,,false,true,false,openstreetmap
+Driving Range,golf,pitch,39.6442214,-105.010906,,,CO,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,39.784766,-104.7527619,,,CO,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.5689225,-104.8760524,,,CO,,false,true,false,openstreetmap
+Golf Practice & Driving Range,golf,pitch,40.4279711,-106.8167818,,,CO,,false,true,false,openstreetmap
+Golf Practice & Driving Range,golf,pitch,40.417139,-106.804591,,,CO,,false,true,false,openstreetmap
+Kennedy Driving Range,golf,pitch,39.6552825,-104.8655793,,,CO,,false,true,false,openstreetmap
+Keystone Ranch Course,golf,golf_course,39.5819152,-105.9966479,,,CO,,false,true,false,openstreetmap
+Legends Miniature Golf and Batting Cages,golf,pitch,38.9279069,-104.7209168,,,CO,,false,true,false,openstreetmap
+P3 Hole 2 - Fairway,golf,pitch,39.6456409,-105.0118377,,,CO,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,39.8550485,-105.059153,5650 West 88th Avenue,,CO,,false,true,false,openstreetmap
+Practice Bunker,golf,pitch,39.7158496,-104.8405166,,,CO,,false,true,false,openstreetmap
+Putting Green,golf,pitch,39.6500127,-104.8200824,,,CO,,false,true,false,openstreetmap
+Putting Green,golf,pitch,39.675996,-104.8340549,,,CO,,false,true,false,openstreetmap
+Putting Green,golf,pitch,39.642807,-105.0119611,,,CO,,false,true,false,openstreetmap
+Putting Green,golf,pitch,39.6453537,-105.0179991,,,CO,,false,true,false,openstreetmap
+Putting Green,golf,pitch,39.7054063,-104.8780369,,,CO,,false,true,false,openstreetmap
+Putting Greens & Bunkers Practice Area,golf,pitch,39.7832741,-104.7536358,,,CO,,false,true,false,openstreetmap
+Skylark Indoor Golf Club,golf,golf_course,40.5251728,-105.0510911,,,CO,,false,true,false,openstreetmap
+The Bridges Golf and Country Club,golf,golf_course,38.4568659,-107.8482564,,,CO,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.987913,-104.9856923,,,CO,,false,true,false,openstreetmap
+Vail Pro Shop,golf,pitch,39.6416673,-106.3447493,,,CO,,false,true,false,openstreetmap
+City of Aurora,golf,sports_centre,39.7302083,-104.7796029,800 Telluride Street,Aurora,CO,80011,false,true,false,openstreetmap
+Springhill Golf Course,golf,golf_course,39.7330376,-104.7771323,800 Telluride Street,Aurora,CO,80011,false,true,false,openstreetmap
+PXG Denver,golf,pitch,39.5675216,-104.8841204,9030 East Phillips Place,Centennial,CO,80112,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.5892712,-104.8653888,10601 East Easter Avenue,Centennial,CO,80112,false,true,false,openstreetmap
+SSFB Golf Cages,golf,fitness_centre,38.8107792,-104.5271843,120 Voyager Street,Colorado Springs,CO,80912,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.0223486,-104.8227933,165 Spectrum Loop,Colorado Springs,CO,80921,false,true,false,openstreetmap
+X-Golf Indoor Golf Simulators,golf,amusement_arcade,40.5418043,-105.073409,347 East Foothills Parkway,Fort Collins,CO,,false,true,false,openstreetmap
+GolfTime,golf,sports_centre,39.0785276,-108.496206,3002 I 70 Business Loop,Grand Junction,CO,81504,false,true,false,openstreetmap
+X-Golf,golf,sport_club,39.0922553,-108.5927686,2482 Patterson Road,Grand Junction,CO,81505,false,true,false,openstreetmap
+Hugo Golf Cource,golf,golf_course,39.1475836,-103.4942223,44161 County Highway 109,Hugo,CO,80821,false,true,false,openstreetmap
+The Homestead Golf Course,golf,golf_course,39.6498608,-105.128506,11500 West Hampden Avenue,Lakewood,CO,80227,false,true,false,openstreetmap
+Pagosa Springs Golf Club,golf,sports_centre,37.269267,-107.0697138,1 Pines Club Place,Pagosa Springs,CO,81147,false,true,false,openstreetmap
+Rollingstone Ranch Golf Course,golf,golf_course,40.4687388,-106.8021695,1230 Steamboat Boulevard,Steamboat Springs,CO,80477,false,true,false,openstreetmap
+Todd Creek Golf Club,golf,pitch,39.9729928,-104.8907903,8455 Heritage Drive,Thornton,CO,80602,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.8892712,-105.075348,,Westminster,CO,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.8661868,-105.0510764,9330 Sheridan Boulevard,Westminster,CO,80031,false,true,false,openstreetmap

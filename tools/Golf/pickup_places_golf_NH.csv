@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Exeter Country Club Pro Shop,golf,pitch,42.9884617,-70.9422693,,,NH,,false,true,false,openstreetmap
+Golf Loft Keene,golf,amusement_arcade,42.9133824,-72.2864012,,,NH,,false,true,false,openstreetmap
+Hidden Creek Country Club,golf,golf_course,42.8805807,-71.4493929,,,NH,,false,true,false,openstreetmap
+Hidden Creek Practice Facility,golf,pitch,42.8844643,-71.4532287,,,NH,,false,true,false,openstreetmap
+Mammoth Green,golf,pitch,42.8428574,-71.3636631,,,NH,,false,true,false,openstreetmap
+Nashua Country Club,golf,golf_course,42.7409709,-71.4462868,,,NH,,false,true,false,openstreetmap
+Overlook Golf Club,golf,golf_course,42.7178926,-71.5461001,,,NH,,false,true,false,openstreetmap
+Intervale Country Club,golf,pitch,43.027592,-71.4817333,1491 Front Street,Manchester,NH,03102,false,true,false,openstreetmap
+Mountainside Golf Outfitters,golf,pitch,43.321604,-72.0362983,4 State Route 103A,Newbury,NH,03255,false,true,false,openstreetmap

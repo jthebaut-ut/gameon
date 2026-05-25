@@ -1,0 +1,17 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Back Nine,golf,pitch,40.5581366,-111.8927797,,,UT,,false,true,false,openstreetmap
+Eagle Lake Golf Course,golf,pitch,41.1677986,-112.049667,,,UT,,false,true,false,openstreetmap
+El Monte Golf Course,golf,pitch,41.233694,-111.9452723,,,UT,,false,true,false,openstreetmap
+Logan River Golf Course,golf,golf_course,41.7109846,-111.8467674,,,UT,,false,true,false,openstreetmap
+Logan River Golf Course Clubhouse,golf,sports_centre,41.7125923,-111.8492921,,,UT,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,40.2680214,-111.6591219,,,UT,,false,true,false,openstreetmap
+Round Valley Golf Course,golf,golf_course,41.0434348,-111.6277206,,,UT,,false,true,false,openstreetmap
+Schneiter's Bluff,golf,pitch,41.1164685,-112.0939129,,,UT,,false,true,false,openstreetmap
+The Turn Golf Club,golf,pitch,40.5284072,-111.8707281,,,UT,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.6237474,-111.9142054,,,UT,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.3059521,-111.7366185,,,UT,,false,true,false,openstreetmap
+Tracking Par,golf,fitness_centre,40.6663448,-111.8363892,,,UT,,false,true,false,openstreetmap
+Aloha Golf & Coffee Lounge,golf,amusement_arcade,41.0603618,-111.9654548,21 East Gentile Street,Layton,UT,84041,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.6376304,-111.8895176,6148 South State Street,Murray,UT,84107,false,true,false,openstreetmap
+X-Golf,golf,sports_centre,40.5090825,-111.995014,13347 South Teal Ridge Way,Riverton,UT,84096,true,false,false,openstreetmap
+Club Champion,golf,pitch,40.7250547,-111.862301,1010 East 2100 South,Salt Lake City,UT,84106,false,true,false,openstreetmap

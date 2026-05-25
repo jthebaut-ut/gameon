@@ -1,0 +1,24 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Assateague Greens Driving Range,golf,pitch,38.3102165,-75.1314349,,,MD,,false,true,false,openstreetmap
+Driving Range,golf,pitch,39.2854808,-77.2874741,,,MD,,false,true,false,openstreetmap
+Glen Riddle Golf Club,golf,golf_course,38.3457885,-75.1476288,,,MD,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.1874805,-76.7963541,,,MD,,false,true,false,openstreetmap
+JJ Golf Studio,golf,pitch,39.2777915,-76.8593741,,,MD,,false,true,false,openstreetmap
+Night Hawk Golf Center,golf,pitch,39.0458489,-76.6700515,,,MD,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,39.0445527,-77.104975,,,MD,,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.9942894,-76.4594379,,,MD,,false,true,false,openstreetmap
+Practice Green,golf,pitch,39.405437,-76.7545014,,,MD,,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.5431856,-77.0100986,,,MD,,false,true,false,openstreetmap
+Practice green,golf,pitch,38.9941568,-76.4602248,,,MD,,false,true,false,openstreetmap
+Tom Mitchell's Golf Complex,golf,golf_course,39.4712088,-76.8403642,,,MD,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.2745044,-76.6234482,,,MD,,false,true,false,openstreetmap
+Duke's Golf LLC,golf,pitch,38.9760098,-76.5411769,2444 Solomons Island Road,Annapolis,MD,21401,false,true,false,openstreetmap
+X-Golf Bel Air,golf,sports_centre,39.4944293,-76.3270147,5 Bel Air South Parkway,Bel Air,MD,21015,false,true,false,openstreetmap
+South Germantown Driving Range,golf,sports_centre,39.1508611,-77.3163521,18045 South Park Circle,Boyds,MD,20841,false,true,false,openstreetmap
+South Germantown SplashPark & Mini Golf,golf,sports_centre,39.1503893,-77.3063247,18056 Central Park Circle,Boyds,MD,,false,true,false,openstreetmap
+Golftec,golf,pitch,39.2143439,-76.8020442,5725 Richards Valley Road,Ellicott City,MD,21043,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.1850233,-77.2584255,20101 Century Boulevard,Germantown,MD,20874,false,true,false,openstreetmap
+Holly Hills Country Club,golf,golf_course,39.385286,-77.314781,5502 Mussetter Road,Ijamsville,MD,21754,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.3975251,-76.583366,803 Goucher Boulevard,Loch Raven,MD,21286,false,true,false,openstreetmap
+X-Golf Pasadena,golf,sports_centre,39.1248752,-76.5914432,8048 Ritchie Highway,Pasadena,MD,21122,false,true,false,openstreetmap
+Argyle Country Club,golf,golf_course,39.0969159,-77.0518834,14600 Argyle Club Lane,Silver Spring,MD,20906,false,true,false,openstreetmap

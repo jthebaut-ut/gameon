@@ -1,0 +1,24 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+A&F Golf Range,golf,pitch,33.8655732,-83.4826517,,,GA,,false,true,false,openstreetmap
+Approach Shots,golf,sports_centre,33.4888996,-82.0753647,,,GA,,false,true,false,openstreetmap
+Five Iron Golf,golf,sports_centre,33.7732356,-84.3863271,675 West Peachtree Street Northwest,,GA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,33.8797258,-84.4668556,,,GA,,false,true,false,openstreetmap
+Golf Shop,golf,pitch,33.4973284,-82.0273209,,,GA,,false,true,false,openstreetmap
+Golf Shop,golf,pitch,33.501109,-82.0264544,,,GA,,false,true,false,openstreetmap
+GolfTEC,golf,pitch,34.0194821,-84.3124135,,,GA,,false,true,false,openstreetmap
+North Golf Shop,golf,pitch,33.5042463,-82.0212215,,,GA,,false,true,false,openstreetmap
+Northcrest Golf Range,golf,sports_centre,33.8947905,-84.2486742,,,GA,,false,true,false,openstreetmap
+Old Toccoa Farm,golf,golf_course,34.9225748,-84.3243868,,,GA,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,34.0245774,-84.5696899,2911 George Busbee Parkway Northwest,,GA,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,34.0206509,-84.3149278,,,GA,,false,true,false,openstreetmap
+Putting Green,golf,pitch,34.0835329,-84.487568,,,GA,,false,true,false,openstreetmap
+Shiver Carts,golf,pitch,30.8790232,-83.2401079,,,GA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.525487,-82.0153066,,,GA,,false,true,false,openstreetmap
+Walden Glen Putting Green,golf,pitch,33.5268457,-82.1401822,,,GA,,false,true,false,openstreetmap
+Waterford Golf Club,golf,pitch,32.542739,-83.5550015,,,GA,,false,true,false,openstreetmap
+GolfTec,golf,pitch,33.7732843,-84.3886819,699 Spring Street Northwest,Atlanta,GA,30308,false,true,false,openstreetmap
+PXG Atlanta,golf,pitch,33.8473367,-84.3635527,3393 Peachtree Road,Atlanta,GA,30326,false,true,false,openstreetmap
+Old Toccoa Farm,golf,golf_course,34.9230939,-84.3234446,596 Curtis Switch Rd,Mineral Bluff,GA,30559,false,true,false,openstreetmap
+Savannah Golf Club,golf,golf_course,32.0673259,-81.0644775,1661 East President Street,Savannah,GA,31414,false,true,false,openstreetmap
+Square One Golf Performance Center,golf,sports_centre,34.0419135,-84.0955266,1300 Peachtree Industrial Boulevard,Suwanee,GA,30024,false,true,false,openstreetmap
+Fairway Tavern,golf,restaurant,30.8809585,-83.2966411,3350 Country Club Road,Valdosta,GA,31602,false,true,false,openstreetmap

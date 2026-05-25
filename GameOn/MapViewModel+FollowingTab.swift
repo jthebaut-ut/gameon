@@ -54,6 +54,7 @@ extension MapViewModel {
         clearFollowingTabVenueGamePlanCachesOnly()
         followingTabSavedVenues = []
         myPickupGameJoinRequestCards = []
+        incomingPickupGameInvites = []
         pickupGamesFollowingTabCache.removeAll()
         pickupJoinRequestLatestByPickupGameIdForFan.removeAll()
         resetPickupFollowingActivityStateForCacheClear()

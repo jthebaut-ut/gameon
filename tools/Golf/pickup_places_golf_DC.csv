@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+CitySwing,golf,sports_centre,38.9021086,-77.0248064,901 New York Avenue Northwest,,DC,20001,false,true,false,openstreetmap
+Malbon Golf,golf,pitch,38.9065708,-77.0627428,1265 Wisconsin Avenue Northwest,,DC,20007,false,true,false,openstreetmap
+Practice Green,golf,pitch,38.9650179,-77.040329,,,DC,,false,true,false,openstreetmap
+White House Putting Green,golf,pitch,38.8970306,-77.0370353,,,DC,,false,true,false,openstreetmap

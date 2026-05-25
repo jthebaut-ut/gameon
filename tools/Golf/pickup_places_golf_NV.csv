@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Chipping Green,golf,pitch,36.0069943,-115.0458493,,,NV,,false,true,false,openstreetmap
+Club Champion,golf,pitch,39.4067019,-119.7504371,,,NV,,false,true,false,openstreetmap
+Pratice Green,golf,pitch,36.2105881,-115.2964339,,,NV,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,36.1065572,-115.1648143,,,NV,,false,true,false,openstreetmap
+Desert Willow Golf Course,golf,golf_course,36.0059776,-115.0746855,2020 West Horizon Ridge Parkway,Henderson,NV,89012,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,36.0598541,-115.048365,561 North Stephanie Street,Henderson,NV,89014,false,true,false,openstreetmap
+The Back Nine,golf,pitch,36.023279,-115.0482305,1450 West Horizon Ridge Parkway,Henderson,NV,89012,false,true,false,openstreetmap

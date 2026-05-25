@@ -1,0 +1,22 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ballyowens Golf Club,golf,golf_course,41.1372872,-74.5845985,,,NJ,,false,true,false,openstreetmap
+Big Swing Golf Center,golf,pitch,39.7684212,-75.1114149,,,NJ,,false,true,false,openstreetmap
+Club Champion,golf,pitch,40.8795137,-74.0659084,,,NJ,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.9362379,-74.0688189,,,NJ,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.8046681,-74.3681644,,,NJ,,false,true,false,openstreetmap
+Hamilton Farm Golf Club,golf,golf_course,40.7099734,-74.6831576,,,NJ,,false,true,false,openstreetmap
+Indoor Golf,golf,pitch,39.8611701,-74.9227224,,,NJ,,false,true,false,openstreetmap
+Morris County Golf Course,golf,golf_course,40.7858909,-74.4429075,,,NJ,,false,true,false,openstreetmap
+Mountain Ridge Country Club,golf,golf_course,40.8624612,-74.295718,,,NJ,,false,true,false,openstreetmap
+Ocean County Golf Course at Atlantis,golf,golf_course,39.5803215,-74.3574448,,,NJ,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,40.9395848,-74.0728967,,,NJ,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.2408477,-74.2811218,,,NJ,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.9731295,-74.9060338,,,NJ,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.9732578,-74.9048934,104,,NJ,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,39.9259526,-75.0426752,2232 Route 70 West,Cherry Hill,NJ,08002-3345,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,40.8116862,-74.3844029,98 Route 10 West,East Hanover,NJ,07936,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.5205035,-74.3683396,1013 US Route 1 South,Edison,NJ,08817,false,true,false,openstreetmap
+19th Hole,golf,bar,40.8399715,-74.7082005,240 US 206,Flanders,NJ,07836,false,true,false,openstreetmap
+Topgolf Swing Suite,golf,sports_centre,40.7982719,-74.4804902,67 East Park Place,Morristown,NJ,07960,false,true,false,openstreetmap
+PXG Paramus,golf,pitch,40.9198734,-74.0655897,65 East State Route 4,Paramus,NJ,07652,false,true,false,openstreetmap
+Golf Paradise Club,golf,fitness_centre,40.8347706,-74.2254714,311 Pompton Avenue,Verona,NJ,07044,false,true,false,openstreetmap

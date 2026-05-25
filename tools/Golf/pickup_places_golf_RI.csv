@@ -1,0 +1,3 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Golf Galaxy,golf,pitch,41.726548,-71.4766845,,,RI,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.7522645,-71.4571159,,,RI,,false,true,false,openstreetmap

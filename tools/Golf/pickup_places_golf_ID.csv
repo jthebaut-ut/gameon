@@ -1,0 +1,12 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Elks Golf Course,golf,golf_course,48.2928481,-116.542785,,,ID,,false,true,false,openstreetmap
+Gem County Golf Course,golf,golf_course,43.8521114,-116.5377048,,,ID,,false,true,false,openstreetmap
+Golf Island,golf,sports_centre,47.6956206,-116.8059895,,,ID,,false,true,false,openstreetmap
+Links Indoor Golf,golf,sports_centre,43.8295239,-111.7789373,,,ID,,false,true,false,openstreetmap
+Rolling Hills Golf Course,golf,golf_course,44.2620426,-116.9683227,,,ID,,false,true,false,openstreetmap
+The Links at Teton Peaks,golf,golf_course,43.7376437,-111.1735583,,,ID,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,43.6035524,-116.288677,8573 West Franklin Road,Boise,ID,83709,false,true,false,openstreetmap
+Wide World of Golf,golf,pitch,43.6107006,-116.2824838,8057 West Emerald Street,Boise,ID,83704,false,true,false,openstreetmap
+X-Golf,golf,sports_centre,43.6105,-116.283214,8101 West Emerald Street,Boise,ID,83704,false,true,false,openstreetmap
+Albatross Golf Experience,golf,pitch,47.7039883,-116.785847,2930 North Government Way,Coeur d'Alene,ID,83815,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,43.5962209,-116.3472056,948 South Silverstone Way,Meridian,ID,83642,false,true,false,openstreetmap

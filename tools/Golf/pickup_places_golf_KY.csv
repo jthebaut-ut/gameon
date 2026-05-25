@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bluegrass Golf Academy,golf,training,38.0145852,-84.4415816,,,KY,,false,true,false,openstreetmap
+City of Florence Golf Course,golf,golf_course,39.0076179,-84.6473299,,,KY,,false,true,false,openstreetmap
+Deerfield Golf Club,golf,pitch,38.6405649,-83.7845463,,,KY,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,38.2516621,-85.6215532,5071 Shelbyville Road,,KY,,false,true,false,openstreetmap
+White Haven Driving Range,golf,pitch,37.9954398,-84.4357004,,,KY,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.2451998,-85.6106039,301 Oxmoor Lane,Louisville,KY,40222,false,true,false,openstreetmap
+Club Champion,golf,pitch,38.2435168,-85.513695,12919 Shelbyville Road,Middletown,KY,40243,false,true,false,openstreetmap
+Larry Ward High Performance Golf Academy,golf,school,37.9599537,-84.6070804,5600 Harrodsburg Road,Nicholasville,KY,40356,false,true,false,openstreetmap

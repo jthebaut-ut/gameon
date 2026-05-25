@@ -1,0 +1,13 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+6,golf,pitch,21.9125454,-159.5267553,,,HI,,false,true,false,openstreetmap
+Bay Golf Course,golf,golf_course,20.9981831,-156.6602063,,,HI,,false,true,false,openstreetmap
+Bellows Mini Golf,golf,miniature_golf,21.3704538,-157.7106745,,,HI,,false,true,false,openstreetmap
+Hawaii Country Club,golf,golf_course,21.4333808,-158.0519825,,,HI,,false,true,false,openstreetmap
+Hualalai Golf Club & Pro Shop,golf,golf_course,19.8271752,-155.9921008,,,HI,,false,true,false,openstreetmap
+Roger Dunn Golf,golf,pitch,21.2929941,-157.841279,,,HI,,false,true,false,openstreetmap
+The Golf Sim,golf,sports_centre,21.2923395,-157.8516688,,,HI,,false,true,false,openstreetmap
+The Plantation Course,golf,golf_course,21.003756,-156.6405613,,,HI,,false,true,false,openstreetmap
+Waiehu Golf Course,golf,golf_course,20.926668,-156.4991703,,,HI,,false,true,false,openstreetmap
+Waikoloa Beach Course,golf,golf_course,19.9208742,-155.8823314,,,HI,,false,true,false,openstreetmap
+Waikoloa King's Club,golf,pitch,19.9209613,-155.8744016,,,HI,,false,true,false,openstreetmap
+Dunes at Maui Lani Golf Course,golf,golf_course,20.8663048,-156.4778437,1333 Maui Lani Parkway,kahului,HI,96732,false,true,false,openstreetmap

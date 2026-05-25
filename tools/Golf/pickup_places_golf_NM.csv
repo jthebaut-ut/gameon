@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Chipping Green,golf,pitch,33.4243721,-104.4907938,,,NM,,false,true,false,openstreetmap
+Clubhouse,golf,pitch,32.7721275,-103.2012948,,,NM,,false,true,false,openstreetmap
+Desert Lakes Golf,golf,pitch,32.8601424,-105.9620441,,,NM,,false,true,false,openstreetmap
+Practice Green,golf,pitch,33.4245479,-104.4902398,,,NM,,false,true,false,openstreetmap
+Putting Green,golf,pitch,33.4241851,-104.4913182,,,NM,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,35.1322093,-106.6136164,1600 Desert Surf Circle Northeast,,NM,,false,true,false,openstreetmap
+Gene Torres Golf Course,golf,golf_course,35.6104331,-105.2158515,1 Country Club Drive,Las Vegas,NM,87701,false,true,false,openstreetmap
+Marty Sanchez Golf Course,golf,pitch,35.6754439,-106.0722097,205 Caja del Rio Road,Santa Fe,NM,,false,true,false,openstreetmap

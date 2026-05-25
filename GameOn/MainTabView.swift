@@ -990,6 +990,7 @@ struct MainTabView: View {
         viewModel.hasUnreadPickupActivity
             || viewModel.pickupActivityCount > 0
             || viewModel.pendingPickupGameJoinRequestCount > 0
+            || !viewModel.incomingPickupGameInvites.isEmpty
     }
 
     private func tabButton(_ tab: AppTab, title: String, icon: String, glow: Color = FGColor.accentBlue) -> some View {

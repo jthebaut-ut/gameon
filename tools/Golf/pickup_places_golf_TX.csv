@@ -1,0 +1,76 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Casa Blanca Country Club,golf,pitch,27.5348798,-99.4540391,,,TX,,false,true,false,openstreetmap
+Chip Practice Area,golf,pitch,29.1465256,-98.1860286,,,TX,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,32.5418092,-94.7644523,,,TX,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,32.8635751,-96.9607175,,,TX,,false,true,false,openstreetmap
+Club Champion,golf,pitch,29.5841904,-95.6472263,13509 University Boulevard,,TX,77479,false,true,false,openstreetmap
+Disk Golf,golf,pitch,32.2125183,-98.1975705,,,TX,,false,true,false,openstreetmap
+Driving Range,golf,pitch,29.6480284,-98.620267,,,TX,,false,true,false,openstreetmap
+Driving Range,golf,pitch,32.5426133,-94.7656483,,,TX,,false,true,false,openstreetmap
+Drivng Range,golf,pitch,29.1469964,-98.1854929,,,TX,,false,true,false,openstreetmap
+Forest Creek Golf Club,golf,golf_course,30.5123053,-97.6022825,,,TX,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,30.3919479,-97.7449137,,,TX,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,29.7328741,-95.4631717,,,TX,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,29.7350983,-95.5694689,,,TX,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,29.6110101,-98.5121556,,,TX,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,32.875796,-96.7692984,9358 North Central Expressway,,TX,,false,true,false,openstreetmap
+GolfTec,golf,training,33.0022879,-96.7668281,340 Coit Road,,TX,75075,false,true,false,openstreetmap
+Melrose Golf Course,golf,golf_course,29.8769029,-95.378092,,,TX,,false,true,false,openstreetmap
+Memorial Park Golf Course Pro Shop,golf,pitch,29.7731313,-95.4332378,,,TX,,false,true,false,openstreetmap
+Mini Golf,golf,pitch,33.1626073,-97.8498929,,,TX,,false,true,false,openstreetmap
+PGA TOUR Superstore,golf,pitch,33.0949532,-96.8013863,,,TX,,false,true,false,openstreetmap
+Practice,golf,pitch,32.9879701,-96.5614169,,,TX,,false,true,false,openstreetmap
+Practice,golf,pitch,32.9879715,-96.5607639,,,TX,,false,true,false,openstreetmap
+Practice,golf,pitch,32.7564292,-96.7069292,,,TX,,false,true,false,openstreetmap
+Practice,golf,pitch,32.7561454,-96.7061214,,,TX,,false,true,false,openstreetmap
+Practice,golf,pitch,32.7558885,-96.7069415,,,TX,,false,true,false,openstreetmap
+Practice Green,golf,pitch,30.2630156,-97.7561583,,,TX,,false,true,false,openstreetmap
+Practice Green,golf,pitch,33.1653017,-96.8652637,,,TX,,false,true,false,openstreetmap
+Practice Green,golf,pitch,32.5405191,-94.7647097,,,TX,,false,true,false,openstreetmap
+Practice Green,golf,pitch,32.8630131,-96.9609364,,,TX,,false,true,false,openstreetmap
+Putting Green,golf,pitch,29.8448764,-98.4048197,,,TX,,false,true,false,openstreetmap
+Putting Green,golf,pitch,30.3213784,-97.9706488,,,TX,,false,true,false,openstreetmap
+Putting Green,golf,pitch,30.3209906,-97.9703344,,,TX,,false,true,false,openstreetmap
+Putting Green,golf,pitch,29.1472206,-98.1858642,,,TX,,false,true,false,openstreetmap
+Richland College Golf Practice Area,golf,pitch,32.9191928,-96.7293706,,,TX,,false,true,false,openstreetmap
+Royal Oaks Country Club,golf,pitch,32.8896656,-96.7595332,7915 Greenville Avenue,,TX,,false,true,false,openstreetmap
+The Range,golf,sports_centre,33.4883,-101.8826963,,,TX,,false,true,false,openstreetmap
+Top Golf,golf,sports_centre,30.0483174,-95.4272347,,,TX,,false,true,false,openstreetmap
+Top Golf,golf,sports_centre,29.5175563,-95.1206615,21401 Gulf Freeway,,TX,77598,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.0704001,-96.883729,,,TX,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,29.7867068,-95.6494137,,,TX,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,31.8111415,-106.5239682,,,TX,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.123289,-96.6581896,,,TX,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.8694558,-96.7458823,,,TX,75231,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,31.5033471,-97.1502909,,,TX,,false,true,false,openstreetmap
+Wildwood Practice Green,golf,pitch,30.5280957,-94.4409596,,,TX,,false,true,false,openstreetmap
+Wood Hollow Driving Range,golf,pitch,32.566843,-94.7686029,,,TX,,false,true,false,openstreetmap
+practice green,golf,pitch,32.4718117,-95.4548378,,,TX,,false,true,false,openstreetmap
+The Golf Suite,golf,sports_centre,32.9522395,-96.8335945,15046 Beltway Drive,Addison,TX,75001,false,true,false,openstreetmap
+Andrews County Golf Course,golf,golf_course,32.327466,-102.5354783,920 Golf Course Road,Andrews,TX,79714,false,true,false,openstreetmap
+PGA Tour Super Store,golf,pitch,30.3915761,-97.7318868,10515 North MoPac Expressway,Austin,TX,78759,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,30.3984344,-97.7165536,2700 Esperanza Crossing,Austin,TX,78758,false,true,false,openstreetmap
+Club Champion,golf,pitch,32.8380302,-96.7762869,5331 East Mockingbird Lane,Dallas,TX,75206,false,true,false,openstreetmap
+Sellinger's Power Golf,golf,pitch,32.95329,-96.8266404,4950 Belt Line Road,Dallas,TX,75254,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.7643564,-97.3144127,220 East 4th Street,Fort Worth,TX,76102,false,true,false,openstreetmap
+Golf Ranch,golf,pitch,30.6471667,-97.6798999,610 North Austin Avenue,Georgetown,TX,78626,false,true,false,openstreetmap
+Edwin Watts Golf,golf,pitch,29.7385385,-95.4704378,5395 Westheimer Road,Houston,TX,,false,true,false,openstreetmap
+Marti Golf Center,golf,sports_centre,29.690701,-95.6069325,12782 Beechnut Street,Houston,TX,77072,false,true,false,openstreetmap
+PXG Houston,golf,pitch,29.7344648,-95.5839359,11687 Westheimer Road,Houston,TX,77077,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,29.7879128,-95.7911963,24600 Katy Freeway,Katy,TX,77494,false,true,false,openstreetmap
+The Club at Falcon Point,golf,golf_course,29.7663042,-95.7954413,24503 Falcon Point Dr,Katy,TX,77494,false,true,false,openstreetmap
+The Golf Club at Cinco Ranch,golf,golf_course,29.7477718,-95.7615843,23030 Cinco Ranch Blvd,Katy,TX,77450,false,true,false,openstreetmap
+Willow Fork Country Club,golf,golf_course,29.7336984,-95.7452074,21055 Westheimer Parkway,Katy,TX,77450,false,true,false,openstreetmap
+4ORE! Golf,golf,sports_centre,33.535218,-101.9644231,6909 Marsha Sharp Freeway,Lubbock,TX,79407,false,true,false,openstreetmap
+Pampa Country Club,golf,golf_course,35.5560723,-100.9397551,1765 East Harvester Avenue,Pampa,TX,79065,false,true,false,openstreetmap
+Topgolf,golf,pitch,26.1961099,-98.2012533,1901 West Interstate 2,Pharr,TX,78577,false,true,false,openstreetmap
+Club Champion,golf,pitch,33.0274825,-96.7885749,4701 West Park Boulevard,Plano,TX,75093,false,true,false,openstreetmap
+PXG Dallas,golf,pitch,33.0671036,-96.8149227,5633 West Spring Creek Parkway,Plano,TX,75024,false,true,false,openstreetmap
+Tee Time Bar,golf,sports_centre,33.0174665,-96.735394,1301 Custer Road,Plano,TX,75075,false,true,false,openstreetmap
+X Golf,golf,fitness_centre,32.9002989,-96.4657407,2455 Ridge Road,Rockwall,TX,75087,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,29.5946372,-98.5944104,5539 North Loop 1604 West,San Antonio,TX,78257,false,true,false,openstreetmap
+Future Golf,golf,pitch,29.5652987,-98.2565481,790 Roy Richard Drive,Schertz,TX,78154,false,true,false,openstreetmap
+Club Champion,golf,pitch,32.9405949,-97.1349962,1101 East Southlake Boulevard,Southlake,TX,76092,false,true,false,openstreetmap
+PGA TOUR Superstore,golf,pitch,32.9386729,-97.1173893,2241 East Southlake Boulevard;South Kimball Avenue,Southlake,TX,76092,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.0706195,-96.8833451,3760 Blair Oaks Drive,The Colony,TX,75056,false,true,false,openstreetmap
+Vaquero Golf Club,golf,pitch,32.9644495,-97.1945419,2300 Vaquero Club Drive,Westlake,TX,76262,false,true,false,openstreetmap

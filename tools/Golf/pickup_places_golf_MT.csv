@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Canyon River Pro Shop,golf,pitch,46.8829471,-113.9171899,,,MT,,false,true,false,openstreetmap
+Judith Shadows Golf Course,golf,golf_course,47.0791769,-109.3972605,,,MT,,false,true,false,openstreetmap
+Pine Meadows Golf Course,golf,golf_course,47.05581,-109.4018306,,,MT,,false,true,false,openstreetmap
+Signal Point Golf Course,golf,golf_course,47.8377454,-110.6488766,,,MT,,false,true,false,openstreetmap

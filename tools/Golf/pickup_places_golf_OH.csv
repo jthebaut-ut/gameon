@@ -1,0 +1,55 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1 Practice Green,golf,pitch,40.0961695,-83.0646991,,,OH,,false,true,false,openstreetmap
+Bunker,golf,pitch,40.9784414,-81.3214737,,,OH,,false,true,false,openstreetmap
+Bunker,golf,pitch,40.9783055,-81.3212244,,,OH,,false,true,false,openstreetmap
+Bunker,golf,pitch,40.9783726,-81.3212143,,,OH,,false,true,false,openstreetmap
+Cherokee Hills Golf Course,golf,golf_course,40.4299274,-83.7510209,,,OH,,false,true,false,openstreetmap
+Club Champion,golf,pitch,41.4648212,-81.9536579,,,OH,,false,true,false,openstreetmap
+Colonial Golfers Club,golf,golf_course,40.7360139,-83.8954552,,,OH,,false,true,false,openstreetmap
+Eaton Country Club,golf,golf_course,39.7399559,-84.6413288,,,OH,,false,true,false,openstreetmap
+Five Iron Golf,golf,pitch,39.1011551,-84.514178,,,OH,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.2919386,-84.459174,,,OH,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.6992277,-83.6533552,,,OH,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,40.0558362,-82.9055029,,,OH,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.6380168,-84.2173168,,,OH,,false,true,false,openstreetmap
+Granville Golfland,golf,miniature_golf,40.0584196,-82.5083945,,,OH,,false,true,false,openstreetmap
+Heritage Club,golf,golf_course,39.3747127,-84.3360492,,,OH,,false,true,false,openstreetmap
+Hidden Creek Golf Club,golf,golf_course,40.8146131,-83.9854203,,,OH,,false,true,false,openstreetmap
+Hueston Woods State Park Golf Course,golf,golf_course,39.5611139,-84.7526805,,,OH,,false,true,false,openstreetmap
+Indian Springs Golf Course,golf,golf_course,40.0995794,-83.5291558,,,OH,,false,true,false,openstreetmap
+Miniature Golf Course,golf,miniature_golf,39.1153992,-84.409657,,,OH,,false,true,false,openstreetmap
+New Albany Links Country Club,golf,sports_centre,40.1013143,-82.7865958,,,OH,,false,true,false,openstreetmap
+Oak Harbor Golf Club,golf,golf_course,41.4999343,-83.1306536,,,OH,,false,true,false,openstreetmap
+Pebble Creek,golf,golf_course,39.2514978,-84.6185753,,,OH,,false,true,false,openstreetmap
+Practice,golf,pitch,41.3678738,-83.684059,,,OH,,false,true,false,openstreetmap
+Practice Green,golf,pitch,40.0953586,-83.0645717,,,OH,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,41.453485,-81.2180695,,,OH,,false,true,false,openstreetmap
+Snow Hill Clubhouse,golf,pitch,39.350234,-83.7192983,,,OH,,false,true,false,openstreetmap
+Swing 365,golf,sports_centre,39.328733,-84.423603,,,OH,,false,true,false,openstreetmap
+Swing-N-Eat,golf,golf_simulator,41.6422184,-81.422077,,,OH,,false,true,false,openstreetmap
+The Oasis,golf,golf_course,39.238701,-84.2480695,,,OH,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.0170273,-81.5053137,,,OH,,false,true,false,openstreetmap
+Vibe Fitness,golf,fitness_centre,39.2524775,-84.2950175,10600 Loveland Madeira Road,,OH,,false,true,false,openstreetmap
+Wetherington Golf & Country Club,golf,golf_course,39.3624782,-84.3786124,,,OH,,false,true,false,openstreetmap
+Wilkshire Golf Course,golf,golf_course,40.6377794,-81.4485675,,,OH,,false,true,false,openstreetmap
+X Golf,golf,sports_centre,40.1578583,-83.0832872,,,OH,,true,false,false,openstreetmap
+Topgolf,golf,sports_centre,41.4654961,-82.0053108,35343 Chester Road,Avon,OH,44011,false,true,false,openstreetmap
+Liberty Hills Golf Club,golf,golf_course,40.3033361,-83.7715267,665 Road 190 West,Bellefontaine,OH,43311,false,true,false,openstreetmap
+Blue Ash Golf Course,golf,golf_course,39.2430157,-84.4048679,4040 Cooper Road,Blue Ash,OH,45241,false,true,false,openstreetmap
+Bluffton Golf Club,golf,golf_course,40.8663986,-83.9331371,8575 North Dixie Highway,Bluffton,OH,45817,false,true,false,openstreetmap
+Falcon Golf Training Center,golf,sports_centre,41.3780122,-83.6234219,,Bowling Green,OH,,false,true,false,openstreetmap
+Golf Exchange,golf,pitch,39.0936511,-84.2758183,4450 Eastgate Boulevard,Cincinnati,OH,45245,false,true,false,openstreetmap
+PXG Cincinnati,golf,pitch,39.2042278,-84.370089,8127 Montgomery Road,Cincinnati,OH,45236,false,true,false,openstreetmap
+Bairs Den Golf,golf,pitch,39.8354639,-84.3097909,6250 Union Road,Clayton,OH,45315,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,40.1499784,-82.9628933,2000 Ikea Way,Columbus,OH,43240,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,41.404096,-81.645185,5820 Rockside Woods Bouolevard North,Independence,OH,,false,true,false,openstreetmap
+Country Side Golf Club,golf,golf_course,39.8625598,-84.7845492,417 North Spring Street,New Paris,OH,45347,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.4201407,-81.9086388,25999 Lorain Road,North Olmsted,OH,44070,false,true,false,openstreetmap
+Heatherwoode Golf Club,golf,golf_course,39.5393835,-84.2326227,88 Heatherwoode Boulevard,Springboro,OH,45066,false,true,false,openstreetmap
+Sycamore Creek County Club,golf,golf_course,39.5646208,-84.2163527,8300 Country Club Lane,Springboro,OH,45066,false,true,false,openstreetmap
+Club Champion,golf,pitch,41.4460954,-81.4956145,4069 Richmond Road,Warrensville Heights,OH,44122,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,41.4463116,-81.4948034,4057 Richmond Road,Warrensville Heights,OH,44122,false,true,false,openstreetmap
+The Greens Golf Course,golf,golf_course,39.5278883,-83.4466813,703 Highland Avenue,Washington Court House,OH,43160,false,true,false,openstreetmap
+Ready Golf 4K,golf,indoor_play,39.3473221,-84.395085,8213 Highland Pointe Drive,West Chester,OH,45069,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.3162432,-84.4253425,9568 Water Front Drive,West Chester,OH,45069,false,true,false,openstreetmap
+Eagle Tee Golf Center,golf,miniature_golf,39.322467,-84.4102415,9200 Cincinnati-Dayton Road,West Chester Township,OH,45069,false,true,false,openstreetmap

@@ -404,6 +404,7 @@ struct DiscoverScreen: View {
     @State private var showDiscoverSportMoreSheet = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
     @State private var pickupHostPrefillPlace: PickupPlaceRow?
+    @State private var pickupPostCreateInviteGame: PickupGameRow?
     @State private var discoverWeather: DiscoverWeather?
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @State private var isDiscoverHomeCrowdToggleInFlight = false
@@ -743,7 +744,14 @@ struct DiscoverScreen: View {
             }
             .sheet(item: $pickupHostPrefillPlace) { place in
                 NavigationStack {
-                    SettingsPickupGameFormView(viewModel: viewModel, mode: .add, pickupPlacePrefill: place) {
+                    SettingsPickupGameFormView(
+                        viewModel: viewModel,
+                        mode: .add,
+                        pickupPlacePrefill: place,
+                        onCreated: { row in
+                            pickupPostCreateInviteGame = row
+                        }
+                    ) {
                         pickupHostPrefillPlace = nil
                         Task {
                             await viewModel.loadMyPickupGamesForSettings()
@@ -751,6 +759,10 @@ struct DiscoverScreen: View {
                         }
                     }
                 }
+            }
+            .sheet(item: $pickupPostCreateInviteGame) { game in
+                PickupGameInviteFriendsSheet(viewModel: viewModel, game: game)
+                    .environmentObject(chatViewModel)
             }
     }
 

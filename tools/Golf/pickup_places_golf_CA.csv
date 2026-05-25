@@ -1,0 +1,108 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+9-Iron Practice Center (Driving Range),golf,pitch,37.3408421,-120.5371685,,,CA,,false,true,false,openstreetmap
+Andrew E. Rubin Practice Facility,golf,pitch,34.1264859,-118.2141004,,,CA,,false,true,false,openstreetmap
+Angeles National Golf Course,golf,pitch,34.2681248,-118.3347681,,,CA,,false,true,false,openstreetmap
+Bear Creek Golf Club,golf,pitch,33.5821652,-117.262317,,,CA,,false,true,false,openstreetmap
+Carlsbad Golf Center (Driving Range),golf,pitch,33.1804514,-117.3210046,,,CA,,false,true,false,openstreetmap
+Chipping Green,golf,pitch,34.44601,-119.2302964,,,CA,,false,true,false,openstreetmap
+Claremont Golf Shop,golf,pitch,37.8360374,-122.2471554,,,CA,,false,true,false,openstreetmap
+Club Champion,golf,pitch,34.0364072,-118.4710276,,,CA,,false,true,false,openstreetmap
+Club House,golf,pitch,33.9900978,-117.8662125,,,CA,,false,true,false,openstreetmap
+Club House & Resturant,golf,pitch,34.6059782,-118.1417387,,,CA,,false,true,false,openstreetmap
+Driving Range,golf,pitch,37.6317889,-118.9701734,,,CA,,false,true,false,openstreetmap
+Driving Range,golf,pitch,33.4692782,-117.0915114,,,CA,,false,true,false,openstreetmap
+Driving Range,golf,pitch,34.2654562,-118.3311489,,,CA,,false,true,false,openstreetmap
+Eagle Club Indoor Golf,golf,amusement_arcade,37.7813845,-122.402295,840 Folsom Street,,CA,,false,true,false,openstreetmap
+El Cariso Driving Range,golf,pitch,34.3142628,-118.4138291,,,CA,,false,true,false,openstreetmap
+Fairway Golf Shop,golf,pitch,32.8334083,-117.1536023,,,CA,,false,true,false,openstreetmap
+Fig Garden Golf Club,golf,golf_course,36.8532954,-119.8377519,,,CA,,false,true,false,openstreetmap
+Golf Apparel,golf,pitch,33.1270293,-117.321207,,,CA,,false,true,false,openstreetmap
+Golf Center,golf,pitch,33.7292466,-116.384934,,,CA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,37.9448323,-122.0608544,,,CA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,34.0733175,-117.2102705,,,CA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,38.7820095,-121.2726402,5771 Five Star Boulevard,,CA,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,34.1322527,-117.6344976,,,CA,,false,true,false,openstreetmap
+Golf Links to the Past,golf,pitch,36.5690253,-121.9503089,,,CA,,false,true,false,openstreetmap
+Golftec,golf,pitch,34.0176113,-118.486668,,,CA,,false,true,false,openstreetmap
+Golftec,golf,pitch,32.8677881,-117.2063848,,,CA,,false,true,false,openstreetmap
+Green H01,golf,pitch,32.8019846,-117.2185866,,,CA,,false,true,false,openstreetmap
+Green H02,golf,pitch,32.8016514,-117.217764,,,CA,,false,true,false,openstreetmap
+Green H03,golf,pitch,32.8007509,-117.2165155,,,CA,,false,true,false,openstreetmap
+Green H04,golf,pitch,32.8009155,-117.2157462,,,CA,,false,true,false,openstreetmap
+Green H05,golf,pitch,32.8016316,-117.2170942,,,CA,,false,true,false,openstreetmap
+Green H06,golf,pitch,32.8020216,-117.2175778,,,CA,,false,true,false,openstreetmap
+Green H07,golf,pitch,32.800917,-117.214976,,,CA,,false,true,false,openstreetmap
+Green H08,golf,pitch,32.8003774,-117.2142506,,,CA,,false,true,false,openstreetmap
+Green H09,golf,pitch,32.8004322,-117.2160201,,,CA,,false,true,false,openstreetmap
+Lucious Bateman Driving Range,golf,pitch,37.7372797,-122.2341278,,,CA,,false,true,false,openstreetmap
+Metropolitan Golf Links Driving Range,golf,pitch,37.7185188,-122.1921275,,,CA,,false,true,false,openstreetmap
+Montclair Golf Course Pro Shop,golf,pitch,37.8187033,-122.2084724,,,CA,,false,true,false,openstreetmap
+Mt. Shasta Resort,golf,golf_course,41.2835558,-122.3218076,,,CA,,false,true,false,openstreetmap
+PGA Store,golf,pitch,37.4618358,-122.1367808,,,CA,,false,true,false,openstreetmap
+Perform for Golf,golf,fitness_centre,37.7729922,-122.4223791,1700 Market Street,,CA,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.3344183,-120.7316698,,,CA,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.4696784,-120.6429537,,,CA,,false,true,false,openstreetmap
+Practice Green,golf,pitch,36.5600569,-121.8360586,,,CA,,false,true,false,openstreetmap
+Practice Green,golf,pitch,34.4461322,-119.2312025,,,CA,,false,true,false,openstreetmap
+Practice Putting Green,golf,pitch,33.6232149,-116.2742212,,,CA,,false,true,false,openstreetmap
+Practice green,golf,pitch,36.5813534,-121.9726085,,,CA,,false,true,false,openstreetmap
+Primetime Golf,golf,amusement_arcade,37.8017777,-122.2687449,306 12th Street,,CA,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,37.003965,-122.0257607,,,CA,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,36.4599443,-116.8673702,,,CA,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,37.739362,-122.1192379,11450 Golf Links Road,,CA,,false,true,false,openstreetmap
+Pro Shop/Snack Bar,golf,pitch,34.1500164,-118.8176202,,,CA,,false,true,false,openstreetmap
+Putting Green,golf,pitch,33.4676069,-117.0919231,,,CA,,false,true,false,openstreetmap
+Putting practice,golf,pitch,34.3143435,-118.4154194,,,CA,,false,true,false,openstreetmap
+Putting practice,golf,pitch,34.3139647,-118.4159927,,,CA,,false,true,false,openstreetmap
+Putting practice,golf,pitch,34.3147438,-118.4153455,,,CA,,false,true,false,openstreetmap
+Redhawk Golf Course,golf,pitch,33.4685645,-117.0912687,,,CA,,false,true,false,openstreetmap
+River Course at the Alisal,golf,pitch,34.5867637,-120.1314372,,,CA,,false,true,false,openstreetmap
+Roger Dunn Golf Shops,golf,pitch,33.5202443,-117.1603157,,,CA,,false,true,false,openstreetmap
+Roger Dunn Golf Shops,golf,pitch,34.0356593,-118.4581318,,,CA,,false,true,false,openstreetmap
+Ruben S. Ayala Park Driving Range,golf,pitch,33.9947077,-117.6837628,,,CA,,false,true,false,openstreetmap
+San Joaquin Country Club,golf,golf_course,36.8502626,-119.8567664,,,CA,,false,true,false,openstreetmap
+Shoong Golf,golf,pitch,33.932048,-117.9525981,,,CA,,false,true,false,openstreetmap
+Sonny Bae Golf Center,golf,pitch,37.0335568,-121.5651534,,,CA,,false,true,false,openstreetmap
+Stanford Driving Range,golf,pitch,37.4228457,-122.181736,,,CA,,false,true,false,openstreetmap
+Stanford Golf Course,golf,pitch,37.421567,-122.1833358,,,CA,,false,true,false,openstreetmap
+Talega Golf Club Practice Facility,golf,pitch,33.4624049,-117.6016843,,,CA,,false,true,false,openstreetmap
+The Oaks Club at Valencia,golf,pitch,34.4027598,-118.5834509,,,CA,,false,true,false,openstreetmap
+Tilden Golf Course Club House,golf,pitch,37.8878576,-122.2432678,,,CA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,37.5905073,-122.3546377,,,CA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.5689247,-121.3376655,3130 Bradshaw Road,,CA,95670,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,38.7906633,-121.2950878,,,CA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,37.4227214,-121.9697327,,,CA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,34.031804,-118.1330034,,,CA,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,34.0764322,-117.5917004,,,CA,,false,true,false,openstreetmap
+Tregnan Golf Academy,golf,golf_course,34.1213054,-118.2755517,,,CA,,false,true,false,openstreetmap
+h,golf,pitch,33.9942746,-117.8657466,,,CA,,false,true,false,openstreetmap
+h,golf,pitch,33.992904,-117.8657733,,,CA,,false,true,false,openstreetmap
+TPC Stonebrae,golf,golf_course,37.6459595,-122.0022087,202 Country Club Drive,202,CA,94542,false,true,false,openstreetmap
+Alameda Golfworks,golf,pitch,37.7724399,-122.2549019,1710 Lincoln Avenue,Alameda,CA,94501,false,true,false,openstreetmap
+Honma Golf,golf,pitch,33.130013,-117.2601132,6023 Innovation Way,Carlsbad,CA,92010,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,37.7039573,-121.853636,2820 Dublin Boulevard,Dublin,CA,94568,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,37.7056558,-121.88631,4990 Dublin Boulevard,Dublin,CA,,false,true,false,openstreetmap
+PXG East Bay,golf,pitch,37.707248,-121.8738234,4460 Tassajara Road,Dublin,CA,94568,false,true,false,openstreetmap
+PXG Orange County,golf,pitch,33.7147108,-117.9898436,17041 Beach Boulevard,Huntington Beach,CA,92647,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.6588053,-117.744477,107 Technology Drive,Irvine,CA,92618,false,true,false,openstreetmap
+Steele Canyon Golf,golf,golf_course,32.7440765,-116.8947103,3199 Stonefield Drive,Jamul,CA,,false,true,false,openstreetmap
+Cart Mart,golf,pitch,33.7137316,-116.2941843,78525 Highway 111,La Quinta,CA,92253,false,true,false,openstreetmap
+Indian Creek Golf Club,golf,golf_course,38.8023123,-121.1867677,4487 Barton Road,Loomis,CA,95650,false,true,false,openstreetmap
+Bay View Golf Club,golf,golf_course,37.4554151,-121.8815047,1500 Country Club Drive,Milpitas,CA,95035,false,true,false,openstreetmap
+Roger Dunn Golf Shops,golf,pitch,33.5542492,-117.6715955,28191 Marguerite Parkway,Mission Viejo,CA,92692,false,true,false,openstreetmap
+Murrieta Valley Junior Golf,golf,pitch,33.5569353,-117.2202347,24515 Washington Avenue,Murrieta,CA,92562,false,true,false,openstreetmap
+Birdies Driving Range,golf,pitch,34.6371823,-118.1452406,41520 10th St W,Palmdale,CA,93551,false,true,false,openstreetmap
+Thunderbird Country Club,golf,golf_course,33.7542281,-116.4261102,70-737 Country Club Drive,Rancho Mirage,CA,92270,false,true,false,openstreetmap
+Arrowhead Country Club,golf,golf_course,34.1527111,-117.2746566,3433 Parkside Drive,San Bernardino,CA,92404,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,37.3219781,-121.972848,4070 Stevens Creek Boulevard,San Jose,CA,95129,false,true,false,openstreetmap
+TravisMathew,golf,pitch,37.3203963,-121.9481659,377 Santana Row,San Jose,CA,95128,false,true,false,openstreetmap
+Marina Golf Course,golf,golf_course,37.6960695,-122.1845993,13800 Monarch Bay Drive,San Leandro,CA,94577,false,true,false,openstreetmap
+Poplar Creek Golf Course,golf,golf_course,37.5845063,-122.322606,1700 Coyote Point Drive,San Mateo,CA,94401,false,true,false,openstreetmap
+Bennett Valley Golf Course,golf,golf_course,38.4226084,-122.6600823,3330 Yulupa Avenue,Santa Rosa,CA,95405,false,true,false,openstreetmap
+Arrillaga Golf Shop,golf,pitch,37.4228753,-122.1816152,51 Campus Drive West,Stanford,CA,94305,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.8058539,-118.3304708,24313 Crenshaw Boulevard,Torrance,CA,90505,false,true,false,openstreetmap
+Plaza Golf,golf,pitch,33.8086175,-118.3283755,23715 Crenshaw Boulevard,Torrance,CA,90505,false,true,false,openstreetmap
+The Oaks Club at Valencia,golf,pitch,34.4028505,-118.5830174,26550 Heritage View Lane,Valencia,CA,91381,false,true,false,openstreetmap
+Valencia Country Club,golf,pitch,34.4192035,-118.578033,27330 Tourney Road,Valencia,CA,91355,false,true,false,openstreetmap
+Olivas Park Golf Course,golf,golf_course,34.2404803,-119.247768,3750 Olivas Park Drive,Ventura,CA,93001,false,true,false,openstreetmap
+Golf Centre Watson,golf,pitch,36.9244754,-121.8003504,101 Ranport Road,Watsonville,CA,95076,false,true,false,openstreetmap

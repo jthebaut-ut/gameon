@@ -1,0 +1,71 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1 Green,golf,pitch,28.6880649,-81.3761554,,,FL,,false,true,false,openstreetmap
+2/7 Double Green,golf,pitch,27.4082698,-82.3855969,,,FL,,false,true,false,openstreetmap
+Atlantic Beach Country Club,golf,golf_course,30.3434198,-81.408086,,,FL,,false,true,false,openstreetmap
+Club Champion,golf,pitch,30.391614,-86.4300748,,,FL,,false,true,false,openstreetmap
+Downs Golf Practice Facility,golf,pitch,28.0450777,-82.6474803,,,FL,,false,true,false,openstreetmap
+Golden Eagle Golf Course,golf,golf_course,30.5955598,-84.2382294,,,FL,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,26.2169159,-81.7701073,,,FL,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,28.5481398,-81.6609257,,,FL,,false,true,false,openstreetmap
+Golf Outlet,golf,pitch,28.3801995,-81.5004655,8696 Vineland Avenue,,FL,,false,true,false,openstreetmap
+Green Chasers Golf Range,golf,pitch,28.2252577,-82.2317824,Pure Water Way,,FL,,false,true,false,openstreetmap
+Hall of Fame Putting Green,golf,miniature_golf,29.9908964,-81.4693256,,,FL,,false,true,false,openstreetmap
+Heritage Palms Golf & Country Club,golf,golf_course,26.5882102,-81.8255738,,,FL,,false,true,false,openstreetmap
+IMG Golf Academy,golf,pitch,27.4390615,-82.6063714,,,FL,,false,true,false,openstreetmap
+Ocean Breeze Golf & Country Club,golf,golf_course,26.4031815,-80.0844809,,,FL,,false,true,false,openstreetmap
+PGA TOUR Superstore,golf,pitch,26.4388604,-80.0838258,1040 Linton Boulevard,,FL,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,26.1734275,-81.8008474,Tamiami Trail North,,FL,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,30.2565839,-81.534065,,,FL,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,28.6649825,-81.3804169,,,FL,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,27.3894193,-82.4522673,,,FL,,false,true,false,openstreetmap
+Palm Beach Polo Driving Course - West,golf,pitch,26.6457472,-80.2560018,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,26.7126947,-80.2371983,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,30.1759157,-85.7948326,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,30.4009839,-86.3168372,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,30.209052,-85.8416292,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,26.8754009,-80.0880188,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,26.8749815,-80.0872435,,,FL,,false,true,false,openstreetmap
+Practice Green,golf,pitch,26.8883975,-80.0895387,,,FL,,false,true,false,openstreetmap
+Practice Putting green,golf,pitch,30.5784374,-87.2719437,,,FL,,false,true,false,openstreetmap
+Putting Green,golf,pitch,26.5824966,-80.1797523,,,FL,,false,true,false,openstreetmap
+Putting Green,golf,pitch,26.6605121,-80.157889,,,FL,,false,true,false,openstreetmap
+Putting Green,golf,pitch,28.2618065,-81.6288021,,,FL,,false,true,false,openstreetmap
+Putting Green,golf,pitch,26.1256915,-80.3193634,,,FL,,false,true,false,openstreetmap
+Royal Lakes,golf,pitch,27.4069293,-82.376487,,,FL,,false,true,false,openstreetmap
+Saint James Bay Golf Resort,golf,golf_course,29.9022059,-84.5618941,,,FL,,false,true,false,openstreetmap
+Swisher Golf Practice Facility,golf,practice_pitch,30.3488416,-81.6095767,,,FL,,false,true,false,openstreetmap
+The Breakers Sports Pro Shop,golf,pitch,26.7159877,-80.0381237,,,FL,,false,true,false,openstreetmap
+The National Golf & Country Club,golf,pitch,26.3360463,-81.4378778,,,FL,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,26.6102846,-81.8041693,,,FL,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,25.793563,-80.3877528,,,FL,,false,true,false,openstreetmap
+Topgolf Miami Gardens,golf,golf_course,25.9331418,-80.2081323,,,FL,,false,true,false,openstreetmap
+Topgolf Orlando,golf,sports_centre,28.43605,-81.4635267,,,FL,,false,true,false,openstreetmap
+Topgolf Orlando,golf,pitch,28.4368988,-81.4633339,,,FL,,false,true,false,openstreetmap
+Village Golf Club,golf,pitch,26.7163549,-80.2258068,,,FL,,false,true,false,openstreetmap
+bag drop,golf,pitch,26.7161404,-80.2259849,,,FL,,false,true,false,openstreetmap
+practice green,golf,pitch,28.0490655,-80.5501543,,,FL,,false,true,false,openstreetmap
+Pinebrook Ironwood Golf Club,golf,golf_course,27.4667159,-82.6080812,4260 Ironwood Cir,Bradenton,FL,,false,true,false,openstreetmap
+West Coast Carts,golf,pitch,27.4944481,-82.5736905,538 12th St W,Bradenton,FL,34205,false,true,false,openstreetmap
+Eagle Trace Golf Club,golf,golf_course,26.2511211,-80.2879238,1111 Eagle Trace Blvd W,Coral Springs,FL,33071,false,true,false,openstreetmap
+Club Champion,golf,pitch,26.4548502,-80.1885664,14917 Lyons Road,Delray Beach,FL,33446,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,26.4032903,-81.8073764,23130 Fashion Dr,Estero,FL,33928,false,true,false,openstreetmap
+Eastwood Golf Course,golf,golf_course,26.6177735,-81.8176363,3380 Oritz Avenue,Fort Myers,FL,33916,false,true,false,openstreetmap
+Eastwood Golf Course,golf,golf_course,26.6262821,-81.8133534,3380 Oritz Avenue,Fort Myers,FL,33916,false,true,false,openstreetmap
+Golf Practice Facility,golf,pitch,29.6474551,-82.3688068,,Gainesville,FL,32611,false,true,false,openstreetmap
+Mark Bostick Golf Course,golf,golf_course,29.6475468,-82.3682256,2800 Southwest 2nd Avenue,Gainesville,FL,32607,false,true,false,openstreetmap
+Just For Sports,golf,pitch,26.0410403,-80.1623099,3300 Oakwood Boulevard,Hollywood,FL,33020,false,true,false,openstreetmap
+Simply Golf,golf,amusement_arcade,26.1987404,-80.0964592,4755 North Ocean Drive,Lauderdale-by-the-Sea,FL,33308,false,true,false,openstreetmap
+North Palm Beach Country Club Golf Course,golf,golf_course,26.8275752,-80.0635745,951 US Highway 1,North Palm Beach,FL,33408,false,true,false,openstreetmap
+America's Golf Clearance Outlet,golf,pitch,28.4619833,-81.455264,5552 International Drive,Orlando,FL,,false,true,false,openstreetmap
+Bargain Zone,golf,pitch,28.4452597,-81.4716116,8330 International Drive,Orlando,FL,32819,false,true,false,openstreetmap
+Edwin Watts Golf Clearance Outlet,golf,pitch,28.4569488,-81.4729503,7024 International Drive,Orlando,FL,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,28.4482831,-81.4757036,8055 Turkey Lake Road,Orlando,FL,,false,true,false,openstreetmap
+PXG Orlando,golf,pitch,28.4639837,-81.4658638,6811 Visitors Circle,Orlando,FL,32819,false,true,false,openstreetmap
+Edwin Watts,golf,pitch,28.065729,-82.738126,32257 US 19,Palm Harbor,FL,,false,true,false,openstreetmap
+Trump International Golf Club,golf,golf_course,26.6679976,-80.0963129,3505 Summit Boulevard,Palm Springs,FL,33406,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,26.0063201,-80.3359756,14530 SW 2nd Dr,Pembroke Pines,FL,33027,false,true,false,openstreetmap
+The Saints at Port Saint Lucie Golf Course,golf,golf_course,27.2600756,-80.3010467,2601 Southeast Morningside Boulevard,Port St. Lucie,FL,34952,false,true,false,openstreetmap
+Woodmont Country Club,golf,golf_course,26.21667,-80.266329,7801 NW 80th Ave,Tamarac,FL,33321,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,27.9303689,-82.3333239,10690 Palm River Road,Tampa,FL,33619,false,true,false,openstreetmap
+The Clubhouse,golf,sports_centre,28.2353395,-82.3708271,27061 Halter Loop,Wesley Chapel,FL,33544,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,30.2634843,-81.5204696,9295 Universal Blvd,orlando,FL,32819,false,true,false,openstreetmap

@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Big Lake Country Club,golf,golf_course,35.8948107,-90.1706115,,,AR,,false,true,false,openstreetmap
+Brownstone Country Club & Resort,golf,golf_course,35.1939789,-90.2051651,,,AR,,false,true,false,openstreetmap
+Chenal Country Club,golf,pitch,34.7793667,-92.475569,,,AR,,false,true,false,openstreetmap
+Delta Country Club and Golf Course,golf,golf_course,33.6032972,-91.3507387,,,AR,,false,true,false,openstreetmap
+Divots Golf Lounge,golf,amusement_arcade,35.8576158,-90.6596597,,,AR,,false,true,false,openstreetmap
+Golf World,golf,pitch,34.7074925,-92.3418983,,,AR,,false,true,false,openstreetmap
+Arkansas Golf Center,golf,pitch,35.063651,-92.5180844,5150 John W Allison Road,Conway,AR,72034,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,36.3002013,-94.182756,3919 South JB Hunt Drive,Rogers,AR,72758,false,true,false,openstreetmap
+GoCaddyGolf.com,golf,pitch,35.3391107,-93.1320869,5068 North Arkansas Avenue,Russellville,AR,72802,false,true,false,openstreetmap

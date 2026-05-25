@@ -770,6 +770,8 @@ final class MapViewModel: ObservableObject {
     @Published var followingTabUserVenueEventInterestIDs: Set<UUID> = []
     /// Following → Games to Play: pickup join requests for the current user (see ``loadMyPickupGameJoinRequestsForFollowing()``).
     @Published var myPickupGameJoinRequestCards: [PickupGameJoinRequestCardDisplay] = []
+    /// Incoming friend invites for pickup/practice/scrimmage games.
+    @Published var incomingPickupGameInvites: [PickupGameInviteDisplay] = []
     /// Latest join request row per pickup game for the signed-in fan (includes declined/rejected; excludes nothing except empty fetch). Following / pickup detail surfaces.
     @Published var pickupJoinRequestLatestByPickupGameIdForFan: [UUID: PickupGameRequestRow] = [:]
     var lightweightStartupPrefetchTask: Task<Void, Never>?

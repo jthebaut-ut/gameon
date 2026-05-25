@@ -93,6 +93,7 @@ struct DiscoverPickupGameDetailSheet: View {
     @Environment(\.openURL) private var openURL
 
     @State private var showJoinComposer = false
+    @State private var showInviteComposer = false
     @State private var joinError: String?
     @State private var isCancellingRequest = false
     @State private var withdrawConfirm: PickupJoinWithdrawConfirmState?
@@ -149,6 +150,11 @@ struct DiscoverPickupGameDetailSheet: View {
                     PickupGameJoinRequestComposerSheet(viewModel: viewModel, pickupGame: g) {
                         showJoinComposer = false
                     }
+                }
+            }
+            .sheet(isPresented: $showInviteComposer) {
+                if let g = game {
+                    PickupGameInviteFriendsSheet(viewModel: viewModel, game: g)
                 }
             }
             .task(id: gameId) {
@@ -254,6 +260,10 @@ struct DiscoverPickupGameDetailSheet: View {
                     subtitleLine: subtitleLine,
                     showStarted: showStarted
                 )
+
+                if isCreator, g.isPickupGameInvitable() {
+                    pickupInviteActionRow(for: g)
+                }
 
                 HStack(alignment: .top, spacing: FGSpacing.sm) {
                     pickupStatCard(
@@ -633,6 +643,49 @@ struct DiscoverPickupGameDetailSheet: View {
         .overlay { pickupGlassStroke(cornerRadius: FGRadius.large) }
     }
 
+    private func pickupInviteActionRow(for g: PickupGameRow) -> some View {
+        HStack(spacing: FGSpacing.sm) {
+            ShareLink(item: pickupShareText(for: g)) {
+                Label("Share", systemImage: "square.and.arrow.up")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.bordered)
+            .tint(FGColor.accentBlue)
+
+            Button {
+                showInviteComposer = true
+            } label: {
+                Label("Invite friends", systemImage: "person.badge.plus")
+                    .font(FGTypography.metadata.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.bordered)
+            .tint(Color.orange)
+        }
+        .padding(FGSpacing.sm)
+        .background { pickupGlassBackground(cornerRadius: FGRadius.medium) }
+        .clipShape(RoundedRectangle(cornerRadius: FGRadius.medium, style: .continuous))
+        .overlay { pickupGlassStroke(cornerRadius: FGRadius.medium) }
+    }
+
+    private func pickupShareText(for g: PickupGameRow) -> String {
+        var lines = ["Join \(g.title) on FanGeo."]
+        if let date = g.pickupDateWithCompactTimeRange {
+            lines.append(date)
+        }
+        let location = [g.address, g.city, g.state]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        if !location.isEmpty {
+            lines.append(location)
+        }
+        return lines.joined(separator: "\n")
+    }
+
     private func labeledRow(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: FGSpacing.xs) {
             Text(title)
@@ -768,6 +821,308 @@ struct DiscoverPickupGameDetailSheet: View {
         guard let req = myRequest else { return true }
         let s = req.status.lowercased()
         return s == "rejected" || s == "cancelled" || s == "withdrawn"
+    }
+}
+
+struct PickupGameInviteFriendsSheet: View {
+    @ObservedObject var viewModel: MapViewModel
+    let game: PickupGameRow
+
+    @EnvironmentObject private var chatViewModel: ChatViewModel
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedFriendIds: Set<UUID> = []
+    @State private var searchText = ""
+    @State private var searchResults: [PickupInvitableFanSearchResult] = []
+    @State private var alreadyInvitedUserIds: Set<UUID> = []
+    @State private var searchTask: Task<Void, Never>?
+    @State private var isSearching = false
+    @State private var isSending = false
+    @State private var errorText: String?
+
+    private var eligibleFriends: [ChatViewModel.FriendDisplay] {
+        chatViewModel.friends
+            .filter { friend in
+                friend.id != viewModel.currentUserAuthId
+                    && !chatViewModel.isEitherDirectionBlocked(with: friend.id)
+            }
+            .sorted {
+                $0.preview.displayName.localizedCaseInsensitiveCompare($1.preview.displayName) == .orderedAscending
+            }
+    }
+
+    private var canSend: Bool {
+        !selectedFriendIds.isEmpty && !isSending && game.isPickupGameInvitable()
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                inviteHeader
+
+                List {
+                    Section {
+                        TextField("Search fans by @handle or name", text: $searchText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+
+                    Section {
+                        if eligibleFriends.isEmpty {
+                            Text("No friends to invite yet")
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        } else {
+                            ForEach(eligibleFriends) { friend in
+                                pickupInviteFriendRow(friend)
+                            }
+                        }
+                    } header: {
+                        Text("Friends")
+                    } footer: {
+                        Text("\(selectedFriendIds.count)/20 selected")
+                    }
+
+                    Section {
+                        if isSearching {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Searching fans...")
+                                    .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            }
+                        } else if searchText.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 {
+                            Text("Type at least 2 characters to search FanGeo users.")
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        } else if searchResults.isEmpty {
+                            Text("No fans found")
+                                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        } else {
+                            ForEach(searchResults) { result in
+                                pickupInviteSearchResultRow(result)
+                            }
+                        }
+                    } header: {
+                        Text("Search Results")
+                    }
+                }
+                .scrollContentBackground(.hidden)
+
+                if let errorText, !errorText.isEmpty {
+                    Text(errorText)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.dangerRed)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, FGSpacing.lg)
+                        .padding(.vertical, FGSpacing.sm)
+                }
+            }
+            .fanGeoScreenBackground()
+            .navigationTitle("Invite friends to play")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await sendInvites() }
+                    } label: {
+                        if isSending {
+                            ProgressView()
+                        } else {
+                            Text("Send")
+                        }
+                    }
+                    .disabled(!canSend)
+                }
+            }
+            .task {
+                if chatViewModel.friends.isEmpty {
+                    await chatViewModel.refresh()
+                }
+                alreadyInvitedUserIds = await viewModel.loadPickupAlreadyInvitedUserIds(gameId: game.id)
+            }
+            .onChange(of: searchText) { _, newValue in
+                scheduleFanSearch(newValue)
+            }
+            .onDisappear {
+                searchTask?.cancel()
+            }
+        }
+    }
+
+    private var inviteHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                SportArtworkIconView(sport: game.sport, diameter: 38)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(game.title)
+                        .font(FGTypography.cardTitle)
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .lineLimit(2)
+                    Text("\(game.sport) · \(game.gameFormat.displayTitle)")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    if let dateLine = game.pickupDateWithCompactTimeRange {
+                        Text(dateLine)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                }
+            }
+            if !game.isPickupGameInvitable() {
+                Text("This game is no longer accepting invites.")
+                    .font(FGTypography.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.dangerRed)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(FGSpacing.lg)
+        .background(.ultraThinMaterial)
+    }
+
+    private func pickupInviteFriendRow(_ friend: ChatViewModel.FriendDisplay) -> some View {
+        let disabled = alreadyInvitedUserIds.contains(friend.id)
+        return Button {
+            toggleFriend(friend.id)
+        } label: {
+            HStack(spacing: 12) {
+                ProfileAvatarView(preview: friend.preview, size: 38)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(friend.preview.displayName)
+                        .font(FGTypography.body.weight(.semibold))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                    if let username = friend.preview.username, !username.isEmpty {
+                        Text("@\(username)")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                    if disabled {
+                        Text("Already invited")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: disabled ? "checkmark.seal.fill" : (selectedFriendIds.contains(friend.id) ? "checkmark.circle.fill" : "circle"))
+                    .font(.title3)
+                    .foregroundStyle(disabled ? Color.orange : (selectedFriendIds.contains(friend.id) ? FGColor.accentGreen : FGColor.mutedText(colorScheme)))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.62 : 1)
+    }
+
+    private func pickupInviteSearchResultRow(_ result: PickupInvitableFanSearchResult) -> some View {
+        let disabled = alreadyInvitedUserIds.contains(result.user_id)
+        return Button {
+            toggleSearchResult(result)
+        } label: {
+            HStack(spacing: 12) {
+                ProfileAvatarView(preview: result.userPreview, size: 38)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(result.display_name)
+                            .font(FGTypography.body.weight(.semibold))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                        if result.is_friend {
+                            Text("Friend")
+                                .font(FGTypography.caption.weight(.bold))
+                                .foregroundStyle(FGColor.accentGreen)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(FGColor.accentGreen.opacity(0.12), in: Capsule())
+                        }
+                    }
+                    if !result.displayHandle.isEmpty {
+                        Text(result.displayHandle)
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                    }
+                    if disabled {
+                        Text("Already invited")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(Color.orange)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: disabled ? "checkmark.seal.fill" : (selectedFriendIds.contains(result.user_id) ? "checkmark.circle.fill" : "circle"))
+                    .font(.title3)
+                    .foregroundStyle(disabled ? Color.orange : (selectedFriendIds.contains(result.user_id) ? FGColor.accentGreen : FGColor.mutedText(colorScheme)))
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .opacity(disabled ? 0.62 : 1)
+    }
+
+    private func toggleFriend(_ id: UUID) {
+        guard !alreadyInvitedUserIds.contains(id) else { return }
+        if selectedFriendIds.contains(id) {
+            selectedFriendIds.remove(id)
+        } else if selectedFriendIds.count < 20 {
+            selectedFriendIds.insert(id)
+        } else {
+            errorText = "You can invite up to 20 people per game."
+        }
+    }
+
+    private func toggleSearchResult(_ result: PickupInvitableFanSearchResult) {
+        guard !alreadyInvitedUserIds.contains(result.user_id) else { return }
+        let wasSelected = selectedFriendIds.contains(result.user_id)
+        toggleFriend(result.user_id)
+#if DEBUG
+        if !result.is_friend, !wasSelected, selectedFriendIds.contains(result.user_id) {
+            print("[PickupInviteDebug] nonFriendInviteSelected=\(result.user_id.uuidString.lowercased())")
+        }
+#endif
+    }
+
+    private func scheduleFanSearch(_ raw: String) {
+        searchTask?.cancel()
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 2 else {
+            isSearching = false
+            searchResults = []
+            return
+        }
+        isSearching = true
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            let results = await viewModel.searchPickupInvitableFans(query: trimmed, limit: 20)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                searchResults = results
+                isSearching = false
+            }
+        }
+    }
+
+    private func sendInvites() async {
+        guard canSend else { return }
+        isSending = true
+        errorText = nil
+        defer { isSending = false }
+
+        let results = await viewModel.createPickupGameInvites(
+            game: game,
+            inviteeUserIds: Array(selectedFriendIds),
+            message: nil
+        )
+        let created = results.filter { $0.outcome == "created" }.count
+        let duplicates = results.filter { $0.outcome == "duplicate" }.count
+#if DEBUG
+        print("[PickupInviteDebug] duplicateSkipped=\(duplicates)")
+#endif
+        if created > 0 || duplicates > 0 {
+            dismiss()
+        } else {
+            errorText = "No invites were sent. Try again."
+        }
     }
 }
 

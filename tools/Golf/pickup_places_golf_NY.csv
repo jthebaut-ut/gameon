@@ -1,0 +1,153 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10th Hole,golf,pitch,42.7261479,-73.6402827,,,NY,,false,true,false,openstreetmap
+10th Hole,golf,pitch,42.6838644,-73.746622,,,NY,,false,true,false,openstreetmap
+10th Hole,golf,pitch,42.7922908,-73.8971507,,,NY,,false,true,false,openstreetmap
+11th Hole,golf,pitch,42.725217,-73.6368124,,,NY,,false,true,false,openstreetmap
+11th Hole,golf,pitch,42.6835131,-73.7484198,,,NY,,false,true,false,openstreetmap
+11th Hole,golf,pitch,42.793565,-73.8970815,,,NY,,false,true,false,openstreetmap
+12th Hole,golf,pitch,42.7234109,-73.633287,,,NY,,false,true,false,openstreetmap
+12th Hole,golf,pitch,42.6824323,-73.7480106,,,NY,,false,true,false,openstreetmap
+12th Hole,golf,pitch,42.7932806,-73.8962222,,,NY,,false,true,false,openstreetmap
+13th Hole,golf,pitch,42.7223798,-73.6338905,,,NY,,false,true,false,openstreetmap
+13th Hole,golf,pitch,42.6807809,-73.7473494,,,NY,,false,true,false,openstreetmap
+13th Hole,golf,pitch,42.7901385,-73.8942861,,,NY,,false,true,false,openstreetmap
+14th Hole,golf,pitch,42.7242865,-73.6371941,,,NY,,false,true,false,openstreetmap
+14th Hole,golf,pitch,42.6800859,-73.746504,,,NY,,false,true,false,openstreetmap
+14th Hole,golf,pitch,42.786844,-73.8937833,,,NY,,false,true,false,openstreetmap
+15th Hole,golf,pitch,42.7251399,-73.638909,,,NY,,false,true,false,openstreetmap
+15th Hole,golf,pitch,42.67881,-73.7440147,,,NY,,false,true,false,openstreetmap
+15th Hole,golf,pitch,42.7843189,-73.8949745,,,NY,,false,true,false,openstreetmap
+16th Hole,golf,pitch,42.6772158,-73.7455858,,,NY,,false,true,false,openstreetmap
+16th Hole,golf,pitch,42.7872079,-73.8948289,,,NY,,false,true,false,openstreetmap
+16th hole,golf,pitch,42.723965,-73.6387362,,,NY,,false,true,false,openstreetmap
+17th Hole,golf,pitch,42.7236185,-73.6394509,,,NY,,false,true,false,openstreetmap
+17th Hole,golf,pitch,42.6782396,-73.7484627,,,NY,,false,true,false,openstreetmap
+17th Hole,golf,pitch,42.7898349,-73.8952599,,,NY,,false,true,false,openstreetmap
+18th Hole,golf,pitch,42.7251166,-73.6419959,,,NY,,false,true,false,openstreetmap
+18th Hole,golf,pitch,42.6794273,-73.7479074,,,NY,,false,true,false,openstreetmap
+1st Hole,golf,pitch,42.7236176,-73.6423185,,,NY,,false,true,false,openstreetmap
+1st Hole,golf,pitch,42.6798163,-73.7477923,,,NY,,false,true,false,openstreetmap
+2nd Hole,golf,pitch,42.7225416,-73.639905,,,NY,,false,true,false,openstreetmap
+2nd Hole,golf,pitch,42.6828117,-73.7502848,,,NY,,false,true,false,openstreetmap
+3rd Hole,golf,pitch,42.7218607,-73.6389371,,,NY,,false,true,false,openstreetmap
+3rd Hole,golf,pitch,42.684923,-73.7487971,,,NY,,false,true,false,openstreetmap
+4th Hole,golf,pitch,42.7215113,-73.633938,,,NY,,false,true,false,openstreetmap
+4th Hole,golf,pitch,42.684877,-73.7456612,,,NY,,false,true,false,openstreetmap
+5 Iron Golf,golf,sports_centre,40.7839829,-73.9499919,1681 3rd Avenue,,NY,10128,false,true,false,openstreetmap
+5th Hole,golf,pitch,42.7224949,-73.6313152,,,NY,,false,true,false,openstreetmap
+5th Hole,golf,pitch,42.6857005,-73.7470044,,,NY,,false,true,false,openstreetmap
+6th Hole,golf,pitch,42.7243703,-73.633532,,,NY,,false,true,false,openstreetmap
+6th Hole,golf,pitch,42.6863194,-73.7472915,,,NY,,false,true,false,openstreetmap
+7th Hole,golf,pitch,42.7274392,-73.6369569,,,NY,,false,true,false,openstreetmap
+7th Hole,golf,pitch,42.6849369,-73.7441222,,,NY,,false,true,false,openstreetmap
+8th Hole,golf,pitch,42.7289037,-73.639177,,,NY,,false,true,false,openstreetmap
+8th Hole,golf,pitch,42.6834441,-73.7438402,,,NY,,false,true,false,openstreetmap
+9th Hole,golf,pitch,42.7268355,-73.640395,,,NY,,false,true,false,openstreetmap
+9th Hole,golf,pitch,42.683633,-73.745254,,,NY,,false,true,false,openstreetmap
+Alapaha Golf Link & Driving Range,golf,golf_course,41.9477217,-74.0162567,,,NY,,false,true,false,openstreetmap
+Alder Creek Golf Course,golf,pitch,43.4114326,-75.227601,,,NY,,false,true,false,openstreetmap
+Atlantic Golf Club,golf,golf_course,40.9501087,-72.3399989,,,NY,,false,true,false,openstreetmap
+Brae Burn Golf Pro Shop,golf,pitch,42.5523791,-77.6955865,,,NY,,false,true,false,openstreetmap
+Club Champion,golf,pitch,43.035737,-77.4499431,,,NY,,false,true,false,openstreetmap
+Cortland Country Club,golf,golf_course,42.6238507,-76.1886851,,,NY,,false,true,false,openstreetmap
+Deepdale Golf Club,golf,golf_course,40.772146,-73.6963172,,,NY,,false,true,false,openstreetmap
+Driving Range,golf,pitch,40.8374662,-72.8159889,,,NY,,false,true,false,openstreetmap
+Driving range,golf,pitch,42.9625714,-78.9462404,,,NY,,false,true,false,openstreetmap
+Driving range (former),golf,pitch,42.8729044,-73.7707845,,,NY,,false,true,false,openstreetmap
+Dutch Hollow Country Club,golf,golf_course,42.8607286,-76.4566567,,,NY,,false,true,false,openstreetmap
+Dutchess Golf Club,golf,golf_course,41.6666927,-73.9224562,,,NY,,false,true,false,openstreetmap
+East Hampton Golf Club,golf,golf_course,40.9892789,-72.158134,,,NY,,false,true,false,openstreetmap
+Edgewood Club of Tivoli,golf,golf_course,42.0746482,-73.9128952,,,NY,,false,true,false,openstreetmap
+Forest Glen Club (abandoned),golf,golf_course,41.5596206,-74.7541097,,,NY,,false,true,false,openstreetmap
+Fox Run Golf Club,golf,golf_course,42.9968496,-74.3226433,,,NY,,false,true,false,openstreetmap
+Frear Park Municipal Golf Course Pro Shop,golf,pitch,42.7449217,-73.6708512,,,NY,,false,true,false,openstreetmap
+Glen Oak Golf Course,golf,golf_course,43.0479646,-78.7129575,,,NY,,false,true,false,openstreetmap
+Green Acres Golf Club,golf,golf_course,41.9527844,-74.0091246,,,NY,,false,true,false,openstreetmap
+Green Ridge Golf Club,golf,golf_course,41.3582918,-74.5224859,,,NY,,false,true,false,openstreetmap
+Grossinger Country Club,golf,golf_course,41.7913206,-74.7226072,,,NY,,false,true,false,openstreetmap
+Hanah Country Club,golf,golf_course,42.1725072,-74.6104274,,,NY,,false,true,false,openstreetmap
+Homowack Lodge Golf Course (Defunct),golf,golf_course,41.6590366,-74.437135,,,NY,,false,true,false,openstreetmap
+Hudson Valley Resort Golf Course,golf,golf_course,41.7705731,-74.2671723,,,NY,,false,true,false,openstreetmap
+Inness Golf Course,golf,golf_course,41.8010768,-74.2276164,,,NY,,false,true,false,openstreetmap
+Island's End Golf & Country Club,golf,golf_course,41.1234982,-72.3566212,,,NY,,false,true,false,openstreetmap
+Kelder's Mini-Golf,golf,golf_course,41.789687,-74.2582838,,,NY,,false,true,false,openstreetmap
+Kutchers Golf Course,golf,golf_course,41.7047592,-74.6888462,,,NY,,false,true,false,openstreetmap
+Lazy Swan Golf & Country Club,golf,golf_course,42.1191392,-73.9600837,,,NY,,false,true,false,openstreetmap
+Lochmor Golf Course,golf,golf_course,41.757186,-74.6560777,,,NY,,false,true,false,openstreetmap
+LoftLinks,golf,sports_centre,40.7797948,-73.9539414,177 East 87th Street,,NY,10128,false,true,false,openstreetmap
+Long Island National,golf,golf_course,40.9621741,-72.6446208,,,NY,,false,true,false,openstreetmap
+Mini-Golf,golf,golf_course,41.6299479,-74.6142354,,,NY,,false,true,false,openstreetmap
+Mohonk Golf Course,golf,golf_course,41.7812413,-74.1310983,,,NY,,false,true,false,openstreetmap
+Monster Golf Club,golf,golf_course,41.6669021,-74.6507758,,,NY,,false,true,false,openstreetmap
+Montauk Downs,golf,golf_course,41.0492033,-71.9387677,,,NY,,false,true,false,openstreetmap
+Nevele Golf Course,golf,pitch,41.6963392,-74.404582,,,NY,,false,true,false,openstreetmap
+Nick Stoner Municipal Golf Course,golf,golf_course,43.1554221,-74.4858133,,,NY,,false,true,false,openstreetmap
+Niskayuna Driving Range,golf,pitch,42.8094002,-73.8607405,,,NY,,false,true,false,openstreetmap
+Practice,golf,pitch,42.678077,-73.7470289,,,NY,,false,true,false,openstreetmap
+Practice,golf,pitch,42.6807379,-73.744178,,,NY,,false,true,false,openstreetmap
+Pro Shop,golf,pitch,42.09764,-79.3445172,,,NY,,false,true,false,openstreetmap
+Putting Green,golf,pitch,41.7683034,-74.1550156,,,NY,,false,true,false,openstreetmap
+Rip Van Winkle Country Club,golf,golf_course,42.1782903,-74.0155906,,,NY,,false,true,false,openstreetmap
+Route Fore Golf Center Driving Range,golf,pitch,42.6680864,-73.6896957,,,NY,,false,true,false,openstreetmap
+Sag Harbor Golf Course,golf,golf_course,40.9972272,-72.2614644,,,NY,,false,true,false,openstreetmap
+Sandstone Hollow,golf,golf_course,43.1088209,-75.5969908,,,NY,,false,true,false,openstreetmap
+Shawngunk Country Club,golf,golf_course,41.7072822,-74.4023543,,,NY,,false,true,false,openstreetmap
+Shenendoah Golf Course,golf,golf_course,43.1185471,-75.5827597,,,NY,,false,true,false,openstreetmap
+Shot Saver Golf,golf,training,40.6202834,-74.0992562,,,NY,,false,true,false,openstreetmap
+Sidney Golf & Country Club,golf,golf_course,42.2968544,-75.3927738,,,NY,,false,true,false,openstreetmap
+South Park 9 Hole Golf Course,golf,golf_course,42.8301621,-78.8301518,,,NY,,false,true,false,openstreetmap
+South Shore Golf Course,golf,golf_course,40.5500648,-74.2054531,,,NY,,false,true,false,openstreetmap
+Sportsplex at Turning Stone,golf,sports_centre,43.1109731,-75.5912303,,,NY,,false,true,false,openstreetmap
+Sullivan County Golf Club,golf,golf_course,41.8015117,-74.7656499,,,NY,,false,true,false,openstreetmap
+Sunnycrest Golf Course,golf,golf_course,43.0604764,-76.1161619,,,NY,,false,true,false,openstreetmap
+Swan Lake Golf & Country Club,golf,golf_course,41.7480953,-74.8017535,,,NY,,false,true,false,openstreetmap
+Sycamore Country Club,golf,golf_course,42.4730538,-73.8771042,,,NY,,false,true,false,openstreetmap
+Tamaqua Golf Course,golf,golf_course,41.3515486,-74.5324107,,,NY,,false,true,false,openstreetmap
+Tarry Brae Golf Course,golf,golf_course,41.7337822,-74.642071,,,NY,,false,true,false,openstreetmap
+The Bunker at Mohawk Harbor,golf,amusement_arcade,42.825457,-73.9321839,,,NY,,false,true,false,openstreetmap
+The Golf Club at Middle Bay,golf,golf_course,40.6261444,-73.6226837,,,NY,,false,true,false,openstreetmap
+The Muttontown Club,golf,golf_course,40.8408865,-73.5551399,,,NY,,false,true,false,openstreetmap
+Timber Lake Golf Course,golf,golf_course,42.150362,-74.3390431,,,NY,,false,true,false,openstreetmap
+Town of Tonawanda Driving Range,golf,pitch,43.0028629,-78.8435157,,,NY,,false,true,false,openstreetmap
+Whiteface Club & Resort,golf,sports_centre,44.3108151,-74.0043351,,,NY,,false,true,false,openstreetmap
+Willow Creek Golf and Country Club,golf,golf_course,40.9261185,-72.9962529,,,NY,,false,true,false,openstreetmap
+Woodstock Golf Club,golf,golf_course,42.0340295,-74.1080416,,,NY,,false,true,false,openstreetmap
+South Fork Country Club,golf,golf_course,40.9831075,-72.1336752,730 Old Stone Highway,Amagansett,NY,,false,true,false,openstreetmap
+Burden Lake Country Club,golf,golf_course,42.5873649,-73.5498789,162 Totem Lodge Road,Averill Park,NY,12018,false,true,false,openstreetmap
+Club Champion,golf,pitch,42.9765879,-78.6974479,7660 Transit Road,Buffalo,NY,14221,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,42.9981116,-78.8165873,1581 Niagara Falls Boulevard,Buffalo,NY,14228,false,true,false,openstreetmap
+Catskill Golf Club,golf,golf_course,42.2401883,-73.8778886,27 Brooks Lane,Catskill,NY,12414,false,true,false,openstreetmap
+Chautauqua Golf Learning Center,golf,sports_centre,42.1995012,-79.4681202,4615 West Lake Road,Chautauqua,NY,14722,false,true,false,openstreetmap
+Cicero Golf Store,golf,pitch,43.1807292,-76.1217954,8457 Brewerton Road,Cicero,NY,13039,false,true,false,openstreetmap
+Battistoni Golf,golf,pitch,42.968819,-78.6560164,9030 Main Street,Clarence,NY,14031,false,true,false,openstreetmap
+Columbia Golf & Country Club,golf,golf_course,42.236182,-73.7007723,295 Route 217,Claverack,NY,12513,false,true,false,openstreetmap
+Birdies & Bogeys,golf,pitch,40.7853342,-73.8397559,12816 14th Avenue,College Point,NY,11356,false,true,false,openstreetmap
+Town of Colonie Golf Course,golf,pitch,42.7613049,-73.8707316,418 Consaul Road,Colonie,NY,,false,true,false,openstreetmap
+Par's Indoor Golf,golf,amusement_arcade,43.0551563,-76.0749402,3179 Erie Boulevard East,DeWitt;Syracuse,NY,13214,false,true,false,openstreetmap
+Pennfair Golf,golf,pitch,43.116028,-77.492771,349 West Commercial Street,East Rochester,NY,14445,false,true,false,openstreetmap
+Green Lakes State Park Golf Course,golf,golf_course,43.0460266,-75.9662749,7900 Green Lakes Road,Fayetteville,NY,,false,true,false,openstreetmap
+Stone Dock Golf Course,golf,golf_course,41.8164558,-74.1545763,12 Stone Dock Road,High Falls,NY,12440,false,true,false,openstreetmap
+Apple Greens Golf Course,golf,golf_course,41.7203696,-74.0518272,161 South Street,Highland,NY,12528,false,true,false,openstreetmap
+Twaalfskill Golf Club,golf,golf_course,41.9153183,-74.0017498,282 West O’Reilly Street,Kingston,NY,12401,false,true,false,openstreetmap
+Wiltwyck Golf Club,golf,golf_course,41.9150975,-74.0396937,404 Stewart Lane,Kingston,NY,12401,false,true,false,openstreetmap
+Mill Road Acres Golf Course,golf,golf_course,42.7665798,-73.7963053,30 Mill Road,Latham,NY,12110-1184,false,true,false,openstreetmap
+Shaker Ridge Country Club,golf,golf_course,42.7516069,-73.824427,802 Albany-Shaker Road,Loudonville,NY,12211,false,true,false,openstreetmap
+Cedars Golf Course,golf,golf_course,43.8690067,-75.5190546,9368 East Rd,Lowville,NY,13367,false,true,false,openstreetmap
+Swan Lake Golf Club,golf,golf_course,40.8997473,-72.7953969,388 River Road,Manorville,NY,11949,false,true,false,openstreetmap
+Merrick Golf Course,golf,golf_course,40.645389,-73.5591828,2550 Clubhouse Road,Merrick,NY,11566,false,true,false,openstreetmap
+New Paltz Golf Course,golf,golf_course,41.7687726,-74.0877958,215 Huguenot St,New Paltz,NY,12561,false,true,false,openstreetmap
+PXG Westchester,golf,pitch,40.8969425,-73.7961511,100 Nardozzi Place,New Rochelle,NY,10805,false,true,false,openstreetmap
+Oneida Community Golf Club,golf,golf_course,43.06052,-75.6111892,1017 Golf Course Lane,Oneida,NY,13421,false,true,false,openstreetmap
+Casperkill Golf Club,golf,golf_course,41.6466777,-73.9177472,110 Golf Club Lane,Poughkeepsie,NY,12601,false,true,false,openstreetmap
+College Hill Golf Course,golf,golf_course,41.714428,-73.9114557,149 North Clinton Street,Poughkeepsie,NY,12601,false,true,false,openstreetmap
+McCann Golf Course,golf,golf_course,41.6673239,-73.9129697,155 Wilbur Boulevard,Poughkeepsie,NY,12603,false,true,false,openstreetmap
+Vassar Golf Course,golf,golf_course,41.6859009,-73.8873902,12 Raymond Ave,Poughkeepsie,NY,12604,false,true,false,openstreetmap
+Red Hook Golf Club,golf,golf_course,41.9788649,-73.8315475,650 Route 199,Red Hook,NY,12571,false,true,false,openstreetmap
+Bearshire Restaraunt,golf,restaurant,43.2228556,-77.763254,4704 West Ridge Road,Spencerport,NY,14559,false,true,false,openstreetmap
+La Tourette Golf Course,golf,golf_course,40.5789625,-74.1463189,1001 Richmond Hill Road,Staten Island,NY,10306,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,43.0474785,-76.0656423,3409 Erie Boulevard East,Syracuse,NY,13214,false,true,false,openstreetmap
+Buffalo Golf House,golf,sports_centre,42.9878228,-78.8231485,1242 Niagara Falls Boulevard,Tonawanda,NY,14150,false,true,false,openstreetmap
+GolfDojo,golf,sports_centre,42.9857139,-78.8234217,1154 Niagara Falls Boulevard,Tonawanda,NY,14150,false,true,false,openstreetmap
+Sheridan Park Golf Course,golf,golf_course,42.9866359,-78.9007287,,Towanda,NY,,false,true,false,openstreetmap
+Country Club of Troy,golf,golf_course,42.7252982,-73.6381392,100 Troy Country Club Road,Troy,NY,12180,false,true,false,openstreetmap
+Cobblestone Creek Country Club,golf,golf_course,43.0170751,-77.4116448,,Victor,NY,,false,true,false,openstreetmap

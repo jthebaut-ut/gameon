@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Driving Range,golf,pitch,38.4017892,-80.0244035,,,WV,,false,true,false,openstreetmap
+Driving Range,golf,pitch,38.7094276,-80.6655462,,,WV,,false,true,false,openstreetmap
+Greenside Indoor Golf,golf,pitch,38.4175859,-82.4625122,,,WV,,false,true,false,openstreetmap
+Practice Green,golf,pitch,39.4762373,-80.1854312,,,WV,,false,true,false,openstreetmap
+Putt-Putt Golf,golf,golf_course,39.0403335,-80.444883,,,WV,,false,true,false,openstreetmap

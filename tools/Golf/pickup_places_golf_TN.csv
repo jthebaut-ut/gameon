@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Edwin Watts Golf,golf,pitch,35.8986695,-84.1606213,,,TN,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,35.9697068,-86.8077189,,,TN,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,35.9487349,-86.8225592,,,TN,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,35.8998716,-84.166595,11491 Parkside Drive,,TN,37934,false,true,false,openstreetmap
+Practice,golf,pitch,35.7587803,-84.3638401,,,TN,,false,true,false,openstreetmap
+Signal Mountain Golf Course,golf,golf_course,35.1274811,-85.3536685,,,TN,,false,true,false,openstreetmap
+Signal Mountain Golf and Country Club,golf,golf_course,35.1301008,-85.3419967,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1292848,-85.3566402,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1279862,-85.3531587,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1288285,-85.3455251,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1293068,-85.342918,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1298464,-85.3390074,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf Course,golf,pitch,35.1311011,-85.3381437,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf and Country Club,golf,pitch,35.1274246,-85.3515923,,,TN,,false,true,false,openstreetmap
+Signal Mtn Golf and Country Club,golf,pitch,35.1265602,-85.3601432,,,TN,,false,true,false,openstreetmap
+The Golfix,golf,pitch,35.8566067,-86.431632,,,TN,,false,true,false,openstreetmap
+Two Rivers Golf Course,golf,golf_course,36.1907655,-86.6802436,,,TN,,false,true,false,openstreetmap
+Johnson City Country Club,golf,golf_course,36.3433815,-82.341405,1901 East Unaka Avenue,Johnson City,TN,37601,false,true,false,openstreetmap

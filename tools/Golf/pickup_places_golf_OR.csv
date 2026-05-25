@@ -1,0 +1,18 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Brasada Canyons Pro Shop,golf,pitch,44.155498,-121.047199,,,OR,,false,true,false,openstreetmap
+Caldera Links Golf Course,golf,golf_course,43.8555215,-121.4378131,,,OR,,false,true,false,openstreetmap
+Hank Childs Golf Shop,golf,pitch,45.5381235,-122.5899517,,,OR,,false,true,false,openstreetmap
+Mini Golf,golf,miniature_golf,44.86107,-121.2011921,,,OR,,false,true,false,openstreetmap
+Pacific Golf & Turf,golf,pitch,45.5197435,-122.5126516,,,OR,,false,true,false,openstreetmap
+Practice Green,golf,pitch,43.8733391,-121.4472844,,,OR,,false,true,false,openstreetmap
+Practice Green,golf,pitch,43.8522197,-121.4470215,,,OR,,false,true,false,openstreetmap
+The Shed,golf,golf_course,44.1557037,-121.0493218,,,OR,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,45.559849,-122.9236216,,,OR,,false,true,false,openstreetmap
+ParX Golf,golf,pitch,44.0852441,-121.3039275,100 Northeast Bend River Mall Avenue,Bend,OR,97703,false,true,false,openstreetmap
+Cascade Golf Academy,golf,sports_centre,44.1750225,-123.176612,92512 River Road,Junction City,OR,97448,false,true,false,openstreetmap
+Shadow HIlls Country Club,golf,golf_course,44.1728973,-123.1806165,92512 Shadow Hills Country Club Drive,Junction City,OR,97448,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,45.5730325,-122.5551062,10263 Northeast Cascades Parkway,Portland,OR,97220,false,true,false,openstreetmap
+GolfTec,golf,sports_hall,45.5205784,-122.8025115,240 Northwest Lost Springs Terrace,Portland,OR,97229,false,true,false,openstreetmap
+Pro Shop,golf,pitch,45.9795407,-123.9294788,Avenue U,Seaside,OR,,false,true,false,openstreetmap
+Apex Golf Club,golf,sports_centre,45.3920669,-122.7511159,18039 Southwest Lower Boones Ferry Road,Tigard,OR,97224,false,true,false,openstreetmap
+Club Champion,golf,pitch,45.3939868,-122.750553,7215 Southwest Hazel Fern Road,Tigard,OR,97224,false,true,false,openstreetmap

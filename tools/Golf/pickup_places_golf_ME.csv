@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Driving Range,golf,pitch,44.5326218,-69.6615936,,,ME,,false,true,false,openstreetmap
+Poland Spring Resort,golf,golf_course,44.0300224,-70.3637842,,,ME,,false,true,false,openstreetmap
+Purpoodock Golf Club,golf,golf_course,43.6086194,-70.2432961,,,ME,,false,true,false,openstreetmap
+Short Game Practice Area,golf,sports_centre,43.7098591,-70.3193906,,,ME,,false,true,false,openstreetmap
+Mountain View Mini-Golf,golf,pitch,43.4054638,-70.7326535,1569 Main Street,Sanford,ME,04073,false,true,false,openstreetmap

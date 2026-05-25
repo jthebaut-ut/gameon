@@ -4,6 +4,9 @@ import Supabase
 private let pickupGameRequestsSelectColumns =
     "id,pickup_game_id,requester_user_id,requester_email,requester_display_name,requester_skill_level,message,status,created_at,updated_at,responded_at"
 
+private let pickupGameInvitesSelectColumns =
+    "id,pickup_game_id,inviter_user_id,invitee_user_id,status,message,created_at,responded_at"
+
 private let pickupFollowingOrganizerCanceledUserClearedKeyPrefix = "gameon.following.pickupOrganizerCanceledClearedIds."
 
 private struct PickupGameRequestStatusOnly: Decodable {
@@ -11,15 +14,275 @@ private struct PickupGameRequestStatusOnly: Decodable {
     let status: String
 }
 
+private struct CreatePickupGameInvitesParams: Encodable {
+    let p_pickup_game_id: UUID
+    let p_invitee_user_ids: [UUID]
+    let p_message: String?
+}
+
+private struct RespondToPickupGameInviteParams: Encodable {
+    let p_invite_id: UUID
+    let p_status: String
+}
+
+private struct SearchPickupInvitableFansParams: Encodable {
+    let p_query: String
+    let p_limit: Int
+}
+
+private struct PickupAlreadyInvitedUserRow: Decodable {
+    let invitee_user_id: UUID
+}
+
 extension MapViewModel {
     private static let followingJoinRequestsFreshnessInterval: TimeInterval = 60
-
 
     func resolvedPickupGameRow(for id: UUID) -> PickupGameRow? {
         if let s = selectedPickupGameForMap, s.id == id { return s }
         if let m = pickupGamesForDiscoverMap.first(where: { $0.id == id }) { return m }
         if let m = myPickupGamesForSettings.first(where: { $0.id == id }) { return m }
         return pickupGamesFollowingTabCache[id]
+    }
+
+    @discardableResult
+    func createPickupGameInvites(
+        game: PickupGameRow,
+        inviteeUserIds: [UUID],
+        message: String?
+    ) async -> [PickupGameInviteCreateResult] {
+        guard canFanUsePickupGamesUI else {
+            logBusinessUserGateBlocked(action: "invitePickupFriends")
+            showSocialActionToast(BusinessFanGateCopy.pickupFanOnly, isError: true)
+            return []
+        }
+        guard let uid = currentUserAuthId else {
+            showSocialActionToast("Sign in to invite friends.", isError: true)
+            return []
+        }
+        guard game.creator_user_id == uid, game.isPickupGameInvitable() else {
+            showSocialActionToast("This game can't receive invites.", isError: true)
+            return []
+        }
+        if await refreshActiveBanGate(reason: "pickupInviteCreate") {
+            return []
+        }
+
+        let uniqueIds = Array(NSOrderedSet(array: inviteeUserIds).compactMap { $0 as? UUID }).prefix(20)
+        let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let payloadMessage = trimmed.isEmpty ? nil : String(trimmed.prefix(280))
+#if DEBUG
+        print("[PickupInviteDebug] createInvite gameId=\(game.id.uuidString.lowercased())")
+        print("[PickupInviteDebug] inviteeCount=\(uniqueIds.count)")
+#endif
+        guard !uniqueIds.isEmpty else { return [] }
+
+        do {
+            let rows: [PickupGameInviteCreateResult] = try await supabase
+                .rpc(
+                    "create_pickup_game_invites",
+                    params: CreatePickupGameInvitesParams(
+                        p_pickup_game_id: game.id,
+                        p_invitee_user_ids: Array(uniqueIds),
+                        p_message: payloadMessage
+                    )
+                )
+                .execute()
+                .value
+            let created = rows.filter { $0.outcome == "created" }.count
+            let duplicates = rows.filter { $0.outcome == "duplicate" }.count
+#if DEBUG
+            print("[PickupInviteDebug] duplicateSkipped=\(duplicates)")
+#endif
+            if created > 0 {
+                let suffix = created == 1 ? "" : "s"
+                showSocialActionToast("Sent \(created) invite\(suffix).", isError: false)
+            } else if duplicates > 0 {
+                showSocialActionToast("Those fans were already invited.", isError: false)
+            } else {
+                showSocialActionToast("No invites were sent.", isError: true)
+            }
+            return rows
+        } catch {
+            showSocialActionToast(error.localizedDescription, isError: true)
+            return []
+        }
+    }
+
+    func searchPickupInvitableFans(query: String, limit: Int = 20) async -> [PickupInvitableFanSearchResult] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+#if DEBUG
+        print("[PickupInviteDebug] fanSearchQuery=\(trimmed)")
+#endif
+        guard canFanUsePickupGamesUI, trimmed.count >= 2 else {
+#if DEBUG
+            print("[PickupInviteDebug] fanSearchResultCount=0")
+#endif
+            return []
+        }
+
+        do {
+            let rows: [PickupInvitableFanSearchResult] = try await supabase
+                .rpc(
+                    "search_pickup_invitable_fans",
+                    params: SearchPickupInvitableFansParams(
+                        p_query: trimmed,
+                        p_limit: min(max(limit, 1), 50)
+                    )
+                )
+                .execute()
+                .value
+#if DEBUG
+            print("[PickupInviteDebug] fanSearchResultCount=\(rows.count)")
+#endif
+            return rows
+        } catch {
+#if DEBUG
+            print("[PickupInviteDebug] fanSearchResultCount=0")
+            print("[PickupInviteDebug] fanSearchError=\(error.localizedDescription)")
+#endif
+            return []
+        }
+    }
+
+    func loadPickupAlreadyInvitedUserIds(gameId: UUID) async -> Set<UUID> {
+        guard canFanUsePickupGamesUI else { return [] }
+        do {
+            let rows: [PickupAlreadyInvitedUserRow] = try await supabase
+                .from("pickup_game_invites")
+                .select("invitee_user_id")
+                .eq("pickup_game_id", value: gameId.uuidString.lowercased())
+                .limit(200)
+                .execute()
+                .value
+            return Set(rows.map(\.invitee_user_id))
+        } catch {
+            return []
+        }
+    }
+
+    func loadIncomingPickupGameInvites() async {
+        guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
+            incomingPickupGameInvites = []
+#if DEBUG
+            print("[PickupInviteDebug] pendingInviteCount=0")
+            print("[PickupInviteDebug] inviteListLoaded=false")
+            print("[PickupInviteDebug] inviteBadgeUpdated=0")
+#endif
+            return
+        }
+
+        do {
+            let invites: [PickupGameInviteRow] = try await supabase
+                .from("pickup_game_invites")
+                .select(pickupGameInvitesSelectColumns)
+                .eq("invitee_user_id", value: uid.uuidString.lowercased())
+                .in("status", values: ["pending", "maybe"])
+                .order("created_at", ascending: false)
+                .limit(50)
+                .execute()
+                .value
+
+            guard !invites.isEmpty else {
+                incomingPickupGameInvites = []
+#if DEBUG
+                print("[PickupInviteDebug] pendingInviteCount=0")
+                print("[PickupInviteDebug] inviteListLoaded=true")
+                print("[PickupInviteDebug] inviteBadgeUpdated=0")
+#endif
+                return
+            }
+
+            let gameIds = Array(Set(invites.map(\.pickup_game_id)))
+            let games: [PickupGameRow] = try await supabase
+                .from("pickup_games")
+                .select(pickupGamesSelectColumns)
+                .in("id", values: gameIds.map { $0.uuidString.lowercased() })
+                .limit(80)
+                .execute()
+                .value
+            let gameById = Dictionary(uniqueKeysWithValues: games.map { ($0.id, $0) })
+
+            let inviterIds = Array(Set(invites.map(\.inviter_user_id)))
+            let profiles: [UserProfileRow] = try await supabase
+                .from("user_profiles")
+                .select("id,email,display_name,username,bio,avatar_url,avatar_thumbnail_url,is_business_account,admin_status")
+                .in("id", values: inviterIds.map { $0.uuidString.lowercased() })
+                .limit(80)
+                .execute()
+                .value
+            let profileById = Dictionary(uniqueKeysWithValues: profiles.compactMap { profile -> (UUID, UserProfileRow)? in
+                guard let id = profile.id else { return nil }
+                return (id, profile)
+            })
+
+            let displayRows = invites.compactMap { invite -> PickupGameInviteDisplay? in
+                guard let game = gameById[invite.pickup_game_id], game.isPickupGameInvitable() else { return nil }
+                return PickupGameInviteDisplay(
+                    invite: invite,
+                    game: game,
+                    inviterProfile: profileById[invite.inviter_user_id]
+                )
+            }
+            incomingPickupGameInvites = displayRows
+#if DEBUG
+            print("[PickupInviteDebug] pendingInviteCount=\(displayRows.count)")
+            print("[PickupInviteDebug] inviteListLoaded=true")
+            print("[PickupInviteDebug] inviteBadgeUpdated=\(displayRows.count)")
+#endif
+        } catch {
+#if DEBUG
+            print("[PickupInviteDebug] pendingInviteCount=\(incomingPickupGameInvites.count)")
+            print("[PickupInviteDebug] inviteListLoaded=false")
+            print("[PickupInviteDebug] loadError=\(error.localizedDescription)")
+#endif
+        }
+    }
+
+    func respondToPickupGameInvite(_ invite: PickupGameInviteRow, status: String) async {
+        guard canFanUsePickupGamesUI else {
+            logBusinessUserGateBlocked(action: "respondPickupInvite")
+            showSocialActionToast(BusinessFanGateCopy.pickupFanOnly, isError: true)
+            return
+        }
+        if await refreshActiveBanGate(reason: "pickupInviteRespond") {
+            return
+        }
+        let normalized = status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+#if DEBUG
+        if normalized == "accepted" {
+            print("[PickupInviteDebug] inviteAccepted=\(invite.id.uuidString.lowercased())")
+        } else if normalized == "maybe" {
+            print("[PickupInviteDebug] inviteMaybe=\(invite.id.uuidString.lowercased())")
+        } else if normalized == "declined" {
+            print("[PickupInviteDebug] inviteDeclined=\(invite.id.uuidString.lowercased())")
+        }
+#endif
+        do {
+            let _: PickupGameInviteRow = try await supabase
+                .rpc(
+                    "respond_to_pickup_game_invite",
+                    params: RespondToPickupGameInviteParams(p_invite_id: invite.id, p_status: normalized)
+                )
+                .execute()
+                .value
+            await loadIncomingPickupGameInvites()
+            if normalized == "accepted" {
+                await loadMyPickupGameJoinRequestsForFollowing(forceRefresh: true, reason: "pickupInviteAccepted")
+                await loadMyLatestJoinRequestForPickupGame(pickupGameId: invite.pickup_game_id)
+                try? await refreshPickupGameRowFromServerAndMerge(id: invite.pickup_game_id)
+                recomputeCalendarDotDates()
+#if DEBUG
+                print("[PickupInviteDebug] movedToPlaying=true")
+#endif
+                showSocialActionToast("You're in the game", isError: false)
+            } else if normalized == "maybe" {
+                showSocialActionToast("Marked maybe.", isError: false)
+            } else {
+                showSocialActionToast("Invite declined.", isError: false)
+            }
+        } catch {
+            showSocialActionToast(error.localizedDescription, isError: true)
+        }
     }
 
     /// Persists per-user “Clear now” for Following → Games to Play organizer-canceled pickup cards.

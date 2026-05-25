@@ -74,6 +74,59 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     let updated_at: String?
 }
 
+// MARK: - `public.pickup_game_invites`
+
+struct PickupGameInviteRow: Codable, Identifiable, Equatable, Hashable {
+    let id: UUID
+    let pickup_game_id: UUID
+    let inviter_user_id: UUID
+    let invitee_user_id: UUID
+    let status: String
+    let message: String?
+    let created_at: String
+    let responded_at: String?
+}
+
+struct PickupGameInviteCreateResult: Decodable, Equatable {
+    let invitee_user_id: UUID
+    let invite_id: UUID?
+    let outcome: String
+}
+
+struct PickupInvitableFanSearchResult: Decodable, Identifiable, Equatable, Hashable {
+    let user_id: UUID
+    let display_name: String
+    let handle: String?
+    let avatar_url: String?
+    let is_friend: Bool
+
+    var id: UUID { user_id }
+
+    var displayHandle: String {
+        let stored = handle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return stored.isEmpty ? "" : FanGeoHandleRules.displayHandle(stored: stored)
+    }
+
+    var userPreview: UserPreview {
+        UserPreview(
+            id: user_id,
+            displayName: display_name,
+            username: handle,
+            email: nil,
+            avatarURL: avatar_url,
+            avatarThumbnailURL: avatar_url
+        )
+    }
+}
+
+struct PickupGameInviteDisplay: Identifiable {
+    let invite: PickupGameInviteRow
+    let game: PickupGameRow
+    let inviterProfile: UserProfileRow?
+
+    var id: UUID { invite.id }
+}
+
 extension PickupGameRow {
     /// Local optimistic patch (e.g. after joiner withdraw) before server row is re-fetched.
     func replacingApprovedJoinCount(_ newApprovedJoinCount: Int?) -> PickupGameRow {
@@ -155,6 +208,16 @@ extension PickupGameRow {
 
     var gameFormat: GameType {
         GameType(rawValue: game_format) ?? .pickup
+    }
+
+    func isPickupGameInvitable(now: Date = Date()) -> Bool {
+        guard status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "active" else { return false }
+        if let raw = remove_after_at,
+           let removeAfter = PickupGameModels.parseSupabaseTimestamptz(raw),
+           removeAfter <= now {
+            return false
+        }
+        return true
     }
 }
 

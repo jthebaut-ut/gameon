@@ -1,0 +1,50 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+2nd Swing Golf,golf,pitch,33.6250435,-111.8916111,,,AZ,,false,true,false,openstreetmap
+All About Golf,golf,pitch,33.4223571,-111.9078486,,,AZ,,false,true,false,openstreetmap
+Athalonz,golf,pitch,33.4649235,-111.739848,,,AZ,,false,true,false,openstreetmap
+Cool Clubs,golf,pitch,33.6867437,-111.9240298,,,AZ,,false,true,false,openstreetmap
+Coronado Practice Green,golf,pitch,33.4792419,-111.9162748,,,AZ,,false,true,false,openstreetmap
+Driving Range,golf,pitch,33.2253953,-111.7028843,,,AZ,,false,true,false,openstreetmap
+Driving Range Tees,golf,pitch,32.4628867,-110.9469579,,,AZ,,false,true,false,openstreetmap
+Driving Range and Practice Area,golf,pitch,32.4633313,-110.9457737,,,AZ,,false,true,false,openstreetmap
+Golf Anything,golf,pitch,33.6217832,-111.9007587,,,AZ,,false,true,false,openstreetmap
+Golf Smoke,golf,pitch,33.6271627,-111.9002753,,,AZ,,false,true,false,openstreetmap
+Hole Hunter Industries,golf,pitch,33.6115842,-111.9135614,,,AZ,,false,true,false,openstreetmap
+Ians Golf Shops,golf,pitch,32.2835207,-110.9767452,,,AZ,,false,true,false,openstreetmap
+MountainView Golf Pro Shop,golf,pitch,32.525617,-110.89805,,,AZ,,false,true,false,openstreetmap
+New Level Golf,golf,pitch,33.6245256,-111.904057,,,AZ,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.6581121,-111.930486,,,AZ,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.2031363,-111.5799562,,,AZ,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.2029331,-111.5803229,,,AZ,,false,true,false,openstreetmap
+Practice Green,golf,pitch,33.2269478,-111.7039331,,,AZ,,false,true,false,openstreetmap
+Practice Green,golf,pitch,32.8077698,-109.7683795,,,AZ,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.2545948,-112.2277753,,,AZ,,false,true,false,openstreetmap
+Putting Green,golf,pitch,32.4625438,-110.9473785,,,AZ,,false,true,false,openstreetmap
+Scottsdale Golf Club Exchange,golf,pitch,33.627574,-111.9011513,,,AZ,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,32.3287372,-111.053118,,,AZ,,false,true,false,openstreetmap
+Vans,golf,pitch,33.3996339,-111.6842539,,,AZ,,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.3367438,-111.838923,2031 North Arizona Avenue,Chandler,AZ,85225,false,true,false,openstreetmap
+Caddy Shack,golf,pitch,33.2670193,-111.7219168,4588 South Higley Road,Gilbert,AZ,85297,false,true,false,openstreetmap
+Elite Golf Schools of Arizona,golf,sports_centre,33.2603461,-111.6940576,4415 E Village Pkwy,Gilbert,AZ,85298,false,true,false,openstreetmap
+Seville Golf & Country Club,golf,pitch,33.2276868,-111.7057674,6648 South Clubhouse Drive,Gilbert,AZ,85298,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.3202753,-111.7408995,1689 South Santan Village Parkway,Gilbert,AZ,85295,false,true,false,openstreetmap
+Western Skies Golf Club,golf,pitch,33.3347866,-111.7624306,1245 East Warner Road,Gilbert,AZ,85296,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.6398183,-112.2177253,7360 West Bell Road,Glendale,AZ,85308,false,true,false,openstreetmap
+PXG Westgate,golf,pitch,33.5339941,-112.2616222,6751 North Sunset Boulevard,Glendale,AZ,85305,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.5250252,-112.2710068,6101 North 99th Avenue,Glendale,AZ,85305,false,true,false,openstreetmap
+Haven Golf Course,golf,golf_course,31.8716124,-110.9833863,110 North Abrego Drive,Green Valley,AZ,85614,false,true,false,openstreetmap
+Torres Blancas Golf Club,golf,golf_course,31.8207017,-110.9995074,3223 South Abrego Drive,Green Valley,AZ,85614,false,true,false,openstreetmap
+Ace of Clubs,golf,pitch,33.4146647,-111.6773168,7127 East Main Street,Mesa,AZ,85207,false,true,false,openstreetmap
+PXG Mesa,golf,pitch,33.4148873,-111.8377235,221 West Main Street,Mesa,AZ,85201,false,true,false,openstreetmap
+The Views Golf Club,golf,golf_course,32.4623228,-110.9474226,1555 East Rancho Vistoso Boulevard,Oro Valley,AZ,85755-9120,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,33.6356529,-112.2261333,7765 West Bell Road,Peoria,AZ,85382,false,true,false,openstreetmap
+Blades Golf Lounge,golf,golf_course,33.5097078,-112.0757524,24 West Camelback Road,Phoenix,AZ,85013,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,33.5410186,-111.8761372,9500 East Talking Stick Way,Salt River Indian Res,AZ,85256,false,true,false,openstreetmap
+Club Champion,golf,pitch,33.5684809,-111.8866964,9015 East Via Linda,Scottsdale,AZ,85258,false,true,false,openstreetmap
+Hornacek's Golf,golf,pitch,33.7005323,-111.9232281,23587 North Scottsdale Road,Scottsdale,AZ,85255,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,33.5838599,-111.8926904,8740 East Shea Boulevard,Scottsdale,AZ,85260,false,true,false,openstreetmap
+PXG Scottsdale,golf,pitch,33.6288623,-111.9008958,15690 North 83rd Way,Scottsdale,AZ,85260,false,true,false,openstreetmap
+Van's Golf Shops,golf,pitch,33.6305211,-111.8926653,8720 East Frank Lloyd Wright Boulevard,Scottsdale,AZ,85260,false,true,false,openstreetmap
+Club Champion,golf,pitch,32.336605,-110.979125,635 West Ina Road,Tucson,AZ,85704,false,true,false,openstreetmap
+Voyager RV Resort and Golf Course,golf,golf_course,32.0910273,-110.8290449,8701 South Kolb Road,Tucson,AZ,85756-9607,false,true,false,openstreetmap
+Desert Hills Golf Course,golf,golf_course,32.6603801,-114.637285,1245 West Desert Hills Drive,Yuma,AZ,85365,false,true,false,openstreetmap

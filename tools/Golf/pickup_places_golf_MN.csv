@@ -1,0 +1,24 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Club Champion,golf,pitch,44.9273275,-92.9637185,,,MN,,false,true,false,openstreetmap
+Driving Range,golf,pitch,43.6787444,-92.9252754,,,MN,,false,true,false,openstreetmap
+Driving Range,golf,pitch,47.5325507,-92.5587101,,,MN,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,44.1546696,-92.1711248,,,MN,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,43.9859629,-96.3057216,,,MN,,false,true,false,openstreetmap
+Golf Driving Range,golf,pitch,44.2921231,-94.7500832,,,MN,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,44.9431365,-92.9406078,,,MN,,false,true,false,openstreetmap
+Karlstad Golf Club,golf,pitch,48.5840064,-96.5134144,,,MN,,false,true,false,openstreetmap
+North Oaks Golf Course,golf,golf_course,45.0842743,-93.0952433,,,MN,,false,true,false,openstreetmap
+Practice Range,golf,pitch,43.7099334,-92.9611894,,,MN,,false,true,false,openstreetmap
+Putting Green,golf,recreation_ground,44.1541396,-92.1720837,,,MN,,false,true,false,openstreetmap
+Seasons Golf,golf,pitch,44.8624213,-93.465102,,,MN,,false,true,false,openstreetmap
+Somerset Country Club,golf,golf_course,44.9016916,-93.111439,,,MN,,false,true,false,openstreetmap
+Wild Marsh Golf Club,golf,golf_course,45.1480595,-93.8801501,,,MN,,false,true,false,openstreetmap
+Topgolf Brooklyn Center,golf,sports_centre,45.0719612,-93.2879128,6420 Camden Avenue North,Brooklyn Center,MN,55430,false,true,false,openstreetmap
+X Golf,golf,sports_centre,44.8508761,-93.435017,12577 Castlemoor Drive,Eden Prairie,MN,55344,true,false,false,openstreetmap
+PXG Minneapolis,golf,pitch,44.880624,-93.3251065,10 Southdale Center,Edina,MN,55435,false,true,false,openstreetmap
+Eveleth Municipal Golf Course,golf,golf_course,47.4265458,-92.518704,4276 Golf Course Road,Eveleth,MN,55734,false,true,false,openstreetmap
+Oak Knolls Golf Course,golf,golf_course,47.8779054,-96.2668307,,Red Lake Falls,MN,,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,45.0144218,-93.1859097,2440 Cleveland Avenue North,Roseville,MN,55113,false,true,false,openstreetmap
+Sleepy Eye Golf Club,golf,golf_course,44.293843,-94.7510241,27898 Highway 14 West,Sleepy Eye,MN,56085,false,true,false,openstreetmap
+Virginia Golf Course,golf,golf_course,47.5349391,-92.5536063,1308 18th Street North,Virginia,MN,55792,false,true,false,openstreetmap
+PGA Tour Superstore,golf,pitch,44.9262835,-92.9559316,1555 Queens Drive,Woodbury,MN,55125,false,true,false,openstreetmap

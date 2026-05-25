@@ -1,0 +1,15 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bobick's Golf Headquarters Driving Range,golf,pitch,41.0359912,-85.1684768,,,IN,,false,true,false,openstreetmap
+Driving Range,golf,pitch,39.8540226,-86.3251447,,,IN,,false,true,false,openstreetmap
+Hidden Valley Golf Course Pro Shop,golf,pitch,39.1552002,-84.8441465,,,IN,,false,true,false,openstreetmap
+Hillcrest Country Club,golf,golf_course,39.8724139,-86.0602931,,,IN,,false,true,false,openstreetmap
+Kokomo Country Club,golf,golf_course,40.4622366,-86.1432511,,,IN,,false,true,false,openstreetmap
+Practice Green,golf,sport,38.722205,-86.919537,,,IN,,false,true,false,openstreetmap
+Swings,golf,sports_centre,37.9780659,-87.4104224,,,IN,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,39.959046,-86.0046664,9200 East 116th Street,Fishers,IN,46037,false,true,false,openstreetmap
+Bobick's Golf Headquarters,golf,pitch,41.0364116,-85.1666945,5200 Bluffton Road,Fort Wayne,IN,46809,false,true,false,openstreetmap
+Canterbury Green Golf Course,golf,golf_course,41.1271474,-85.1053649,2727 Canterbury Boulevard,Fort Wayne,IN,46835,false,true,false,openstreetmap
+Golf Galaxy,golf,pitch,39.910677,-86.0717327,5625 East 86th Street,Indianapolis,IN,46250,false,true,false,openstreetmap
+PXG Indianapolis,golf,pitch,39.9048466,-86.0616488,6091 East 82nd Street,Indianapolis,IN,46250,false,true,false,openstreetmap
+Tee Box,golf,sports_centre,37.9783376,-87.4123845,8922 High Pointe Drive,Newburgh,IN,47630,false,true,false,openstreetmap
+X-Golf Plainfield,golf,sports_centre,39.7128529,-86.3583544,313 Marketplace Mile,Plainfield,IN,46168,true,false,false,openstreetmap

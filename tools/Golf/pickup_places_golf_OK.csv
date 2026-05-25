@@ -1,0 +1,20 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cimarron National Golf Club - Aqua Canyon Course,golf,golf_course,35.8743511,-97.4917574,,,OK,,false,true,false,openstreetmap
+Cimarron National Golf Club Course,golf,golf_course,35.8743034,-97.4836443,,,OK,,false,true,false,openstreetmap
+Driving Range,golf,pitch,35.8743095,-97.4859395,,,OK,,false,true,false,openstreetmap
+Driving Range,golf,pitch,35.4387655,-97.46909,,,OK,,false,true,false,openstreetmap
+Oak Hills Golf & Country Club,golf,golf_course,34.7738727,-96.6563065,,,OK,,false,true,false,openstreetmap
+Oakwood Country Club Golf Course,golf,golf_course,36.4155934,-97.9214356,,,OK,,false,true,false,openstreetmap
+Panhandle Park,golf,golf_course,36.5893772,-101.639118,,,OK,,false,true,false,openstreetmap
+Practice Green,golf,pitch,35.3990937,-97.5530981,,,OK,,false,true,false,openstreetmap
+Practice Putting Green,golf,pitch,36.1787454,-97.0664464,,,OK,,false,true,false,openstreetmap
+Quail Creek Country Club,golf,golf_course,35.6006176,-97.5816798,,,OK,,false,true,false,openstreetmap
+Roman Nose State Park Office,golf,pitch,35.9309516,-98.4258697,,,OK,,false,true,false,openstreetmap
+Topgolf,golf,sports_centre,35.602841,-97.534497,,,OK,,false,true,false,openstreetmap
+Tour Quality Golf,golf,pitch,36.0771882,-95.905091,,,OK,,false,true,false,openstreetmap
+Tulsa Country Club,golf,golf_course,36.1661619,-96.0072813,,,OK,,false,true,false,openstreetmap
+Meadow Lake Golf Course,golf,golf_course,36.3721032,-97.9002038,2013 W Rupe Ave,Enid,OK,73703,false,true,false,openstreetmap
+Pheasant Run Golf Course,golf,golf_course,36.4126125,-97.9439587,1702 Club House Drive,Enid,OK,73703,false,true,false,openstreetmap
+McAlester Country Club,golf,golf_course,34.9058179,-95.7502036,1500 Country Club Road,McAlester,OK,74501,false,true,false,openstreetmap
+GolfTec,golf,sports_centre,36.0767221,-95.8875158,6010 South Memorial Drive East,Tulsa,OK,74145,false,true,false,openstreetmap
+Roman Nose State Park Golf Course,golf,golf_course,35.9319754,-98.4277924,Highway 8A,Watonga,OK,73772,false,true,false,openstreetmap

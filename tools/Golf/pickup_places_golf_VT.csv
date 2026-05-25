@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bellows Falls Country Club,golf,golf_course,43.1991604,-72.5013553,,,VT,,false,true,false,openstreetmap
+Burlington Country Club,golf,golf_course,44.4596475,-73.195602,,,VT,,false,true,false,openstreetmap
+Northfield Golf Course,golf,sports_centre,44.1139886,-72.6826341,,,VT,,false,true,false,openstreetmap
+The Golf Club,golf,pitch,44.1945803,-73.3656907,,,VT,,false,true,false,openstreetmap
+Vermont National Country Club,golf,golf_course,44.4364801,-73.1743673,,,VT,,false,true,false,openstreetmap
+Arrowhead Golf Course,golf,pitch,44.683997,-73.1592572,350 Murray Avenue,Milton,VT,05468,false,true,false,openstreetmap
+Golf Garage,golf,sports_centre,44.4370279,-73.2113274,1185 Shelburne Road,South Burlington,VT,05403,false,true,false,openstreetmap
