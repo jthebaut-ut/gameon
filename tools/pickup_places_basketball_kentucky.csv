@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Coliseum,basketball,sports_centre,37.7373509,-84.3013299,,,KY,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.1164164,-87.8807395,,,KY,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,36.8241869,-88.1652048,,,KY,,false,true,false,openstreetmap
+Briar Creek Park Basketball Court,basketball,pitch,36.7306933,-84.1642585,,,KY,,false,true,false,openstreetmap
+Butler basketball lot,basketball,pitch,37.1103002,-87.8874835,,,KY,,false,true,false,openstreetmap
+CFSB Center,basketball,stadium,36.6227969,-88.3198681,,,KY,,false,true,false,openstreetmap
+Coach Cal's Court,basketball,pitch,38.0262556,-84.4756402,,,KY,,false,true,false,openstreetmap
+Covington Catholic High School Gymnasium,basketball,sports_centre,39.0662075,-84.5332876,,,KY,,false,true,false,openstreetmap
+Dixie Park Basketball Court,basketball,pitch,38.338711,-82.9387598,,,KY,,false,true,false,openstreetmap
+Ginny Reichard Park,basketball,park,38.2562492,-85.7331487,,,KY,,false,true,false,openstreetmap
+Hill-N-Dale Basketball Court,basketball,pitch,38.0124515,-84.5303197,,,KY,,false,true,false,openstreetmap
+Johnson Center Indoor Basketball Courts,basketball,pitch,38.0275611,-84.5035823,,,KY,,false,true,false,openstreetmap
+Maytown Basketball Gymnasium,basketball,sports_hall,37.5304223,-82.7903946,,,KY,,false,true,false,openstreetmap
+Morgan County High School Gymnasium,basketball,fitness_centre,37.8952819,-83.2818042,,,KY,,false,true,false,openstreetmap
+Plano Elementary Basketball Court,basketball,pitch,36.8870453,-86.4147549,,,KY,,false,true,false,openstreetmap
+Point Park Basketball Court,basketball,pitch,38.6827609,-85.1872518,,,KY,,false,true,false,openstreetmap
+Reed Conder Gymnasium,basketball,sports_centre,36.9126676,-88.3332385,,,KY,,false,true,false,openstreetmap
+Rocky Hollow Basketball court,basketball,pitch,37.0858135,-84.6057459,,,KY,,false,true,false,openstreetmap
+Rocky Hollow Recreation Center,basketball,pitch,37.0886542,-84.6010955,,,KY,,false,true,false,openstreetmap
+Roger C. Womack War Memorial Gymnasium,basketball,sports_centre,38.3058274,-84.143191,,,KY,,false,true,false,openstreetmap
+Scheben Gymnasium,basketball,sports_centre,39.0197151,-84.608029,,,KY,,false,true,false,openstreetmap
+Truist Arena,basketball,sports_centre,39.0319746,-84.4591138,,,KY,,false,true,false,openstreetmap
+Castlewood Community Center,basketball,fitness_centre,38.0554354,-84.4757105,201 Castlewood Drive,Lexington,KY,,false,true,false,openstreetmap
+Rupp Arena,basketball,stadium,38.0494003,-84.5023509,432 West Vine Street,Lexington,KY,40507,false,true,false,openstreetmap
+McManis Student Center & Marshall Gymnasiam,basketball,sports_hall,38.1459447,-84.6764231,East Stephens Street,Midway,KY,40347,false,true,false,openstreetmap
+Appalachian Wireless Arena,basketball,stadium,37.4777551,-82.5172859,126 Main Street,Pikeville,KY,41501,false,true,false,openstreetmap

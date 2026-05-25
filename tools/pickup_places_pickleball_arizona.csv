@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+8 Pickleball Courts,pickleball,pitch,33.3817357,-112.034974,,,AZ,,false,true,false,openstreetmap
+PebbleCreek Pickleball Club,pickleball,pitch,33.4797708,-112.4075119,,,AZ,,false,true,false,openstreetmap
+Pickle Ball,pickleball,pitch,33.2591019,-111.5733206,,,AZ,,false,true,false,openstreetmap
+Pickleball,pickleball,pitch,33.6156789,-111.7368929,,,AZ,,false,true,false,openstreetmap
+Pickleball,pickleball,pitch,33.616501,-111.7328907,,,AZ,,false,true,false,openstreetmap
+Pickleball,pickleball,pitch,33.655863,-112.308932,,,AZ,,false,true,false,openstreetmap
+Pickleball Backyard,pickleball,pitch,33.3654035,-111.791959,,,AZ,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,32.593021,-110.9213074,,,AZ,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,33.481917,-112.3590708,,,AZ,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,35.2196414,-114.0260889,,,AZ,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,33.4134355,-111.6639679,,,AZ,,false,true,false,openstreetmap
+Picklleball,pickleball,pitch,34.3998299,-110.5650962,,,AZ,,false,true,false,openstreetmap
+Picklleball,pickleball,pitch,34.3998007,-110.5651841,,,AZ,,false,true,false,openstreetmap
+SaddleBrooke Two Pickleball Complex,pickleball,sports_centre,32.5254735,-110.874501,,,AZ,,false,true,false,openstreetmap
+Sun City Festival Pickleball Complex,pickleball,sports_centre,33.6725134,-112.643953,,,AZ,,false,true,false,openstreetmap
+Tempe Sports Complex Tennis Courts,pickleball,pitch,33.3378697,-111.9535948,,,AZ,,false,true,false,openstreetmap
+The Orchard Indoor Pickleball Club,pickleball,sports_hall,33.5591764,-111.8868303,,,AZ,,false,true,false,openstreetmap
+Washington Park Pickleball Court,pickleball,pitch,33.4250907,-111.8302843,,,AZ,,false,true,false,openstreetmap
+Pickleball Kingdom,pickleball,pitch,33.3211666,-111.9263805,4950 West Ray Road,Chandler,AZ,85226,false,true,false,openstreetmap
+Chicken N Pickle,pickleball,fast_food,33.5354251,-112.259702,9330 West Hanna Lane,Glendale,AZ,85305,false,true,false,openstreetmap

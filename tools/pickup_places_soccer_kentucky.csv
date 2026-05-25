@@ -1,0 +1,48 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bermuda Field #1,soccer,pitch,36.9721213,-86.4060133,,,KY,,false,true,false,openstreetmap
+Bermuda Field #2,soccer,pitch,36.9725842,-86.4069144,,,KY,,false,true,false,openstreetmap
+Bermuda Field #3,soccer,pitch,36.9730299,-86.4078157,,,KY,,false,true,false,openstreetmap
+Bermuda Field #4,soccer,pitch,36.9738067,-86.4094103,,,KY,,false,true,false,openstreetmap
+Bermuda Field #5,soccer,pitch,36.9728693,-86.4044114,,,KY,,false,true,false,openstreetmap
+Bermuda Field #6,soccer,pitch,36.9732549,-86.4053026,,,KY,,false,true,false,openstreetmap
+Bermuda Field #7,soccer,pitch,36.9735869,-86.406099,,,KY,,false,true,false,openstreetmap
+Bermuda Field #8,soccer,pitch,36.9740411,-86.4069971,,,KY,,false,true,false,openstreetmap
+Caldwell County Soccer Field,soccer,pitch,37.1110732,-87.8884549,,,KY,,false,true,false,openstreetmap
+Cutchin Recreational Complex,soccer,pitch,36.6156806,-88.3202514,,,KY,,false,true,false,openstreetmap
+EKU Women's Soccer Field,soccer,pitch,37.7315411,-84.2943738,,,KY,,false,true,false,openstreetmap
+Fern Creek Optimist Soccer Club Fields,soccer,sports_centre,38.1353552,-85.5930498,,,KY,,false,true,false,openstreetmap
+Field 1,soccer,pitch,36.9796447,-86.4919126,,,KY,,false,true,false,openstreetmap
+Field 1,soccer,pitch,37.9583197,-84.3900555,,,KY,,false,true,false,openstreetmap
+Field 2,soccer,pitch,37.9595422,-84.3901526,,,KY,,false,true,false,openstreetmap
+Field 2,soccer,pitch,36.9786216,-86.4918362,,,KY,,false,true,false,openstreetmap
+Field 3,soccer,pitch,36.9796928,-86.4929528,,,KY,,false,true,false,openstreetmap
+Field 3,soccer,pitch,37.9594997,-84.3911118,,,KY,,false,true,false,openstreetmap
+Field 4,soccer,pitch,36.9784963,-86.4929572,,,KY,,false,true,false,openstreetmap
+Field 4,soccer,pitch,37.9579806,-84.3937077,,,KY,,false,true,false,openstreetmap
+Field 5,soccer,pitch,36.9790531,-86.4932514,,,KY,,false,true,false,openstreetmap
+Field 5,soccer,pitch,37.9580884,-84.3946587,,,KY,,false,true,false,openstreetmap
+Field 6,soccer,pitch,37.9596964,-84.3947146,,,KY,,false,true,false,openstreetmap
+Field 7,soccer,pitch,37.9597995,-84.3956609,,,KY,,false,true,false,openstreetmap
+Field n,soccer,pitch,37.9584427,-84.3969597,,,KY,,false,true,false,openstreetmap
+Frescue Field #10,soccer,pitch,36.9750166,-86.4086881,,,KY,,false,true,false,openstreetmap
+Frescue Field #11,soccer,pitch,36.9755434,-86.4093085,,,KY,,false,true,false,openstreetmap
+Frescue Field #12,soccer,pitch,36.9751655,-86.4096579,,,KY,,false,true,false,openstreetmap
+Frescue Field #14,soccer,pitch,36.9746975,-86.4100404,,,KY,,false,true,false,openstreetmap
+Frescue Field #15,soccer,pitch,36.9743044,-86.4104149,,,KY,,false,true,false,openstreetmap
+Frescue Field #9,soccer,pitch,36.9743007,-86.4078487,,,KY,,false,true,false,openstreetmap
+Game Field,soccer,pitch,37.8646467,-84.6664134,,,KY,,false,true,false,openstreetmap
+Humana Grand Allee Fields,soccer,pitch,38.2107204,-85.473919,,,KY,,false,true,false,openstreetmap
+Intramural Field,soccer,pitch,37.8640702,-84.6710457,,,KY,,false,true,false,openstreetmap
+John Floyd Fields,soccer,park,38.1823815,-85.4884945,,,KY,,false,true,false,openstreetmap
+Lexington Sporting Club Stadium,soccer,pitch,37.9612912,-84.391046,,,KY,,false,true,false,openstreetmap
+Marshall County Soccer Stadium,soccer,sports_centre,36.9108961,-88.3314146,,,KY,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,37.8643918,-84.6678115,,,KY,,false,true,false,openstreetmap
+South Field,soccer,pitch,37.641135,-84.7815406,,,KY,,false,true,false,openstreetmap
+The Pit,soccer,pitch,36.9637403,-86.45706,,,KY,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,37.8642399,-84.6694478,,,KY,,false,true,false,openstreetmap
+WKU Soccer,soccer,pitch,36.9800956,-86.4650233,,,KY,,false,true,false,openstreetmap
+Wayne County Cardinals Soccer Field,soccer,pitch,36.8785886,-84.8191945,,,KY,,false,true,false,openstreetmap
+Dr Mark and Cindy Lynn Soccer Stadium,soccer,stadium,38.2088538,-85.7551616,2525 South Floyd Street,Louisville,KY,40209,false,true,false,openstreetmap
+Lynn Family Sports Vision & Training Clinic,soccer,sports_centre,38.2688804,-85.7100359,801 Edith Road,Louisville,KY,40206,false,true,false,openstreetmap
+Lynn Family Stadium,soccer,stadium,38.2593265,-85.7325434,350 Adams Street,Louisville,KY,40206,false,true,false,openstreetmap
+Bell Place Soccer Field / James Mason Park,soccer,pitch,37.904407,-84.5851011,100 Bell Lawn,Nicholasville,KY,40356,false,true,false,openstreetmap

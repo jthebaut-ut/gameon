@@ -1,0 +1,109 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,42.5262606,-90.7272947,,,IA,,false,true,false,openstreetmap
+2,soccer,pitch,42.5266381,-90.7284059,,,IA,,false,true,false,openstreetmap
+3,soccer,pitch,42.5254039,-90.7288998,,,IA,,false,true,false,openstreetmap
+4,soccer,pitch,42.5259317,-90.729946,,,IA,,false,true,false,openstreetmap
+5,soccer,pitch,42.5247864,-90.7306986,,,IA,,false,true,false,openstreetmap
+6,soccer,pitch,42.5240021,-90.7319861,,,IA,,false,true,false,openstreetmap
+7,soccer,pitch,42.5235167,-90.7334373,,,IA,,false,true,false,openstreetmap
+8,soccer,pitch,42.5245808,-90.7297406,,,IA,,false,true,false,openstreetmap
+Bellevue Soccer Field,soccer,pitch,42.2536406,-90.4320682,,,IA,,false,true,false,openstreetmap
+Bondurant East Soccer Complex,soccer,sports_centre,41.7091847,-93.442543,,,IA,,false,true,false,openstreetmap
+Colo Soccer Fields,soccer,pitch,42.0158756,-93.3101319,,,IA,,false,true,false,openstreetmap
+Dunlap Little League Soccer Fields,soccer,pitch,41.8612713,-95.5968528,,,IA,,false,true,false,openstreetmap
+FCA Soccer,soccer,sports_centre,41.5435192,-90.4561595,,,IA,,false,true,false,openstreetmap
+Faber Field,soccer,pitch,42.5283503,-96.4277374,,,IA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.0999819,-91.6475152,,,IA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,41.7656164,-93.7307682,,,IA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,41.4654683,-93.692132,,,IA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.0984603,-91.6458769,,,IA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,41.4654308,-93.6913841,,,IA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,42.0980944,-91.6458846,,,IA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,41.4649019,-93.692346,,,IA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,42.0988289,-91.6454306,,,IA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,41.4648761,-93.6914314,,,IA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,42.0984574,-91.6454344,,,IA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,41.4653754,-93.6906566,,,IA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,42.0980877,-91.6454423,,,IA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,41.465356,-93.6902366,,,IA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,42.0988261,-91.6449855,,,IA,,false,true,false,openstreetmap
+Field 16,soccer,pitch,41.4648538,-93.6906374,,,IA,,false,true,false,openstreetmap
+Field 16,soccer,pitch,42.0984545,-91.6449971,,,IA,,false,true,false,openstreetmap
+Field 17,soccer,pitch,41.4648449,-93.6902282,,,IA,,false,true,false,openstreetmap
+Field 18,soccer,pitch,41.4648836,-93.6892905,,,IA,,false,true,false,openstreetmap
+Field 19,soccer,pitch,41.4648753,-93.6880577,,,IA,,false,true,false,openstreetmap
+Field 19,soccer,pitch,42.0971949,-91.6475612,,,IA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.0994452,-91.6475133,,,IA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,41.7661999,-93.7306345,,,IA,,false,true,false,openstreetmap
+Field 20,soccer,pitch,41.4650702,-93.6872933,,,IA,,false,true,false,openstreetmap
+Field 20,soccer,pitch,42.0968601,-91.6475705,,,IA,,false,true,false,openstreetmap
+Field 21,soccer,pitch,42.0971792,-91.6469039,,,IA,,false,true,false,openstreetmap
+Field 22,soccer,pitch,42.0968469,-91.6469146,,,IA,,false,true,false,openstreetmap
+Field 23,soccer,pitch,42.0971629,-91.6462575,,,IA,,false,true,false,openstreetmap
+Field 24,soccer,pitch,42.0968343,-91.6462638,,,IA,,false,true,false,openstreetmap
+Field 25,soccer,pitch,42.0970432,-91.6451025,,,IA,,false,true,false,openstreetmap
+Field 26,soccer,pitch,42.0965246,-91.6451174,,,IA,,false,true,false,openstreetmap
+Field 27,soccer,pitch,42.0958971,-91.6451438,,,IA,,false,true,false,openstreetmap
+Field 28,soccer,pitch,42.0954133,-91.6451569,,,IA,,false,true,false,openstreetmap
+Field 29,soccer,pitch,42.0969567,-91.6439827,,,IA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.0988387,-91.6475208,,,IA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,41.766401,-93.7305835,,,IA,,false,true,false,openstreetmap
+Field 30,soccer,pitch,42.0957973,-91.6439627,,,IA,,false,true,false,openstreetmap
+Field 31,soccer,pitch,42.0969343,-91.6428821,,,IA,,false,true,false,openstreetmap
+Field 32,soccer,pitch,42.095803,-91.6428964,,,IA,,false,true,false,openstreetmap
+Field 33,soccer,pitch,42.0969322,-91.6417965,,,IA,,false,true,false,openstreetmap
+Field 34,soccer,pitch,42.0957931,-91.641836,,,IA,,false,true,false,openstreetmap
+Field 35,soccer,pitch,42.0969029,-91.6407247,,,IA,,false,true,false,openstreetmap
+Field 36,soccer,pitch,42.0957777,-91.6407717,,,IA,,false,true,false,openstreetmap
+Field 37,soccer,pitch,42.0968539,-91.6396001,,,IA,,false,true,false,openstreetmap
+Field 38,soccer,pitch,42.0957511,-91.6395718,,,IA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.0982939,-91.6475213,,,IA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,41.7659987,-93.7306855,,,IA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.0998548,-91.6464971,,,IA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,41.7665582,-93.7296339,,,IA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,42.099163,-91.6465503,,,IA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,41.7662959,-93.7296451,,,IA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,42.0986595,-91.6465568,,,IA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,42.0981551,-91.6465529,,,IA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,41.4663941,-93.6921851,,,IA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,42.0988328,-91.6458703,,,IA,,false,true,false,openstreetmap
+Field 9 Alternative,soccer,pitch,41.4672798,-93.6921091,,,IA,,false,true,false,openstreetmap
+Glenwood High School Soccer Field,soccer,pitch,41.049831,-95.7335947,,,IA,,false,true,false,openstreetmap
+Intramural Field,soccer,pitch,40.6157396,-93.9213962,,,IA,,false,true,false,openstreetmap
+Iowa Soccer Complex,soccer,sports_centre,41.6582217,-91.5787843,,,IA,,false,true,false,openstreetmap
+James W. Cownie Soccer Complex,soccer,sports_centre,41.5656395,-93.5633927,2600 Hartford Avenue,,IA,,false,true,false,openstreetmap
+Jane Springer Soccer Field,soccer,pitch,41.7551536,-92.7172559,,,IA,,false,true,false,openstreetmap
+Jesup Soccer Complex,soccer,sports_centre,42.4813969,-92.0550473,,,IA,,false,true,false,openstreetmap
+John Rasmussen Soccer Complex,soccer,pitch,40.6144589,-93.9231154,,,IA,,false,true,false,openstreetmap
+Johnston Soccer Complex,soccer,sports_centre,41.6806718,-93.675849,,,IA,,false,true,false,openstreetmap
+Martin Field,soccer,pitch,41.6282935,-93.7401357,,,IA,,false,true,false,openstreetmap
+Martin Marietta Soccer Complex,soccer,pitch,41.3336083,-93.9986842,,,IA,,false,true,false,openstreetmap
+MidAmerican Energy Stadium,soccer,pitch,41.5636655,-93.5658601,,,IA,,false,true,false,openstreetmap
+Musco Lighting Field,soccer,pitch,41.565342,-93.5669028,,,IA,,false,true,false,openstreetmap
+Nebraska Soccer League (NSL) Fields,soccer,sports_centre,41.2419147,-95.8822531,2502 23rd Avenue,,IA,51501,false,true,false,openstreetmap
+New Hampton Community School District,soccer,pitch,43.054881,-92.3285812,,,IA,,false,true,false,openstreetmap
+New Hampton Community School District,soccer,pitch,43.0549302,-92.3294998,,,IA,,false,true,false,openstreetmap
+North Grimes Sports Complex Soccer Field,soccer,pitch,41.7083903,-93.8036144,,,IA,,false,true,false,openstreetmap
+North Grimes Sports Complex Soccer Field,soccer,pitch,41.7083903,-93.8024181,,,IA,,false,true,false,openstreetmap
+Pattison Soccer Field,soccer,pitch,42.8371983,-91.7943068,,,IA,,false,true,false,openstreetmap
+Pella Sports Complex,soccer,sports_centre,41.3909911,-92.9363536,,,IA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,40.6170433,-93.9217369,,,IA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,40.617054,-93.9206703,,,IA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,41.6180047,-93.5953775,,,IA,,false,true,false,openstreetmap
+Practice Soccer Field,soccer,pitch,41.3661006,-93.5688059,,,IA,,false,true,false,openstreetmap
+Practice Soccer field,soccer,pitch,41.6802707,-93.7895408,,,IA,,false,true,false,openstreetmap
+Reynolds Athletic Field,soccer,pitch,41.0265513,-93.3168796,,,IA,,false,true,false,openstreetmap
+Rosen Field,soccer,pitch,42.4765017,-96.3707121,,,IA,,false,true,false,openstreetmap
+Soccer Complex,soccer,stadium,43.0805496,-96.1617112,,,IA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,41.4028285,-92.9296753,,,IA,,false,true,false,openstreetmap
+Soccer Practice Field 1,soccer,pitch,41.405619,-92.9298398,,,IA,,false,true,false,openstreetmap
+Soccer Practice Field 2,soccer,pitch,41.4026104,-92.9307835,,,IA,,false,true,false,openstreetmap
+Soccer West Soccer Club,soccer,sports_centre,41.5800651,-93.7007282,,,IA,,false,true,false,openstreetmap
+Tripoli Panthers Youth Soccer Field,soccer,pitch,42.8010417,-92.2590658,,,IA,,false,true,false,openstreetmap
+Tripoli Panthers Youth Soccer Field,soccer,pitch,42.7998776,-92.2625596,,,IA,,false,true,false,openstreetmap
+Tripoli Panthers Youth Soccer Field,soccer,pitch,42.8017486,-92.2612876,,,IA,,false,true,false,openstreetmap
+U14 Practice Field,soccer,pitch,42.0331415,-94.0340802,,,IA,,false,true,false,openstreetmap
+Van Meter High School Soccer Field,soccer,pitch,41.5292877,-93.9447241,,,IA,,false,true,false,openstreetmap
+Waverly Soccer Complex,soccer,sports_centre,42.7124249,-92.46463,,,IA,,false,true,false,openstreetmap
+West Des Moines Soccer Club,soccer,sports_centre,41.539371,-93.7305312,,,IA,,false,true,false,openstreetmap
+Dubuque Soccer Complex,soccer,sports_centre,42.525148,-90.731115,3355 John F Kennedy Road,Dubuque,IA,52002,false,true,false,openstreetmap

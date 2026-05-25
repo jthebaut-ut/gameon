@@ -1,0 +1,23 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Broad Leaf Pickleball,pickleball,pitch,42.9099112,-85.5756097,,,MI,,true,false,false,openstreetmap
+Grewal Park Central Grove Court,pickleball,pitch,42.2422773,-83.7721063,,,MI,,false,true,false,openstreetmap
+Grewal Park Neighbor's Court,pickleball,pitch,42.2422395,-83.772244,,,MI,,false,true,false,openstreetmap
+Grewal Park Volleyview Court,pickleball,pitch,42.2423156,-83.7719703,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8034241,-86.1238022,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8034245,-86.1236837,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8034265,-86.1235636,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8032633,-86.1235597,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8032613,-86.1236797,,,MI,,false,true,false,openstreetmap
+Holland Charter Township,pickleball,pitch,42.8032609,-86.1237982,,,MI,,false,true,false,openstreetmap
+Otsego County,pickleball,pitch,45.0251866,-84.6728571,,,MI,,false,true,false,openstreetmap
+Otsego County,pickleball,pitch,45.025116,-84.6728577,,,MI,,false,true,false,openstreetmap
+Otsego County,pickleball,pitch,45.0250431,-84.6728577,,,MI,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,42.796082,-85.509118,,,MI,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,42.7960828,-85.5089834,,,MI,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,42.7962577,-85.5089862,,,MI,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,42.7962557,-85.5091184,,,MI,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,42.7784194,-84.5374609,,,MI,,false,true,false,openstreetmap
+Woodhaven Pickleball Courts,pickleball,pitch,42.1360481,-83.2439931,,,MI,,false,true,false,openstreetmap
+Revolin Sports,pickleball,pitch,42.7978656,-86.1239067,355 Douglas Avenue,Holland,MI,49424,false,true,false,openstreetmap
+Wicked Pickle,pickleball,pitch,42.3359917,-83.4025728,36871 Warren Road,Westland,MI,48185,false,true,false,openstreetmap
+Varsity Pickleball,pickleball,pitch,42.2510107,-83.6586369,3050 Washtenaw Avenue,Ypsilanti,MI,48197,false,true,false,openstreetmap

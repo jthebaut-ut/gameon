@@ -1,0 +1,62 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alden Field,football,pitch,42.5168048,-93.3706337,,,IA,,false,true,false,openstreetmap
+Armstrong Family Field,football,pitch,41.9224117,-91.431014,,,IA,,false,true,false,openstreetmap
+Audubon High School Football Field,football,pitch,41.7108022,-94.9239769,,,IA,,false,true,false,openstreetmap
+BGM Football,football,pitch,41.7405824,-92.446951,,,IA,,false,true,false,openstreetmap
+Bates Field,football,pitch,41.659318,-91.5029323,,,IA,,false,true,false,openstreetmap
+Beckman Field,football,pitch,42.4719973,-91.1126373,,,IA,,false,true,false,openstreetmap
+Bedford Football Field,football,pitch,40.6727394,-94.7300518,,,IA,,false,true,false,openstreetmap
+Blue Devils Football Field,football,pitch,41.3728814,-93.7457291,,,IA,,false,true,false,openstreetmap
+Bradford Field,football,pitch,42.6390303,-95.2090137,,,IA,,false,true,false,openstreetmap
+Butch Pedersen Field at the Little Rose Bowl,football,pitch,41.6733983,-91.3481405,,,IA,,false,true,false,openstreetmap
+CC Hammann Field,football,pitch,42.2568368,-90.4442322,,,IA,,false,true,false,openstreetmap
+Cadet Field,football,pitch,42.5345564,-93.2656093,,,IA,,false,true,false,openstreetmap
+Case Field,football,pitch,41.2918473,-91.6820496,,,IA,,false,true,false,openstreetmap
+Chalmers Field,football,pitch,42.4952083,-90.6964089,,,IA,,false,true,false,openstreetmap
+Dalzell Field,football,pitch,42.5047668,-90.6931412,,,IA,,false,true,false,openstreetmap
+Dick Null Field,football,pitch,43.4233566,-96.1693438,,,IA,,false,true,false,openstreetmap
+Duke Slater Field,football,pitch,41.6586461,-91.5510864,,,IA,,false,true,false,openstreetmap
+Duke Williams Stadium,football,stadium,41.5998396,-93.5953563,,,IA,,false,true,false,openstreetmap
+ELC High School Football Field,football,pitch,43.3999944,-94.8200835,,,IA,,false,true,false,openstreetmap
+East Mills High School Football Field,football,pitch,41.014512,-95.5820843,,,IA,,false,true,false,openstreetmap
+East Union Football Field,football,pitch,41.0249196,-94.1775244,,,IA,,false,true,false,openstreetmap
+Ed Thomas Football Field,football,pitch,42.5739359,-92.7777726,,,IA,,false,true,false,openstreetmap
+Everett Eisheid Football Stadium,football,pitch,42.8370988,-91.795927,,,IA,,false,true,false,openstreetmap
+Flockhart Field,football,pitch,40.7494254,-93.7418689,,,IA,,false,true,false,openstreetmap
+Football Field,football,pitch,42.3573901,-93.1172397,,,IA,,false,true,false,openstreetmap
+Gene Hinrichsen Field,football,pitch,42.6673902,-93.9130404,,,IA,,false,true,false,openstreetmap
+Hansen Football Performance Center,football,sports_centre,41.6595693,-91.5548654,,,IA,,false,true,false,openstreetmap
+Huntsman Field,football,pitch,40.6138544,-93.9241962,,,IA,,false,true,false,openstreetmap
+IKM Football Field,football,pitch,41.7962038,-95.2041063,,,IA,,false,true,false,openstreetmap
+Intramural Football Field,football,pitch,41.4044509,-92.9311919,,,IA,,false,true,false,openstreetmap
+Iowa Football Practice Field,football,sports_centre,41.6607861,-91.5562762,,,IA,,false,true,false,openstreetmap
+Jerry and Julie Henrich Family Field,football,pitch,42.9914541,-96.0322908,,,IA,,false,true,false,openstreetmap
+Johnny Majors Pratice Field,football,pitch,42.0139413,-93.6382752,,,IA,,false,true,false,openstreetmap
+Kinnick Stadium,football,stadium,41.6585616,-91.5511725,,,IA,,false,true,false,openstreetmap
+Lacey Complex Ball Field,football,pitch,41.3116305,-92.6617385,,,IA,,false,true,false,openstreetmap
+Lisbon Lion Football Field,football,pitch,41.9188391,-91.3901128,,,IA,,false,true,false,openstreetmap
+Metro Youth Football Assocation Complex,football,sports_centre,42.0427372,-91.6512326,,,IA,,false,true,false,openstreetmap
+MidAmerican Field,football,pitch,42.0140002,-93.6357771,,,IA,,false,true,false,openstreetmap
+Middle School Football Field,football,pitch,42.5083545,-94.1848463,,,IA,,false,true,false,openstreetmap
+Mount Ayr High School Football Field,football,pitch,40.716452,-94.2249884,,,IA,,false,true,false,openstreetmap
+New Hampton Community School District,football,pitch,43.0588682,-92.3312088,,,IA,,false,true,false,openstreetmap
+New Hampton Community School District,football,pitch,43.057181,-92.3296072,,,IA,,false,true,false,openstreetmap
+New Hampton Football Field,football,pitch,43.0574596,-92.3312718,,,IA,,false,true,false,openstreetmap
+Osage Football Field,football,pitch,43.279047,-92.8077968,,,IA,,false,true,false,openstreetmap
+Ottumwa High School Football Practice Facility,football,pitch,41.0158368,-92.3961708,,,IA,,false,true,false,openstreetmap
+PCM High School Football Field,football,pitch,41.5141512,-93.0983499,,,IA,,false,true,false,openstreetmap
+Pekin Football Field,football,pitch,41.1548004,-92.1648747,,,IA,,false,true,false,openstreetmap
+Practice Field,football,pitch,43.4455147,-95.3203901,,,IA,,false,true,false,openstreetmap
+Ron Wymer Field,football,pitch,42.9701441,-91.8018138,,,IA,,false,true,false,openstreetmap
+Rosenblum Football Field,football,pitch,41.753195,-92.7199294,,,IA,,false,true,false,openstreetmap
+Saints Football Field,football,pitch,41.2242739,-93.2465976,,,IA,,false,true,false,openstreetmap
+Schaefer Field,football,pitch,41.0161369,-92.398522,,,IA,,false,true,false,openstreetmap
+Spirit Lake High School Football Field,football,pitch,43.417457,-95.1005108,,,IA,,false,true,false,openstreetmap
+Tripoli Panthers Football Field,football,pitch,42.8013244,-92.2623679,,,IA,,false,true,false,openstreetmap
+Triton Athletics Turf Field Facility,football,pitch,42.4877659,-94.200652,,,IA,,false,true,false,openstreetmap
+UI Marching Band Practice Field,football,pitch,41.6619625,-91.5773525,,,IA,,false,true,false,openstreetmap
+Van Metre Field,football,pitch,41.9288719,-91.4277796,,,IA,,false,true,false,openstreetmap
+West Liberty football field,football,pitch,41.5780103,-91.2664281,,,IA,,false,true,false,openstreetmap
+Jack Trice Stadium,football,stadium,42.0140144,-93.6357554,1732 South 4th Street,Ames,IA,50011,false,true,false,openstreetmap
+Schaefer Stadium,football,stadium,41.0158735,-92.3976797,,Ottumwa,IA,52501,false,true,false,openstreetmap
+Valley Stadium,football,stadium,41.5614545,-93.7622262,4440 Mills Civic Parkway,West Des Moines,IA,50265,false,true,false,openstreetmap

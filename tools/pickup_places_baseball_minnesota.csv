@@ -1,0 +1,380 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,44.8642962,-93.5575141,,,MN,,false,true,false,openstreetmap
+1,baseball,pitch,44.7455416,-93.1891612,,,MN,,false,true,false,openstreetmap
+10,baseball,pitch,44.7411127,-93.1901309,,,MN,,false,true,false,openstreetmap
+11,baseball,pitch,44.7399791,-93.1916893,,,MN,,false,true,false,openstreetmap
+12,baseball,pitch,44.7399821,-93.1901661,,,MN,,false,true,false,openstreetmap
+1st National Field,baseball,pitch,44.4496436,-93.1774492,,,MN,,false,true,false,openstreetmap
+2,baseball,pitch,44.7444933,-93.1882529,,,MN,,false,true,false,openstreetmap
+2,baseball,pitch,44.8654102,-93.5574691,,,MN,,false,true,false,openstreetmap
+3,baseball,pitch,44.866301,-93.5578349,,,MN,,false,true,false,openstreetmap
+3,baseball,pitch,44.7447632,-93.189879,,,MN,,false,true,false,openstreetmap
+4,baseball,pitch,44.8664969,-93.5558373,,,MN,,false,true,false,openstreetmap
+5,baseball,pitch,44.8655002,-93.555979,,,MN,,false,true,false,openstreetmap
+6,baseball,pitch,44.8644289,-93.5559113,,,MN,,false,true,false,openstreetmap
+6,baseball,pitch,44.7431601,-93.1901132,,,MN,,false,true,false,openstreetmap
+6,baseball,pitch,44.9727198,-93.3001413,,,MN,,false,true,false,openstreetmap
+7,baseball,pitch,44.743099,-93.1884528,,,MN,,false,true,false,openstreetmap
+9,baseball,pitch,44.7411194,-93.1916681,,,MN,,false,true,false,openstreetmap
+A's Field,baseball,pitch,43.9999854,-96.3357196,,,MN,,false,true,false,openstreetmap
+AES Field 1,baseball,pitch,45.2674169,-94.1122939,,,MN,,false,true,false,openstreetmap
+AES Field 2,baseball,pitch,45.2660456,-94.1127315,,,MN,,false,true,false,openstreetmap
+AES Field 3,baseball,pitch,45.265003,-94.1123448,,,MN,,false,true,false,openstreetmap
+AHS Baseball Field,baseball,pitch,45.2652459,-94.1076729,,,MN,,false,true,false,openstreetmap
+AMS Ball Field,baseball,pitch,45.2645279,-94.1197545,,,MN,,false,true,false,openstreetmap
+Ailesbury Park Baseball Field,baseball,pitch,44.7429183,-93.0910033,,,MN,,false,true,false,openstreetmap
+Airport 1,baseball,pitch,45.1586905,-93.2171007,,,MN,,false,true,false,openstreetmap
+Airport 2,baseball,pitch,45.1577978,-93.2168835,,,MN,,false,true,false,openstreetmap
+Airport 3,baseball,pitch,45.1579491,-93.2156148,,,MN,,false,true,false,openstreetmap
+Airport 4,baseball,pitch,45.1588475,-93.2158347,,,MN,,false,true,false,openstreetmap
+Albertville City Field 1,baseball,pitch,45.2369792,-93.6582861,,,MN,,false,true,false,openstreetmap
+Albertville City Field 2,baseball,pitch,45.2359666,-93.6581302,,,MN,,false,true,false,openstreetmap
+Albertville City Field 3,baseball,pitch,45.2359443,-93.6563754,,,MN,,false,true,false,openstreetmap
+Alpha Community Baseball Diamond,baseball,pitch,43.641278,-94.869302,,,MN,,false,true,false,openstreetmap
+Alumni Field,baseball,pitch,44.4616296,-95.7584307,,,MN,,false,true,false,openstreetmap
+American Legion Field,baseball,pitch,44.4439593,-95.7987409,,,MN,,false,true,false,openstreetmap
+American Legion Field #1,baseball,pitch,44.4493734,-93.1766291,,,MN,,false,true,false,openstreetmap
+American Legion Field #2,baseball,pitch,44.449042,-93.1768866,,,MN,,false,true,false,openstreetmap
+Anton Field 1,baseball,pitch,45.2188947,-93.686752,,,MN,,false,true,false,openstreetmap
+Anton Field 2,baseball,pitch,45.2178507,-93.6862936,,,MN,,false,true,false,openstreetmap
+Anton Field 3,baseball,pitch,45.2183015,-93.6853618,,,MN,,false,true,false,openstreetmap
+Arnold Klaers Baseball Field,baseball,pitch,45.0571005,-93.6365189,,,MN,,false,true,false,openstreetmap
+Art Lamppa Field,baseball,pitch,47.6641894,-92.1969472,,,MN,,false,true,false,openstreetmap
+Babcock Field,baseball,pitch,44.4489038,-93.1734484,,,MN,,false,true,false,openstreetmap
+Babe Nordmeier Field,baseball,pitch,44.2242615,-93.4471293,,,MN,,false,true,false,openstreetmap
+Bagley High School,baseball,pitch,47.5316441,-95.3963792,,,MN,,false,true,false,openstreetmap
+Baker Field,baseball,pitch,45.1085899,-95.0712915,,,MN,,false,true,false,openstreetmap
+Ball Fields (4),baseball,pitch,44.1760061,-94.0176304,,,MN,,false,true,false,openstreetmap
+Barnes Field,baseball,pitch,44.947288,-93.1583373,,,MN,,false,true,false,openstreetmap
+Baseball,baseball,pitch,43.8504134,-92.4942236,,,MN,,false,true,false,openstreetmap
+Baseball,baseball,pitch,43.8504151,-92.4909862,,,MN,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,48.1280195,-96.156467,,,MN,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,45.6111809,-94.1840404,,,MN,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,45.1990335,-93.5754367,,,MN,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,45.2035714,-93.5470616,,,MN,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,45.2045968,-93.5470311,,,MN,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,45.2045918,-93.5455864,,,MN,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,45.2058482,-93.5468599,,,MN,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,45.2071714,-93.5469071,,,MN,,false,true,false,openstreetmap
+Baseball Field #8,baseball,pitch,45.2024897,-93.5656635,,,MN,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,44.8121368,-93.1373531,3,,MN,,false,true,false,openstreetmap
+Baseball Field East 2,baseball,pitch,44.4417415,-95.7670217,,,MN,,false,true,false,openstreetmap
+Baseball Field West 1,baseball,pitch,44.4412858,-95.7679602,,,MN,,false,true,false,openstreetmap
+Baseball Game Field,baseball,pitch,43.8492439,-92.4941472,,,MN,,false,true,false,openstreetmap
+Baseball and softball fields,baseball,sports_centre,43.6375467,-91.4910311,,,MN,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,45.1895598,-93.2427458,,,MN,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,44.8050527,-93.3882071,,,MN,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,43.6265464,-95.6313247,,,MN,,false,true,false,openstreetmap
+Bederwood Field,baseball,pitch,44.9774821,-93.6163365,,,MN,,false,true,false,openstreetmap
+Bell Field,baseball,pitch,44.3088695,-93.2822513,,,MN,,false,true,false,openstreetmap
+Billy Koch Field,baseball,pitch,45.0570272,-93.6377734,,,MN,,false,true,false,openstreetmap
+Billy Peterson Field,baseball,pitch,44.9491003,-93.1529966,,,MN,,false,true,false,openstreetmap
+Bison Yard North,baseball,pitch,45.1859953,-93.8310714,,,MN,,false,true,false,openstreetmap
+Bison Yard South,baseball,pitch,45.1848543,-93.8310805,,,MN,,false,true,false,openstreetmap
+Black 31,baseball,pitch,44.8868132,-92.9348722,,,MN,,false,true,false,openstreetmap
+Black 32,baseball,pitch,44.8868149,-92.9360037,,,MN,,false,true,false,openstreetmap
+Black 33,baseball,pitch,44.886005,-92.9360023,,,MN,,false,true,false,openstreetmap
+Black 34,baseball,pitch,44.8860059,-92.9348696,,,MN,,false,true,false,openstreetmap
+Black 35,baseball,pitch,44.8847138,-92.9364224,,,MN,,false,true,false,openstreetmap
+Black 36,baseball,pitch,44.8847151,-92.9375579,,,MN,,false,true,false,openstreetmap
+Black Sox Park,baseball,pitch,45.6562534,-94.6920901,,,MN,,false,true,false,openstreetmap
+Blue 6,baseball,pitch,44.8901901,-92.9398185,,,MN,,false,true,false,openstreetmap
+Blue 7,baseball,pitch,44.8901914,-92.9387602,,,MN,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,45.1114731,-95.0691954,,,MN,,false,true,false,openstreetmap
+Bluejay Baseball Diamond,baseball,pitch,43.6211315,-95.6324582,,,MN,,false,true,false,openstreetmap
+Bob Marshall Field,baseball,pitch,46.8819952,-96.7024568,,,MN,,false,true,false,openstreetmap
+Bombers Baseball,baseball,pitch,44.5135626,-92.8903689,,,MN,,false,true,false,openstreetmap
+Bonin Field,baseball,pitch,44.5952975,-93.4998428,,,MN,,false,true,false,openstreetmap
+Borgen Field,baseball,pitch,48.6933528,-96.1931435,,,MN,,false,true,false,openstreetmap
+Bossen Field #1,baseball,pitch,44.8988225,-93.230986,,,MN,,false,true,false,openstreetmap
+Bowyer Field,baseball,pitch,44.1427391,-93.995428,,,MN,,false,true,false,openstreetmap
+Breck School,baseball,pitch,44.9802835,-93.3427976,,,MN,,false,true,false,openstreetmap
+Breck School,baseball,pitch,44.9800914,-93.3444418,,,MN,,false,true,false,openstreetmap
+Brennan Field,baseball,pitch,46.0222925,-92.9372259,,,MN,,false,true,false,openstreetmap
+Bucky Burgau Field,baseball,pitch,46.8574681,-96.7660772,,,MN,,false,true,false,openstreetmap
+Bud Kroenke Field,baseball,pitch,43.8368387,-93.8328854,,,MN,,false,true,false,openstreetmap
+Butz Probts Field,baseball,pitch,43.7651478,-95.8306531,,,MN,,false,true,false,openstreetmap
+CHS Field,baseball,stadium,44.9509583,-93.0845938,,,MN,,false,true,false,openstreetmap
+Carlander Field,baseball,pitch,44.9480245,-93.1588761,,,MN,,false,true,false,openstreetmap
+Carlson Field,baseball,pitch,44.9573468,-93.3721574,,,MN,,false,true,false,openstreetmap
+Carver Field,baseball,pitch,45.0697808,-93.9155173,,,MN,,false,true,false,openstreetmap
+Cathcart Park,baseball,pitch,44.8909489,-93.6174348,,,MN,,false,true,false,openstreetmap
+Centennial Park,baseball,pitch,44.6903633,-95.6164799,,,MN,,false,true,false,openstreetmap
+Chaska Athletic Park,baseball,pitch,44.7808069,-93.6092955,,,MN,,false,true,false,openstreetmap
+Chuck Fuller Field,baseball,pitch,44.0910518,-93.2154269,,,MN,,false,true,false,openstreetmap
+City Field,baseball,pitch,44.4004499,-95.2593409,,,MN,,false,true,false,openstreetmap
+City Hall Park Baseball Field 1,baseball,pitch,45.1970563,-93.0832227,,,MN,,false,true,false,openstreetmap
+City Hall Park Baseball Field 2,baseball,pitch,45.1970166,-93.0846767,,,MN,,false,true,false,openstreetmap
+College City Field,baseball,pitch,44.4486422,-93.177403,,,MN,,false,true,false,openstreetmap
+D.R.S. Baseball Stadium,baseball,stadium,44.5394693,-93.566151,,,MN,,false,true,false,openstreetmap
+DAC Field,baseball,pitch,45.5861388,-95.8953645,,,MN,,false,true,false,openstreetmap
+DS10,baseball,pitch,44.8054129,-93.3867251,,,MN,,false,true,false,openstreetmap
+DS11,baseball,pitch,44.8057594,-93.3877541,,,MN,,false,true,false,openstreetmap
+DS2,baseball,pitch,44.8042075,-93.3885078,,,MN,,false,true,false,openstreetmap
+DS3,baseball,pitch,44.8049862,-93.3889798,,,MN,,false,true,false,openstreetmap
+DS4,baseball,pitch,44.8055552,-93.3890708,,,MN,,false,true,false,openstreetmap
+DS6,baseball,pitch,44.8073546,-93.3892012,,,MN,,false,true,false,openstreetmap
+DS7,baseball,pitch,44.8073732,-93.3881795,,,MN,,false,true,false,openstreetmap
+DS8,baseball,pitch,44.8064979,-93.3872711,,,MN,,false,true,false,openstreetmap
+DS9,baseball,pitch,44.806148,-93.3862395,,,MN,,false,true,false,openstreetmap
+Denis M Campbell Field,baseball,pitch,44.9654291,-94.0518899,,,MN,,false,true,false,openstreetmap
+Don Timpe Field,baseball,pitch,45.0093294,-93.6540873,,,MN,,false,true,false,openstreetmap
+Driste Field,baseball,pitch,45.2627616,-94.1027794,,,MN,,false,true,false,openstreetmap
+East Field,baseball,pitch,44.9506892,-93.1499394,,,MN,,false,true,false,openstreetmap
+Eckstein Field,baseball,pitch,44.168568,-92.1678713,,,MN,,false,true,false,openstreetmap
+Ed Mettner Baseball Park,baseball,pitch,46.7147648,-92.4473752,,,MN,,false,true,false,openstreetmap
+Ele Hansen Softball Field,baseball,pitch,44.4655345,-93.1466966,,,MN,,false,true,false,openstreetmap
+Esko Little League Baseball Fields,baseball,pitch,46.7050715,-92.3615851,,,MN,,false,true,false,openstreetmap
+Fallenstein Field,baseball,pitch,44.181669,-94.044496,,,MN,,false,true,false,openstreetmap
+Field #1,baseball,pitch,44.6821314,-93.249154,,,MN,,false,true,false,openstreetmap
+Field #1,baseball,pitch,48.695012,-96.1838273,,,MN,,false,true,false,openstreetmap
+Field #1,baseball,pitch,45.2353613,-93.9999933,,,MN,,false,true,false,openstreetmap
+Field #2,baseball,pitch,44.6822972,-93.2475494,,,MN,,false,true,false,openstreetmap
+Field #2,baseball,pitch,48.6945999,-96.184972,,,MN,,false,true,false,openstreetmap
+Field #2,baseball,pitch,44.039419,-91.6330942,,,MN,,false,true,false,openstreetmap
+Field #2,baseball,pitch,45.2358408,-93.99911,,,MN,,false,true,false,openstreetmap
+Field #3,baseball,pitch,44.039525,-91.6321353,,,MN,,false,true,false,openstreetmap
+Field #4,baseball,pitch,44.6828726,-93.246521,,,MN,,false,true,false,openstreetmap
+Field #4,baseball,pitch,44.0393119,-91.6311482,,,MN,,false,true,false,openstreetmap
+Field #5,baseball,pitch,44.6839851,-93.2454634,,,MN,,false,true,false,openstreetmap
+Field #5,baseball,pitch,44.0385909,-91.6318764,,,MN,,false,true,false,openstreetmap
+Field #6,baseball,pitch,44.6829704,-93.2451137,,,MN,,false,true,false,openstreetmap
+Field #6,baseball,pitch,44.0388356,-91.6306048,,,MN,,false,true,false,openstreetmap
+Field #7,baseball,pitch,44.682156,-93.2451675,,,MN,,false,true,false,openstreetmap
+Field #8,baseball,pitch,44.6831932,-93.2437351,,,MN,,false,true,false,openstreetmap
+Field #9,baseball,pitch,44.6841895,-93.2437628,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.8904869,-93.1886447,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,46.817459,-92.0819032,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.8539552,-93.4871851,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.9275525,-93.2761044,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.896581,-93.0707524,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.8984652,-93.3102917,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.1829201,-94.0431194,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.6549169,-93.2369212,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.6541041,-93.2392267,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,45.135835,-93.25834,,,MN,,false,true,false,openstreetmap
+Field 1,baseball,pitch,45.0100621,-93.6522589,,,MN,,false,true,false,openstreetmap
+Field 14,baseball,pitch,44.996196,-93.5907514,,,MN,,false,true,false,openstreetmap
+Field 15,baseball,pitch,44.9961858,-93.5901324,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.8911196,-93.189858,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.8537378,-93.4887057,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.9146683,-93.3242796,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.8961971,-93.0697505,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,46.8168727,-92.0819032,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.899422,-93.3104903,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.182925,-94.0415925,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.6539032,-93.2368582,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,44.6551021,-93.2392053,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,45.1350025,-93.2586726,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,45.0104467,-93.6523357,,,MN,,false,true,false,openstreetmap
+Field 2,baseball,pitch,45.2621214,-94.0987128,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.8540813,-93.4898712,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.8709343,-93.3947203,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.8964318,-93.0686716,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.8912933,-93.1916688,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.9006655,-93.3103402,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.1818516,-94.0415798,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.6530003,-93.2353561,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,44.6541938,-93.2406321,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,45.1365749,-93.2587584,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,45.0107866,-93.6511718,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,45.2621264,-94.1000041,,,MN,,false,true,false,openstreetmap
+Field 3,baseball,pitch,46.816314,-92.081695,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.8539063,-93.4913333,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.8918888,-93.191074,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.9006663,-93.3092329,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.1818493,-94.0431073,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.6540072,-93.2355975,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.9064644,-93.5158877,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.6551693,-93.2406156,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,45.0096801,-93.6511508,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,45.263115,-94.1000952,,,MN,,false,true,false,openstreetmap
+Field 4,baseball,pitch,44.9154959,-93.3233055,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.8539083,-93.4925868,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.8714655,-93.4866203,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.8920322,-93.1927907,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.183103,-94.040002,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.8998811,-93.3092522,,,MN,,false,true,false,openstreetmap
+Field 5,baseball,pitch,44.6534524,-93.2340109,,,MN,,false,true,false,openstreetmap
+Field 6,baseball,pitch,44.8530167,-93.4925839,,,MN,,false,true,false,openstreetmap
+Field 6,baseball,pitch,44.89938,-93.3092837,,,MN,,false,true,false,openstreetmap
+Field 6,baseball,pitch,44.1819776,-94.0400047,,,MN,,false,true,false,openstreetmap
+Field 6,baseball,pitch,44.6529554,-93.2332573,,,MN,,false,true,false,openstreetmap
+Field 7,baseball,pitch,44.8530156,-93.4913305,,,MN,,false,true,false,openstreetmap
+Field 7,baseball,pitch,44.898303,-93.3092583,,,MN,,false,true,false,openstreetmap
+Field 7,baseball,pitch,44.6538264,-93.2324741,,,MN,,false,true,false,openstreetmap
+Field 7,baseball,pitch,46.8172211,-92.0799934,,,MN,,false,true,false,openstreetmap
+Field 8,baseball,pitch,44.8516015,-93.4902565,,,MN,,false,true,false,openstreetmap
+Field 8,baseball,pitch,44.6543411,-93.2336436,,,MN,,false,true,false,openstreetmap
+Field 8,baseball,pitch,44.9901307,-93.5982772,,,MN,,false,true,false,openstreetmap
+Field 9,baseball,pitch,44.6531758,-93.2310001,,,MN,,false,true,false,openstreetmap
+Field No. 1,baseball,pitch,44.0667657,-93.218329,,,MN,,false,true,false,openstreetmap
+Field No. 2,baseball,pitch,44.066815,-93.219809,,,MN,,false,true,false,openstreetmap
+Field No. 3,baseball,pitch,44.0676986,-93.2195275,,,MN,,false,true,false,openstreetmap
+Field No. 4,baseball,pitch,44.0676734,-93.2182864,,,MN,,false,true,false,openstreetmap
+Field#3,baseball,pitch,48.6941698,-96.1862166,,,MN,,false,true,false,openstreetmap
+Field#4,baseball,pitch,48.6935886,-96.1862087,,,MN,,false,true,false,openstreetmap
+Finland Area Recreation Center,baseball,sports_centre,47.4284995,-91.2293644,6866 Cramer Road,,MN,55603,false,true,false,openstreetmap
+Fort Ripley Baseball Field,baseball,pitch,46.1671149,-94.3647584,,,MN,,false,true,false,openstreetmap
+Gilbertson Field,baseball,pitch,48.8504837,-95.7645322,,,MN,,false,true,false,openstreetmap
+Gilson Field,baseball,pitch,44.4660988,-96.2462862,,,MN,,false,true,false,openstreetmap
+Goodman Field,baseball,pitch,46.7294464,-93.9646501,,,MN,,false,true,false,openstreetmap
+Granite Falls City Softball Field,baseball,pitch,44.8149378,-95.5405186,,,MN,,false,true,false,openstreetmap
+Green 15,baseball,pitch,44.8898406,-92.9332361,,,MN,,false,true,false,openstreetmap
+Green 16,baseball,pitch,44.8887109,-92.9332318,,,MN,,false,true,false,openstreetmap
+Green Field,baseball,pitch,45.1114029,-95.0723833,,,MN,,false,true,false,openstreetmap
+Hackberry Park North,baseball,pitch,44.9817401,-93.5843528,,,MN,,false,true,false,openstreetmap
+Hackberry Park South,baseball,pitch,44.9806664,-93.5844139,,,MN,,false,true,false,openstreetmap
+Harris Halliday Field,baseball,pitch,48.2014505,-96.7618967,,,MN,,false,true,false,openstreetmap
+Harry Smith Field,baseball,pitch,45.0579039,-93.6377916,,,MN,,false,true,false,openstreetmap
+Heritage Christian Academy,baseball,pitch,45.0824135,-93.4811026,,,MN,,false,true,false,openstreetmap
+Highline Park baseball field,baseball,pitch,45.3624777,-93.7592676,,,MN,,false,true,false,openstreetmap
+Holbrook Field,baseball,pitch,44.9845716,-93.5790014,,,MN,,false,true,false,openstreetmap
+Honeywell Field,baseball,pitch,45.003013,-93.3693297,,,MN,,false,true,false,openstreetmap
+Hudson Field,baseball,pitch,44.0692491,-92.4800992,,,MN,,false,true,false,openstreetmap
+ISG Field,baseball,pitch,44.1695867,-93.9753117,,,MN,,false,true,false,openstreetmap
+Irish Yard,baseball,pitch,44.4691344,-95.4737853,,,MN,,false,true,false,openstreetmap
+Irondale HS Baseball Diamond,baseball,pitch,45.0911155,-93.2042823,,,MN,,false,true,false,openstreetmap
+Irondale High School Softball Diamond,baseball,pitch,45.0900711,-93.2036226,,,MN,,false,true,false,openstreetmap
+Jim Karn Field,baseball,pitch,47.7770571,-96.5880726,,,MN,,false,true,false,openstreetmap
+Jim Kelly Field,baseball,pitch,44.9498583,-93.1536919,,,MN,,false,true,false,openstreetmap
+Johnson-Prieb Memorial Field,baseball,pitch,46.5660704,-96.7363144,,,MN,,false,true,false,openstreetmap
+Keller Field,baseball,pitch,44.9578139,-93.3603259,,,MN,,false,true,false,openstreetmap
+Ken Swartz Field (DS5),baseball,pitch,44.8065272,-93.3889182,,,MN,,false,true,false,openstreetmap
+Kennedy Baseball Diamond,baseball,pitch,48.6383777,-96.9112023,,,MN,,false,true,false,openstreetmap
+Kiefer Park,baseball,pitch,44.3022782,-94.7187329,,,MN,,false,true,false,openstreetmap
+Ladyjay Softball Diamond,baseball,pitch,43.6207484,-95.6301058,,,MN,,false,true,false,openstreetmap
+Lake Saint Croix Beach Ball Park,baseball,pitch,44.9189971,-92.7750654,,,MN,,false,true,false,openstreetmap
+Lamberton Ballpark,baseball,pitch,44.2274358,-95.2593125,,,MN,,false,true,false,openstreetmap
+Laurie Mahon Field,baseball,pitch,44.0017874,-95.851607,,,MN,,false,true,false,openstreetmap
+Lee Carlson Field North,baseball,pitch,44.9977363,-93.5914657,,,MN,,false,true,false,openstreetmap
+Lee Carlson Field South,baseball,pitch,44.9970388,-93.5914657,,,MN,,false,true,false,openstreetmap
+Les Hoien Memorial Field,baseball,pitch,47.2626784,-96.2681096,,,MN,,false,true,false,openstreetmap
+Lil Prowler Field,baseball,pitch,48.1153612,-96.1604995,,,MN,,false,true,false,openstreetmap
+Lilleberg Field,baseball,pitch,45.0188737,-95.2370827,,,MN,,false,true,false,openstreetmap
+Loughrey Field,baseball,pitch,44.0446732,-91.6458706,,,MN,,false,true,false,openstreetmap
+MLC Baseball,baseball,pitch,44.3058211,-94.4829831,,,MN,,false,true,false,openstreetmap
+Mabel Shirley Field,baseball,pitch,44.4659808,-93.1874004,,,MN,,false,true,false,openstreetmap
+Malt-O-Meal Field,baseball,pitch,44.4490979,-93.1794261,,,MN,,false,true,false,openstreetmap
+Maple Plain Field,baseball,pitch,45.0103788,-93.6539875,,,MN,,false,true,false,openstreetmap
+Marcusen Park Field,baseball,pitch,43.6577809,-92.9734558,,,MN,,false,true,false,openstreetmap
+Mark Almli Field,baseball,pitch,44.4663246,-93.1843152,,,MN,,false,true,false,openstreetmap
+Marohn Field,baseball,pitch,45.2630008,-94.0987758,,,MN,,false,true,false,openstreetmap
+Matson Memorial Field,baseball,pitch,46.8898381,-96.7634211,,,MN,,false,true,false,openstreetmap
+Mayo Field,baseball,pitch,44.0246686,-92.4562519,,,MN,,false,true,false,openstreetmap
+McGuire Field,baseball,pitch,44.8787352,-93.038288,,,MN,,false,true,false,openstreetmap
+Meadow Park North,baseball,pitch,43.8636598,-92.4791005,,,MN,,false,true,false,openstreetmap
+Meadow Park South,baseball,pitch,43.8615441,-92.4844768,,,MN,,false,true,false,openstreetmap
+Meadows Park Baseball Field,baseball,pitch,44.7506528,-93.1047149,,,MN,,false,true,false,openstreetmap
+Mel Taube Baseball Field,baseball,pitch,44.4665743,-93.1471207,,,MN,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,44.3005693,-92.7871157,,,MN,,false,true,false,openstreetmap
+Mick Hoien Field,baseball,pitch,45.0819504,-94.2319762,,,MN,,false,true,false,openstreetmap
+Milroy Ball Park,baseball,pitch,44.4147555,-95.552516,,,MN,,false,true,false,openstreetmap
+Mini Met Ballpark,baseball,pitch,44.6640595,-93.6273331,,,MN,,false,true,false,openstreetmap
+Minneapolis Public Schools,baseball,pitch,44.9872613,-93.2325664,,,MN,,false,true,false,openstreetmap
+Minnesota Twins,baseball,pitch,44.981722,-93.2775988,,,MN,,false,true,false,openstreetmap
+Minnesota Twins All-Star Park,baseball,pitch,44.9318382,-93.0785227,,,MN,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,44.0677978,-92.4789083,,,MN,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,46.8372899,-96.7426182,,,MN,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,44.8860291,-92.9370084,,,MN,,false,true,false,openstreetmap
+Miracle Field (#3),baseball,pitch,44.6836294,-93.2464074,,,MN,,false,true,false,openstreetmap
+Monticello Ballfields Complex,baseball,sports_centre,45.3229249,-93.8414508,,,MN,,false,true,false,openstreetmap
+Morningside Park North,baseball,pitch,45.0037666,-93.587829,,,MN,,false,true,false,openstreetmap
+Morningside Park South,baseball,pitch,45.0034205,-93.5884321,,,MN,,false,true,false,openstreetmap
+Mueller Park,baseball,pitch,44.3189948,-94.4596892,,,MN,,false,true,false,openstreetmap
+Murray Field,baseball,pitch,44.5254021,-93.0260746,,,MN,,false,true,false,openstreetmap
+NHS Junior Varsity Field,baseball,pitch,44.4434996,-93.1618392,,,MN,,false,true,false,openstreetmap
+NHS Varsity Field,baseball,pitch,44.442389,-93.1619465,,,MN,,false,true,false,openstreetmap
+Nicholson Baseball Field,baseball,pitch,44.9354273,-93.1695319,,,MN,,false,true,false,openstreetmap
+Nicollet Raiders Baseball,baseball,pitch,44.2792064,-94.186409,,,MN,,false,true,false,openstreetmap
+North Athletic Fields,baseball,pitch,44.9456288,-93.191588,,,MN,,false,true,false,openstreetmap
+Oden Alreck Baseball Field,baseball,pitch,46.9480684,-91.7859253,,,MN,,false,true,false,openstreetmap
+Orange Field,baseball,pitch,45.1121605,-95.0712272,,,MN,,false,true,false,openstreetmap
+Orchard Lane Baseball Field,baseball,pitch,45.0750889,-93.3410481,,,MN,,false,true,false,openstreetmap
+Orono Baseball Stadium,baseball,pitch,44.9960732,-93.5983044,,,MN,,false,true,false,openstreetmap
+Oronoco baseball diamond,baseball,pitch,44.1681293,-92.5357862,,,MN,,false,true,false,openstreetmap
+Pappy Wright Memorial Field,baseball,pitch,47.757471,-90.3377903,630 4th Avenue West,,MN,55604,false,true,false,openstreetmap
+Parkers Prairie Baseball Diamond,baseball,pitch,46.1559821,-95.3281923,,,MN,,false,true,false,openstreetmap
+Parkers Prairie Softball Field,baseball,pitch,46.1501037,-95.3260433,,,MN,,false,true,false,openstreetmap
+Paul Frank Field,baseball,pitch,44.9423388,-93.368273,,,MN,,false,true,false,openstreetmap
+Pioneer Field,baseball,pitch,48.1262981,-96.1635883,,,MN,,false,true,false,openstreetmap
+Polska Kielbasa Park,baseball,pitch,44.4661045,-96.2488491,,,MN,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,44.4677898,-93.1841997,,,MN,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,43.6210996,-95.6309648,,,MN,,false,true,false,openstreetmap
+Private Field,baseball,pitch,44.0527685,-92.4156168,,,MN,,false,true,false,openstreetmap
+RAHS Baseball Field,baseball,pitch,45.0113116,-93.1491422,,,MN,,false,true,false,openstreetmap
+RDO Field,baseball,pitch,46.8928006,-96.7371553,,,MN,,false,true,false,openstreetmap
+Rainbow Park North,baseball,pitch,45.0049577,-93.668877,,,MN,,false,true,false,openstreetmap
+Rainbow Park South,baseball,pitch,45.0043559,-93.6683688,,,MN,,false,true,false,openstreetmap
+Rainbow Park West,baseball,pitch,45.0043297,-93.6690059,,,MN,,false,true,false,openstreetmap
+Ray Plut Field,baseball,pitch,44.3828641,-93.7312487,,,MN,,false,true,false,openstreetmap
+Red Field,baseball,pitch,45.1124875,-95.0682228,,,MN,,false,true,false,openstreetmap
+Red Hen Field,baseball,pitch,46.8928025,-96.7388548,,,MN,,false,true,false,openstreetmap
+Red Sox Field,baseball,pitch,46.2960348,-96.0485985,,,MN,,false,true,false,openstreetmap
+Redbird Field,baseball,pitch,43.6522405,-96.2008274,,,MN,,false,true,false,openstreetmap
+Richter Field,baseball,pitch,44.8148162,-95.5394211,,,MN,,false,true,false,openstreetmap
+Riverland,baseball,sports_centre,43.6785553,-92.9976602,,,MN,,false,true,false,openstreetmap
+Riverland Park,baseball,pitch,43.679237,-92.996653,,,MN,,false,true,false,openstreetmap
+Round Lake Stadium,baseball,pitch,44.8705655,-93.4868145,,,MN,,false,true,false,openstreetmap
+Sacred Heart Baseball Field,baseball,pitch,44.7848128,-95.3467618,,,MN,,false,true,false,openstreetmap
+Scheels Field,baseball,pitch,46.8917248,-96.7388584,,,MN,,false,true,false,openstreetmap
+Shafer Baseball Field,baseball,park,45.3834638,-92.7481627,,,MN,,false,true,false,openstreetmap
+Skippy Field,baseball,pitch,44.9456898,-93.3425399,,,MN,,false,true,false,openstreetmap
+Skippy Field,baseball,pitch,44.9464363,-93.3427201,,,MN,,false,true,false,openstreetmap
+Slindee Field,baseball,pitch,47.732336,-94.5429861,,,MN,,false,true,false,openstreetmap
+Softball,baseball,pitch,43.8501279,-92.4929,,,MN,,false,true,false,openstreetmap
+Softball,baseball,pitch,44.2902011,-94.7321913,,,MN,,false,true,false,openstreetmap
+Softball,baseball,pitch,44.2892785,-94.7322013,,,MN,,false,true,false,openstreetmap
+Softball Feild: E,baseball,pitch,43.850337,-92.4920541,,,MN,,false,true,false,openstreetmap
+Softball Game Field,baseball,pitch,43.8494315,-92.4929067,,,MN,,false,true,false,openstreetmap
+South Field,baseball,pitch,44.9495146,-93.1498307,,,MN,,false,true,false,openstreetmap
+South Junior School Baseball Field,baseball,pitch,45.5457904,-94.1642769,,,MN,,false,true,false,openstreetmap
+Southland Athletic Field,baseball,pitch,43.566773,-92.7260528,,,MN,,false,true,false,openstreetmap
+Spike Poss Memorial Ball Park,baseball,pitch,43.949912,-95.6459407,,,MN,,false,true,false,openstreetmap
+St Michael Rec 3,baseball,pitch,45.2008275,-93.6541986,,,MN,,false,true,false,openstreetmap
+St Michael Rec Field 2,baseball,pitch,45.2000609,-93.6548917,,,MN,,false,true,false,openstreetmap
+St. Benedict Ball Park,baseball,sports_centre,44.5873107,-93.615157,,,MN,,false,true,false,openstreetmap
+St. Cloud Orthopedics Field,baseball,pitch,45.6344711,-94.217381,,,MN,,false,true,false,openstreetmap
+St. Michael Rec Field 1,baseball,pitch,45.2004994,-93.6561071,,,MN,,false,true,false,openstreetmap
+Starry Field,baseball,pitch,46.7293957,-93.9632975,,,MN,,false,true,false,openstreetmap
+Sundog Field,baseball,pitch,46.8917216,-96.7371591,,,MN,,false,true,false,openstreetmap
+Tanners Lake Baseball Field,baseball,pitch,44.9530643,-92.9780157,,,MN,,false,true,false,openstreetmap
+Tarry Boelter Field,baseball,pitch,43.9870693,-95.7667569,,,MN,,false,true,false,openstreetmap
+Tiger Field,baseball,pitch,44.6194085,-93.7734161,,,MN,,false,true,false,openstreetmap
+Toni Stone Field,baseball,pitch,44.9497053,-93.1509535,,,MN,,false,true,false,openstreetmap
+Tony Oliva Field (DS1),baseball,pitch,44.8044129,-93.3870334,,,MN,,false,true,false,openstreetmap
+Tony Sipe Baseball Field,baseball,pitch,47.3020376,-96.5116303,,,MN,,false,true,false,openstreetmap
+Tower Field,baseball,pitch,45.5847335,-95.8991445,,,MN,,false,true,false,openstreetmap
+Truman Baseball Field,baseball,pitch,43.8247477,-94.4349345,,,MN,,false,true,false,openstreetmap
+Turbenson Field,baseball,pitch,43.6748426,-92.3905094,,,MN,,false,true,false,openstreetmap
+Twins Field,baseball,pitch,48.1153017,-96.161566,,,MN,,false,true,false,openstreetmap
+Union Hill Baseball Park,baseball,sports_centre,44.5443485,-93.6640303,,,MN,,false,true,false,openstreetmap
+Union Hill Baseball Park,baseball,pitch,44.5448715,-93.6644409,,,MN,,false,true,false,openstreetmap
+Veterans Memorial Field,baseball,pitch,47.8992607,-91.8558459,,,MN,,false,true,false,openstreetmap
+Veterans Memorial Field,baseball,pitch,44.8886325,-94.3583201,,,MN,,false,true,false,openstreetmap
+Vollmer Field,baseball,pitch,44.7601639,-94.1587259,,,MN,,false,true,false,openstreetmap
+Wade Stadium,baseball,stadium,46.7540621,-92.1438094,,,MN,,false,true,false,openstreetmap
+Washington Ballpark Field,baseball,pitch,46.8083663,-95.8448012,,,MN,,false,true,false,openstreetmap
+Wells Fargo Field,baseball,pitch,44.4483445,-93.1782715,,,MN,,false,true,false,openstreetmap
+West Concord,baseball,pitch,44.146788,-92.900164,,,MN,,false,true,false,openstreetmap
+West Field,baseball,pitch,44.9506839,-93.1509825,,,MN,,false,true,false,openstreetmap
+White 10,baseball,pitch,44.8888568,-92.9361694,,,MN,,false,true,false,openstreetmap
+White 11,baseball,pitch,44.8878074,-92.9361684,,,MN,,false,true,false,openstreetmap
+White 12,baseball,pitch,44.8878099,-92.9346882,,,MN,,false,true,false,openstreetmap
+White 13,baseball,pitch,44.8888635,-92.9346886,,,MN,,false,true,false,openstreetmap
+White 14,baseball,pitch,44.8899639,-92.93481,,,MN,,false,true,false,openstreetmap
+White 8,baseball,pitch,44.8897346,-92.9365918,,,MN,,false,true,false,openstreetmap
+White 9,baseball,pitch,44.8899787,-92.9360681,,,MN,,false,true,false,openstreetmap
+William J. Grose Field,baseball,pitch,44.2096922,-93.5689622,,,MN,,false,true,false,openstreetmap
+Winter Field,baseball,pitch,43.9845172,-95.7644931,,,MN,,false,true,false,openstreetmap
+Wrenshall baseball field,baseball,pitch,46.6177505,-92.3841639,,,MN,,false,true,false,openstreetmap
+Yellow Field,baseball,pitch,45.1131868,-95.0700389,,,MN,,false,true,false,openstreetmap
+Zach Erlander Field,baseball,pitch,44.9976188,-93.589894,,,MN,,false,true,false,openstreetmap
+Zulfer Baseball Field,baseball,pitch,44.3007544,-93.2594197,,,MN,,false,true,false,openstreetmap
+kaslows field,baseball,pitch,46.994746,-93.6010505,,,MN,,false,true,false,openstreetmap
+Blattner Field,baseball,pitch,45.6062354,-94.453901,303 Avon Avenue South,Avon,MN,,false,true,false,openstreetmap
+Jack Ruhr Field,baseball,pitch,44.6016468,-92.8185161,14221 240th St E,Miesville,MN,55033,false,true,false,openstreetmap
+Target Field,baseball,stadium,44.9816774,-93.2778697,1 Twins Way,Minneapolis,MN,55403,false,true,false,openstreetmap
+Johnson Park,baseball,pitch,44.3196135,-94.4618962,500 North German Street,New Ulm,MN,56073,false,true,false,openstreetmap
+Bergseid Field,baseball,pitch,46.7390728,-96.2405224,Highway 32,Rollag,MN,56549,false,true,false,openstreetmap
+Bill Taunton Stadium,baseball,stadium,45.1085081,-95.0713884,1401 22nd Street SW,Willmar,MN,56201,false,true,false,openstreetmap

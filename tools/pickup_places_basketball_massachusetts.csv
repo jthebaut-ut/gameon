@@ -1,0 +1,39 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court,basketball,pitch,42.2891264,-71.2234312,,,MA,,false,true,false,openstreetmap
+Basketball Half-Court,basketball,pitch,42.5928633,-71.2255991,,,MA,,false,true,false,openstreetmap
+Blake Arena,basketball,sports_centre,42.1043095,-72.5550354,,,MA,,false,true,false,openstreetmap
+Boston Celtics,basketball,pitch,42.3662859,-71.0621914,,,MA,,false,true,false,openstreetmap
+Butterfield Basketball Court,basketball,pitch,42.5865419,-72.3103352,,,MA,,false,true,false,openstreetmap
+Children's basketball,basketball,pitch,42.2143715,-70.9658444,,,MA,,false,true,false,openstreetmap
+Corporal Scott E. Andresen Memorial Basketball Court,basketball,pitch,42.4554341,-71.0541208,,,MA,,false,true,false,openstreetmap
+Dave Deluca Basketball Courts,basketball,pitch,42.2913825,-73.0792166,,,MA,,false,true,false,openstreetmap
+Ely Court,basketball,pitch,42.2063828,-72.5986927,,,MA,,false,true,false,openstreetmap
+Emery Park Basketball Court,basketball,pitch,42.2786213,-72.976545,,,MA,,false,true,false,openstreetmap
+English High Basketball Courts,basketball,pitch,42.3075911,-71.1084045,,,MA,,false,true,false,openstreetmap
+Fiske Basketball Court,basketball,pitch,42.3132656,-71.2481546,,,MA,,false,true,false,openstreetmap
+Henry T. Wing Basketball Court,basketball,pitch,41.7537304,-70.4932024,,,MA,,false,true,false,openstreetmap
+Hilstrom Field Court,basketball,pitch,42.1096012,-71.0026867,,,MA,,false,true,false,openstreetmap
+James Naismith Court,basketball,pitch,42.1043179,-72.5550152,,,MA,,false,true,false,openstreetmap
+Judge Rotenberg Basketball Court,basketball,pitch,42.1787135,-71.1120174,,,MA,,false,true,false,openstreetmap
+Langone Park Basketball Court,basketball,pitch,42.3688751,-71.054822,,,MA,,false,true,false,openstreetmap
+Mildred Greensfelder Playground,basketball,pitch,42.0578492,-70.1776085,,,MA,,false,true,false,openstreetmap
+Orchard Hill Basketball Court,basketball,pitch,42.3928169,-72.5195243,,,MA,,false,true,false,openstreetmap
+Pelham Elementary Court,basketball,pitch,42.3778118,-72.4677488,,,MA,,false,true,false,openstreetmap
+Pine Bluff Basketball Court,basketball,pitch,42.4070718,-71.499008,,,MA,,false,true,false,openstreetmap
+Public Basketball Courts at Halloran Park,basketball,pitch,42.1225751,-71.0941952,,,MA,,false,true,false,openstreetmap
+Red Auerbach Parquet Floor,basketball,pitch,42.366292,-71.0621475,,,MA,,true,false,false,openstreetmap
+Reid Park Basketball Court,basketball,pitch,41.6568755,-70.2351345,,,MA,,false,true,false,openstreetmap
+Robert A. Thornton Memorial Courts,basketball,pitch,41.7451076,-70.6630128,,,MA,,false,true,false,openstreetmap
+Robert A. Thornton Memorial Courts,basketball,pitch,41.7451942,-70.6627561,,,MA,,false,true,false,openstreetmap
+Saint Benedict's Basketball Court,basketball,pitch,42.4846318,-71.6218841,,,MA,,false,true,false,openstreetmap
+Senior Basketball,basketball,pitch,42.2301327,-71.2458959,,,MA,,false,true,false,openstreetmap
+South Field Basketball Court,basketball,pitch,42.1640143,-70.9382959,,,MA,,false,true,false,openstreetmap
+The Courts,basketball,pitch,42.2949868,-73.0761325,,,MA,,false,true,false,openstreetmap
+Underwriters Laboratories Basketball Court,basketball,pitch,42.1538055,-71.1131213,,,MA,,false,true,false,openstreetmap
+Wildwood Park Basketball Court,basketball,pitch,42.5048067,-71.2224949,,,MA,,false,true,false,openstreetmap
+Winch Park-basketball court,basketball,pitch,42.3196259,-71.4003572,,,MA,,false,true,false,openstreetmap
+basket ball,basketball,pitch,42.2142767,-70.9657829,,,MA,,false,true,false,openstreetmap
+the Y Basketball Courts & Track,basketball,pitch,42.1304827,-71.0825884,,,MA,,false,true,false,openstreetmap
+Auerbach Center,basketball,sports_centre,42.3575631,-71.1458105,40 Guest Street,Boston,MA,02135,false,true,false,openstreetmap
+Friends of Peters Park,basketball,pitch,42.3432358,-71.0672028,1277 Washington Street,Boston,MA,02118,false,true,false,openstreetmap
+Friends of Peters Park,basketball,pitch,42.3430946,-71.0673351,1277 Washington Street,Boston,MA,02118,false,true,false,openstreetmap

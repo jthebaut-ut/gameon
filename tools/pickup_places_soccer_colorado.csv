@@ -1,0 +1,103 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,39.6212565,-105.0057525,,,CO,,false,true,false,openstreetmap
+2,soccer,pitch,39.6212726,-105.004813,,,CO,,false,true,false,openstreetmap
+3,soccer,pitch,39.6222932,-105.0048103,,,CO,,false,true,false,openstreetmap
+4,soccer,pitch,39.6212711,-105.003946,,,CO,,false,true,false,openstreetmap
+5,soccer,pitch,39.6222904,-105.0039412,,,CO,,false,true,false,openstreetmap
+6,soccer,pitch,39.6222865,-105.0030622,,,CO,,false,true,false,openstreetmap
+7,soccer,pitch,39.6222824,-105.0022522,,,CO,,false,true,false,openstreetmap
+ACS Eagles,soccer,pitch,39.3832131,-104.8710887,,,CO,,false,true,false,openstreetmap
+AYL Sports,soccer,pitch,39.5725252,-104.8995927,,,CO,,false,true,false,openstreetmap
+Academy Soccer Field,soccer,pitch,39.9130662,-105.0336685,,,CO,,false,true,false,openstreetmap
+Alpine Parking Garage and Recreation Field,soccer,pitch,38.8980282,-104.8072222,,,CO,,false,true,false,openstreetmap
+Arsenal Colorado,soccer,pitch,40.5498835,-105.0786834,,,CO,,false,true,false,openstreetmap
+Bear Valley Park Soccer Field,soccer,pitch,39.6530798,-105.0436483,,,CO,,false,true,false,openstreetmap
+Belle Creek Soccer Field,soccer,pitch,39.8904735,-104.8809377,,,CO,,false,true,false,openstreetmap
+Boddington Field,soccer,pitch,38.8628168,-104.8270194,,,CO,,false,true,false,openstreetmap
+Carmody Soccer Fields,soccer,pitch,39.6766296,-105.1069609,,,CO,,false,true,false,openstreetmap
+Copper Mesa Soccer Field,soccer,pitch,39.5191969,-104.9465378,,,CO,,false,true,false,openstreetmap
+Copper Mesa Soccer Field,soccer,pitch,39.5189668,-104.9462902,,,CO,,false,true,false,openstreetmap
+Dirty Woman Park,soccer,pitch,39.0820279,-104.8719023,,,CO,,false,true,false,openstreetmap
+Falcon Stadium,soccer,pitch,39.014682,-104.8928688,,,CO,,false,true,false,openstreetmap
+Field,soccer,pitch,40.3489223,-105.0820761,,,CO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.802178,-104.8943088,,,CO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.7119091,-105.200379,,,CO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.6456097,-105.0045976,,,CO,,false,true,false,openstreetmap
+Field 10,soccer,pitch,39.8032174,-104.8902247,,,CO,,false,true,false,openstreetmap
+Field 11- AAA Copy Products Field,soccer,pitch,39.8021704,-104.8893394,,,CO,,false,true,false,openstreetmap
+Field 12 - HealthOne Field,soccer,pitch,39.8032135,-104.8893346,,,CO,,false,true,false,openstreetmap
+Field 13,soccer,pitch,39.802171,-104.887184,,,CO,,false,true,false,openstreetmap
+Field 14,soccer,pitch,39.8032124,-104.8871902,,,CO,,false,true,false,openstreetmap
+Field 15,soccer,pitch,39.8021716,-104.8862819,,,CO,,false,true,false,openstreetmap
+Field 16,soccer,pitch,39.803212,-104.8862843,,,CO,,false,true,false,openstreetmap
+Field 17,soccer,pitch,39.802172,-104.8853899,,,CO,,false,true,false,openstreetmap
+Field 18,soccer,pitch,39.8032115,-104.8853928,,,CO,,false,true,false,openstreetmap
+Field 19,soccer,pitch,39.8052829,-104.8871883,,,CO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.8032187,-104.8943082,,,CO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.7136141,-105.2014344,,,CO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.6456056,-105.0055042,,,CO,,false,true,false,openstreetmap
+Field 20,soccer,pitch,39.8064628,-104.8873918,,,CO,,false,true,false,openstreetmap
+Field 21,soccer,pitch,39.8052806,-104.886276,,,CO,,false,true,false,openstreetmap
+Field 22,soccer,pitch,39.8063278,-104.8862434,,,CO,,false,true,false,openstreetmap
+Field 23,soccer,pitch,39.8052826,-104.8853904,,,CO,,false,true,false,openstreetmap
+Field 24,soccer,pitch,39.8063268,-104.8853843,,,CO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.8021781,-104.8934211,,,CO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.7144045,-105.202564,,,CO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.6456016,-105.0064134,,,CO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.8032192,-104.8934182,,,CO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.7150185,-105.2035188,,,CO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.8021744,-104.8924983,,,CO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.7156523,-105.2044753,,,CO,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.8032182,-104.8924929,,,CO,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.8021725,-104.8911504,,,CO,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.8032166,-104.8911129,,,CO,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.8021748,-104.8902261,,,CO,,false,true,false,openstreetmap
+Fort Collins Soccer Complex,soccer,recreation_ground,40.6438379,-105.004468,,,CO,,false,true,false,openstreetmap
+Fruita Monument Soccer Field,soccer,pitch,39.147395,-108.7157567,,,CO,,false,true,false,openstreetmap
+Hickey Field,soccer,pitch,38.4464694,-105.2318717,,,CO,,false,true,false,openstreetmap
+Jackson Stadium,soccer,pitch,40.4072238,-104.6863839,,,CO,,false,true,false,openstreetmap
+Kittredge Field,soccer,pitch,40.0029239,-105.2595569,,,CO,,false,true,false,openstreetmap
+Landmark soccer field,soccer,pitch,39.8883071,-104.7949696,,,CO,,false,true,false,openstreetmap
+Limon Municipal Soccer Field,soccer,pitch,39.2648567,-103.6783596,,,CO,,false,true,false,openstreetmap
+Longmont Indoor Soccer,soccer,fitness_centre,40.1501844,-105.1177899,,,CO,,false,true,false,openstreetmap
+Makayla Dame Memorial Field,soccer,pitch,39.4358819,-104.7579621,,,CO,,false,true,false,openstreetmap
+McNeil Fields,soccer,pitch,38.4617409,-107.8759558,,,CO,,false,true,false,openstreetmap
+Mixed Use EP 2,soccer,pitch,39.6398513,-104.9092353,,,CO,,false,true,false,openstreetmap
+Mixed Use EP1,soccer,pitch,39.639821,-104.908274,,,CO,,false,true,false,openstreetmap
+Mixed Use MU1,soccer,pitch,39.7809507,-105.007334,,,CO,,false,true,false,openstreetmap
+Mixed Use MU2,soccer,pitch,39.7807466,-105.0068665,,,CO,,false,true,false,openstreetmap
+North High School Soccer Field,soccer,pitch,39.7592822,-105.0210326,,,CO,,false,true,false,openstreetmap
+Olson Field,soccer,pitch,38.8501334,-104.8278835,,,CO,,false,true,false,openstreetmap
+Regis University Soccer/Lacrosse Field,soccer,pitch,39.7884449,-105.0276113,,,CO,,false,true,false,openstreetmap
+Regis University Soccer/Lacrosse Field,soccer,pitch,39.7882689,-105.030074,,,CO,,false,true,false,openstreetmap
+Regis University Soccer/Lacrosse Field,soccer,pitch,39.7882656,-105.0291984,,,CO,,false,true,false,openstreetmap
+Roger Maestas Field,soccer,pitch,38.8584432,-104.8893733,,,CO,,false,true,false,openstreetmap
+Rooney Road Sports Complex,soccer,sports_centre,39.7117286,-105.2020972,101 Rooney Road,,CO,,false,true,false,openstreetmap
+Sanders Field,soccer,pitch,37.1742227,-104.5116977,,,CO,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,39.9209824,-105.0607229,,,CO,,false,true,false,openstreetmap
+Soccer 2,soccer,pitch,39.9209859,-105.0616204,,,CO,,false,true,false,openstreetmap
+Soccer City,soccer,pitch,39.7387376,-104.802398,,,CO,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,39.3666598,-104.603802,,,CO,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,39.0661656,-104.8432319,,,CO,,false,true,false,openstreetmap
+Soccer field,soccer,pitch,39.4103869,-107.2283402,,,CO,,false,true,false,openstreetmap
+Soccer pitch outline - no goals,soccer,pitch,39.731341,-104.9934189,,,CO,,false,true,false,openstreetmap
+Stewart Field,soccer,pitch,38.8494146,-104.8278721,,,CO,,false,true,false,openstreetmap
+Switchbacks Training Stadium,soccer,pitch,38.8954192,-104.7115625,,,CO,,false,true,false,openstreetmap
+Turf 1,soccer,pitch,39.7191713,-104.8854999,,,CO,,false,true,false,openstreetmap
+Turf 2,soccer,pitch,39.7185857,-104.8866306,,,CO,,false,true,false,openstreetmap
+UCHealth Park,soccer,stadium,38.8941471,-104.7103055,,,CO,,false,true,false,openstreetmap
+United Soccer Club,soccer,pitch,40.4075674,-105.096405,1327 West Eisenhower Boulevard,,CO,,false,true,false,openstreetmap
+Upper Soccer Field,soccer,pitch,39.6362926,-106.5282146,,,CO,,false,true,false,openstreetmap
+WEIDNER FIELD,soccer,stadium,38.8262768,-104.8283988,,,CO,,false,true,false,openstreetmap
+Washburn Field,soccer,pitch,38.8481138,-104.8277997,,,CO,,false,true,false,openstreetmap
+Westbrook Park Soccer Field,soccer,pitch,39.8716461,-105.1025141,,,CO,,false,true,false,openstreetmap
+Williams Village Field,soccer,pitch,39.9980702,-105.2492894,,,CO,,false,true,false,openstreetmap
+fielkd,soccer,pitch,39.6581187,-104.8773892,,,CO,,false,true,false,openstreetmap
+Apex Field House,soccer,sports_centre,39.7991094,-105.117982,5724 Oak Street,Arvada,CO,,false,true,false,openstreetmap
+Colorado Rapids Youth Indoor Soccer,soccer,sports_centre,39.7188162,-104.8679142,111 Havana Street,Aurora,CO,,false,true,false,openstreetmap
+Arapahoe Sports Center,soccer,fitness_centre,39.5844243,-104.8110886,7300 South Fraser Street,Centennial,CO,80112,false,true,false,openstreetmap
+Bergan Valley ES Multi-Purpose Field,soccer,pitch,39.6930718,-105.3511649,1422 Sugarbush Drive,Evergreen,CO,80439,false,true,false,openstreetmap
+Colorado Ice,soccer,pitch,39.7243634,-105.1647971,14799 West 6th Avenue Frontage Road,Golden,CO,80401,false,true,false,openstreetmap
+Rattler Football Field,soccer,pitch,37.9727111,-103.5446216,,La Junta,CO,,false,true,false,openstreetmap
+Lakewood Memorial Field,soccer,pitch,39.7342234,-105.0848931,7655 West 10th Avenue,Lakewood,CO,80214,false,true,false,openstreetmap
+Rocky Mountain Sports Center,soccer,sports_centre,39.8988592,-104.961845,2180 East 112th Avenue,Northglenn,CO,80233,false,true,false,openstreetmap

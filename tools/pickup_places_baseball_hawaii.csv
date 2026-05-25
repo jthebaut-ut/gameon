@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+3rd Reg Baseball Field,baseball,pitch,21.4395188,-157.7524374,,,HI,,false,true,false,openstreetmap
+Ainako Park,baseball,pitch,19.7087149,-155.1112087,,,HI,,false,true,false,openstreetmap
+Ala Puumalu Baseball Diamond,baseball,pitch,21.3592227,-157.9027081,,,HI,,false,true,false,openstreetmap
+Cartwright Field,baseball,pitch,21.3014617,-157.8383875,,,HI,,false,true,false,openstreetmap
+Damon Baseball Field,baseball,pitch,21.3016496,-157.8195153,,,HI,,false,true,false,openstreetmap
+Hana Ball Park,baseball,pitch,20.7536274,-155.9850167,,,HI,,false,true,false,openstreetmap
+Kaimuki High School Baseball Stadium,baseball,stadium,21.285718,-157.818165,,,HI,,false,true,false,openstreetmap
+Les Murakami Stadium,baseball,stadium,21.2930531,-157.815895,,,HI,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,20.8240913,-156.9221329,,,HI,,false,true,false,openstreetmap
+North Kohala Veterans Field,baseball,pitch,20.2347473,-155.800696,,,HI,,false,true,false,openstreetmap
+Sand Island Softball Field,baseball,pitch,21.302315,-157.8796425,,,HI,,false,true,false,openstreetmap
+Softball Stadium,baseball,pitch,21.2947033,-157.8158236,,,HI,,false,true,false,openstreetmap
+Stoneman Field,baseball,pitch,21.4970188,-158.05307,,,HI,,false,true,false,openstreetmap
+Walter C.K. Victor Baseball Complex,baseball,sports_centre,19.719982,-155.0691288,,,HI,,false,true,false,openstreetmap
+Ward Field,baseball,pitch,21.3490827,-157.9421133,,,HI,,false,true,false,openstreetmap
+Wilson Baseball Field,baseball,pitch,21.281413,-157.7840499,,,HI,,false,true,false,openstreetmap
+Wong Stadium,baseball,stadium,19.7175712,-155.0680572,,,HI,,false,true,false,openstreetmap
+Hans L'Orange Park,baseball,sports_centre,21.3886658,-158.0058545,94-1024 Waipahu Street,Waipahu,HI,96797,false,true,false,openstreetmap

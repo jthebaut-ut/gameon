@@ -1,0 +1,57 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bill Wallach Soccer Fields,soccer,pitch,41.2857989,-72.6993673,,,CT,,false,true,false,openstreetmap
+Bob Labbe Field,soccer,pitch,41.6152644,-72.076844,,,CT,,false,true,false,openstreetmap
+Brennan Field,soccer,pitch,41.2512517,-72.9686613,,,CT,,false,true,false,openstreetmap
+CCSU Soccer Field,soccer,pitch,41.6955124,-72.7606013,,,CT,,false,true,false,openstreetmap
+Field #1,soccer,pitch,41.9869589,-72.6557035,,,CT,,false,true,false,openstreetmap
+Field #2,soccer,pitch,41.9861387,-72.6560931,,,CT,,false,true,false,openstreetmap
+Field #3,soccer,pitch,41.985004,-72.6545771,,,CT,,false,true,false,openstreetmap
+Field #4,soccer,pitch,41.9844811,-72.6476756,,,CT,,false,true,false,openstreetmap
+Field #5,soccer,pitch,41.9843333,-72.6462309,,,CT,,false,true,false,openstreetmap
+Field 1,soccer,pitch,41.6994292,-72.8549498,,,CT,,true,false,false,openstreetmap
+Field 1 (1A & 1B),soccer,pitch,41.7865605,-72.1978651,,,CT,,false,true,false,openstreetmap
+Field 13,soccer,pitch,41.6974199,-72.8532175,,,CT,,false,true,false,openstreetmap
+Field 2,soccer,pitch,41.311389,-72.5365044,,,CT,,false,true,false,openstreetmap
+Field 2,soccer,pitch,41.7866802,-72.1987955,,,CT,,false,true,false,openstreetmap
+Field 2,soccer,pitch,41.6997539,-72.8550341,,,CT,,true,false,false,openstreetmap
+Field 3,soccer,pitch,41.3111452,-72.5353789,,,CT,,false,true,false,openstreetmap
+Field 3,soccer,pitch,41.6998774,-72.8541344,,,CT,,true,false,false,openstreetmap
+Field 3 (3A & 3B),soccer,pitch,41.7846671,-72.1977914,,,CT,,false,true,false,openstreetmap
+Field 4,soccer,pitch,41.6995471,-72.8540497,,,CT,,true,false,false,openstreetmap
+Field 4 (4A & 4B),soccer,pitch,41.7850321,-72.1993806,,,CT,,false,true,false,openstreetmap
+Field 5,soccer,pitch,41.6996137,-72.8523432,,,CT,,false,true,false,openstreetmap
+Field 6,soccer,pitch,41.6996266,-72.8510038,,,CT,,false,true,false,openstreetmap
+Field 7,soccer,pitch,41.698702,-72.8513167,,,CT,,false,true,false,openstreetmap
+Field 8,soccer,pitch,41.6987039,-72.8526548,,,CT,,false,true,false,openstreetmap
+Field B,soccer,pitch,41.3102891,-72.9631904,,,CT,,false,true,false,openstreetmap
+Field C Special,soccer,pitch,41.3104152,-72.9643865,,,CT,,false,true,false,openstreetmap
+Flax Mill Field,soccer,pitch,41.3047258,-72.7813245,,,CT,,false,true,false,openstreetmap
+Hovey Field,soccer,pitch,41.8926424,-72.7956796,,,CT,,false,true,false,openstreetmap
+Intramural Practice Field A,soccer,pitch,41.3132562,-72.9574351,,,CT,,false,true,false,openstreetmap
+Jackson Field,soccer,pitch,41.5579417,-72.6578946,,,CT,,false,true,false,openstreetmap
+James Rourke Field,soccer,pitch,41.3857057,-73.4006982,,,CT,,false,true,false,openstreetmap
+Joseph C. Carini Field,soccer,pitch,41.4136126,-72.7989372,,,CT,,false,true,false,openstreetmap
+Joseph J. Morrone Stadium,soccer,stadium,41.8012016,-72.254821,,,CT,,false,true,false,openstreetmap
+Kenneth J. Mulvey Field,soccer,pitch,41.3092719,-72.7035233,,,CT,,false,true,false,openstreetmap
+Lessing Field,soccer,pitch,41.1616938,-73.2581919,,,CT,,false,true,false,openstreetmap
+Lyman Memorial Soccer Field,soccer,pitch,41.6247812,-72.2400916,,,CT,,false,true,false,openstreetmap
+Ole Soccer Center,soccer,sports_centre,41.2988149,-73.2451328,,,CT,,false,true,false,openstreetmap
+Olé Soccer,soccer,sports_centre,41.1776767,-73.2408353,,,CT,,false,true,false,openstreetmap
+Phoenix Field,soccer,pitch,41.636376,-73.2039617,,,CT,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,41.8004029,-72.2564605,,,CT,,false,true,false,openstreetmap
+Rock Road Field,soccer,pitch,41.3567749,-72.8516353,,,CT,,false,true,false,openstreetmap
+Ronald Mitchell Randall Memorial Field,soccer,pitch,41.3903364,-73.075401,,,CT,,false,true,false,openstreetmap
+Sanderson Field,soccer,pitch,41.9853068,-72.6565235,,,CT,,false,true,false,openstreetmap
+Silfen Field,soccer,pitch,41.3814981,-72.1012519,,,CT,,false,true,false,openstreetmap
+Stanley H. Page Soccer Field,soccer,pitch,41.3314435,-72.7100895,,,CT,,false,true,false,openstreetmap
+Union Carbide Soccer Field,soccer,pitch,41.3875688,-73.516661,,,CT,,false,true,false,openstreetmap
+Upper Athletic Field,soccer,pitch,41.3289207,-72.9210196,,,CT,,false,true,false,openstreetmap
+William Coyle Field,soccer,pitch,41.4138161,-72.80027,,,CT,,false,true,false,openstreetmap
+Yale University,soccer,pitch,41.313445,-72.9659839,,,CT,,false,true,false,openstreetmap
+Yale University,soccer,pitch,41.3135814,-72.9667371,,,CT,,false,true,false,openstreetmap
+Soccer Post,soccer,pitch,41.1797414,-73.2481238,Black Rock Turnpike,Fairfield,CT,,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,soccer,pitch,41.7298521,-72.5819032,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,soccer,pitch,41.7282902,-72.5829788,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,soccer,pitch,41.7284228,-72.5820659,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Joseph J. Morrone Stadium,soccer,pitch,41.8012722,-72.2549054,507 Jim Calhoun Way,Storrs,CT,06269,false,true,false,openstreetmap
+DiCicco Field,soccer,pitch,41.7066466,-72.6727091,Wolcott Hill Road,Wethersfield,CT,06109,false,true,false,openstreetmap

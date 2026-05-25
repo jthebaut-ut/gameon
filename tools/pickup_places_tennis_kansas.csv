@@ -1,0 +1,23 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Falcon Ridge Tennis Courts,tennis,recreation_ground,38.9511219,-94.8193778,,,KS,,false,true,false,openstreetmap
+Fort Scott High School Tennis court,tennis,pitch,37.8289302,-94.7053703,,,KS,,false,true,false,openstreetmap
+Hiawatha Tennis Courts,tennis,pitch,39.8496768,-95.5266022,,,KS,,false,true,false,openstreetmap
+Hutchinson Community Tennis Complex,tennis,sports_centre,38.0765224,-97.9161497,,,KS,,false,true,false,openstreetmap
+Jerry Ivey Public Courts,tennis,pitch,38.7949332,-97.5971407,,,KS,,false,true,false,openstreetmap
+Jerry Ivey Public Courts,tennis,pitch,38.7949284,-97.5969414,,,KS,,false,true,false,openstreetmap
+Jerry Ivey Public Courts,tennis,pitch,38.7949313,-97.5973348,,,KS,,false,true,false,openstreetmap
+Jerry Ivey Public Courts,tennis,pitch,38.7949295,-97.5975259,,,KS,,false,true,false,openstreetmap
+Katherine Jones Tennis Courts,tennis,pitch,37.9722113,-100.8515014,,,KS,,false,true,false,openstreetmap
+LaCygne Tennis Courts,tennis,pitch,38.3406208,-94.7669078,,,KS,,false,true,false,openstreetmap
+Linn Valley Tennis Courts,tennis,pitch,38.3724165,-94.6981433,,,KS,,false,true,false,openstreetmap
+Outdoor Fitness Court,tennis,pitch,37.9722091,-100.8510346,,,KS,,false,true,false,openstreetmap
+Rolling Ridge Elementary School Tennis Courts,tennis,pitch,38.877487,-94.8416076,,,KS,,false,true,false,openstreetmap
+Salina South HS Courts,tennis,pitch,38.794738,-97.5984173,,,KS,,false,true,false,openstreetmap
+Salina South HS Courts,tennis,pitch,38.7947332,-97.5978311,,,KS,,false,true,false,openstreetmap
+Salina South HS Courts,tennis,pitch,38.7947361,-97.598022,,,KS,,false,true,false,openstreetmap
+Salina South HS Courts,tennis,pitch,38.7947422,-97.598219,,,KS,,false,true,false,openstreetmap
+Sheldon Coleman Tennis Complex,tennis,sports_centre,37.7160323,-97.2951079,,,KS,,false,true,false,openstreetmap
+Tennis,tennis,pitch,37.2288501,-96.9717663,,,KS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,37.349568,-95.2677994,,,KS,,false,true,false,openstreetmap
+Tennis Set,tennis,pitch,38.9561887,-94.6282133,3695 West 95th Street,Overland Park,KS,66206,false,true,false,openstreetmap
+Kossover Tennis Center,tennis,sports_centre,39.0195788,-95.7239125,2501 Southwest Gage Boulevard,Topeka,KS,66614,false,true,false,openstreetmap

@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Capital One City Park Tennis Center,tennis,pitch,30.4350025,-91.1678863,,,LA,,false,true,false,openstreetmap
+City Park Pepsi Tennis Center,tennis,sports_centre,29.9980545,-90.0982686,Marconi Drive,,LA,,false,true,false,openstreetmap
+Copper Mill Community Tennis Court,tennis,pitch,30.6412098,-91.1902192,,,LA,,false,true,false,openstreetmap
+Copper Mill Community Tennis Court,tennis,pitch,30.6414073,-91.1902016,,,LA,,false,true,false,openstreetmap
+Lamar Tennis Center,tennis,pitch,30.3739633,-91.074845,,,LA,,false,true,false,openstreetmap
+Paulina Tennis Courts,tennis,sports_centre,30.0300075,-90.7380119,,,LA,,false,true,false,openstreetmap
+Second Serve Tennis Center,tennis,pitch,30.0050877,-90.1744972,3951 Veterans Memorial Boulevard,,LA,70002,false,true,false,openstreetmap
+The Gates at Citiplace Tennis Court,tennis,pitch,30.4227229,-91.1232022,,,LA,,false,true,false,openstreetmap
+ULM Heard Tennis Stadium,tennis,pitch,32.5324205,-92.0683918,,,LA,,false,true,false,openstreetmap

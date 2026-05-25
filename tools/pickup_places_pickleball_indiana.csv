@@ -1,0 +1,7 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bomar Estates Pickleball Courts,pickleball,pitch,39.7236943,-86.3635242,,,IN,,false,true,false,openstreetmap
+Cage Pickleball Challenge Courts,pickleball,pitch,39.9715376,-85.8765479,,,IN,,false,true,false,openstreetmap
+McCaw Park Pickleball Courts,pickleball,pitch,40.4234623,-86.8425035,,,IN,,false,true,false,openstreetmap
+NFC Pickleball Court,pickleball,pitch,40.7591349,-86.3559186,,,IN,,false,true,false,openstreetmap
+The Pickle Haus,pickleball,sports_centre,41.66737,-85.7200823,,,IN,,false,true,false,openstreetmap
+The Picklr Noblesville,pickleball,sports_centre,40.0149197,-85.9936487,9847 Cumberland Pointe Boulevard,Noblesville,IN,46060,false,true,false,openstreetmap

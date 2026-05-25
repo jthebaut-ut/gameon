@@ -1,0 +1,13 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Amaguqs Ayuktaqvik Basketball Court,basketball,pitch,68.1440496,-151.7309361,,,AK,,false,true,false,openstreetmap
+Basket Ball court,basketball,pitch,63.9716778,-145.7152962,,,AK,,false,true,false,openstreetmap
+Basketball Courts (4),basketball,pitch,61.5845043,-149.4613466,,,AK,,false,true,false,openstreetmap
+Denali Montessori Elementary School Basketball Court,basketball,pitch,61.2128759,-149.8816867,,,AK,,false,true,false,openstreetmap
+East Court,basketball,pitch,61.1402121,-149.7785198,,,AK,,false,true,false,openstreetmap
+East Court,basketball,pitch,61.1403426,-149.7786773,,,AK,,false,true,false,openstreetmap
+Kiwanis Basketball Court,basketball,pitch,64.8402159,-147.7642179,,,AK,,false,true,false,openstreetmap
+MTA Sports Center,basketball,fitness_centre,61.5971863,-149.2680998,,,AK,,false,true,false,openstreetmap
+Moseley Basketball Court,basketball,pitch,61.1898851,-149.800394,,,AK,,false,true,false,openstreetmap
+Sitka Spruce Park Basketball Court,basketball,pitch,53.8868602,-166.543165,,,AK,,false,true,false,openstreetmap
+Stebbins Basketball Court,basketball,pitch,63.5197574,-162.2866894,,,AK,,false,true,false,openstreetmap
+The Rec,basketball,pitch,60.5564877,-151.2483206,,,AK,,false,true,false,openstreetmap

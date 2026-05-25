@@ -1,0 +1,48 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+4-H Basketball Court,basketball,pitch,36.3468563,-77.6218555,,,NC,,false,true,false,openstreetmap
+803 Basketball Court,basketball,pitch,34.992571,-80.7380238,,,NC,,false,true,false,openstreetmap
+Basketball Court,basketball,sports_centre,35.3364743,-79.5530675,,,NC,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,35.8456154,-78.6318248,,,NC,,false,true,false,openstreetmap
+Belk Gym,basketball,pitch,35.079182,-80.7751118,,,NC,,false,true,false,openstreetmap
+Bob McAdoo Court,basketball,pitch,36.0517338,-79.774041,,,NC,,false,true,false,openstreetmap
+Catawba College Abernethy PE Center,basketball,pitch,35.6911028,-80.4855905,,,NC,,false,true,false,openstreetmap
+Court 1,basketball,pitch,35.0647461,-80.7343797,,,NC,,false,true,false,openstreetmap
+Court 2,basketball,pitch,35.0647943,-80.7341113,,,NC,,false,true,false,openstreetmap
+Crescent Park Basketball,basketball,pitch,35.2415829,-81.0238878,,,NC,,false,true,false,openstreetmap
+Dean E. Smith Student Activities Center,basketball,stadium,35.8994748,-79.043812,,,NC,,false,true,false,openstreetmap
+Freedom Park Basketball Court,basketball,pitch,35.749567,-81.7165958,,,NC,,false,true,false,openstreetmap
+Goettge Memorial Field House,basketball,sports_centre,34.6633347,-77.3432162,751,,NC,,false,true,false,openstreetmap
+Gym,basketball,sports_centre,36.420291,-80.3071819,,,NC,,false,true,false,openstreetmap
+Halifax Park Children's Outdoor Basketball Court,basketball,pitch,35.7937171,-78.6384228,,,NC,,false,true,false,openstreetmap
+Halifax Park Outdoor Basketball Court,basketball,pitch,35.7933446,-78.6390778,,,NC,,false,true,false,openstreetmap
+Harrington Court,basketball,pitch,36.1480872,-79.83726,,,NC,,false,true,false,openstreetmap
+John M. Belk Arena,basketball,pitch,35.4992414,-80.840296,,,NC,,false,true,false,openstreetmap
+Lawrence Joel Veterans Memorial Coliseum,basketball,stadium,36.1277098,-80.2577962,,,NC,,false,true,false,openstreetmap
+Mable C. Smith Basketball court,basketball,pitch,35.0312336,-78.8514586,,,NC,,false,true,false,openstreetmap
+Masonboro Baptist Basketball Court,basketball,pitch,34.1815137,-77.8638658,,,NC,,false,true,false,openstreetmap
+McDougald-McLendon Gymnasium,basketball,sports_centre,35.9758954,-78.8977243,,,NC,,false,true,false,openstreetmap
+Michael J. Jordan Gymnasium,basketball,sports_centre,34.2988469,-77.8726621,,,NC,,false,true,false,openstreetmap
+Middle Creek Outdoor Basketball Courts,basketball,pitch,35.6666053,-78.761906,,,NC,,false,true,false,openstreetmap
+Minges Colliseum,basketball,sports_centre,35.5975355,-77.366946,,,NC,,false,true,false,openstreetmap
+Mountain Top Youth Camp,basketball,pitch,36.3780774,-80.3781673,,,NC,,false,true,false,openstreetmap
+Neighborhood Basketball Court,basketball,pitch,34.9961791,-80.7194554,,,NC,,false,true,false,openstreetmap
+Norris Park Basketball Court,basketball,pitch,35.7119532,-77.9165268,,,NC,,false,true,false,openstreetmap
+Oakhurst Men's Club Court,basketball,pitch,35.1923583,-80.7892808,,,NC,,false,true,false,openstreetmap
+Pleasant City Church Basketball Court,basketball,pitch,35.2714004,-81.5199604,,,NC,,false,true,false,openstreetmap
+Plum Creek Park Basketball Court,basketball,pitch,35.4747022,-80.8243876,,,NC,,false,true,false,openstreetmap
+Private Basketball Court,basketball,pitch,35.9227939,-79.06533,,,NC,,false,true,false,openstreetmap
+Reid Park Basketball,basketball,pitch,35.2480505,-81.0474554,,,NC,,false,true,false,openstreetmap
+SAC Court,basketball,pitch,35.078742,-80.7755339,,,NC,,false,true,false,openstreetmap
+Scholar Athletics,basketball,fitness_centre,35.3548932,-80.6191689,,,NC,,false,true,false,openstreetmap
+Shoals Community Recreation Center,basketball,fitness_centre,36.4450105,-80.6349244,,,NC,,false,true,false,openstreetmap
+WB Park Basketball Court,basketball,pitch,34.2146103,-77.8042176,,,NC,,false,true,false,openstreetmap
+WB Park Basketball Courts,basketball,pitch,34.2146915,-77.8043569,,,NC,,false,true,false,openstreetmap
+court basketball leham,basketball,pitch,35.1428483,-79.015346,,,NC,,false,true,false,openstreetmap
+Robert Lee Stowe Jr Family YMCA,basketball,sports_centre,35.2631637,-81.019712,196 YMCA Drive,Belmont,NC,28012,false,true,false,openstreetmap
+Cameron Indoor Stadium,basketball,pitch,35.9974486,-78.9422646,115 Whitford Drive,Durham,NC,27705,false,true,false,openstreetmap
+W. O. Council Gymnasium,basketball,fitness_centre,35.5848389,-78.7927134,106 North Ennis Street,Fuquay-Varina,NC,27526,false,true,false,openstreetmap
+Pro Skills Basketball - Greensboro,basketball,pitch,35.9747607,-79.6966046,4530 Southeast School Road,Greensboro,NC,27406,false,true,false,openstreetmap
+McCreary Family Recreation & Fitness Center,basketball,fitness_centre,35.8515081,-81.4928126,450 Redwood Street,Hudson,NC,28638,false,true,false,openstreetmap
+NorthStone Country Club basketball court,basketball,pitch,35.4333566,-80.8246861,15801 Northstone Drive,Huntersville,NC,28078,false,true,false,openstreetmap
+Waymer Center,basketball,pitch,35.3988033,-80.8354901,14200 Holbrooks Road,Huntersville,NC,28078,false,true,false,openstreetmap
+Kerr Street Park Basketball Courts,basketball,pitch,34.7456117,-77.4355016,36 Kerr Street,Jacksonville,NC,28540,false,true,false,openstreetmap

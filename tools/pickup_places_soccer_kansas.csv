@@ -1,0 +1,129 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,38.8802197,-94.7056239,,,KS,,false,true,false,openstreetmap
+1,soccer,pitch,38.9327531,-94.6188186,,,KS,,false,true,false,openstreetmap
+1,soccer,pitch,39.0404342,-94.8227064,,,KS,,false,true,false,openstreetmap
+10,soccer,pitch,38.8828127,-94.7024347,,,KS,,false,true,false,openstreetmap
+11,soccer,pitch,38.8828128,-94.7013277,,,KS,,false,true,false,openstreetmap
+12,soccer,pitch,38.8816458,-94.7013252,,,KS,,false,true,false,openstreetmap
+12,soccer,pitch,38.9321643,-94.6202942,,,KS,,false,true,false,openstreetmap
+2,soccer,pitch,38.8790124,-94.7056219,,,KS,,false,true,false,openstreetmap
+2,soccer,pitch,38.9329527,-94.6179744,,,KS,,false,true,false,openstreetmap
+2,soccer,pitch,39.0408927,-94.8241919,,,KS,,false,true,false,openstreetmap
+3,soccer,pitch,38.8790115,-94.7067099,,,KS,,false,true,false,openstreetmap
+3,soccer,pitch,38.933187,-94.6168266,,,KS,,false,true,false,openstreetmap
+3,soccer,pitch,39.041177,-94.8227093,,,KS,,false,true,false,openstreetmap
+4,soccer,pitch,38.8802187,-94.7067131,,,KS,,false,true,false,openstreetmap
+4,soccer,pitch,39.0417992,-94.8240504,,,KS,,false,true,false,openstreetmap
+5,soccer,pitch,38.8815791,-94.7052376,,,KS,,false,true,false,openstreetmap
+6,soccer,pitch,38.8815787,-94.7063445,,,KS,,false,true,false,openstreetmap
+6,soccer,pitch,39.0426317,-94.8241134,,,KS,,false,true,false,openstreetmap
+7,soccer,pitch,38.8823181,-94.7073815,,,KS,,false,true,false,openstreetmap
+7,soccer,pitch,39.0426584,-94.8227275,,,KS,,false,true,false,openstreetmap
+8,soccer,pitch,38.8827868,-94.7063442,,,KS,,false,true,false,openstreetmap
+9,soccer,pitch,38.8827869,-94.7052384,,,KS,,false,true,false,openstreetmap
+A1,soccer,pitch,39.5690855,-95.1469317,,,KS,,false,true,false,openstreetmap
+A2,soccer,pitch,39.5691235,-95.1482228,,,KS,,false,true,false,openstreetmap
+A3,soccer,pitch,39.5691377,-95.1490453,,,KS,,false,true,false,openstreetmap
+AYSO,soccer,sports_centre,37.7127373,-97.423751,,,KS,,false,true,false,openstreetmap
+Central College Soccer Pitch,soccer,pitch,38.3553186,-97.6679332,,,KS,,false,true,false,openstreetmap
+Championship Field,soccer,pitch,38.8247276,-94.828604,,,KS,,false,true,false,openstreetmap
+Compass Minerals National Performance Center,soccer,sports_centre,39.1266636,-94.8047687,,,KS,,false,true,false,openstreetmap
+Compass Minerals Sporting Fields,soccer,sports_centre,39.1211879,-94.7914248,,,KS,,false,true,false,openstreetmap
+Derby High School Panther Soccer Complex,soccer,pitch,37.5471904,-97.2638044,,,KS,,false,true,false,openstreetmap
+Eddington Park,soccer,pitch,37.177576,-94.8656428,,,KS,,false,true,false,openstreetmap
+FHSU Soccer Stadium,soccer,stadium,38.8796555,-99.3579074,,,KS,,false,true,false,openstreetmap
+Field #1,soccer,pitch,37.7367632,-97.2117051,,,KS,,false,true,false,openstreetmap
+Field #2,soccer,pitch,37.7359751,-97.2117266,,,KS,,false,true,false,openstreetmap
+Field #3,soccer,pitch,37.7351956,-97.21174,,,KS,,false,true,false,openstreetmap
+Field #4,soccer,pitch,37.7366221,-97.2154884,,,KS,,false,true,false,openstreetmap
+Field #5,soccer,pitch,37.7354756,-97.2154549,,,KS,,false,true,false,openstreetmap
+Field #6,soccer,pitch,37.7366083,-97.2165076,,,KS,,false,true,false,openstreetmap
+Field #7,soccer,pitch,37.735464,-97.2164795,,,KS,,false,true,false,openstreetmap
+Field #8,soccer,pitch,37.7383562,-97.2154254,,,KS,,false,true,false,openstreetmap
+Field #9,soccer,pitch,37.7384176,-97.2164499,,,KS,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.8140057,-94.7601918,,,KS,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.7973394,-97.5776642,,,KS,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.1224364,-94.7900783,,,KS,,false,true,false,openstreetmap
+Field 10,soccer,pitch,38.8122763,-94.7533338,,,KS,,false,true,false,openstreetmap
+Field 10,soccer,pitch,39.1198311,-94.7916888,,,KS,,false,true,false,openstreetmap
+Field 11,soccer,pitch,38.8165111,-94.7529542,,,KS,,false,true,false,openstreetmap
+Field 11,soccer,pitch,39.1198251,-94.7926208,,,KS,,false,true,false,openstreetmap
+Field 12,soccer,pitch,38.8167801,-94.7554969,,,KS,,false,true,false,openstreetmap
+Field 12,soccer,pitch,39.1198288,-94.7935885,,,KS,,false,true,false,openstreetmap
+Field 13,soccer,pitch,38.8167603,-94.7565016,,,KS,,false,true,false,openstreetmap
+Field 14,soccer,pitch,38.8165061,-94.7589606,,,KS,,false,true,false,openstreetmap
+Field 15,soccer,pitch,38.8164913,-94.7602496,,,KS,,false,true,false,openstreetmap
+Field 16,soccer,pitch,38.8177893,-94.7589797,,,KS,,false,true,false,openstreetmap
+Field 17,soccer,pitch,38.817672,-94.7577235,,,KS,,false,true,false,openstreetmap
+Field 18,soccer,pitch,38.8177058,-94.7560294,,,KS,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.8140215,-94.7591803,,,KS,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.7973474,-97.5766917,,,KS,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.1224402,-94.7911546,,,KS,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.8141217,-94.7581225,,,KS,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.7973495,-97.5757824,,,KS,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.1224426,-94.7922291,,,KS,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.8143891,-94.7570717,,,KS,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.7961391,-97.5768822,,,KS,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.1224474,-94.7933029,,,KS,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.8146517,-94.7559086,,,KS,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.7961338,-97.5758019,,,KS,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.1213547,-94.7933068,,,KS,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.8146493,-94.7548193,,,KS,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.1213488,-94.7922373,,,KS,,false,true,false,openstreetmap
+Field 7,soccer,pitch,38.8145073,-94.7537841,,,KS,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.1213446,-94.791161,,,KS,,false,true,false,openstreetmap
+Field 8,soccer,pitch,38.8143543,-94.7527777,,,KS,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.121341,-94.790086,,,KS,,false,true,false,openstreetmap
+Field 9,soccer,pitch,38.8130643,-94.7533389,,,KS,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.1197337,-94.790735,,,KS,,false,true,false,openstreetmap
+Harper City Soccer Field,soccer,pitch,37.2783512,-98.0265715,,,KS,,false,true,false,openstreetmap
+Hasty Awards Field (OSC4S),soccer,pitch,38.9366956,-94.801022,,,KS,,false,true,false,openstreetmap
+Heritage Soccer Park,soccer,sports_centre,38.8146803,-94.7564195,,,KS,,false,true,false,openstreetmap
+Indoor,soccer,pitch,37.735273,-97.2132984,,,KS,,false,true,false,openstreetmap
+Iola Soccer Fields,soccer,pitch,37.9197936,-95.4116214,,,KS,,false,true,false,openstreetmap
+JBAR Field (OSC3),soccer,pitch,38.9379957,-94.8010213,,,KS,,false,true,false,openstreetmap
+John Vanier Family Field,soccer,pitch,39.197819,-96.5972582,,,KS,,false,true,false,openstreetmap
+Kimbell Field,soccer,pitch,38.9435967,-95.2919926,,,KS,,false,true,false,openstreetmap
+LaCygne Soccer Fields,soccer,pitch,38.3401942,-94.7640993,,,KS,,false,true,false,openstreetmap
+Legacy Field,soccer,pitch,39.5716494,-95.1138389,,,KS,,false,true,false,openstreetmap
+Lone Elm Park Soccer Complex,soccer,sports_centre,38.8238633,-94.8279755,,,KS,,false,true,false,openstreetmap
+McElroy Field,soccer,pitch,38.9592698,-95.7581392,,,KS,,false,true,false,openstreetmap
+McPherson High School Soccer Pitch,soccer,pitch,38.3803537,-97.6569732,,,KS,,false,true,false,openstreetmap
+Multi-Use Game Field,soccer,pitch,38.9136613,-94.7298038,,,KS,,false,true,false,openstreetmap
+OSC1,soccer,pitch,38.9380558,-94.8032857,,,KS,,false,true,false,openstreetmap
+OSC4N,soccer,pitch,38.9371912,-94.8010224,,,KS,,false,true,false,openstreetmap
+OSC5,soccer,pitch,38.9369388,-94.8020212,,,KS,,false,true,false,openstreetmap
+OSC6N,soccer,pitch,38.9371833,-94.8030291,,,KS,,false,true,false,openstreetmap
+OSC6S,soccer,pitch,38.9366856,-94.8030228,,,KS,,false,true,false,openstreetmap
+OSC7,soccer,pitch,38.9392939,-94.8039936,,,KS,,false,true,false,openstreetmap
+OSC8,soccer,pitch,38.9397215,-94.8048384,,,KS,,false,true,false,openstreetmap
+OSC9N,soccer,pitch,38.9403581,-94.8055197,,,KS,,false,true,false,openstreetmap
+OSC9S,soccer,pitch,38.9399411,-94.8058612,,,KS,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,37.2485993,-96.97042,,,KS,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.8247601,-94.8299543,,,KS,,false,true,false,openstreetmap
+Practice Fields,soccer,pitch,37.2487074,-96.9717218,,,KS,,false,true,false,openstreetmap
+Saint Mary Soccer Complex,soccer,pitch,37.775935,-100.0078589,,,KS,,false,true,false,openstreetmap
+Satchel Paige Field,soccer,pitch,38.9147066,-94.6543331,,,KS,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,37.3463629,-95.2652773,,,KS,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,37.2497482,-96.9723338,,,KS,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,38.884363,-99.3651701,,,KS,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,38.8843624,-99.3639577,,,KS,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,38.883123,-99.365176,,,KS,,false,true,false,openstreetmap
+Soccer Field 4,soccer,pitch,38.8831155,-99.3639877,,,KS,,false,true,false,openstreetmap
+Soccer Field 5,soccer,pitch,38.8817954,-99.3651924,,,KS,,false,true,false,openstreetmap
+Soccer Field 6,soccer,pitch,38.8817831,-99.363984,,,KS,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,37.3542252,-95.2842012,,,KS,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,38.8751979,-94.7847546,,,KS,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,38.373548,-97.6415193,,,KS,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,39.1978201,-96.5963081,,,KS,,false,true,false,openstreetmap
+Soccer Yard,soccer,pitch,38.8745695,-94.7927971,708 B South Rogers Road,,KS,,false,true,false,openstreetmap
+Stadium,soccer,pitch,37.73613,-97.2132688,,,KS,,false,true,false,openstreetmap
+Urban Air Field (OSC2),soccer,pitch,38.9380478,-94.8020309,,,KS,,false,true,false,openstreetmap
+Wiebe Soccer Practice Field,soccer,pitch,38.3461194,-97.2010274,,,KS,,false,true,false,openstreetmap
+Cavanaugh Soccer Fields,soccer,sports_centre,38.3826102,-98.7712707,,Great Bend,KS,,false,true,false,openstreetmap
+Sporting Park,soccer,stadium,39.1216365,-94.8232516,Sporting Way,Kansas City,KS,,false,true,false,openstreetmap
+Buser Family Park,soccer,stadium,39.1978371,-96.5973883,1628 College Avenue,Manhattan,KS,66502,false,true,false,openstreetmap
+K-State Athletics,soccer,sports_centre,39.1978463,-96.5968994,1628 College Avenue,Manhattan,KS,66502,false,true,false,openstreetmap
+HappyFeet Kansas City Soccer,soccer,pitch,39.0069949,-94.6980147,9701 West 67th Street,Merriam,KS,66203,true,false,false,openstreetmap
+Garmin Olathe Soccer Complex,soccer,sports_centre,38.9386229,-94.8032109,10541 South Warwick Street,Olathe,KS,66061,false,true,false,openstreetmap
+Scheels Overland Park Soccer Complex,soccer,sports_centre,38.8809837,-94.7064076,13700 Switzer Road,Overland Park,KS,66221,false,true,false,openstreetmap

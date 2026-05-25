@@ -1,0 +1,32 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Field,football,pitch,41.7016683,-72.7441646,,,CT,,false,true,false,openstreetmap
+Andrus Field,football,pitch,41.5556393,-72.6569336,,,CT,,false,true,false,openstreetmap
+Benedict Field,football,pitch,41.3522409,-73.194378,,,CT,,false,true,false,openstreetmap
+Blue and Gold Stadium,football,pitch,41.4087744,-73.269458,,,CT,,false,true,false,openstreetmap
+Cadet Memorial Field,football,pitch,41.372169,-72.0990104,,,CT,,false,true,false,openstreetmap
+Citrin Field,football,pitch,41.5501673,-72.6604842,,,CT,,false,true,false,openstreetmap
+Class of 1954 Field,football,pitch,41.3132416,-72.9604869,,,CT,,false,true,false,openstreetmap
+Dan Jessee and Don Miller Field,football,pitch,41.7497501,-72.6893911,,,CT,,false,true,false,openstreetmap
+DellaCamera Stadium,football,pitch,41.2958509,-72.9673128,,,CT,,false,true,false,openstreetmap
+East Lyme Youth Football Field,football,pitch,41.3494562,-72.2125555,,,CT,,false,true,false,openstreetmap
+Fairfield Ludlowe High School Football Stadium,football,pitch,41.1478431,-73.2628744,,,CT,,false,true,false,openstreetmap
+Falcon Field,football,pitch,41.551193,-72.7780834,,,CT,,false,true,false,openstreetmap
+Frank Field,football,pitch,41.3082553,-72.9606158,,,CT,,false,true,false,openstreetmap
+Hartford Public Schools,football,pitch,41.7939438,-72.7079361,,,CT,,false,true,false,openstreetmap
+Jess Dow Field,football,pitch,41.3365536,-72.9499742,,,CT,,false,true,false,openstreetmap
+Joseph A Foran High School Football Field,football,pitch,41.2212351,-73.0155265,,,CT,,false,true,false,openstreetmap
+Kingswood Oxford Football Field,football,pitch,41.7587089,-72.7332287,,,CT,,false,true,false,openstreetmap
+LaMoy Field,football,pitch,41.5371264,-73.0815475,,,CT,,false,true,false,openstreetmap
+New Canaan High School,football,pitch,41.1265702,-73.4893595,,,CT,,false,true,false,openstreetmap
+North Haven Football Field,football,pitch,41.37492,-72.8590533,,,CT,,false,true,false,openstreetmap
+Peter Romano Field,football,pitch,41.1351682,-73.3665073,,,CT,,false,true,false,openstreetmap
+Pomfret School,football,pitch,41.8842526,-71.9653523,,,CT,,false,true,false,openstreetmap
+Rafferty Stadium,football,pitch,41.1633626,-73.2571839,,,CT,,false,true,false,openstreetmap
+Rentschler Field,football,pitch,41.7596149,-72.6188369,,,CT,,false,true,false,openstreetmap
+Sullivan Field,football,pitch,41.1242489,-73.2638822,,,CT,,false,true,false,openstreetmap
+UCMB Practice Field,football,pitch,41.8165758,-72.2579968,,,CT,,false,true,false,openstreetmap
+Watson Field,football,pitch,41.1910577,-73.4968706,,,CT,,false,true,false,openstreetmap
+Yale University,football,pitch,41.3079732,-72.9590083,,,CT,,false,true,false,openstreetmap
+Yale University,football,pitch,41.3077184,-72.9596337,,,CT,,false,true,false,openstreetmap
+Arute Field,football,pitch,41.6950736,-72.7616252,265 Ella Grasso Boulevard,New Britain,CT,06053,false,true,false,openstreetmap
+Richard Fontaine Field,football,pitch,41.546625,-72.0770972,21 Mahan Drive,Norwich,CT,06360,false,true,false,openstreetmap

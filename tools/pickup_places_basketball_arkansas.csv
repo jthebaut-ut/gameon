@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court,basketball,park,35.236495,-94.4218726,,,AR,,false,true,false,openstreetmap
+Birchwood Park Basketball Court,basketball,pitch,34.7512111,-92.3968029,,,AR,,false,true,false,openstreetmap
+Boyle Park Basketball Court,basketball,pitch,34.7302585,-92.3572936,,,AR,,false,true,false,openstreetmap
+Carl Stuart Middle School,basketball,pitch,35.0749941,-92.4687048,,,AR,,false,true,false,openstreetmap
+Carmichael Community Center,basketball,sports_centre,35.2410053,-91.7420345,,,AR,,false,true,false,openstreetmap
+Carter Activity Center,basketball,sports_centre,36.0647875,-90.5844028,,,AR,,false,true,false,openstreetmap
+Devil Dog Stadium,basketball,pitch,35.1653024,-92.734317,,,AR,,false,true,false,openstreetmap
+Jack T. Stephens Center,basketball,stadium,34.7284236,-92.3404559,,,AR,,false,true,false,openstreetmap
+L.J. Brooks Memorial Basketball Court,basketball,pitch,34.1278202,-93.0514955,,,AR,,false,true,false,openstreetmap
+Maple House Court,basketball,pitch,35.2456042,-91.7448487,,,AR,,false,true,false,openstreetmap
+Russellville High School Gym,basketball,sports_hall,35.2588893,-93.1177618,,,AR,,false,true,false,openstreetmap
+The Foursquare Court,basketball,pitch,36.4076587,-93.7452413,,,AR,,false,true,false,openstreetmap
+Watson Athletic Center,basketball,pitch,33.2924864,-93.2331464,,,AR,,false,true,false,openstreetmap
+Bearcat Arena,basketball,pitch,35.9088206,-90.5796605,109 Victory Lane,Brookland,AR,72417,false,true,false,openstreetmap
+Farris Center,basketball,sports_hall,35.0819088,-92.4595655,Bruce Street,Conway,AR,72035,false,true,false,openstreetmap
+"Danville High School, T.L. Gym",basketball,sports_hall,35.0509226,-93.3927005,106 East 11th Street,Danville,AR,72833,false,true,false,openstreetmap
+ArtCourt,basketball,pitch,36.0661197,-94.162481,227 West Dickson Street,Fayetteville,AR,72701,false,true,false,openstreetmap
+Bud Walton Arena,basketball,stadium,36.061516,-94.1781093,1270 West Nolan Richardson Drive,Fayetteville,AR,72701,false,true,false,openstreetmap
+Simmons Arena,basketball,stadium,34.7551048,-92.2643696,1 Simmons Bank Arena Drive,North Little Rock,AR,72114,false,true,false,openstreetmap
+Rhodes-Reaves Field House,basketball,sports_centre,35.2472092,-91.724137,204 South Blakeney Street,Searcy,AR,72149,false,true,false,openstreetmap

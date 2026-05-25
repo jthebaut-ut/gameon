@@ -1,0 +1,51 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+All City Stadium,football,pitch,39.6891536,-104.9654546,,,CO,,false,true,false,openstreetmap
+Angels Football Field,football,pitch,39.7426655,-104.9578555,,,CO,,false,true,false,openstreetmap
+Branson Bearcats Football Field,football,pitch,37.0190015,-103.8816733,,,CO,,false,true,false,openstreetmap
+Canvas Stadium,football,stadium,40.5698447,-105.0885075,,,CO,,false,true,false,openstreetmap
+Christian Recht Field,football,pitch,40.012754,-105.275904,,,CO,,false,true,false,openstreetmap
+Climax Molybdenum Field,football,pitch,39.5631822,-106.0568242,,,CO,,false,true,false,openstreetmap
+Denver Broncos NFL Indoor Practice Facility,football,pitch,39.5797187,-104.832713,,,CO,,true,false,false,openstreetmap
+District 20 Stadium,football,pitch,38.9591833,-104.7336306,,,CO,,false,true,false,openstreetmap
+District 6 Stadium,football,pitch,40.4332331,-104.7862497,,,CO,,false,true,false,openstreetmap
+Evie Garrett Dennis Stadium,football,pitch,39.7866413,-104.7799386,,,CO,,false,true,false,openstreetmap
+Folsom Field,football,pitch,40.0094563,-105.2669184,,,CO,,false,true,false,openstreetmap
+Football & LaCrosse 1,football,pitch,39.6968995,-104.9184365,,,CO,,false,true,false,openstreetmap
+Football & LaCrosse 2,football,pitch,39.6979857,-104.9184467,,,CO,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,39.0145612,-104.8870501,,,CO,,false,true,false,openstreetmap
+Footbell / Soccer Field,football,pitch,40.4256052,-104.7977456,,,CO,,false,true,false,openstreetmap
+Ford Practice Facility (CU Boulder),football,pitch,40.01001,-105.2648325,,,CO,,false,true,false,openstreetmap
+French Field,football,pitch,40.5490346,-105.0997933,,,CO,,false,true,false,openstreetmap
+Gateway Olympians,football,pitch,39.6903036,-104.8164539,,,CO,,false,true,false,openstreetmap
+Harry D. Campbell Field,football,pitch,39.7531208,-105.2274505,,,CO,,false,true,false,openstreetmap
+Henrich  Field,football,pitch,38.1382959,-105.460475,,,CO,,false,true,false,openstreetmap
+Kittredge Field,football,pitch,40.0014085,-105.2606071,,,CO,,false,true,false,openstreetmap
+La Veta Schools Football Field,football,pitch,37.5128889,-105.0035399,,,CO,,false,true,false,openstreetmap
+La Veta Schools Practice Field,football,pitch,37.5063576,-105.0062358,,,CO,,false,true,false,openstreetmap
+Mountain Vista Football Field,football,pitch,39.5194381,-104.9643605,,,CO,,false,true,false,openstreetmap
+Mustangs,football,pitch,39.0835753,-108.508768,,,CO,,false,true,false,openstreetmap
+Neta and Eddie DeRose Thunderbowl Stadium,football,pitch,38.3101777,-104.5704737,,,CO,,false,true,false,openstreetmap
+North High School Football Field,football,pitch,39.760707,-105.0212091,,,CO,,false,true,false,openstreetmap
+Nottingham Field,football,pitch,40.4033266,-104.7051131,,,CO,,false,true,false,openstreetmap
+Practice Field,football,pitch,39.5799328,-104.8314151,,,CO,,false,true,false,openstreetmap
+Practice Field,football,pitch,39.5788881,-104.8307128,,,CO,,false,true,false,openstreetmap
+Practice Field,football,pitch,39.578894,-104.8313849,,,CO,,false,true,false,openstreetmap
+Ralph Stocker Field,football,pitch,39.0765103,-108.5515506,,,CO,,false,true,false,openstreetmap
+Recreation Field,football,pitch,39.3671906,-104.6025682,,,CO,,false,true,false,openstreetmap
+Rio Grande Ballfield,football,pitch,39.1921879,-106.8176483,,,CO,,false,true,false,openstreetmap
+Rock canyon Football Field,football,pitch,39.5160089,-104.922745,,,CO,,false,true,false,openstreetmap
+Shea Stadium,football,pitch,39.5469183,-105.0326305,,,CO,,false,true,false,openstreetmap
+Sonny Lubick Field,football,pitch,40.5699124,-105.0884534,,,CO,,false,true,false,openstreetmap
+Soper Field,football,pitch,37.7695557,-108.9102512,,,CO,,false,true,false,openstreetmap
+Soper Field,football,pitch,37.7692536,-108.9113972,,,CO,,false,true,false,openstreetmap
+South Suburban Parks and Recreation Sports Complex,football,sports_centre,39.5900235,-104.8487389,,,CO,,false,true,false,openstreetmap
+St. Mary's,football,pitch,38.8816014,-104.7970819,,,CO,,false,true,false,openstreetmap
+Stermole Track & Field Complex/Crouch Field Events Complex,football,pitch,39.7516622,-105.2286709,,,CO,,false,true,false,openstreetmap
+Williams FIeld,football,pitch,39.9306284,-105.1501356,,,CO,,false,true,false,openstreetmap
+Folsom Field,football,stadium,40.0093322,-105.2666962,2085 Colorado Avenue,Boulder,CO,,false,true,false,openstreetmap
+Denver Broncos NFL Football Headquarters Campus,football,sports_centre,39.5792101,-104.8320078,13655 Broncos Parkway,Centennial,CO,80112,false,true,false,openstreetmap
+Empower Field at Mile High,football,stadium,39.7439493,-105.0201103,1701 Bryant Street,Denver,CO,80204,false,true,false,openstreetmap
+Football Practice Field,football,pitch,39.0829338,-108.5556014,1000 Mesa Walk,Grand Junction,CO,81501,false,true,false,openstreetmap
+Maverick Stampede Practice Field,football,pitch,39.0853793,-108.5534982,1925 North 12th Street,Grand Junction,CO,81501,false,true,false,openstreetmap
+Savage Stadium,football,pitch,38.0833454,-102.6239776,West Pearl Street,Lamar,CO,81052,false,true,false,openstreetmap
+Falcon Stadium,football,stadium,38.9970669,-104.8436504,2169 Field House Drive,United States Air Force Academy,CO,80840,false,true,false,openstreetmap

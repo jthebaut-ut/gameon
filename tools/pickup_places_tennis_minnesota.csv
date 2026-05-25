@@ -1,0 +1,44 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+(private tennis),tennis,pitch,44.0440911,-92.4791051,,,MN,,false,true,false,openstreetmap
+Arena Acres Park Tennis Court,tennis,pitch,45.2069739,-93.1155945,,,MN,,false,true,false,openstreetmap
+City Center Park,tennis,sports_centre,44.8654232,-93.5381744,,,MN,,false,true,false,openstreetmap
+City of Woodbury,tennis,pitch,44.8959785,-92.9465998,,,MN,,false,true,false,openstreetmap
+Fred Wells Tennis & Education Center,tennis,sports_centre,44.8927834,-93.1938472,100 Federal Drive South,,MN,,false,true,false,openstreetmap
+Pat Lamb Courts,tennis,pitch,44.4594461,-93.1489137,,,MN,,false,true,false,openstreetmap
+Pat Lamb Courts,tennis,pitch,44.4594463,-93.1482999,,,MN,,false,true,false,openstreetmap
+Pinehurst Tennis court 1,tennis,pitch,46.7187315,-92.4641487,,,MN,,false,true,false,openstreetmap
+Pinehurst Tennis court 2,tennis,pitch,46.718773,-92.4639667,,,MN,,false,true,false,openstreetmap
+Saint Marys University Tennis Center,tennis,pitch,44.0513519,-91.6668158,,,MN,,false,true,false,openstreetmap
+Swanson Tennis Center,tennis,sports_centre,44.3284367,-93.9739488,,,MN,,false,true,false,openstreetmap
+Tennis,tennis,pitch,44.1559166,-92.5193414,,,MN,,false,true,false,openstreetmap
+Tennis,tennis,pitch,44.6108906,-92.9972315,,,MN,,false,true,false,openstreetmap
+Tennis Court 1 STA Water Tower Park,tennis,pitch,45.0281994,-93.2171111,,,MN,,false,true,false,openstreetmap
+Tennis Court 2 STA Water Tower Park,tennis,pitch,45.0281972,-93.2172975,,,MN,,false,true,false,openstreetmap
+Tennis Court 3 STA Water Tower Park,tennis,pitch,45.0281949,-93.2174846,,,MN,,false,true,false,openstreetmap
+Tennis Court 4 STA Water Tower Park,tennis,pitch,45.0285573,-93.2171205,,,MN,,false,true,false,openstreetmap
+Tennis Court 5 STA Water Tower Park,tennis,pitch,45.0285546,-93.2173088,,,MN,,false,true,false,openstreetmap
+Tennis Court 6 STA Water Tower Park,tennis,pitch,45.0285521,-93.2174956,,,MN,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,44.3010886,-94.461084,,,MN,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,44.3154922,-94.4861226,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9793401,-93.2309422,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9790469,-93.2311765,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9887134,-93.1877477,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9883833,-93.1875667,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9883833,-93.1877511,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9887125,-93.1875594,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9791445,-93.2304579,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9792109,-93.2306181,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9792756,-93.2307811,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.978854,-93.2306923,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9789172,-93.2308536,,,MN,,false,true,false,openstreetmap
+University of Minnesota,tennis,pitch,44.9789837,-93.2310151,,,MN,,false,true,false,openstreetmap
+Watab Lot,tennis,parking,45.5831337,-94.3947314,,,MN,,false,true,false,openstreetmap
+Life Time Fitness,tennis,sports_centre,44.855858,-93.4375298,755 Prairie Center Drive,Eden Prairie,MN,55344,false,true,false,openstreetmap
+Life Time Fitness,tennis,sports_centre,44.8554866,-93.4375139,755 Prairie Center Drive,Eden Prairie,MN,55344,false,true,false,openstreetmap
+Reed-Sweatt Family Tennis Center,tennis,sports_centre,44.929963,-93.2761047,4005 Nicollet Avenue South,Minneapolis,MN,55409,false,true,false,openstreetmap
+Ridder Arena & Baseline Tennis Facility,tennis,sports_centre,44.9787371,-93.2295582,1815 Southeast 4th Street,Minneapolis,MN,55455,false,true,false,openstreetmap
+Life Time Athletic - Oakdale Village Tennis,tennis,sports_centre,44.9717266,-93.4047452,1201 Ford Road,Minnetonka,MN,55305,false,true,false,openstreetmap
+John Marshall High School Tennis Courts,tennis,sports_centre,44.0356102,-92.4860953,1510 14th Street Northwest,Rochester,MN,55901,false,true,false,openstreetmap
+Michael Lynn's Tennis Shop,tennis,pitch,44.9310431,-93.3455038,5011 Excelsior Boulevard,Saint Louis Park,MN,55416,false,true,false,openstreetmap
+St Paul Indoor Tennis Club,tennis,pitch,44.9591126,-93.0804472,600 Desoto Street,Saint Paul,MN,55130,false,true,false,openstreetmap
+Tennis on Selby,tennis,pitch,44.9467191,-93.1680377,1599 Selby Avenue,Saint Paul,MN,55104,false,true,false,openstreetmap

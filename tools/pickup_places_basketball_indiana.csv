@@ -1,0 +1,58 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court (Abandonded),basketball,pitch,41.5275031,-87.309457,,,IN,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,40.7536419,-86.3716794,,,IN,,false,true,false,openstreetmap
+Bellmont Estates Basketball Court,basketball,pitch,40.8315522,-84.9055469,,,IN,,false,true,false,openstreetmap
+Bishop Park Basketball Court,basketball,pitch,40.7487291,-86.3444458,,,IN,,false,true,false,openstreetmap
+Broadview Park Basketball Court,basketball,pitch,39.1400682,-86.5417769,,,IN,,false,true,false,openstreetmap
+Carlisle Junior High Basketball Court,basketball,pitch,38.9628244,-87.4012658,,,IN,,false,true,false,openstreetmap
+Centennial Basketball Court,basketball,pitch,41.3574751,-86.3062336,,,IN,,false,true,false,openstreetmap
+Chadwick Court,basketball,sports_centre,40.0370329,-86.9078591,,,IN,,false,true,false,openstreetmap
+Dream Court,basketball,pitch,39.8286383,-84.91834,,,IN,,false,true,false,openstreetmap
+Fairview Park Basketball Court,basketball,pitch,40.7403282,-86.375444,,,IN,,false,true,false,openstreetmap
+Hagedorn Park Basketball Court,basketball,pitch,37.9571941,-86.7608829,,,IN,,false,true,false,openstreetmap
+Jackson Community Court,basketball,pitch,40.2584376,-87.0315394,,,IN,,false,true,false,openstreetmap
+Jefferson Park Basketball Court,basketball,pitch,39.8687432,-86.4453903,,,IN,,false,true,false,openstreetmap
+Kiwanis Park Basketball Court,basketball,pitch,37.9486634,-86.7577704,,,IN,,false,true,false,openstreetmap
+Mackey Arena,basketball,stadium,40.4333231,-86.9161713,900 John R Wooden Drive,,IN,47907,false,true,false,openstreetmap
+Mariah Hill Park Basketball Court,basketball,pitch,38.165437,-86.9258703,,,IN,,false,true,false,openstreetmap
+Memorial Court for Hank Voss,basketball,pitch,39.1210685,-85.1259682,,,IN,,false,true,false,openstreetmap
+Monterey Community Park Basketball Court,basketball,pitch,41.1566035,-86.4824952,,,IN,,false,true,false,openstreetmap
+Muehlhausen Park Basketball Courts,basketball,pitch,40.7526785,-86.3411971,,,IN,,false,true,false,openstreetmap
+NFC Basketball Courts,basketball,pitch,40.7591099,-86.3563187,,,IN,,false,true,false,openstreetmap
+Nicoson Hall,basketball,sports_centre,39.7088868,-86.1315293,,,IN,,false,true,false,openstreetmap
+North Gym,basketball,pitch,39.9108226,-86.1297668,,,IN,,false,true,false,openstreetmap
+Odle Arena,basketball,stadium,40.4558299,-85.5017693,,,IN,,false,true,false,openstreetmap
+Old Sullivan Gym,basketball,sports_hall,39.0936144,-87.4088674,,,IN,,false,true,false,openstreetmap
+Orchard Park Basketball Court,basketball,pitch,39.9398648,-86.1321558,,,IN,,false,true,false,openstreetmap
+Parking/Basketball,basketball,pitch,40.148708,-86.0103776,,,IN,,false,true,false,openstreetmap
+Penn Aux Gym,basketball,pitch,41.6793959,-86.108353,,,IN,,false,true,false,openstreetmap
+Penn Fitness Center,basketball,pitch,41.6793146,-86.1070327,,,IN,,false,true,false,openstreetmap
+Penn Main Arena,basketball,pitch,41.6798285,-86.1074626,,,IN,,false,true,false,openstreetmap
+Recreation Center Basketball Courts,basketball,pitch,40.670264,-86.1527836,,,IN,,false,true,false,openstreetmap
+Redkey Park,basketball,pitch,40.3482766,-85.1582178,,,IN,,false,true,false,openstreetmap
+Redkey Park,basketball,pitch,40.3484323,-85.1585508,,,IN,,false,true,false,openstreetmap
+River Bend Apartments Basketball Court,basketball,pitch,40.7635874,-86.318254,,,IN,,false,true,false,openstreetmap
+Riverside Park Basketball Court,basketball,pitch,40.7596439,-86.3542248,,,IN,,false,true,false,openstreetmap
+Romeo Langford Court,basketball,pitch,38.3567496,-85.7968901,,,IN,,false,true,false,openstreetmap
+SHS Main Gym,basketball,pitch,38.9564168,-85.906075,,,IN,,false,true,false,openstreetmap
+Schaeffer Park Basketball Court,basketball,pitch,37.953435,-86.7397869,,,IN,,false,true,false,openstreetmap
+South Gym,basketball,pitch,39.9102376,-86.1297261,,,IN,,false,true,false,openstreetmap
+Speed Court,basketball,pitch,39.4821495,-87.3273946,,,IN,,false,true,false,openstreetmap
+Spruce Basketball Courts,basketball,pitch,39.1662135,-86.5112695,,,IN,,false,true,false,openstreetmap
+Stardust Community Basketball Court,basketball,pitch,39.5210168,-86.8121542,,,IN,,false,true,false,openstreetmap
+The Academy Basketball Court,basketball,pitch,40.7564818,-86.374414,,,IN,,false,true,false,openstreetmap
+The Boulders Basketball Court,basketball,pitch,40.75497,-86.4048976,,,IN,,false,true,false,openstreetmap
+University of Southern Indiana,basketball,pitch,37.9611898,-87.6745253,,,IN,,false,true,false,openstreetmap
+University of Southern Indiana,basketball,pitch,37.9653806,-87.6705031,,,IN,,false,true,false,openstreetmap
+University of Southern Indiana,basketball,pitch,37.9669362,-87.6679273,,,IN,,false,true,false,openstreetmap
+Upper Cascades Basketball Court,basketball,pitch,39.192307,-86.5373335,,,IN,,false,true,false,openstreetmap
+Willkie Basketball Courts,basketball,pitch,39.1674003,-86.5103175,,,IN,,false,true,false,openstreetmap
+Zoercher-Bettinger Park Basketball Court,basketball,pitch,37.9679835,-86.7668434,,,IN,,false,true,false,openstreetmap
+basketball court,basketball,pitch,40.5148225,-86.8052165,,,IN,,false,true,false,openstreetmap
+Bill and Gayle Cook Hall,basketball,sports_centre,39.1800827,-86.5209787,1051 East 17th Street,Bloomington,IN,47408,false,true,false,openstreetmap
+Simon Skjodt Assembly Hall,basketball,sports_centre,39.1808612,-86.5222361,1001 East 17th Street,Bloomington,IN,47408,false,true,false,openstreetmap
+Gainbridge Fieldhouse,basketball,stadium,39.7640528,-86.1554881,125 South Pennsylvania Street,Indianapolis,IN,46204,false,true,false,openstreetmap
+Indiana Basketball Academy,basketball,pitch,39.9301467,-86.1042512,3800 Bauer Drive West,Indianapolis,IN,46280,false,true,false,openstreetmap
+Brown Gymnasium,basketball,sports_centre,38.7344334,-85.3834419,100 S Broadway Street,Madison,IN,47250,false,true,false,openstreetmap
+Division Street Park,basketball,pitch,38.2927543,-85.805605,1728 Division Street,New Albany,IN,47150,false,true,false,openstreetmap
+Scott County Family YMCA,basketball,sports_centre,38.7003445,-85.791728,805 Community Way,Scottsburg,IN,47170,false,true,false,openstreetmap

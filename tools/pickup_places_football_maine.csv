@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Stadium,football,pitch,43.4186506,-70.746639,,,ME,,false,true,false,openstreetmap
+Cameron Stadium,football,pitch,44.8128728,-68.7553389,,,ME,,false,true,false,openstreetmap
+Chet Bulger Field,football,pitch,44.5564647,-70.5495253,,,ME,,false,true,false,openstreetmap
+Cobb Stadium,football,pitch,43.4518505,-70.7855514,,,ME,,false,true,false,openstreetmap
+Cross Football Field,football,pitch,44.4203363,-70.7663115,,,ME,,false,true,false,openstreetmap
+Deering Oaks Football Field,football,pitch,43.6595366,-70.2746198,,,ME,,false,true,false,openstreetmap
+Doucette Field,football,pitch,44.1359626,-70.0555369,,,ME,,false,true,false,openstreetmap
+Dwyer Football Field,football,pitch,44.1978329,-70.412313,,,ME,,false,true,false,openstreetmap
+Field Goal Post,football,pitch,43.6598314,-70.2741583,,,ME,,false,true,false,openstreetmap
+Gerry Poulin Memorial Field,football,pitch,44.5518253,-69.6212001,,,ME,,false,true,false,openstreetmap
+Hannaford Field,football,pitch,43.5912515,-70.2316413,,,ME,,false,true,false,openstreetmap
+Harlow Football Field,football,pitch,44.5387519,-70.4517775,,,ME,,false,true,false,openstreetmap
+Hill Stadium,football,pitch,43.5079203,-70.438749,,,ME,,false,true,false,openstreetmap
+Lewiston Middle School Main Field,football,pitch,44.1018564,-70.2019007,,,ME,,false,true,false,openstreetmap
+Libby Field,football,pitch,44.2670846,-70.2257288,,,ME,,false,true,false,openstreetmap
+Lisa's Boneyard,football,pitch,46.7682765,-67.9881855,,,ME,,false,true,false,openstreetmap
+Lisbon High School Football Field,football,pitch,43.9991569,-70.0713677,,,ME,,false,true,false,openstreetmap
+Morse Field,football,pitch,44.9051249,-68.6716572,,,ME,,false,true,false,openstreetmap
+Practice Field,football,pitch,44.1233658,-69.3076595,,,ME,,false,true,false,openstreetmap
+Presumpscot Park Field,football,pitch,43.6725482,-70.298276,,,ME,,false,true,false,openstreetmap
+Seaverns Field,football,pitch,44.5669757,-69.6594087,,,ME,,false,true,false,openstreetmap
+Topsham Fairground Football Field,football,pitch,43.9331524,-69.95482,,,ME,,false,true,false,openstreetmap
+Wasgett Field,football,pitch,44.0943327,-69.1171655,,,ME,,false,true,false,openstreetmap
+Winkin Football Field,football,pitch,44.8245302,-68.7942381,,,ME,,false,true,false,openstreetmap
+Youth Football Field,football,pitch,44.5498975,-69.6160961,,,ME,,false,true,false,openstreetmap
+Alfond Sports Stadium,football,stadium,44.9051249,-68.6717252,169 Munson Road,Orono,ME,04469,false,true,false,openstreetmap

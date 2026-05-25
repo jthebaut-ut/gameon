@@ -1,0 +1,77 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+AZ Soccer Lab,soccer,sports_hall,33.6132857,-111.910626,,,AZ,,false,true,false,openstreetmap
+Bear Down Field,soccer,pitch,32.2300439,-110.9488341,,,AZ,,false,true,false,openstreetmap
+CCV Stars Soccer Fields - Avondale,soccer,pitch,33.4614794,-112.3023414,,,AZ,,false,true,false,openstreetmap
+East Field Eight,soccer,pitch,33.6803979,-112.0231647,,,AZ,,false,true,false,openstreetmap
+East Field Five,soccer,pitch,33.6817264,-112.0233922,,,AZ,,false,true,false,openstreetmap
+East Field Four,soccer,pitch,33.6826255,-112.0212883,,,AZ,,false,true,false,openstreetmap
+East Field Nine,soccer,pitch,33.6802196,-112.0222899,,,AZ,,false,true,false,openstreetmap
+East Field One,soccer,pitch,33.6841561,-112.0217873,,,AZ,,false,true,false,openstreetmap
+East Field Seven,soccer,pitch,33.681377,-112.0216382,,,AZ,,false,true,false,openstreetmap
+East Field Six,soccer,pitch,33.6815517,-112.022513,,,AZ,,false,true,false,openstreetmap
+East Field Ten,soccer,pitch,33.6800595,-112.0214108,,,AZ,,false,true,false,openstreetmap
+East Field Three,soccer,pitch,33.6828002,-112.022185,,,AZ,,false,true,false,openstreetmap
+East Field Two,soccer,pitch,33.6829676,-112.0230554,,,AZ,,false,true,false,openstreetmap
+East Soccer Field,soccer,pitch,33.5815171,-112.457007,,,AZ,,false,true,false,openstreetmap
+Field 1,soccer,pitch,32.1801765,-110.9288099,,,AZ,,false,true,false,openstreetmap
+Field 11,soccer,pitch,32.1730942,-110.9314156,,,AZ,,false,true,false,openstreetmap
+Field 12,soccer,pitch,32.1738,-110.9314222,,,AZ,,false,true,false,openstreetmap
+Field 2,soccer,pitch,32.178868,-110.9290218,,,AZ,,false,true,false,openstreetmap
+Field 3,soccer,pitch,32.17888,-110.9281437,,,AZ,,false,true,false,openstreetmap
+Field 4,soccer,pitch,32.1788478,-110.9273045,,,AZ,,false,true,false,openstreetmap
+Field A1,soccer,pitch,33.2739903,-111.7432879,,,AZ,,false,true,false,openstreetmap
+Field A2,soccer,pitch,33.2739945,-111.744146,,,AZ,,false,true,false,openstreetmap
+Field A3,soccer,pitch,33.2740054,-111.7450959,,,AZ,,false,true,false,openstreetmap
+Field A4,soccer,pitch,33.2740028,-111.7459679,,,AZ,,false,true,false,openstreetmap
+Field B1,soccer,pitch,33.2729165,-111.7453546,,,AZ,,false,true,false,openstreetmap
+Field B2,soccer,pitch,33.2729114,-111.7460723,,,AZ,,false,true,false,openstreetmap
+Field C1,soccer,pitch,33.2719444,-111.7443453,,,AZ,,false,true,false,openstreetmap
+Field C2,soccer,pitch,33.2719441,-111.7449139,,,AZ,,false,true,false,openstreetmap
+Field C3,soccer,pitch,33.271947,-111.7456181,,,AZ,,false,true,false,openstreetmap
+Field C4,soccer,pitch,33.2719467,-111.746155,,,AZ,,false,true,false,openstreetmap
+Field D1,soccer,pitch,33.2712715,-111.7443469,,,AZ,,false,true,false,openstreetmap
+Field D2,soccer,pitch,33.2712713,-111.7449347,,,AZ,,false,true,false,openstreetmap
+Field D3,soccer,pitch,33.271339,-111.7456409,,,AZ,,false,true,false,openstreetmap
+Field E1,soccer,pitch,33.2707788,-111.7441915,,,AZ,,false,true,false,openstreetmap
+Field E2,soccer,pitch,33.2707778,-111.7444686,,,AZ,,false,true,false,openstreetmap
+Field E3,soccer,pitch,33.2707758,-111.7447577,,,AZ,,false,true,false,openstreetmap
+Field E4,soccer,pitch,33.2707736,-111.7450468,,,AZ,,false,true,false,openstreetmap
+Field E5,soccer,pitch,33.2708127,-111.7454757,,,AZ,,false,true,false,openstreetmap
+Field E6,soccer,pitch,33.2708141,-111.7458125,,,AZ,,false,true,false,openstreetmap
+Field F1,soccer,pitch,33.2707124,-111.7462521,,,AZ,,false,true,false,openstreetmap
+Field F2,soccer,pitch,33.270952,-111.7462513,,,AZ,,false,true,false,openstreetmap
+Field F3,soccer,pitch,33.2711971,-111.7462497,,,AZ,,false,true,false,openstreetmap
+Field F4,soccer,pitch,33.2714372,-111.7462495,,,AZ,,false,true,false,openstreetmap
+GCU Prescott Field,soccer,pitch,33.5120874,-112.1294593,,,AZ,,false,true,false,openstreetmap
+Kino North Stadium,soccer,stadium,32.1801693,-110.9276371,,,AZ,,false,true,false,openstreetmap
+Mesquite Field,soccer,pitch,33.3088492,-111.6743996,,,AZ,,false,true,false,openstreetmap
+Murphy Field,soccer,pitch,32.215492,-110.9370292,,,AZ,,false,true,false,openstreetmap
+North,soccer,pitch,32.3487615,-111.0943092,,,AZ,,false,true,false,openstreetmap
+North Soccer Field,soccer,pitch,33.3769658,-111.9414735,,,AZ,,false,true,false,openstreetmap
+Phoenix Premier FC,soccer,pitch,33.3766792,-111.9453388,,,AZ,,false,true,false,openstreetmap
+Phoenix Rising FC Youth Soccer,soccer,pitch,33.5593664,-111.8864574,,,AZ,,false,true,false,openstreetmap
+Pistor Middle School Soccer Fields,soccer,pitch,32.1526767,-111.025231,,,AZ,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,34.6163967,-112.4544735,,,AZ,,false,true,false,openstreetmap
+SO,soccer,pitch,32.6904375,-114.4919046,,,AZ,,false,true,false,openstreetmap
+Sereno Soccer Club,soccer,sports_hall,33.6740781,-112.022845,,,AZ,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,33.3645154,-111.935878,,,AZ,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,33.3644946,-111.9351851,,,AZ,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,33.3644857,-111.9345141,,,AZ,,false,true,false,openstreetmap
+Soccer Stadium,soccer,pitch,33.4245785,-111.9219267,,,AZ,,false,true,false,openstreetmap
+South,soccer,pitch,32.3476554,-111.0937501,,,AZ,,false,true,false,openstreetmap
+South Soccer Field,soccer,pitch,35.2206571,-114.0261661,,,AZ,,false,true,false,openstreetmap
+The Park at Wild Horse,soccer,pitch,33.2701282,-111.9774671,,,AZ,,false,true,false,openstreetmap
+Tierra Del Sol Elementary School Soccer Field,soccer,pitch,32.5883465,-114.7063579,,,AZ,,false,true,false,openstreetmap
+Varsity Field,soccer,pitch,34.61409,-112.4552785,,,AZ,,false,true,false,openstreetmap
+West Field Eighteen,soccer,pitch,33.6826801,-112.0268825,,,AZ,,false,true,false,openstreetmap
+West Field Eleven,soccer,pitch,33.6863417,-112.0286551,,,AZ,,false,true,false,openstreetmap
+West Field Fifteen,soccer,pitch,33.6837538,-112.0283347,,,AZ,,false,true,false,openstreetmap
+West Field Fourteen,soccer,pitch,33.6851033,-112.0279862,,,AZ,,false,true,false,openstreetmap
+West Field Seventeen,soccer,pitch,33.6825453,-112.0277399,,,AZ,,false,true,false,openstreetmap
+West Field Sixteen,soccer,pitch,33.6838738,-112.0274118,,,AZ,,false,true,false,openstreetmap
+West Field Thirteen,soccer,pitch,33.6851881,-112.0288491,,,AZ,,false,true,false,openstreetmap
+West Field Twelve,soccer,pitch,33.686251,-112.0278254,,,AZ,,false,true,false,openstreetmap
+West Soccer Field,soccer,pitch,33.5815109,-112.4576747,,,AZ,,false,true,false,openstreetmap
+Soccer Post Arrowhead,soccer,pitch,33.6367984,-112.2187804,7439 West Bell Road,Peoria,AZ,85382,false,true,false,openstreetmap
+Phoenix Rising Soccer Stadium,soccer,stadium,33.4451868,-112.0017943,3801 East Washington Street,Phoenix,AZ,85034,false,true,false,openstreetmap
+Casino Arizona Field,soccer,stadium,33.4382385,-111.9062279,751 North McClintock Drive,Tempe,AZ,85281,false,true,false,openstreetmap

@@ -1,0 +1,18 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Dillingham Tennis Courts,tennis,sports_centre,21.3048346,-157.8273755,,,HI,,false,true,false,openstreetmap
+Edith Kanakaole Tennis Stadium,tennis,stadium,19.717514,-155.0665383,,,HI,,false,true,false,openstreetmap
+Hualalai Sports Club,tennis,sports_centre,19.8276628,-155.9892097,,,HI,,false,true,false,openstreetmap
+Imoto Tennis Courts,tennis,sports_centre,21.3054328,-157.8171561,,,HI,,false,true,false,openstreetmap
+Poipu Kai Tennis Club,tennis,pitch,21.8749573,-159.4498951,,,HI,,false,true,false,openstreetmap
+Rutgers Tennis Center,tennis,stadium,20.0289059,-155.6972551,,,HI,,false,true,false,openstreetmap
+Tennis,tennis,pitch,21.3573173,-158.0838245,,,HI,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,20.8247217,-156.9221983,,,HI,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,21.2954589,-157.8161468,,,HI,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,20.8394497,-156.9202168,,,HI,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,21.3910546,-157.9857204,,,HI,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,21.283886,-157.8230901,,,HI,,false,true,false,openstreetmap
+Tennis Stadium,tennis,sports_centre,19.9398485,-155.8699591,,,HI,,false,true,false,openstreetmap
+Waikoloa Community Tennis Courts,tennis,pitch,19.9301235,-155.7943907,,,HI,,false,true,false,openstreetmap
+Wo Family Tennis Courts,tennis,sports_centre,21.3034742,-157.8264573,,,HI,,false,true,false,openstreetmap
+Beretania Tennis Club,tennis,pitch,21.3047423,-157.8469959,1325 South Beretania Street,Honolulu,HI,96814,false,true,false,openstreetmap
+Diamond Head Tennis Center,tennis,sports_centre,21.2630302,-157.8178599,3908 Paki Avenue,Honolulu,HI,,false,true,false,openstreetmap

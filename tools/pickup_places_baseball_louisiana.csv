@@ -1,0 +1,87 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10,baseball,pitch,30.4897763,-90.4048649,,,LA,,false,true,false,openstreetmap
+11,baseball,pitch,30.4890922,-90.4039906,,,LA,,false,true,false,openstreetmap
+12,baseball,pitch,30.4898318,-90.4040093,,,LA,,false,true,false,openstreetmap
+13,baseball,pitch,30.4891361,-90.4030169,,,LA,,false,true,false,openstreetmap
+14,baseball,pitch,30.4898636,-90.403041,,,LA,,false,true,false,openstreetmap
+15,baseball,pitch,30.4882809,-90.4030813,,,LA,,false,true,false,openstreetmap
+16,baseball,pitch,30.4873288,-90.4031272,,,LA,,false,true,false,openstreetmap
+7,baseball,pitch,30.4890205,-90.4058063,,,LA,,false,true,false,openstreetmap
+8,baseball,pitch,30.4897331,-90.4058433,,,LA,,false,true,false,openstreetmap
+9,baseball,pitch,30.4890644,-90.4048382,,,LA,,false,true,false,openstreetmap
+A. B. Netterville Field,baseball,pitch,30.4956935,-90.9157915,,,LA,,false,true,false,openstreetmap
+Acadian Ball Park,baseball,pitch,30.0216595,-91.8260366,,,LA,,false,true,false,openstreetmap
+Albrition Park,baseball,pitch,31.6882023,-93.3026019,,,LA,,false,true,false,openstreetmap
+Alex Box Stadium,baseball,stadium,30.4063948,-91.1874791,,,LA,,false,true,false,openstreetmap
+All Star,baseball,pitch,30.4642394,-90.4095505,,,LA,,false,true,false,openstreetmap
+Barrow Stadium,baseball,pitch,30.0282157,-90.0424132,,,LA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,32.4934758,-93.7196139,,,LA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,32.4425066,-93.7579191,,,LA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,32.4714177,-93.7032097,,,LA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,32.4716195,-93.7039752,,,LA,,false,true,false,openstreetmap
+Baseball Diamonds,baseball,pitch,29.953066,-89.9437081,,,LA,,false,true,false,openstreetmap
+Baseball diamonds,baseball,sports_centre,30.3638734,-90.0165028,,,LA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,31.0529131,-93.2040931,,,LA,,false,true,false,openstreetmap
+Bedico,baseball,pitch,30.4621838,-90.4100812,,,LA,,false,true,false,openstreetmap
+Bengal Stadium,baseball,pitch,30.4720497,-92.4375438,,,LA,,false,true,false,openstreetmap
+Billy Allgood Field,baseball,pitch,31.3219073,-92.4264776,,,LA,,false,true,false,openstreetmap
+Blue Field 1,baseball,pitch,30.3564108,-90.0215994,,,LA,,false,true,false,openstreetmap
+Blue Field 2,baseball,pitch,30.3556339,-90.021088,,,LA,,false,true,false,openstreetmap
+Blue Field 3,baseball,pitch,30.3552098,-90.022,,,LA,,false,true,false,openstreetmap
+Bringhurst Field (Closed) Historic,baseball,pitch,31.2867407,-92.4580344,,,LA,,false,true,false,openstreetmap
+Brown-Stroud Baseball Field,baseball,pitch,31.7467861,-93.0935927,,,LA,,false,true,false,openstreetmap
+Brusly High Baseball field,baseball,pitch,30.392148,-91.2368157,,,LA,,false,true,false,openstreetmap
+Byrd Field,baseball,pitch,32.427106,-93.697277,,,LA,,false,true,false,openstreetmap
+Captain Wayne Daigle Memorial Park,baseball,park,29.8038922,-90.819236,,,LA,,false,true,false,openstreetmap
+Centenary Softball Field,baseball,pitch,32.4793498,-93.7285603,,,LA,,false,true,false,openstreetmap
+Clandreneau Park,baseball,sports_centre,30.6312366,-92.4045043,,,LA,,false,true,false,openstreetmap
+E.A. Farley Field,baseball,pitch,30.0024161,-90.0576316,,,LA,,false,true,false,openstreetmap
+East Leesville Baseball Field,baseball,park,31.1392913,-93.2585868,,,LA,,false,true,false,openstreetmap
+Embanato Field,baseball,pitch,32.5339016,-92.0877733,,,LA,,false,true,false,openstreetmap
+FCA Flames Baseball Field,baseball,pitch,30.3827436,-91.0921886,,,LA,,false,true,false,openstreetmap
+Fabacher Field,baseball,pitch,30.1434148,-91.9974661,,,LA,,false,true,false,openstreetmap
+Fair Grounds Field,baseball,stadium,32.478542,-93.7825509,,,LA,,false,true,false,openstreetmap
+Fairgrounds Infield: Jazzfest stages,baseball,pitch,29.9838272,-90.0812762,,,LA,,false,true,false,openstreetmap
+Fordoche Ballpark,baseball,sports_centre,30.5945194,-91.603818,,,LA,,false,true,false,openstreetmap
+French Corner,baseball,pitch,30.4620202,-90.4111733,,,LA,,false,true,false,openstreetmap
+Gator Field,baseball,pitch,32.4481129,-93.7143911,,,LA,,false,true,false,openstreetmap
+Gold Mine on Airline,baseball,stadium,29.975587,-90.1995443,,,LA,,false,true,false,openstreetmap
+Grand Slam,baseball,pitch,30.4645936,-90.4091004,,,LA,,false,true,false,openstreetmap
+Home Run,baseball,pitch,30.4642515,-90.4090939,,,LA,,false,true,false,openstreetmap
+Jacobs Field,baseball,pitch,32.9583423,-93.1299638,,,LA,,false,true,false,openstreetmap
+Joe Miller Ballpark,baseball,stadium,30.1732386,-93.2130382,,,LA,,false,true,false,openstreetmap
+Lady Bengal Field,baseball,pitch,30.4734122,-92.4391087,,,LA,,false,true,false,openstreetmap
+Lee's Landing,baseball,pitch,30.4631138,-90.4111569,,,LA,,false,true,false,openstreetmap
+Lee-Hines Field,baseball,stadium,30.5211958,-91.1838657,,,LA,,false,true,false,openstreetmap
+Lincoln Little League,baseball,sports_centre,32.5638332,-92.6109357,,,LA,,false,true,false,openstreetmap
+M. L. Tigue Moore Field,baseball,stadium,30.2132514,-92.0416443,,,LA,,false,true,false,openstreetmap
+Maestri Field,baseball,pitch,30.0305067,-90.0470682,,,LA,,false,true,false,openstreetmap
+Manchac,baseball,pitch,30.4631168,-90.4099135,,,LA,,false,true,false,openstreetmap
+Marthaville Ballpark,baseball,pitch,31.7400359,-93.3962695,,,LA,,false,true,false,openstreetmap
+Miller Stadium,baseball,pitch,30.2051296,-92.3753645,,,LA,,false,true,false,openstreetmap
+Millville,baseball,pitch,30.4648578,-90.410745,,,LA,,false,true,false,openstreetmap
+Minden Ballpark,baseball,pitch,32.6274604,-93.293643,,,LA,,false,true,false,openstreetmap
+Northalke Christian Baseball Field,baseball,pitch,30.445863,-90.091101,,,LA,,false,true,false,openstreetmap
+Northlake Christian Softball Field,baseball,pitch,30.4459694,-90.0901408,,,LA,,false,true,false,openstreetmap
+OD Johnson Baseball Fields,baseball,pitch,30.2327984,-93.1708531,,,LA,,false,true,false,openstreetmap
+Pete Goldsby Field,baseball,stadium,30.4607278,-91.1686845,,,LA,,false,true,false,openstreetmap
+Ponchatoula,baseball,pitch,30.4641401,-90.4103712,,,LA,,false,true,false,openstreetmap
+Provencal Ballpark,baseball,pitch,31.6565261,-93.2030369,,,LA,,false,true,false,openstreetmap
+Pumpkin Center,baseball,pitch,30.4648544,-90.4116122,,,LA,,false,true,false,openstreetmap
+Randy McMahen Park,baseball,sports_centre,33.0178247,-93.4794345,417 Montgomery Dr,,LA,,false,true,false,openstreetmap
+Segnette Field,baseball,pitch,29.903723,-90.1634213,,,LA,,false,true,false,openstreetmap
+Shehee Stadium,baseball,pitch,32.4798779,-93.7295849,,,LA,,false,true,false,openstreetmap
+Skelly-Rupp Memorial Stadium,baseball,pitch,29.9334993,-90.0304942,,,LA,,false,true,false,openstreetmap
+Skip Bertman Field,baseball,pitch,30.406569,-91.1874633,,,LA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,32.5216209,-92.7235509,,,LA,,false,true,false,openstreetmap
+Southeastern Louisiana University Baseball Field,baseball,pitch,30.5098188,-90.4704165,,,LA,,false,true,false,openstreetmap
+Turchin Stadium,baseball,pitch,29.9461989,-90.1155654,,,LA,,false,true,false,openstreetmap
+VC High,baseball,pitch,29.9809669,-92.142404,,,LA,,false,true,false,openstreetmap
+Wadesboro,baseball,pitch,30.4641413,-90.411613,,,LA,,false,true,false,openstreetmap
+World Series,baseball,pitch,30.4646263,-90.4095458,,,LA,,false,true,false,openstreetmap
+Marucci Club,baseball,pitch,30.3956608,-91.0571133,5801 Siegen Lane,Baton Rouge,LA,70809,false,true,false,openstreetmap
+Val Reiss Park,baseball,park,29.9536329,-89.9455807,1101 Magistrate Street,Chalmette,LA,70043,false,true,false,openstreetmap
+Alvin Dark Stadium,baseball,stadium,30.2208712,-93.2005813,1450 5th Street,Lake Charles,LA,70601,false,true,false,openstreetmap
+Winterscheidt Stadium,baseball,pitch,29.8902784,-90.1042032,1000 Salesian Lane,Marrero,LA,70072,true,false,false,openstreetmap
+Unity Baptist Ballpark ,baseball,pitch,31.3738673,-92.2734629,6509 Magnolia Ln,Pineville ,LA,71360,false,true,false,openstreetmap
+Sterlingotn Sports Complex,baseball,sports_centre,32.6853566,-92.0233772,1290 Highway 136,Sterlington,LA,71280,false,true,false,openstreetmap

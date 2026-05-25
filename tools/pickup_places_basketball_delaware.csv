@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Robscott Manor 1Park,basketball,pitch,39.6586325,-75.7387078,,,DE,,false,true,false,openstreetmap
+Shannon Cove Basketball Court,basketball,pitch,39.4794919,-75.664495,,,DE,,false,true,false,openstreetmap
+Adams Street Courts,basketball,pitch,39.7430383,-75.5613214,210 North Jackson Street,Wilmington,DE,19801,false,true,false,openstreetmap

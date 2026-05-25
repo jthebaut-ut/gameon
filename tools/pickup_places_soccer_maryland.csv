@@ -1,0 +1,128 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+2,soccer,pitch,39.0354746,-77.1206039,,,MD,,false,true,false,openstreetmap
+Annapolis High School Athletic Fields,soccer,pitch,38.9764139,-76.56765,,,MD,,false,true,false,openstreetmap
+Annapolis High School Athletic Fields,soccer,pitch,38.976575,-76.5673367,,,MD,,false,true,false,openstreetmap
+Annapolis High School Athletic Fields,soccer,pitch,38.9749325,-76.5676931,,,MD,,false,true,false,openstreetmap
+Bates Middle School Soccer Field,soccer,pitch,38.9731676,-76.5074938,,,MD,,false,true,false,openstreetmap
+Bauer soccer field,soccer,pitch,39.0947941,-77.1069126,,,MD,,false,true,false,openstreetmap
+Bell Branch Soccer Field BB1,soccer,pitch,38.9868661,-76.6709851,,,MD,,false,true,false,openstreetmap
+Bell Branch Soccer Field BB3,soccer,pitch,38.9894363,-76.6755871,,,MD,,false,true,false,openstreetmap
+Bell Branch Turf Field 1A,soccer,pitch,38.9889154,-76.6771095,,,MD,,false,true,false,openstreetmap
+Bell Branch Turf Field 1B,soccer,pitch,38.9894065,-76.6771081,,,MD,,false,true,false,openstreetmap
+Bell Branch Turf Field 2A,soccer,pitch,38.9889154,-76.6781113,,,MD,,false,true,false,openstreetmap
+Bell Branch Turf Field 2B,soccer,pitch,38.9894084,-76.6781072,,,MD,,false,true,false,openstreetmap
+Big Pines Park,soccer,pitch,39.0847828,-77.2297443,,,MD,,false,true,false,openstreetmap
+Blue Sky Park,soccer,pitch,39.2388855,-77.2605627,,,MD,,false,true,false,openstreetmap
+Bonvegna Field,soccer,pitch,39.2777133,-76.5701592,,,MD,,false,true,false,openstreetmap
+Bryson Field,soccer,pitch,39.3796502,-77.1673723,,,MD,,false,true,false,openstreetmap
+Burdick Field,soccer,pitch,39.3938093,-76.6130795,,,MD,,false,true,false,openstreetmap
+Covenant Park,soccer,sports_centre,39.2465806,-76.8710073,,,MD,,false,true,false,openstreetmap
+Field #1,soccer,pitch,39.32333,-77.2760035,,,MD,,false,true,false,openstreetmap
+Field #2,soccer,pitch,39.322993,-77.2748646,,,MD,,false,true,false,openstreetmap
+Field #3,soccer,pitch,39.3226645,-77.273836,,,MD,,false,true,false,openstreetmap
+Field #4,soccer,pitch,39.2099914,-77.2464985,,,MD,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.2470696,-76.8758419,,,MD,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.151397,-77.3013993,,,MD,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.3399355,-76.5399383,,,MD,,false,true,false,openstreetmap
+Field 10,soccer,pitch,39.1553477,-77.310139,,,MD,,false,true,false,openstreetmap
+Field 12,soccer,pitch,39.1541379,-77.3107043,,,MD,,false,true,false,openstreetmap
+Field 13,soccer,pitch,39.154822,-77.3118978,,,MD,,false,true,false,openstreetmap
+Field 14,soccer,pitch,39.1530688,-77.3129031,,,MD,,false,true,false,openstreetmap
+Field 15,soccer,pitch,39.1527782,-77.3139499,,,MD,,false,true,false,openstreetmap
+Field 16,soccer,pitch,39.1516356,-77.3139474,,,MD,,false,true,false,openstreetmap
+Field 17,soccer,pitch,39.1509246,-77.3127718,,,MD,,false,true,false,openstreetmap
+Field 18,soccer,pitch,39.1488579,-77.3096508,,,MD,,false,true,false,openstreetmap
+Field 19,soccer,pitch,39.1482108,-77.3085875,,,MD,,false,true,false,openstreetmap
+Field 1A,soccer,pitch,39.1718017,-77.0932593,,,MD,,false,true,false,openstreetmap
+Field 1B,soccer,pitch,39.1713403,-77.0934415,,,MD,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.3365992,-77.3647545,,,MD,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.3395232,-76.5400135,,,MD,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.1525682,-77.3024003,,,MD,,false,true,false,openstreetmap
+Field 20,soccer,pitch,39.1481383,-77.3075127,,,MD,,false,true,false,openstreetmap
+Field 21,soccer,pitch,39.1484246,-77.3063896,,,MD,,false,true,false,openstreetmap
+Field 22,soccer,pitch,39.1489067,-77.3053259,,,MD,,false,true,false,openstreetmap
+Field 23,soccer,pitch,39.1497196,-77.3038629,,,MD,,false,true,false,openstreetmap
+Field 24,soccer,pitch,39.1502497,-77.3029546,,,MD,,false,true,false,openstreetmap
+Field 2A,soccer,pitch,39.1715303,-77.0921192,,,MD,,false,true,false,openstreetmap
+Field 2B,soccer,pitch,39.1710643,-77.0923168,,,MD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.2475814,-76.8744456,,,MD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.1536835,-77.3038179,,,MD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.3358949,-77.3654653,,,MD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.3391844,-76.5403004,,,MD,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.2474977,-76.8733838,,,MD,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.1539495,-77.3049764,,,MD,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.3388181,-76.5404908,,,MD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.1551256,-77.3054623,,,MD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.2459991,-76.872497,,,MD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.3385933,-76.5407537,,,MD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.1743999,-77.088938,,,MD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.2455965,-76.8713667,,,MD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.15513,-77.3066692,,,MD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.3384145,-76.540971,,,MD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.5211557,-77.4015461,,,MD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.1742598,-77.0880934,,,MD,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.244444,-76.8725447,,,MD,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.1539295,-77.3070171,,,MD,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.5212008,-77.4004704,,,MD,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.1680171,-77.0858628,,,MD,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.2445386,-76.8715604,,,MD,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.153854,-77.3084963,,,MD,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.1541462,-77.3095542,,,MD,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.2439979,-76.8693618,,,MD,,false,true,false,openstreetmap
+Field A,soccer,pitch,39.0726949,-76.8305622,,,MD,,false,true,false,openstreetmap
+Field A,soccer,pitch,39.1514292,-76.663765,,,MD,,false,true,false,openstreetmap
+Field A,soccer,pitch,39.1107359,-76.511714,,,MD,,false,true,false,openstreetmap
+Field B - Taylor A Waltman Memorial Field,soccer,pitch,39.1103668,-76.5104937,,,MD,,false,true,false,openstreetmap
+Field C,soccer,pitch,39.1117514,-76.5096993,,,MD,,false,true,false,openstreetmap
+Field D,soccer,pitch,39.1117791,-76.5085869,,,MD,,false,true,false,openstreetmap
+Freed Field,soccer,pitch,38.9926867,-77.1271976,,,MD,,false,true,false,openstreetmap
+Germantown Elementary Athletic Field,soccer,pitch,38.9820377,-76.514119,,,MD,,false,true,false,openstreetmap
+Goddard Field,soccer,pitch,38.9897614,-77.1250134,,,MD,,false,true,false,openstreetmap
+Gooseneck Field,soccer,pitch,39.0921738,-77.2012995,,,MD,,false,true,false,openstreetmap
+Greenspring Field,soccer,pitch,39.4224195,-76.6760158,,,MD,,false,true,false,openstreetmap
+Iroq Soccer Field,soccer,pitch,39.3551079,-76.1216797,,,MD,,false,true,false,openstreetmap
+John B. Yingling ’71 & Family Practice Field,soccer,sports_centre,39.3880779,-76.619123,,,MD,,false,true,false,openstreetmap
+John T. Marron Soccer Bowl,soccer,pitch,39.2678827,-76.5014747,,,MD,,false,true,false,openstreetmap
+Johns Hopkins Practice Field,soccer,pitch,39.3318617,-76.6218688,,,MD,,false,true,false,openstreetmap
+Largo-Lottsford Soccer field,soccer,pitch,38.9062878,-76.8321298,,,MD,,false,true,false,openstreetmap
+Lawrence E. Horning Sr. Sports Field,soccer,pitch,39.6790587,-77.3408157,,,MD,,false,true,false,openstreetmap
+Lunch time Soccer,soccer,pitch,38.8526588,-76.938694,,,MD,,false,true,false,openstreetmap
+Main Soccer Field,soccer,pitch,38.8843326,-76.8286582,,,MD,,false,true,false,openstreetmap
+Merritt Park Toddler Soccer Field,soccer,pitch,39.254209,-76.5050426,,,MD,,false,true,false,openstreetmap
+Monsignor Kane Field,soccer,pitch,38.9617727,-77.1112485,,,MD,,false,true,false,openstreetmap
+Montgomery College Soccer Field,soccer,pitch,39.0978336,-77.155591,,,MD,,false,true,false,openstreetmap
+Multi-purpose Field F,soccer,pitch,39.0950835,-76.5853868,,,MD,,false,true,false,openstreetmap
+Multipurpose Field A,soccer,pitch,39.0978281,-76.5840706,,,MD,,false,true,false,openstreetmap
+Multipurpose Field C,soccer,pitch,39.0961055,-76.585232,,,MD,,false,true,false,openstreetmap
+Old Bates Athletic Fields,soccer,pitch,38.973692,-76.5120252,,,MD,,false,true,false,openstreetmap
+Oxon Hill Clippers,soccer,pitch,38.7981933,-76.9902194,,,MD,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,39.6800698,-77.3423984,,,MD,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,39.6783964,-77.3436284,,,MD,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,39.6781772,-77.3427477,,,MD,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,39.6794618,-77.3426531,,,MD,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,39.6804628,-77.3439515,,,MD,,false,true,false,openstreetmap
+Practice Soccer Field,soccer,pitch,38.8856226,-76.8275358,,,MD,,false,true,false,openstreetmap
+Prindle Field,soccer,pitch,38.9892954,-77.1264958,,,MD,,false,true,false,openstreetmap
+Recreation Artificial Turf Field,soccer,pitch,38.9954899,-76.9391806,,,MD,,false,true,false,openstreetmap
+Retriever Soccer Park,soccer,stadium,39.2512886,-76.7051,,,MD,,false,true,false,openstreetmap
+Ritchie Park Elementary School Soccer Field,soccer,pitch,39.0634895,-77.173706,,,MD,,false,true,false,openstreetmap
+Riverside Fields,soccer,pitch,39.4442782,-77.3843224,,,MD,,false,true,false,openstreetmap
+Soccer,soccer,pitch,39.5727344,-77.7970971,,,MD,,false,true,false,openstreetmap
+Soccer,soccer,pitch,39.4524981,-77.4212019,,,MD,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,39.1366253,-77.0793786,,,MD,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,39.2939891,-76.7357412,,,MD,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,39.330862,-76.5766497,,,MD,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,39.3308579,-76.5752243,,,MD,,false,true,false,openstreetmap
+Soccer Field #5,soccer,pitch,39.331427,-76.5773412,,,MD,,false,true,false,openstreetmap
+Soccer Field #6,soccer,pitch,39.3304874,-76.5772127,,,MD,,false,true,false,openstreetmap
+Soccer Field at Pinecrest Park,soccer,pitch,39.0221236,-77.0043773,,,MD,,false,true,false,openstreetmap
+Sofive,soccer,sports_centre,39.0985029,-77.1493113,1008 Westmore Avenue,,MD,,false,true,false,openstreetmap
+Summit Ridge Soccer Field,soccer,pitch,39.3917871,-77.1531116,,,MD,,false,true,false,openstreetmap
+Washington Grove Multiple use Field,soccer,pitch,39.1449322,-77.1694184,,,MD,,false,true,false,openstreetmap
+Layhill Local Park,soccer,park,39.1014077,-77.0385756,14901 Layhill Road,Aspen Hill,MD,20906,false,true,false,openstreetmap
+"Clarence ""Du"" Burns Arena",soccer,stadium,39.2777924,-76.5716336,1301 South Ellwood Avenue,Baltimore,MD,21224,false,true,false,openstreetmap
+South Germantown Soccerplex Area,soccer,sports_centre,39.1517186,-77.3074484,18031 Central Park Circle,Boyds,MD,20841,false,true,false,openstreetmap
+Southeast Regional Recreation Center,soccer,sports_centre,39.2681113,-76.469739,4021 North Point Boulevard,Dundalk,MD,21222,false,true,false,openstreetmap
+Maryland Sports Arena,soccer,sports_centre,39.4418692,-76.2904903,2723 Pulaski Highway,Edgewood,MD,21040,false,true,false,openstreetmap
+Rockville Soccer,soccer,pitch,39.0745113,-77.1382113,837 Rockville Pike,Rockville,MD,20852,false,true,false,openstreetmap
+Cross Creek Club Park,soccer,pitch,39.0723198,-76.9371464,3530 Briggs Chaney Road,Silver Spring,MD,20705,false,true,false,openstreetmap

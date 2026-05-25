@@ -1,0 +1,42 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,33.6841934,-112.2647407,,,AZ,,false,true,false,openstreetmap
+Basketball,basketball,pitch,34.3999327,-110.5651951,,,AZ,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,33.6199563,-111.7085749,,,AZ,,false,true,false,openstreetmap
+Basketball Court,basketball,sports_centre,32.6871013,-114.6076868,,,AZ,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,35.2198615,-114.0261639,,,AZ,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,33.2665076,-111.8704374,,,AZ,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,32.6460403,-114.5873165,,,AZ,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,33.4820453,-112.3588194,,,AZ,,false,true,false,openstreetmap
+Candlelight Park Basketball Court,basketball,pitch,33.4413258,-111.8007659,,,AZ,,false,true,false,openstreetmap
+Carriage Lane Basketball Courts,basketball,pitch,33.3578341,-111.8907833,,,AZ,,false,true,false,openstreetmap
+Countryside Park Basketball Court,basketball,pitch,33.3964232,-111.7628559,,,AZ,,false,true,false,openstreetmap
+Cypress Ridge Half Court,basketball,park,33.409124,-112.1839577,,,AZ,,false,true,false,openstreetmap
+Emerald Park Basketball Court,basketball,pitch,33.3882652,-111.7962647,,,AZ,,false,true,false,openstreetmap
+Escobedo Park Basketball Court,basketball,pitch,33.424438,-111.8264348,,,AZ,,false,true,false,openstreetmap
+Evergreen Park Basketball Court,basketball,pitch,33.4249091,-111.8390221,,,AZ,,false,true,false,openstreetmap
+Goodwin Park Court,basketball,pitch,33.3300821,-111.9076211,,,AZ,,false,true,false,openstreetmap
+Indigo Sky Basketball Courts,basketball,pitch,33.1383906,-111.5618476,,,AZ,,false,true,false,openstreetmap
+Islands Basketball Court,basketball,pitch,33.3353934,-111.8181526,,,AZ,,false,true,false,openstreetmap
+JV Softball,basketball,pitch,33.5855674,-112.0197425,,,AZ,,false,true,false,openstreetmap
+Jones Park Basketball Courts,basketball,pitch,32.7506213,-111.546669,,,AZ,,false,true,false,openstreetmap
+North Gym,basketball,fitness_centre,33.392295,-111.5620304,,,AZ,,false,true,false,openstreetmap
+Outdoor Gymnasium,basketball,pitch,33.4312648,-111.7425942,,,AZ,,false,true,false,openstreetmap
+RMUSD Basketball Court Number One,basketball,pitch,36.9627838,-109.3824829,,,AZ,,false,true,false,openstreetmap
+RMUSD Basketball Court Number Three,basketball,pitch,36.9636655,-109.3806189,,,AZ,,false,true,false,openstreetmap
+RMUSD Basketball Court Number Two,basketball,pitch,36.9627798,-109.3823441,,,AZ,,false,true,false,openstreetmap
+Richard Jefferson Gymnasium,basketball,sports_hall,32.2309736,-110.9446392,,,AZ,,false,true,false,openstreetmap
+SWISH Factory,basketball,pitch,33.5636517,-112.2585677,,,AZ,,false,true,false,openstreetmap
+South Gym,basketball,fitness_centre,33.390507,-111.5616368,,,AZ,,false,true,false,openstreetmap
+Sports Courts,basketball,pitch,33.3436602,-111.9219846,,,AZ,,false,true,false,openstreetmap
+The Basketball Court,basketball,pitch,34.5312987,-112.4976563,,,AZ,,false,true,false,openstreetmap
+The Battleground Gym,basketball,sports_hall,33.4003528,-111.9573091,,,AZ,,false,true,false,openstreetmap
+The Bluffs Neighborhood Park Basketball Court,basketball,pitch,32.3705418,-111.0192668,,,AZ,,false,true,false,openstreetmap
+Trekell Park,basketball,pitch,32.7521272,-111.5641477,,,AZ,,false,true,false,openstreetmap
+Trekell Park,basketball,pitch,32.7521518,-111.5643298,,,AZ,,false,true,false,openstreetmap
+Washington Park Basketball Court,basketball,pitch,33.4245886,-111.8300168,,,AZ,,false,true,false,openstreetmap
+Whitman Park Basketball Court,basketball,pitch,33.4466322,-111.8360067,,,AZ,,false,true,false,openstreetmap
+Work Athletics Basketball Facility,basketball,pitch,33.3888744,-111.8039457,,,AZ,,false,true,false,openstreetmap
+basketball,basketball,pitch,34.1089775,-109.2944571,,,AZ,,false,true,false,openstreetmap
+Pierson High School Gym,basketball,pitch,31.341273,-110.9408561,451 North Arroyo Boulevard,Nogales,AZ,85621,false,true,false,openstreetmap
+Mortgage Matchup Center,basketball,stadium,33.4459532,-112.0714072,,Phoenix,AZ,,false,true,false,openstreetmap
+The PHHacility,basketball,pitch,33.4060766,-111.9819662,4600 East Cotton Gin Loop,Phoenix,AZ,85040,false,true,false,openstreetmap

@@ -1,0 +1,29 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+All Iowa Lawn Tennis Club,tennis,pitch,43.0092581,-92.6986488,,,IA,,false,true,false,openstreetmap
+Buxton Tennis Courts,tennis,sports_centre,41.3673885,-93.5689669,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5413569,-90.6515478,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5413846,-90.6513506,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5414093,-90.6511481,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5410378,-90.6514686,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5410605,-90.6512743,,,IA,,false,true,false,openstreetmap
+City of Dubuque,tennis,pitch,42.5410861,-90.651069,,,IA,,false,true,false,openstreetmap
+Cornell Tennis Courts,tennis,sports_centre,41.9276866,-91.4239869,,,IA,,false,true,false,openstreetmap
+Joint Use Tennis Complex,tennis,sports_centre,42.5210914,-92.461143,,,IA,,false,true,false,openstreetmap
+Joint Use Tennis Complex,tennis,sports_centre,42.5206524,-92.4611505,,,IA,,false,true,false,openstreetmap
+Joint Use Tennis Complex,tennis,sports_centre,42.5203013,-92.4611472,,,IA,,false,true,false,openstreetmap
+Mason Family Tennis Complex,tennis,sports_centre,42.4747856,-96.3643772,,,IA,,false,true,false,openstreetmap
+McCollum Waveland Tennis Complex,tennis,sports_centre,41.5950011,-93.682975,,,IA,,false,true,false,openstreetmap
+North Polk Tennis Courts,tennis,sports_centre,41.8155938,-93.6158736,,,IA,,false,true,false,openstreetmap
+Pella Christian Tennis Courts,tennis,sports_centre,41.3920756,-92.8877932,,,IA,,false,true,false,openstreetmap
+Private Tennis Court,tennis,pitch,43.3920375,-95.1041786,,,IA,,false,true,false,openstreetmap
+Private Tennis Court,tennis,pitch,43.3252015,-95.1486494,,,IA,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,42.8384292,-91.79262,,,IA,,false,true,false,openstreetmap
+Walker Johnston Tennis Courts,tennis,sports_centre,41.6260791,-93.7423156,,,IA,,false,true,false,openstreetmap
+Weed Park Tennis Courts,tennis,sports_centre,41.4393874,-91.0256231,,,IA,,false,true,false,openstreetmap
+Weed Park Tennis Courts,tennis,pitch,41.4396978,-91.0258741,,,IA,,false,true,false,openstreetmap
+Weed Park Tennis Courts,tennis,pitch,41.4397018,-91.0257154,,,IA,,false,true,false,openstreetmap
+Weed Park Tennis Courts,tennis,pitch,41.4396936,-91.0255567,,,IA,,false,true,false,openstreetmap
+Weed Park Tennis Courts,tennis,pitch,41.4396916,-91.0253952,,,IA,,false,true,false,openstreetmap
+Wulfsberg Tennis Courts,tennis,sports_centre,43.3126307,-91.8086845,,,IA,,false,true,false,openstreetmap
+Frank Farber Tennis Courts,tennis,sports_centre,42.4951729,-90.6983813,155 McCormick Street Ext,Dubuque,IA,52001,false,true,false,openstreetmap
+Punj Tennis Center,tennis,sports_centre,41.0184436,-91.9615428,Badgett Drive,Fairfield,IA,52557,false,true,false,openstreetmap

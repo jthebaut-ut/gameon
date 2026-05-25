@@ -1,0 +1,32 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,30.4836766,-90.4056829,,,LA,,false,true,false,openstreetmap
+2,soccer,pitch,30.4844147,-90.4057107,,,LA,,false,true,false,openstreetmap
+2 soccer fields,soccer,pitch,30.2549369,-91.9855977,,,LA,,false,true,false,openstreetmap
+3,soccer,pitch,30.4852166,-90.4057969,,,LA,,false,true,false,openstreetmap
+34,soccer,pitch,30.4861731,-90.4042484,,,LA,,false,true,false,openstreetmap
+35,soccer,pitch,30.4871722,-90.4042825,,,LA,,false,true,false,openstreetmap
+4,soccer,pitch,30.4861087,-90.4058458,,,LA,,false,true,false,openstreetmap
+Anvil Field,soccer,pitch,31.0540443,-93.2031756,,,LA,,false,true,false,openstreetmap
+Bengal Soccer Complex,soccer,pitch,30.4741516,-92.4394047,,,LA,,false,true,false,openstreetmap
+Brown Field,soccer,pitch,29.9428935,-90.1175095,,,LA,,false,true,false,openstreetmap
+Dr. Robert Mack Caruthers Field,soccer,pitch,32.5336215,-92.6532294,,,LA,,false,true,false,openstreetmap
+Eagle Field,soccer,pitch,31.7530251,-93.0985171,,,LA,,false,true,false,openstreetmap
+Field 10-3,soccer,pitch,29.6080938,-90.7788742,,,LA,,false,true,false,openstreetmap
+Field 10-4,soccer,pitch,29.6078731,-90.7785201,,,LA,,false,true,false,openstreetmap
+Field 12-1,soccer,pitch,29.6099309,-90.7804776,,,LA,,false,true,false,openstreetmap
+Field 12-2,soccer,pitch,29.6102112,-90.7809391,,,LA,,false,true,false,openstreetmap
+Field 13-1,soccer,pitch,29.6074471,-90.7776975,,,LA,,false,true,false,openstreetmap
+Field 13-2,soccer,pitch,29.6079726,-90.7773328,,,LA,,false,true,false,openstreetmap
+Field 6-1,soccer,pitch,29.6097812,-90.7797213,,,LA,,false,true,false,openstreetmap
+Field 6-2,soccer,pitch,29.6095203,-90.7799399,,,LA,,false,true,false,openstreetmap
+Field 6-3,soccer,pitch,29.6099365,-90.7799503,,,LA,,false,true,false,openstreetmap
+Field 6-4,soccer,pitch,29.6096609,-90.7801741,,,LA,,false,true,false,openstreetmap
+Field 8-1,soccer,pitch,29.6092402,-90.7800937,,,LA,,false,true,false,openstreetmap
+Field 8-2,soccer,pitch,29.608981,-90.7802657,,,LA,,false,true,false,openstreetmap
+Field 8-3,soccer,pitch,29.6087236,-90.780444,,,LA,,false,true,false,openstreetmap
+Field 8-4,soccer,pitch,29.6090469,-90.7809198,,,LA,,false,true,false,openstreetmap
+Mayo Field,soccer,pitch,32.4801435,-93.7283031,,,LA,,false,true,false,openstreetmap
+Moss Bluff Soccer Complex,soccer,pitch,30.2951247,-93.2219153,,,LA,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,30.4743206,-92.4376228,,,LA,,false,true,false,openstreetmap
+Third Coast Soccer,soccer,pitch,30.3887036,-91.1061146,8342 Perkins Road,,LA,,false,true,false,openstreetmap
+Ward 9,soccer,sports_centre,31.3608593,-92.3816271,,,LA,,false,true,false,openstreetmap

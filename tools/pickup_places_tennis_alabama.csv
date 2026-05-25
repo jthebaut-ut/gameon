@@ -1,0 +1,28 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Avenues of Lakeshore Tennis Court,tennis,pitch,33.4322407,-86.8454433,,,AL,,false,true,false,openstreetmap
+Court 1,tennis,pitch,33.3047136,-86.8087286,,,AL,,false,true,false,openstreetmap
+Darwin E. Hardison Tennis Courts,tennis,pitch,33.4626902,-86.8008455,,,AL,,false,true,false,openstreetmap
+Darwin E. Hardison Tennis Courts,tennis,pitch,33.4626859,-86.8002986,,,AL,,false,true,false,openstreetmap
+JSU Tennis Courts,tennis,pitch,33.8229632,-85.7731433,,,AL,,false,true,false,openstreetmap
+John W. Stewart Tennis Courts,tennis,sports_centre,33.1107964,-86.8686507,,,AL,,false,true,false,openstreetmap
+Lagoon Park Tennis Center,tennis,sports_centre,32.4010067,-86.2205215,,,AL,,false,true,false,openstreetmap
+Lunsford Tennis Complex,tennis,pitch,31.8068031,-85.9541854,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.4035999,-87.0434232,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.403603,-87.0432735,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.4036042,-87.0431171,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.40401,-87.0434041,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.4040036,-87.0432509,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Tennis Court,tennis,pitch,32.4040042,-87.0430919,,,AL,,false,true,false,openstreetmap
+Monark Grove Tennis Court,tennis,pitch,34.7045005,-86.7879945,,,AL,,false,true,false,openstreetmap
+Sherwood Courts,tennis,pitch,34.6655027,-86.5661781,,,AL,,false,true,false,openstreetmap
+Simmons Middle School Tennis Court,tennis,pitch,33.3860147,-86.8331957,,,AL,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.2695903,-87.5844828,,,AL,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.2946169,-87.4868072,,,AL,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.2946553,-87.4866651,,,AL,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.3205918,-87.5382205,,,AL,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,30.3273649,-87.5173961,,,AL,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.3605449,-86.7307175,,,AL,,false,true,false,openstreetmap
+The Cottages tennis court,tennis,pitch,33.6362359,-86.8654199,,,AL,,false,true,false,openstreetmap
+U.S. Olympic & Paralympic Training Site Tennis Courts,tennis,pitch,33.4692711,-86.784506,,,AL,,false,true,false,openstreetmap
+Wallace Tennis Complex,tennis,sports_centre,30.7937319,-88.1314375,,,AL,,false,true,false,openstreetmap
+Birmingham Tennis Academy,tennis,sports_centre,33.4696219,-86.785016,3700 Ridgeway Drive,Homewood,AL,35209,false,true,false,openstreetmap

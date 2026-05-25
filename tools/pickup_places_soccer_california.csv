@@ -1,0 +1,357 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,35.6400741,-120.6455395,,,CA,,false,true,false,openstreetmap
+1,soccer,pitch,33.9538015,-117.5564238,,,CA,,false,true,false,openstreetmap
+10,soccer,pitch,33.951195,-117.5539576,,,CA,,false,true,false,openstreetmap
+11,soccer,pitch,33.9521556,-117.5543205,,,CA,,false,true,false,openstreetmap
+12,soccer,pitch,33.9530304,-117.5545673,,,CA,,false,true,false,openstreetmap
+12,soccer,pitch,33.9530236,-117.5537715,,,CA,,false,true,false,openstreetmap
+14,soccer,pitch,33.9530208,-117.5530104,,,CA,,false,true,false,openstreetmap
+15,soccer,pitch,33.9530304,-117.552202,,,CA,,false,true,false,openstreetmap
+16,soccer,pitch,33.9541335,-117.554316,,,CA,,false,true,false,openstreetmap
+17,soccer,pitch,33.9540959,-117.5530485,,,CA,,false,true,false,openstreetmap
+18,soccer,pitch,33.9541196,-117.5522003,,,CA,,false,true,false,openstreetmap
+19,soccer,pitch,33.9551681,-117.5530568,,,CA,,false,true,false,openstreetmap
+2,soccer,pitch,35.6387867,-120.6457944,,,CA,,false,true,false,openstreetmap
+2,soccer,pitch,33.9537968,-117.5573056,,,CA,,false,true,false,openstreetmap
+20,soccer,pitch,33.9551473,-117.5522385,,,CA,,false,true,false,openstreetmap
+21,soccer,pitch,33.9551513,-117.5514189,,,CA,,false,true,false,openstreetmap
+22,soccer,pitch,33.9562618,-117.5530294,,,CA,,false,true,false,openstreetmap
+23,soccer,pitch,33.9562342,-117.5522433,,,CA,,false,true,false,openstreetmap
+24,soccer,pitch,33.9562263,-117.5514285,,,CA,,false,true,false,openstreetmap
+3,soccer,pitch,35.6393841,-120.6466052,,,CA,,false,true,false,openstreetmap
+3,soccer,pitch,33.9526712,-117.5564265,,,CA,,false,true,false,openstreetmap
+4,soccer,pitch,35.6403916,-120.6462623,,,CA,,false,true,false,openstreetmap
+4,soccer,pitch,33.9526572,-117.5573121,,,CA,,false,true,false,openstreetmap
+5,soccer,pitch,33.9510549,-117.5567578,,,CA,,false,true,false,openstreetmap
+6,soccer,pitch,33.9510312,-117.5575774,,,CA,,false,true,false,openstreetmap
+7,soccer,pitch,33.9499126,-117.5567292,,,CA,,false,true,false,openstreetmap
+8,soccer,pitch,33.9498968,-117.5575917,,,CA,,false,true,false,openstreetmap
+9,soccer,pitch,33.9511888,-117.5547452,,,CA,,false,true,false,openstreetmap
+A,soccer,pitch,35.2513827,-120.6469347,,,CA,,false,true,false,openstreetmap
+AYSO Building,soccer,pitch,38.5574062,-121.7475627,,,CA,,false,true,false,openstreetmap
+Academy Park,soccer,pitch,34.5791227,-118.0717595,,,CA,,false,true,false,openstreetmap
+Alameda Point Soccer Field,soccer,pitch,37.7874296,-122.3054707,,,CA,,false,true,false,openstreetmap
+Alan and Olive Gardemeyer Field,soccer,pitch,37.9849247,-121.3146955,,,CA,,false,true,false,openstreetmap
+Allyson Felix Field,soccer,pitch,34.0219762,-118.2878669,,,CA,,false,true,false,openstreetmap
+Amgen Soccer Field,soccer,pitch,34.1891015,-118.9224077,,,CA,,false,true,false,openstreetmap
+Arena Soccer Park of Orange,soccer,pitch,33.8242505,-117.8404934,,,CA,,false,true,false,openstreetmap
+B,soccer,pitch,35.2518857,-120.646149,,,CA,,false,true,false,openstreetmap
+Bakersfield Sports Village Soccer Complex,soccer,pitch,35.2720905,-119.0769385,,,CA,,false,true,false,openstreetmap
+Barbour Field,soccer,pitch,33.9060795,-118.0128025,,,CA,,false,true,false,openstreetmap
+Bear Valley Ballfield,soccer,pitch,38.4594622,-120.0375888,,,CA,,false,true,false,openstreetmap
+Blaker-Kinser Soccer Field,soccer,pitch,37.5918863,-120.9697283,,,CA,,false,true,false,openstreetmap
+Bobcat Field,soccer,pitch,37.3625948,-120.4303684,,,CA,,false,true,false,openstreetmap
+Bodega Bay Soccer Field,soccer,pitch,38.3341181,-123.0445559,,,CA,,false,true,false,openstreetmap
+Brittingham Intramural Field,soccer,pitch,34.0227624,-118.2878344,,,CA,,false,true,false,openstreetmap
+Buck Shaw Field,soccer,pitch,37.3504995,-121.9366193,,,CA,,false,true,false,openstreetmap
+C,soccer,pitch,35.2527216,-120.6460694,,,CA,,false,true,false,openstreetmap
+Cal Poly Sports Complex,soccer,pitch,35.3087948,-120.6682178,,,CA,,false,true,false,openstreetmap
+Caltech Athletic Center South Field,soccer,pitch,34.1331606,-118.1265322,,,CA,,false,true,false,openstreetmap
+Caplinger Soccer Field,soccer,pitch,34.2017587,-117.0912516,,,CA,,false,true,false,openstreetmap
+Cardinale Stadium,soccer,pitch,36.6508338,-121.8049458,,,CA,,false,true,false,openstreetmap
+Cardinale Stadium,soccer,stadium,36.6508908,-121.8049529,,,CA,,false,true,false,openstreetmap
+Chalmers Field,soccer,pitch,33.5040051,-117.6511392,,,CA,,false,true,false,openstreetmap
+Championship Field,soccer,pitch,37.9758094,-122.5341352,,,CA,,false,true,false,openstreetmap
+Championship Field,soccer,sports_centre,34.1584866,-118.7978056,,,CA,,false,true,false,openstreetmap
+Championship Soccer Stadium,soccer,stadium,33.6745565,-117.7393514,,,CA,,false,true,false,openstreetmap
+Chandler Field,soccer,pitch,34.1244705,-117.7371831,,,CA,,false,true,false,openstreetmap
+Children's Soccer Field,soccer,pitch,34.0314982,-117.604755,,,CA,,false,true,false,openstreetmap
+Children's Soccer Field,soccer,pitch,34.0811597,-117.6739908,,,CA,,false,true,false,openstreetmap
+City Hall,soccer,pitch,34.1382755,-118.0379052,,,CA,,false,true,false,openstreetmap
+Clemmensen Field,soccer,pitch,34.4189293,-119.8584219,,,CA,,false,true,false,openstreetmap
+College Creek Soccer Field,soccer,pitch,40.8730903,-124.08074,,,CA,,false,true,false,openstreetmap
+Cox Stadium,soccer,pitch,37.7247045,-122.4783072,,,CA,,false,true,false,openstreetmap
+Daryl Damon Field,soccer,pitch,35.251096,-120.6484653,,,CA,,false,true,false,openstreetmap
+Del Sol Stadium,soccer,pitch,34.2050256,-119.1620621,,,CA,,false,true,false,openstreetmap
+Dollinger Field,soccer,pitch,37.4495953,-122.1981387,,,CA,,false,true,false,openstreetmap
+East Athletic Field,soccer,pitch,33.9191006,-118.1314063,,,CA,,false,true,false,openstreetmap
+East Field,soccer,pitch,34.2417663,-118.5240088,,,CA,,false,true,false,openstreetmap
+East Field,soccer,pitch,36.9940546,-122.052747,,,CA,,false,true,false,openstreetmap
+Elite Sport Soccer,soccer,pitch,37.7548587,-122.4185683,2637 Mission Street,,CA,,false,true,false,openstreetmap
+Estahkri Family Sports Field,soccer,pitch,37.8330911,-121.9513666,,,CA,,false,true,false,openstreetmap
+Extreme Soccer,soccer,pitch,38.7850722,-121.287523,,,CA,,false,true,false,openstreetmap
+Farquhar Field,soccer,pitch,34.0676047,-117.1613208,,,CA,,false,true,false,openstreetmap
+Farquhar Fields,soccer,pitch,34.0667708,-117.1623906,,,CA,,false,true,false,openstreetmap
+Ferraro Soccer Fields,soccer,pitch,34.1543428,-118.2817387,,,CA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,36.6939878,-119.8340298,,,CA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,36.6939835,-119.8349645,,,CA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,36.6928598,-119.8351134,,,CA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,36.692853,-119.8342909,,,CA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,36.6928645,-119.8334503,,,CA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,36.6929437,-119.8326726,,,CA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,36.6929436,-119.8318585,,,CA,,false,true,false,openstreetmap
+Field #8,soccer,pitch,36.6929447,-119.831015,,,CA,,false,true,false,openstreetmap
+Field #9,soccer,pitch,36.6929522,-119.8302077,,,CA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,37.1260544,-121.6264527,,,CA,,false,true,false,openstreetmap
+Field 1-B,soccer,pitch,37.6927111,-120.9327731,,,CA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,33.9930761,-117.6837307,,,CA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,33.9938785,-117.6820453,,,CA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,33.994986,-117.6820582,,,CA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,33.9949943,-117.6811046,,,CA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,33.9950822,-117.6800569,,,CA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,33.9950539,-117.6791127,,,CA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,37.1251256,-121.6258885,,,CA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,37.1263295,-121.625728,,,CA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,37.8654669,-122.1910486,,,CA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,37.1254131,-121.6251698,,,CA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,37.1266127,-121.6249583,,,CA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,37.4404643,-122.1167999,,,CA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,37.1256975,-121.6244032,,,CA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,33.9930531,-117.6867429,,,CA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,33.9930966,-117.6858723,,,CA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,33.9931277,-117.684658,,,CA,,false,true,false,openstreetmap
+Field A,soccer,pitch,37.1275049,-121.626407,,,CA,,false,true,false,openstreetmap
+Field A,soccer,pitch,33.6876502,-117.8235527,,,CA,,false,true,false,openstreetmap
+Field B,soccer,pitch,37.1284008,-121.6269274,,,CA,,false,true,false,openstreetmap
+Field B,soccer,pitch,33.6891144,-117.823601,,,CA,,false,true,false,openstreetmap
+Field C,soccer,pitch,37.1286824,-121.6261933,,,CA,,false,true,false,openstreetmap
+Field C,soccer,pitch,33.6889476,-117.8220861,,,CA,,false,true,false,openstreetmap
+Field U,soccer,pitch,37.1279595,-121.6257502,,,CA,,false,true,false,openstreetmap
+Fielding East,soccer,pitch,37.8825799,-122.3039948,,,CA,,false,true,false,openstreetmap
+Fielding West,soccer,pitch,37.882516,-122.3050248,,,CA,,false,true,false,openstreetmap
+Fletcher Middle School Soccer Field,soccer,pitch,37.4019614,-122.1247189,,,CA,,false,true,false,openstreetmap
+Frank Guida 49er Field,soccer,pitch,37.4726383,-122.2381247,,,CA,,false,true,false,openstreetmap
+GBHS Soccer Field,soccer,pitch,38.730811,-121.212726,,,CA,,false,true,false,openstreetmap
+Garin Park,soccer,pitch,37.9289161,-121.6880525,,,CA,,false,true,false,openstreetmap
+Garin Park,soccer,pitch,37.9280798,-121.688066,,,CA,,false,true,false,openstreetmap
+Gary A. Gavello Fields,soccer,pitch,37.4520651,-122.1958005,,,CA,,false,true,false,openstreetmap
+George Allen Field,soccer,pitch,33.7858746,-118.1107362,,,CA,,false,true,false,openstreetmap
+Ghiorso Field,soccer,pitch,37.3433125,-121.9177069,,,CA,,false,true,false,openstreetmap
+Girsh-Hochman Field,soccer,pitch,34.4250118,-119.8718242,,,CA,,false,true,false,openstreetmap
+Glens Soccer Club,soccer,pitch,37.7610219,-122.4892911,2521 Judah Street,,CA,,false,true,false,openstreetmap
+Goals,soccer,sports_centre,34.0306151,-117.7500682,,,CA,,false,true,false,openstreetmap
+Goldman Field,soccer,pitch,37.8690049,-122.2648206,,,CA,,false,true,false,openstreetmap
+Great Park Soccer Fields 14-17,soccer,pitch,33.6719997,-117.7400322,,,CA,,false,true,false,openstreetmap
+Heart Health Park,soccer,pitch,38.5913512,-121.4380108,,,CA,,false,true,false,openstreetmap
+Hellman Soccer Field,soccer,pitch,37.7833667,-122.1861575,,,CA,,false,true,false,openstreetmap
+Hyde Middle School Soccer Field,soccer,pitch,37.3124016,-122.0124684,,,CA,,false,true,false,openstreetmap
+Indoor Soccer,soccer,pitch,37.7882112,-121.2595643,,,CA,,false,true,false,openstreetmap
+Intramural Soccer Field,soccer,pitch,37.5233441,-120.8517002,,,CA,,false,true,false,openstreetmap
+JLS Field #1,soccer,pitch,37.4193911,-122.1155087,,,CA,,false,true,false,openstreetmap
+JLS Field #2,soccer,pitch,37.419729,-122.1148472,,,CA,,false,true,false,openstreetmap
+JLS Field #3S,soccer,pitch,37.4199931,-122.1160068,,,CA,,false,true,false,openstreetmap
+JLS Field #5,soccer,pitch,37.4208671,-122.1156558,,,CA,,false,true,false,openstreetmap
+JLS Middle School Field,soccer,pitch,37.4201893,-122.1155467,,,CA,,false,true,false,openstreetmap
+James C. Gilley/Lancaster National Soccer Center,soccer,sports_centre,34.6627897,-118.0756263,,,CA,,false,true,false,openstreetmap
+John H. Henschel Soccer Field,soccer,pitch,33.9675772,-118.4253839,,,CA,,false,true,false,openstreetmap
+John Lucas Greer Park Filed 5 Scoccer,soccer,sports_centre,37.440445,-122.116662,,,CA,,false,true,false,openstreetmap
+Kemp #1,soccer,pitch,38.6529461,-121.1342967,,,CA,,false,true,false,openstreetmap
+Kemp #2,soccer,pitch,38.6542263,-121.1313399,,,CA,,false,true,false,openstreetmap
+Kennelly Field,soccer,pitch,37.979135,-122.518855,,,CA,,false,true,false,openstreetmap
+Krueger Fields,soccer,pitch,37.9676668,-122.0272869,,,CA,,false,true,false,openstreetmap
+Laird Q. Cagan Stadium,soccer,stadium,37.433041,-122.1580939,,,CA,,false,true,false,openstreetmap
+Las Casitas Soccer Field,soccer,pitch,32.6835414,-115.510589,,,CA,,false,true,false,openstreetmap
+Lovik Field,soccer,pitch,34.4449283,-119.662413,,,CA,,false,true,false,openstreetmap
+Loyalton Jr. High Field,soccer,pitch,39.6774643,-120.2417368,,,CA,,false,true,false,openstreetmap
+Main Street Soccer Field,soccer,pitch,37.7782172,-122.291948,,,CA,,false,true,false,openstreetmap
+Maloney Field,soccer,pitch,37.4330832,-122.1580555,,,CA,,false,true,false,openstreetmap
+Malshouf All Purpose Field,soccer,pitch,37.7219311,-122.4831893,,,CA,,false,true,false,openstreetmap
+Marlin Park Soccer Field,soccer,pitch,37.5308134,-122.2488722,,,CA,,false,true,false,openstreetmap
+Matador Soccer Field,soccer,pitch,34.2433359,-118.5252575,,,CA,,false,true,false,openstreetmap
+Mater Dei Soccer Field,soccer,pitch,33.724628,-117.8837176,,,CA,,false,true,false,openstreetmap
+Matthew J. Boxer Soccer Stadium,soccer,stadium,37.726133,-122.445019,,,CA,,false,true,false,openstreetmap
+Mayfield North,soccer,pitch,37.4230954,-122.1441386,,,CA,,false,true,false,openstreetmap
+Mayfield South,soccer,pitch,37.4226311,-122.1433407,,,CA,,false,true,false,openstreetmap
+McBride Soccer Field 2,soccer,pitch,33.8305242,-118.0944042,,,CA,,false,true,false,openstreetmap
+Milpitas High Soccer Field,soccer,pitch,37.4503443,-121.9042538,,,CA,,false,true,false,openstreetmap
+Moreno Valley Communtiy Park Soccer Fields,soccer,pitch,33.9270183,-117.2601599,,,CA,,false,true,false,openstreetmap
+Morton Street Field,soccer,pitch,37.794888,-122.4533829,,,CA,,false,true,false,openstreetmap
+Multi-Purpose Field,soccer,pitch,33.1311348,-117.16391,,,CA,,false,true,false,openstreetmap
+Murrieta Youth Soccer Fields,soccer,park,33.5913689,-117.2124581,,,CA,,false,true,false,openstreetmap
+North Artificial,soccer,pitch,37.87719,-122.3083228,,,CA,,false,true,false,openstreetmap
+North Field,soccer,pitch,34.2433772,-118.5265305,,,CA,,false,true,false,openstreetmap
+North Field,soccer,pitch,40.5483924,-122.3374671,,,CA,,false,true,false,openstreetmap
+Nutrilite Training Facility,soccer,pitch,37.3512344,-121.9281,,,CA,,false,true,false,openstreetmap
+Octo Inn Soccer Complex,soccer,sports_centre,38.2615185,-122.0629225,,,CA,,false,true,false,openstreetmap
+Odi Ortiz Memorial Soccer Field,soccer,pitch,37.3881872,-120.7073826,,,CA,,false,true,false,openstreetmap
+Ohlone Soccer Field,soccer,pitch,37.8727727,-122.2794751,,,CA,,false,true,false,openstreetmap
+Pacific Field,soccer,pitch,33.5164289,-117.6239584,,,CA,,false,true,false,openstreetmap
+Pacific Ridge School Athletic Field,soccer,pitch,33.1217657,-117.250203,,,CA,,false,true,false,openstreetmap
+Paris Saint-Germain,soccer,pitch,34.0588011,-118.4199323,,,CA,,false,true,false,openstreetmap
+Paul Goode Field,soccer,pitch,37.7922589,-122.4538723,,,CA,,false,true,false,openstreetmap
+PayPal Park,soccer,pitch,37.351162,-121.9246028,,,CA,,false,true,false,openstreetmap
+PayPal Soccer Field,soccer,pitch,37.3746238,-121.9259369,,,CA,,false,true,false,openstreetmap
+Pioneer Stadium,soccer,stadium,37.6572422,-122.0607853,,,CA,,false,true,false,openstreetmap
+Pioneer Stadium,soccer,pitch,37.6572342,-122.0607697,,,CA,,false,true,false,openstreetmap
+Pitch 1,soccer,pitch,37.7140239,-122.4293531,,,CA,,false,true,false,openstreetmap
+Pitch 1A/B,soccer,pitch,37.7138121,-122.4294239,,,CA,,false,true,false,openstreetmap
+Pitch 1C/D,soccer,pitch,37.7142384,-122.429282,,,CA,,false,true,false,openstreetmap
+Pitch 2,soccer,pitch,37.7139646,-122.4283528,,,CA,,false,true,false,openstreetmap
+Pitch 2A/B,soccer,pitch,37.7140276,-122.4286518,,,CA,,false,true,false,openstreetmap
+Pitch 2C/D,soccer,pitch,37.7139037,-122.4280621,,,CA,,false,true,false,openstreetmap
+Pitch 3,soccer,pitch,37.7133199,-122.4285179,,,CA,,false,true,false,openstreetmap
+Pitch 4,soccer,pitch,37.7127513,-122.4287107,,,CA,,false,true,false,openstreetmap
+Pitch 5,soccer,pitch,37.7131026,-122.429665,,,CA,,false,true,false,openstreetmap
+Playa Vista Soccer Park,soccer,pitch,33.9747596,-118.4142299,,,CA,,false,true,false,openstreetmap
+Playfield Soccer Stadium,soccer,pitch,38.5442465,-121.7228904,,,CA,,false,true,false,openstreetmap
+Pomona College Sport Field,soccer,pitch,34.0960718,-117.7077111,,,CA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.165666,-122.234755,,,CA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,33.1268599,-117.1646068,,,CA,,false,true,false,openstreetmap
+Practice Field #2,soccer,pitch,33.6507268,-117.9731013,,,CA,,false,true,false,openstreetmap
+Pritzlaff Field,soccer,pitch,34.101397,-117.7054205,,,CA,,false,true,false,openstreetmap
+RWS Elementary Field,soccer,pitch,37.5429109,-122.2471791,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 1,soccer,pitch,38.4044805,-122.8457115,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 2,soccer,pitch,38.4042318,-122.8464646,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 3,soccer,pitch,38.403612,-122.8455317,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 4,soccer,pitch,38.4030558,-122.8456417,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 5,soccer,pitch,38.4028321,-122.8467266,,,CA,,false,true,false,openstreetmap
+Ragle Ranch Soccer Field 6,soccer,pitch,38.4025147,-122.8466068,,,CA,,false,true,false,openstreetmap
+Rancho Middle School Soccer Field,soccer,pitch,37.4236444,-121.8731141,,,CA,,false,true,false,openstreetmap
+Redding Soccer Park,soccer,sports_centre,40.5726902,-122.3048467,,,CA,,false,true,false,openstreetmap
+Rich May Memorial Field,soccer,pitch,37.4727093,-122.1443121,,,CA,,false,true,false,openstreetmap
+Ricky Henderson Field,soccer,pitch,37.7516546,-122.2005358,,,CA,,false,true,false,openstreetmap
+Rossotti Field,soccer,pitch,37.3806768,-122.1951905,,,CA,,false,true,false,openstreetmap
+Rumrill Sports Park,soccer,sports_centre,37.9562996,-122.3574768,,,CA,,false,true,false,openstreetmap
+SF 1,soccer,pitch,37.6793752,-121.8947023,,,CA,,false,true,false,openstreetmap
+SF 10,soccer,pitch,37.6828637,-121.888361,,,CA,,false,true,false,openstreetmap
+SF 11,soccer,pitch,37.6832376,-121.887356,,,CA,,false,true,false,openstreetmap
+SF 2,soccer,pitch,37.6797131,-121.8940656,,,CA,,false,true,false,openstreetmap
+SF 3,soccer,pitch,37.6800425,-121.8935205,,,CA,,false,true,false,openstreetmap
+SF 4,soccer,pitch,37.6800855,-121.8920145,,,CA,,false,true,false,openstreetmap
+SF 5,soccer,pitch,37.6806438,-121.8923578,,,CA,,false,true,false,openstreetmap
+SF 6,soccer,pitch,37.6812302,-121.8914987,,,CA,,false,true,false,openstreetmap
+SF 7,soccer,pitch,37.6813771,-121.8928996,,,CA,,false,true,false,openstreetmap
+SF 8,soccer,pitch,37.6817512,-121.8901889,,,CA,,false,true,false,openstreetmap
+SF 9,soccer,pitch,37.6824383,-121.8893651,,,CA,,false,true,false,openstreetmap
+SF Soccer,soccer,pitch,37.7545833,-122.4185435,2653 Mission Street,,CA,,false,true,false,openstreetmap
+SFF Soccer,soccer,pitch,37.7707223,-122.3921805,,,CA,,false,true,false,openstreetmap
+San Dieguito Mustangs,soccer,pitch,33.0372341,-117.2766398,,,CA,,false,true,false,openstreetmap
+San Jose Christian School,soccer,pitch,37.2929709,-121.926803,,,CA,,false,true,false,openstreetmap
+Sandpiper Soccer & Baseball Field,soccer,pitch,37.5384038,-122.23757,,,CA,,false,true,false,openstreetmap
+Santa Barbara City College,soccer,pitch,34.4042521,-119.696022,,,CA,,false,true,false,openstreetmap
+Santa Clara Parks and Recreation Department,soccer,pitch,37.4046242,-121.9683887,,,CA,,false,true,false,openstreetmap
+Santa Clara Parks and Recreation Department,soccer,pitch,37.4052222,-121.966786,,,CA,,false,true,false,openstreetmap
+Santa Clara Parks and Recreation Department,soccer,pitch,37.4049534,-121.9676027,,,CA,,false,true,false,openstreetmap
+Scott Kennedy Fields,soccer,pitch,36.9655149,-122.0273417,,,CA,,false,true,false,openstreetmap
+Shorty Garcia Park,soccer,pitch,37.5985922,-122.0167063,,,CA,,false,true,false,openstreetmap
+Sil Garaventa Sr. Soccer Field,soccer,pitch,37.8447228,-122.1099851,,,CA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,33.7062717,-116.6500419,,,CA,,false,true,false,openstreetmap
+Soccer #1,soccer,pitch,37.7669731,-121.9563749,,,CA,,false,true,false,openstreetmap
+Soccer #2,soccer,pitch,37.767701,-121.9557518,,,CA,,false,true,false,openstreetmap
+Soccer #3,soccer,pitch,37.7697362,-121.9584789,,,CA,,false,true,false,openstreetmap
+Soccer #4,soccer,pitch,37.7705969,-121.9591259,,,CA,,false,true,false,openstreetmap
+Soccer #5,soccer,pitch,37.7688467,-121.9563207,,,CA,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,37.7029622,-121.916909,,,CA,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,37.808713,-121.9462446,,,CA,,false,true,false,openstreetmap
+Soccer 2,soccer,pitch,37.7027534,-121.916074,,,CA,,false,true,false,openstreetmap
+Soccer 3,soccer,pitch,37.7027474,-121.9154547,,,CA,,false,true,false,openstreetmap
+Soccer 3,soccer,pitch,37.8075697,-121.9455899,,,CA,,false,true,false,openstreetmap
+Soccer 4,soccer,pitch,37.702734,-121.9145992,,,CA,,false,true,false,openstreetmap
+Soccer 4,soccer,pitch,37.8086809,-121.9446611,,,CA,,false,true,false,openstreetmap
+Soccer 5,soccer,pitch,37.7025688,-121.9131896,,,CA,,false,true,false,openstreetmap
+Soccer 5,soccer,pitch,37.8086188,-121.9431475,,,CA,,false,true,false,openstreetmap
+Soccer 6,soccer,pitch,37.7032839,-121.9130676,,,CA,,false,true,false,openstreetmap
+Soccer 7,soccer,pitch,37.7033922,-121.9161481,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,38.6544263,-121.1039694,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,34.0540138,-117.2157935,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,36.7170927,-119.7494369,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,36.7170901,-119.7485497,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.8912214,-118.0071186,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.8964985,-117.2472498,,,CA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,38.7900844,-121.2084599,,,CA,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,33.5646944,-117.6469277,,,CA,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,36.7330335,-119.7313157,,,CA,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,37.803857,-121.9801753,,,CA,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,36.7331486,-119.7304762,,,CA,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,37.8033039,-121.9800184,,,CA,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,33.5662091,-117.6444412,,,CA,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,36.7331512,-119.7289668,,,CA,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,37.8039559,-121.9779482,,,CA,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,36.7330254,-119.7281219,,,CA,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,37.8043736,-121.9787074,,,CA,,false,true,false,openstreetmap
+Soccer Field #5,soccer,pitch,37.8035802,-121.9789439,,,CA,,false,true,false,openstreetmap
+Soccer Field #6,soccer,pitch,37.8019616,-121.9801188,,,CA,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,34.0807466,-117.6739916,,,CA,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,36.3630893,-119.3015935,,,CA,,false,true,false,openstreetmap
+Soccer Field 10,soccer,pitch,36.3607327,-119.2978243,,,CA,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,34.0802883,-117.6740604,,,CA,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,36.3630835,-119.3007057,,,CA,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,34.0798509,-117.6741396,,,CA,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,36.3630778,-119.2998038,,,CA,,false,true,false,openstreetmap
+Soccer Field 4,soccer,pitch,36.3629861,-119.2987136,,,CA,,false,true,false,openstreetmap
+Soccer Field 5,soccer,pitch,36.3629872,-119.297837,,,CA,,false,true,false,openstreetmap
+Soccer Field 6,soccer,pitch,36.3605791,-119.3015158,,,CA,,false,true,false,openstreetmap
+Soccer Field 7,soccer,pitch,36.3605796,-119.30064,,,CA,,false,true,false,openstreetmap
+Soccer Field 8,soccer,pitch,36.3605809,-119.2997383,,,CA,,false,true,false,openstreetmap
+Soccer Field 9,soccer,pitch,36.360731,-119.2987066,,,CA,,false,true,false,openstreetmap
+Soccer Field A,soccer,pitch,36.9814841,-121.8784485,,,CA,,false,true,false,openstreetmap
+Soccer Field B,soccer,pitch,36.9806778,-121.8792343,,,CA,,false,true,false,openstreetmap
+Soccer Field C,soccer,pitch,36.9792945,-121.8825437,,,CA,,false,true,false,openstreetmap
+Soccer Post,soccer,pitch,37.683235,-121.0508189,,,CA,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,34.1441037,-117.5668725,,,CA,,false,true,false,openstreetmap
+Soccer Store,soccer,pitch,34.1398482,-118.2547263,,,CA,,false,true,false,openstreetmap
+Soccer Turf,soccer,pitch,37.1281072,-121.6276639,,,CA,,false,true,false,openstreetmap
+Soka Soccer Field,soccer,pitch,33.5590642,-117.7341432,,,CA,,false,true,false,openstreetmap
+South Artificial,soccer,pitch,37.8761993,-122.3079499,,,CA,,false,true,false,openstreetmap
+South Field,soccer,pitch,40.5470721,-122.337266,,,CA,,false,true,false,openstreetmap
+Spartan Soccer Complex,soccer,pitch,37.3202591,-121.8666544,,,CA,,false,true,false,openstreetmap
+Sports Field,soccer,pitch,34.2828171,-116.9709568,,,CA,,false,true,false,openstreetmap
+Sports Field 1,soccer,pitch,37.7112117,-121.8775138,,,CA,,false,true,false,openstreetmap
+Sports Field 3,soccer,pitch,37.7095707,-121.8784754,,,CA,,false,true,false,openstreetmap
+Sports Field 4,soccer,pitch,37.7098857,-121.877742,,,CA,,false,true,false,openstreetmap
+Sprague Athletic Field,soccer,pitch,34.0890054,-118.4344089,,,CA,,false,true,false,openstreetmap
+Stanton Soccer Field,soccer,pitch,37.3496369,-121.9362719,,,CA,,false,true,false,openstreetmap
+Stevenson Soccerfield,soccer,pitch,36.5827009,-121.9453286,,,CA,,false,true,false,openstreetmap
+Stober Field,soccer,pitch,37.2992043,-122.004067,,,CA,,false,true,false,openstreetmap
+Sullivan Field,soccer,pitch,33.9665924,-118.4159818,,,CA,,false,true,false,openstreetmap
+Summerhays Field,soccer,pitch,38.6549839,-121.3153958,,,CA,,false,true,false,openstreetmap
+Sunset Ridge Soccer Field,soccer,pitch,33.6243084,-117.9384584,,,CA,,false,true,false,openstreetmap
+TRACY YOUTH SOCCER LEAGUE,soccer,pitch,37.7512549,-121.4339393,,,CA,,false,true,false,openstreetmap
+Tari Frahm Rokus Field,soccer,pitch,34.0414355,-118.7117387,,,CA,,false,true,false,openstreetmap
+Thorington Field,soccer,pitch,34.4474601,-119.6639821,,,CA,,false,true,false,openstreetmap
+Tienda De Futbol,soccer,pitch,34.0160661,-118.4121867,,,CA,,false,true,false,openstreetmap
+Tiffany Roberts Soccer Field,soccer,pitch,37.7512878,-121.8966478,,,CA,,false,true,false,openstreetmap
+Titan Stadium,soccer,pitch,33.8867009,-117.8869981,,,CA,,false,true,false,openstreetmap
+Tommy's Field,soccer,pitch,34.0537446,-118.4470999,,,CA,,false,true,false,openstreetmap
+Town Center Field 1,soccer,pitch,32.8492346,-116.977809,,,CA,,false,true,false,openstreetmap
+Town Center Field 2,soccer,pitch,32.8490207,-116.9783614,,,CA,,false,true,false,openstreetmap
+Town Center Field 3,soccer,pitch,32.8485601,-116.9789947,,,CA,,false,true,false,openstreetmap
+Track and Soccer Field,soccer,pitch,33.9119164,-117.4965762,,,CA,,false,true,false,openstreetmap
+Valencia Heritage Park Soccer Field,soccer,pitch,34.4335537,-118.5587797,,,CA,,false,true,false,openstreetmap
+Valley Soccer Field,soccer,pitch,32.9534772,-117.046931,,,CA,,false,true,false,openstreetmap
+Vanguard Lions,soccer,pitch,33.660752,-117.904059,,,CA,,false,true,false,openstreetmap
+Veterans Park Soccer Fields,soccer,pitch,35.4950763,-119.2883674,,,CA,,false,true,false,openstreetmap
+W - Soccer Field,soccer,pitch,36.6729635,-121.6697657,,,CA,,false,true,false,openstreetmap
+Warren Field,soccer,pitch,32.8800774,-117.2304581,,,CA,,false,true,false,openstreetmap
+West Athletic Field,soccer,pitch,33.9190989,-118.1324539,,,CA,,false,true,false,openstreetmap
+West Cottonwood Chiefs,soccer,pitch,40.3883818,-122.2923528,,,CA,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,32.7567017,-117.1010793,,,CA,,false,true,false,openstreetmap
+practice field,soccer,pitch,34.2456999,-118.5263898,,,CA,,false,true,false,openstreetmap
+Oakland Roots and Soul Sports Club Training Facility,soccer,fitness_centre,37.7256151,-122.2324569,1150 Harbor Bay Parkway,Alameda,CA,,false,true,false,openstreetmap
+Soccer Post,soccer,pitch,37.7576649,-122.2517695,2203 South Shore Center,Alameda,CA,94501,false,true,false,openstreetmap
+Gabe Catalfo East,soccer,pitch,37.881636,-122.303792,,Berkeley,CA,,false,true,false,openstreetmap
+Gabe Catalfo West,soccer,pitch,37.881538,-122.3047282,,Berkeley,CA,,false,true,false,openstreetmap
+Strawberry Creek Park Soccer Field,soccer,pitch,37.8660979,-122.2861709,,Berkeley,CA,,false,true,false,openstreetmap
+Dignity Health Sports Park,soccer,stadium,33.8643199,-118.2611579,18400 South Avalon Boulevard,Carson,CA,90746,false,true,false,openstreetmap
+Blackhawk Soccer Field,soccer,sports_centre,37.8238851,-121.9251229,3000 Blackhawk Road,Danville,CA,,false,true,false,openstreetmap
+Mustang Soccer Complex,soccer,sports_centre,37.7978424,-121.8760839,4680 Camino Tassajara,Danville,CA,,false,true,false,openstreetmap
+Irvington high School Soccer Fields,soccer,pitch,37.5264363,-121.9653392,4498 Carol Avenue,Fremont,CA,94538,false,true,false,openstreetmap
+Fresno Indoor Soccer,soccer,pitch,36.8099178,-119.7559185,5075 North Cedar Avenue,Fresno,CA,93710,false,true,false,openstreetmap
+Soccer Post,soccer,pitch,36.8372516,-119.7314526,6929 North Willow Avenue,Fresno,CA,93710,false,true,false,openstreetmap
+Santa Barbara Soccer Club,soccer,pitch,34.4261278,-119.8689806,358 Storke Road,Goleta,CA,93117,false,true,false,openstreetmap
+LUSC Soccer,soccer,pitch,36.2124565,-119.0939867,810 North Elmwood Avenue,Lindsay,CA,93247,false,true,false,openstreetmap
+McAlister Field,soccer,pitch,34.026564,-118.282734,3000 Hoover Street,Los Angeles,CA,90089,false,true,false,openstreetmap
+Wallis Annenberg Stadium,soccer,stadium,34.0726392,-118.4454785,221 Westwood Plaza,Los Angeles,CA,90095,false,true,false,openstreetmap
+Universal Sports Academy,soccer,sports_centre,38.0199238,-122.1382047,330 Ferry Street,Martinez,CA,94553,false,true,false,openstreetmap
+Community Park Entrance,soccer,sports_centre,33.9269434,-117.260718,Frederick Street,Moreno Valley,CA,,false,true,false,openstreetmap
+Gol Soccer Complex,soccer,sports_centre,34.2168629,-118.3816323,11501 Strathern Street,North Hollywood,CA,91605,false,true,false,openstreetmap
+Neighborhood Sports Club,soccer,pitch,37.7931225,-122.268158,100 2nd Street,Oakland,CA,,false,true,false,openstreetmap
+Oakland-Alameda County Coliseum,soccer,stadium,37.7516782,-122.2004802,7000 Coliseum Way,Oakland,CA,94621,false,true,false,openstreetmap
+JLS Field #3N,soccer,pitch,37.4203907,-122.1163302,,Palo Alto,CA,,false,true,false,openstreetmap
+LA Surf Soccer Center,soccer,pitch,34.1516282,-118.0988419,325 North Altadena Drive,Pasadena,CA,91107,false,true,false,openstreetmap
+Niky's Sports,soccer,pitch,34.1457694,-118.1146987,1726 East Colorado Boulevard,Pasadena,CA,91106,false,true,false,openstreetmap
+Eighteen Threads (San Diego FC Store),soccer,pitch,32.7686909,-117.1472479,1640 Camino del Rio North,San Diego,CA,92108,false,true,false,openstreetmap
+Let's Play! San Diego Indoor Soccer,soccer,sports_centre,32.7546357,-117.1344893,2725 El Cajon Boulevard,San Diego,CA,92104,false,true,false,openstreetmap
+Masaya Sports,soccer,pitch,34.283631,-118.4420291,San Fernando Road,San Fernando,CA,,false,true,false,openstreetmap
+International High School,soccer,pitch,37.7743895,-122.4221759,84 Page Street,San Francisco,CA,94102,false,true,false,openstreetmap
+PayPal Park,soccer,stadium,37.3513066,-121.9246299,1123 Coleman Avenue,San Jose,CA,95110,false,true,false,openstreetmap
+Soccer Pro,soccer,pitch,37.299467,-121.981537,1338 Saratoga Avenue,San Jose,CA,95129,false,true,false,openstreetmap
+The Park San Jose,soccer,sports_centre,37.3128164,-121.8695727,1650 Monterey Road,San Jose,CA,95112,false,true,false,openstreetmap
+Stevens Soccer Training Center,soccer,pitch,37.3501287,-121.9355974,500 El Camino Real,Santa Clara,CA,95053,false,true,false,openstreetmap
+Stevens Stadium,soccer,stadium,37.3505126,-121.9366725,500 El Camino Real,Santa Clara,CA,95053,false,true,false,openstreetmap
+Lower East Field,soccer,pitch,36.9916057,-122.0510867,360 Hagar Drive,Santa Cruz,CA,95064,false,true,false,openstreetmap
+Upper East Field,soccer,pitch,36.9940546,-122.052747,410 East Field Service Road,Santa Cruz,CA,95064,false,true,false,openstreetmap
+Sofive South Gate,soccer,sports_centre,33.9461491,-118.1829967,9599 Pinehurst Avenue,South Gate,CA,90280,false,true,false,openstreetmap
+Walnut/Christoffersen Storm Basin Park,soccer,pitch,37.5303119,-120.8692359,4013 North Walnut Road,Turlock,CA,95382,false,true,false,openstreetmap
+Walnut/Christoffersen Storm Basin Park,soccer,park,37.5303012,-120.8692383,4013 North Walnut Road,Turlock,CA,95382,false,true,false,openstreetmap
+Wilson Ranch Soccer Park,soccer,sports_centre,38.5342057,-122.804493,7955 Cameron Drive,Windsor,CA,95492,false,true,false,openstreetmap

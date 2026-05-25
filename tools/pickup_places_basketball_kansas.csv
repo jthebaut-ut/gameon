@@ -1,0 +1,25 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basket Ball Courts / Ice Skating Rink,basketball,pitch,38.3689626,-97.6638798,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.2409039,-96.9914572,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.0714971,-97.0460705,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.080468,-97.0384038,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.0745735,-97.040925,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.0638876,-97.0450259,,,KS,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.0697657,-96.9611465,,,KS,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.2785643,-97.1651087,,,KS,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.3421261,-95.2651206,,,KS,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.3517278,-95.2751196,,,KS,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.9819772,-96.1691689,,,KS,,false,true,false,openstreetmap
+Bentwood Blacktop,basketball,pitch,38.8914571,-94.7228505,,,KS,,false,true,false,openstreetmap
+Blacktop - asphalt,basketball,pitch,39.0719555,-94.6632875,,,KS,,false,true,false,openstreetmap
+Dean Wiley Basketball Court,basketball,pitch,37.9872608,-100.8450798,,,KS,,false,true,false,openstreetmap
+Founders Hill Basketball Court,basketball,pitch,39.1944219,-96.5999285,,,KS,,false,true,false,openstreetmap
+Garvey Sports Center,basketball,sports_centre,37.6668928,-97.2778285,,,KS,,false,true,false,openstreetmap
+Hutchinson Sports Arena,basketball,sports_centre,38.0657109,-97.9161182,,,KS,,false,true,false,openstreetmap
+Ice Family Basketball Center,basketball,sports_centre,39.2003155,-96.5928107,,,KS,,false,true,false,openstreetmap
+Linn Valley Basketball Court,basketball,pitch,38.3826756,-94.7214934,,,KS,,false,true,false,openstreetmap
+McPherson High School Roundhouse,basketball,pitch,38.3790925,-97.6548522,,,KS,,false,true,false,openstreetmap
+Allen Fieldhouse,basketball,stadium,38.9542835,-95.2528232,1651 Naismith Drive,Lawrence,KS,66045,false,true,false,openstreetmap
+Bramlage Coliseum,basketball,sports_centre,39.2001619,-96.5938455,1800 College Avenue,Manhattan,KS,66502,false,true,false,openstreetmap
+Sport Center,basketball,sports_centre,38.3726166,-97.6428202,400 N Eshelman Street,McPherson,KS,67460,false,true,false,openstreetmap
+MOKAN Basketball,basketball,pitch,38.9674355,-94.717,11310 West 89th Street,Overland Park,KS,66214,false,true,false,openstreetmap

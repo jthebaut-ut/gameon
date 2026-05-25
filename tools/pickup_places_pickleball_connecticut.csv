@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Pickleball Smash-It,pickleball,pitch,41.4757225,-71.9603743,,,CT,,false,true,false,openstreetmap
+Town of Groton,pickleball,sports_centre,41.3481486,-72.0309007,,,CT,,false,true,false,openstreetmap
+The Pickleball Place,pickleball,pitch,41.8291441,-72.4950159,10A Pitkin Road,Vernon,CT,06066,false,true,false,openstreetmap

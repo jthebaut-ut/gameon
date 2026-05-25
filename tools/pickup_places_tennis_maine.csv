@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alfond-Wales Tennis Courts,tennis,sports_centre,44.5653892,-69.6584572,,,ME,,false,true,false,openstreetmap
+Calliope Court,tennis,pitch,44.4268428,-69.0375682,,,ME,,false,true,false,openstreetmap
+Hidden Valley Camp,tennis,pitch,44.4365608,-69.2675852,,,ME,,false,true,false,openstreetmap
+Migis Lodge,tennis,pitch,43.9085019,-70.5197894,,,ME,,false,true,false,openstreetmap
+Migis Lodge,tennis,pitch,43.9086263,-70.5197297,,,ME,,false,true,false,openstreetmap
+Ocean Gate Tennis Court,tennis,pitch,43.8455541,-69.6623323,,,ME,,false,true,false,openstreetmap
+Orono-Veazie Tennis Courts,tennis,pitch,44.8365597,-68.7063366,,,ME,,false,true,false,openstreetmap
+Public Tennis Courts,tennis,pitch,43.5145864,-70.3779486,,,ME,,false,true,false,openstreetmap
+Public Tennis Courts,tennis,pitch,43.5145226,-70.3777942,,,ME,,false,true,false,openstreetmap
+Sanford Tennis Courts,tennis,pitch,43.4486419,-70.7862902,,,ME,,false,true,false,openstreetmap
+Sullivan Harbor Field and Jewell-Russell Family Memorial Tennis Court,tennis,pitch,44.5221758,-68.2098272,,,ME,,false,true,false,openstreetmap
+Tennis,tennis,pitch,44.234397,-68.3667755,,,ME,,false,true,false,openstreetmap
+Tennis,tennis,pitch,44.2618574,-68.4040803,,,ME,,false,true,false,openstreetmap
+Tennis,tennis,pitch,43.4638719,-70.7975401,,,ME,,false,true,false,openstreetmap
+Tennis Court 1,tennis,pitch,43.9178246,-69.8312908,,,ME,,false,true,false,openstreetmap
+Tennis Court 2,tennis,pitch,43.9178441,-69.8311117,,,ME,,false,true,false,openstreetmap
+Tennis Court 3,tennis,pitch,43.9178622,-69.8309312,,,ME,,false,true,false,openstreetmap
+Tennis Court 4,tennis,pitch,43.9178801,-69.8307515,,,ME,,false,true,false,openstreetmap
+Maine Pines Racquet & Fitness,tennis,fitness_centre,43.8978888,-69.9551109,120 Harpswell Road,Brunswick,ME,04011,false,true,false,openstreetmap
+Edgcomb Tennis Club,tennis,pitch,43.3474528,-70.4940916,10 Boothby Road,Kennebunk,ME,04043,false,true,false,openstreetmap

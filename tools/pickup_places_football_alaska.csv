@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anchorage Football Stadium,football,pitch,61.2039238,-149.8771691,,,AK,,false,true,false,openstreetmap
+Baranof Field,football,pitch,57.7957098,-152.3885877,,,AK,,false,true,false,openstreetmap
+Cathy Parker Field,football,pitch,71.3318848,-156.6630343,,,AK,,false,true,false,openstreetmap
+Colony Knights,football,pitch,61.60723,-149.215595,,,AK,,false,true,false,openstreetmap
+Homer Mariners Field,football,pitch,59.650701,-151.5244553,,,AK,,false,true,false,openstreetmap
+Kiwanis Football Field,football,pitch,64.8299104,-147.7492266,,,AK,,false,true,false,openstreetmap
+Romig Jr. High School Football Field,football,pitch,61.1984027,-149.9196155,,,AK,,false,true,false,openstreetmap
+West High School Football Field,football,pitch,61.1981859,-149.9178008,,,AK,,false,true,false,openstreetmap

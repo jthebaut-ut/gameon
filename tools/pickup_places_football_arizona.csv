@@ -1,0 +1,28 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Agility Field,football,pitch,33.4280934,-111.9319452,,,AZ,,false,true,false,openstreetmap
+Beaver Dam Football Field,football,pitch,36.9100467,-113.9279883,,,AZ,,false,true,false,openstreetmap
+Bemis Field,football,pitch,33.6389355,-111.8709532,,,AZ,,false,true,false,openstreetmap
+Cardinals' Grass Growing Area,football,pitch,33.5259189,-112.261245,,,AZ,,false,true,false,openstreetmap
+Davis Field,football,pitch,33.3923575,-111.5597332,,,AZ,,false,true,false,openstreetmap
+Frank Kush Field,football,pitch,33.4264296,-111.9325705,,,AZ,,false,true,false,openstreetmap
+Gaucho Football Field,football,pitch,33.571847,-112.1940244,,,AZ,,false,true,false,openstreetmap
+Hamilton High School,football,pitch,33.2484577,-111.8423633,,,AZ,,false,true,false,openstreetmap
+Jackrabbit Stadium,football,pitch,33.3946117,-111.7938827,,,AZ,,false,true,false,openstreetmap
+Jesse Parker Field,football,pitch,33.4417294,-111.7721796,,,AZ,,false,true,false,openstreetmap
+John D. Riggs Stadium,football,stadium,33.3911738,-111.8668866,,,AZ,,false,true,false,openstreetmap
+Kajikawa Football Practice Fields,football,pitch,33.4261438,-111.9250467,,,AZ,,false,true,false,openstreetmap
+Meyers Field,football,pitch,32.6460064,-114.5820345,,,AZ,,false,true,false,openstreetmap
+Morenci HS Football Field,football,pitch,33.0401432,-109.3227421,,,AZ,,false,true,false,openstreetmap
+Mustangs,football,stadium,33.4775047,-112.0574558,,,AZ,,false,true,false,openstreetmap
+Practice Field,football,pitch,35.2452155,-114.0091516,,,AZ,,false,true,false,openstreetmap
+Ray High School Football Field,football,pitch,33.0663355,-110.9139299,,,AZ,,false,true,false,openstreetmap
+Roadrunner Stadium,football,pitch,33.3795459,-111.8712766,,,AZ,,false,true,false,openstreetmap
+Thunder Stadium,football,pitch,33.2969201,-112.0182222,,,AZ,,false,true,false,openstreetmap
+Westwood Football Field,football,pitch,33.4288392,-111.8472928,,,AZ,,false,true,false,openstreetmap
+Wil Hinton Field,football,pitch,33.0377422,-109.9621116,,,AZ,,false,true,false,openstreetmap
+Wildcats Field,football,pitch,33.6330986,-112.4446511,,,AZ,,false,true,false,openstreetmap
+Yellowjacket Football,football,pitch,31.7287314,-110.0705483,,,AZ,,false,true,false,openstreetmap
+football,football,pitch,34.1082817,-109.2952947,,,AZ,,false,true,false,openstreetmap
+Blue 32 Sports Grill,football,restaurant,33.2349171,-111.7226596,6348 South Higley Road,Gilbert,AZ,85298,false,true,false,openstreetmap
+State Farm Stadium,football,stadium,33.5277822,-112.2626652,1 West Cardinals Drive,Glendale,AZ,85305,false,true,false,openstreetmap
+Mountain America Stadium,football,stadium,33.4264044,-111.9325879,500 East Veterans Way,Tempe,AZ,85287,false,true,false,openstreetmap

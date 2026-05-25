@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Asbury Field,baseball,pitch,39.6807997,-75.5878179,,,DE,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,39.4460298,-75.711069,,,DE,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,39.4449174,-75.710724,,,DE,,false,true,false,openstreetmap
+Bob Hannah Stadium,baseball,pitch,39.6635029,-75.7475765,,,DE,,false,true,false,openstreetmap
+Bob Reed Field,baseball,pitch,39.1668128,-75.5349335,,,DE,,false,true,false,openstreetmap
+GNBL Batting Cage,baseball,pitch,39.6694794,-75.7278225,,,DE,,false,true,false,openstreetmap
+Greater Newark Baseball League,baseball,pitch,39.6698087,-75.7281346,,,DE,,false,true,false,openstreetmap
+Jackson Athletic Complex,baseball,pitch,39.7428585,-75.6903286,,,DE,,false,true,false,openstreetmap
+Mayfair Park Baseball Field,baseball,pitch,39.1367925,-75.5383986,,,DE,,false,true,false,openstreetmap
+New Castle Little League,baseball,pitch,39.6633355,-75.5849319,,,DE,,false,true,false,openstreetmap
+Reynold DuPont Field,baseball,pitch,39.1649434,-75.5342589,,,DE,,false,true,false,openstreetmap
+Ruly Carpenter Baseball Stadium,baseball,pitch,39.7649142,-75.5804399,,,DE,,false,true,false,openstreetmap
+Vince's Field,baseball,pitch,39.6638118,-75.7197354,,,DE,,false,true,false,openstreetmap
+"William ""Bubby"" Sadler Field",baseball,pitch,39.5782893,-75.6040172,,,DE,,false,true,false,openstreetmap
+Wilmington Blue Rocks,baseball,pitch,39.7325592,-75.5643063,,,DE,,false,true,false,openstreetmap
+Freedom Field,baseball,pitch,39.6700384,-75.7313901,915 Marrows Road,Newark,DE,19713,false,true,false,openstreetmap
+Daniel S. Frawley Stadium,baseball,pitch,39.7321385,-75.5645282,801 Shipyard Drive,Wilmington,DE,,false,true,false,openstreetmap
+Frawley Stadium,baseball,stadium,39.73265,-75.5643557,801 Shipyard Drive,Wilmington,DE,19801,false,true,false,openstreetmap

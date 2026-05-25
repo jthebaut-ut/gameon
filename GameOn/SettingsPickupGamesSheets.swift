@@ -26,6 +26,7 @@ struct SettingsPickupGamesListSheet: View {
     @State private var deleteTarget: PickupGameRow?
     @State private var banner: String?
     @State private var organizerRequestsGame: PickupGameRow?
+    @State private var showPickupBulkImport = false
     /// Drives local countdown label refresh every minute without refetching Supabase.
     @State private var listClockTick: Date = Date()
     /// At most one delayed refresh per sheet visit when any row passes its cleanup deadline.
@@ -127,6 +128,13 @@ struct SettingsPickupGamesListSheet: View {
                 }
                 .accessibilityLabel("Host Pickup Game")
             }
+            ToolbarItem(placement: .secondaryAction) {
+                Button {
+                    showPickupBulkImport = true
+                } label: {
+                    Label("Import Pickup Games", systemImage: "square.and.arrow.down")
+                }
+            }
         }
         .task {
             await viewModel.loadMyPickupGamesForSettings()
@@ -150,6 +158,13 @@ struct SettingsPickupGamesListSheet: View {
             NavigationStack {
                 SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
                     formMode = nil
+                    Task { await viewModel.loadMyPickupGamesForSettings() }
+                }
+            }
+        }
+        .sheet(isPresented: $showPickupBulkImport) {
+            NavigationStack {
+                PickupImportPreviewView(viewModel: viewModel) {
                     Task { await viewModel.loadMyPickupGamesForSettings() }
                 }
             }

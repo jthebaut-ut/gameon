@@ -1,0 +1,55 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anderson County High School Stadium,football,pitch,38.0259231,-84.9084854,,,KY,,false,true,false,openstreetmap
+BGHS Stadium,football,pitch,36.9628135,-86.4414292,,,KY,,false,true,false,openstreetmap
+Badgett Stadium,football,pitch,37.3810699,-87.4981064,,,KY,,false,true,false,openstreetmap
+Brother Thomas Moore Stadium,football,pitch,38.2202272,-85.7254419,,,KY,,false,true,false,openstreetmap
+Bullitt East Football Field,football,pitch,38.055685,-85.5337454,,,KY,,false,true,false,openstreetmap
+C.M. Newton Grounds,football,pitch,38.0227805,-84.5051507,,,KY,,false,true,false,openstreetmap
+CCHS Football Training and Practice Field,football,pitch,37.1363868,-87.8994512,,,KY,,false,true,false,openstreetmap
+Caldwell County Tigers High School Football Field,football,pitch,37.1358436,-87.8978792,,,KY,,false,true,false,openstreetmap
+Carroll Traylor Stadium,football,sports_centre,36.9120328,-88.3347137,,,KY,,false,true,false,openstreetmap
+Colonel Stadium,football,pitch,36.7797751,-84.153814,,,KY,,false,true,false,openstreetmap
+Commonwealth Stadium,football,stadium,38.0227427,-84.5051472,,,KY,,false,true,false,openstreetmap
+David Cecil Memorial Stadium,football,stadium,39.0842095,-84.449725,,,KY,,false,true,false,openstreetmap
+Dixie Heights Football Field,football,pitch,39.0239701,-84.587502,,,KY,,false,true,false,openstreetmap
+EJHS Football Field,football,pitch,37.8770671,-84.5525536,,,KY,,false,true,false,openstreetmap
+Eastern High School Football Field,football,pitch,38.2413159,-85.5267188,,,KY,,false,true,false,openstreetmap
+Football Training Facility,football,sports_centre,38.0204175,-84.5048206,,,KY,,false,true,false,openstreetmap
+Future Scotties Field,football,pitch,37.0097267,-85.8875741,,,KY,,false,true,false,openstreetmap
+Gilligan Stadium,football,pitch,39.0967855,-84.480981,,,KY,,false,true,false,openstreetmap
+Graves County Football,football,pitch,36.7620292,-88.6564772,,,KY,,false,true,false,openstreetmap
+Jimmy Feix Field,football,pitch,36.9846915,-86.4593927,,,KY,,false,true,false,openstreetmap
+Joe Hood Field,football,pitch,36.9838124,-86.4727812,,,KY,,false,true,false,openstreetmap
+Joe McDaniel Field,football,pitch,37.642624,-84.7798456,,,KY,,false,true,false,openstreetmap
+Johnson Center Fields,football,pitch,38.0269173,-84.5045786,,,KY,,false,true,false,openstreetmap
+Lafayette Band Lot,football,pitch,38.0259626,-84.5239347,,,KY,,false,true,false,openstreetmap
+MHS Football Field,football,pitch,38.7215169,-82.9486859,,,KY,,false,true,false,openstreetmap
+Marshall Stadium,football,pitch,38.2546636,-85.6510019,,,KY,,false,true,false,openstreetmap
+Mason County Football Practice Field,football,pitch,38.6356086,-83.7875008,,,KY,,false,true,false,openstreetmap
+McAdams Field,football,pitch,37.8890293,-85.9407774,,,KY,,false,true,false,openstreetmap
+Oldham County High School Football Field,football,pitch,38.390963,-85.4391222,,,KY,,false,true,false,openstreetmap
+Practice Field,football,pitch,38.6281194,-82.8710507,,,KY,,false,true,false,openstreetmap
+Practice Field,football,pitch,38.423406,-83.7645167,,,KY,,false,true,false,openstreetmap
+Practice Field,football,pitch,37.0392186,-86.3421014,,,KY,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,36.9840674,-86.4602617,,,KY,,false,true,false,openstreetmap
+Raiders Field,football,pitch,37.0382798,-86.3412622,,,KY,,false,true,false,openstreetmap
+Reid Stadium Track & Football Field,football,pitch,37.7315456,-87.0845336,,,KY,,false,true,false,openstreetmap
+Ron Finley Stadium,football,stadium,37.3425905,-85.3513908,,,KY,,false,true,false,openstreetmap
+Roy Kidd Stadium,football,stadium,37.734427,-84.2975057,,,KY,,false,true,false,openstreetmap
+Roy Stewart Stadium,football,stadium,36.6213664,-88.3174798,,,KY,,false,true,false,openstreetmap
+Ryle High School Football Field,football,pitch,38.9345976,-84.680724,,,KY,,false,true,false,openstreetmap
+SCHS Football feild,football,pitch,38.2118464,-85.1793151,,,KY,,false,true,false,openstreetmap
+Sanger Field,football,pitch,36.5697027,-89.1585118,,,KY,,false,true,false,openstreetmap
+Shelby Valley Wildcats,football,stadium,37.3823939,-82.5372421,,,KY,,false,true,false,openstreetmap
+Sheldon Clark High School Football Field,football,pitch,37.8548848,-82.5163958,,,KY,,false,true,false,openstreetmap
+South Laruel football field,football,pitch,37.1008393,-84.0726999,,,KY,,false,true,false,openstreetmap
+South Oldham Football Field,football,pitch,38.3322534,-85.4708244,,,KY,,false,true,false,openstreetmap
+Sower Field at McChesney Stadium,football,pitch,38.2066837,-84.8812727,,,KY,,false,true,false,openstreetmap
+Spencer County Highschool Football Field,football,pitch,38.0392305,-85.3347914,,,KY,,false,true,false,openstreetmap
+Turner Field,football,pitch,37.9911081,-84.5401691,,,KY,,false,true,false,openstreetmap
+WCHS Football Field,football,pitch,36.8283748,-84.863288,,,KY,,false,true,false,openstreetmap
+War Memorial Stadium,football,stadium,36.7491467,-88.6474055,,,KY,,false,true,false,openstreetmap
+Williamsburg High Football Stadium,football,sports_centre,36.7370265,-84.1695719,,,KY,,false,true,false,openstreetmap
+Woodford County Community Stadium,football,pitch,38.0490339,-84.7609618,,,KY,,false,true,false,openstreetmap
+Alumni Stadium,football,stadium,38.1928401,-84.8529077,111 Athletic Drive,Frankfort,KY,40601,false,true,false,openstreetmap
+DuPont Manual Stadium,football,stadium,38.2198943,-85.7373421,1230 East Burnett Avenue,Louisville,KY,40208,false,true,false,openstreetmap

@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Athletic Field (Rice Paddy),soccer,pitch,39.7637209,-75.5767111,,,DE,,false,true,false,openstreetmap
+Chase Fieldhouse,soccer,pitch,39.7261128,-75.5544108,,,DE,,false,true,false,openstreetmap
+Concord Soccer Field,soccer,pitch,39.8282337,-75.5135019,,,DE,,false,true,false,openstreetmap
+Nancy Churchman Sawin Field,soccer,pitch,39.7419649,-75.6876007,,,DE,,false,true,false,openstreetmap
+Nitsche Soccer Pitch,soccer,pitch,39.7653564,-75.5796907,,,DE,,false,true,false,openstreetmap
+Richardson Field,soccer,pitch,39.762591,-75.5797967,,,DE,,false,true,false,openstreetmap
+Sandhill Fields,soccer,sports_centre,38.7069511,-75.3701148,,,DE,,false,true,false,openstreetmap

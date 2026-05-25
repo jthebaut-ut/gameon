@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bartlett High School Tennis Courts,tennis,pitch,61.2339142,-149.7352367,,,AK,,false,true,false,openstreetmap
+Begich Middle School Tennis Courts,tennis,pitch,61.2091945,-149.7425925,,,AK,,false,true,false,openstreetmap
+Creekside Park Tennis Courts,tennis,pitch,61.2154877,-149.7476368,,,AK,,false,true,false,openstreetmap
+Delaney Park Tennis Courts,tennis,pitch,61.2131305,-149.8885195,,,AK,,false,true,false,openstreetmap
+Diamond High School Tennis Courts,tennis,pitch,61.1416217,-149.9362973,,,AK,,false,true,false,openstreetmap
+Didlika Park Tennis Courts,tennis,pitch,61.2010294,-149.9468356,,,AK,,false,true,false,openstreetmap
+Eagle River Park Tennis Courts,tennis,pitch,61.2295525,-149.8754385,,,AK,,false,true,false,openstreetmap
+Forsythe Park Tennis Courts,tennis,pitch,61.1182891,-149.7735642,,,AK,,false,true,false,openstreetmap
+Girdwood Park Tennis Courts,tennis,pitch,60.9613107,-149.1354399,,,AK,,false,true,false,openstreetmap
+Goldenview Middle School Tennis Courts,tennis,pitch,61.0792151,-149.7792139,,,AK,,false,true,false,openstreetmap
+Homer High School Tennis Courts,tennis,pitch,59.6525397,-151.5251145,,,AK,,false,true,false,openstreetmap
+Inn at Tern Lake Tennis Court,tennis,pitch,60.5267163,-149.5185147,,,AK,,false,true,false,openstreetmap
+Minnesota Park Tennis Court,tennis,pitch,61.1906479,-149.9136941,,,AK,,false,true,false,openstreetmap
+Mirror Lake School Tennis Courts,tennis,pitch,61.4291485,-149.4253921,,,AK,,false,true,false,openstreetmap
+Nanuka Park Tennis Courts,tennis,pitch,61.2091353,-149.7641016,,,AK,,false,true,false,openstreetmap
+Pop Carr Park Tennis Courts,tennis,pitch,61.1795298,-149.8993627,,,AK,,false,true,false,openstreetmap
+Service High School Tennis Courts,tennis,pitch,61.1396948,-149.7844002,,,AK,,false,true,false,openstreetmap
+Skyview Middle School Tennis Courts,tennis,pitch,60.458878,-151.099065,,,AK,,false,true,false,openstreetmap

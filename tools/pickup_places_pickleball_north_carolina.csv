@@ -1,0 +1,14 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Greater Wilson Rotary Park Pickleball Courts,pickleball,pitch,35.7485148,-77.9318099,,,NC,,false,true,false,openstreetmap
+Highland Falls,pickleball,pitch,35.067607,-83.1807356,,,NC,,false,true,false,openstreetmap
+Lockwood Folly Pickleball Court,pickleball,pitch,33.9317214,-78.2221601,,,NC,,false,true,false,openstreetmap
+Norlina Pickleball Club,pickleball,pitch,36.4513118,-78.1997584,,,NC,,false,true,false,openstreetmap
+Pickleball Charlotte,pickleball,sports_centre,35.0210533,-80.8457188,,,NC,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,35.3505908,-80.810967,,,NC,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,35.993284,-78.4818581,,,NC,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,35.9931503,-78.4819759,,,NC,,false,true,false,openstreetmap
+Rally,pickleball,sports_centre,35.1846817,-80.8790037,,,NC,,false,true,false,openstreetmap
+Tipsy Pickle outdoor courts,pickleball,pitch,35.2470044,-80.8314267,,,NC,,false,true,false,openstreetmap
+The Summit,pickleball,sports_hall,36.2216255,-81.6455839,278 Industrial Park Drive,Boone,NC,28607,false,true,false,openstreetmap
+Sports Connection,pickleball,amusement_arcade,35.0209026,-80.846234,11611 Ardrey Kell Road,Charlotte,NC,28277,false,true,false,openstreetmap
+Tipsy Pickle,pickleball,sports_centre,35.2469807,-80.8319843,201 Camp Road,Charlotte,NC,28206,false,true,false,openstreetmap

@@ -1,0 +1,57 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alice Sweet Thomas Park,tennis,sports_centre,39.8412955,-105.1297396,,,CO,,false,true,false,openstreetmap
+Apex Tennis Center Pro Shop,tennis,pitch,39.8134399,-105.1136515,,,CO,,false,true,false,openstreetmap
+Arapahoe Tennis Club,tennis,sports_centre,39.6363465,-104.9312572,,,CO,,false,true,false,openstreetmap
+Bradburn Community Tennis Court,tennis,pitch,39.9113393,-105.0392467,,,CO,,false,true,false,openstreetmap
+Columbine Country Club,tennis,pitch,39.601724,-105.039848,,,CO,,false,true,false,openstreetmap
+Columbine Country Club,tennis,pitch,39.601445,-105.0388798,,,CO,,false,true,false,openstreetmap
+Columbine Tennis Court 1,tennis,pitch,40.0330235,-105.2675642,,,CO,,false,true,false,openstreetmap
+Columbine Tennis Court 2,tennis,pitch,40.033021,-105.2673962,,,CO,,false,true,false,openstreetmap
+Cook Creek Park Court #1,tennis,pitch,39.5504699,-104.8885217,,,CO,,false,true,false,openstreetmap
+Cook Creek Park Court #2,tennis,pitch,39.5502452,-104.8889091,,,CO,,false,true,false,openstreetmap
+Country Highlands Tennis Court,tennis,pitch,39.9158576,-105.0171031,,,CO,,false,true,false,openstreetmap
+Crestmoor Community Association,tennis,pitch,39.7138309,-104.9182096,,,CO,,false,true,false,openstreetmap
+Farr Park Tennis Courts,tennis,pitch,40.3943443,-104.7010736,,,CO,,false,true,false,openstreetmap
+Harkendorff Tennis Courts,tennis,pitch,37.3537326,-108.5689139,,,CO,,false,true,false,openstreetmap
+Hempel family tennis courts,tennis,sports_centre,40.3423536,-105.5712911,,,CO,,false,true,false,openstreetmap
+Homestead Farm Tennis Courts,tennis,sports_centre,39.585057,-104.9262369,,,CO,,false,true,false,openstreetmap
+Indoor Tennis,tennis,pitch,39.7179164,-104.9638432,,,CO,,false,true,false,openstreetmap
+Ken-Caryl Ranch House,tennis,sports_centre,39.5773426,-105.1168985,,,CO,,false,true,false,openstreetmap
+Lisbon Park Tennis Courts,tennis,pitch,39.772949,-104.7455277,,,CO,,false,true,false,openstreetmap
+Olivean Apartments Tennis Court,tennis,pitch,39.9073187,-105.0868263,,,CO,,false,true,false,openstreetmap
+Portal Park Tennis Court,tennis,sports_centre,38.8844572,-104.8015604,,,CO,,false,true,false,openstreetmap
+Powell Tennis Courts,tennis,pitch,39.5726512,-104.976118,,,CO,,false,true,false,openstreetmap
+Private Tennis,tennis,pitch,39.6738474,-105.0824529,,,CO,,false,true,false,openstreetmap
+Private Tennis,tennis,pitch,39.6300536,-104.9214478,,,CO,,false,true,false,openstreetmap
+Private Tennis,tennis,pitch,39.6329925,-104.9207909,,,CO,,false,true,false,openstreetmap
+Private Tennis,tennis,pitch,39.6323963,-104.9222668,,,CO,,false,true,false,openstreetmap
+Public Tennis Court,tennis,pitch,39.9987613,-105.279512,,,CO,,false,true,false,openstreetmap
+Pueblo Country Club Tennis Courts,tennis,sports_centre,38.301166,-104.6203589,,,CO,,false,true,false,openstreetmap
+Rusty Sun Tennis Court,tennis,pitch,39.5690586,-104.9111979,,,CO,,false,true,false,openstreetmap
+Rusty Sun Tennis Courts,tennis,pitch,39.5691028,-104.9113524,,,CO,,false,true,false,openstreetmap
+Sidecreek Tennis Courts,tennis,pitch,39.6850845,-104.7651278,,,CO,,false,true,false,openstreetmap
+Stapleton Tennis Pavilion,tennis,sports_centre,39.6806036,-104.9638365,,,CO,,false,true,false,openstreetmap
+Tennis,tennis,pitch,39.6625989,-104.8268767,,,CO,,false,true,false,openstreetmap
+Tennis,tennis,pitch,39.3702063,-104.8146812,,,CO,,false,true,false,openstreetmap
+Tennis,tennis,pitch,39.3412057,-104.8419417,,,CO,,false,true,false,openstreetmap
+Tennis (private),tennis,pitch,39.6641312,-104.858287,,,CO,,false,true,false,openstreetmap
+Tennis / Basketball Court,tennis,pitch,39.8801317,-104.8124094,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,39.6691333,-104.9141623,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.4178511,-104.780059,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.6651724,-104.9039533,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.6564144,-104.8767414,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.7168909,-104.8928317,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.6944714,-104.9135902,,,CO,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.6338438,-104.8869449,,,CO,,false,true,false,openstreetmap
+Vail Racquet Club Condominiums,tennis,resort,39.6316706,-106.2920934,,,CO,,false,true,false,openstreetmap
+Vail Tennis Center,tennis,sports_centre,39.6402262,-106.363427,700 South Frontage Road East,,CO,,false,true,false,openstreetmap
+Westbrook Park Tennis Court,tennis,pitch,39.871933,-105.1031845,,,CO,,false,true,false,openstreetmap
+Willow 2 Tennis courts,tennis,sports_centre,39.572278,-104.8917282,,,CO,,false,true,false,openstreetmap
+Willow 2 Tennis courts,tennis,sports_centre,39.5720567,-104.8922722,,,CO,,false,true,false,openstreetmap
+Willow 3 tennis courts,tennis,pitch,39.5701278,-104.895192,,,CO,,false,true,false,openstreetmap
+Willow Creek 2 Tennis Courts,tennis,sports_centre,39.5767886,-104.8896056,,,CO,,false,true,false,openstreetmap
+Winchester,tennis,pitch,39.6879007,-104.8208187,,,CO,,false,true,false,openstreetmap
+Randy Ross Tennis Center,tennis,fitness_centre,39.576199,-104.8312612,7760 South Wheeling Court,Englewood,CO,80112,false,true,false,openstreetmap
+Elliott Tennis,tennis,pitch,39.0769634,-108.5629262,555 North Avenue,Grand Junction,CO,81501,false,true,false,openstreetmap
+Elliott Tennis Center,tennis,sports_centre,39.0841231,-108.554423,1021 Orchard Avenue,Grand Junction,CO,81501,false,true,false,openstreetmap
+Tennis Junction,tennis,sports_centre,39.0833394,-108.5807895,535 25 1/2 Rd,Grand Junction,CO,81505,false,true,false,openstreetmap

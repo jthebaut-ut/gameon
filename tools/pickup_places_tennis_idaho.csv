@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Fort Boise Tennis Courts,tennis,sports_centre,43.6164087,-116.1892401,,,ID,,false,true,false,openstreetmap
+Freedom Tennis Court,tennis,pitch,42.9812158,-111.0505442,,,ID,,false,true,false,openstreetmap
+LHMS Tennis Courts,tennis,sports_centre,43.5522939,-116.3253685,,,ID,,false,true,false,openstreetmap
+Park Place Tennis,tennis,pitch,43.7053487,-116.6058229,,,ID,,false,true,false,openstreetmap
+Park Place Tennis,tennis,pitch,43.7053491,-116.6060377,,,ID,,false,true,false,openstreetmap
+Stands,tennis,stadium,44.2524024,-116.9638995,,,ID,,false,true,false,openstreetmap
+Stands,tennis,stadium,44.2524242,-116.9640774,,,ID,,false,true,false,openstreetmap
+Idaho Tennis Association,tennis,pitch,43.6142586,-116.2731409,1076 North Cole Road,Boise,ID,83704,false,true,false,openstreetmap

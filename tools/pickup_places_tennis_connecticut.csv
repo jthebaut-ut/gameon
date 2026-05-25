@@ -1,0 +1,24 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bishop's Cove Tennis Court,tennis,pitch,41.3508151,-71.947875,,,CT,,false,true,false,openstreetmap
+Celentano Courts,tennis,pitch,41.3311045,-72.9219116,,,CT,,false,true,false,openstreetmap
+Cigna Tennis Courts,tennis,sports_centre,41.8114255,-72.7447262,,,CT,,false,true,false,openstreetmap
+City of Groton,tennis,sports_centre,41.3531378,-72.0741326,,,CT,,false,true,false,openstreetmap
+Cromwell Hills Tennis Court,tennis,pitch,41.6056205,-72.6809928,,,CT,,false,true,false,openstreetmap
+Foxwoods Tennis Court,tennis,pitch,41.2439567,-73.0325274,,,CT,,false,true,false,openstreetmap
+Harwinton Tennis Club,tennis,sports_centre,41.7675474,-73.0587278,,,CT,,false,true,false,openstreetmap
+Leroy C. Doolittle Memorial Tennis Courts,tennis,sports_centre,41.2500656,-73.0534432,,,CT,,false,true,false,openstreetmap
+Milford Indoor Tennis,tennis,sports_centre,41.2084129,-73.0877701,,,CT,,false,true,false,openstreetmap
+Peter A. Frew Tennis Court,tennis,pitch,41.6051444,-73.1274807,,,CT,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.5184598,-73.1167576,,,CT,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,41.7349055,-72.7524914,,,CT,,false,true,false,openstreetmap
+The Tennis Spot,tennis,pitch,41.14123,-73.258124,,,CT,,false,true,false,openstreetmap
+Town Campus Tennis Court,tennis,pitch,41.2948666,-72.5739602,,,CT,,false,true,false,openstreetmap
+Town Farms Tennis Courts,tennis,pitch,41.1527697,-73.3548837,,,CT,,false,true,false,openstreetmap
+Wesleyan University Tennis Courts,tennis,pitch,41.5563346,-72.6615464,,,CT,,false,true,false,openstreetmap
+Gut Reaction,tennis,pitch,41.0781856,-73.4654943,25 Old Kings Highway North,Darien,CT,06820,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,tennis,pitch,41.7303914,-72.5811169,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,tennis,pitch,41.7304137,-72.5809436,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Old Greenwich Tennis Academy,tennis,sports_centre,41.0331735,-73.5694968,151 Sound Beach Avenue,Greenwich,CT,06870,false,true,false,openstreetmap
+Paul D. Assaiante Tennis Center,tennis,pitch,41.7472932,-72.68988,,Hartford,CT,06106,false,true,false,openstreetmap
+Middlebury Racquet Club,tennis,pitch,41.50233,-73.1544722,950 Southford Road,Middlebury,CT,06762,false,true,false,openstreetmap
+Tennis Club of Trumbull,tennis,sports_centre,41.2921836,-73.234357,61 Monroe Turnpike,Trumbull,CT,06611,false,true,false,openstreetmap

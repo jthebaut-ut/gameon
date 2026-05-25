@@ -1,0 +1,365 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+12,baseball,pitch,42.3070984,-85.1141893,,,MI,,false,true,false,openstreetmap
+13,baseball,pitch,42.3070929,-85.1148181,,,MI,,false,true,false,openstreetmap
+2,baseball,pitch,42.305925,-85.1133586,,,MI,,false,true,false,openstreetmap
+4,baseball,pitch,42.305886,-85.1146217,,,MI,,false,true,false,openstreetmap
+4 Bad Axe Baseball and Softball Fields,baseball,pitch,43.8004655,-82.9986608,,,MI,,false,true,false,openstreetmap
+5,baseball,pitch,42.3061208,-85.1154345,,,MI,,false,true,false,openstreetmap
+7,baseball,pitch,42.3067902,-85.114957,,,MI,,false,true,false,openstreetmap
+8,baseball,pitch,42.3065601,-85.1140811,,,MI,,false,true,false,openstreetmap
+9,baseball,pitch,42.3065052,-85.1134055,,,MI,,false,true,false,openstreetmap
+Ackley Field,baseball,pitch,43.0107047,-84.3759506,,,MI,,false,true,false,openstreetmap
+Al Henderson Memorial Field,baseball,pitch,45.0722271,-83.4198762,,,MI,,false,true,false,openstreetmap
+Alanson Public School,baseball,pitch,45.4486235,-84.7952552,,,MI,,false,true,false,openstreetmap
+Alanson Public School,baseball,pitch,45.4485589,-84.7940478,,,MI,,false,true,false,openstreetmap
+Annapolis Baseball Field,baseball,pitch,42.2782846,-83.2469054,,,MI,,false,true,false,openstreetmap
+Art Drenth Field,baseball,pitch,45.173118,-85.2393482,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3431403,-83.3519622,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3496765,-83.3726383,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.348667,-83.2778241,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3438145,-83.3604997,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3498182,-83.3160468,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3457658,-83.3648525,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3439709,-83.3337254,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3492407,-83.3089073,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""A""",baseball,pitch,42.3390112,-83.3452856,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""B""",baseball,pitch,42.3490455,-83.3743542,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""B""",baseball,pitch,42.3501876,-83.3072019,,,MI,,false,true,false,openstreetmap
+"Ball Diamond ""B""",baseball,pitch,42.3501636,-83.3136334,,,MI,,false,true,false,openstreetmap
+Ball Diamond #1,baseball,pitch,42.5371712,-83.3989132,,,MI,,false,true,false,openstreetmap
+Ball Diamond #2,baseball,pitch,42.5381581,-83.3989232,,,MI,,false,true,false,openstreetmap
+Ball Diamond #3,baseball,pitch,42.5381752,-83.3975954,,,MI,,false,true,false,openstreetmap
+Ball Diamond A,baseball,pitch,42.4220593,-83.4768415,,,MI,,false,true,false,openstreetmap
+Ball Diamond B,baseball,pitch,42.4243711,-83.4771555,,,MI,,false,true,false,openstreetmap
+Ball Field,baseball,pitch,44.7364626,-83.9479717,,,MI,,false,true,false,openstreetmap
+Baseball / Softball,baseball,pitch,42.7880829,-83.7322996,,,MI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,42.5670288,-83.1945546,,,MI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,46.4149771,-87.7669974,,,MI,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,44.7349327,-83.9419865,,,MI,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,45.0768143,-85.1755013,,,MI,,false,true,false,openstreetmap
+Baseball Field at Bennett,baseball,pitch,42.6032989,-83.9340607,,,MI,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,45.1110102,-83.447688,,,MI,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,45.1102891,-83.4477933,,,MI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,42.9835574,-82.5268412,,,MI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,45.1347095,-83.4413076,,,MI,,false,true,false,openstreetmap
+Bennett Field,baseball,pitch,43.0018546,-84.1955095,,,MI,,false,true,false,openstreetmap
+Bil Mar FIeld 2,baseball,pitch,42.8225703,-86.0246626,,,MI,,false,true,false,openstreetmap
+Bill Theunissen Stadium,baseball,pitch,43.5760394,-84.7791838,,,MI,,false,true,false,openstreetmap
+Bill Walker Little League Field,baseball,pitch,43.8001947,-82.9998286,,,MI,,false,true,false,openstreetmap
+Bob Kuzava Field,baseball,pitch,42.2103761,-83.1692758,,,MI,,false,true,false,openstreetmap
+Bob Tomes Field,baseball,pitch,42.2466208,-83.2289623,,,MI,,false,true,false,openstreetmap
+Bob Welch Athletic Field,baseball,pitch,42.469199,-83.1129489,,,MI,,false,true,false,openstreetmap
+Bruce D. Collins Elementary School,baseball,pitch,42.5619089,-82.9972751,,,MI,,false,true,false,openstreetmap
+Bud McDonough Memorial Baseball Field,baseball,pitch,45.7442405,-85.5072594,,,MI,,false,true,false,openstreetmap
+Buell Field,baseball,pitch,42.3092073,-85.6327983,,,MI,,false,true,false,openstreetmap
+Canton Varsity Baseball Field,baseball,pitch,42.3445467,-83.4910341,,,MI,,false,true,false,openstreetmap
+Christensen Softball Field,baseball,pitch,41.9042586,-84.0181681,,,MI,,false,true,false,openstreetmap
+Chuck Lawson Field,baseball,pitch,42.4306068,-83.3050168,,,MI,,false,true,false,openstreetmap
+City of Alpena,baseball,pitch,45.0727383,-83.4178506,,,MI,,false,true,false,openstreetmap
+Civic Center Field 1,baseball,pitch,42.593154,-82.9311005,,,MI,,false,true,false,openstreetmap
+Civic Center Field 2,baseball,pitch,42.5924641,-82.930832,,,MI,,false,true,false,openstreetmap
+Civic Center Field 3,baseball,pitch,42.5975324,-82.9284743,,,MI,,false,true,false,openstreetmap
+Civic Center Field 4,baseball,pitch,42.5978836,-82.927555,,,MI,,false,true,false,openstreetmap
+Civic Center Field 5,baseball,pitch,42.5938614,-82.9309888,,,MI,,false,true,false,openstreetmap
+Clark Township Softball Field,baseball,pitch,46.0364506,-84.4228707,,,MI,,false,true,false,openstreetmap
+Clyde Dawe Little League Field,baseball,pitch,43.8006853,-82.9998323,,,MI,,false,true,false,openstreetmap
+Comerica Park,baseball,stadium,42.3392281,-83.0489022,,,MI,,false,true,false,openstreetmap
+Congress Park Baseball Diamond,baseball,pitch,42.9607971,-85.6463807,,,MI,,false,true,false,openstreetmap
+Country Place Condos,baseball,pitch,42.4416246,-83.4596169,,,MI,,false,true,false,openstreetmap
+Cullen Memorial Field,baseball,pitch,43.4093676,-86.3679,,,MI,,false,true,false,openstreetmap
+Cullen Memorial Field,baseball,pitch,43.4093704,-86.3667574,,,MI,,false,true,false,openstreetmap
+Curtiss Park Baseball Field,baseball,pitch,42.1597414,-83.7872783,,,MI,,false,true,false,openstreetmap
+De Witt Baseball Field,baseball,pitch,42.9815693,-85.5972769,,,MI,,false,true,false,openstreetmap
+Diamond #1,baseball,pitch,42.4130684,-83.453429,,,MI,,false,true,false,openstreetmap
+Diamond #2,baseball,pitch,42.4133688,-83.4530249,,,MI,,false,true,false,openstreetmap
+Diamond #4,baseball,pitch,42.407386,-83.4937533,,,MI,,false,true,false,openstreetmap
+Diamond #5,baseball,pitch,42.4065847,-83.4937001,,,MI,,false,true,false,openstreetmap
+Diamond #5,baseball,pitch,42.3994474,-83.5118203,,,MI,,false,true,false,openstreetmap
+Diamond #6,baseball,pitch,42.406614,-83.4926157,,,MI,,false,true,false,openstreetmap
+Diamond #6,baseball,pitch,42.4001599,-83.5132136,,,MI,,false,true,false,openstreetmap
+Diamond #7,baseball,pitch,42.4074511,-83.4926348,,,MI,,false,true,false,openstreetmap
+Diamond #7,baseball,pitch,42.4006284,-83.5118469,,,MI,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,42.2825054,-83.7792425,,,MI,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,43.6757422,-84.3852284,,,MI,,false,true,false,openstreetmap
+Diamond 10,baseball,pitch,43.6062564,-84.2564128,,,MI,,false,true,false,openstreetmap
+Diamond 11,baseball,pitch,43.6057725,-84.2554012,,,MI,,false,true,false,openstreetmap
+Diamond 12,baseball,pitch,43.60623,-84.2543687,,,MI,,false,true,false,openstreetmap
+Diamond 13,baseball,pitch,43.6073518,-84.2545414,,,MI,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,42.2831035,-83.7782738,,,MI,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,43.675453,-84.3844854,,,MI,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,42.283157,-83.7772796,,,MI,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,43.675201,-84.3856359,,,MI,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,43.6073024,-84.2465906,,,MI,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,42.2834783,-83.7766126,,,MI,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,43.6749047,-84.3848773,,,MI,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,43.6081994,-84.246604,,,MI,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,42.2840028,-83.7787316,,,MI,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,43.6744875,-84.3840145,,,MI,,false,true,false,openstreetmap
+Diamond 6,baseball,pitch,43.6760154,-84.3836561,,,MI,,false,true,false,openstreetmap
+Diamond 7,baseball,pitch,43.6089597,-84.248355,,,MI,,false,true,false,openstreetmap
+Diamond 8,baseball,pitch,42.2168925,-83.2494682,,,MI,,false,true,false,openstreetmap
+Diamond 9,baseball,pitch,43.6073589,-84.2562109,,,MI,,false,true,false,openstreetmap
+Diamonds at Jaycee Park,baseball,pitch,42.6749202,-83.283327,,,MI,,false,true,false,openstreetmap
+Dickson Field,baseball,pitch,45.7484402,-87.0777876,,,MI,,false,true,false,openstreetmap
+Don Massey Field,baseball,pitch,42.3745902,-83.4512386,,,MI,,false,true,false,openstreetmap
+Donald B. Morrison Field,baseball,pitch,42.3417271,-85.1481693,,,MI,,false,true,false,openstreetmap
+Duck Field,baseball,pitch,42.5727131,-83.2464861,,,MI,,false,true,false,openstreetmap
+Duff Field,baseball,pitch,43.375045,-86.1665129,,,MI,,false,true,false,openstreetmap
+Dugan Field,baseball,pitch,43.0932608,-84.8432641,,,MI,,false,true,false,openstreetmap
+East Field,baseball,pitch,42.6492375,-83.0696791,,,MI,,false,true,false,openstreetmap
+Ebert Field,baseball,pitch,42.2840602,-85.6040871,,,MI,,false,true,false,openstreetmap
+Elenbaas/Major Field,baseball,pitch,45.6397961,-84.4749339,,,MI,,false,true,false,openstreetmap
+Fast Pitch Field,baseball,pitch,45.6416805,-84.4761212,,,MI,,false,true,false,openstreetmap
+Field #1,baseball,pitch,42.8694943,-85.8790557,,,MI,,false,true,false,openstreetmap
+Field #1,baseball,pitch,41.7522736,-83.4888271,,,MI,,false,true,false,openstreetmap
+Field #1,baseball,pitch,42.3708903,-83.5014632,,,MI,,false,true,false,openstreetmap
+Field #1,baseball,pitch,43.4097967,-84.062353,,,MI,,false,true,false,openstreetmap
+Field #2,baseball,pitch,42.8686622,-85.8773095,,,MI,,false,true,false,openstreetmap
+Field #2,baseball,pitch,42.3708494,-83.5004926,,,MI,,false,true,false,openstreetmap
+Field #2,baseball,pitch,43.4092184,-84.0626826,,,MI,,false,true,false,openstreetmap
+Field #3,baseball,pitch,42.8681203,-85.8769786,,,MI,,false,true,false,openstreetmap
+Field #3,baseball,pitch,42.3701786,-83.5005167,,,MI,,false,true,false,openstreetmap
+Field #3,baseball,pitch,43.4097347,-84.06515,,,MI,,false,true,false,openstreetmap
+Field #4,baseball,pitch,42.8675766,-85.8765994,,,MI,,false,true,false,openstreetmap
+Field #4,baseball,pitch,42.3701715,-83.5014992,,,MI,,false,true,false,openstreetmap
+Field #4,baseball,pitch,43.4094578,-84.0659871,,,MI,,false,true,false,openstreetmap
+Field #5,baseball,pitch,42.8678656,-85.8775356,,,MI,,false,true,false,openstreetmap
+Field 1,baseball,pitch,42.4422881,-83.3999668,,,MI,,false,true,false,openstreetmap
+Field 1,baseball,pitch,42.5155713,-83.3819122,,,MI,,false,true,false,openstreetmap
+Field 1,baseball,pitch,42.5145035,-83.3632583,,,MI,,false,true,false,openstreetmap
+Field 1,baseball,pitch,45.0711166,-83.4193556,,,MI,,false,true,false,openstreetmap
+Field 1,baseball,pitch,42.6485677,-83.0674146,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.339528,-85.153266,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.4431135,-83.400271,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.5155454,-83.3829756,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.515129,-83.3633272,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,45.0713636,-83.4199143,,,MI,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.6485544,-83.0683456,,,MI,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.3395885,-85.1516548,,,MI,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.6490633,-83.0684471,,,MI,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.4429327,-83.4013985,,,MI,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.1191656,-85.5852416,,,MI,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.3389434,-85.1524198,,,MI,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.4430967,-83.4025898,,,MI,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.119172,-85.584298,,,MI,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.6491498,-83.0675009,,,MI,,false,true,false,openstreetmap
+Field 5,baseball,pitch,42.4416148,-83.4015557,,,MI,,false,true,false,openstreetmap
+Field 5,baseball,pitch,42.6476447,-83.0657173,,,MI,,false,true,false,openstreetmap
+Field 6,baseball,pitch,42.442117,-83.4030268,,,MI,,false,true,false,openstreetmap
+Field 6,baseball,pitch,42.6475813,-83.0651017,,,MI,,false,true,false,openstreetmap
+Field 7,baseball,pitch,42.4410761,-83.4036619,,,MI,,false,true,false,openstreetmap
+Field 8,baseball,pitch,42.4405726,-83.4022541,,,MI,,false,true,false,openstreetmap
+Field A,baseball,pitch,42.3402545,-85.1492063,,,MI,,false,true,false,openstreetmap
+Field A,baseball,pitch,43.1798337,-83.7124461,,,MI,,false,true,false,openstreetmap
+Field B,baseball,pitch,42.3396367,-85.1499673,,,MI,,false,true,false,openstreetmap
+Field B,baseball,pitch,43.1800714,-83.7118815,,,MI,,false,true,false,openstreetmap
+Field C,baseball,pitch,42.3390517,-85.149125,,,MI,,false,true,false,openstreetmap
+Field C,baseball,pitch,43.1804024,-83.7111754,,,MI,,false,true,false,openstreetmap
+Field D,baseball,pitch,42.3396804,-85.1483563,,,MI,,false,true,false,openstreetmap
+Field D,baseball,pitch,43.1809383,-83.7114718,,,MI,,false,true,false,openstreetmap
+Field E,baseball,pitch,43.181325,-83.7106886,,,MI,,false,true,false,openstreetmap
+Field F,baseball,pitch,43.1806043,-83.7103613,,,MI,,false,true,false,openstreetmap
+Field G,baseball,pitch,43.1798273,-83.7103996,,,MI,,false,true,false,openstreetmap
+Field H,baseball,pitch,43.1795901,-83.71139,,,MI,,false,true,false,openstreetmap
+Fitzgerald Memorial Field,baseball,pitch,42.7545717,-84.7449572,,,MI,,false,true,false,openstreetmap
+Flynn Field,baseball,pitch,42.4710729,-83.1332025,,,MI,,false,true,false,openstreetmap
+Founders Field,baseball,pitch,42.309865,-85.6329407,,,MI,,false,true,false,openstreetmap
+Fraser Public Schools,baseball,pitch,42.5524151,-82.9461149,,,MI,,false,true,false,openstreetmap
+Fraser Public Schools,baseball,pitch,42.5451592,-82.9486372,,,MI,,false,true,false,openstreetmap
+Fraser Public Schools,baseball,pitch,42.544677,-82.9492053,,,MI,,false,true,false,openstreetmap
+Freshman Baseball Field,baseball,pitch,42.5970065,-83.3534998,,,MI,,false,true,false,openstreetmap
+Friends Church Baseball Field,baseball,pitch,42.3118582,-85.1136979,,,MI,,false,true,false,openstreetmap
+Gaylord High School,baseball,pitch,45.0472021,-84.6676034,,,MI,,false,true,false,openstreetmap
+Gaylord High School Baseball Field,baseball,pitch,45.0483109,-84.6670737,,,MI,,false,true,false,openstreetmap
+Gerace Stadium,baseball,pitch,43.6335495,-84.2796205,,,MI,,false,true,false,openstreetmap
+Gibbs-Schafer Field,baseball,pitch,42.308604,-85.6322195,,,MI,,false,true,false,openstreetmap
+Gilpin Memorial Field,baseball,pitch,45.4095171,-83.8065622,,,MI,,false,true,false,openstreetmap
+Grand Rapids Public Schools,baseball,pitch,42.9922949,-85.6589871,,,MI,,false,true,false,openstreetmap
+Grass Lake Middle School Baseball Field,baseball,pitch,42.2504631,-84.1951761,,,MI,,false,true,false,openstreetmap
+Green Township,baseball,pitch,45.0588432,-83.7503017,,,MI,,false,true,false,openstreetmap
+Grove Baseball,baseball,pitch,42.1085643,-86.0089228,,,MI,,false,true,false,openstreetmap
+Haley Field,baseball,pitch,46.5662031,-87.397269,,,MI,,false,true,false,openstreetmap
+Harper Creek Baseball Field,baseball,pitch,42.2590126,-85.1527329,,,MI,,false,true,false,openstreetmap
+Harvest Elementary Baseball Field,baseball,pitch,42.188677,-83.7428657,,,MI,,false,true,false,openstreetmap
+Harvey Elementary School,baseball,pitch,42.6005524,-83.0028001,,,MI,,false,true,false,openstreetmap
+Harwell Field,baseball,pitch,42.3568379,-83.0769119,,,MI,,false,true,false,openstreetmap
+Heidenreich Park,baseball,pitch,45.4616609,-87.609006,,,MI,,false,true,false,openstreetmap
+Heritage Junior High School,baseball,pitch,42.5685879,-83.0076049,,,MI,,false,true,false,openstreetmap
+Heritage Junior High School,baseball,pitch,42.5677355,-83.0074137,,,MI,,false,true,false,openstreetmap
+Heritage Junior High School,baseball,pitch,42.5671938,-83.0085668,,,MI,,false,true,false,openstreetmap
+Heritage School Baseball Diamond,baseball,pitch,42.4498831,-84.1858962,,,MI,,false,true,false,openstreetmap
+Hill Baseball Pitch,baseball,pitch,42.5871858,-83.0950596,,,MI,,false,true,false,openstreetmap
+Hillman Area Little League,baseball,pitch,45.0676129,-83.8899366,,,MI,,false,true,false,openstreetmap
+Hillman Area Little League,baseball,pitch,45.0676119,-83.8887537,,,MI,,false,true,false,openstreetmap
+Hillman Area Little League,baseball,pitch,45.0667672,-83.8899347,,,MI,,false,true,false,openstreetmap
+Hillman High School Baseball Field,baseball,pitch,45.0445476,-83.9028471,,,MI,,false,true,false,openstreetmap
+Homer Stryker Field,baseball,pitch,42.2901059,-85.5626459,,,MI,,false,true,false,openstreetmap
+Howell Baseball Field 7,baseball,pitch,42.6161963,-83.9506447,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 1,baseball,pitch,42.6183138,-83.9421497,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 2,baseball,pitch,42.6183499,-83.9435751,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 3,baseball,pitch,42.61831,-83.9474184,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 4,baseball,pitch,42.618275,-83.9485361,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 5,baseball,pitch,42.6190761,-83.9484939,,,MI,,false,true,false,openstreetmap
+Howell Schools Baseball Field 6,baseball,pitch,42.6190858,-83.9474,,,MI,,false,true,false,openstreetmap
+Hugh Campbell Field,baseball,pitch,45.1720898,-85.2391775,,,MI,,false,true,false,openstreetmap
+Hyames Field,baseball,pitch,42.2848437,-85.6027185,,,MI,,false,true,false,openstreetmap
+Hyde Field,baseball,pitch,42.462448,-83.3950052,,,MI,,false,true,false,openstreetmap
+JLWS Field,baseball,pitch,42.2169281,-83.2472153,,,MI,,false,true,false,openstreetmap
+Jack Davidson Memorial Field,baseball,pitch,42.8136877,-82.7511514,,,MI,,false,true,false,openstreetmap
+Jack Sanders Field,baseball,pitch,42.5729168,-83.2543977,,,MI,,false,true,false,openstreetmap
+Jacob's Field,baseball,pitch,42.6289091,-85.762313,,,MI,,false,true,false,openstreetmap
+Jean Mekolon Field,baseball,pitch,42.2108266,-83.1703492,,,MI,,false,true,false,openstreetmap
+Jesse W. Cornish Memorial Field,baseball,pitch,46.3786765,-86.6165064,,,MI,,false,true,false,openstreetmap
+Jim Drikakis Field,baseball,pitch,42.3402363,-85.1525098,,,MI,,false,true,false,openstreetmap
+Johnny Williams Field,baseball,pitch,41.9321534,-84.6249487,,,MI,,false,true,false,openstreetmap
+Junior Baseball Field,baseball,pitch,45.6391474,-84.4761719,,,MI,,false,true,false,openstreetmap
+Kalamazoo College Softball Field,baseball,pitch,42.2871992,-85.6089508,,,MI,,false,true,false,openstreetmap
+Kern Ball Diamond,baseball,pitch,43.3303339,-83.7357065,,,MI,,false,true,false,openstreetmap
+Kettering University,baseball,pitch,43.0101685,-83.7165658,,,MI,,false,true,false,openstreetmap
+Kettering University,baseball,pitch,43.0108728,-83.7166643,,,MI,,false,true,false,openstreetmap
+Kettering University,baseball,pitch,43.0104351,-83.7177501,,,MI,,false,true,false,openstreetmap
+Kettering University,baseball,pitch,43.0098254,-83.7185709,,,MI,,false,true,false,openstreetmap
+King Boring Field,baseball,pitch,42.3133908,-83.1942629,,,MI,,false,true,false,openstreetmap
+Kircher Municipal Field,baseball,pitch,42.7304585,-84.5064632,,,MI,,false,true,false,openstreetmap
+Klenk Park,baseball,pitch,43.3883538,-84.6780147,,,MI,,false,true,false,openstreetmap
+Knights of Columbus Hall,baseball,pitch,45.602228,-84.4693127,,,MI,,false,true,false,openstreetmap
+Kobs Field,baseball,pitch,42.7323066,-84.4884535,,,MI,,false,true,false,openstreetmap
+Kris Hubbard Field,baseball,pitch,41.7673276,-83.7012265,,,MI,,false,true,false,openstreetmap
+LaCombe Field,baseball,pitch,46.5057192,-87.6074644,,,MI,,false,true,false,openstreetmap
+LaPort Field (Field 2),baseball,pitch,42.1192882,-85.5863855,,,MI,,false,true,false,openstreetmap
+Lafarge Ball Field,baseball,pitch,45.0718896,-83.4129499,,,MI,,false,true,false,openstreetmap
+Larry Volz Field,baseball,pitch,42.7903994,-83.6216203,,,MI,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,42.7997016,-86.0278228,,,MI,,false,true,false,openstreetmap
+Leslie Ball Diamond,baseball,pitch,43.3284608,-83.7363019,,,MI,,false,true,false,openstreetmap
+Lincoln Elementary,baseball,pitch,45.0687554,-83.4286766,,,MI,,false,true,false,openstreetmap
+MCCU Field at C.O Brown Stadium,baseball,stadium,42.3419136,-85.1504744,,,MI,,false,true,false,openstreetmap
+Maheras Memorial Playground,baseball,pitch,42.3583592,-82.9508575,,,MI,,false,true,false,openstreetmap
+Margo Jonker Stadium,baseball,pitch,43.5799513,-84.7757754,,,MI,,false,true,false,openstreetmap
+Mather Baseball Diamond,baseball,pitch,46.5015228,-87.6539864,,,MI,,false,true,false,openstreetmap
+Mattawan Little League,baseball,sports_centre,42.2042818,-85.7983407,,,MI,,false,true,false,openstreetmap
+Maurice M. Wilde Elementary School,baseball,pitch,42.5340824,-82.9808085,,,MI,,false,true,false,openstreetmap
+Meade Field,baseball,pitch,43.6239374,-86.3687027,,,MI,,false,true,false,openstreetmap
+Meridian Twp Baseball Field,baseball,pitch,42.6888477,-84.4576869,,,MI,,false,true,false,openstreetmap
+Meridian Twp Baseball Field,baseball,pitch,42.6896311,-84.4562733,,,MI,,false,true,false,openstreetmap
+Mikado Ball Field,baseball,pitch,44.589998,-83.4208381,,,MI,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,42.4845138,-83.2383277,,,MI,,false,true,false,openstreetmap
+Misslitz Field,baseball,pitch,47.0317424,-88.5274275,,,MI,,false,true,false,openstreetmap
+Moffatt Township,baseball,pitch,44.129417,-84.1200532,,,MI,,false,true,false,openstreetmap
+Moffatt Township,baseball,pitch,44.128856,-84.1183144,,,MI,,false,true,false,openstreetmap
+Msgr. Walter J. Ziemba Baseball Field,baseball,pitch,42.5920394,-83.3540192,,,MI,,false,true,false,openstreetmap
+Murphy Field,baseball,pitch,45.1546332,-85.1366501,,,MI,,false,true,false,openstreetmap
+Nash Field,baseball,pitch,43.1674859,-85.7027709,,,MI,,false,true,false,openstreetmap
+Ness Field,baseball,pitch,45.723997,-87.0726088,,,MI,,false,true,false,openstreetmap
+Nicolay Field,baseball,pitch,41.9023278,-84.0695335,,,MI,,false,true,false,openstreetmap
+North Field,baseball,pitch,46.5355194,-87.5972224,,,MI,,false,true,false,openstreetmap
+Nothville High School Baseball,baseball,pitch,42.4403068,-83.4870514,,,MI,,false,true,false,openstreetmap
+Oakbrook Elementary School,baseball,pitch,42.568287,-83.0062931,,,MI,,false,true,false,openstreetmap
+Oakland Baseball Field,baseball,pitch,42.6737007,-83.2108645,,,MI,,false,true,false,openstreetmap
+Oakview Baseball Field,baseball,pitch,42.7859876,-83.1737939,,,MI,,false,true,false,openstreetmap
+Old Varsity Field,baseball,pitch,42.4864202,-83.1088141,,,MI,,false,true,false,openstreetmap
+Onaway Area Little League,baseball,pitch,45.3616432,-84.2322182,,,MI,,false,true,false,openstreetmap
+Onaway Area Little League,baseball,pitch,45.3608708,-84.2311692,,,MI,,false,true,false,openstreetmap
+Onaway Area Little League,baseball,pitch,45.3609266,-84.2324005,,,MI,,false,true,false,openstreetmap
+Optimist Field,baseball,pitch,42.6678686,-84.6043504,,,MI,,false,true,false,openstreetmap
+Peace Lutheran Baseball Diamond,baseball,pitch,42.5084667,-83.0049035,,,MI,,false,true,false,openstreetmap
+Peace Luthern baseball diamond,baseball,pitch,42.5083639,-83.0049827,,,MI,,false,true,false,openstreetmap
+Pickens FIeld #4,baseball,pitch,43.6102197,-84.7820547,,,MI,,false,true,false,openstreetmap
+Pickens Field #1,baseball,pitch,43.6109067,-84.7791962,,,MI,,false,true,false,openstreetmap
+Pickens Field #2,baseball,pitch,43.6105345,-84.780049,,,MI,,false,true,false,openstreetmap
+Pickens Field #3,baseball,pitch,43.6103884,-84.7812332,,,MI,,false,true,false,openstreetmap
+Plymouth Varsity Baseball Field,baseball,pitch,42.3486451,-83.4981516,,,MI,,false,true,false,openstreetmap
+Polk Baseball Field,baseball,pitch,42.2758716,-83.2379494,,,MI,,false,true,false,openstreetmap
+Portage Northern High School Baseball Diamond,baseball,pitch,42.2360398,-85.5982417,,,MI,,false,true,false,openstreetmap
+Portage Northern Husky Softball Field,baseball,pitch,42.2342742,-85.5965541,,,MI,,false,true,false,openstreetmap
+Posen Baseball Field,baseball,pitch,45.2543552,-83.7005433,,,MI,,false,true,false,openstreetmap
+RCLL Field #1 (Bisson field),baseball,pitch,45.4183307,-83.8068054,,,MI,,false,true,false,openstreetmap
+RCLL Field #2 (Poch Field),baseball,pitch,45.417677,-83.8058961,,,MI,,false,true,false,openstreetmap
+RCLL Field #3 (Optimist Field),baseball,pitch,45.4170181,-83.804906,,,MI,,false,true,false,openstreetmap
+RCLL Field #4 (Paradise Field),baseball,pitch,45.4172717,-83.8036766,,,MI,,false,true,false,openstreetmap
+REC/IM Softball Complex,baseball,pitch,42.2550046,-83.6408395,,,MI,,false,true,false,openstreetmap
+Ray Fisher Stadium,baseball,stadium,42.267568,-83.7424739,,,MI,,false,true,false,openstreetmap
+Ray Schapp Field,baseball,pitch,42.7997059,-86.0267414,,,MI,,false,true,false,openstreetmap
+Recreation Field,baseball,pitch,45.6420287,-84.4749876,,,MI,,false,true,false,openstreetmap
+Remembrance Field,baseball,pitch,43.4567874,-83.6835347,,,MI,,false,true,false,openstreetmap
+Reynolds Field,baseball,pitch,45.1103173,-83.4483168,,,MI,,false,true,false,openstreetmap
+River Field,baseball,pitch,45.6423417,-84.4756574,,,MI,,false,true,false,openstreetmap
+Riverbend Park Baseball field,baseball,pitch,42.0282642,-83.9498095,,,MI,,false,true,false,openstreetmap
+Rivers Field,baseball,pitch,46.507526,-87.5981799,,,MI,,false,true,false,openstreetmap
+Robert L. Nichols Field,baseball,pitch,42.3418942,-85.1530588,,,MI,,false,true,false,openstreetmap
+Rohn Field,baseball,pitch,45.1102915,-83.4470494,,,MI,,false,true,false,openstreetmap
+Rotary/Minor Field,baseball,pitch,45.6405251,-84.4751413,,,MI,,false,true,false,openstreetmap
+Rowden Park Baseball Diamond,baseball,pitch,43.0633752,-83.316248,,,MI,,false,true,false,openstreetmap
+Ruth Field,baseball,pitch,42.6679563,-84.605431,,,MI,,false,true,false,openstreetmap
+SWLL Minor League Baseball Field,baseball,pitch,43.5922226,-83.910063,,,MI,,false,true,false,openstreetmap
+Sabourin Field,baseball,pitch,45.1109652,-83.4469673,,,MI,,false,true,false,openstreetmap
+Saginaw Valley State University,baseball,pitch,43.5126347,-83.9528437,,,MI,,false,true,false,openstreetmap
+Salem Varsity Baseball Field,baseball,pitch,42.3455028,-83.49674,,,MI,,false,true,false,openstreetmap
+Sam DeKuiper Memorial Little League Field,baseball,pitch,44.6563551,-85.6927249,,,MI,,false,true,false,openstreetmap
+Schmitzer Ball Diamond,baseball,pitch,43.3294734,-83.7362939,,,MI,,false,true,false,openstreetmap
+Schoolcraft College Softball,baseball,pitch,42.4147555,-83.4409453,,,MI,,false,true,false,openstreetmap
+Secchia Stadium,baseball,pitch,42.7330048,-84.4897232,,,MI,,false,true,false,openstreetmap
+Serafinski Fields,baseball,pitch,42.2569036,-83.5714803,,,MI,,false,true,false,openstreetmap
+Serafinski Fields,baseball,pitch,42.2557696,-83.5727531,,,MI,,false,true,false,openstreetmap
+Serafinski Fields,baseball,pitch,42.2557698,-83.5711863,,,MI,,false,true,false,openstreetmap
+Serafinski Fields,baseball,pitch,42.2568455,-83.5727857,,,MI,,false,true,false,openstreetmap
+Simpson Field,baseball,pitch,41.9330111,-84.6266253,,,MI,,false,true,false,openstreetmap
+Skyline Large Baseball Diamond,baseball,pitch,42.3044983,-83.7750061,,,MI,,false,true,false,openstreetmap
+Skyline Small Baseball Diamond,baseball,pitch,42.3057173,-83.774699,,,MI,,false,true,false,openstreetmap
+Skyline Small Baseball Diamond,baseball,pitch,42.3065742,-83.7747539,,,MI,,false,true,false,openstreetmap
+Slocum Ballfield,baseball,pitch,42.1469822,-83.1796322,,,MI,,false,true,false,openstreetmap
+Sobeck Field,baseball,pitch,45.1110161,-83.4481466,,,MI,,false,true,false,openstreetmap
+Softball World,baseball,sports_centre,43.2369777,-86.152724,,,MI,,false,true,false,openstreetmap
+South West Little Leauge,baseball,pitch,43.5914844,-83.9100451,,,MI,,false,true,false,openstreetmap
+Steiger Little League Field,baseball,pitch,46.4839701,-90.0551328,,,MI,,false,true,false,openstreetmap
+Steinbach Field,baseball,pitch,42.2959162,-83.9185417,,,MI,,false,true,false,openstreetmap
+Stockbridge High School Baseball Diamond #1,baseball,pitch,42.4600886,-84.1820263,,,MI,,false,true,false,openstreetmap
+Stockbridge High School Baseball Diamond #2,baseball,pitch,42.4609434,-84.1814694,,,MI,,false,true,false,openstreetmap
+Stockbridge High School Baseball Diamond #3,baseball,pitch,42.4607262,-84.1840084,,,MI,,false,true,false,openstreetmap
+Stockbridge High School Baseball Diamond #4,baseball,pitch,42.4616259,-84.1835267,,,MI,,false,true,false,openstreetmap
+T-ball Field,baseball,pitch,42.2281648,-83.7391205,,,MI,,false,true,false,openstreetmap
+Techentin Field,baseball,pitch,42.3076086,-85.631814,,,MI,,false,true,false,openstreetmap
+Tee Ball Field,baseball,pitch,45.6398691,-84.4761065,,,MI,,false,true,false,openstreetmap
+Teller Field,baseball,pitch,42.2603728,-83.1938394,,,MI,,false,true,false,openstreetmap
+Terry L. Newton Field,baseball,pitch,42.3386537,-85.1507196,,,MI,,false,true,false,openstreetmap
+Theunissen Stadium,baseball,stadium,43.5762897,-84.7792503,,,MI,,false,true,false,openstreetmap
+Thomas Stadium,baseball,pitch,41.8205027,-86.2460699,,,MI,,false,true,false,openstreetmap
+Thornton Creek baseball Field,baseball,pitch,42.454223,-83.5055478,,,MI,,false,true,false,openstreetmap
+Todd Field,baseball,pitch,42.3098372,-85.6319121,,,MI,,false,true,false,openstreetmap
+Tom DeCaire Little League Field,baseball,pitch,45.0722531,-83.4208812,,,MI,,false,true,false,openstreetmap
+Township of Bismark,baseball,pitch,45.3035309,-83.8883984,,,MI,,false,true,false,openstreetmap
+Turcott Field,baseball,pitch,45.3675814,-84.9381999,,,MI,,false,true,false,openstreetmap
+Unionville-Sebewaing Area Softball Diamond,baseball,pitch,43.6944667,-83.4640188,,,MI,,false,true,false,openstreetmap
+Unionville=Sebewaing Baseball Diamond,baseball,pitch,43.6935474,-83.4639355,,,MI,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,42.5316991,-83.5116034,,,MI,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,42.6220369,-83.5167316,,,MI,,false,true,false,openstreetmap
+Varsity Field,baseball,pitch,42.2552684,-83.6329233,,,MI,,false,true,false,openstreetmap
+Varsity Softball Field,baseball,pitch,42.6241048,-83.5157344,,,MI,,false,true,false,openstreetmap
+Vince Prygoski Field,baseball,pitch,42.2096564,-83.1702499,,,MI,,false,true,false,openstreetmap
+Visser Field,baseball,pitch,42.3076316,-85.6329422,,,MI,,false,true,false,openstreetmap
+Warrior Field,baseball,pitch,42.5440715,-83.1780022,,,MI,,false,true,false,openstreetmap
+Washington Park Diamond,baseball,pitch,45.367366,-84.9573866,,,MI,,false,true,false,openstreetmap
+Waterfront Park Baseball Diamond,baseball,pitch,45.3769153,-84.9569658,,,MI,,false,true,false,openstreetmap
+Waterworks Park Baseball Field,baseball,pitch,42.2368068,-83.6080625,,,MI,,false,true,false,openstreetmap
+Wayne McLaren Memorial Field,baseball,pitch,45.0716062,-83.4189251,,,MI,,false,true,false,openstreetmap
+West Field,baseball,pitch,42.6494986,-83.0718014,,,MI,,false,true,false,openstreetmap
+Wilson Field,baseball,pitch,42.3091214,-85.6318729,,,MI,,false,true,false,openstreetmap
+Woodworth Field,baseball,pitch,42.2881468,-85.608757,,,MI,,false,true,false,openstreetmap
+Yake Field 1,baseball,pitch,42.1483997,-83.2216448,,,MI,,false,true,false,openstreetmap
+Yake Field 2,baseball,pitch,42.1493193,-83.2218165,,,MI,,false,true,false,openstreetmap
+ZEHS - CHIX,baseball,pitch,42.8262173,-86.0202524,,,MI,,false,true,false,openstreetmap
+ZWHS - DUX,baseball,pitch,42.825059,-86.0201967,,,MI,,false,true,false,openstreetmap
+batting cages,baseball,pitch,42.4537959,-83.353065,,,MI,,false,true,false,openstreetmap
+little league baseball field,baseball,pitch,44.9768514,-85.1899127,,,MI,,false,true,false,openstreetmap
+LMCU Ballpark,baseball,stadium,43.0406551,-85.6593571,4500 West River Drive Northeast,Comstock Park,MI,49321,false,true,false,openstreetmap
+The Corner Ballpark,baseball,stadium,42.3323629,-83.0689049,1680 Michigan Avenue,Detroit,MI,48216,false,true,false,openstreetmap
+Boeve Baseball Stadium,baseball,pitch,42.7874895,-86.0877452,307 Fairbanks Avenue,Holland,MI,49423,false,true,false,openstreetmap
+Wolters Softball Stadium,baseball,pitch,42.789006,-86.0900886,303 Fairbanks Avenue,Holland,MI,49423,false,true,false,openstreetmap
+Jackson Field,baseball,stadium,42.734791,-84.5456252,505 East Michigan Avenue,Lansing,MI,48912,false,true,false,openstreetmap
+Dow Diamond,baseball,stadium,43.608964,-84.2368133,825 East Main Street,Midland,MI,48640,false,true,false,openstreetmap
+Sacred Heart Girls Softball Diamond,baseball,pitch,43.5779938,-84.8065883,4245 South Lincoln Road,Mount Pleasant,MI,48858,false,true,false,openstreetmap
+Sacred Heart Girls Softball Diamond,baseball,pitch,43.5778729,-84.8054011,4245 South Lincoln Road,Mount Pleasant,MI,48858,false,true,false,openstreetmap
+Maxon Field,baseball,pitch,45.3586583,-84.2272104,Main Street,Onaway,MI,49765,false,true,false,openstreetmap
+Immanuel Lutheran Baseball Field,baseball,pitch,45.4148945,-83.9504117,7134 Church Highway,Rogers City,MI,49779,false,true,false,openstreetmap
+Twin City Baseball & Softball Club,baseball,sports_centre,42.047046,-86.4336128,3905 M-139,Saint Joseph,MI,49085,false,true,false,openstreetmap
+Turtle Creek Stadium,baseball,stadium,44.6819697,-85.6602737,333 Stadium Drive,Traverse City,MI,49685,false,true,false,openstreetmap
+Jimmy John's Field,baseball,pitch,42.6259904,-83.0402073,7171 Auburn Road,Utica,MI,48317,false,true,false,openstreetmap

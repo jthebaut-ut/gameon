@@ -1,0 +1,355 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10th Avenue Baseball Grounds,baseball,park,30.693288,-81.935173,,,FL,,false,true,false,openstreetmap
+121 Financial Ballpark,baseball,stadium,30.3250733,-81.6427969,,,FL,,false,true,false,openstreetmap
+60' East,baseball,pitch,28.254772,-80.7276594,,,FL,,false,true,false,openstreetmap
+60' West,baseball,pitch,28.2545058,-80.7284615,,,FL,,false,true,false,openstreetmap
+90' East,baseball,pitch,28.2556743,-80.7278548,,,FL,,false,true,false,openstreetmap
+90' West,baseball,pitch,28.255307,-80.7289758,,,FL,,false,true,false,openstreetmap
+A1,baseball,pitch,28.7652513,-81.2201578,,,FL,,false,true,false,openstreetmap
+A2,baseball,pitch,28.7639939,-81.2201561,,,FL,,false,true,false,openstreetmap
+A3,baseball,pitch,28.7639912,-81.2215841,,,FL,,false,true,false,openstreetmap
+A4,baseball,pitch,28.7652473,-81.2215859,,,FL,,false,true,false,openstreetmap
+Alexander Brest Baseball Field,baseball,pitch,30.3514445,-81.6074181,,,FL,,false,true,false,openstreetmap
+Alfred A. McKethan Field,baseball,pitch,29.63672,-82.3633809,,,FL,,false,true,false,openstreetmap
+Alfred Garner Field,baseball,pitch,30.5791328,-84.5837788,,,FL,,false,true,false,openstreetmap
+Andy Seminick Les Hall Baseball Field,baseball,pitch,28.0594241,-80.6240146,,,FL,,false,true,false,openstreetmap
+B1,baseball,pitch,28.7650919,-81.2170107,,,FL,,false,true,false,openstreetmap
+B2,baseball,pitch,28.7653417,-81.2158298,,,FL,,false,true,false,openstreetmap
+B3,baseball,pitch,28.7645233,-81.2152023,,,FL,,false,true,false,openstreetmap
+B4,baseball,pitch,28.7637034,-81.2158266,,,FL,,false,true,false,openstreetmap
+B5,baseball,pitch,28.7639504,-81.2170096,,,FL,,false,true,false,openstreetmap
+Babe Ruth Baseball,baseball,sports_centre,26.6542836,-80.1701157,,,FL,,false,true,false,openstreetmap
+Bailey Baseball Field,baseball,pitch,27.9494051,-82.4675448,,,FL,,false,true,false,openstreetmap
+Ballfield 1,baseball,pitch,26.106097,-80.423638,,,FL,,false,true,false,openstreetmap
+Ballfield 2,baseball,pitch,26.104991,-80.423638,,,FL,,false,true,false,openstreetmap
+Ballfield 3,baseball,pitch,26.1060238,-80.4225667,,,FL,,false,true,false,openstreetmap
+Ballfield 4,baseball,pitch,26.1050572,-80.4225795,,,FL,,false,true,false,openstreetmap
+Ballfield 5,baseball,pitch,26.1060238,-80.4211832,,,FL,,false,true,false,openstreetmap
+Ballfield 6,baseball,pitch,26.1050411,-80.421179,,,FL,,false,true,false,openstreetmap
+Ballfield 7,baseball,pitch,26.10602,-80.4201748,,,FL,,false,true,false,openstreetmap
+Ballfield 8,baseball,pitch,26.1050527,-80.4201963,,,FL,,false,true,false,openstreetmap
+Baseball & Multiuse Field #1,baseball,pitch,26.5762075,-81.8683541,,,FL,,false,true,false,openstreetmap
+Baseball 1,baseball,pitch,28.5845693,-81.7246557,,,FL,,false,true,false,openstreetmap
+Baseball 1,baseball,pitch,26.1874117,-80.2716722,,,FL,,false,true,false,openstreetmap
+Baseball 2,baseball,pitch,28.585243,-81.7249666,,,FL,,false,true,false,openstreetmap
+Baseball 2,baseball,pitch,26.1882838,-80.2716702,,,FL,,false,true,false,openstreetmap
+Baseball 3,baseball,pitch,26.1874108,-80.2708059,,,FL,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,30.7400845,-86.1255814,,,FL,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,28.5649137,-82.4927712,,,FL,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,28.6749395,-81.2974236,,,FL,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,26.5370335,-81.8461435,,,FL,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,26.5532038,-81.7606193,,,FL,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,26.6360724,-81.82554,,,FL,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,26.4740337,-81.7925283,,,FL,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,26.6316579,-81.7575584,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.6315211,-81.8526988,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.5383797,-81.8461703,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.5543335,-81.7610303,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.6372563,-81.825518,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.6563138,-81.8414413,,,FL,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,26.6324983,-81.7579205,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.6316297,-81.853732,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.5383893,-81.8448294,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.5529204,-81.7624113,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.6372408,-81.8270014,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.6586372,-81.8412986,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.4730276,-81.7934537,,,FL,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,26.6323449,-81.7587319,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.6324381,-81.8537364,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.5373571,-81.8451246,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.5541346,-81.7624115,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.6360215,-81.8269927,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.6562723,-81.8427698,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.4730937,-81.792586,,,FL,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,26.6316112,-81.7585562,,,FL,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,26.538418,-81.8435181,,,FL,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,26.5541425,-81.7638463,,,FL,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,26.6348467,-81.8271086,,,FL,,false,true,false,openstreetmap
+Baseball Field #6,baseball,pitch,26.5386649,-81.8426731,,,FL,,false,true,false,openstreetmap
+Baseball Field #6,baseball,pitch,26.5528991,-81.7638441,,,FL,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,26.7761343,-80.2634054,,,FL,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,26.7755246,-80.2638222,,,FL,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,26.7756879,-80.2645235,,,FL,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,26.7763304,-80.2642246,,,FL,,false,true,false,openstreetmap
+Baseball Field B,baseball,pitch,26.1076232,-80.3945351,,,FL,,false,true,false,openstreetmap
+Baseball Field C,baseball,pitch,26.1066516,-80.3947027,,,FL,,false,true,false,openstreetmap
+Baseball Field D,baseball,pitch,26.1068831,-80.3957809,,,FL,,false,true,false,openstreetmap
+Baseball Fields,baseball,sports_centre,28.0086335,-80.7355383,,,FL,,false,true,false,openstreetmap
+Baseball Stadium,baseball,pitch,28.0590784,-82.4041246,,,FL,,false,true,false,openstreetmap
+Baseball Stadium,baseball,stadium,25.7545589,-80.3808123,,,FL,,false,true,false,openstreetmap
+Baseball Stadium (BB-48),baseball,stadium,26.3708147,-80.1094594,,,FL,,false,true,false,openstreetmap
+Baseball Training Area,baseball,pitch,28.5948619,-81.675312,,,FL,,false,true,false,openstreetmap
+Baseball/Soccer Field,baseball,pitch,28.1641063,-80.6020932,,,FL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,25.6931552,-80.373224,,,FL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,27.6455573,-80.4217244,,,FL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,27.6455223,-80.4216749,,,FL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,27.645487,-80.4216258,,,FL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,27.645451,-80.4215761,,,FL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,29.9593025,-81.4739636,,,FL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,28.0352652,-82.3900443,,,FL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,28.2724194,-82.6465321,,,FL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,28.2723179,-82.645677,,,FL,,false,true,false,openstreetmap
+Batting cage,baseball,pitch,25.7561038,-80.2296961,,,FL,,false,true,false,openstreetmap
+Bell Creek Academy,baseball,pitch,27.8518571,-82.2727245,,,FL,,false,true,false,openstreetmap
+Belmont Heights Little League Park,baseball,pitch,27.9808437,-82.4356453,,,FL,,false,true,false,openstreetmap
+Bill Frazier Field,baseball,pitch,30.1872007,-85.7216253,,,FL,,false,true,false,openstreetmap
+Blue Wahoos Stadium,baseball,stadium,30.4042936,-87.218362,,,FL,,false,true,false,openstreetmap
+Boone High School Baseball Field,baseball,pitch,28.5173244,-81.3657583,,,FL,,false,true,false,openstreetmap
+Brandon High School,baseball,pitch,27.9440021,-82.29695,,,FL,,false,true,false,openstreetmap
+C1,baseball,pitch,28.7627612,-81.2179627,,,FL,,false,true,false,openstreetmap
+C2,baseball,pitch,28.7617919,-81.2176542,,,FL,,false,true,false,openstreetmap
+C3,baseball,pitch,28.7615194,-81.2187498,,,FL,,false,true,false,openstreetmap
+C4,baseball,pitch,28.762487,-81.2190605,,,FL,,false,true,false,openstreetmap
+CACTI Park,baseball,pitch,26.7551979,-80.1127398,,,FL,,false,true,false,openstreetmap
+CCHS Baseball Field,baseball,pitch,26.0470147,-80.2750511,,,FL,,false,true,false,openstreetmap
+Callahan Ball Park,baseball,pitch,30.5509499,-81.8780276,,,FL,,false,true,false,openstreetmap
+Camp Okaloosa Baseball Diamond,baseball,pitch,30.9345103,-86.5881931,,,FL,,false,true,false,openstreetmap
+Carver Community Park,baseball,pitch,28.1429912,-80.6371005,,,FL,,false,true,false,openstreetmap
+Charlotte Sports Park,baseball,stadium,26.9991756,-82.1817636,,,FL,,false,true,false,openstreetmap
+Citizenship,baseball,pitch,27.6433691,-80.4247255,,,FL,,false,true,false,openstreetmap
+Clover Park - Saint Lucie Mets,baseball,stadium,27.3250929,-80.4046936,,,FL,,false,true,false,openstreetmap
+Commitment,baseball,pitch,27.6450794,-80.4209706,,,FL,,false,true,false,openstreetmap
+CoolToday Park,baseball,stadium,27.0330544,-82.3193191,,,FL,,false,true,false,openstreetmap
+Coral Lakes Field 1,baseball,pitch,26.7038162,-81.9514919,,,FL,,false,true,false,openstreetmap
+Coral Lakes Field 2,baseball,pitch,26.7038119,-81.9523207,,,FL,,false,true,false,openstreetmap
+Cougar Field,baseball,pitch,30.4627054,-84.3169926,,,FL,,false,true,false,openstreetmap
+Courage,baseball,pitch,27.6427438,-80.4261156,,,FL,,false,true,false,openstreetmap
+Crane Field #1,baseball,pitch,28.1318865,-80.641154,,,FL,,false,true,false,openstreetmap
+Crane Field #2,baseball,pitch,28.1310527,-80.6411137,,,FL,,false,true,false,openstreetmap
+Crane Field #3,baseball,pitch,28.1310799,-80.642192,,,FL,,false,true,false,openstreetmap
+Crosby Field,baseball,pitch,28.5727276,-81.3836584,,,FL,,false,true,false,openstreetmap
+D1,baseball,pitch,28.7623302,-81.2202803,,,FL,,false,true,false,openstreetmap
+D2,baseball,pitch,28.762329,-81.2215152,,,FL,,false,true,false,openstreetmap
+Desoto City Ballfield,baseball,pitch,27.4421213,-81.4047294,,,FL,,false,true,false,openstreetmap
+Determination,baseball,pitch,27.6446078,-80.4245519,,,FL,,false,true,false,openstreetmap
+Dick Howser Stadium,baseball,stadium,30.4405726,-84.3037523,,,FL,,false,true,false,openstreetmap
+Dick Rhatigan Field (2),baseball,pitch,30.1910358,-81.756912,,,FL,,false,true,false,openstreetmap
+Disney Cast Member Softball Field,baseball,pitch,28.3975584,-81.5294282,,,FL,,false,true,false,openstreetmap
+Domarini - White Quad,baseball,pitch,28.2613115,-80.7417319,,,FL,,false,true,false,openstreetmap
+Eastern Florida State College Softball Diamond,baseball,pitch,27.9890817,-80.6311573,,,FL,,false,true,false,openstreetmap
+Easton - Blue Quad,baseball,pitch,28.2583276,-80.7420466,,,FL,,false,true,false,openstreetmap
+Easton - Red Quad,baseball,pitch,28.2633434,-80.7397058,,,FL,,false,true,false,openstreetmap
+Easton - White Quad,baseball,pitch,28.2601649,-80.7418005,,,FL,,false,true,false,openstreetmap
+Ed Smith Stadium,baseball,stadium,27.347721,-82.5170484,,,FL,,false,true,false,openstreetmap
+Edgewater High School Baseball Field,baseball,pitch,28.5804263,-81.3931909,,,FL,,false,true,false,openstreetmap
+Excellence,baseball,pitch,27.6419095,-80.4261032,,,FL,,false,true,false,openstreetmap
+Feinbloom Baseball Field,baseball,pitch,25.8784133,-80.2000421,,,FL,,false,true,false,openstreetmap
+Field #1,baseball,pitch,27.1785678,-80.272845,,,FL,,false,true,false,openstreetmap
+Field #1,baseball,pitch,28.0319894,-80.596641,,,FL,,false,true,false,openstreetmap
+Field #1,baseball,pitch,28.5976609,-81.3205184,,,FL,,false,true,false,openstreetmap
+Field #2,baseball,pitch,27.1778011,-80.2727406,,,FL,,false,true,false,openstreetmap
+Field #2,baseball,pitch,28.0319761,-80.5958437,,,FL,,false,true,false,openstreetmap
+Field #2,baseball,pitch,28.5972161,-81.3209757,,,FL,,false,true,false,openstreetmap
+Field #3,baseball,pitch,27.1787348,-80.2710479,,,FL,,false,true,false,openstreetmap
+Field #3,baseball,pitch,28.0318426,-80.5948354,,,FL,,false,true,false,openstreetmap
+Field #3,baseball,pitch,28.5968568,-81.3215422,,,FL,,false,true,false,openstreetmap
+Field #4,baseball,pitch,28.5965071,-81.3208896,,,FL,,false,true,false,openstreetmap
+Field #5,baseball,pitch,27.1825726,-80.274355,,,FL,,false,true,false,openstreetmap
+Field #5,baseball,pitch,28.0310691,-80.596986,,,FL,,false,true,false,openstreetmap
+Field #5,baseball,pitch,28.5968239,-81.3204126,,,FL,,false,true,false,openstreetmap
+Field #6,baseball,pitch,28.5964265,-81.3201433,,,FL,,false,true,false,openstreetmap
+Field #7,baseball,pitch,28.5956921,-81.3206626,,,FL,,false,true,false,openstreetmap
+Field #8,baseball,pitch,28.5952267,-81.3219722,,,FL,,false,true,false,openstreetmap
+Field #9,baseball,pitch,28.5957546,-81.3178232,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,26.2469092,-80.2681683,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,26.1283763,-80.2744268,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,27.7588548,-82.670379,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,28.0058394,-80.7351427,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,30.1910283,-81.7573813,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,26.1323016,-80.2900767,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,28.719761,-81.3106997,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,30.7687072,-86.6728042,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,26.0246596,-80.3113843,,,FL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,28.3346411,-81.5527489,,,FL,,false,true,false,openstreetmap
+Field 10,baseball,pitch,26.1311458,-80.2921341,,,FL,,false,true,false,openstreetmap
+Field 10,baseball,pitch,26.027496,-80.311073,,,FL,,false,true,false,openstreetmap
+Field 11,baseball,pitch,26.1287187,-80.2935624,,,FL,,false,true,false,openstreetmap
+Field 11,baseball,pitch,26.1311809,-80.2927981,,,FL,,false,true,false,openstreetmap
+Field 11,baseball,pitch,26.0274959,-80.3099116,,,FL,,false,true,false,openstreetmap
+Field 12,baseball,pitch,28.3344234,-81.5592252,,,FL,,false,true,false,openstreetmap
+Field 15,baseball,pitch,28.3354513,-81.5603914,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,26.0253306,-80.3104807,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,26.2458849,-80.2681717,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,26.1290004,-80.2737905,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,27.7588393,-82.6696616,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,28.3343478,-81.5537757,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,29.7591167,-81.3314864,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,28.0058664,-80.7363742,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,26.1311228,-80.2900552,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,28.7202878,-81.3112962,,,FL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,30.768032,-86.6728552,,,FL,,false,true,false,openstreetmap
+Field 21,baseball,pitch,28.3399099,-81.5597192,,,FL,,false,true,false,openstreetmap
+Field 22,baseball,pitch,28.341154,-81.5597117,,,FL,,false,true,false,openstreetmap
+Field 23,baseball,pitch,28.3399213,-81.5583112,,,FL,,false,true,false,openstreetmap
+Field 24,baseball,pitch,28.3411524,-81.5583204,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,26.2458818,-80.2670234,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,26.1294178,-80.2745528,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,28.3356303,-81.5536868,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,29.7593274,-81.330899,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,28.0048019,-80.7363611,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,26.131118,-80.2913212,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,28.7210697,-81.3112839,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,30.1907708,-81.7564379,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,30.7688524,-86.6716374,,,FL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,26.0256699,-80.3105598,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,26.246904,-80.267023,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,26.130068,-80.2741819,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,28.3343392,-81.5551283,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,26.0255019,-80.3099346,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,28.0048089,-80.735155,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,26.1323028,-80.2913266,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,28.7216019,-81.3106791,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,30.1907373,-81.7569972,,,FL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,30.76798,-86.6717917,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,28.3355205,-81.5550679,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,26.1297754,-80.2734357,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,26.0247803,-80.310071,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,26.1312162,-80.2936498,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,28.7211044,-81.3100568,,,FL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,30.7676055,-86.671093,,,FL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,26.1293299,-80.2726498,,,FL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,26.1312053,-80.2949909,,,FL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,28.7202767,-81.3100491,,,FL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,30.7675508,-86.670574,,,FL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,26.0255914,-80.3110915,,,FL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,26.128569,-80.2727223,,,FL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,26.1322805,-80.2938778,,,FL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,26.0255121,-80.3116276,,,FL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,30.7686225,-86.6738436,,,FL,,false,true,false,openstreetmap
+Field 8,baseball,pitch,26.1315107,-80.2928098,,,FL,,false,true,false,openstreetmap
+Field 8,baseball,pitch,26.1287014,-80.2718948,,,FL,,false,true,false,openstreetmap
+Field 8,baseball,pitch,26.0264491,-80.3098618,,,FL,,false,true,false,openstreetmap
+Field 9,baseball,pitch,26.0264079,-80.31106,,,FL,,false,true,false,openstreetmap
+Field 9,baseball,pitch,26.1314964,-80.2921426,,,FL,,false,true,false,openstreetmap
+Field E1,baseball,pitch,28.2557545,-80.7398566,,,FL,,false,true,false,openstreetmap
+Frasier Field,baseball,pitch,27.919533,-81.5984359,,,FL,,false,true,false,openstreetmap
+Frontline Field,baseball,pitch,28.5620577,-81.3691268,,,FL,,false,true,false,openstreetmap
+Grand Avenue Baseball FIeld,baseball,pitch,28.5242924,-81.3894344,,,FL,,false,true,false,openstreetmap
+Hammond Stadium,baseball,stadium,26.5381706,-81.8418848,,,FL,,false,true,false,openstreetmap
+Handels Field,baseball,pitch,29.7242703,-84.9815755,,,FL,,false,true,false,openstreetmap
+Harmon Stadium,baseball,pitch,30.2751037,-81.5084036,,,FL,,false,true,false,openstreetmap
+Harper-Shepherd Field,baseball,pitch,28.5915383,-81.3599228,,,FL,,false,true,false,openstreetmap
+Henderson Field,baseball,pitch,27.7471146,-81.5264629,,,FL,,false,true,false,openstreetmap
+Henley Field,baseball,stadium,28.0568499,-81.9565629,,,FL,,false,true,false,openstreetmap
+Hillsborough Community College - Brandon Campus,baseball,pitch,27.967937,-82.3324462,,,FL,,false,true,false,openstreetmap
+Historic Sanford Memorial Stadium,baseball,pitch,28.8038584,-81.2543638,,,FL,,false,true,false,openstreetmap
+Holman Stadium,baseball,stadium,27.6442808,-80.426696,,,FL,,false,true,false,openstreetmap
+Holman Stadium,baseball,pitch,27.6444485,-80.4267782,,,FL,,false,true,false,openstreetmap
+Homestead Sports Complex Stadium,baseball,stadium,25.4516592,-80.4309431,,,FL,,false,true,false,openstreetmap
+Hoyt Field,baseball,pitch,27.7464561,-82.7099537,,,FL,,false,true,false,openstreetmap
+Huggins-Stengel Field,baseball,pitch,27.7857202,-82.6411382,,,FL,,false,true,false,openstreetmap
+Integrity,baseball,pitch,27.6440432,-80.4214481,,,FL,,false,true,false,openstreetmap
+Intramural Baseball Field,baseball,pitch,28.5923574,-81.199057,,,FL,,false,true,false,openstreetmap
+Intramural Softball Field,baseball,pitch,30.3501409,-81.6038472,,,FL,,false,true,false,openstreetmap
+JM Tate High School,baseball,pitch,30.5745698,-87.3009923,,,FL,,false,true,false,openstreetmap
+Jaguar Baseball Field,baseball,pitch,30.7650018,-87.074434,,,FL,,false,true,false,openstreetmap
+Jay Bergman Field,baseball,pitch,28.6099452,-81.1953951,,,FL,,false,true,false,openstreetmap
+Jim Spooner Field,baseball,pitch,30.5409542,-87.2067931,,,FL,,false,true,false,openstreetmap
+JoAnne Graf Field at the Seminole Softball Complex,baseball,pitch,30.4421689,-84.3046071,,,FL,,false,true,false,openstreetmap
+John Barbati Field,baseball,pitch,28.4723025,-81.477487,,,FL,,false,true,false,openstreetmap
+John Sessions Stadium,baseball,stadium,30.3514883,-81.607634,,,FL,,false,true,false,openstreetmap
+Joker Marchant Stadium,baseball,stadium,28.0745946,-81.9509149,,,FL,,false,true,false,openstreetmap
+Justice,baseball,pitch,27.6418899,-80.427036,,,FL,,false,true,false,openstreetmap
+LECOM Park,baseball,stadium,27.4856142,-82.570368,,,FL,,false,true,false,openstreetmap
+Lady Rattlers Softball Complex,baseball,stadium,30.4226374,-84.2893793,,,FL,,false,true,false,openstreetmap
+Laird Park,baseball,pitch,30.2905405,-85.8593129,,,FL,,false,true,false,openstreetmap
+Landrum Baseball Field,baseball,pitch,30.1677163,-81.3905638,,,FL,,false,true,false,openstreetmap
+Lee County Sports Complex,baseball,sports_centre,26.5364491,-81.8435628,,,FL,,false,true,false,openstreetmap
+Legends Way Ballfields,baseball,pitch,28.5499937,-81.711788,,,FL,,false,true,false,openstreetmap
+LoanDepot Park,baseball,stadium,25.7780637,-80.2197906,,,FL,,false,true,false,openstreetmap
+Locklin Field,baseball,pitch,30.6290108,-87.0262591,,,FL,,false,true,false,openstreetmap
+Louisville Slugger® - Blue Quad,baseball,pitch,28.259188,-80.7420439,,,FL,,false,true,false,openstreetmap
+Mallory Park #2 Baseball Area,baseball,pitch,30.4583201,-87.1748367,,,FL,,false,true,false,openstreetmap
+Mark Light Field,baseball,pitch,25.7120277,-80.2822444,,,FL,,false,true,false,openstreetmap
+Marucci - Blue Quad,baseball,pitch,28.2591867,-80.74107,,,FL,,false,true,false,openstreetmap
+Marucci - Red Quad,baseball,pitch,28.262423,-80.7404072,,,FL,,false,true,false,openstreetmap
+Marucci - White Quad,baseball,pitch,28.2612507,-80.7404379,,,FL,,false,true,false,openstreetmap
+Memorial Stadium,baseball,stadium,29.2057401,-81.0514609,,,FL,,false,true,false,openstreetmap
+Mike Martin Field,baseball,pitch,30.4408153,-84.3037835,,,FL,,false,true,false,openstreetmap
+Mike Van Serke Field,baseball,pitch,27.5294232,-82.5802513,,,FL,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,28.7638229,-81.7494757,,,FL,,false,true,false,openstreetmap
+Miracle League Fields,baseball,pitch,26.8325729,-80.100295,,,FL,,false,true,false,openstreetmap
+Miracle League of Manasota,baseball,pitch,27.3872499,-82.4826501,,,FL,,false,true,false,openstreetmap
+Nancy Bottge Varsity Softball Field,baseball,pitch,28.0584706,-80.6250893,,,FL,,false,true,false,openstreetmap
+North Field / Field 9,baseball,pitch,26.249136,-80.2671911,,,FL,,false,true,false,openstreetmap
+Osceola County Stadium,baseball,stadium,28.2983637,-81.3639943,,,FL,,false,true,false,openstreetmap
+Palm Field,baseball,pitch,28.0783351,-82.7440675,,,FL,,false,true,false,openstreetmap
+Park T. Pigott Memorial Stadium,baseball,pitch,26.6575129,-81.8415235,,,FL,,false,true,false,openstreetmap
+Pat Thomas Stadium,baseball,stadium,28.8053383,-81.8724724,,,FL,,false,true,false,openstreetmap
+Patricia Wilson Softball Field,baseball,pitch,29.0340501,-81.2965395,,,FL,,false,true,false,openstreetmap
+Pedro Menendez Baseball Fields,baseball,pitch,29.7581829,-81.331537,,,FL,,false,true,false,openstreetmap
+Persistence,baseball,pitch,27.6427298,-80.427056,,,FL,,false,true,false,openstreetmap
+Phipps Park Baseball,baseball,pitch,26.6705579,-80.0569922,,,FL,,false,true,false,openstreetmap
+Pirates Baseball Field,baseball,pitch,30.4813854,-87.1980435,,,FL,,false,true,false,openstreetmap
+Rawlings - Blue Quad,baseball,pitch,28.2583233,-80.7410735,,,FL,,false,true,false,openstreetmap
+Rawlings - Red Quad,baseball,pitch,28.2639673,-80.74074,,,FL,,false,true,false,openstreetmap
+Rawlings - White Quad,baseball,pitch,28.2601073,-80.7405047,,,FL,,false,true,false,openstreetmap
+Rick Lee Field,baseball,pitch,28.6540201,-81.2316824,,,FL,,false,true,false,openstreetmap
+Rivertown Fields,baseball,pitch,30.0409879,-81.6634142,,,FL,,false,true,false,openstreetmap
+Rivertown Fields,baseball,pitch,30.0402993,-81.6622219,,,FL,,false,true,false,openstreetmap
+Rivertown Fields,baseball,pitch,30.0411782,-81.6624594,,,FL,,false,true,false,openstreetmap
+Rivertown Fields,baseball,pitch,30.0399348,-81.6630521,,,FL,,false,true,false,openstreetmap
+Riverview High School Baseball field,baseball,pitch,27.8496568,-82.3113613,,,FL,,false,true,false,openstreetmap
+Robert Wynn Field,baseball,pitch,27.4395048,-82.5942999,,,FL,,false,true,false,openstreetmap
+Roger Dean Stadium,baseball,stadium,26.8910507,-80.1164802,,,FL,,false,true,false,openstreetmap
+Roger Dean Stadium,baseball,pitch,26.8911655,-80.1162584,,,FL,,false,true,false,openstreetmap
+Rosa E. Hernandez Softball Field,baseball,pitch,24.5666658,-81.7672789,,,FL,,false,true,false,openstreetmap
+Ruckle Softball Field,baseball,pitch,30.522779,-86.4755006,,,FL,,false,true,false,openstreetmap
+Saladino Field,baseball,pitch,27.9427545,-82.2783668,,,FL,,false,true,false,openstreetmap
+Sam Love Jr. Field,baseball,pitch,30.5793787,-84.583394,,,FL,,false,true,false,openstreetmap
+Seabreeze Park,baseball,pitch,30.4087995,-86.6302262,,,FL,,false,true,false,openstreetmap
+Seminole High School Baseball Field,baseball,pitch,27.8502467,-82.814516,,,FL,,false,true,false,openstreetmap
+Shark Field,baseball,stadium,29.792578,-85.2943235,,,FL,,false,true,false,openstreetmap
+Shocker Park (Softball),baseball,park,29.1662446,-82.0734987,,,FL,,false,true,false,openstreetmap
+Showcase Field,baseball,pitch,26.8336571,-80.1003874,,,FL,,false,true,false,openstreetmap
+Sisler Field,baseball,pitch,28.1368149,-82.7635078,,,FL,,false,true,false,openstreetmap
+Sliwa Stadium,baseball,pitch,29.1922491,-81.0463792,,,FL,,false,true,false,openstreetmap
+Softball & Multiuse Field #2,baseball,pitch,26.5761641,-81.8696125,,,FL,,false,true,false,openstreetmap
+Softball Complex,baseball,pitch,30.2745806,-81.5096065,,,FL,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,26.6547896,-81.8432568,,,FL,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,30.974957,-86.3063407,,,FL,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,30.7387271,-86.123146,,,FL,,false,true,false,openstreetmap
+Softball Field #1,baseball,pitch,26.6324345,-81.8528538,,,FL,,false,true,false,openstreetmap
+Softball Field #1,baseball,pitch,26.5352574,-81.8429922,,,FL,,false,true,false,openstreetmap
+Softball Field #2,baseball,pitch,26.5344439,-81.8433734,,,FL,,false,true,false,openstreetmap
+Softball Field #2,baseball,pitch,26.4738104,-81.7935301,,,FL,,false,true,false,openstreetmap
+Softball Field #3,baseball,pitch,26.5347852,-81.844277,,,FL,,false,true,false,openstreetmap
+Softball Field #4,baseball,pitch,26.5356006,-81.8439015,,,FL,,false,true,false,openstreetmap
+Softball Stadium,baseball,pitch,26.3631799,-80.1190517,,,FL,,false,true,false,openstreetmap
+Softball Stadium,baseball,pitch,28.0579841,-82.4044615,,,FL,,false,true,false,openstreetmap
+Sorenson Ball Fields,baseball,park,28.5910461,-81.5322219,,,FL,,false,true,false,openstreetmap
+Stein Thompkins,baseball,park,30.6827292,-81.9402224,,,FL,,false,true,false,openstreetmap
+T-Ball,baseball,pitch,28.2539721,-80.7273393,,,FL,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,28.8937374,-81.2439114,,,FL,,false,true,false,openstreetmap
+Taft Ball Field,baseball,pitch,28.4272876,-81.3650099,,,FL,,false,true,false,openstreetmap
+Teamwork,baseball,pitch,27.642786,-80.4240438,,,FL,,false,true,false,openstreetmap
+Terry Park,baseball,sports_centre,26.6574238,-81.8425709,,,FL,,false,true,false,openstreetmap
+The Ballpark of the Palm Beaches,baseball,stadium,26.7549376,-80.1128021,,,FL,,false,true,false,openstreetmap
+Therrell Field,baseball,pitch,30.702092,-84.8312816,,,FL,,false,true,false,openstreetmap
+Thomas B Southard Stadium,baseball,pitch,28.3387446,-82.25453,,,FL,,false,true,false,openstreetmap
+Tommy Roberts Memorial Stadium,baseball,pitch,24.5653601,-81.7664832,,,FL,,false,true,false,openstreetmap
+Tropicana Field,baseball,stadium,27.7681267,-82.6532759,,,FL,,false,true,false,openstreetmap
+Tropicana Field,baseball,stadium,27.7680864,-82.653274,,,FL,,false,true,false,openstreetmap
+USCG,baseball,pitch,25.6225047,-80.3853619,,,FL,,false,true,false,openstreetmap
+UWF Softball Complex,baseball,pitch,30.5420301,-87.2060592,,,FL,,false,true,false,openstreetmap
+University Softball Complex,baseball,pitch,30.4223202,-84.2890122,,,FL,,false,true,false,openstreetmap
+Welleby Baseball,baseball,pitch,26.1681942,-80.2834946,,,FL,,false,true,false,openstreetmap
+Westpine Middle School Baseball Field,baseball,pitch,26.1871449,-80.2728223,,,FL,,false,true,false,openstreetmap
+Wilson - Red Quad,baseball,pitch,28.2630512,-80.7414555,,,FL,,false,true,false,openstreetmap
+Winter Park High School Baseball/Softball Field,baseball,pitch,28.5827715,-81.3175562,,,FL,,false,true,false,openstreetmap
+Yancy Field,baseball,pitch,30.3338056,-84.2549368,,,FL,,false,true,false,openstreetmap
+Zimmer Field,baseball,pitch,28.6128637,-81.2721495,,,FL,,false,true,false,openstreetmap
+baseball 4,baseball,pitch,26.1882742,-80.2708024,,,FL,,false,true,false,openstreetmap
+stand,baseball,bleachers,26.0290127,-80.1401821,,,FL,,false,true,false,openstreetmap
+Save Green Outdoors,baseball,pitch,28.6727569,-81.509608,416 S Park Avenue,Apopka,FL,32703,false,true,false,openstreetmap
+Little League Park,baseball,park,26.513576,-80.0684904,300 West Woolbright Road,Boynton Beach,FL,,false,true,false,openstreetmap
+BayCare Ballpark,baseball,stadium,27.9717349,-82.7316974,601 Old Coachman Road,Clearwater,FL,33765,false,true,false,openstreetmap
+Alex Rodriguez Park,baseball,stadium,25.7118664,-80.2822757,6201 San Amaro Drive,Coral Gables,FL,33146,false,true,false,openstreetmap
+Jackie Robinson Ballpark,baseball,pitch,29.2099276,-81.0161198,105 East Orange Avenue,Daytona Beach,FL,32114,false,true,false,openstreetmap
+Fastpitch Clubhouse,baseball,sports_centre,29.0338224,-81.2959398,359 East Michigan Avenue,DeLand,FL,32724,false,true,false,openstreetmap
+TD Ballpark,baseball,stadium,28.0038459,-82.7866681,373 Douglas Avenue,Dunedin,FL,34698,false,true,false,openstreetmap
+Condron Family Ballpark,baseball,stadium,29.636624,-82.3634921,2800 Citrus Road,Gainesville,FL,32611,false,true,false,openstreetmap
+CoolToday Park,baseball,sports_centre,27.0316918,-82.3179966,18800 West Villages Parkway,North Port,FL,34293,false,true,false,openstreetmap
+Community Maritime Park,baseball,park,30.4045529,-87.2191285,301 West Main Street,Pensacola,FL,,false,true,false,openstreetmap
+George M. Steinbrenner Field,baseball,stadium,27.9801422,-82.5067081,1 Steinbrenner Drive,Tampa,FL,33614,false,true,false,openstreetmap
+Space Coast Stadium,baseball,stadium,28.257169,-80.7394924,5800 Stadium Parkway,Viera,FL,32940,false,true,false,openstreetmap

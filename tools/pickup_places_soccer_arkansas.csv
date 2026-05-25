@@ -1,0 +1,32 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,35.1078891,-92.4174619,,,AR,,false,true,false,openstreetmap
+10,soccer,pitch,35.1046156,-92.4148371,,,AR,,false,true,false,openstreetmap
+2,soccer,pitch,35.1078736,-92.4165848,,,AR,,false,true,false,openstreetmap
+3,soccer,pitch,35.1066712,-92.4156407,,,AR,,false,true,false,openstreetmap
+4,soccer,pitch,35.1066383,-92.4147502,,,AR,,false,true,false,openstreetmap
+5,soccer,pitch,35.1056553,-92.4165392,,,AR,,false,true,false,openstreetmap
+6,soccer,pitch,35.1056223,-92.4156755,,,AR,,false,true,false,openstreetmap
+7,soccer,pitch,35.1055982,-92.4147904,,,AR,,false,true,false,openstreetmap
+8,soccer,pitch,35.1046678,-92.4165794,,,AR,,false,true,false,openstreetmap
+9,soccer,pitch,35.1046349,-92.4157131,,,AR,,false,true,false,openstreetmap
+Athletic Field,soccer,pitch,35.3828332,-94.3705403,,,AR,,false,true,false,openstreetmap
+Centennial Soccer Park,soccer,sports_centre,35.0625959,-92.5225867,,,AR,,false,true,false,openstreetmap
+Crow Stadium,soccer,pitch,34.8844741,-92.1030217,,,AR,,false,true,false,openstreetmap
+Foerster Field #1,soccer,pitch,36.3413248,-94.1204938,,,AR,,false,true,false,openstreetmap
+Foerster Field #4-A,soccer,pitch,36.3428387,-94.1206641,,,AR,,false,true,false,openstreetmap
+Foerster Field #4-B,soccer,pitch,36.3429575,-94.1202241,,,AR,,false,true,false,openstreetmap
+Foerster Field #4-C,soccer,pitch,36.3429419,-94.1198493,,,AR,,false,true,false,openstreetmap
+Foerster Field #4-D,soccer,pitch,36.3427026,-94.1202299,,,AR,,false,true,false,openstreetmap
+Foerster Field #4-E,soccer,pitch,36.342689,-94.1198622,,,AR,,false,true,false,openstreetmap
+Foerster Field #5-A,soccer,pitch,36.3435735,-94.1205503,,,AR,,false,true,false,openstreetmap
+Foerster Field #5-B,soccer,pitch,36.3435536,-94.119975,,,AR,,false,true,false,openstreetmap
+Foerster Field #6,soccer,pitch,36.344267,-94.1201502,,,AR,,false,true,false,openstreetmap
+Hatcher Indoor Soccer Center,soccer,sports_hall,35.2420791,-91.720659,,,AR,,false,true,false,openstreetmap
+Hurie Athletic Fields,soccer,pitch,35.4810067,-93.4641519,,,AR,,false,true,false,openstreetmap
+Intramural Field,soccer,pitch,35.4801562,-93.4654896,,,AR,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,36.3421894,-94.1193284,,,AR,,false,true,false,openstreetmap
+Raymar Fields,soccer,pitch,34.6257706,-92.4717601,,,AR,,false,true,false,openstreetmap
+Sheppard Drive Fields,soccer,pitch,35.2531307,-93.1622819,,,AR,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,34.9474733,-92.0371027,,,AR,,false,true,false,openstreetmap
+Stevens Soccer Complex,soccer,sports_centre,35.2421921,-91.7213618,,,AR,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,35.8376777,-90.6810948,,,AR,,false,true,false,openstreetmap

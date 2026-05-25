@@ -1,0 +1,18 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,41.2627097,-95.8519305,,,IA,,false,true,false,openstreetmap
+Basketball (private),basketball,pitch,41.2768018,-95.7993352,,,IA,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,42.0576176,-93.6402535,,,IA,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.0127961,-93.6499906,,,IA,,false,true,false,openstreetmap
+Basketball/Pickleball Courts,basketball,pitch,42.5734662,-92.793099,,,IA,,false,true,false,openstreetmap
+Bradford Court,basketball,pitch,42.6332967,-93.2449243,,,IA,,false,true,false,openstreetmap
+Centennial Park Basketball Court,basketball,pitch,41.6025207,-93.8687388,,,IA,,false,true,false,openstreetmap
+Court,basketball,pitch,42.5717356,-92.1645044,,,IA,,false,true,false,openstreetmap
+John K. and Louise V. Hanson Fieldhouse,basketball,sports_centre,43.2623503,-93.6478821,,,IA,,false,true,false,openstreetmap
+McLeod Center,basketball,sports_centre,42.5144819,-92.4673036,,,IA,,false,true,false,openstreetmap
+Mitchell Park Basketball Courts,basketball,pitch,41.6743865,-94.5072586,,,IA,,false,true,false,openstreetmap
+Park Basketball Court,basketball,pitch,41.7882218,-95.2065228,,,IA,,false,true,false,openstreetmap
+Shivers Basketball Practice Facility,basketball,sports_centre,41.6046878,-93.6515489,2601 Forest Avenue,,IA,,false,true,false,openstreetmap
+Stoltz Sports Center,basketball,sports_centre,42.4977049,-90.6940692,1050 McCormick Street,,IA,,false,true,false,openstreetmap
+Woolstock Courts,basketball,pitch,42.566126,-93.8411995,,,IA,,false,true,false,openstreetmap
+Hilton Coliseum,basketball,pitch,42.0210022,-93.6347711,1705 Center Drive,Ames,IA,50011,false,true,false,openstreetmap
+Fligg Fieldhouse,basketball,sports_centre,41.6962638,-93.5801248,3305 Southeast Delaware Avenue,Ankeny,IA,50023,false,true,false,openstreetmap

@@ -1,0 +1,81 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Stadium,football,pitch,38.7186964,-85.4640364,,,IN,,false,true,false,openstreetmap
+Andrews Field,football,pitch,41.4593716,-85.9981664,,,IN,,false,true,false,openstreetmap
+Bellmont Football Field,football,pitch,40.8335507,-84.9108438,,,IN,,false,true,false,openstreetmap
+Bellmont Practice Football Field,football,pitch,40.83345,-84.9125383,,,IN,,false,true,false,openstreetmap
+Brown Field,football,pitch,41.4656379,-87.0479175,,,IN,,false,true,false,openstreetmap
+Butler Bowl,football,sports_centre,39.8444861,-86.1658368,,,IN,,false,true,false,openstreetmap
+Carr Field,football,pitch,41.3581123,-85.0530125,,,IN,,false,true,false,openstreetmap
+Clarian Health Field,football,pitch,39.9777848,-85.9634783,,,IN,,false,true,false,openstreetmap
+Colts Training Facility,football,sports_centre,39.8507396,-86.2846454,7001 W 56th St,,IN,46254,false,true,false,openstreetmap
+Concord Practice Football Field,football,pitch,41.6355194,-85.9265293,,,IN,,false,true,false,openstreetmap
+Covington HS Football Field,football,pitch,40.1502485,-87.3936205,,,IN,,false,true,false,openstreetmap
+DePauw University Blackstock Stadium,football,pitch,39.6400268,-86.8680767,,,IN,,false,true,false,openstreetmap
+D’arcy Stadium,football,pitch,41.0859443,-85.1784623,,,IN,,false,true,false,openstreetmap
+Elkhart Central Blue Blazers' Football Field,football,pitch,41.6862854,-85.956981,,,IN,,false,true,false,openstreetmap
+Evan Williams Field,football,pitch,39.1741494,-86.4976848,,,IN,,false,true,false,openstreetmap
+Everwise Freed Field,football,pitch,41.6800387,-86.1056061,,,IN,,false,true,false,openstreetmap
+Father Bly Field,football,pitch,41.6801357,-86.2399243,,,IN,,false,true,false,openstreetmap
+Foreman Field,football,pitch,41.5793395,-85.8217299,,,IN,,false,true,false,openstreetmap
+Frank F. Navarro Field,football,pitch,40.0362238,-86.9072594,,,IN,,false,true,false,openstreetmap
+Franklin Township Athletic Center,football,stadium,39.6792549,-86.0167814,,,IN,,false,true,false,openstreetmap
+Fribley Field,football,pitch,41.2366089,-85.8466173,,,IN,,false,true,false,openstreetmap
+Giants Stadium,football,pitch,39.7847754,-86.2944193,,,IN,,false,true,false,openstreetmap
+Gill Field,football,pitch,41.708451,-86.8946816,,,IN,,false,true,false,openstreetmap
+Gilroy Stadium,football,stadium,41.5605866,-87.3472548,,,IN,,false,true,false,openstreetmap
+Greyhound Stadium,football,pitch,39.987584,-86.1196276,,,IN,,false,true,false,openstreetmap
+Guerin Catholic Track,football,pitch,40.0084779,-86.0852168,,,IN,,false,true,false,openstreetmap
+Hatchet Hallow,football,pitch,38.6623129,-87.167261,,,IN,,false,true,false,openstreetmap
+Hendricks Regional Health Field,football,pitch,39.7551021,-86.5417987,,,IN,,false,true,false,openstreetmap
+Home of Jaguars,football,pitch,39.1256451,-86.5099151,,,IN,,false,true,false,openstreetmap
+Home of Panthers,football,pitch,39.1406881,-86.5293186,,,IN,,false,true,false,openstreetmap
+Hull Field,football,pitch,40.4278795,-86.924954,,,IN,,false,true,false,openstreetmap
+Jerry Brewer Stadium,football,pitch,38.388968,-86.9353437,,,IN,,false,true,false,openstreetmap
+Knox Community High School Football Field,football,pitch,41.2836179,-86.6263922,,,IN,,false,true,false,openstreetmap
+Kriegbaum Field,football,pitch,40.8946036,-85.5057968,,,IN,,false,true,false,openstreetmap
+LaBar Practice Complex,football,sports_centre,41.6987898,-86.2278283,,,IN,,false,true,false,openstreetmap
+Legion Field,football,pitch,37.9528313,-86.7591709,,,IN,,false,true,false,openstreetmap
+Leonard Douglas Stadium,football,pitch,41.5774595,-87.3449701,,,IN,,false,true,false,openstreetmap
+Longshore Stadium,football,pitch,39.779495,-86.1328671,,,IN,,false,true,false,openstreetmap
+Lucas Oil Stadium,football,stadium,39.7591085,-86.1638686,,,IN,,false,true,false,openstreetmap
+Lybolt Field,football,pitch,39.8208087,-84.9007209,,,IN,,false,true,false,openstreetmap
+Macholtz Stadium,football,pitch,40.1163988,-85.6611745,,,IN,,false,true,false,openstreetmap
+Mustang Corral,football,pitch,39.2346861,-86.636106,,,IN,,false,true,false,openstreetmap
+Noblesville Football Field,football,pitch,40.0564843,-86.0002334,,,IN,,false,true,false,openstreetmap
+Noblesville Football Stadium,football,pitch,40.0489232,-86.0002244,,,IN,,false,true,false,openstreetmap
+Notre Dame Stadium,football,stadium,41.6984025,-86.2339552,,,IN,,false,true,false,openstreetmap
+Notre Dame Staduim,football,pitch,41.6983968,-86.2339204,,,IN,,false,true,false,openstreetmap
+Oliver Field,football,pitch,41.2254022,-86.3982998,,,IN,,false,true,false,openstreetmap
+Oriole Stadium,football,pitch,39.7357152,-86.3880266,,,IN,,false,true,false,openstreetmap
+Parkview Middle School,football,pitch,38.2861241,-85.7200067,,,IN,,false,true,false,openstreetmap
+Patriot Field,football,pitch,39.2850531,-86.7813494,,,IN,,false,true,false,openstreetmap
+Phil Brown Field,football,pitch,39.4854136,-87.3253814,,,IN,,false,true,false,openstreetmap
+Practice Field,football,pitch,39.5773267,-86.4778071,,,IN,,false,true,false,openstreetmap
+Practice field,football,pitch,38.3886591,-86.936347,,,IN,,false,true,false,openstreetmap
+Practice field,football,pitch,40.5032194,-86.9149958,,,IN,,false,true,false,openstreetmap
+Raider Interra Field,football,pitch,41.6725183,-85.7331087,,,IN,,false,true,false,openstreetmap
+Ray Gallivan Field,football,pitch,41.6822459,-87.4914185,,,IN,,false,true,false,openstreetmap
+Ricci Family Fields,football,sports_centre,41.7075708,-86.2334627,,,IN,,false,true,false,openstreetmap
+River Valley Middle School Football Field,football,pitch,38.3272555,-85.7329668,,,IN,,false,true,false,openstreetmap
+Rohrman Field,football,pitch,40.43442,-86.9184146,,,IN,,false,true,false,openstreetmap
+Ross–Ade Stadium,football,stadium,40.4346516,-86.9184541,,,IN,,false,true,false,openstreetmap
+Roy Williams Field,football,pitch,39.0433216,-87.1659152,,,IN,,false,true,false,openstreetmap
+Scheumann Stadium,football,stadium,40.2160583,-85.4168232,,,IN,,false,true,false,openstreetmap
+Scheumann Stadium,football,pitch,40.2160174,-85.4167695,,,IN,,false,true,false,openstreetmap
+Schmucker Football Feild,football,pitch,41.6788596,-86.1136996,,,IN,,false,true,false,openstreetmap
+Seibel Field,football,pitch,39.2062423,-85.578788,,,IN,,false,true,false,openstreetmap
+Shields Field,football,pitch,41.1321624,-85.1232945,,,IN,,false,true,false,openstreetmap
+Smysor Bruce Field,football,pitch,39.8567293,-86.0373751,,,IN,,false,true,false,openstreetmap
+South Side Football Field,football,pitch,41.054165,-85.1355803,,,IN,,false,true,false,openstreetmap
+Southwestern Football Field,football,pitch,40.303347,-86.945757,,,IN,,false,true,false,openstreetmap
+St Vincents,football,pitch,41.1603641,-85.1192317,,,IN,,false,true,false,openstreetmap
+Steele Stadium,football,pitch,41.6638232,-86.160511,,,IN,,false,true,false,openstreetmap
+The Rock,football,pitch,39.1808915,-86.5256316,,,IN,,false,true,false,openstreetmap
+Track & Field,football,track,40.2175187,-85.4164591,,,IN,,false,true,false,openstreetmap
+Wayne Henning Stadium  Bob Hargrave Field,football,pitch,37.9726761,-87.5364352,,,IN,,false,true,false,openstreetmap
+Wayne High School Football Field,football,pitch,40.9976576,-85.1388473,,,IN,,false,true,false,openstreetmap
+Wildcat Stadium,football,stadium,40.5154947,-85.659026,,,IN,,false,true,false,openstreetmap
+Wolves Football Field,football,pitch,41.7020127,-86.8959275,,,IN,,false,true,false,openstreetmap
+Zollner Stadium,football,pitch,41.1108268,-85.1146675,,,IN,,false,true,false,openstreetmap
+Lucas Oil Stadium,football,stadium,39.7600704,-86.1638081,500 South Capitol Avenue,Indianapolis,IN,46206,false,true,false,openstreetmap
+Purdue Football Performance Complex,football,sports_centre,40.4356248,-86.9167906,1228 John R. Wooden Drive,West Lafayette,IN,47906,false,true,false,openstreetmap

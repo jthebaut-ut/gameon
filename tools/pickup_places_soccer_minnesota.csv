@@ -1,0 +1,224 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,soccer,pitch,44.1884524,-94.0414805,,,MN,,false,true,false,openstreetmap
+1,soccer,pitch,44.8975089,-93.6093076,,,MN,,false,true,false,openstreetmap
+1,soccer,pitch,45.1673655,-93.2293331,,,MN,,false,true,false,openstreetmap
+1,soccer,pitch,44.7844003,-93.2346577,,,MN,,false,true,false,openstreetmap
+10,soccer,pitch,45.1649485,-93.228469,,,MN,,false,true,false,openstreetmap
+11,soccer,pitch,45.1638863,-93.2293595,,,MN,,false,true,false,openstreetmap
+12,soccer,pitch,45.1638937,-93.2284281,,,MN,,false,true,false,openstreetmap
+13,soccer,pitch,45.1649991,-93.2264855,,,MN,,false,true,false,openstreetmap
+14,soccer,pitch,45.1649369,-93.225529,,,MN,,false,true,false,openstreetmap
+15,soccer,pitch,45.1638653,-93.2264826,,,MN,,false,true,false,openstreetmap
+16,soccer,pitch,45.1638559,-93.2255164,,,MN,,false,true,false,openstreetmap
+17,soccer,pitch,45.1627331,-93.2293743,,,MN,,false,true,false,openstreetmap
+18,soccer,pitch,45.1627232,-93.22838,,,MN,,false,true,false,openstreetmap
+19,soccer,pitch,45.1616668,-93.2293973,,,MN,,false,true,false,openstreetmap
+2,soccer,pitch,44.8971326,-93.6088525,,,MN,,false,true,false,openstreetmap
+2,soccer,pitch,45.167379,-93.228379,,,MN,,false,true,false,openstreetmap
+2,soccer,pitch,44.7842161,-93.2335702,,,MN,,false,true,false,openstreetmap
+20,soccer,pitch,45.1616686,-93.2283807,,,MN,,false,true,false,openstreetmap
+21,soccer,pitch,45.1627818,-93.2264247,,,MN,,false,true,false,openstreetmap
+22,soccer,pitch,45.1627723,-93.2255342,,,MN,,false,true,false,openstreetmap
+23,soccer,pitch,45.161684,-93.2265078,,,MN,,false,true,false,openstreetmap
+24,soccer,pitch,45.1616975,-93.2255224,,,MN,,false,true,false,openstreetmap
+25,soccer,pitch,45.167074,-93.2243012,,,MN,,false,true,false,openstreetmap
+26,soccer,pitch,45.1670878,-93.2232451,,,MN,,false,true,false,openstreetmap
+27,soccer,pitch,45.1659897,-93.2242933,,,MN,,false,true,false,openstreetmap
+28,soccer,pitch,45.1660009,-93.2232284,,,MN,,false,true,false,openstreetmap
+29,soccer,pitch,45.1628087,-93.2242661,,,MN,,false,true,false,openstreetmap
+3,soccer,pitch,44.8974087,-93.6085917,,,MN,,false,true,false,openstreetmap
+3,soccer,pitch,45.1663276,-93.2293001,,,MN,,false,true,false,openstreetmap
+30,soccer,pitch,45.1628444,-93.2232523,,,MN,,false,true,false,openstreetmap
+31,soccer,pitch,45.1616475,-93.2242849,,,MN,,false,true,false,openstreetmap
+32,soccer,pitch,45.1616427,-93.2232442,,,MN,,false,true,false,openstreetmap
+4,soccer,pitch,45.1663186,-93.2283852,,,MN,,false,true,false,openstreetmap
+46,soccer,pitch,45.1600604,-93.2293394,,,MN,,false,true,false,openstreetmap
+47,soccer,pitch,45.1600625,-93.2282916,,,MN,,false,true,false,openstreetmap
+48,soccer,pitch,45.1600561,-93.2271022,,,MN,,false,true,false,openstreetmap
+49,soccer,pitch,45.1600457,-93.2260403,,,MN,,false,true,false,openstreetmap
+5,soccer,pitch,45.1673217,-93.2264565,,,MN,,false,true,false,openstreetmap
+51,soccer,pitch,45.1586346,-93.2171625,,,MN,,false,true,false,openstreetmap
+52,soccer,pitch,45.1599634,-93.2217946,,,MN,,false,true,false,openstreetmap
+52,soccer,pitch,45.1578114,-93.2168465,,,MN,,false,true,false,openstreetmap
+53,soccer,pitch,45.159965,-93.2208738,,,MN,,false,true,false,openstreetmap
+53,soccer,pitch,45.1579943,-93.2156828,,,MN,,false,true,false,openstreetmap
+54,soccer,pitch,45.159823,-93.2187824,,,MN,,false,true,false,openstreetmap
+54,soccer,pitch,45.1588261,-93.2159416,,,MN,,false,true,false,openstreetmap
+55,soccer,pitch,45.1597205,-93.2177165,,,MN,,false,true,false,openstreetmap
+57,soccer,pitch,45.1586878,-93.2218219,,,MN,,false,true,false,openstreetmap
+58,soccer,pitch,45.1586811,-93.2209797,,,MN,,false,true,false,openstreetmap
+59,soccer,pitch,45.1586962,-93.2199929,,,MN,,false,true,false,openstreetmap
+6,soccer,pitch,45.167316,-93.2254977,,,MN,,false,true,false,openstreetmap
+60,soccer,pitch,45.1575826,-93.2278762,,,MN,,false,true,false,openstreetmap
+61,soccer,pitch,45.1576255,-93.2257587,,,MN,,false,true,false,openstreetmap
+62,soccer,pitch,45.1570342,-93.2257354,,,MN,,false,true,false,openstreetmap
+65,soccer,pitch,45.1575572,-93.2218768,,,MN,,false,true,false,openstreetmap
+66,soccer,pitch,45.1576006,-93.2209856,,,MN,,false,true,false,openstreetmap
+7,soccer,pitch,45.1662005,-93.2264802,,,MN,,false,true,false,openstreetmap
+7,soccer,pitch,44.8975261,-93.6074409,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7420795,-93.1944381,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.741765,-93.1944401,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7423927,-93.1944374,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7427087,-93.1944364,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,45.16619,-93.2254977,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.8977724,-93.6084087,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7405931,-93.1944635,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7409072,-93.1944799,,,MN,,false,true,false,openstreetmap
+8,soccer,pitch,44.7414504,-93.1944384,,,MN,,false,true,false,openstreetmap
+9,soccer,pitch,45.1649485,-93.2293647,,,MN,,false,true,false,openstreetmap
+Alex Nemzek Soccer Field,soccer,pitch,46.8687611,-96.7511773,,,MN,,false,true,false,openstreetmap
+Allianz Field,soccer,stadium,44.9531076,-93.1646863,,,MN,,false,true,false,openstreetmap
+B1n,soccer,pitch,45.160141,-93.2241752,,,MN,,false,true,false,openstreetmap
+B1s,soccer,pitch,45.159757,-93.2241693,,,MN,,false,true,false,openstreetmap
+B2n,soccer,pitch,45.1601337,-93.2231185,,,MN,,false,true,false,openstreetmap
+B2s,soccer,pitch,45.1596811,-93.2231058,,,MN,,false,true,false,openstreetmap
+Big Cat Stadium,soccer,pitch,45.5864767,-95.8986556,,,MN,,false,true,false,openstreetmap
+Blue 2,soccer,pitch,44.8883955,-92.9430989,,,MN,,false,true,false,openstreetmap
+Blue 2B,soccer,pitch,44.8902681,-92.9409579,,,MN,,false,true,false,openstreetmap
+Blue 3,soccer,pitch,44.8897855,-92.9430581,,,MN,,false,true,false,openstreetmap
+Blue 4,soccer,pitch,44.8899234,-92.9420689,,,MN,,false,true,false,openstreetmap
+Blue 5A,soccer,pitch,44.8897522,-92.9409084,,,MN,,false,true,false,openstreetmap
+Bonner Soccer,soccer,pitch,43.8506992,-92.4788586,,,MN,,false,true,false,openstreetmap
+Boundary Creek Park Soccer Field,soccer,pitch,45.144382,-93.4127863,,,MN,,false,true,false,openstreetmap
+Braemar Field,soccer,pitch,44.8697586,-93.3942057,,,MN,,false,true,false,openstreetmap
+Cobb School Field,soccer,pitch,46.8494564,-92.0830084,,,MN,,false,true,false,openstreetmap
+Coon Rapids Soccer Complex,soccer,sports_centre,45.1737927,-93.3095515,,,MN,,false,true,false,openstreetmap
+Dane Family Field House,soccer,pitch,44.3060985,-93.2602111,,,MN,,false,true,false,openstreetmap
+David Brown Soccer Field,soccer,pitch,46.5669793,-96.090784,,,MN,,false,true,false,openstreetmap
+East Field,soccer,pitch,44.8059701,-93.3852253,,,MN,,false,true,false,openstreetmap
+Elizabeth Lyle Robbie Soccer Fields,soccer,pitch,44.9945529,-93.1887535,,,MN,,false,true,false,openstreetmap
+Elizabeth Lyle Robbie Soccer Fields,soccer,pitch,44.9948055,-93.1877653,,,MN,,false,true,false,openstreetmap
+F2,soccer,pitch,44.0194273,-92.4335034,,,MN,,false,true,false,openstreetmap
+F3,soccer,pitch,44.0206347,-92.4323718,,,MN,,false,true,false,openstreetmap
+F4,soccer,pitch,44.0194213,-92.4324163,,,MN,,false,true,false,openstreetmap
+F5,soccer,pitch,44.0205884,-92.4312989,,,MN,,false,true,false,openstreetmap
+F6,soccer,pitch,44.0194216,-92.431325,,,MN,,false,true,false,openstreetmap
+F7,soccer,pitch,44.0206599,-92.430144,,,MN,,false,true,false,openstreetmap
+F8,soccer,pitch,44.0184429,-92.4349682,,,MN,,false,true,false,openstreetmap
+F9,soccer,pitch,44.0184314,-92.4365989,,,MN,,false,true,false,openstreetmap
+Fenway Fields,soccer,pitch,45.242729,-92.9970473,,,MN,,false,true,false,openstreetmap
+Field #1,soccer,pitch,44.4378034,-93.1518017,,,MN,,false,true,false,openstreetmap
+Field #2,soccer,pitch,44.4377521,-93.1545384,,,MN,,false,true,false,openstreetmap
+Field #3,soccer,pitch,44.4377875,-93.155423,,,MN,,false,true,false,openstreetmap
+Field #4,soccer,pitch,44.4370007,-93.1550969,,,MN,,false,true,false,openstreetmap
+Field #5,soccer,pitch,44.4365112,-93.155091,,,MN,,false,true,false,openstreetmap
+Field #6,soccer,pitch,44.435833,-93.1530472,,,MN,,false,true,false,openstreetmap
+Field #7,soccer,pitch,44.4360975,-93.151717,,,MN,,false,true,false,openstreetmap
+Field #8,soccer,pitch,44.4355377,-93.1542111,,,MN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.9963296,-93.5966997,,,MN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.6554804,-93.2338702,,,MN,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.8511681,-93.4950439,,,MN,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.9908142,-93.5971209,,,MN,,false,true,false,openstreetmap
+Field 11,soccer,pitch,44.8510955,-93.4961593,,,MN,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.7399877,-93.190456,,,MN,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.8511164,-93.4981475,,,MN,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.9957687,-93.5912175,,,MN,,false,true,false,openstreetmap
+Field 13,soccer,pitch,44.851124,-93.4989709,,,MN,,false,true,false,openstreetmap
+Field 13,soccer,pitch,44.9957433,-93.5898834,,,MN,,false,true,false,openstreetmap
+Field 13E,soccer,pitch,44.7457697,-93.1937249,,,MN,,false,true,false,openstreetmap
+Field 13W,soccer,pitch,44.7457764,-93.1943608,,,MN,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.6554814,-93.234394,,,MN,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.7440662,-93.1898919,,,MN,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.6554793,-93.2333463,,,MN,,false,true,false,openstreetmap
+Field 4,soccer,pitch,46.8154824,-92.0815095,,,MN,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.6553392,-93.232106,,,MN,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.6555527,-93.2313529,,,MN,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.6550936,-93.2313328,,,MN,,false,true,false,openstreetmap
+Field 7,soccer,pitch,44.6545806,-93.2313179,,,MN,,false,true,false,openstreetmap
+Field 8,soccer,pitch,46.8181583,-92.0798015,,,MN,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.653949,-93.2313032,,,MN,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.851137,-93.4939332,,,MN,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.6542737,-93.2313107,,,MN,,false,true,false,openstreetmap
+Field A,soccer,pitch,44.8902024,-93.1910221,,,MN,,false,true,false,openstreetmap
+Field B,soccer,pitch,44.8897781,-93.1902669,,,MN,,false,true,false,openstreetmap
+Field C,soccer,pitch,44.8893608,-93.1894671,,,MN,,false,true,false,openstreetmap
+Field D,soccer,pitch,44.8894187,-93.1918651,,,MN,,false,true,false,openstreetmap
+Field E,soccer,pitch,44.8889937,-93.1910602,,,MN,,false,true,false,openstreetmap
+Field F,soccer,pitch,44.8885503,-93.1903274,,,MN,,false,true,false,openstreetmap
+Field G,soccer,pitch,44.8903097,-93.1925178,,,MN,,false,true,false,openstreetmap
+Field H,soccer,pitch,44.8897413,-93.1930484,,,MN,,false,true,false,openstreetmap
+Gold 27,soccer,pitch,44.887732,-92.9296489,,,MN,,false,true,false,openstreetmap
+Grand Rapids Sports Complex Field 2,soccer,pitch,47.2434986,-93.5076274,,,MN,,false,true,false,openstreetmap
+Green 17,soccer,pitch,44.8900205,-92.9318281,,,MN,,false,true,false,openstreetmap
+Green 18,soccer,pitch,44.8899641,-92.9308854,,,MN,,false,true,false,openstreetmap
+Green 19,soccer,pitch,44.8899745,-92.9298065,,,MN,,false,true,false,openstreetmap
+Guido Kauls Soccer Field,soccer,pitch,44.9457725,-93.2068702,,,MN,,false,true,false,openstreetmap
+Haws Field,soccer,pitch,45.584971,-94.3901697,,,MN,,false,true,false,openstreetmap
+High School Soccer,soccer,pitch,43.97124,-92.0515862,,,MN,,false,true,false,openstreetmap
+Honeywell Field,soccer,pitch,44.9509286,-93.2686798,,,MN,,false,true,false,openstreetmap
+Intramural Fields,soccer,pitch,44.4657014,-93.1886932,,,MN,,false,true,false,openstreetmap
+Irondale HS Soccer Pitch,soccer,pitch,45.090206,-93.2050683,,,MN,,false,true,false,openstreetmap
+Kix Field,soccer,pitch,44.9506267,-93.2710402,,,MN,,false,true,false,openstreetmap
+Larry Shelton Soccer Field,soccer,pitch,46.7509565,-92.2107297,,,MN,,false,true,false,openstreetmap
+Leo Ochrymowycz Soccer Field,soccer,pitch,44.0429241,-91.6988215,,,MN,,false,true,false,openstreetmap
+Leo Ochrymowycz Soccer Field,soccer,pitch,44.0429005,-91.6988152,,,MN,,false,true,false,openstreetmap
+Lincoln Field,soccer,pitch,44.9888379,-93.3089508,,,MN,,false,true,false,openstreetmap
+MLC Soccer,soccer,pitch,44.3044581,-94.4840215,,,MN,,false,true,false,openstreetmap
+MNUFC Training,soccer,pitch,45.1558563,-93.2258602,,,MN,,false,true,false,openstreetmap
+Meadows Park Soccer Field,soccer,pitch,44.7505054,-93.1043638,,,MN,,false,true,false,openstreetmap
+Minnesota Thunder Academy Practice Facility,soccer,pitch,44.8610726,-93.3995879,7880 Washington Avenue South,,MN,,false,true,false,openstreetmap
+North Field,soccer,pitch,44.807305,-93.3868044,,,MN,,false,true,false,openstreetmap
+Oden Alreck Field,soccer,pitch,46.9480145,-91.7863301,,,MN,,false,true,false,openstreetmap
+Oneka Lake Park Soccer Field,soccer,pitch,45.1735293,-92.9793663,,,MN,,false,true,false,openstreetmap
+Ottawa Field,soccer,pitch,44.9802183,-93.3407371,,,MN,,false,true,false,openstreetmap
+Parade Field,soccer,pitch,44.3013018,-93.2594036,,,MN,,false,true,false,openstreetmap
+Paul Antonich Memorial Field,soccer,pitch,47.0368075,-91.6738566,1521 8th Street,,MN,,false,true,false,openstreetmap
+Piedmont Soccer Field,soccer,pitch,46.785351,-92.1599653,,,MN,,false,true,false,openstreetmap
+Practice Soccer Field,soccer,pitch,44.142615,-93.9980163,,,MN,,false,true,false,openstreetmap
+Prep Athletic Fields,soccer,pitch,45.5813649,-94.3787889,,,MN,,false,true,false,openstreetmap
+Public School Stadium,soccer,pitch,46.7476886,-92.1606715,,,MN,,false,true,false,openstreetmap
+RAHS Soccer Field,soccer,pitch,45.0119045,-93.1482051,,,MN,,false,true,false,openstreetmap
+Recreational Sports Soccer Fields,soccer,pitch,44.9900278,-93.1889568,,,MN,,false,true,false,openstreetmap
+Recreational Sports Soccer Fields,soccer,pitch,44.9898115,-93.1882111,,,MN,,false,true,false,openstreetmap
+Recreational Sports Soccer Fields,soccer,pitch,44.9899177,-93.1876693,,,MN,,false,true,false,openstreetmap
+Red 20,soccer,pitch,44.8899209,-92.9272771,,,MN,,false,true,false,openstreetmap
+Red 21,soccer,pitch,44.8899593,-92.926133,,,MN,,false,true,false,openstreetmap
+Red 23A,soccer,pitch,44.8896998,-92.9250936,,,MN,,false,true,false,openstreetmap
+Red 23B,soccer,pitch,44.8901944,-92.9250743,,,MN,,false,true,false,openstreetmap
+Red 24A,soccer,pitch,44.8890129,-92.9250514,,,MN,,false,true,false,openstreetmap
+Red 24B,soccer,pitch,44.8885219,-92.925041,,,MN,,false,true,false,openstreetmap
+Rolf Melby Field,soccer,pitch,44.4652481,-93.1856535,,,MN,,false,true,false,openstreetmap
+S MS/HS Soccer,soccer,pitch,43.8523134,-92.4915197,,,MN,,false,true,false,openstreetmap
+Segog Field,soccer,pitch,47.0291008,-91.6933094,,,MN,,false,true,false,openstreetmap
+Slayton Soccer Fields,soccer,sports_centre,43.9841233,-95.7598345,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.8506231,-92.4944329,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.8501396,-92.4948605,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.8493521,-92.4917145,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.8488227,-92.4929408,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.8493395,-92.4908468,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,43.971495,-92.0567463,,,MN,,false,true,false,openstreetmap
+Soccer,soccer,pitch,44.0488124,-92.4267398,,,MN,,false,true,false,openstreetmap
+Soccer (Private),soccer,pitch,44.0498693,-92.4156943,,,MN,,false,true,false,openstreetmap
+Soccer World,soccer,sports_centre,43.9712507,-92.4573756,380 Wood Lake Drive Southeast,,MN,55904,false,true,false,openstreetmap
+Soccer/Football Field,soccer,pitch,45.1887513,-93.1615818,,,MN,,false,true,false,openstreetmap
+Soccer/Football Field,soccer,pitch,45.1887556,-93.1603309,,,MN,,false,true,false,openstreetmap
+South Athletic Fields,soccer,pitch,44.938617,-93.193725,,,MN,,false,true,false,openstreetmap
+Tintah Park Soccer Pitch,soccer,sports_centre,44.7430089,-93.1590653,,,MN,,false,true,false,openstreetmap
+U1,soccer,pitch,45.1574373,-93.2258746,,,MN,,false,true,false,openstreetmap
+Watson 1,soccer,pitch,44.0669788,-92.4748824,,,MN,,false,true,false,openstreetmap
+Watson 2,soccer,pitch,44.0669903,-92.4759713,,,MN,,false,true,false,openstreetmap
+Watson 3 NE,soccer,pitch,44.0672528,-92.4768503,,,MN,,false,true,false,openstreetmap
+Watson 3 NW,soccer,pitch,44.0672567,-92.477309,,,MN,,false,true,false,openstreetmap
+Watson 3 SE,soccer,pitch,44.0667557,-92.476861,,,MN,,false,true,false,openstreetmap
+Watson 3 SW,soccer,pitch,44.0667614,-92.4773197,,,MN,,false,true,false,openstreetmap
+Watson 4 N,soccer,pitch,44.0661048,-92.4748943,,,MN,,false,true,false,openstreetmap
+Watson 4 S,soccer,pitch,44.0656038,-92.4749051,,,MN,,false,true,false,openstreetmap
+Watson 5 NE,soccer,pitch,44.0661154,-92.4757701,,,MN,,false,true,false,openstreetmap
+Watson 5 NW,soccer,pitch,44.0661173,-92.4762315,Watson 5 NW,,MN,,false,true,false,openstreetmap
+Watson 5 SE,soccer,pitch,44.0656214,-92.4757799,,,MN,,false,true,false,openstreetmap
+Watson 5 SW,soccer,pitch,44.0656214,-92.4762332,,,MN,,false,true,false,openstreetmap
+Watson 6 N,soccer,pitch,44.0661318,-92.4771045,,,MN,,false,true,false,openstreetmap
+Watson 6 S,soccer,pitch,44.0656345,-92.4771152,Watson 6 South,,MN,,false,true,false,openstreetmap
+Youth Soccer Field,soccer,pitch,44.778068,-94.136839,,,MN,,false,true,false,openstreetmap
+Ninth Street Soccer and Coffee,soccer,sports_centre,44.9890123,-93.2403438,801 Southeast 9th Street,Minneapolis,MN,55424,false,true,false,openstreetmap
+#2,soccer,pitch,44.1883718,-94.0429284,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+#3,soccer,pitch,44.1890252,-94.0429366,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+#4,soccer,pitch,44.18969,-94.04294,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+#5,soccer,pitch,44.1903423,-94.0429487,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+#6,soccer,pitch,44.1909929,-94.0429563,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+Caswell North Soccer Complex,soccer,sports_centre,44.1896578,-94.0412709,1875 Carlson Drive,North Mankato,MN,56003,false,true,false,openstreetmap
+Badger Ridge Park Soccer Fields,soccer,sports_centre,44.0541648,-92.5263643,Superior Dr. NW,Rochester,MN,55901,false,true,false,openstreetmap
+John Drews Field,soccer,sports_centre,44.0331111,-92.4850154,1510 14th Street Northwest,Rochester,MN,55901,false,true,false,openstreetmap
+The Black Hart of St. Paul,soccer,bar,44.9560385,-93.160043,1415 University Avenue,Saint Paul,MN,55104,false,true,false,openstreetmap
+Soccer Fun-Da-Mentals,soccer,sports_hall,44.7813103,-93.5099148,1198 Vierling Drive East,Shakopee,MN,55379,false,true,false,openstreetmap
+West St Paul Sports Center,soccer,sports_centre,44.8971619,-93.0831805,1655 Livingston Avenue,West St Paul,MN,55118,false,true,false,openstreetmap

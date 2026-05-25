@@ -1,0 +1,46 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Blakemore Field,football,pitch,35.4425216,-94.3357474,,,AR,,false,true,false,openstreetmap
+Bobcat Field,football,pitch,36.0619632,-90.9562316,,,AR,,false,true,false,openstreetmap
+Bulldog Stadium,football,pitch,36.1866282,-94.1414752,,,AR,,false,true,false,openstreetmap
+Cabot Panthers Field,football,pitch,34.9726976,-92.0068344,,,AR,,false,true,false,openstreetmap
+Centennial Bank Field,football,pitch,35.0957269,-92.4579452,,,AR,,false,true,false,openstreetmap
+Centennial Bank Stadium,football,pitch,35.8489164,-90.6671798,,,AR,,false,true,false,openstreetmap
+Childrens community football field,football,pitch,36.1886198,-90.3833367,,,AR,,false,true,false,openstreetmap
+Crafton-Faulkner Field,football,pitch,35.1001655,-92.4365036,,,AR,,false,true,false,openstreetmap
+"Danville High School, Little John Stadium",football,stadium,35.0507384,-93.3910657,,,AR,,false,true,false,openstreetmap
+Donald W. Reynolds Razorback Stadium,football,stadium,36.0681566,-94.1788569,,,AR,,false,true,false,openstreetmap
+Estes Stadium East Stands,football,stadium,35.0802781,-92.45948,,,AR,,false,true,false,openstreetmap
+Estes Stadium West Stands,football,stadium,35.0802659,-92.4606058,,,AR,,false,true,false,openstreetmap
+First Security Field,football,pitch,35.080273,-92.4600073,,,AR,,false,true,false,openstreetmap
+First Security Staduim Practice Field,football,pitch,35.2444097,-91.7221985,,,AR,,false,true,false,openstreetmap
+Football Administration & Fieldhouse,football,pitch,35.8479024,-90.6673871,2800 Suite A Alumni Blvd,,AR,72467,false,true,false,openstreetmap
+Football Equipment Office,football,pitch,35.8478879,-90.6670361,2800 Suite C Alumni Blvd,,AR,72467,false,true,false,openstreetmap
+Football Practice Field,football,pitch,35.0807093,-92.4621578,,,AR,,false,true,false,openstreetmap
+Frank Broyles Field,football,pitch,36.0680903,-94.1789407,,,AR,,false,true,false,openstreetmap
+Go Devils - Gurdon,football,pitch,33.9077079,-93.1931327,,,AR,,false,true,false,openstreetmap
+Greenwood Multi-Athletic Center,football,pitch,35.2209069,-94.2548484,,,AR,,false,true,false,openstreetmap
+Hamilton-Schultz Field,football,pitch,35.1478519,-90.1989904,,,AR,,false,true,false,openstreetmap
+Harding Academy Practice Field,football,pitch,35.2441361,-91.7190733,,,AR,,false,true,false,openstreetmap
+Heritage Football Field,football,pitch,36.3197834,-94.1231327,,,AR,,false,true,false,openstreetmap
+Hyatt Field - Monticello High School,football,pitch,33.6202309,-91.7988771,,,AR,,false,true,false,openstreetmap
+Jack Berry Field,football,pitch,35.4006719,-93.1159657,,,AR,,false,true,false,openstreetmap
+Jim Citty Football/Athletic Training Facility,football,fitness_centre,35.2443758,-91.7230275,,,AR,,false,true,false,openstreetmap
+John McConnell Stadium,football,stadium,35.0947508,-92.4578713,,,AR,,false,true,false,openstreetmap
+John Needham Stadium,football,stadium,35.2374357,-93.0293774,,,AR,,false,true,false,openstreetmap
+Lakeside Rams,football,pitch,34.4736611,-92.9950032,,,AR,,false,true,false,openstreetmap
+Macabee Field,football,pitch,36.4193895,-94.4455343,,,AR,,false,true,false,openstreetmap
+Marching Band Practice Field,football,pitch,35.2562038,-91.6908926,,,AR,,false,true,false,openstreetmap
+Panther Stadium,football,stadium,33.2777157,-93.2211048,,,AR,,false,true,false,openstreetmap
+Ruggles Field,football,pitch,34.1346604,-93.0634014,,,AR,,false,true,false,openstreetmap
+Scott Field,football,pitch,34.7600256,-92.3381255,,,AR,,false,true,false,openstreetmap
+Thone Stadium at Burkle Field,football,stadium,35.290459,-93.1354015,,,AR,,false,true,false,openstreetmap
+Training Field,football,pitch,34.1355181,-93.0620343,,,AR,,false,true,false,openstreetmap
+Training Field,football,pitch,34.1351412,-93.0615878,,,AR,,false,true,false,openstreetmap
+University of Arkansas Practice Field - Grass,football,pitch,36.0645692,-94.1795772,,,AR,,false,true,false,openstreetmap
+University of Arkansas Practice Field - Turf,football,pitch,36.0645573,-94.1789558,,,AR,,false,true,false,openstreetmap
+Wampus Cat Indoor Practice Facility,football,sports_centre,35.0962011,-92.4566351,,,AR,,false,true,false,openstreetmap
+Wilkins Stadium,football,pitch,33.294442,-93.2350452,,,AR,,false,true,false,openstreetmap
+Carpenter-Haygood Stadium,football,stadium,34.1346472,-93.0633612,492 M H Russell Drive,Arkadelphia,AR,71923,false,true,false,openstreetmap
+Brookland High School Football Field,football,pitch,35.9083022,-90.5779781,101 Victory Lane,Brookland,AR,72417,false,true,false,openstreetmap
+Brookland Middle School Football Field,football,pitch,35.914083,-90.5837748,302 N Oak Street,Brookland,AR,72417,false,true,false,openstreetmap
+First Security Stadium,football,sports_centre,35.2448018,-91.7211141,1201 East Park Avenue,Searcy,AR,72149,false,true,false,openstreetmap

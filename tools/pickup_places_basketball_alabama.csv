@@ -1,0 +1,30 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Challenge,basketball,pitch,33.3811701,-86.9988096,,,AL,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,33.3606243,-86.7303972,,,AL,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,30.3272982,-87.5171362,,,AL,,false,true,false,openstreetmap
+Basketball Half-Court,basketball,pitch,30.3207125,-87.5382686,,,AL,,false,true,false,openstreetmap
+Bill Battle Coliseum,basketball,stadium,33.5155098,-86.8516822,,,AL,,false,true,false,openstreetmap
+Bullseye Basketball Court,basketball,pitch,33.3660762,-86.6004205,,,AL,,false,true,false,openstreetmap
+Chelsea Community Center,basketball,sports_centre,33.3338701,-86.6275088,,,AL,,false,true,false,openstreetmap
+Claiborne-Belcher Rec Hall,basketball,pitch,34.0161047,-87.358823,,,AL,,true,false,false,openstreetmap
+Collier Court,basketball,pitch,30.2528266,-88.1204293,,,AL,,false,true,false,openstreetmap
+Dunn-Oliver Acadome,basketball,stadium,32.3618164,-86.2931191,,,AL,,false,true,false,openstreetmap
+Foster Auditorium,basketball,stadium,33.2077517,-87.5439956,,,AL,,false,true,false,openstreetmap
+Frank Brown Rec Center Basketball Court,basketball,pitch,32.6130135,-85.4785683,,,AL,,false,true,false,openstreetmap
+Gym,basketball,sports_centre,34.857992,-87.4951221,,,AL,,false,true,false,openstreetmap
+Health & Wellness Center,basketball,fitness_centre,34.7796912,-86.5734735,,,AL,,false,true,false,openstreetmap
+Larry Ginn Gymnasium,basketball,sports_centre,33.7753804,-85.885913,,,AL,,false,true,false,openstreetmap
+McDaniel Gym & Athletics,basketball,sports_hall,33.9460221,-86.4710901,,,AL,,false,true,false,openstreetmap
+Old Gym,basketball,fitness_centre,34.9624913,-87.5218836,,,AL,,false,true,false,openstreetmap
+Old Gym,basketball,sports_centre,33.5837419,-86.2954881,,,AL,,false,true,false,openstreetmap
+Oxmoor Park Basketball Court,basketball,pitch,33.4356634,-86.8644488,,,AL,,false,true,false,openstreetmap
+Southside Basketball Court,basketball,pitch,32.3270469,-86.9297752,,,AL,,true,false,false,openstreetmap
+Swift Consolidated Elementary School,basketball,pitch,30.3161045,-87.7282139,,,AL,,false,true,false,openstreetmap
+Woodland Scout Park Basketball Court,basketball,pitch,33.9487472,-86.4688199,,,AL,,false,true,false,openstreetmap
+Beard–Eaves–Memorial Coliseum,basketball,stadium,32.600121,-85.4923285,650 Biggio Drive,Auburn,AL,36849,false,true,false,openstreetmap
+Decatur High Gymnasium,basketball,sports_centre,34.5938545,-86.9732681,910 Sommerville Road Southeast,Decatur,AL,35601,false,true,false,openstreetmap
+Joe Jones Gym,basketball,sports_hall,34.5637699,-87.0505463,3004 Modaus Rd Sw,Decatur,AL,35603,false,true,false,openstreetmap
+Dothan Hoops,basketball,sports_centre,31.2307046,-85.4558963,128 South Woodburn Drive,Dothan,AL,36305,false,true,false,openstreetmap
+Shoot 360 Huntsville,basketball,sport_school,34.7262896,-86.7887442,115 Field View,Madison,AL,35758,false,true,false,openstreetmap
+Triana Gymnasium,basketball,sports_hall,34.583398,-86.7337124,640 6th Street,Triana,AL,35756,false,true,false,openstreetmap
+Trojan Arena,basketball,sports_centre,31.802228,-85.9524518,,Troy,AL,36082,false,true,false,openstreetmap

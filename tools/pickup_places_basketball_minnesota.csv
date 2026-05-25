@@ -1,0 +1,30 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Arena Acres Park Basketball Court,basketball,pitch,45.2072723,-93.1155556,,,MN,,false,true,false,openstreetmap
+Bartusch Park basketball coourt,basketball,pitch,45.1553354,-93.3762061,,,MN,,false,true,false,openstreetmap
+Basketball (2),basketball,pitch,43.9918582,-92.5016763,,,MN,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,44.970463,-93.2785641,,,MN,,false,true,false,openstreetmap
+Basketball Hoop,basketball,pitch,46.2783027,-96.0883038,,,MN,,false,true,false,openstreetmap
+Country Faith Church,basketball,pitch,47.6758551,-95.4741043,,,MN,,false,true,false,openstreetmap
+Hackney Park Basketball Court,basketball,pitch,44.774777,-93.5332117,,,MN,,false,true,false,openstreetmap
+Harpers Park Basketball Court,basketball,pitch,45.2059388,-93.1930115,,,MN,,false,true,false,openstreetmap
+Hassan Hills Park Basketball Half-Court,basketball,pitch,45.2169471,-93.5366168,,,MN,,false,true,false,openstreetmap
+Kevin Longley,basketball,pitch,45.3168633,-93.8279473,,,MN,,false,true,false,openstreetmap
+Kylawn Park Basketball Court,basketball,pitch,45.0644616,-93.3371604,,,MN,,false,true,false,openstreetmap
+Meadows Park Basketball Court,basketball,pitch,44.7796241,-93.5135718,,,MN,,false,true,false,openstreetmap
+Meadows Park Basketball Court,basketball,pitch,44.7513508,-93.1043296,,,MN,,false,true,false,openstreetmap
+Minneapolis Park and Recreation  Board,basketball,pitch,44.9961682,-93.3099854,,,MN,,false,true,false,openstreetmap
+Northeast Recreation Center,basketball,sports_centre,45.0038863,-93.2380364,1530 Northeast Johnson Street,,MN,,true,false,false,openstreetmap
+Orchard Lane Basketball Court,basketball,pitch,45.0743396,-93.3415586,,,MN,,false,true,false,openstreetmap
+Pillsbury Park Basketball Courts,basketball,pitch,45.1898554,-95.3104501,,,MN,,false,true,false,openstreetmap
+Pinehurst Basketball Court,basketball,pitch,46.7187958,-92.4637293,,,MN,,false,true,false,openstreetmap
+Recreation/Athletic Facility,basketball,sports_centre,44.4539678,-95.7611625,,,MN,,false,true,false,openstreetmap
+Royalty Park Basketball Court,basketball,pitch,44.7741143,-93.5248139,,,MN,,false,true,false,openstreetmap
+Silverwood Park Basketball and Tennis Half-court,basketball,pitch,44.9000081,-93.5297212,,,MN,,false,true,false,openstreetmap
+St. Anthony Watertower Park Basketball Court,basketball,pitch,45.0286311,-93.2163949,,,MN,,false,true,false,openstreetmap
+Sunnyside park basketball court,basketball,pitch,46.7345616,-92.4600917,,,MN,,false,true,false,openstreetmap
+Twin Lake Park Basketball Court,basketball,pitch,45.0408199,-93.3377122,,,MN,,false,true,false,openstreetmap
+Watermark Way Basketball Court,basketball,pitch,45.1770334,-93.0373669,,,MN,,false,true,false,openstreetmap
+Wrenshall school basketball court,basketball,pitch,46.6170814,-92.3836804,,,MN,,false,true,false,openstreetmap
+Target Center,basketball,stadium,44.9795877,-93.2760296,600 1st Avenue North,Minneapolis,MN,,false,true,false,openstreetmap
+Williams Arena,basketball,stadium,44.9769776,-93.228273,1925 Southeast University Avenue,Minneapolis,MN,55455,false,true,false,openstreetmap
+Gibbs Elementary Basketball Courts,basketball,sports_centre,44.0820939,-92.5480902,56th Street Northwest,Rochester,MN,55901,false,true,false,openstreetmap

@@ -1,0 +1,11 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Autrey Pickleball Court,pickleball,pitch,39.936265,-105.1425499,,,CO,,false,true,false,openstreetmap
+Clear Creek Valley Park Pickleball Courts,pickleball,pitch,39.8024413,-105.0362228,,,CO,,false,true,false,openstreetmap
+"Colo Spgs Pickleball ""The Warehouse"" (Indoor Court)",pickleball,sports_hall,38.8974061,-104.8465081,,,CO,,false,true,false,openstreetmap
+Rex Ranch Pickleball Court,pickleball,pitch,40.0259866,-105.0821137,,,CO,,false,true,false,openstreetmap
+The Picklr,pickleball,fitness_centre,40.4257008,-105.079295,3137 Garfield Avenue,,CO,,false,true,false,openstreetmap
+Woodglen Pickleball Courts,pickleball,pitch,39.9061806,-104.9467695,,,CO,,false,true,false,openstreetmap
+The Picklr,pickleball,fitness_centre,39.6066241,-104.7103011,23860 East Orchard Road,Aurora,CO,80016,false,true,false,openstreetmap
+Boulder Pickleball,pickleball,sports_centre,40.0220657,-105.2477391,3550 Frontier Avenue,Boulder,CO,80301,false,true,false,openstreetmap
+Springs Pickleball - East,pickleball,pitch,38.8756673,-104.7173736,2975 New Center Point,Colorado Springs,CO,80922,true,false,false,openstreetmap
+Relish,pickleball,sports_centre,39.9627665,-105.1601773,550 McCaslin Boulevard,Louisville,CO,80027,false,true,false,openstreetmap

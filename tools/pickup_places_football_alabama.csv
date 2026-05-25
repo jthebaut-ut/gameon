@@ -1,0 +1,115 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+ASU Stadium,football,stadium,32.364237,-86.2898191,,,AL,,false,true,false,openstreetmap
+AmFirst Stadium,football,stadium,33.8203419,-85.7662117,,,AL,,false,true,false,openstreetmap
+Arab PeeWee Football Field,football,pitch,34.3158053,-86.4814009,,,AL,,false,true,false,openstreetmap
+Ardmore Football Practice Feild,football,pitch,34.9849763,-86.8502615,,,AL,,false,true,false,openstreetmap
+Arshbishop Lipscomb Sports Complex,football,pitch,30.6656167,-88.1363445,,,AL,,false,true,false,openstreetmap
+Athens Stadium,football,stadium,34.8060491,-86.9483438,,,AL,,false,true,false,openstreetmap
+Austin High Football Field,football,pitch,34.5656483,-87.0509048,,,AL,,false,true,false,openstreetmap
+Baker Field,football,pitch,33.2038808,-87.5423706,,,AL,,false,true,false,openstreetmap
+Band Marching Field,football,pitch,31.7979021,-85.9612278,,,AL,,false,true,false,openstreetmap
+Battle Field,football,pitch,33.5179755,-86.858256,,,AL,,false,true,false,openstreetmap
+Bessemer Tigers,football,pitch,33.3734709,-86.9993101,,,AL,,false,true,false,openstreetmap
+Bill Bryan Stadium,football,stadium,33.7472335,-85.8329125,,,AL,,false,true,false,openstreetmap
+Bill Morris Stadium,football,stadium,33.6088799,-86.4632552,,,AL,,false,true,false,openstreetmap
+Boss Hill Stadium,football,pitch,34.9292801,-86.9681843,,,AL,,false,true,false,openstreetmap
+Boykin Field,football,pitch,32.3535531,-86.2348579,,,AL,,false,true,false,openstreetmap
+Brantley Stadium,football,pitch,31.5894459,-86.2545356,,,AL,,false,true,false,openstreetmap
+Buccaneer Stadium,football,pitch,33.3410687,-86.8372457,,,AL,,false,true,false,openstreetmap
+Burgess-Snow Field,football,pitch,33.8203665,-85.7662912,,,AL,,false,true,false,openstreetmap
+Chelsea High School Football Field,football,pitch,33.3320102,-86.6813867,,,AL,,false,true,false,openstreetmap
+Clay Jordan Stadium,football,pitch,31.9531502,-86.3115581,,,AL,,false,true,false,openstreetmap
+Cramton Bowl,football,stadium,32.3795606,-86.2931294,,,AL,,false,true,false,openstreetmap
+Decatur High Football Field,football,pitch,34.5922472,-86.9746472,,,AL,,false,true,false,openstreetmap
+Dickinson - Walker Stadium,football,pitch,34.0193016,-87.7642934,,,AL,,false,true,false,openstreetmap
+Duck Samford Stadium,football,stadium,32.6094852,-85.4469977,,,AL,,false,true,false,openstreetmap
+Field House,football,fitness_centre,34.9298783,-86.9678913,,,AL,,false,true,false,openstreetmap
+Field of Champions,football,pitch,33.9272149,-85.6220501,,,AL,,false,true,false,openstreetmap
+Football,football,pitch,33.6376745,-86.5943295,,,AL,,false,true,false,openstreetmap
+Football East,football,pitch,34.6882796,-86.7717504,,,AL,,false,true,false,openstreetmap
+Football Field,football,pitch,34.7183009,-86.7451448,,,AL,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,33.4703134,-87.1577638,,,AL,,false,true,false,openstreetmap
+Football Practice Fields,football,pitch,32.5982157,-85.4934645,,,AL,,false,true,false,openstreetmap
+Football Practice field,football,pitch,33.662557,-86.5918032,,,AL,,false,true,false,openstreetmap
+Football West,football,pitch,34.6886508,-86.7730882,,,AL,,false,true,false,openstreetmap
+Fort Payne High School Football,football,pitch,34.489475,-85.6734181,,,AL,,false,true,false,openstreetmap
+Gary Pate Field,football,pitch,33.9084056,-86.6193128,,,AL,,false,true,false,openstreetmap
+Gator Stadium,football,pitch,30.8485595,-88.0548353,,,AL,,false,true,false,openstreetmap
+Goldsmith-Shiffman Field,football,pitch,34.7403877,-86.5801997,,,AL,,false,true,false,openstreetmap
+Grissom High School Football Field,football,pitch,34.6406725,-86.5777607,,,AL,,false,true,false,openstreetmap
+"Herman ""Bubba"" Scott Field",football,pitch,34.2251728,-87.6093335,,,AL,,false,true,false,openstreetmap
+Hicks Field,football,pitch,31.0585273,-85.3015617,,,AL,,false,true,false,openstreetmap
+Indoor Facility,football,sports_centre,33.5839971,-86.2918708,,,AL,,false,true,false,openstreetmap
+J.P. Cain Stadium,football,stadium,34.4304898,-86.9297371,,,AL,,false,true,false,openstreetmap
+Jack Stewart Field,football,pitch,33.7024727,-85.8349767,,,AL,,false,true,false,openstreetmap
+Jaguar Training Center,football,pitch,30.6967226,-88.1941352,,,AL,,false,true,false,openstreetmap
+James F Moore Stadium / Dennis Homan Field,football,pitch,34.7421801,-87.6514022,,,AL,,false,true,false,openstreetmap
+Jax State Practice Field,football,pitch,33.8203909,-85.769846,,,AL,,false,true,false,openstreetmap
+Jim Glover Field,football,pitch,34.0171804,-86.0993596,,,AL,,false,true,false,openstreetmap
+John Carroll High School Football Field,football,pitch,33.4421599,-86.8356092,,,AL,,false,true,false,openstreetmap
+Krulak Stadium,football,stadium,33.5179691,-86.858173,,,AL,,false,true,false,openstreetmap
+Larry Blakeney Field,football,pitch,31.7995521,-85.9518398,,,AL,,false,true,false,openstreetmap
+LeFlore Rattler Stadium,football,pitch,30.7141239,-88.0837925,,,AL,,false,true,false,openstreetmap
+Lee Scott Academy,football,pitch,32.6392988,-85.4488268,,,AL,,false,true,false,openstreetmap
+Legion Field,football,stadium,33.5114766,-86.8428267,,,AL,,false,true,false,openstreetmap
+Legion Stadium,football,pitch,33.176625,-86.2496299,,,AL,,false,true,false,openstreetmap
+Lexington High School Football Field,football,pitch,34.9672517,-87.3769606,,,AL,,false,true,false,openstreetmap
+Lott-Mosby Memorial Stadium,football,stadium,33.6683765,-85.8214805,,,AL,,false,true,false,openstreetmap
+Lou Scales Stadium,football,stadium,33.7780567,-85.8870534,,,AL,,false,true,false,openstreetmap
+Louis Crews Stadium,football,stadium,34.7836078,-86.5785019,,,AL,,false,true,false,openstreetmap
+Madison Stadium,football,stadium,34.6887496,-86.7458836,,,AL,,false,true,false,openstreetmap
+Martin Stadium,football,stadium,32.498159,-85.0152517,,,AL,,false,true,false,openstreetmap
+McCord Field,football,pitch,34.2636411,-86.207152,,,AL,,false,true,false,openstreetmap
+Michael E. Dixon Memorial Stadium,football,stadium,33.9932205,-86.5715607,,,AL,,false,true,false,openstreetmap
+Mickey Miller Blackwell Stadium,football,pitch,30.3141926,-87.6989636,,,AL,,false,true,false,openstreetmap
+Mike “Coach Rob” Robertson Stadium,football,stadium,34.0130466,-85.8674405,,,AL,,false,true,false,openstreetmap
+Miller Memorial Stadium,football,pitch,31.4183863,-86.0647902,,,AL,,false,true,false,openstreetmap
+Multipurpose Field,football,pitch,33.4297569,-86.1161666,,,AL,,false,true,false,openstreetmap
+Murphy Panthers Practice Field,football,pitch,30.6809642,-88.0855376,,,AL,,false,true,false,openstreetmap
+Mustangs Football Field,football,pitch,34.7050906,-86.7040586,,,AL,,false,true,false,openstreetmap
+Northcutt Field,football,pitch,31.2383678,-85.4432247,,,AL,,false,true,false,openstreetmap
+Northside Stadium,football,pitch,33.4679606,-87.630318,,,AL,,false,true,false,openstreetmap
+Opelika Bulldog Stadium,football,pitch,32.6702288,-85.3700161,,,AL,,false,true,false,openstreetmap
+Panther Stadium,football,pitch,31.2249679,-85.6351114,,,AL,,false,true,false,openstreetmap
+Pat Dye Field,football,pitch,32.6022316,-85.4891305,,,AL,,false,true,false,openstreetmap
+Patriot Stadium,football,stadium,32.3571787,-86.101864,,,AL,,false,true,false,openstreetmap
+Point University Practice Field,football,pitch,32.8116908,-85.2016385,,,AL,,false,true,false,openstreetmap
+Practice Field,football,pitch,34.8728663,-86.4584018,,,AL,,false,true,false,openstreetmap
+Practice Field,football,pitch,34.8728253,-86.4577369,,,AL,,false,true,false,openstreetmap
+Practice field,football,pitch,33.3675296,-86.7386346,,,AL,,false,true,false,openstreetmap
+Protective Stadium,football,stadium,33.5278526,-86.809059,,,AL,,false,true,false,openstreetmap
+Rams Field,football,pitch,32.8725209,-87.7343001,,,AL,,false,true,false,openstreetmap
+Rec Field,football,pitch,33.1804201,-86.6303286,,,AL,,false,true,false,openstreetmap
+Red Level High School Football Stadium,football,pitch,31.4085909,-86.6194414,,,AL,,false,true,false,openstreetmap
+Rip Hewes Stadium,football,stadium,31.2057847,-85.403132,,,AL,,false,true,false,openstreetmap
+Saban Field,football,pitch,33.207659,-87.5504579,,,AL,,false,true,false,openstreetmap
+Shelby County High School,football,pitch,33.1780757,-86.59991,,,AL,,false,true,false,openstreetmap
+Simmons Middle School Football Field,football,pitch,33.3868479,-86.833683,,,AL,,false,true,false,openstreetmap
+Sipsey Valley Stadium,football,pitch,33.1926752,-87.7364936,,,AL,,false,true,false,openstreetmap
+Southside High School Football Field,football,pitch,32.3270215,-86.92676,,,AL,,false,true,false,openstreetmap
+Spain Park Stadium,football,stadium,33.3928473,-86.7321323,,,AL,,false,true,false,openstreetmap
+Springville High School Football Field,football,pitch,33.7850463,-86.4411863,,,AL,,false,true,false,openstreetmap
+Stanley-Jensen Stadium,football,stadium,32.453913,-86.4665414,,,AL,,false,true,false,openstreetmap
+Tallassee High School Football Stadium,football,pitch,32.5422595,-85.9018509,,,AL,,false,true,false,openstreetmap
+Taylor Field,football,pitch,32.3529123,-86.2881089,,,AL,,false,true,false,openstreetmap
+Tiger Stadium,football,pitch,31.8352172,-86.6258055,,,AL,,false,true,false,openstreetmap
+Tiger Stadium,football,pitch,31.4853353,-87.3321,,,AL,,false,true,false,openstreetmap
+Titan Stadium,football,stadium,33.9935943,-86.0399915,,,AL,,false,true,false,openstreetmap
+Tommy Miller Field,football,pitch,33.8046989,-85.7744004,,,AL,,false,true,false,openstreetmap
+Tri County Youth Football Park,football,pitch,33.2865162,-87.1692456,,,AL,,false,true,false,openstreetmap
+Vernon Wells Stadium,football,stadium,34.2637405,-86.2072079,,,AL,,false,true,false,openstreetmap
+Veteran's Park Community Practice Field,football,pitch,34.5680421,-87.1672897,,,AL,,false,true,false,openstreetmap
+Vikings Stadium,football,pitch,33.6130462,-86.681004,,,AL,,false,true,false,openstreetmap
+W.C. Majors Field,football,pitch,30.5396327,-87.8900771,,,AL,,false,true,false,openstreetmap
+Warrior Stadium,football,pitch,33.2210023,-86.8490587,,,AL,,false,true,false,openstreetmap
+Weeks Field,football,pitch,34.0220235,-86.0306614,,,AL,,false,true,false,openstreetmap
+Weygand Field,football,pitch,33.4473361,-86.8401436,,,AL,,false,true,false,openstreetmap
+Wildcat Field,football,pitch,33.3081715,-87.6103435,,,AL,,false,true,false,openstreetmap
+Wiley Hollingsworth Stadium,football,pitch,33.8298475,-87.7410591,,,AL,,false,true,false,openstreetmap
+Wilson Football Field,football,pitch,34.9274382,-87.6736477,,,AL,,false,true,false,openstreetmap
+Stadium,football,stadium,34.7343189,-86.9739981,12192 Sommers Road,Athens,AL,35611,false,true,false,openstreetmap
+Jordan-Hare,football,stadium,32.6021754,-85.489122,251 South Donahue Drive,Auburn,AL,36849,false,true,false,openstreetmap
+Jordan-Hare Stadium,football,stadium,32.6021754,-85.489122,251 South Donahue Drive,Auburn,AL,36849,false,true,false,openstreetmap
+Ogle Stadium - Decatur High School,football,stadium,34.5923279,-86.9746815,1101 Prospect Dr,Decatur,AL,35601,false,true,false,openstreetmap
+Tom Braly Municipal Stadium,football,stadium,34.8107311,-87.6706413,521 North Royal Avenue,Florence,AL,35630,false,true,false,openstreetmap
+Dixie Howell Stadium,football,pitch,31.0988981,-85.7005899,100 6th Avenue,Hartford,AL,36344,false,true,false,openstreetmap

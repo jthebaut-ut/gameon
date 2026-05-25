@@ -1,0 +1,7 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Clarence T.C. Ching Athletics Complex,football,pitch,21.2942909,-157.8171217,,,HI,,false,true,false,openstreetmap
+Hanapepe Stadium,football,pitch,21.9053628,-159.5934196,,,HI,,false,true,false,openstreetmap
+James Campbell High School Football Field,football,stadium,21.3175039,-158.0094118,,,HI,,false,true,false,openstreetmap
+Ticky Vasconcellos Stadium,football,stadium,21.3112838,-157.8382807,,,HI,,false,true,false,openstreetmap
+Aloha Stadium,football,stadium,21.3727765,-157.9299216,99-500 Salt Lake Boulevard,Honolulu,HI,96818,false,true,false,openstreetmap
+Mililani High School Football Field,football,pitch,21.4524181,-158.0142611,1200 Meheula Parkway,Mililani,HI,96789,false,true,false,openstreetmap

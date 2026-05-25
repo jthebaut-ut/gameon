@@ -1,0 +1,134 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,33.5614707,-112.2348482,,,AZ,,false,true,false,openstreetmap
+2,baseball,pitch,33.5623338,-112.2341292,,,AZ,,false,true,false,openstreetmap
+3,baseball,pitch,33.5623196,-112.2328803,,,AZ,,false,true,false,openstreetmap
+4,baseball,pitch,33.5613801,-112.2327367,,,AZ,,false,true,false,openstreetmap
+5,baseball,pitch,33.5605208,-112.233451,,,AZ,,false,true,false,openstreetmap
+6,baseball,pitch,33.5605364,-112.2347152,,,AZ,,false,true,false,openstreetmap
+Aaron Hill Baseball Field,baseball,pitch,34.1546284,-114.2829663,,,AZ,,false,true,false,openstreetmap
+Alvin A Ellis Field,baseball,pitch,33.3724289,-112.5768345,,,AZ,,false,true,false,openstreetmap
+Asante Field East,baseball,pitch,33.6967109,-112.4193073,,,AZ,,false,true,false,openstreetmap
+Asante Field West,baseball,pitch,33.6973485,-112.4201317,,,AZ,,false,true,false,openstreetmap
+BF,baseball,pitch,32.6887827,-114.4916722,,,AZ,,false,true,false,openstreetmap
+Baseball,baseball,pitch,33.6827306,-112.2645866,,,AZ,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,34.5476181,-112.2440335,,,AZ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.3083155,-111.236915,,,AZ,,false,true,false,openstreetmap
+BaseballField #1,baseball,pitch,33.3676691,-111.6857856,,,AZ,,false,true,false,openstreetmap
+BaseballField #2,baseball,pitch,33.3676664,-111.684881,,,AZ,,false,true,false,openstreetmap
+BaseballField #3,baseball,pitch,33.3668689,-111.6858103,,,AZ,,false,true,false,openstreetmap
+BaseballField #4,baseball,pitch,33.3668711,-111.6848786,,,AZ,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.3274855,-111.9576675,,,AZ,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,32.1848398,-110.9804688,,,AZ,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,32.1754676,-110.9357049,,,AZ,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.3643119,-112.5885432,,,AZ,,false,true,false,openstreetmap
+Beaver Dam High School Baseball Field,baseball,pitch,36.9100919,-113.9278526,,,AZ,,false,true,false,openstreetmap
+Big League Dreams,baseball,pitch,33.3552524,-111.6940909,,,AZ,,false,true,false,openstreetmap
+Brazell Stadium,baseball,stadium,33.5122291,-112.1329684,,,AZ,,false,true,false,openstreetmap
+Brock Field,baseball,pitch,31.5545461,-110.365578,,,AZ,,false,true,false,openstreetmap
+Chicago Cubs Spring Training Home,baseball,sports_centre,33.4315616,-111.8836826,,,AZ,,false,true,false,openstreetmap
+Chinle High Baseball Field,baseball,pitch,36.1596435,-109.581839,,,AZ,,false,true,false,openstreetmap
+Cholla Field,baseball,pitch,33.3080891,-111.6729316,,,AZ,,false,true,false,openstreetmap
+Diamond Canyon,baseball,pitch,33.8471654,-112.1014992,,,AZ,,false,true,false,openstreetmap
+Dreamcatcher Park,baseball,pitch,33.6284835,-112.3729122,,,AZ,,false,true,false,openstreetmap
+E. J. Robson Softball Field Field of Dreams,baseball,pitch,33.4760497,-112.3939148,,,AZ,,false,true,false,openstreetmap
+Eagle Baseball Field,baseball,pitch,34.6177714,-112.4558476,,,AZ,,false,true,false,openstreetmap
+East Field,baseball,pitch,33.3962284,-112.0372328,,,AZ,,false,true,false,openstreetmap
+Field #1,baseball,pitch,33.620016,-111.7376087,,,AZ,,false,true,false,openstreetmap
+Field #2,baseball,pitch,33.6190044,-111.7373704,,,AZ,,false,true,false,openstreetmap
+Field #3,baseball,pitch,33.6189803,-111.7361882,,,AZ,,false,true,false,openstreetmap
+Field #4,baseball,pitch,33.6179959,-111.7362112,,,AZ,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.6146193,-112.2423728,,,AZ,,false,true,false,openstreetmap
+Field 1,baseball,pitch,32.3454767,-111.094597,,,AZ,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.4642455,-114.3394794,,,AZ,,false,true,false,openstreetmap
+Field 10,baseball,pitch,32.1743433,-110.9350826,,,AZ,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.6147409,-112.2411857,,,AZ,,false,true,false,openstreetmap
+Field 2,baseball,pitch,32.3457549,-111.0931578,,,AZ,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.4641219,-114.3406161,,,AZ,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.6157811,-112.2413522,,,AZ,,false,true,false,openstreetmap
+Field 3,baseball,pitch,32.3466424,-111.0931055,,,AZ,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.4633908,-114.339815,,,AZ,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.6156512,-112.2425378,,,AZ,,false,true,false,openstreetmap
+Field 4,baseball,pitch,32.1758224,-110.9369036,,,AZ,,false,true,false,openstreetmap
+Field 5,baseball,pitch,32.1828409,-110.9298572,,,AZ,,false,true,false,openstreetmap
+Field 5,baseball,pitch,32.1764238,-110.9380773,,,AZ,,false,true,false,openstreetmap
+Field 6,baseball,pitch,32.182693,-110.9305103,,,AZ,,false,true,false,openstreetmap
+Field 6,baseball,pitch,32.1754354,-110.938776,,,AZ,,false,true,false,openstreetmap
+Field 7,baseball,pitch,32.1748338,-110.9376199,,,AZ,,false,true,false,openstreetmap
+Field 8,baseball,pitch,32.1742463,-110.9362584,,,AZ,,false,true,false,openstreetmap
+Gaucho Baseball Field,baseball,pitch,33.56838,-112.193905,,,AZ,,false,true,false,openstreetmap
+Gentry Park Baseball Field,baseball,pitch,33.6097747,-112.3253855,,,AZ,,false,true,false,openstreetmap
+Grasslands Community Field,baseball,pitch,33.6857322,-112.4462631,,,AZ,,false,true,false,openstreetmap
+Green Field,baseball,pitch,32.3755801,-110.9689624,,,AZ,,false,true,false,openstreetmap
+Hi Corbett Field,baseball,stadium,32.2129631,-110.9198701,,,AZ,,false,true,false,openstreetmap
+Hohokam Stadium,baseball,stadium,33.438515,-111.8294828,,,AZ,,false,true,false,openstreetmap
+JV Baseball,baseball,pitch,33.5855836,-112.0182075,,,AZ,,false,true,false,openstreetmap
+Joel Montalvo Little League Park,baseball,pitch,35.2045635,-111.6166148,,,AZ,,false,true,false,openstreetmap
+Kearny LIttle League Field,baseball,pitch,33.0548821,-110.9180702,,,AZ,,false,true,false,openstreetmap
+Kearny Little League Field,baseball,pitch,33.0544293,-110.9170443,,,AZ,,false,true,false,openstreetmap
+Kino Veterans Memorial Stadium,baseball,stadium,32.1768059,-110.9332929,,,AZ,,false,true,false,openstreetmap
+LDS Church Ball Field,baseball,pitch,34.2405173,-110.05726,,,AZ,,false,true,false,openstreetmap
+Laurie Armstrong's Field of Dreams,baseball,pitch,33.4300255,-111.5456031,,,AZ,,false,true,false,openstreetmap
+Layton Lake Field,baseball,sports_centre,33.2691498,-111.7786867,,,AZ,,false,true,false,openstreetmap
+Legends Baseball,baseball,sports_centre,33.2835161,-111.8373591,,,AZ,,false,true,false,openstreetmap
+Liberty Field,baseball,pitch,33.6697705,-112.3690612,,,AZ,,false,true,false,openstreetmap
+Linda McMahon Field,baseball,pitch,32.9490045,-112.719958,,,AZ,,false,true,false,openstreetmap
+Little League Park,baseball,pitch,32.7504952,-111.5479109,,,AZ,,false,true,false,openstreetmap
+Lou Frazier Baseball,baseball,sports_centre,33.3575212,-111.8432347,,,AZ,,false,true,false,openstreetmap
+Main Field,baseball,pitch,33.4891099,-111.9205419,,,AZ,,false,true,false,openstreetmap
+Manzanita Field,baseball,pitch,33.3089356,-111.675868,,,AZ,,false,true,false,openstreetmap
+Medigovich Field,baseball,pitch,31.7180075,-110.0615806,,,AZ,,false,true,false,openstreetmap
+Mendoza Field,baseball,pitch,33.3994902,-111.8356357,,,AZ,,false,true,false,openstreetmap
+North Field,baseball,pitch,33.311771,-111.9194901,,,AZ,,false,true,false,openstreetmap
+OSYB Baseball Fields,baseball,sports_centre,33.4886045,-111.899153,,,AZ,,false,true,false,openstreetmap
+Old Softball Field,baseball,pitch,34.0590152,-112.1515378,,,AZ,,false,true,false,openstreetmap
+"Ollie ""Dude"" Draper Fields",baseball,pitch,32.8764786,-109.8410877,,,AZ,,false,true,false,openstreetmap
+Opus Field,baseball,pitch,33.5041631,-112.070095,,,AZ,,false,true,false,openstreetmap
+Paseo Park Ball Complex,baseball,pitch,33.6117892,-112.1930965,,,AZ,,false,true,false,openstreetmap
+Paul Mason Sports Complex,baseball,sports_centre,32.9283347,-111.760103,,,AZ,,false,true,false,openstreetmap
+Peoria Stadium,baseball,stadium,33.6321422,-112.2332718,,,AZ,,false,true,false,openstreetmap
+Pistor Middle School Baseball Field,baseball,pitch,32.1534723,-111.0251138,,,AZ,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,33.4883205,-111.9193336,,,AZ,,false,true,false,openstreetmap
+Ray High School Baseball Field,baseball,pitch,33.0660755,-110.9150623,,,AZ,,false,true,false,openstreetmap
+Ray High School Softball Field,baseball,pitch,33.0631872,-110.9141482,,,AZ,,false,true,false,openstreetmap
+Rip City Batting Cages,baseball,pitch,33.3599321,-111.7670729,,,AZ,,false,true,false,openstreetmap
+Robert Casillas Field,baseball,pitch,32.9102797,-110.7197636,,,AZ,,false,true,false,openstreetmap
+SRPMIC Baseball Field,baseball,pitch,33.4689146,-111.8638619,,,AZ,,false,true,false,openstreetmap
+SRPMIC Von Hayes Baseball Field,baseball,pitch,33.4681379,-111.8624117,,,AZ,,false,true,false,openstreetmap
+Shadow Mountain Field,baseball,pitch,32.7335935,-110.6519292,,,AZ,,false,true,false,openstreetmap
+Softball,baseball,pitch,33.6836266,-112.2647971,,,AZ,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,33.384755,-111.9355358,,,AZ,,false,true,false,openstreetmap
+Softball Field 1,baseball,pitch,35.2185806,-114.0271476,,,AZ,,false,true,false,openstreetmap
+Softball Field 2,baseball,pitch,35.2185809,-114.0284436,,,AZ,,false,true,false,openstreetmap
+Softball Field 3,baseball,pitch,35.2196513,-114.0284672,,,AZ,,false,true,false,openstreetmap
+Softball Field 4,baseball,pitch,35.2196522,-114.0271617,,,AZ,,false,true,false,openstreetmap
+Softball Field 5,baseball,pitch,35.2207175,-114.0271503,,,AZ,,false,true,false,openstreetmap
+Softball Field 6,baseball,pitch,35.2217486,-114.0270883,,,AZ,,false,true,false,openstreetmap
+Softball Field 7,baseball,pitch,35.2217638,-114.028412,,,AZ,,false,true,false,openstreetmap
+South Field,baseball,pitch,33.3106287,-111.9188605,,,AZ,,false,true,false,openstreetmap
+Sun City Grand Ball Park,baseball,pitch,33.6602947,-112.3861879,,,AZ,,false,true,false,openstreetmap
+Superior Little League,baseball,pitch,33.2803832,-111.1026297,,,AZ,,false,true,false,openstreetmap
+Surprise Stadium,baseball,stadium,33.6279847,-112.3784019,,,AZ,,false,true,false,openstreetmap
+TAP Athlete,baseball,pitch,33.3217288,-111.8331975,,,AZ,,false,true,false,openstreetmap
+Upton Youth Baseball Field,baseball,pitch,33.4527397,-112.0877601,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.1239683,-109.9517626,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.1240878,-109.9507093,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.1701497,-109.9887322,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.4333211,-110.5885645,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.4331643,-110.5876124,,,AZ,,false,true,false,openstreetmap
+baseball,baseball,pitch,34.4338802,-110.5871044,,,AZ,,false,true,false,openstreetmap
+batting cages,baseball,pitch,32.1447729,-110.9437474,,,AZ,,false,true,false,openstreetmap
+batting cages,baseball,pitch,32.1445375,-110.9475942,,,AZ,,false,true,false,openstreetmap
+batting cages,baseball,pitch,32.1443025,-110.9475763,,,AZ,,false,true,false,openstreetmap
+Zinger Bat Co.,baseball,pitch,33.351151,-111.834828,3155 North Nevada Street,Chandler,AZ,85225,false,true,false,openstreetmap
+Remy's Baseball Depot,baseball,pitch,33.4171205,-112.4015921,15942 W Larkspur Drive,Goodyear,AZ,85338,false,true,false,openstreetmap
+AZ Dingers,baseball,sports_hall,33.2848016,-111.6483176,8607 East Pecos Road,Mesa,AZ,85212,false,true,false,openstreetmap
+It's All In the Game,baseball,pitch,33.6344667,-112.2265559,7797 West Paradise Lane,Peoria,AZ,85382,false,true,false,openstreetmap
+San Diego Padres Baseball Club,baseball,pitch,33.632228,-112.2310097,8131 West Padres Way,Peoria,AZ,85382,false,true,false,openstreetmap
+Seattle Mariners Baseball Club,baseball,pitch,33.6302228,-112.2336715,15707 North 83rd Avenue,Peoria,AZ,85382,false,true,false,openstreetmap
+Team Store,baseball,pitch,33.6321424,-112.2342423,16101 North 83rd Avenue,Peoria,AZ,85382,false,true,false,openstreetmap
+Chase Field,baseball,stadium,33.4453936,-112.0668795,,Phoenix,AZ,,false,true,false,openstreetmap
+Next Gen Baseball,baseball,pitch,33.6314995,-111.917997,7498 East Monte Cristo Avenue,Scottsdale,AZ,85260,false,true,false,openstreetmap
+Scottsdale Stadium,baseball,stadium,33.488845,-111.9202043,7408 East Osborn Road,Scottsdale,AZ,85251,false,true,false,openstreetmap
+Kansas City Royals,baseball,pitch,33.6287841,-112.379046,15946 North Bullard Avenue,Surprise,AZ,85374,false,true,false,openstreetmap
+Texas Rangers,baseball,pitch,33.6272314,-112.377173,15754 North Bullard Avenue,Surprise,AZ,85374,false,true,false,openstreetmap
+Ray Kroc Baseball Complex,baseball,sports_centre,32.6637952,-114.6354448,1280 Desert Sun Drive,Yuma,AZ,85365,false,true,false,openstreetmap

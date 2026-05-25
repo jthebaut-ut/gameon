@@ -1,0 +1,28 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+(2) Tennis Courts,tennis,sports_centre,32.5502007,-110.8553539,,,AZ,,false,true,false,openstreetmap
+Chandler Tennis Center,tennis,sports_centre,33.2727525,-111.8255678,,,AZ,,false,true,false,openstreetmap
+Court 11,tennis,court,33.4002527,-111.6901961,,,AZ,,false,true,false,openstreetmap
+Court 12,tennis,court,33.4002208,-111.6903906,,,AZ,,false,true,false,openstreetmap
+El Conquistador Tennis,tennis,pitch,32.3847126,-110.9605154,,,AZ,,false,true,false,openstreetmap
+Phoenix Tennis Center,tennis,sports_centre,33.530666,-112.1049703,,,AZ,,false,true,false,openstreetmap
+Pickleball Courts,tennis,pitch,32.4632326,-110.9483929,,,AZ,,false,true,false,openstreetmap
+Ranch Circle Tennis Courts,tennis,sports_centre,33.3231898,-111.9974234,,,AZ,,false,true,false,openstreetmap
+Sun Ray Tennis Courts,tennis,sports_centre,33.3198961,-111.9966332,,,AZ,,false,true,false,openstreetmap
+Surprise Tennis Complex,tennis,sports_centre,33.62985,-112.3711435,,,AZ,,false,true,false,openstreetmap
+T1,tennis,pitch,33.3131123,-111.9214269,,,AZ,,false,true,false,openstreetmap
+T2,tennis,pitch,33.3131671,-111.9212302,,,AZ,,false,true,false,openstreetmap
+T3,tennis,pitch,33.3131664,-111.9210337,,,AZ,,false,true,false,openstreetmap
+T4,tennis,pitch,33.3131664,-111.9208383,,,AZ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.665064,-112.3545363,,,AZ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,33.6645296,-112.3540421,,,AZ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,35.21935,-114.0259411,,,AZ,,false,true,false,openstreetmap
+Tucson High School,tennis,sports_centre,32.2254426,-110.9614392,,,AZ,,false,true,false,openstreetmap
+Tucson Racquet and Fitness Club,tennis,sports_centre,32.2806647,-110.9280878,,,AZ,,false,true,false,openstreetmap
+Ventana Vista Condominium,tennis,pitch,32.2986438,-110.8258638,,,AZ,,false,true,false,openstreetmap
+Whiteman Tennis Center,tennis,sports_centre,33.4250672,-111.9271383,,,AZ,,false,true,false,openstreetmap
+tennis,tennis,pitch,34.1147541,-109.8898427,,,AZ,,false,true,false,openstreetmap
+tennis,tennis,pitch,34.1145658,-109.8897163,,,AZ,,false,true,false,openstreetmap
+Tennis Cabana,tennis,pitch,33.3073707,-111.8854721,2580 West Chandler Boulevard,Chandler,AZ,85224,false,true,false,openstreetmap
+Phoenix Tennis Center Pro Shop,tennis,pitch,33.5304817,-112.1048703,North 21st Avenue,Phoenix,AZ,,false,true,false,openstreetmap
+Tennis Court at Kimpton Miralina Resort & Villas by IHG,tennis,pitch,33.5413613,-111.928019,7200 N Scottsdale Road,Scottsdale,AZ,85253,false,true,false,openstreetmap
+LaNelle Robson Tennis Center,tennis,pitch,32.2327976,-110.945296,900 North Martin Avenue,Tucson,AZ,85719,false,true,false,openstreetmap

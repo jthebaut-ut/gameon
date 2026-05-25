@@ -1,0 +1,12 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Jerome Smith Pickleball Courts,pickleball,pitch,42.0553716,-70.194332,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6531895,-70.5018776,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6531588,-70.501995,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6531286,-70.5021138,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6530991,-70.5022317,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6530693,-70.5023507,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6530391,-70.5024676,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6530086,-70.5025862,,,MA,,false,true,false,openstreetmap
+Mashpee Pickleball Courts,pickleball,pitch,41.6529786,-70.5027041,,,MA,,false,true,false,openstreetmap
+Tennis/Pickleball Courts,pickleball,pitch,42.2696679,-71.0384562,,,MA,,false,true,false,openstreetmap
+PickleballU,pickleball,sports_hall,42.0984405,-72.0715957,178 Main Street,Sturbridge,MA,01566,false,true,false,openstreetmap

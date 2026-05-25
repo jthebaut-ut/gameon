@@ -1,0 +1,23 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Burley High School Soccer Field,soccer,pitch,42.5246692,-113.8062082,,,ID,,false,true,false,openstreetmap
+Coeur D'Alene Soccer Club,soccer,fitness_centre,47.7443244,-116.8517556,,,ID,,false,true,false,openstreetmap
+Eisenwinter Field,soccer,pitch,47.6764914,-116.7975386,,,ID,,false,true,false,openstreetmap
+Field #1,soccer,pitch,43.5017902,-112.0906737,,,ID,,false,true,false,openstreetmap
+Field #2,soccer,pitch,43.5025501,-112.0898342,,,ID,,false,true,false,openstreetmap
+Field #3,soccer,pitch,43.5031441,-112.089199,,,ID,,false,true,false,openstreetmap
+Field #4,soccer,pitch,43.5037342,-112.0885624,,,ID,,false,true,false,openstreetmap
+Field #5,soccer,pitch,43.5043342,-112.087918,,,ID,,false,true,false,openstreetmap
+Field #6,soccer,pitch,43.5049232,-112.0872807,,,ID,,false,true,false,openstreetmap
+Field #7,soccer,pitch,43.5065482,-112.0849466,,,ID,,false,true,false,openstreetmap
+Field #8,soccer,pitch,43.5069644,-112.0856601,,,ID,,false,true,false,openstreetmap
+Indian Hills Soccer Complex,soccer,pitch,42.8206358,-112.40664,,,ID,,false,true,false,openstreetmap
+Nampa Soccer Field,soccer,pitch,43.5570126,-116.5766328,,,ID,,false,true,false,openstreetmap
+Old Butte Park,soccer,park,43.5025057,-112.0899495,,,ID,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,43.7457977,-111.1157413,,,ID,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,47.7049976,-116.9930701,,,ID,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,47.7350346,-116.9756943,,,ID,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,47.734544,-116.9758444,,,ID,,false,true,false,openstreetmap
+Walker Field,soccer,sports_centre,46.3868203,-117.013846,,,ID,,false,true,false,openstreetmap
+The Stadium at Expo Idaho,soccer,stadium,43.6495579,-116.2710406,12 N Paddock Dr,Garden City,ID,83714,false,true,false,openstreetmap
+Boise Timbers Thorns,soccer,sports_centre,43.5484524,-116.3431324,3924 East Lake Hazel Road,Meridian,ID,83642,false,true,false,openstreetmap
+Jabil Soccer Fields,soccer,pitch,43.5955203,-116.3831238,915 East Central Drive,Meridian,ID,83642,false,true,false,openstreetmap

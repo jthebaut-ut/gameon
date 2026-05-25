@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,64.8294631,-147.7531044,,,AK,,false,true,false,openstreetmap
+26,soccer,pitch,64.8289623,-147.7539017,,,AK,,false,true,false,openstreetmap
+27,soccer,pitch,64.8289688,-147.7531884,,,AK,,false,true,false,openstreetmap
+28,soccer,pitch,64.8289744,-147.752484,,,AK,,false,true,false,openstreetmap
+4,soccer,pitch,64.8295313,-147.7582969,,,AK,,false,true,false,openstreetmap
+5,soccer,pitch,64.83034,-147.7579203,,,AK,,false,true,false,openstreetmap
+6,soccer,pitch,64.8302511,-147.7594931,,,AK,,false,true,false,openstreetmap
+7,soccer,pitch,64.8295453,-147.7594502,,,AK,,false,true,false,openstreetmap
+Anglo American Mining Field #7,soccer,pitch,61.155906,-150.0535633,,,AK,,false,true,false,openstreetmap
+Bethel Athletic Field,soccer,pitch,60.7965649,-161.788623,,,AK,,false,true,false,openstreetmap
+Colony High School Soccer,soccer,pitch,61.6071456,-149.2120878,,,AK,,false,true,false,openstreetmap
+Conoco Phillips Stadium,soccer,pitch,61.1522861,-150.0561105,,,AK,,false,true,false,openstreetmap
+Cook Inlet,soccer,pitch,61.1388975,-149.8545833,,,AK,,false,true,false,openstreetmap
+Cook Inlet,soccer,pitch,61.1382128,-149.853241,,,AK,,false,true,false,openstreetmap
+Founders Field #5,soccer,pitch,61.1578892,-150.0543265,,,AK,,false,true,false,openstreetmap
+NC Machinery Field #1,soccer,pitch,61.1559041,-150.0557572,,,AK,,false,true,false,openstreetmap
+Nordic Field #2,soccer,pitch,61.1562067,-150.058089,,,AK,,false,true,false,openstreetmap
+North Field #4,soccer,pitch,61.1583332,-150.0562509,,,AK,,false,true,false,openstreetmap
+Tote Field #6,soccer,pitch,61.1569361,-150.0539938,,,AK,,false,true,false,openstreetmap
+Volunteer Field #3,soccer,pitch,61.1573731,-150.0576266,,,AK,,false,true,false,openstreetmap

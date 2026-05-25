@@ -1,0 +1,207 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,34.4306985,-86.9399607,,,AL,,false,true,false,openstreetmap
+2,baseball,pitch,34.4309246,-86.9389988,,,AL,,false,true,false,openstreetmap
+3,baseball,pitch,34.4298938,-86.9390147,,,AL,,false,true,false,openstreetmap
+4,baseball,pitch,34.4299069,-86.9402736,,,AL,,false,true,false,openstreetmap
+4-5-6 Fields,baseball,pitch,34.4287878,-86.9383502,,,AL,,false,true,false,openstreetmap
+7-8 Fields,baseball,pitch,34.4292907,-86.9381438,,,AL,,false,true,false,openstreetmap
+A League of Our Own,baseball,pitch,33.6059367,-85.8238247,,,AL,,false,true,false,openstreetmap
+Anthony Ward Field,baseball,pitch,34.4282405,-86.9381679,,,AL,,false,true,false,openstreetmap
+Arshbishop Lipscomb Sports Complex,baseball,pitch,30.666982,-88.1367544,,,AL,,false,true,false,openstreetmap
+Austin High Baseball,baseball,pitch,34.5674811,-87.0508837,,,AL,,false,true,false,openstreetmap
+Austin High Softball Field,baseball,pitch,34.5673431,-87.0521752,,,AL,,false,true,false,openstreetmap
+BSC Softball Park,baseball,pitch,33.5165017,-86.8575816,,,AL,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,34.6583892,-86.4553715,,,AL,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,34.6584721,-86.4562124,,,AL,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.3721698,-86.8421599,,,AL,,false,true,false,openstreetmap
+Batting Cage #2,baseball,pitch,33.1862394,-86.8303491,,,AL,,false,true,false,openstreetmap
+Batting Cage 1,baseball,pitch,33.1756638,-86.6009136,,,AL,,false,true,false,openstreetmap
+Batting Cage 2,baseball,pitch,33.1755297,-86.6009953,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.372766,-86.8428913,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.3729487,-86.8422697,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.3731348,-86.8429369,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.3747164,-86.8430888,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.3747472,-86.8428182,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,30.6686861,-88.1388478,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,30.6685294,-88.137157,,,AL,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,30.7730954,-88.0837564,,,AL,,false,true,false,openstreetmap
+Bevill State Baseball Field,baseball,pitch,33.7265003,-87.8183344,,,AL,,false,true,false,openstreetmap
+Bobby Hayes Field,baseball,pitch,33.3103241,-86.8215675,,,AL,,false,true,false,openstreetmap
+Bobby Reid Athletic Field,baseball,pitch,33.906469,-86.6230422,,,AL,,false,true,false,openstreetmap
+Brantley High School Baseball Field,baseball,pitch,31.5920841,-86.2527118,,,AL,,false,true,false,openstreetmap
+Bulldog Softball Field,baseball,pitch,33.4627359,-86.7985956,,,AL,,false,true,false,openstreetmap
+Calhoun Baseball Field,baseball,pitch,34.6444971,-86.9416642,,,AL,,false,true,false,openstreetmap
+Calhoun Softball Field,baseball,pitch,34.6442186,-86.9434144,,,AL,,false,true,false,openstreetmap
+Centerpoint Softball Park diamond 1,baseball,pitch,33.656256,-86.6817177,,,AL,,false,true,false,openstreetmap
+Centerpoint Softball Park diamond 2,baseball,pitch,33.6570382,-86.6816949,,,AL,,false,true,false,openstreetmap
+Chelsea High School Baseball Field,baseball,pitch,33.3324977,-86.6799276,,,AL,,false,true,false,openstreetmap
+Clarke County High School Baseball Field,baseball,pitch,31.7110949,-87.7904958,,,AL,,false,true,false,openstreetmap
+Clarke Prep School Baseball Stadium,baseball,pitch,31.7341784,-87.7613393,,,AL,,false,true,false,openstreetmap
+Cofer Field,baseball,pitch,33.1819698,-86.6292098,,,AL,,false,true,false,openstreetmap
+Cox Creek Baseball Field,baseball,pitch,34.839676,-87.6773505,,,AL,,false,true,false,openstreetmap
+Craig Baseball Field,baseball,pitch,32.360475,-86.9850315,,,AL,,false,true,false,openstreetmap
+Davis Baseball Field,baseball,pitch,32.6228352,-87.3253548,,,AL,,false,true,false,openstreetmap
+Decatur High School Baseball,baseball,pitch,34.5928155,-86.9734006,,,AL,,false,true,false,openstreetmap
+Donald Comer Jr. Rec Complex,baseball,pitch,33.194792,-86.2577979,,,AL,,false,true,false,openstreetmap
+Edward Thompson Park - Field 9,baseball,pitch,32.315112,-86.1303092,,,AL,,false,true,false,openstreetmap
+Ernest L Bennett Field,baseball,pitch,32.4059549,-87.0034637,,,AL,,false,true,false,openstreetmap
+Field #1,baseball,pitch,34.8549426,-87.5383021,,,AL,,false,true,false,openstreetmap
+Field #2,baseball,pitch,34.8546675,-87.5395239,,,AL,,false,true,false,openstreetmap
+Field #3,baseball,pitch,34.8542889,-87.5403031,,,AL,,false,true,false,openstreetmap
+Field #4,baseball,pitch,34.8555039,-87.539835,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.3053636,-86.8106769,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,30.4129073,-87.7063187,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,30.3179581,-87.6977606,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.9322007,-87.119032,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,31.3503338,-85.8692819,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.3328219,-86.6226384,,,AL,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.1811044,-86.629282,,,AL,,false,true,false,openstreetmap
+Field 10,baseball,pitch,30.4129027,-87.7029347,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.3052764,-86.8117677,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,30.4131385,-87.7055514,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,30.3180393,-87.6988845,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.9309429,-87.1179846,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,31.3505229,-85.870425,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.3327272,-86.6234013,,,AL,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.1811597,-86.6301062,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.304372,-86.8120232,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,30.4126521,-87.7050256,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,30.3191323,-87.6989082,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.930922,-87.1190542,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,31.3495656,-85.870658,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.3333228,-86.6233523,,,AL,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.1818368,-86.6301672,,,AL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.304464,-86.8109322,,,AL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,30.411905,-87.705276,,,AL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,30.3193452,-87.6979074,,,AL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,31.3493647,-85.8695429,,,AL,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.3336125,-86.6226456,,,AL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,33.3032121,-86.8115478,,,AL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,30.4120577,-87.7062988,,,AL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,30.3187177,-87.697336,,,AL,,false,true,false,openstreetmap
+Field 5,baseball,pitch,31.3433043,-85.8663318,,,AL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,33.3027401,-86.8115801,,,AL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,30.316018,-87.6993565,,,AL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,30.4123034,-87.7025205,,,AL,,false,true,false,openstreetmap
+Field 6,baseball,pitch,31.3430081,-85.866273,,,AL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,30.4117209,-87.7028973,,,AL,,false,true,false,openstreetmap
+Field 7,baseball,pitch,31.3429677,-85.8666212,,,AL,,false,true,false,openstreetmap
+Field 8,baseball,pitch,30.4118344,-87.7037586,,,AL,,false,true,false,openstreetmap
+Field 8,baseball,pitch,31.3432591,-85.8666872,,,AL,,false,true,false,openstreetmap
+Field 9,baseball,pitch,30.4126899,-87.7038302,,,AL,,false,true,false,openstreetmap
+Field A,baseball,pitch,33.3013413,-86.8468102,,,AL,,false,true,false,openstreetmap
+Field B,baseball,pitch,33.3004916,-86.8468448,,,AL,,false,true,false,openstreetmap
+Field C,baseball,pitch,33.3003311,-86.8456016,,,AL,,false,true,false,openstreetmap
+Field D,baseball,pitch,33.3013404,-86.8458266,,,AL,,false,true,false,openstreetmap
+George Ward Softball Field,baseball,pitch,33.488378,-86.8217863,,,AL,,false,true,false,openstreetmap
+Griffin Field,baseball,pitch,31.3458183,-85.8707438,,,AL,,false,true,false,openstreetmap
+Haleyville High School Baseball Field,baseball,pitch,34.2237122,-87.6058265,,,AL,,false,true,false,openstreetmap
+Haleyville High School Softball Field,baseball,pitch,34.2228627,-87.6056618,,,AL,,false,true,false,openstreetmap
+Harrison Baseball Field,baseball,pitch,32.3884079,-86.2166878,,,AL,,false,true,false,openstreetmap
+Hitchcock Field,baseball,pitch,32.5996626,-85.4895169,,,AL,,false,true,false,openstreetmap
+J D Young Field,baseball,pitch,33.4984724,-86.8104177,,,AL,,false,true,false,openstreetmap
+Jack L. Ray Field,baseball,pitch,34.0232601,-86.3252686,,,AL,,false,true,false,openstreetmap
+Jacobs Field,baseball,pitch,30.7957746,-88.133676,,,AL,,false,true,false,openstreetmap
+James Reid Athletic Field,baseball,pitch,33.9071916,-86.6228246,,,AL,,false,true,false,openstreetmap
+Jim Case Stadium,baseball,stadium,33.824937,-85.7763721,,,AL,,false,true,false,openstreetmap
+Joe Lee Grif n Baseball Field,baseball,pitch,33.4630336,-86.796723,,,AL,,false,true,false,openstreetmap
+John Carroll Baseball Field,baseball,pitch,33.4423735,-86.8341507,,,AL,,false,true,false,openstreetmap
+Judge R Eugene Pincham Athletic Field,baseball,pitch,34.7975073,-86.9811716,,,AL,,false,true,false,openstreetmap
+Kermit A. Johnson Baseball Complex,baseball,pitch,33.103499,-86.8688154,,,AL,,false,true,false,openstreetmap
+L1,baseball,pitch,33.4510368,-86.8372887,,,AL,,false,true,false,openstreetmap
+L2,baseball,pitch,33.4501479,-86.83728,,,AL,,false,true,false,openstreetmap
+L3,baseball,pitch,33.4502338,-86.8383439,,,AL,,false,true,false,openstreetmap
+L4,baseball,pitch,33.4508749,-86.8386194,,,AL,,false,true,false,openstreetmap
+L5,baseball,pitch,33.4512685,-86.8380307,,,AL,,false,true,false,openstreetmap
+Larry Mims Stadium,baseball,pitch,33.4672759,-87.6319059,,,AL,,false,true,false,openstreetmap
+Lee Complex,baseball,pitch,34.4856318,-87.7145807,,,AL,,false,true,false,openstreetmap
+Lee Complex,baseball,pitch,34.4854701,-87.7135166,,,AL,,false,true,false,openstreetmap
+Lee Complex,baseball,pitch,34.4847639,-87.7136315,,,AL,,false,true,false,openstreetmap
+Lee Complex,baseball,pitch,34.4847744,-87.714448,,,AL,,false,true,false,openstreetmap
+Legion Field Baseball,baseball,pitch,33.1762873,-86.2482645,,,AL,,false,true,false,openstreetmap
+Locust Fork Community Park Little League Field,baseball,pitch,33.9076219,-86.6220782,,,AL,,false,true,false,openstreetmap
+LowerQuad 10,baseball,pitch,34.6874131,-86.7732295,,,AL,,false,true,false,openstreetmap
+LowerQuad 11,baseball,pitch,34.6872444,-86.772458,,,AL,,false,true,false,openstreetmap
+LowerQuad 12,baseball,pitch,34.6878832,-86.7722462,,,AL,,false,true,false,openstreetmap
+LowerQuad 9,baseball,pitch,34.688047,-86.7730224,,,AL,,false,true,false,openstreetmap
+Memorial Stadium Baseball Field,baseball,pitch,32.4043702,-87.0404079,,,AL,,false,true,false,openstreetmap
+Mike D. Lane Field,baseball,pitch,34.8096938,-87.6853605,,,AL,,false,true,false,openstreetmap
+Miller Pounders Field,baseball,pitch,34.4282786,-86.9358727,,,AL,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,33.4311349,-86.791096,,,AL,,false,true,false,openstreetmap
+Montgomery East Exchange Park,baseball,pitch,32.4010127,-86.2592877,,,AL,,false,true,false,openstreetmap
+Murray Field,baseball,pitch,30.6966354,-88.1375331,,,AL,,false,true,false,openstreetmap
+Mustangs Baseball Field,baseball,pitch,34.7016649,-86.7045447,,,AL,,false,true,false,openstreetmap
+North Jefferson Middle School Baseball Field,baseball,pitch,33.7556344,-86.8106971,,,AL,,false,true,false,openstreetmap
+Pisgah Civitan Park Ballfield,baseball,pitch,34.6744058,-85.8569677,,,AL,,false,true,false,openstreetmap
+Pizitz Baseball field,baseball,pitch,33.4232464,-86.7934009,,,AL,,false,true,false,openstreetmap
+Plainsman Park,baseball,stadium,32.5998203,-85.4896857,,,AL,,false,true,false,openstreetmap
+Red Level High School Baseball Stadium,baseball,pitch,31.4147907,-86.6126259,,,AL,,false,true,false,openstreetmap
+Regions Field,baseball,sports_centre,33.5075688,-86.8102532,,,AL,,false,true,false,openstreetmap
+Rickwood Field,baseball,stadium,33.5023191,-86.8559094,1137 2nd Avenue West,,AL,,false,true,false,openstreetmap
+Riverwalk Stadium,baseball,stadium,32.3819262,-86.3107725,,,AL,,false,true,false,openstreetmap
+Robbins Field,baseball,pitch,34.7901861,-87.6750017,,,AL,,false,true,false,openstreetmap
+Ronald McVay Field,baseball,pitch,31.9518179,-86.3114532,,,AL,,false,true,false,openstreetmap
+Rudy Abbott Field,baseball,pitch,33.8248654,-85.7762884,,,AL,,false,true,false,openstreetmap
+Sewell-Thomas Field,baseball,stadium,33.2049227,-87.5385759,,,AL,,false,true,false,openstreetmap
+Silsby Baseball Field,baseball,pitch,33.4355395,-86.1128513,,,AL,,false,true,false,openstreetmap
+Simmons Middle School Baseball/Softball Field,baseball,pitch,33.3869852,-86.8351509,,,AL,,false,true,false,openstreetmap
+Sims Field,baseball,pitch,34.4293453,-86.936216,,,AL,,false,true,false,openstreetmap
+Snead Baseball Park,baseball,sports_centre,34.1124236,-86.3970262,,,AL,,false,true,false,openstreetmap
+Snead State Fields,baseball,pitch,34.2012412,-86.1714587,,,AL,,false,true,false,openstreetmap
+Softball Field 1,baseball,pitch,34.6590843,-86.4552648,,,AL,,false,true,false,openstreetmap
+Softball Field 4,baseball,pitch,34.6591645,-86.4561133,,,AL,,false,true,false,openstreetmap
+Southside High School Baseball Field,baseball,pitch,32.3282252,-86.9269834,,,AL,,false,true,false,openstreetmap
+Springville High School Baseball Field,baseball,pitch,33.7835633,-86.4414223,,,AL,,false,true,false,openstreetmap
+Springville High School Softball Field,baseball,pitch,33.784278,-86.4419937,,,AL,,false,true,false,openstreetmap
+Stan Galle Field,baseball,pitch,30.6924047,-88.137844,,,AL,,false,true,false,openstreetmap
+Stanky Field,baseball,pitch,30.6915853,-88.1843083,,,AL,,false,true,false,openstreetmap
+Stockton Wiffleball Field,baseball,pitch,33.6539038,-86.5526598,,,AL,,false,true,false,openstreetmap
+Street Field,baseball,pitch,34.4281729,-86.9371348,,,AL,,false,true,false,openstreetmap
+Striplin Field,baseball,pitch,33.5167086,-86.8537001,,,AL,,false,true,false,openstreetmap
+T.R. Miller High School Baseball Field,baseball,pitch,31.1380617,-87.0721171,,,AL,,false,true,false,openstreetmap
+Tartt Baseball Field,baseball,pitch,32.6018699,-88.1913083,,,AL,,false,true,false,openstreetmap
+Tater Miller Field,baseball,pitch,32.8416901,-85.1888948,,,AL,,false,true,false,openstreetmap
+Tee-Ball Field,baseball,pitch,34.8541706,-87.5379691,,,AL,,false,true,false,openstreetmap
+The Sandlot,baseball,pitch,33.1963539,-86.8622405,,,AL,,false,true,false,openstreetmap
+Town Madison Softball Field,baseball,pitch,34.6706022,-86.7446851,,,AL,,false,true,false,openstreetmap
+Town Madison Softball Field,baseball,pitch,34.6716251,-86.7446784,,,AL,,false,true,false,openstreetmap
+Toyota Field,baseball,stadium,34.6841144,-86.7245148,,,AL,,false,true,false,openstreetmap
+Trojan Field,baseball,pitch,34.7387292,-87.6606903,,,AL,,false,true,false,openstreetmap
+Underwood Youth Complex,baseball,sports_centre,34.8646551,-87.7079102,,,AL,,false,true,false,openstreetmap
+UpperQuad 0,baseball,pitch,34.6893141,-86.7754137,,,AL,,false,true,false,openstreetmap
+UpperQuad 1,baseball,pitch,34.6896003,-86.775036,,,AL,,false,true,false,openstreetmap
+UpperQuad 2,baseball,pitch,34.6892224,-86.7758844,,,AL,,false,true,false,openstreetmap
+UpperQuad 3,baseball,pitch,34.6896249,-86.7756034,,,AL,,false,true,false,openstreetmap
+UpperQuad 4,baseball,pitch,34.6903744,-86.7753156,,,AL,,false,true,false,openstreetmap
+UpperQuad 5,baseball,pitch,34.6896583,-86.7766495,,,AL,,false,true,false,openstreetmap
+UpperQuad 6,baseball,pitch,34.6905525,-86.7762944,,,AL,,false,true,false,openstreetmap
+UpperQuad 7,baseball,pitch,34.6910606,-86.7739212,,,AL,,false,true,false,openstreetmap
+UpperQuad 8,baseball,pitch,34.6917352,-86.7740594,,,AL,,false,true,false,openstreetmap
+Veteran's Park Baseball Fields,baseball,pitch,34.5652631,-87.1660941,,,AL,,false,true,false,openstreetmap
+Veteran's Park Practice Ball Fields,baseball,pitch,34.5677197,-87.1650379,,,AL,,false,true,false,openstreetmap
+Wallace Community College Baseball Field,baseball,pitch,31.3186366,-85.463653,,,AL,,false,true,false,openstreetmap
+Walton Cruise Field,baseball,pitch,33.1797641,-86.2487055,,,AL,,false,true,false,openstreetmap
+Washington Field,baseball,pitch,32.4250489,-85.70355,,,AL,,false,true,false,openstreetmap
+Wavaho Field,baseball,pitch,34.8007747,-86.9508905,,,AL,,false,true,false,openstreetmap
+Westco 1,baseball,pitch,34.6870633,-86.7762127,,,AL,,false,true,false,openstreetmap
+Westco 2,baseball,pitch,34.6863214,-86.7761927,,,AL,,false,true,false,openstreetmap
+Westco 3,baseball,pitch,34.6862907,-86.7752687,,,AL,,false,true,false,openstreetmap
+Westco 4,baseball,pitch,34.6870029,-86.7752339,,,AL,,false,true,false,openstreetmap
+Westco 5,baseball,pitch,34.6860019,-86.7769258,,,AL,,false,true,false,openstreetmap
+Westco 6,baseball,pitch,34.6865063,-86.7771386,,,AL,,false,true,false,openstreetmap
+Wheeler-Watkins Baseball Complex,baseball,pitch,32.3609241,-86.287787,,,AL,,false,true,false,openstreetmap
+Wilson Baseball Field,baseball,pitch,34.9286355,-87.6715878,,,AL,,false,true,false,openstreetmap
+Windom Ball Field,baseball,pitch,34.1580018,-85.6694676,,,AL,,false,true,false,openstreetmap
+Wynn Field,baseball,pitch,32.3861667,-86.2156753,,,AL,,false,true,false,openstreetmap
+YMCA,baseball,pitch,32.4508178,-86.4203442,,,AL,,false,true,false,openstreetmap
+YMCA Baseball Field,baseball,pitch,34.6958209,-86.7344196,,,AL,,false,true,false,openstreetmap
+YMCA Baseball Field,baseball,pitch,34.6975397,-86.7343588,,,AL,,false,true,false,openstreetmap
+batting cage,baseball,pitch,30.6229974,-88.1692542,,,AL,,false,true,false,openstreetmap
+batting cages,baseball,pitch,34.6087298,-86.5426729,,,AL,,false,true,false,openstreetmap
+batting cages,baseball,pitch,34.6091409,-86.5419075,,,AL,,false,true,false,openstreetmap
+batting cages,baseball,pitch,30.6232139,-88.1674144,,,AL,,false,true,false,openstreetmap
+Austin High Baseball Field,baseball,pitch,34.5674613,-87.050936,3004 Modaus Rd Sw,Decatur,AL,35603,false,true,false,openstreetmap
+Austin High Softball Field,baseball,pitch,34.5673553,-87.052202,3004 Modaus Rd Sw,Decatur,AL,35603,false,true,false,openstreetmap
+ESCC Baseball and Softball Complex,baseball,pitch,31.2999141,-85.8451074,608 George C. Wallace Drive,Enterprise,AL,36331,false,true,false,openstreetmap
+Hoover Metropolitan Stadium,baseball,sports_centre,33.3380991,-86.8500834,100 Ben Chapman Drive,Hoover,AL,35244,false,true,false,openstreetmap
+Riddle-Pace Field,baseball,pitch,31.7984346,-85.9530382,Luther Drive,Troy,AL,36081,false,true,false,openstreetmap

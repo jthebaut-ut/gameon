@@ -1,0 +1,15 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Barrett Court,basketball,pitch,41.0759427,-73.5331678,,,CT,,false,true,false,openstreetmap
+"Cleveland ""Cleve"" Lowman Basketball Court",basketball,pitch,41.5413128,-72.6496453,,,CT,,false,true,false,openstreetmap
+Detroit Hunter Basketball Court,basketball,pitch,41.5413071,-72.6498649,,,CT,,false,true,false,openstreetmap
+Kinne Court,basketball,pitch,41.9860482,-72.651996,,,CT,,true,false,false,openstreetmap
+Lebanon Rec Basketball Court,basketball,pitch,41.6392797,-72.2056983,,,CT,,false,true,false,openstreetmap
+Lebanon Rec Basketball Court,basketball,pitch,41.6394176,-72.20559,,,CT,,false,true,false,openstreetmap
+Lender Court,basketball,pitch,41.4139235,-72.9105728,,,CT,,false,true,false,openstreetmap
+Mohegan Sun Arena,basketball,stadium,41.4911078,-72.0897434,,,CT,,false,true,false,openstreetmap
+Quinipiac University,basketball,pitch,41.4204126,-72.8927695,,,CT,,false,true,false,openstreetmap
+Village Creek HOA,basketball,pitch,41.0777735,-73.4185776,,,CT,,false,true,false,openstreetmap
+Werth Family Basketball Champions Center,basketball,sports_centre,41.8045827,-72.2554027,,,CT,,false,true,false,openstreetmap
+Glastonbury Parks and Recreation,basketball,pitch,41.7304659,-72.5805649,415 Addison Road,Glastonbury,CT,06033,false,true,false,openstreetmap
+Hartford Public Schools,basketball,pitch,41.796476,-72.6994915,260 Holcomb Street,Hartford,CT,06112,false,true,false,openstreetmap
+Yanity Gymnasium,basketball,sports_centre,41.2830841,-73.4929499,60 Prospect Street,Ridgefield,CT,06877,false,true,false,openstreetmap

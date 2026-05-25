@@ -1,0 +1,156 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+"""Field of Dreams"" TV Show Filming Set",baseball,pitch,41.7849108,-93.6612528,,,IA,,false,true,false,openstreetmap
+3,baseball,pitch,41.6550256,-93.6857041,,,IA,,false,true,false,openstreetmap
+4,baseball,pitch,41.654629,-93.687186,,,IA,,false,true,false,openstreetmap
+7,baseball,pitch,41.6557143,-93.6869643,,,IA,,false,true,false,openstreetmap
+8,baseball,pitch,41.6557294,-93.6857242,,,IA,,false,true,false,openstreetmap
+American Legion Field,baseball,pitch,41.8083656,-91.4995435,,,IA,,false,true,false,openstreetmap
+American Little League,baseball,sports_centre,40.9973817,-92.4366866,,,IA,,false,true,false,openstreetmap
+Ames High School Baseball Field,baseball,pitch,42.0482249,-93.6378994,,,IA,,false,true,false,openstreetmap
+Amvets Fields,baseball,sports_centre,42.7225614,-92.4641572,,,IA,,false,true,false,openstreetmap
+Ash Park Baseball Field,baseball,pitch,41.9287708,-91.4246048,,,IA,,false,true,false,openstreetmap
+Babe Ruth Baseball,baseball,pitch,41.2846935,-92.6565739,,,IA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,42.3554015,-93.1170164,,,IA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,41.0756179,-94.3791344,,,IA,,false,true,false,openstreetmap
+Baseball diamond 1,baseball,pitch,41.6761384,-91.5417876,,,IA,,false,true,false,openstreetmap
+Baseball diamond 2,baseball,pitch,41.6761565,-91.5428496,,,IA,,false,true,false,openstreetmap
+Baseball diamond 3,baseball,pitch,41.6757949,-91.5438675,,,IA,,false,true,false,openstreetmap
+Baseball diamond 4,baseball,pitch,41.675231,-91.5435296,,,IA,,false,true,false,openstreetmap
+Baseball diamond 5,baseball,pitch,41.675338,-91.542611,,,IA,,false,true,false,openstreetmap
+Baseball diamond 6,baseball,pitch,41.6754542,-91.5415823,,,IA,,false,true,false,openstreetmap
+Baseball diamond 7,baseball,pitch,41.6748934,-91.5421823,,,IA,,false,true,false,openstreetmap
+Baseball diamond 8,baseball,pitch,41.674714,-91.5429716,,,IA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,41.5051373,-94.2985392,,,IA,,false,true,false,openstreetmap
+Beaverdale Little League,baseball,sports_centre,41.6554031,-93.6865964,,,IA,,false,true,false,openstreetmap
+Bellevue Baseball Field,baseball,pitch,42.2597866,-90.4315646,,,IA,,false,true,false,openstreetmap
+Bellevue Softball Field,baseball,pitch,42.2603112,-90.4305994,,,IA,,false,true,false,openstreetmap
+Bert Featheringill Field,baseball,pitch,40.6236272,-91.3482374,,,IA,,false,true,false,openstreetmap
+Bill Follis Field,baseball,pitch,41.5054057,-90.6250982,,,IA,,false,true,false,openstreetmap
+Billy Sunday Field,baseball,pitch,42.0185169,-93.4619345,,,IA,,false,true,false,openstreetmap
+Bishop Mueller Baseball field,baseball,pitch,42.5241395,-96.4267968,,,IA,,false,true,false,openstreetmap
+Bishop Mueller Softball field,baseball,pitch,42.5247923,-96.4262677,,,IA,,false,true,false,openstreetmap
+Bobby Oldis Fields,baseball,sports_centre,41.6754062,-91.5427074,,,IA,,false,true,false,openstreetmap
+Cap Timm Field,baseball,pitch,42.0180973,-93.6532596,,,IA,,false,true,false,openstreetmap
+Carstens Family Field,baseball,pitch,41.5061489,-90.6255072,,,IA,,false,true,false,openstreetmap
+Centennial Park Baseball Field #1,baseball,pitch,41.601938,-93.8674235,,,IA,,false,true,false,openstreetmap
+Centennial Park Baseball Field #2,baseball,pitch,41.6020316,-93.8685167,,,IA,,false,true,false,openstreetmap
+Chad Flora Field,baseball,pitch,41.8267551,-93.1419804,,,IA,,false,true,false,openstreetmap
+Church League Softball,baseball,pitch,41.2831036,-92.6535969,,,IA,,false,true,false,openstreetmap
+Colfax-Mingo Baseball Field,baseball,pitch,41.6803785,-93.2290041,,,IA,,false,true,false,openstreetmap
+Comiskey Field,baseball,pitch,42.5178332,-90.671251,,,IA,,false,true,false,openstreetmap
+Crow Creek Batting Cages,baseball,pitch,41.5643018,-90.4761717,,,IA,,false,true,false,openstreetmap
+D.R. Hitting,baseball,fitness_centre,42.4273156,-90.692303,,,IA,,false,true,false,openstreetmap
+Dan Runkle Baseball Field,baseball,pitch,42.4938688,-90.697018,100 McCormick Street Ext,,IA,,false,true,false,openstreetmap
+Darrel H. Blunck Baseball Practice Facility,baseball,sports_centre,41.5923225,-93.6758594,,,IA,,false,true,false,openstreetmap
+De Soto Field,baseball,pitch,41.5277133,-94.0091088,,,IA,,false,true,false,openstreetmap
+Defiance Stadium,baseball,pitch,41.8273021,-95.3379146,,,IA,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,41.4669042,-93.6908887,,,IA,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,41.4667367,-93.6900986,,,IA,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,41.4662946,-93.6911555,,,IA,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,41.4661152,-93.690299,,,IA,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,41.4658155,-93.6890943,,,IA,,false,true,false,openstreetmap
+Diamond 6,baseball,pitch,41.4658041,-93.6878511,,,IA,,false,true,false,openstreetmap
+Diediker Field,baseball,pitch,42.6193098,-96.2953837,,,IA,,false,true,false,openstreetmap
+Don Blanchard Field,baseball,pitch,43.2222761,-94.3286087,,,IA,,false,true,false,openstreetmap
+Eischeid Softball Field,baseball,pitch,42.8367908,-91.7972613,,,IA,,false,true,false,openstreetmap
+Elizabeth and Irving F. Jensen Softball Complex,baseball,pitch,42.474018,-96.3610181,,,IA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.7651369,-93.7305214,,,IA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.3988714,-92.877927,,,IA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,42.5143271,-96.3821318,,,IA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.7656104,-93.7296442,,,IA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.5138684,-96.3805315,,,IA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.3980146,-92.8772149,,,IA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,42.5128768,-96.3806001,,,IA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.3973177,-92.8773978,,,IA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,42.5123082,-96.3818587,,,IA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.3972315,-92.8785172,,,IA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,42.5123208,-96.3829117,,,IA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.3980321,-92.8787306,,,IA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,41.3977997,-92.8761365,,,IA,,false,true,false,openstreetmap
+Field 7,baseball,pitch,41.3970719,-92.8763237,,,IA,,false,true,false,openstreetmap
+Field I,baseball,pitch,42.514203,-90.6454806,,,IA,,false,true,false,openstreetmap
+Field II,baseball,pitch,42.5131758,-90.6452701,,,IA,,false,true,false,openstreetmap
+Field III,baseball,pitch,42.5133367,-90.6439163,,,IA,,false,true,false,openstreetmap
+Frank Huston Field,baseball,pitch,41.0067735,-92.4411537,,,IA,,false,true,false,openstreetmap
+Gary Page Field,baseball,pitch,41.6361208,-93.7153657,,,IA,,false,true,false,openstreetmap
+Girls Softball,baseball,pitch,42.5729236,-92.7773914,,,IA,,false,true,false,openstreetmap
+Grandview Little League,baseball,sports_centre,41.6405582,-93.5402811,,,IA,,false,true,false,openstreetmap
+Great Western Bank Field,baseball,pitch,40.7356096,-93.744216,,,IA,,false,true,false,openstreetmap
+Hertel Field,baseball,pitch,42.7311989,-92.4897645,,,IA,,false,true,false,openstreetmap
+Holcim Park Baseball Complex,baseball,sports_centre,43.1687311,-93.2071336,,,IA,,false,true,false,openstreetmap
+Hubbard Park field,baseball,pitch,42.5188511,-96.4001183,,,IA,,false,true,false,openstreetmap
+ILCC Baseball Field,baseball,pitch,43.3956521,-94.8173356,,,IA,,false,true,false,openstreetmap
+Independence Baseball/Softball Complex,baseball,sports_centre,42.4552056,-91.8785865,,,IA,,false,true,false,openstreetmap
+Industrial League Softball,baseball,pitch,41.2803647,-92.653498,,,IA,,false,true,false,openstreetmap
+Iowa Falls-Alden Little League Field,baseball,pitch,42.5171768,-93.3715031,,,IA,,false,true,false,openstreetmap
+Irwin Baseball Field,baseball,pitch,41.7875487,-95.2062155,,,IA,,false,true,false,openstreetmap
+James W. Cownie Baseball Complex,baseball,sports_centre,41.5657085,-93.5776624,,,IA,,false,true,false,openstreetmap
+Jefferson Ballpark,baseball,pitch,41.5306998,-90.5883818,,,IA,,false,true,false,openstreetmap
+Jim Cook Field,baseball,pitch,41.646404,-91.4639241,,,IA,,false,true,false,openstreetmap
+Jim Rouse Field,baseball,pitch,40.735924,-93.7439567,,,IA,,false,true,false,openstreetmap
+Kennedy High School Baseball Field,baseball,pitch,42.0224995,-91.6818028,,,IA,,false,true,false,openstreetmap
+Kennedy High School Softball Field,baseball,pitch,42.0234909,-91.6821243,,,IA,,false,true,false,openstreetmap
+Kiwanis Miracle League,baseball,pitch,41.5788845,-93.6186232,,,IA,,false,true,false,openstreetmap
+Koethe Field,baseball,pitch,41.6104547,-93.7598552,,,IA,,false,true,false,openstreetmap
+Legacy Field,baseball,pitch,42.4209254,-94.9810537,,,IA,,false,true,false,openstreetmap
+Legion Memorial Field,baseball,pitch,41.0119659,-92.4209984,,,IA,,false,true,false,openstreetmap
+Lewis and Clark Park,baseball,stadium,42.4433069,-96.3638611,,,IA,,false,true,false,openstreetmap
+Little League Park,baseball,sports_centre,42.0574179,-93.8955596,,,IA,,false,true,false,openstreetmap
+Luana Softball Diamond,baseball,pitch,43.0603503,-91.4622877,,,IA,,false,true,false,openstreetmap
+Lynes Field,baseball,pitch,42.7283612,-92.4868664,,,IA,,false,true,false,openstreetmap
+McBride Field,baseball,pitch,41.3682161,-93.5695768,,,IA,,false,true,false,openstreetmap
+Midwest Little League,baseball,sports_centre,41.037699,-92.4397045,,,IA,,false,true,false,openstreetmap
+Miller Field,baseball,pitch,42.0475516,-90.3101025,,,IA,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,42.4972286,-96.4725674,,,IA,,false,true,false,openstreetmap
+NFV Baseball Diamond,baseball,pitch,42.9671254,-91.8009109,,,IA,,false,true,false,openstreetmap
+NFV Softball Field,baseball,pitch,42.9704478,-91.8031835,,,IA,,false,true,false,openstreetmap
+National Little League,baseball,sports_centre,41.0104989,-92.4134164,,,IA,,false,true,false,openstreetmap
+PCM High School Baseball Diamond,baseball,pitch,41.5139883,-93.1005686,,,IA,,false,true,false,openstreetmap
+Pat Daugherty Field,baseball,pitch,40.7442827,-92.887979,,,IA,,false,true,false,openstreetmap
+Peacock Ball Park,baseball,pitch,40.7313898,-91.9685228,,,IA,,false,true,false,openstreetmap
+Pederson Memorial Park & Cardinal Field,baseball,sports_centre,43.1474144,-95.1283401,,,IA,,false,true,false,openstreetmap
+Pekin Baseball Field,baseball,pitch,41.1548734,-92.1635723,,,IA,,false,true,false,openstreetmap
+Pella Christian Baseball Field,baseball,pitch,41.3934944,-92.8865474,,,IA,,false,true,false,openstreetmap
+Petrakis Park,baseball,pitch,42.5145176,-90.6440116,,,IA,,false,true,false,openstreetmap
+Pleasantville Baseball Field,baseball,pitch,41.3894008,-93.2755751,,,IA,,false,true,false,openstreetmap
+R.L. Hellyer Softball Field,baseball,pitch,41.0428258,-92.3892086,,,IA,,false,true,false,openstreetmap
+Riverfront Stadium,baseball,pitch,42.511081,-92.3534235,,,IA,,false,true,false,openstreetmap
+Riverview Recreation Field,baseball,pitch,42.4767497,-93.8222854,,,IA,,false,true,false,openstreetmap
+Roberton's Woods Baseball Field,baseball,pitch,42.8379527,-91.8055905,,,IA,,false,true,false,openstreetmap
+Robinson-Dresser Sports Complex,baseball,pitch,42.5269761,-92.4879093,,,IA,,false,true,false,openstreetmap
+Ron Buel Field,baseball,pitch,41.6063542,-93.65429,,,IA,,false,true,false,openstreetmap
+Roosevelt Field,baseball,pitch,43.1354094,-93.1961319,,,IA,,false,true,false,openstreetmap
+Rotary Club of Ames Miracle Field,baseball,pitch,42.0466346,-93.6121701,,,IA,,false,true,false,openstreetmap
+Roy Nielsen III Family Field,baseball,pitch,42.9932659,-96.033889,,,IA,,false,true,false,openstreetmap
+Sabula Little League Field,baseball,pitch,42.0737379,-90.1774996,,,IA,,false,true,false,openstreetmap
+Shawn William Baseball Field,baseball,pitch,41.99793,-92.9113975,,,IA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,42.3540649,-93.1165879,,,IA,,false,true,false,openstreetmap
+Summit Complex,baseball,sports_centre,42.4905371,-92.3627347,,,IA,,false,true,false,openstreetmap
+Tee Ball Field,baseball,pitch,40.7348269,-93.7438906,,,IA,,false,true,false,openstreetmap
+The Cattle Yard,baseball,pitch,41.6210089,-91.5208362,,,IA,,false,true,false,openstreetmap
+The Wallingford Ballpark,baseball,pitch,43.3225337,-94.794623,,,IA,,false,true,false,openstreetmap
+Thoreson Batting Cages,baseball,pitch,43.4089338,-94.8227531,,,IA,,false,true,false,openstreetmap
+Thoreson Field 1,baseball,pitch,43.4079557,-94.8231813,,,IA,,false,true,false,openstreetmap
+Thoreson Field 2,baseball,pitch,43.4084747,-94.822671,,,IA,,false,true,false,openstreetmap
+Thoreson Field 3,baseball,pitch,43.4094006,-94.8223225,,,IA,,false,true,false,openstreetmap
+Tripoli Panthers Baseball Field,baseball,pitch,42.7992287,-92.2600313,,,IA,,false,true,false,openstreetmap
+Van Meter High School Baseball Field,baseball,pitch,41.5294418,-93.9474649,,,IA,,false,true,false,openstreetmap
+Vintage Baseball Diamond,baseball,pitch,41.8326566,-95.9289559,,,IA,,false,true,false,openstreetmap
+Wagner Baseball Field,baseball,pitch,40.8169888,-91.1740187,,,IA,,false,true,false,openstreetmap
+Wagner Softball Field,baseball,pitch,40.815983,-91.1737733,,,IA,,false,true,false,openstreetmap
+Walford Baseball Fields,baseball,pitch,41.873739,-91.8390725,,,IA,,false,true,false,openstreetmap
+Walford Baseball Fields,baseball,pitch,41.8738695,-91.8405748,,,IA,,false,true,false,openstreetmap
+West High School Baseball Field,baseball,pitch,42.5104154,-96.449145,,,IA,,false,true,false,openstreetmap
+Wildcat Stadium,baseball,pitch,43.3662107,-95.1279748,,,IA,,false,true,false,openstreetmap
+Willey Ballpark,baseball,pitch,41.9780915,-94.8200746,,,IA,,false,true,false,openstreetmap
+Windsor Heights Ballpark,baseball,pitch,41.5939994,-93.7120724,,,IA,,false,true,false,openstreetmap
+Woolstock Baseball Field,baseball,pitch,42.5654329,-93.8412699,,,IA,,false,true,false,openstreetmap
+Zwingle Recreation Area,baseball,sports_centre,42.2818309,-90.674253,,,IA,,false,true,false,openstreetmap
+Bondurant Recreational Sports Complex,baseball,sports_centre,41.7085275,-93.4406012,2050 Jr Haines Parkway,Bondurant,IA,50035,false,true,false,openstreetmap
+Ashford University Field,baseball,stadium,41.8488616,-90.1846497,81 6th Avenue North,Clinton,IA,52732,false,true,false,openstreetmap
+Modern Woodmen Park,baseball,stadium,41.5185136,-90.5817636,,Davenport,IA,,false,true,false,openstreetmap
+Principal Park,baseball,stadium,41.5802006,-93.6158253,1 Line Drive,Des Moines,IA,50309,false,true,false,openstreetmap
+Sec Taylor Field,baseball,pitch,41.5803029,-93.6157475,1 Line Drive,Des Moines,IA,50309,false,true,false,openstreetmap
+Softball Field,baseball,pitch,42.4948617,-90.6953089,2190 Bennett Street,Dubuque,IA,52001,false,true,false,openstreetmap
+Gavin Hitting Facility,baseball,sports_centre,41.6682196,-91.5031819,North 1st Avenue,Iowa City,IA,52245,false,true,false,openstreetmap
+Fusion Studios-The Bullpen,baseball,sports_centre,40.7413706,-93.7471984,300 North Main Street,Leon,IA,50144,false,true,false,openstreetmap

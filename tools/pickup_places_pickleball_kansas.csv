@@ -1,0 +1,3 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Stonebridge HOA Pickleball Court,pickleball,pitch,38.8301178,-94.7828727,,,KS,,false,true,false,openstreetmap
+SERV,pickleball,sports_centre,38.9650056,-94.6654612,9501 Metcalf Avenue,Overland Park,KS,66212,false,true,false,openstreetmap

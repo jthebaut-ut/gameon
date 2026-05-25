@@ -1,0 +1,40 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Allegany Highschool football field,football,pitch,39.6562355,-78.7963827,,,MD,,false,true,false,openstreetmap
+Annapolis High School Stadium,football,pitch,38.9731644,-76.5675023,,,MD,,false,true,false,openstreetmap
+Baltimore Polytechnic Football Field,football,pitch,39.3499887,-76.6444642,,,MD,,false,true,false,openstreetmap
+Banner Field,football,pitch,39.2669293,-76.5933444,,,MD,,false,true,false,openstreetmap
+Bates Middle Auxillary Field,football,pitch,38.9717769,-76.5087515,,,MD,,false,true,false,openstreetmap
+Bowie State Bulldogs,football,pitch,39.0220136,-76.7548496,,,MD,,false,true,false,openstreetmap
+Conservit Field,football,pitch,39.6611988,-77.7146651,,,MD,,false,true,false,openstreetmap
+Cunion Field,football,pitch,39.4183842,-76.3153849,,,MD,,false,true,false,openstreetmap
+Diane Geppi-Aikens Field,football,pitch,39.346046,-76.6179787,,,MD,,false,true,false,openstreetmap
+FSU football field,football,pitch,39.6490026,-78.9364439,,,MD,,false,true,false,openstreetmap
+Field 12,football,pitch,39.5058335,-76.2763315,,,MD,,false,true,false,openstreetmap
+Field 2,football,pitch,39.1072327,-76.5951787,,,MD,,false,true,false,openstreetmap
+Football practice field,football,pitch,39.5979843,-77.8133134,,,MD,,false,true,false,openstreetmap
+Frostburg state mens football practice field,football,pitch,39.6492715,-78.9394929,,,MD,,false,true,false,openstreetmap
+Gilman Football Field,football,pitch,39.3601533,-76.6328361,,,MD,,false,true,false,openstreetmap
+Gladiator Stadium,football,pitch,39.2747666,-77.0038484,,,MD,,false,true,false,openstreetmap
+Gray Charles Comanche Football Field #1,football,pitch,39.2757941,-76.4982086,,,MD,,false,true,false,openstreetmap
+Gray Charles Comanche Football Field #2,football,pitch,39.2756978,-76.4969332,,,MD,,false,true,false,openstreetmap
+J. Logan & Louise Schutz Football Practice Complex,football,sports_centre,38.9899709,-76.9436343,,,MD,,false,true,false,openstreetmap
+Jerome Marco Stadium,football,pitch,38.9797008,-77.1282079,,,MD,,false,true,false,openstreetmap
+John McDonogh Stadium,football,pitch,39.3976691,-76.7770422,,,MD,,false,true,false,openstreetmap
+M&T Bank Stadium,football,stadium,39.2780776,-76.622631,,,MD,,false,true,false,openstreetmap
+McDaniel's Gill Stadium,football,pitch,39.5848606,-77.0036642,,,MD,,false,true,false,openstreetmap
+McNamara Mustangs,football,pitch,38.8533154,-76.8873192,,,MD,,false,true,false,openstreetmap
+Miners Football Field,football,pitch,39.6469585,-78.9149804,,,MD,,false,true,false,openstreetmap
+Minnegan Field,football,pitch,39.388531,-76.6159513,,,MD,,false,true,false,openstreetmap
+Multipurpose Field B,football,pitch,39.0971739,-76.5840868,,,MD,,false,true,false,openstreetmap
+Multipurpose Field D,football,pitch,39.0960728,-76.5842617,,,MD,,false,true,false,openstreetmap
+Multipurpose Field E,football,pitch,39.0960993,-76.5833224,,,MD,,false,true,false,openstreetmap
+Practice Field,football,pitch,39.621544,-77.7323847,,,MD,,false,true,false,openstreetmap
+Rip Miller Field,football,pitch,38.9785835,-76.4806942,,,MD,,false,true,false,openstreetmap
+Robert G. Knox Field,football,pitch,38.3396715,-75.1889404,,,MD,,false,true,false,openstreetmap
+Tucker Field,football,pitch,39.5716258,-76.3531149,,,MD,,false,true,false,openstreetmap
+Urbana Hawks Stadium,football,pitch,39.325783,-77.3365645,,,MD,,false,true,false,openstreetmap
+Wildcat Stadium,football,pitch,39.0239257,-77.1301595,,,MD,,false,true,false,openstreetmap
+SECU Stadium,football,stadium,38.9903019,-76.9473445,90 Stadium Drive,College Park,MD,20742,false,true,false,openstreetmap
+Northwest Stadium,football,stadium,38.90768,-76.8645523,1600 Ring Road,Landover,MD,20785,false,true,false,openstreetmap
+Unitas Stadium,football,stadium,39.3885444,-76.6159952,7540 Auburn Drive,Towson,MD,21204,false,true,false,openstreetmap
+Ruby Field,football,pitch,39.5418616,-76.9900864,1225 New Washington Road,Westminster,MD,21157,false,true,false,openstreetmap

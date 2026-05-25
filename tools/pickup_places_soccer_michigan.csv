@@ -1,0 +1,255 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+5,soccer,pitch,42.3060444,-85.1154746,,,MI,,false,true,false,openstreetmap
+Airport Community Schools Soccer Field,soccer,pitch,42.0448155,-83.372557,,,MI,,false,true,false,openstreetmap
+Alpine Soccer Complex,soccer,pitch,45.0400087,-84.6814144,,,MI,,false,true,false,openstreetmap
+Bad Axe Soccer Complex,soccer,sports_centre,43.8069972,-83.0120241,,,MI,,false,true,false,openstreetmap
+Bay College Soccer Fields,soccer,pitch,45.7725555,-87.0886553,,,MI,,false,true,false,openstreetmap
+Bay College Soccer Fields,soccer,pitch,45.7742219,-87.088083,,,MI,,false,true,false,openstreetmap
+Beacon Field,soccer,pitch,42.7378118,-84.5574057,,,MI,,false,true,false,openstreetmap
+Beacon Field Southwest,soccer,pitch,42.6967057,-84.5805662,,,MI,,false,true,false,openstreetmap
+Black River Public School Soccer Field,soccer,pitch,42.7776677,-86.0983236,,,MI,,false,true,false,openstreetmap
+Browning Elementary School,soccer,pitch,42.6080021,-83.0051955,,,MI,,false,true,false,openstreetmap
+Cleary University Soccer Field,soccer,pitch,42.6084458,-83.9223922,,,MI,,false,true,false,openstreetmap
+Congress Park Soccer Field,soccer,pitch,42.9611534,-85.6463011,,,MI,,false,true,false,openstreetmap
+Davison Soccer Stadium,soccer,pitch,43.0254501,-83.5057239,,,MI,,false,true,false,openstreetmap
+Deer Run Soccer Complex,soccer,sports_centre,42.7945018,-83.7839758,,,MI,,false,true,false,openstreetmap
+Field #1,soccer,pitch,42.4089305,-83.4936125,,,MI,,false,true,false,openstreetmap
+Field #1,soccer,pitch,42.3992162,-83.5130456,,,MI,,false,true,false,openstreetmap
+Field #10,soccer,pitch,42.3960855,-83.5166213,,,MI,,false,true,false,openstreetmap
+Field #11,soccer,pitch,42.3971749,-83.5195363,,,MI,,false,true,false,openstreetmap
+Field #12,soccer,pitch,42.3971744,-83.5185218,,,MI,,false,true,false,openstreetmap
+Field #13 - N,soccer,pitch,42.398677,-83.5186641,,,MI,,false,true,false,openstreetmap
+Field #13 - S,soccer,pitch,42.3981828,-83.5186576,,,MI,,false,true,false,openstreetmap
+Field #14 - NE,soccer,pitch,42.3986696,-83.5193803,,,MI,,false,true,false,openstreetmap
+Field #14 - NW,soccer,pitch,42.3986693,-83.5197893,,,MI,,false,true,false,openstreetmap
+Field #14 - SE,soccer,pitch,42.3981735,-83.5193685,,,MI,,false,true,false,openstreetmap
+Field #14 - SW,soccer,pitch,42.3981735,-83.5197724,,,MI,,false,true,false,openstreetmap
+Field #15 - N,soccer,pitch,42.4003558,-83.5150906,,,MI,,false,true,false,openstreetmap
+Field #15 - S,soccer,pitch,42.4000269,-83.5150794,,,MI,,false,true,false,openstreetmap
+Field #2,soccer,pitch,42.4089216,-83.4926428,,,MI,,false,true,false,openstreetmap
+Field #2,soccer,pitch,42.3991453,-83.5140878,,,MI,,false,true,false,openstreetmap
+Field #3,soccer,pitch,42.408941,-83.4915721,,,MI,,false,true,false,openstreetmap
+Field #3 - N,soccer,pitch,42.4008054,-83.5143783,,,MI,,false,true,false,openstreetmap
+Field #3 - S,soccer,pitch,42.4003679,-83.5143712,,,MI,,false,true,false,openstreetmap
+Field #4 - E,soccer,pitch,42.4008648,-83.5128992,,,MI,,false,true,false,openstreetmap
+Field #4 - W,soccer,pitch,42.4008544,-83.5134975,,,MI,,false,true,false,openstreetmap
+Field #8,soccer,pitch,42.4080905,-83.4915754,,,MI,,false,true,false,openstreetmap
+Field #8,soccer,pitch,42.3990915,-83.5152744,,,MI,,false,true,false,openstreetmap
+Field #9 - N,soccer,pitch,42.3979668,-83.5165901,,,MI,,false,true,false,openstreetmap
+Field #9 - S,soccer,pitch,42.3974748,-83.5166048,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.2903794,-83.5297728,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.8124292,-85.6547063,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.4439629,-83.3979491,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,41.9346539,-83.4333816,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.4345361,-83.4157535,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.5167944,-83.3801646,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.2306738,-83.4949634,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.2950158,-83.2818077,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,43.464554,-83.9896562,,,MI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.7036456,-85.6152665,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.4260532,-83.4019399,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,41.932342,-83.4323194,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.2946523,-83.5287638,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.218749,-83.2459974,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.2916051,-83.2831716,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,43.4634054,-83.9835355,,,MI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.7005159,-85.6149756,,,MI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,41.9321518,-83.4317054,,,MI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,42.2947093,-83.5276556,,,MI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,42.29197,-83.283193,,,MI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,44.7000149,-85.6149848,,,MI,,false,true,false,openstreetmap
+Field 12,soccer,pitch,42.2901579,-83.5281208,,,MI,,false,true,false,openstreetmap
+Field 12,soccer,pitch,41.9316478,-83.4321022,,,MI,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.700259,-85.613866,,,MI,,false,true,false,openstreetmap
+Field 13,soccer,pitch,42.2908433,-83.5281479,,,MI,,false,true,false,openstreetmap
+Field 13,soccer,pitch,44.7002622,-85.6132649,,,MI,,false,true,false,openstreetmap
+Field 14,soccer,pitch,42.2915237,-83.5281711,,,MI,,false,true,false,openstreetmap
+Field 14,soccer,pitch,44.7002627,-85.6126699,,,MI,,false,true,false,openstreetmap
+Field 15,soccer,pitch,42.2901445,-83.5275345,,,MI,,false,true,false,openstreetmap
+Field 15,soccer,pitch,44.6994174,-85.6130121,,,MI,,false,true,false,openstreetmap
+Field 16,soccer,pitch,42.2908309,-83.52756,,,MI,,false,true,false,openstreetmap
+Field 16,soccer,pitch,44.6994163,-85.6139192,,,MI,,false,true,false,openstreetmap
+Field 17,soccer,pitch,42.2915153,-83.5275862,,,MI,,false,true,false,openstreetmap
+Field 17,soccer,pitch,43.4612476,-83.989576,,,MI,,false,true,false,openstreetmap
+Field 17,soccer,pitch,44.6989864,-85.6130134,,,MI,,false,true,false,openstreetmap
+Field 18,soccer,pitch,42.2901507,-83.52696,,,MI,,false,true,false,openstreetmap
+Field 18,soccer,pitch,43.4612504,-83.9884591,,,MI,,false,true,false,openstreetmap
+Field 18,soccer,pitch,44.6989834,-85.6139217,,,MI,,false,true,false,openstreetmap
+Field 19,soccer,pitch,43.4602792,-83.9895935,,,MI,,false,true,false,openstreetmap
+Field 19,soccer,pitch,42.2908406,-83.5269869,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.2913812,-83.5298228,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.8124902,-85.6556184,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.4440099,-83.3968609,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,41.9353194,-83.4330118,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.4344968,-83.4169554,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.5165801,-83.382078,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.2301464,-83.4941827,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.2944625,-83.2822787,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,43.4645383,-83.988637,,,MI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.7036073,-85.614379,,,MI,,false,true,false,openstreetmap
+Field 20,soccer,pitch,42.2915247,-83.527,,,MI,,false,true,false,openstreetmap
+Field 20,soccer,pitch,43.460149,-83.9884883,,,MI,,false,true,false,openstreetmap
+Field 21,soccer,pitch,43.45914,-83.98976,,,MI,,false,true,false,openstreetmap
+Field 21 Training Field,soccer,pitch,42.2914473,-83.5263212,,,MI,,false,true,false,openstreetmap
+Field 22,soccer,pitch,42.293764,-83.5276376,,,MI,,false,true,false,openstreetmap
+Field 22,soccer,pitch,43.4591367,-83.9884983,,,MI,,false,true,false,openstreetmap
+Field 23,soccer,pitch,42.2934115,-83.5267797,,,MI,,false,true,false,openstreetmap
+Field 23,soccer,pitch,44.6996318,-85.6151055,,,MI,,false,true,false,openstreetmap
+Field 24,soccer,pitch,42.2940927,-83.5268043,,,MI,,false,true,false,openstreetmap
+Field 25,soccer,pitch,42.2934209,-83.5262365,,,MI,,false,true,false,openstreetmap
+Field 26,soccer,pitch,42.2941026,-83.5262703,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.8124833,-85.6564862,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,41.9360628,-83.4326025,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.292511,-83.5297717,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.2303108,-83.4933376,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.294519,-83.2813651,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,43.4645462,-83.9876071,,,MI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.7029849,-85.6130691,,,MI,,false,true,false,openstreetmap
+Field 35,soccer,pitch,44.7074974,-85.6147744,,,MI,,false,true,false,openstreetmap
+Field 36,soccer,pitch,44.7073499,-85.6142414,,,MI,,false,true,false,openstreetmap
+Field 37,soccer,pitch,44.7069472,-85.6149737,,,MI,,false,true,false,openstreetmap
+Field 38,soccer,pitch,44.7068038,-85.6144217,,,MI,,false,true,false,openstreetmap
+Field 39,soccer,pitch,44.7062392,-85.6149478,,,MI,,false,true,false,openstreetmap
+Field 3a,soccer,pitch,42.4437316,-83.3956733,,,MI,,false,true,false,openstreetmap
+Field 3b,soccer,pitch,42.4442141,-83.3957092,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.4425941,-83.3979287,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,41.9355307,-83.4304299,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.2936179,-83.5298107,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.2939891,-83.2815709,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,43.463565,-83.9896938,,,MI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.7025791,-85.6153848,,,MI,,false,true,false,openstreetmap
+Field 40,soccer,pitch,44.7054386,-85.6151692,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,41.9348818,-83.431232,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.2946622,-83.5298378,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.2304149,-83.4925823,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.2188987,-83.2483199,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.2935649,-83.2815634,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,43.4635533,-83.9887604,,,MI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.7025461,-85.6144824,,,MI,,false,true,false,openstreetmap
+Field 5a,soccer,pitch,42.4423998,-83.3969201,,,MI,,false,true,false,openstreetmap
+Field 5b,soccer,pitch,42.4428946,-83.3968149,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,42.2903487,-83.5289002,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,41.9346613,-83.4304985,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,42.2184231,-83.2475421,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,42.2937524,-83.2824015,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,43.464585,-83.9856008,,,MI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.7018159,-85.6132248,,,MI,,false,true,false,openstreetmap
+Field 6a,soccer,pitch,42.4423883,-83.3956285,,,MI,,false,true,false,openstreetmap
+Field 6b,soccer,pitch,42.4428765,-83.3956663,,,MI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,42.2913341,-83.5288942,,,MI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,42.291525,-83.2835798,,,MI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,41.9338862,-83.4309735,,,MI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,43.46455,-83.98456,,,MI,,false,true,false,openstreetmap
+Field 7A,soccer,pitch,44.7017423,-85.6155379,,,MI,,false,true,false,openstreetmap
+Field 7B,soccer,pitch,44.7013257,-85.6155705,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,42.4261958,-83.3978153,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,42.2924406,-83.5287003,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,42.2917771,-83.283585,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,41.9333649,-83.4312733,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,43.4645579,-83.9836106,,,MI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.7015053,-85.6146871,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,42.4261057,-83.4005448,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,42.2937243,-83.5287799,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,42.2187655,-83.2467802,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,42.2920203,-83.2835904,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,41.9328438,-83.431573,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,43.4634248,-83.9843777,,,MI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.7001766,-85.6158151,,,MI,,false,true,false,openstreetmap
+Field A,soccer,pitch,42.7692668,-83.2023885,,,MI,,false,true,false,openstreetmap
+Field A-1,soccer,pitch,42.4403589,-83.5516423,,,MI,,false,true,false,openstreetmap
+Field A-1,soccer,pitch,42.4403706,-83.5512267,,,MI,,false,true,false,openstreetmap
+Field A-2,soccer,pitch,42.4398906,-83.5514421,,,MI,,false,true,false,openstreetmap
+Field B,soccer,pitch,42.4392212,-83.551359,,,MI,,false,true,false,openstreetmap
+Field B,soccer,pitch,42.7690325,-83.2013974,,,MI,,false,true,false,openstreetmap
+Field B,soccer,pitch,42.4387687,-83.5513021,,,MI,,false,true,false,openstreetmap
+Field C,soccer,pitch,42.7690684,-83.199599,,,MI,,false,true,false,openstreetmap
+Field C-2,soccer,pitch,42.4378419,-83.5513112,,,MI,,false,true,false,openstreetmap
+Field D,soccer,pitch,42.4368613,-83.5511489,,,MI,,false,true,false,openstreetmap
+Field D,soccer,pitch,42.769416,-83.1988688,,,MI,,false,true,false,openstreetmap
+Field E,soccer,pitch,42.436726,-83.5500111,,,MI,,false,true,false,openstreetmap
+Field F-1,soccer,pitch,42.4380769,-83.5502961,,,MI,,false,true,false,openstreetmap
+Field F-2,soccer,pitch,42.4376649,-83.5502573,,,MI,,false,true,false,openstreetmap
+Field P1,soccer,pitch,44.6989866,-85.6162717,,,MI,,false,true,false,openstreetmap
+Field P2,soccer,pitch,44.698999,-85.6152618,,,MI,,false,true,false,openstreetmap
+Fraser Public Schools,soccer,pitch,42.5531314,-82.9478369,,,MI,,false,true,false,openstreetmap
+GMS JV feild,soccer,pitch,42.8724254,-85.7665952,,,MI,,false,true,false,openstreetmap
+Gerstacker Field,soccer,pitch,43.6317052,-84.2772482,,,MI,,false,true,false,openstreetmap
+Harper Creek Soccer Field,soccer,pitch,42.2583317,-85.155017,,,MI,,false,true,false,openstreetmap
+Harvey Elementary School,soccer,pitch,42.600421,-83.0021637,,,MI,,false,true,false,openstreetmap
+Henderson Field,soccer,pitch,42.7541168,-84.6414072,,,MI,,false,true,false,openstreetmap
+Heritage Junior High School,soccer,pitch,42.5672694,-83.0062144,,,MI,,false,true,false,openstreetmap
+Hope Soccer Stadium,soccer,pitch,42.6712793,-84.5209121,,,MI,,false,true,false,openstreetmap
+Hudsonville Public Schools Soccer Field,soccer,pitch,42.9106922,-85.8735336,,,MI,,false,true,false,openstreetmap
+Jeff Raben Soccer Field,soccer,pitch,42.5983826,-83.4334205,,,MI,,false,true,false,openstreetmap
+John K. Kessey Fieldhouse,soccer,sports_centre,42.2937774,-83.1820831,,,MI,,false,true,false,openstreetmap
+Kalamazoo Community Soccer,soccer,pitch,42.282801,-85.6414592,,,MI,,false,true,false,openstreetmap
+Lacrosse & Soccer Field,soccer,pitch,42.5968369,-83.3507458,,,MI,,false,true,false,openstreetmap
+Lake Ann Camp,soccer,pitch,44.7296159,-85.8728579,,,MI,,false,true,false,openstreetmap
+Leelenau School Track and Soccer Field,soccer,pitch,44.9104786,-85.9686279,,,MI,,false,true,false,openstreetmap
+Mackenzie Field,soccer,pitch,42.2862435,-85.6090578,,,MI,,false,true,false,openstreetmap
+Manford Park Soccer Fields,soccer,pitch,43.0241312,-83.5061182,,,MI,,false,true,false,openstreetmap
+Mehney Field,soccer,pitch,42.9476007,-85.609258,,,MI,,false,true,false,openstreetmap
+Middleville AYSO Soccer Fields,soccer,pitch,42.7058211,-85.4922841,,,MI,,false,true,false,openstreetmap
+Mighty Mite 1,soccer,pitch,42.3060305,-85.1140889,,,MI,,false,true,false,openstreetmap
+Mighty Mite 2,soccer,pitch,42.3058186,-85.1140813,,,MI,,false,true,false,openstreetmap
+Mount Pleasant High School Boys and Girls Pitch,soccer,pitch,43.5892966,-84.7518094,,,MI,,false,true,false,openstreetmap
+Mount Pleasant High School Boys and Girls Pitch,soccer,pitch,43.5892991,-84.7507902,,,MI,,false,true,false,openstreetmap
+North,soccer,pitch,42.307072,-85.1134821,,,MI,,false,true,false,openstreetmap
+Northville HS Soccer Field,soccer,pitch,42.4106613,-83.497922,,,MI,,false,true,false,openstreetmap
+Oakland Soccer Field,soccer,pitch,42.6729339,-83.2090321,,,MI,,false,true,false,openstreetmap
+Older Soccer Fields,soccer,pitch,43.1784875,-83.7115319,,,MI,,false,true,false,openstreetmap
+Olympic North,soccer,pitch,42.3052194,-85.1155043,,,MI,,false,true,false,openstreetmap
+Olympic South,soccer,pitch,42.3047138,-85.1154687,,,MI,,false,true,false,openstreetmap
+Ottawa Stadium,soccer,pitch,45.4318393,-84.9738746,,,MI,,false,true,false,openstreetmap
+Paul & Lynn Rosenbrook Soccer Field,soccer,pitch,41.95988,-83.3675794,,,MI,,false,true,false,openstreetmap
+Portage Central High School,soccer,pitch,42.1969948,-85.5932435,,,MI,,false,true,false,openstreetmap
+Portage Northern High School Soccer Field,soccer,stadium,42.2356677,-85.5969754,,,MI,,false,true,false,openstreetmap
+Practice Soccer Field,soccer,pitch,42.2581495,-85.1535801,,,MI,,false,true,false,openstreetmap
+Presque Isle Soccer Association,soccer,pitch,45.4142746,-83.825742,,,MI,,false,true,false,openstreetmap
+Presque Isle Soccer Association,soccer,pitch,45.4146882,-83.8261253,,,MI,,false,true,false,openstreetmap
+Presque Isle Soccer Association,soccer,pitch,45.415093,-83.8264874,,,MI,,false,true,false,openstreetmap
+School soccer field,soccer,pitch,42.4954569,-83.2397024,,,MI,,false,true,false,openstreetmap
+Scicluna Field,soccer,pitch,42.2589896,-83.6480773,,,MI,,false,true,false,openstreetmap
+Scotland Yard,soccer,pitch,43.3883626,-84.6795293,,,MI,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,44.7340428,-83.9417054,,,MI,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,44.7364721,-83.9487885,,,MI,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,42.2147559,-85.5362224,,,MI,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,42.5284513,-82.9774386,,,MI,,false,true,false,openstreetmap
+"Soccer Field ""A""",soccer,pitch,42.348399,-83.2801721,,,MI,,false,true,false,openstreetmap
+"Soccer Field ""C""",soccer,pitch,42.3462121,-83.2907094,,,MI,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,43.0091302,-85.7734898,,,MI,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,43.0108355,-85.7734416,,,MI,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,42.5598599,-83.8295414,,,MI,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,42.5583149,-83.8294659,,,MI,,false,true,false,openstreetmap
+Soccer Field A,soccer,pitch,42.5374894,-83.3954532,,,MI,,false,true,false,openstreetmap
+Soccer Field B,soccer,pitch,42.5384369,-83.3963033,,,MI,,false,true,false,openstreetmap
+Soccer Field C,soccer,pitch,42.5383868,-83.3955084,,,MI,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,42.7854513,-83.7299992,,,MI,,false,true,false,openstreetmap
+Soccer Zone,soccer,sports_centre,42.6861897,-84.5292204,4900 Contec Drive,,MI,,false,true,false,openstreetmap
+SoccerZone,soccer,sports_centre,42.2463985,-85.6724891,,,MI,,false,true,false,openstreetmap
+Soisson Field,soccer,pitch,42.2916058,-85.5653812,,,MI,,false,true,false,openstreetmap
+Stockbridge High School Soccer Field,soccer,pitch,42.4593849,-84.18091,,,MI,,false,true,false,openstreetmap
+TDM Soccer Field A East,soccer,pitch,42.3844284,-83.4855706,,,MI,,false,true,false,openstreetmap
+TDM Soccer Field A West,soccer,pitch,42.3844175,-83.4861787,,,MI,,false,true,false,openstreetmap
+TDM Soccer Field B,soccer,pitch,42.3843691,-83.4874436,,,MI,,false,true,false,openstreetmap
+The Soccer Field,soccer,pitch,41.9379384,-85.7474739,,,MI,,false,true,false,openstreetmap
+Thornton Creek Soccer Field,soccer,pitch,42.4520201,-83.5035707,,,MI,,false,true,false,openstreetmap
+Total Soccer Fraser,soccer,sports_centre,42.5475911,-82.9556554,,,MI,,false,true,false,openstreetmap
+Total Soccer Fraser,soccer,pitch,42.547925,-82.9554301,,,MI,,false,true,false,openstreetmap
+Towsley Field,soccer,pitch,42.284155,-83.6777203,,,MI,,false,true,false,openstreetmap
+Ultimate Soccer,soccer,pitch,42.6210249,-83.2541723,,,MI,,true,false,false,openstreetmap
+Unionville-Sebewaing Area High School Soccer Field,soccer,pitch,43.6909099,-83.462884,,,MI,,false,true,false,openstreetmap
+Unionville-Sebewaing Area Soccer Pratice Field,soccer,pitch,43.6908804,-83.4639451,,,MI,,false,true,false,openstreetmap
+University of Michigan Soccer Complex,soccer,pitch,42.2527613,-83.7467876,,,MI,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,42.3445809,-83.4896854,,,MI,,false,true,false,openstreetmap
+West,soccer,pitch,42.3069657,-85.1154715,,,MI,,false,true,false,openstreetmap
+Will Carleton Middle School,soccer,pitch,42.5484838,-83.0211983,,,MI,,false,true,false,openstreetmap
+Younger Soccer Fields,soccer,pitch,43.1797406,-83.7130259,,,MI,,false,true,false,openstreetmap
+High Velocity Sports,soccer,pitch,42.2685626,-83.4948334,46245 Michigan Avenue,Canton,MI,48188,false,true,false,openstreetmap
+Detroit City Fieldhouse,soccer,sports_centre,42.3466386,-83.0141565,3401 East Lafayette Street,Detroit,MI,48207,false,true,false,openstreetmap
+Spartan Greens,soccer,sports_centre,42.720033,-84.4663811,Service Road,East Lansing,MI,48824,false,true,false,openstreetmap
+Kickstart Toddler Soccer,soccer,pitch,42.5478932,-82.9558892,34300 Utica Road,Fraser,MI,48026,false,true,false,openstreetmap
+Las Canchas,soccer,pitch,42.9682257,-85.6823576,250 Seward Avenue Northwest,Grand Rapids,MI,49504,false,true,false,openstreetmap
+Midwest United Football Club Soccer Complex,soccer,sports_centre,42.8967707,-85.5811645,3450 36th Street Southeast,Grand Rapids,MI,,false,true,false,openstreetmap
+Portage Soccer Complex,soccer,sports_centre,42.2120368,-85.5379711,Bishop Avenue,Portage,MI,49002,false,true,false,openstreetmap
+Athletic Dome,soccer,sports_centre,42.6746995,-83.2086688,887 Pioneer Drive,Rochester,MI,48309-4482,false,true,false,openstreetmap

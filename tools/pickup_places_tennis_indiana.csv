@@ -1,0 +1,44 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Adams Central Tennis Courts,tennis,pitch,40.7484593,-84.944316,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7484592,-84.9441002,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7481335,-84.9440996,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7481315,-84.9443155,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7477265,-84.9441175,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7477227,-84.9442949,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7473984,-84.9441214,,,IN,,false,true,false,openstreetmap
+Adams Central Tennis Courts,tennis,pitch,40.7473979,-84.9443001,,,IN,,false,true,false,openstreetmap
+Camp Tecumseh,tennis,pitch,40.6020032,-86.7595164,,,IN,,false,true,false,openstreetmap
+Camp Tecumseh,tennis,pitch,40.6020012,-86.7593447,,,IN,,false,true,false,openstreetmap
+Camp Tecumseh,tennis,pitch,40.6019981,-86.7591744,,,IN,,false,true,false,openstreetmap
+Canterbury School Tennis Courts,tennis,pitch,41.0547318,-85.2121517,,,IN,,false,true,false,openstreetmap
+Canterbury School Tennis Courts,tennis,pitch,41.0547325,-85.211958,,,IN,,false,true,false,openstreetmap
+Canterbury School Tennis Courts,tennis,pitch,41.054733,-85.2117644,,,IN,,false,true,false,openstreetmap
+Canterbury School Tennis Courts,tennis,pitch,41.0547337,-85.2115706,,,IN,,false,true,false,openstreetmap
+Canterbury School Tennis Courts,tennis,pitch,41.0547342,-85.211377,,,IN,,false,true,false,openstreetmap
+Carmel High School Tennis COurts,tennis,sports_centre,39.9881201,-86.1180959,,,IN,,false,true,false,openstreetmap
+Collett Tennis Center,tennis,sports_centre,40.0368907,-86.9100399,,,IN,,false,true,false,openstreetmap
+Evansville Tennis Center,tennis,sports_centre,38.0125811,-87.4848443,,,IN,,false,true,false,openstreetmap
+Gable Tennis Complex,tennis,pitch,41.2285245,-86.3999258,,,IN,,false,true,false,openstreetmap
+Lakes of Carmel,tennis,pitch,39.9705866,-86.1458463,,,IN,,false,true,false,openstreetmap
+Lakes of Carmel,tennis,pitch,39.9705904,-86.1456532,,,IN,,false,true,false,openstreetmap
+Matter Park Tennis Courts,tennis,pitch,40.5887005,-85.6679735,,,IN,,false,true,false,openstreetmap
+Pulaski Tennis Court,tennis,pitch,41.6454196,-87.519672,,,IN,,false,true,false,openstreetmap
+Pulaski Tennis Court,tennis,pitch,41.645793,-87.5196665,,,IN,,false,true,false,openstreetmap
+Recreation Center Tennis Court,tennis,pitch,40.6701112,-86.1527957,,,IN,,false,true,false,openstreetmap
+Sullivan City Tennis Courts,tennis,pitch,39.0870491,-87.4052619,,,IN,,false,true,false,openstreetmap
+Tennis,tennis,pitch,38.1270307,-87.9303594,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388088,-85.2837943,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388069,-85.2836079,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388068,-85.2834247,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388039,-85.2830849,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388054,-85.2829026,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0388041,-85.2827229,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0384565,-85.2837919,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.038455,-85.2836083,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0384547,-85.2834258,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0384526,-85.2830863,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0384522,-85.2829031,,,IN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.0384518,-85.2827251,,,IN,,false,true,false,openstreetmap
+West Vigo Middle School Tennis Courts,tennis,stadium,39.4611759,-87.4914934,,,IN,,false,true,false,openstreetmap
+Zeddies Tennis Center,tennis,pitch,38.7179304,-85.4657881,,,IN,,false,true,false,openstreetmap
+Indianapolis Racquet Club,tennis,sports_centre,39.9065313,-86.0976422,8249 Dean Road,Indianapolis,IN,46240,false,true,false,openstreetmap

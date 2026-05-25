@@ -1,0 +1,39 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+32,football,pitch,30.4847892,-90.4044905,,,LA,,false,true,false,openstreetmap
+33,football,pitch,30.4848183,-90.4037819,,,LA,,false,true,false,openstreetmap
+A.W. Mumford Stadium,football,stadium,30.5220589,-91.1895605,,,LA,,false,true,false,openstreetmap
+Acadiana Renaaissance Charter Academy,football,pitch,30.0885835,-92.0015634,,,LA,,false,true,false,openstreetmap
+BREC Memorial Stadium,football,stadium,30.4587987,-91.1720736,,,LA,,false,true,false,openstreetmap
+Behrman Stadium,football,pitch,29.9391086,-90.0303042,,,LA,,false,true,false,openstreetmap
+Bobby Marlow Field,football,pitch,32.4743915,-93.6710168,,,LA,,false,true,false,openstreetmap
+Brusly High Football field,football,pitch,30.3917307,-91.2354822,,,LA,,false,true,false,openstreetmap
+Cajun Field,football,stadium,30.2158658,-92.0417288,,,LA,,false,true,false,openstreetmap
+Capitol Stadium,football,sports_centre,30.4593141,-91.1629177,,,LA,,false,true,false,openstreetmap
+Chip Luffey Field,football,pitch,32.5336356,-92.084524,,,LA,,false,true,false,openstreetmap
+Football 1,football,pitch,30.4633673,-90.4086516,,,LA,,false,true,false,openstreetmap
+Football 2,football,pitch,30.4633236,-90.407864,,,LA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,30.4109064,-91.1894415,,,LA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,30.4096471,-91.1901307,,,LA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,30.4109188,-91.1900929,,,LA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,30.4097236,-91.1894763,,,LA,,false,true,false,openstreetmap
+GlenBrook School,football,pitch,32.6414087,-93.2933459,,,LA,,false,true,false,openstreetmap
+"Harry ""Rags"" Turpin Stadium",football,sports_centre,31.7475921,-93.0962131,450 Caspari Street,,LA,,false,true,false,openstreetmap
+Jessie Fletcher Memorial Staduim,football,stadium,30.5013305,-90.586447,,,LA,,false,true,false,openstreetmap
+Joe Aillet Stadium,football,stadium,32.5320355,-92.6558828,,,LA,,false,true,false,openstreetmap
+Little league Football Field,football,pitch,30.0228958,-92.4961109,,,LA,,false,true,false,openstreetmap
+Live Oak High School Football Stadium,football,stadium,30.5926654,-90.9529081,,,LA,,false,true,false,openstreetmap
+MD Ray Field,football,pitch,32.5532459,-93.7154841,,,LA,,false,true,false,openstreetmap
+Malone Stadium,football,stadium,32.5308674,-92.0660401,,,LA,,false,true,false,openstreetmap
+Marston Stadium,football,pitch,32.1637938,-93.4279424,,,LA,,false,true,false,openstreetmap
+Northlake Christian Football Field,football,pitch,30.446232,-90.0890344,,,LA,,false,true,false,openstreetmap
+Practice Field,football,pitch,29.9876586,-91.8308188,,,LA,,false,true,false,openstreetmap
+Salmen High School Footbal Field,football,pitch,30.2465501,-89.7874071,,,LA,,false,true,false,openstreetmap
+South Plaquemines Hurricanes,football,pitch,29.3676956,-89.570509,,,LA,,false,true,false,openstreetmap
+Strawberry Stadium,football,stadium,30.510934,-90.4685785,,,LA,,false,true,false,openstreetmap
+Terrebonne High football Field,football,pitch,29.5985461,-90.738443,,,LA,,false,true,false,openstreetmap
+Tiger Stadium,football,stadium,30.4119927,-91.1837474,,,LA,,false,true,false,openstreetmap
+Victory Field,football,pitch,30.0292036,-89.9648409,,,LA,,false,true,false,openstreetmap
+Victory Field,football,stadium,30.0292743,-89.9648725,,,LA,,false,true,false,openstreetmap
+Zachary High School Football Stadium,football,stadium,30.6548843,-91.1610606,,,LA,,false,true,false,openstreetmap
+Joe Zimmerman Stadium,football,stadium,29.889897,-90.1029094,1000 Barataria Boulevard,Marrero,LA,70072,false,true,false,openstreetmap
+Independence Stadium,football,stadium,32.4754077,-93.7919871,3301 Pershing Boulevard,Shreveport,LA,71107,false,true,false,openstreetmap

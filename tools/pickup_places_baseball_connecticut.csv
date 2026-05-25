@@ -1,0 +1,103 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ag Field,baseball,pitch,41.8121941,-72.2470772,,,CT,,false,true,false,openstreetmap
+Amrhyn Field,baseball,pitch,41.3306036,-72.9594638,,,CT,,false,true,false,openstreetmap
+Balf-Savin Baseball Field,baseball,pitch,41.696505,-72.7596803,,,CT,,false,true,false,openstreetmap
+Ball Diamond #1,baseball,pitch,41.3138872,-73.2362724,,,CT,,false,true,false,openstreetmap
+Ball Diamond #2,baseball,pitch,41.3133369,-73.235582,,,CT,,false,true,false,openstreetmap
+Ball Diamond #3,baseball,pitch,41.3126431,-73.2366631,,,CT,,false,true,false,openstreetmap
+Ball Diamond #4,baseball,pitch,41.3164055,-73.2380633,,,CT,,false,true,false,openstreetmap
+Ball Diamond #5,baseball,pitch,41.3138814,-73.2456793,,,CT,,false,true,false,openstreetmap
+Ball Diamond #6,baseball,pitch,41.3138426,-73.2471597,,,CT,,false,true,false,openstreetmap
+Ball Diamond #7,baseball,pitch,41.3146984,-73.2475745,,,CT,,false,true,false,openstreetmap
+Barrett Field,baseball,pitch,41.0755413,-73.5319649,,,CT,,false,true,false,openstreetmap
+Barry Cleary Baseball Field,baseball,pitch,41.9851619,-72.6553741,,,CT,,false,true,false,openstreetmap
+Beehive Stadium,baseball,stadium,41.6481465,-72.7770159,,,CT,,false,true,false,openstreetmap
+Belltown Park,baseball,pitch,41.0758368,-73.5314387,,,CT,,false,true,false,openstreetmap
+Bill Kozma Field,baseball,pitch,41.0946863,-73.3981144,,,CT,,false,true,false,openstreetmap
+Bobby Darling Field at Cubeta Stadium,baseball,pitch,41.0617766,-73.5492537,,,CT,,false,true,false,openstreetmap
+Branchville Civic Field,baseball,pitch,41.267026,-73.4444853,,,CT,,false,true,false,openstreetmap
+Brinley Field,baseball,pitch,41.262698,-73.0089706,,,CT,,false,true,false,openstreetmap
+Bucci Diamond,baseball,pitch,41.1923591,-73.4987186,,,CT,,false,true,false,openstreetmap
+Ciuccoli Field,baseball,pitch,41.2819601,-73.4918288,,,CT,,false,true,false,openstreetmap
+Cubeta Stadium,baseball,stadium,41.0617803,-73.5492766,,,CT,,false,true,false,openstreetmap
+DeWitt Family Field,baseball,pitch,41.3126518,-72.9685343,,,CT,,false,true,false,openstreetmap
+Dex J. Smenyak Field of Dreams,baseball,pitch,41.4406745,-73.4001561,,,CT,,false,true,false,openstreetmap
+Dr. Barry Goldberg Memorial Field,baseball,pitch,41.2626157,-73.0104763,,,CT,,false,true,false,openstreetmap
+Dresser Diamond,baseball,pitch,41.5553916,-72.6575408,,,CT,,false,true,false,openstreetmap
+Eastman Field,baseball,pitch,41.2839962,-72.4493528,,,CT,,false,true,false,openstreetmap
+Ferrari - Fahrbach Baseball Field,baseball,pitch,41.954415,-72.724738,,,CT,,false,true,false,openstreetmap
+Field #6,baseball,pitch,41.9848149,-72.6445944,,,CT,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.3546209,-72.9031805,,,CT,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.3541263,-72.9042651,,,CT,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.3554562,-72.9044052,,,CT,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.3548028,-72.9045355,,,CT,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.3543161,-72.9050161,,,CT,,false,true,false,openstreetmap
+Field C1,baseball,pitch,41.3107655,-72.9652648,,,CT,,false,true,false,openstreetmap
+Field C2,baseball,pitch,41.3108395,-72.9666495,,,CT,,false,true,false,openstreetmap
+Field C3,baseball,pitch,41.3095823,-72.965981,,,CT,,false,true,false,openstreetmap
+Fiondella Field,baseball,pitch,41.8046519,-72.7149031,,,CT,,false,true,false,openstreetmap
+Fitzgerald Field,baseball,pitch,41.3419699,-73.5098451,,,CT,,false,true,false,openstreetmap
+Flanagan Field,baseball,pitch,41.6703773,-72.6534259,,,CT,,false,true,false,openstreetmap
+Foote Field,baseball,pitch,41.2533975,-73.0518045,,,CT,,false,true,false,openstreetmap
+Founder's Field,baseball,pitch,41.8294704,-72.9748467,,,CT,,false,true,false,openstreetmap
+Gene Caporizzo Field,baseball,pitch,41.1001113,-73.5393774,,,CT,,false,true,false,openstreetmap
+Hartford Public Schools,baseball,pitch,41.7935406,-72.7083645,,,CT,,false,true,false,openstreetmap
+Hartford Public Schools,baseball,pitch,41.7942341,-72.7085364,,,CT,,false,true,false,openstreetmap
+Henry Roche Memorial Field,baseball,pitch,41.2619172,-73.009935,,,CT,,false,true,false,openstreetmap
+Herbert Grove Memorial Baseball Field,baseball,pitch,41.2966697,-72.5762447,,,CT,,false,true,false,openstreetmap
+Holahan Field,baseball,pitch,41.0675073,-73.4841999,,,CT,,false,true,false,openstreetmap
+J. Orlean Christian,baseball,pitch,41.8008832,-72.2531138,,,CT,,false,true,false,openstreetmap
+JCC Softball Field,baseball,pitch,41.0953803,-73.5295567,,,CT,,false,true,false,openstreetmap
+Jack F. Rogers Baseball Field,baseball,pitch,41.1532333,-73.3552341,,,CT,,false,true,false,openstreetmap
+James F. White Memorial Field,baseball,pitch,41.1548189,-73.355496,,,CT,,false,true,false,openstreetmap
+Joe Freebairn Field,baseball,pitch,41.3857885,-73.4028036,,,CT,,false,true,false,openstreetmap
+John Agogliati Field,baseball,pitch,41.6006688,-72.5986295,,,CT,,false,true,false,openstreetmap
+Kingswood Oxford Baseball Field,baseball,pitch,41.759043,-72.7340012,,,CT,,false,true,false,openstreetmap
+Kingswood Softball Field,baseball,pitch,41.7593898,-72.7331186,,,CT,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,41.1243857,-73.2615548,,,CT,,false,true,false,openstreetmap
+Kowalsky Field,baseball,pitch,41.1541634,-73.3559497,,,CT,,false,true,false,openstreetmap
+Kuzminski FIeld,baseball,pitch,41.5995742,-72.5985708,,,CT,,false,true,false,openstreetmap
+Larry Degennaro Field,baseball,pitch,41.2643473,-73.0103548,,,CT,,false,true,false,openstreetmap
+Linda M. and Thomas R. DiBenedetto Stadium,baseball,pitch,41.7482067,-72.6880666,,,CT,,false,true,false,openstreetmap
+Lions' Field,baseball,pitch,41.8661209,-72.3689241,,,CT,,false,true,false,openstreetmap
+Lou Gehrig,baseball,pitch,41.2106837,-73.0715448,,,CT,,false,true,false,openstreetmap
+MacMurray Ball Field,baseball,pitch,41.2893072,-72.3744415,,,CT,,false,true,false,openstreetmap
+Mel Zeidenberg Field,baseball,pitch,41.3306887,-72.9604826,,,CT,,false,true,false,openstreetmap
+Memorial Park Field 1,baseball,pitch,41.8803587,-72.8067176,,,CT,,false,true,false,openstreetmap
+Memorial Park Field 2,baseball,pitch,41.8803082,-72.807639,,,CT,,false,true,false,openstreetmap
+Mercer Field,baseball,sports_centre,41.3428348,-72.1125356,,,CT,,false,true,false,openstreetmap
+New Britain Stadium,baseball,stadium,41.6484274,-72.7751672,,,CT,,false,true,false,openstreetmap
+Norfeldt Little League Field,baseball,pitch,41.7558979,-72.7364611,,,CT,,false,true,false,openstreetmap
+Paderewski Park Little League Field,baseball,pitch,41.6813759,-72.8485058,,,CT,,false,true,false,openstreetmap
+Peter Foley Little League Field,baseball,pitch,41.4870643,-73.0644338,,,CT,,false,true,false,openstreetmap
+Pomfret School,baseball,pitch,41.8867677,-71.9660336,,,CT,,false,true,false,openstreetmap
+Quinipiac University,baseball,pitch,41.4203888,-72.891248,,,CT,,false,true,false,openstreetmap
+RHAM High School Baseball Field,baseball,pitch,41.6613775,-72.3646789,,,CT,,false,true,false,openstreetmap
+Ralph Clarkson,baseball,pitch,41.2224737,-73.0523261,,,CT,,false,true,false,openstreetmap
+Ray Palmieri Field,baseball,pitch,41.283966,-72.4500278,,,CT,,false,true,false,openstreetmap
+Raymond J. Crowe Field,baseball,pitch,41.3814245,-73.4035815,,,CT,,false,true,false,openstreetmap
+Richard Palkewicz Memorial Field,baseball,pitch,41.8289047,-72.9742162,,,CT,,false,true,false,openstreetmap
+Sachem Field,baseball,pitch,41.3762974,-72.8588722,,,CT,,false,true,false,openstreetmap
+Scalzo Field,baseball,pitch,41.2798276,-73.489277,,,CT,,false,true,false,openstreetmap
+Scofield Baseball,baseball,pitch,41.1393824,-73.5567705,,,CT,,false,true,false,openstreetmap
+Serfilippi Field,baseball,pitch,41.3418813,-73.5109315,,,CT,,false,true,false,openstreetmap
+Shawn Murray,baseball,pitch,41.2223488,-73.0529002,,,CT,,false,true,false,openstreetmap
+Stankye Field,baseball,pitch,41.2634679,-73.0101167,,,CT,,false,true,false,openstreetmap
+Ted Lane Field,baseball,pitch,41.2846009,-72.4496493,,,CT,,false,true,false,openstreetmap
+The Pit,baseball,pitch,41.0626244,-73.5453868,,,CT,,false,true,false,openstreetmap
+Town Hall Ball Park,baseball,park,41.9278129,-72.6303223,,,CT,,false,true,false,openstreetmap
+Vieira Field,baseball,pitch,41.296234,-72.9660691,,,CT,,false,true,false,openstreetmap
+Walnut Tree Field,baseball,pitch,41.4401184,-73.2683796,,,CT,,false,true,false,openstreetmap
+Waterford Little League Field North,baseball,pitch,41.4021935,-72.1156715,,,CT,,false,true,false,openstreetmap
+Woodstock Little League Field,baseball,sports_centre,41.9486513,-71.9565755,,,CT,,false,true,false,openstreetmap
+Muzzy Field Park,baseball,pitch,41.6734481,-72.9599186,15 Muzzy Street,Bristol,CT,06010,false,true,false,openstreetmap
+The Clubhouse,baseball,sports_centre,41.1815283,-73.2544294,Black Rock Turnpike,Fairfield,CT,,false,true,false,openstreetmap
+Town of Hampton,baseball,pitch,41.7789079,-72.0544953,164 Main Street,Hampton,CT,06247,false,true,false,openstreetmap
+Dunkin' Park,baseball,pitch,41.7715083,-72.6738606,1214 Main Street,Hartford,CT,06103,false,true,false,openstreetmap
+Dunkin' Park,baseball,stadium,41.7714878,-72.6740552,1214 Main Street,Hartford,CT,06103,false,true,false,openstreetmap
+Manchester Public Schools,baseball,pitch,41.7561412,-72.5405842,Keeney Street,Manchester,CT,06040,false,true,false,openstreetmap
+Yale Field,baseball,stadium,41.3092793,-72.959256,250 Derby Avenue,New Haven,CT,06511,false,true,false,openstreetmap
+Senator Thomas J. Dodd Memorial Stadium,baseball,stadium,41.5745077,-72.1061336,14 Stott Avenue,Norwich,CT,06360,false,true,false,openstreetmap
+Pomfret Little League Field,baseball,park,41.8754276,-71.980117,65 Hampton Road,Pomfret,CT,06259,false,true,false,openstreetmap
+Larry Miller Field,baseball,pitch,41.1026117,-73.5449208,Kane Avenue,Stamford,CT,06905,false,true,false,openstreetmap
+Vernon Community Field,baseball,pitch,41.8298409,-72.4862398,375 Hartford Turnpike,Vernon,CT,06066,false,true,false,openstreetmap

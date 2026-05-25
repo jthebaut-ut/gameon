@@ -1,0 +1,78 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Abeles Field,football,pitch,39.3015047,-94.9081661,,,KS,,false,true,false,openstreetmap
+Al Simpler Stadium,football,pitch,39.0329863,-96.8505109,,,KS,,false,true,false,openstreetmap
+Andover District Stadium,football,stadium,37.7167359,-97.1368459,,,KS,,false,true,false,openstreetmap
+Barry Sanders Field,football,pitch,37.7090288,-97.3247084,,,KS,,false,true,false,openstreetmap
+Bennett Field,football,pitch,38.8891701,-95.229557,,,KS,,false,true,false,openstreetmap
+Bluejay Field,football,stadium,37.8110224,-100.3440093,,,KS,,false,true,false,openstreetmap
+Bowen-Glaze Stadium,football,stadium,38.9593325,-95.7567402,,,KS,,false,true,false,openstreetmap
+Brandenburg Field,football,pitch,37.3910092,-94.6997659,,,KS,,false,true,false,openstreetmap
+Buhler High School Sport Field,football,pitch,38.1410585,-97.7723881,,,KS,,false,true,false,openstreetmap
+Carnie Smith Stadium,football,stadium,37.3910102,-94.6997541,,,KS,,false,true,false,openstreetmap
+Cheney High School Football Field,football,pitch,37.6351566,-97.7836691,,,KS,,false,true,false,openstreetmap
+Chuck Lower Field,football,pitch,39.0600172,-95.7128517,,,KS,,false,true,false,openstreetmap
+Coach Lou Coppoc Field,football,pitch,38.47677,-95.4641678,,,KS,,false,true,false,openstreetmap
+ESU Football Field,football,pitch,38.4172712,-96.1795944,,,KS,,false,true,false,openstreetmap
+Elton Brown Stadium,football,pitch,38.5210455,-98.7763635,,,KS,,false,true,false,openstreetmap
+Eudora District Stadium,football,stadium,38.9234216,-95.0972462,,,KS,,false,true,false,openstreetmap
+Field 1,football,pitch,38.8325319,-94.7464001,,,KS,,false,true,false,openstreetmap
+Field 10,football,pitch,38.8336906,-94.7451942,,,KS,,false,true,false,openstreetmap
+Field 2,football,pitch,38.832072,-94.7456103,,,KS,,false,true,false,openstreetmap
+Field 2A,football,pitch,38.8317545,-94.7449841,,,KS,,false,true,false,openstreetmap
+Field 3,football,pitch,38.8318521,-94.7441601,,,KS,,false,true,false,openstreetmap
+Field 4,football,pitch,38.8315516,-94.743197,,,KS,,false,true,false,openstreetmap
+Field 5,football,pitch,38.833113,-94.7441647,,,KS,,false,true,false,openstreetmap
+Field 6,football,pitch,38.8343795,-94.743899,,,KS,,false,true,false,openstreetmap
+Field 7,football,pitch,38.8353331,-94.743263,,,KS,,false,true,false,openstreetmap
+Field 8,football,pitch,38.8353471,-94.744183,,,KS,,false,true,false,openstreetmap
+Field 9,football,pitch,38.8363248,-94.7435821,,,KS,,false,true,false,openstreetmap
+Football Field 1,football,pitch,38.8843613,-99.3628272,,,KS,,false,true,false,openstreetmap
+Football Field 2,football,pitch,38.8843505,-99.3616423,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,37.3418039,-95.2780106,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,37.3324776,-95.2805969,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,39.179201,-96.5943678,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,38.3450675,-97.2010273,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,38.3743403,-97.6415965,,,KS,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,37.2612434,-95.5470852,,,KS,,false,true,false,openstreetmap
+Fowler Football Field,football,pitch,37.386264,-100.1974728,,,KS,,false,true,false,openstreetmap
+Hutchinson Field,football,stadium,37.4189392,-94.7029527,,,KS,,false,true,false,openstreetmap
+John Saunders Field,football,pitch,38.9574683,-95.2336057,,,KS,,false,true,false,openstreetmap
+KU Football Indoor Practice Facility,football,sports_centre,38.962933,-95.2483689,,,KS,,false,true,false,openstreetmap
+Kivisto Field,football,pitch,38.963006,-95.2463604,,,KS,,false,true,false,openstreetmap
+Laha Practice Field,football,pitch,38.813249,-97.6053318,,,KS,,false,true,false,openstreetmap
+Lakin High School Field,football,pitch,37.9402625,-101.2666871,,,KS,,false,true,false,openstreetmap
+Larned High School,football,pitch,38.182694,-99.1119453,,,KS,,false,true,false,openstreetmap
+Lincoln Football Field,football,pitch,39.0471831,-98.1413333,,,KS,,false,true,false,openstreetmap
+Marvel Park Football Field,football,pitch,37.3377663,-95.2465955,,,KS,,false,true,false,openstreetmap
+Miege Field,football,pitch,39.1938601,-96.0592869,,,KS,,false,true,false,openstreetmap
+O'Malley Field,football,pitch,39.5769838,-95.1126983,,,KS,,false,true,false,openstreetmap
+Oakley High School Stadium,football,pitch,39.1316901,-100.8560315,,,KS,,false,true,false,openstreetmap
+Olathe Northwest High School's Practice Field,football,pitch,38.9297802,-94.8293672,,,KS,,false,true,false,openstreetmap
+Olpe High School Football Stadium,football,pitch,38.264956,-96.1689622,,,KS,,false,true,false,openstreetmap
+Outdoor Practice Field,football,pitch,39.2019843,-96.5909977,,,KS,,false,true,false,openstreetmap
+Oxford HS Football Field,football,pitch,37.2806161,-97.1644749,,,KS,,false,true,false,openstreetmap
+Paul D. Hubbard Field,football,pitch,38.8814636,-94.8133735,,,KS,,false,true,false,openstreetmap
+Perkins Football Field,football,pitch,38.8642344,-97.6097932,,,KS,,false,true,false,openstreetmap
+Pioneer Stadium,football,pitch,38.8701877,-94.7804016,,,KS,,false,true,false,openstreetmap
+Practice Fields,football,pitch,39.0453925,-98.1410539,,,KS,,false,true,false,openstreetmap
+RCHS football field,football,pitch,39.8177419,-97.6247377,,,KS,,false,true,false,openstreetmap
+Ralph Wedd Field,football,pitch,38.9334189,-95.2388096,,,KS,,false,true,false,openstreetmap
+Rebel Field,football,pitch,37.5952586,-100.4486092,,,KS,,false,true,false,openstreetmap
+Reimer Field,football,pitch,38.3451857,-97.1986768,,,KS,,false,true,false,openstreetmap
+Riedel Family Field,football,pitch,38.9440899,-95.2648185,,,KS,,false,true,false,openstreetmap
+Seaman Vikings Stadium,football,pitch,39.1341823,-95.6692217,,,KS,,false,true,false,openstreetmap
+Shamrock Indoor Practice Facility,football,sports_centre,39.2019805,-96.5918623,,,KS,,false,true,false,openstreetmap
+Shamrock Practice Facility,football,sports_centre,39.2019661,-96.5914497,,,KS,,false,true,false,openstreetmap
+Travis Field,football,pitch,39.8251265,-99.8878158,,,KS,,false,true,false,openstreetmap
+Wagner Field,football,pitch,39.2020097,-96.5938582,,,KS,,false,true,false,openstreetmap
+Warhawk Field,football,pitch,38.9654929,-95.2702015,,,KS,,false,true,false,openstreetmap
+Weaver-Erwin Stadium,football,stadium,39.0600145,-95.7128174,,,KS,,false,true,false,openstreetmap
+Wetmore High School Football Field,football,pitch,39.6418132,-95.8094089,,,KS,,false,true,false,openstreetmap
+BG Products Veterans Stadium,football,stadium,37.8142794,-96.8794028,392-420 Southwest Haverhill Road,El Dorado,KS,67042,false,true,false,openstreetmap
+Lewis Field Stadium,football,stadium,38.866501,-99.3390434,94 Lewis Drive,Hays,KS,67601,false,true,false,openstreetmap
+David Booth Kansas Memorial Stadium,football,stadium,38.9628803,-95.2464968,1101 Mississippi Street,Lawrence,KS,66045,false,true,false,openstreetmap
+Haskell Stadium,football,stadium,38.9406532,-95.2305678,155 East Indian Avenue,Lawrence,KS,66046,false,true,false,openstreetmap
+Bill Snyder Family Stadium,football,stadium,39.2020249,-96.5938028,1800 College Avenue,Manhattan,KS,66502,false,true,false,openstreetmap
+Heritage Football Complex,football,sports_centre,38.8336516,-94.7450495,16240 Pflumm Road,Olathe,KS,66062,false,true,false,openstreetmap
+Smisor Stadium,football,stadium,38.2180799,-98.2089881,West Cleveland Avenue,Sterling,KS,67579,false,true,false,openstreetmap
+Wamego Sports Complex,football,sports_centre,39.2083494,-96.3267111,4290 Columbian Road,Wamego,KS,66547,false,true,false,openstreetmap

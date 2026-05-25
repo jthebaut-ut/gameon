@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Pickle Palace,pickleball,pitch,41.9762362,-91.6733008,100 1st Avenue West,Cedar Rapids,IA,52404,false,true,false,openstreetmap

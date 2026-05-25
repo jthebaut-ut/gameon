@@ -1,0 +1,45 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+"""Zehnder's Barn""",basketball,pitch,39.8726741,-105.1495581,,,CO,,false,true,false,openstreetmap
+"""Zehnder's Short Court""",basketball,pitch,39.8733671,-105.149275,,,CO,,false,true,false,openstreetmap
+Antonito outdoor Basketball court,basketball,pitch,37.0736938,-106.0084836,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.3708329,-104.8530456,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.6311521,-106.044844,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.6411866,-104.749693,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.3379069,-104.9534145,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.715304,-104.8502433,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.3697555,-104.8141543,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.3691199,-104.8456563,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.7490695,-104.8483782,,,CO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,39.7443524,-104.8340094,,,CO,,false,true,false,openstreetmap
+Basketball (2),basketball,pitch,39.7797252,-104.7502878,,,CO,,false,true,false,openstreetmap
+Basketball (3),basketball,pitch,39.7251425,-104.7986363,,,CO,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,37.352148,-108.5701963,,,CO,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,39.7810544,-104.7612311,,,CO,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,39.7716911,-104.9521866,,,CO,,false,true,false,openstreetmap
+Basketball Courts (4),basketball,pitch,39.7910925,-104.8067037,,,CO,,false,true,false,openstreetmap
+Bradford Park basketball court,basketball,pitch,38.2690083,-104.5888123,,,CO,,false,true,false,openstreetmap
+Bradford Park basketball court,basketball,pitch,38.2690131,-104.5886444,,,CO,,false,true,false,openstreetmap
+Bradford Park basketball court,basketball,pitch,38.2686783,-104.5887999,,,CO,,false,true,false,openstreetmap
+Bradford Park basketball court,basketball,pitch,38.2686814,-104.5886343,,,CO,,false,true,false,openstreetmap
+Community Center Basketball Court,basketball,pitch,39.7545751,-104.4428537,,,CO,,false,true,false,openstreetmap
+Competition/Practice Court,basketball,pitch,39.7447719,-105.0041498,,,CO,,false,true,false,openstreetmap
+Competition/Practice Court,basketball,pitch,39.7448534,-105.0039671,,,CO,,false,true,false,openstreetmap
+Competition/Practice Court,basketball,pitch,39.7449359,-105.0037841,,,CO,,false,true,false,openstreetmap
+Foothills Basketball Court,basketball,pitch,39.572968,-105.0885085,,,CO,,false,true,false,openstreetmap
+Foothills open space Basketball Court,basketball,pitch,39.5729733,-105.0887381,,,CO,,false,true,false,openstreetmap
+Founders Park,basketball,pitch,39.9544045,-105.1722908,,,CO,,false,true,false,openstreetmap
+Half Court,basketball,pitch,39.6810806,-104.7549687,,,CO,,false,true,false,openstreetmap
+Half Court Basketball,basketball,pitch,39.6274267,-105.1380138,,,CO,,false,true,false,openstreetmap
+Heritage Park,basketball,pitch,39.9666633,-105.1506414,,,CO,,false,true,false,openstreetmap
+Industrial Circle Basketball Court,basketball,pitch,40.1458139,-105.1356394,,,CO,,false,true,false,openstreetmap
+KQA Basketball Court,basketball,pitch,40.3242874,-104.8364663,,,CO,,false,true,false,openstreetmap
+Lisbon Park Basketball Court,basketball,pitch,39.7737709,-104.7455426,,,CO,,false,true,false,openstreetmap
+North Hill Park,basketball,pitch,39.9550268,-104.9199741,,,CO,,false,true,false,openstreetmap
+Paco Sanchez Basketball Court,basketball,pitch,39.736174,-105.0310597,,,CO,,false,true,false,openstreetmap
+Pioneer Basketball Court,basketball,pitch,39.8050551,-104.9147642,,,CO,,false,true,false,openstreetmap
+Riva Chase Basketball Court,basketball,pitch,39.699985,-105.2553482,,,CO,,false,true,false,openstreetmap
+Rosamond Park Basketbal Court,basketball,pitch,39.6416473,-104.8951474,,,CO,,false,true,false,openstreetmap
+Salvation Army Worthip Center Basketball Court,basketball,pitch,39.5945493,-104.9422256,,,CO,,false,true,false,openstreetmap
+Sports court,basketball,pitch,39.730702,-104.9934587,,,CO,,false,true,false,openstreetmap
+Willow Farm Park Basketball Court,basketball,pitch,40.1487604,-105.1414385,,,CO,,false,true,false,openstreetmap
+YMCA,basketball,sports_centre,40.012552,-105.1346623,,,CO,,false,true,false,openstreetmap

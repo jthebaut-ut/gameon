@@ -1,0 +1,131 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,34.2209977,-77.9025596,,,NC,,false,true,false,openstreetmap
+10,tennis,pitch,34.2208828,-77.9031801,,,NC,,false,true,false,openstreetmap
+11,tennis,pitch,34.2208871,-77.9033784,,,NC,,false,true,false,openstreetmap
+12,tennis,pitch,34.2208883,-77.9035822,,,NC,,false,true,false,openstreetmap
+13,tennis,pitch,34.2208937,-77.9037819,,,NC,,false,true,false,openstreetmap
+14,tennis,pitch,34.2217712,-77.9032475,,,NC,,false,true,false,openstreetmap
+15,tennis,pitch,34.2217726,-77.903044,,,NC,,false,true,false,openstreetmap
+16,tennis,pitch,34.2217672,-77.9028388,,,NC,,false,true,false,openstreetmap
+17,tennis,pitch,34.2217618,-77.9026385,,,NC,,false,true,false,openstreetmap
+18,tennis,pitch,34.2217645,-77.9024398,,,NC,,false,true,false,openstreetmap
+19,tennis,pitch,34.2221764,-77.9036889,,,NC,,false,true,false,openstreetmap
+2,tennis,pitch,34.2209944,-77.9024019,,,NC,,false,true,false,openstreetmap
+20,tennis,pitch,34.2221764,-77.9034941,,,NC,,false,true,false,openstreetmap
+21,tennis,pitch,34.2221721,-77.9032958,,,NC,,false,true,false,openstreetmap
+22,tennis,pitch,34.2221699,-77.9030966,,,NC,,false,true,false,openstreetmap
+23,tennis,pitch,34.2221677,-77.9029,,,NC,,false,true,false,openstreetmap
+3,tennis,pitch,34.2209944,-77.9022038,,,NC,,false,true,false,openstreetmap
+4,tennis,pitch,34.2209882,-77.9020538,,,NC,,false,true,false,openstreetmap
+5,tennis,pitch,34.2213171,-77.9025483,,,NC,,false,true,false,openstreetmap
+6,tennis,pitch,34.221314,-77.9023868,,,NC,,false,true,false,openstreetmap
+7,tennis,pitch,34.2213108,-77.9021926,,,NC,,false,true,false,openstreetmap
+8,tennis,pitch,34.2213092,-77.9020368,,,NC,,false,true,false,openstreetmap
+9,tennis,pitch,34.2208838,-77.9029763,,,NC,,false,true,false,openstreetmap
+Adams Farm Tennis Courts,tennis,pitch,36.0225101,-79.9051914,,,NC,,false,true,false,openstreetmap
+Ambler Tennis Stadium,tennis,sports_centre,35.9977706,-78.9401117,,,NC,,false,true,false,openstreetmap
+Armfield Tennis Complex,tennis,pitch,36.1433816,-79.7947516,,,NC,,false,true,false,openstreetmap
+Asheville High Tennis Courts,tennis,pitch,35.5729143,-82.5540064,,,NC,,false,true,false,openstreetmap
+Asheville High Tennis Courts,tennis,pitch,35.5729258,-82.5538457,,,NC,,false,true,false,openstreetmap
+Asheville High Tennis Courts,tennis,pitch,35.5725902,-82.5539586,,,NC,,false,true,false,openstreetmap
+Asheville High Tennis Courts,tennis,pitch,35.5726001,-82.5537949,,,NC,,false,true,false,openstreetmap
+Asheville High Tennis Courts,tennis,pitch,35.5726067,-82.5536374,,,NC,,false,true,false,openstreetmap
+BWE Tennis court,tennis,pitch,35.1287866,-80.8226645,,,NC,,false,true,false,openstreetmap
+Bermuda Run Tennis Courts,tennis,pitch,36.0114928,-80.4199349,,,NC,,false,true,false,openstreetmap
+Bingham Tennis Center,tennis,sports_centre,35.8309401,-80.2473233,,,NC,,false,true,false,openstreetmap
+Blowing Rock Public Tennis Courts,tennis,pitch,36.1334707,-81.6793449,,,NC,,false,true,false,openstreetmap
+Bolinwood Apartments' Tennis Court,tennis,pitch,35.9229749,-79.066189,,,NC,,false,true,false,openstreetmap
+Burlington Tennis Center,tennis,sports_centre,36.0801343,-79.4522565,,,NC,,false,true,false,openstreetmap
+CC,tennis,pitch,34.2213178,-77.9033629,,,NC,,false,true,false,openstreetmap
+Camp Hatteras,tennis,pitch,35.5777941,-75.466451,,,NC,,false,true,false,openstreetmap
+Cedar Hills Tennis Court,tennis,pitch,35.8543077,-78.628492,,,NC,,false,true,false,openstreetmap
+Center Court,tennis,pitch,35.1719261,-80.9032757,,,NC,,false,true,false,openstreetmap
+Central Park Tennis,tennis,pitch,36.0816805,-80.2402619,,,NC,,false,true,false,openstreetmap
+Charlotte Indoor Tennis Club,tennis,sports_centre,35.1199632,-80.8684863,,,NC,,false,true,false,openstreetmap
+Chateau Tennis Court,tennis,pitch,35.0938796,-80.98032,,,NC,,false,true,false,openstreetmap
+Coastal Carolina Community College Tennis Courts,tennis,pitch,34.7713966,-77.3822437,,,NC,,false,true,false,openstreetmap
+Court 1,tennis,pitch,35.9977535,-78.9401971,,,NC,,false,true,false,openstreetmap
+Court 2,tennis,pitch,35.997794,-78.9400325,,,NC,,false,true,false,openstreetmap
+Court 3,tennis,pitch,35.9977119,-78.9403629,,,NC,,false,true,false,openstreetmap
+Court 4,tennis,pitch,35.9978343,-78.9398672,,,NC,,false,true,false,openstreetmap
+Court 5,tennis,pitch,35.9976733,-78.9405287,,,NC,,false,true,false,openstreetmap
+Court 6,tennis,pitch,35.9978751,-78.9397026,,,NC,,false,true,false,openstreetmap
+Courts 1-3,tennis,pitch,35.0644836,-80.7322147,,,NC,,false,true,false,openstreetmap
+Courts 1-4,tennis,pitch,35.1722765,-80.9041692,,,NC,,false,true,false,openstreetmap
+Courts 13-14,tennis,pitch,35.1727872,-80.9034542,,,NC,,false,true,false,openstreetmap
+Courts 4-6,tennis,pitch,35.0640549,-80.7327599,,,NC,,false,true,false,openstreetmap
+Courts 5-8,tennis,pitch,35.1726048,-80.9041767,,,NC,,false,true,false,openstreetmap
+Courts 9-12,tennis,pitch,35.1725216,-80.9032882,,,NC,,false,true,false,openstreetmap
+Covington Tennis Courts,tennis,pitch,35.4992164,-80.8391209,,,NC,,false,true,false,openstreetmap
+Davis Lake Tennis Courts,tennis,pitch,35.3407892,-80.8107221,,,NC,,false,true,false,openstreetmap
+Del Webb Pickle Ball Courts,tennis,pitch,34.1528803,-77.9309137,,,NC,,false,true,false,openstreetmap
+Del Webb Tennis Courts,tennis,pitch,34.1527456,-77.9313595,,,NC,,false,true,false,openstreetmap
+Edgemoor Park Double Tennis Court,tennis,pitch,35.5734367,-80.8028325,,,NC,,false,true,false,openstreetmap
+Edgemoor Park Double Tennis Court,tennis,pitch,35.5734258,-80.8026694,,,NC,,false,true,false,openstreetmap
+Edgemoor Park Double Tennis Court,tennis,pitch,35.5734415,-80.8023381,,,NC,,false,true,false,openstreetmap
+Fourteenth Street Park Tennis Courts,tennis,pitch,36.1113846,-80.2223552,,,NC,,false,true,false,openstreetmap
+Fourteenth Street Park Tennis Courts,tennis,pitch,36.1113883,-80.2221958,,,NC,,false,true,false,openstreetmap
+Fourteenth Street Park Tennis Courts,tennis,pitch,36.1113909,-80.222051,,,NC,,false,true,false,openstreetmap
+Greensboro Grimsley High School Tennis Courts,tennis,pitch,36.0841929,-79.8168884,,,NC,,false,true,false,openstreetmap
+Halton-Wagner Tennis Complex,tennis,sports_centre,35.3073389,-80.7373795,,,NC,,false,true,false,openstreetmap
+Halton-Wagnor Tennis Center,tennis,pitch,35.3075128,-80.7374718,,,NC,,false,true,false,openstreetmap
+Hawthorne Neighborhood Tennis Courts,tennis,pitch,35.931841,-78.7192846,,,NC,,false,true,false,openstreetmap
+Hester Park Tennis,tennis,pitch,36.0196787,-79.8633488,,,NC,,false,true,false,openstreetmap
+Hollow Rick Racquet & Swim Club,tennis,pitch,35.9861263,-78.9947882,,,NC,,false,true,false,openstreetmap
+Hotel Tennis,tennis,pitch,34.2066247,-77.7956922,,,NC,,false,true,false,openstreetmap
+Kildaire Farms Racquet and Swim Club Tennis Courts,tennis,sports_centre,35.7610923,-78.7936784,,,NC,,false,true,false,openstreetmap
+Latham Park Tennis Courts,tennis,pitch,36.0871057,-79.7956988,,,NC,,false,true,false,openstreetmap
+Lockwood Folly Neighborhood Tennis Court,tennis,pitch,33.9319882,-78.2228068,,,NC,,false,true,false,openstreetmap
+Lower OEC Tennis Courts,tennis,pitch,35.9061203,-79.0377167,,,NC,,false,true,false,openstreetmap
+Memorial Stadium Tennis Center,tennis,pitch,36.0804457,-79.7760465,,,NC,,false,true,false,openstreetmap
+Miller Park Tennis Practice Courts (backboards),tennis,pitch,36.0850707,-80.2819994,,,NC,,false,true,false,openstreetmap
+North Buncombe Tennis Courts,tennis,pitch,35.7392904,-82.5616217,,,NC,,false,true,false,openstreetmap
+OEC Tennis Courts,tennis,pitch,35.9068309,-79.0378375,,,NC,,false,true,false,openstreetmap
+Parrish Womble Tennis Court 1,tennis,pitch,35.6454735,-78.8281093,,,NC,,false,true,false,openstreetmap
+Parrish Womble Tennis Court 2,tennis,pitch,35.6448899,-78.8281628,,,NC,,false,true,false,openstreetmap
+Parrish Womble Tennis Court 3,tennis,pitch,35.6448861,-78.828026,,,NC,,false,true,false,openstreetmap
+Pickleball Court,tennis,pitch,35.7209556,-78.9040952,,,NC,,false,true,false,openstreetmap
+Pickleball Court,tennis,pitch,35.7209916,-78.9041706,,,NC,,false,true,false,openstreetmap
+Pickleball Court,tennis,pitch,35.7210288,-78.9042459,,,NC,,false,true,false,openstreetmap
+Pickleball Court,tennis,pitch,35.7210647,-78.9043212,,,NC,,false,true,false,openstreetmap
+Plum Creek Park Tennis Court,tennis,pitch,35.473109,-80.8231752,,,NC,,false,true,false,openstreetmap
+Practice Tennis Court,tennis,pitch,35.5729312,-80.8028717,,,NC,,false,true,false,openstreetmap
+Secrest Commons Court,tennis,pitch,34.9776591,-80.5757165,,,NC,,false,true,false,openstreetmap
+Sedge Garden Park Tennis Courts,tennis,pitch,36.0726234,-80.1528926,,,NC,,false,true,false,openstreetmap
+Shadow Lake Tennis Court,tennis,pitch,36.0746006,-79.8927038,,,NC,,false,true,false,openstreetmap
+Simpkins Sports Pavilion,tennis,sports_centre,36.0512365,-79.751345,1500 Barber Park Drive,,NC,,false,true,false,openstreetmap
+Stonegate Community Tennis Courts,tennis,pitch,35.9125548,-78.5084537,,,NC,,false,true,false,openstreetmap
+Student Tennis Courts,tennis,pitch,35.9975067,-78.9397641,,,NC,,false,true,false,openstreetmap
+Tennis Complex,tennis,pitch,36.0738644,-79.7682793,,,NC,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,35.8200508,-78.7671862,,,NC,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,35.9932997,-78.4820299,,,NC,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,35.0732613,-80.7743471,,,NC,,false,true,false,openstreetmap
+The Raleigh Raquet Club,tennis,sports_centre,35.8589401,-78.6137203,,,NC,,false,true,false,openstreetmap
+The Village At Rolesville Tennis Court,tennis,pitch,35.9099077,-78.4656744,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 1,tennis,pitch,35.66727,-78.8377517,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 2,tennis,pitch,35.667272,-78.8379575,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 3,tennis,pitch,35.6672731,-78.8381597,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 4,tennis,pitch,35.6672708,-78.8384194,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 5,tennis,pitch,35.6672715,-78.8386218,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 6,tennis,pitch,35.6672748,-78.8388285,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 7,tennis,pitch,35.6668572,-78.838824,,,NC,,false,true,false,openstreetmap
+Ting Park Tennis Court 8,tennis,pitch,35.6668582,-78.8386203,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1021574,-78.8748788,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1018415,-78.874834,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1018596,-78.8746434,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1021751,-78.8746883,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1018778,-78.8744523,,,NC,,false,true,false,openstreetmap
+Tokay Tennis Courts,tennis,pitch,35.1021929,-78.8744962,,,NC,,false,true,false,openstreetmap
+Town of Chapel Hill,tennis,pitch,35.9121188,-79.063791,,,NC,,false,true,false,openstreetmap
+Trump Tennis,tennis,pitch,35.5211556,-80.9291688,,,NC,,false,true,false,openstreetmap
+Trump Tennis,tennis,pitch,35.5212174,-80.9292339,,,NC,,false,true,false,openstreetmap
+Trump Tennis,tennis,pitch,35.5210916,-80.9291043,,,NC,,false,true,false,openstreetmap
+UNCG Tennis Courts,tennis,sports_centre,36.070299,-79.8119796,,,NC,,false,true,false,openstreetmap
+Wake Forest University Indoor Tennis Center,tennis,pitch,36.1317089,-80.2519041,,,NC,,false,true,false,openstreetmap
+Don's Tennis Accessories,tennis,pitch,35.2093142,-80.835622,601 South Kings Drive,Charlotte,NC,28204,false,true,false,openstreetmap
+Hilbert Fuerstman Dilworth Tennis Courts,tennis,pitch,35.2119918,-80.852287,401 E. Park Ave,Charlotte,NC,28203,false,true,false,openstreetmap
+Taylor Tennis Center,tennis,sports_centre,36.0755177,-80.3881582,1421 Lewisville Clemmons Road,Clemmons,NC,,false,true,false,openstreetmap
+East Campus Tennis Courts,tennis,pitch,36.0077879,-78.916087,19 Brodie Gym Drive,Durham,NC,27705,false,true,false,openstreetmap
+Lake Hickory Country Club,tennis,sports_centre,35.7610287,-81.3432609,1195 2nd Street Northwest,Hickory,NC,28601,false,true,false,openstreetmap
+Scotland Tennis Center,tennis,sports_centre,34.7647399,-79.4695296,1103 Atkinson Street,Laurinburg,NC,28352,false,true,false,openstreetmap
+J W Isenhour Tennis Complex,tennis,pitch,35.7875383,-78.6809888,,Raleigh,NC,,false,true,false,openstreetmap

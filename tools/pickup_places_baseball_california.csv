@@ -1,0 +1,671 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,35.6393636,-120.6445051,,,CA,,false,true,false,openstreetmap
+1,baseball,pitch,34.180907,-118.5123791,,,CA,,false,true,false,openstreetmap
+1,baseball,pitch,33.8935822,-117.592165,,,CA,,false,true,false,openstreetmap
+12,baseball,pitch,34.1806366,-118.5131458,,,CA,,false,true,false,openstreetmap
+2,baseball,pitch,33.8935849,-117.5934475,,,CA,,false,true,false,openstreetmap
+2,baseball,pitch,35.6389786,-120.6435116,,,CA,,false,true,false,openstreetmap
+2,baseball,pitch,34.1808928,-118.5113769,,,CA,,false,true,false,openstreetmap
+2a,baseball,pitch,34.1812453,-118.511877,,,CA,,false,true,false,openstreetmap
+2nd Baseball Diamond,baseball,pitch,33.01193,-117.1215763,,,CA,,false,true,false,openstreetmap
+3,baseball,pitch,33.8928667,-117.5972981,,,CA,,false,true,false,openstreetmap
+3,baseball,pitch,35.6381693,-120.6439702,,,CA,,false,true,false,openstreetmap
+3,baseball,pitch,34.1808907,-118.5104994,,,CA,,false,true,false,openstreetmap
+3-Pete’s Memorial Field,baseball,pitch,34.8360981,-114.6140274,,,CA,,false,true,false,openstreetmap
+3a,baseball,pitch,34.1809703,-118.5100681,,,CA,,false,true,false,openstreetmap
+4,baseball,pitch,33.8927456,-117.5985224,,,CA,,false,true,false,openstreetmap
+4,baseball,pitch,35.6385723,-120.6449231,,,CA,,false,true,false,openstreetmap
+4,baseball,pitch,34.1816693,-118.5111463,,,CA,,false,true,false,openstreetmap
+4a,baseball,pitch,34.1821067,-118.5111151,,,CA,,false,true,false,openstreetmap
+5,baseball,pitch,33.8928291,-117.5997239,,,CA,,false,true,false,openstreetmap
+5,baseball,pitch,34.1816767,-118.5102025,,,CA,,false,true,false,openstreetmap
+5a,baseball,pitch,34.1818697,-118.509787,,,CA,,false,true,false,openstreetmap
+6,baseball,pitch,33.893836,-117.5993889,,,CA,,false,true,false,openstreetmap
+6,baseball,pitch,34.1824646,-118.5102177,,,CA,,false,true,false,openstreetmap
+6a,baseball,pitch,34.1822379,-118.5095405,,,CA,,false,true,false,openstreetmap
+7,baseball,pitch,33.8938257,-117.5985194,,,CA,,false,true,false,openstreetmap
+7,baseball,pitch,34.1811875,-118.5090322,,,CA,,false,true,false,openstreetmap
+8,baseball,pitch,33.8937435,-117.5962385,,,CA,,false,true,false,openstreetmap
+8,baseball,pitch,34.1812096,-118.5074957,,,CA,,false,true,false,openstreetmap
+9,baseball,pitch,33.8932977,-117.595275,,,CA,,false,true,false,openstreetmap
+A Field,baseball,pitch,37.8223972,-121.2307043,,,CA,,false,true,false,openstreetmap
+A1,baseball,pitch,36.9879693,-121.5640877,,,CA,,false,true,false,openstreetmap
+A2,baseball,pitch,36.9882988,-121.5630962,,,CA,,false,true,false,openstreetmap
+A4,baseball,pitch,36.9890728,-121.564323,,,CA,,false,true,false,openstreetmap
+AA Field,baseball,pitch,37.8221464,-121.2293212,,,CA,,false,true,false,openstreetmap
+AAA,baseball,pitch,34.1632915,-118.4890845,,,CA,,false,true,false,openstreetmap
+AAA Field,baseball,pitch,37.8230642,-121.2305652,,,CA,,false,true,false,openstreetmap
+ASB 1,baseball,pitch,37.679233,-121.8966777,,,CA,,false,true,false,openstreetmap
+ASB 2,baseball,pitch,37.6782693,-121.896564,,,CA,,false,true,false,openstreetmap
+ASB 3,baseball,pitch,37.6781239,-121.8977533,,,CA,,false,true,false,openstreetmap
+ASB 4,baseball,pitch,37.6791195,-121.8978824,,,CA,,false,true,false,openstreetmap
+Adrian Padilla Baseball Field,baseball,pitch,37.3366677,-121.8175988,,,CA,,false,true,false,openstreetmap
+Aimee Field,baseball,pitch,38.3552968,-120.778362,,,CA,,false,true,false,openstreetmap
+Al Patch Field 1,baseball,pitch,38.3323699,-121.9740931,,,CA,,false,true,false,openstreetmap
+Al Patch Field 2,baseball,pitch,38.3324813,-121.9724566,,,CA,,false,true,false,openstreetmap
+Al Patch Field 3,baseball,pitch,38.3315135,-121.9733313,,,CA,,false,true,false,openstreetmap
+Albany Little League Krone Field,baseball,pitch,37.8832498,-122.29874,,,CA,,false,true,false,openstreetmap
+Albany Little League Ocean View Field,baseball,pitch,37.8867312,-122.3027354,,,CA,,false,true,false,openstreetmap
+Albany Little League Victory Field,baseball,pitch,37.883666,-122.2985623,,,CA,,false,true,false,openstreetmap
+Albert Field,baseball,pitch,37.9688315,-122.5277964,,,CA,,false,true,false,openstreetmap
+Allied Gardens Little League,baseball,pitch,32.7992166,-117.0882402,,,CA,,false,true,false,openstreetmap
+Almaden Little League - AAA Field,baseball,pitch,37.2201826,-121.8517183,,,CA,,false,true,false,openstreetmap
+Almaden Little League - Majors Field,baseball,pitch,37.2199856,-121.850615,,,CA,,false,true,false,openstreetmap
+Alvernaz Field,baseball,pitch,37.3779929,-120.7216845,,,CA,,false,true,false,openstreetmap
+Amador Baseball Field,baseball,pitch,38.104325,-122.2441284,,,CA,,false,true,false,openstreetmap
+Amy S. Harrison Field,baseball,pitch,33.9766898,-117.3305412,,,CA,,false,true,false,openstreetmap
+Anaheim Play Fields,baseball,pitch,33.8653664,-117.7723885,,,CA,,false,true,false,openstreetmap
+Anaheim Play Fields,baseball,pitch,33.8659477,-117.7724113,,,CA,,false,true,false,openstreetmap
+Anaheim Play Fields,baseball,pitch,33.8657412,-117.7712861,,,CA,,false,true,false,openstreetmap
+Anderson Field,baseball,pitch,33.8859433,-117.8850075,,,CA,,false,true,false,openstreetmap
+Anderson Field,baseball,pitch,34.1257986,-118.2081602,,,CA,,false,true,false,openstreetmap
+Anderson Major & Minor Field,baseball,pitch,33.8825832,-118.3713369,,,CA,,false,true,false,openstreetmap
+Anteater Ballpark,baseball,sports_centre,33.6513079,-117.8477221,,,CA,,false,true,false,openstreetmap
+Antelope Valley College,baseball,pitch,34.678962,-118.1884731,,,CA,,false,true,false,openstreetmap
+Anton Stadium,baseball,pitch,39.1503656,-123.2222908,,,CA,,false,true,false,openstreetmap
+Apollo High School Baseball Field,baseball,pitch,34.2688126,-118.7358892,,,CA,,false,true,false,openstreetmap
+Applequist Atheletic Field,baseball,sports_centre,38.5397391,-121.4885091,,,CA,,false,true,false,openstreetmap
+Aragon baseball field,baseball,pitch,37.5497673,-122.3282812,,,CA,,false,true,false,openstreetmap
+Arcata Ball Park,baseball,pitch,40.8678642,-124.0841997,,,CA,,false,true,false,openstreetmap
+Arce Baseball Field,baseball,pitch,34.1017431,-117.7038131,,,CA,,false,true,false,openstreetmap
+Arden Little League Blue Diamond,baseball,pitch,38.5860337,-121.3627177,,,CA,,false,true,false,openstreetmap
+Arden Little League Red Diamond,baseball,pitch,38.58509,-121.3638677,,,CA,,false,true,false,openstreetmap
+Arden Little League White Diamond,baseball,pitch,38.5852024,-121.3624063,,,CA,,false,true,false,openstreetmap
+Armona Diamond,baseball,pitch,36.310825,-119.7066552,,,CA,,false,true,false,openstreetmap
+Augustine Band of Cahuilla Indians,baseball,pitch,33.65508,-116.1912416,,,CA,,false,true,false,openstreetmap
+BH 'B',baseball,pitch,37.6804846,-121.8912462,,,CA,,false,true,false,openstreetmap
+Babe Ruth,baseball,pitch,36.8461962,-121.3824778,,,CA,,false,true,false,openstreetmap
+Babe Ruth Athletic field,baseball,pitch,32.8141406,-115.3795198,,,CA,,false,true,false,openstreetmap
+Babe Silva Little League Field,baseball,pitch,38.0942635,-122.5721583,,,CA,,false,true,false,openstreetmap
+Baggerly Field,baseball,pitch,37.2340846,-121.9549325,,,CA,,false,true,false,openstreetmap
+Baggett Stadium,baseball,pitch,35.3066948,-120.6648903,,,CA,,false,true,false,openstreetmap
+Ball Field,baseball,pitch,33.9170794,-117.4972346,,,CA,,false,true,false,openstreetmap
+Ball Field 1,baseball,pitch,37.0003432,-122.0016032,,,CA,,false,true,false,openstreetmap
+Ball Field 1,baseball,pitch,33.7352917,-116.3803571,,,CA,,false,true,false,openstreetmap
+Ball Field 2,baseball,pitch,37.0010931,-122.0013572,,,CA,,false,true,false,openstreetmap
+Ball Field 2,baseball,pitch,33.7342195,-116.3803138,,,CA,,false,true,false,openstreetmap
+Ball Field 3,baseball,pitch,33.7342396,-116.381669,,,CA,,false,true,false,openstreetmap
+Ball Field 4,baseball,pitch,33.7352779,-116.3816747,,,CA,,false,true,false,openstreetmap
+Ball Field A,baseball,pitch,36.9801093,-121.8799844,,,CA,,false,true,false,openstreetmap
+Ball Field A,baseball,pitch,37.7120247,-121.8773498,,,CA,,false,true,false,openstreetmap
+Ball Field A,baseball,pitch,37.7124378,-121.8535419,,,CA,,false,true,false,openstreetmap
+Ball Field B,baseball,pitch,36.9804689,-121.8804234,,,CA,,false,true,false,openstreetmap
+Ball Field B,baseball,pitch,37.7130739,-121.8543878,,,CA,,false,true,false,openstreetmap
+Ball Field B,baseball,pitch,37.7119761,-121.8731718,,,CA,,false,true,false,openstreetmap
+Ball Field C,baseball,pitch,36.9799824,-121.8811262,,,CA,,false,true,false,openstreetmap
+Ball Field C,baseball,pitch,37.7109168,-121.8727411,,,CA,,false,true,false,openstreetmap
+Ball Field C,baseball,pitch,37.7149822,-121.8558398,,,CA,,false,true,false,openstreetmap
+Ball Field D,baseball,pitch,37.7142672,-121.855566,,,CA,,false,true,false,openstreetmap
+Ball Field E,baseball,pitch,37.7139172,-121.8563898,,,CA,,false,true,false,openstreetmap
+Ball Field F,baseball,pitch,37.7146377,-121.8566682,,,CA,,false,true,false,openstreetmap
+Ball Field G,baseball,pitch,37.7111135,-121.8530021,,,CA,,false,true,false,openstreetmap
+Ballfield #5,baseball,pitch,39.2499466,-120.0547136,,,CA,,false,true,false,openstreetmap
+Balzer Field,baseball,pitch,37.2247113,-121.9784841,,,CA,,false,true,false,openstreetmap
+Baseball,baseball,pitch,33.9578355,-117.3481572,,,CA,,false,true,false,openstreetmap
+Baseball,baseball,pitch,33.9569038,-117.3480841,,,CA,,false,true,false,openstreetmap
+Baseball #1 - Lucky A's,baseball,pitch,37.7653877,-121.9550207,,,CA,,false,true,false,openstreetmap
+Baseball #2,baseball,pitch,37.766124,-121.955971,,,CA,,false,true,false,openstreetmap
+Baseball #3,baseball,pitch,37.7676486,-121.9565929,,,CA,,false,true,false,openstreetmap
+Baseball #4,baseball,pitch,37.7681601,-121.9572413,,,CA,,false,true,false,openstreetmap
+Baseball #5,baseball,pitch,37.7684467,-121.9562275,,,CA,,false,true,false,openstreetmap
+Baseball 1,baseball,pitch,37.7028068,-121.9124561,,,CA,,false,true,false,openstreetmap
+Baseball 2,baseball,pitch,37.7028184,-121.913911,,,CA,,false,true,false,openstreetmap
+Baseball 3,baseball,pitch,37.7034682,-121.9153915,,,CA,,false,true,false,openstreetmap
+Baseball 4,baseball,pitch,37.7034145,-121.916849,,,CA,,false,true,false,openstreetmap
+Baseball 5,baseball,pitch,37.702707,-121.9173654,,,CA,,false,true,false,openstreetmap
+Baseball 6,baseball,pitch,37.7024954,-121.9165409,,,CA,,false,true,false,openstreetmap
+Baseball 7,baseball,pitch,37.7035063,-121.9138311,,,CA,,false,true,false,openstreetmap
+Baseball Batting Cages 1,baseball,pitch,38.7666552,-121.3368086,,,CA,,false,true,false,openstreetmap
+Baseball Batting Cages 2,baseball,pitch,38.7666684,-121.336751,,,CA,,false,true,false,openstreetmap
+Baseball Batting Cages 3,baseball,pitch,38.7666781,-121.3366839,,,CA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,36.7166114,-119.7484621,,,CA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,36.7167664,-119.7495542,,,CA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,34.0478916,-116.5755433,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 1,baseball,pitch,37.7144176,-122.4314595,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 1,baseball,pitch,37.723518,-122.444946,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 2,baseball,pitch,37.7133545,-122.430851,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 2,baseball,pitch,37.7246892,-122.4440448,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 3,baseball,pitch,37.7161306,-122.4307922,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 3,baseball,pitch,37.7246186,-122.4454963,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 4,baseball,pitch,37.715113,-122.4287119,,,CA,,false,true,false,openstreetmap
+Baseball Diamond 4,baseball,pitch,37.7234501,-122.4464272,,,CA,,false,true,false,openstreetmap
+Baseball Feild 2,baseball,pitch,37.4084242,-121.9049375,,,CA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,35.4067226,-118.9753521,,,CA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,38.7899341,-121.2071758,,,CA,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,37.804092,-121.9794992,,,CA,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,37.8044945,-121.9780322,,,CA,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,37.802747,-121.9800582,,,CA,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,37.8031163,-121.9788154,,,CA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,36.9840727,-122.0373118,,,CA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,34.0218519,-117.5988203,,,CA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,37.4084141,-121.9054988,,,CA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,36.3632333,-119.3043559,,,CA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,34.0229016,-117.5983976,,,CA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,36.3625845,-119.3039419,,,CA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,34.0239186,-117.5988129,,,CA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,36.3622331,-119.3047374,,,CA,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,36.9828991,-122.0361897,,,CA,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,36.3628875,-119.3051448,,,CA,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,36.9825931,-122.0352146,,,CA,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,36.9818987,-122.0346585,,,CA,,false,true,false,openstreetmap
+Baseball Seating,baseball,stadium,38.3322517,-121.9735124,,,CA,,false,true,false,openstreetmap
+Baseball Stadium,baseball,stadium,38.3320318,-121.9726847,,,CA,,false,true,false,openstreetmap
+Baseball diamond 1,baseball,pitch,37.8093326,-121.9468964,,,CA,,false,true,false,openstreetmap
+Baseball diamond 2,baseball,pitch,37.8084169,-121.9470841,,,CA,,false,true,false,openstreetmap
+Baseball diamond 3,baseball,pitch,37.80792,-121.9474062,,,CA,,false,true,false,openstreetmap
+Baseball diamond 4,baseball,pitch,37.8071398,-121.9455361,,,CA,,false,true,false,openstreetmap
+Baseball diamond 5,baseball,pitch,37.8083494,-121.9448539,,,CA,,false,true,false,openstreetmap
+Baseball diamond 6,baseball,pitch,37.8081758,-121.9429569,,,CA,,false,true,false,openstreetmap
+Baseball field,baseball,sports_centre,37.5286957,-121.9144141,,,CA,,false,true,false,openstreetmap
+Baseball field,baseball,pitch,36.8796258,-121.5568588,,,CA,,false,true,false,openstreetmap
+Baseball stadium,baseball,stadium,38.3319762,-121.9730961,,,CA,,false,true,false,openstreetmap
+Baseball/Softball Field 1,baseball,pitch,37.4439198,-122.1189404,,,CA,,false,true,false,openstreetmap
+Baseball/Softball Field 2,baseball,pitch,37.4427087,-122.1190547,,,CA,,false,true,false,openstreetmap
+Baseball/Softball Field 3,baseball,pitch,37.4412938,-122.1173605,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.5340726,-117.1488679,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,34.1612474,-118.0694689,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,37.6984999,-122.0573043,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.9469913,-117.4425368,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.9468393,-117.442617,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,33.9468369,-117.4422896,,,CA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,38.8956625,-121.3010469,,,CA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,33.6721923,-117.8342431,,,CA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,34.6671587,-118.1499296,,,CA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.3589822,-122.7148305,,,CA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,37.4980415,-122.2570938,,,CA,,false,true,false,openstreetmap
+Batting Court,baseball,pitch,33.4685531,-117.6835181,,,CA,,false,true,false,openstreetmap
+Batting cage,baseball,pitch,38.8892948,-121.2881429,,,CA,,false,true,false,openstreetmap
+Baylands Athletic Center,baseball,sports_centre,37.4529266,-122.1218909,,,CA,,false,true,false,openstreetmap
+Beach City Baseball Academy,baseball,sports_centre,33.919261,-118.4114942,,,CA,,false,true,false,openstreetmap
+Beeson Field,baseball,pitch,32.7380842,-117.1982191,,,CA,,false,true,false,openstreetmap
+Beiden Field,baseball,pitch,36.8134308,-119.7556039,,,CA,,false,true,false,openstreetmap
+Bel Passi Baseball,baseball,pitch,37.7004466,-120.9384196,,,CA,,false,true,false,openstreetmap
+Bell Field,baseball,pitch,34.1259528,-118.2128888,,,CA,,false,true,false,openstreetmap
+Bella Vista Baseball Diamond,baseball,pitch,38.6670969,-121.2527904,,,CA,,false,true,false,openstreetmap
+Bellomy Field,baseball,pitch,37.3476816,-121.9337902,,,CA,,false,true,false,openstreetmap
+Belmont Redwood Shores AYSO,baseball,pitch,37.5309277,-122.2725607,,,CA,,false,true,false,openstreetmap
+Belmont Sports Complex,baseball,pitch,37.529353,-122.271743,,,CA,,false,true,false,openstreetmap
+Belmont Sports Complex,baseball,pitch,37.5292893,-122.2709663,,,CA,,false,true,false,openstreetmap
+Big League Baseball Field,baseball,pitch,36.7305706,-118.1502469,,,CA,,false,true,false,openstreetmap
+Big League Dreams,baseball,sports_centre,40.5762298,-122.3080744,,,CA,,false,true,false,openstreetmap
+Big League Dreams Sports Park,baseball,sports_centre,33.8033474,-116.4556452,,,CA,,false,true,false,openstreetmap
+Big Rec Baseball Diamonds,baseball,pitch,37.7674368,-122.4644666,,,CA,,false,true,false,openstreetmap
+Bill Hurst Memorial Field,baseball,pitch,37.5033697,-122.286623,,,CA,,false,true,false,openstreetmap
+Bishop Canyon Fields,baseball,sports_centre,34.0853556,-118.2380376,,,CA,,false,true,false,openstreetmap
+Bizz Johnson Ball Park,baseball,sports_centre,40.6897589,-122.3965186,,,CA,,false,true,false,openstreetmap
+Blair Field,baseball,pitch,33.7776913,-118.1382214,,,CA,,false,true,false,openstreetmap
+Bloch Field,baseball,pitch,33.7304547,-118.2793028,,,CA,,false,true,false,openstreetmap
+Bob Fatjo Baseball Field,baseball,stadium,37.3425345,-121.916457,,,CA,,false,true,false,openstreetmap
+Bob Fatjo Baseball Field,baseball,pitch,37.3425426,-121.9165345,,,CA,,false,true,false,openstreetmap
+Bob Greenberg Field,baseball,pitch,37.6309426,-122.4258988,,,CA,,false,true,false,openstreetmap
+Bob Janssen Field,baseball,pitch,35.3072652,-120.6666392,,,CA,,false,true,false,openstreetmap
+Bob Zamora Field,baseball,pitch,33.5438318,-117.6694271,,,CA,,false,true,false,openstreetmap
+Brulte Field,baseball,pitch,34.2024227,-117.0904278,,,CA,,false,true,false,openstreetmap
+Bryant Field,baseball,stadium,39.1512325,-121.588506,,,CA,,false,true,false,openstreetmap
+Burroughs High School,baseball,pitch,35.6342737,-117.6572963,,,CA,,false,true,false,openstreetmap
+Burroughs High School,baseball,pitch,35.6341177,-117.6586884,,,CA,,false,true,false,openstreetmap
+Caesar Uyesaka Stadium,baseball,stadium,34.4190033,-119.8522835,,,CA,,false,true,false,openstreetmap
+Calwa Baseball Diamond,baseball,pitch,36.7151602,-119.7483391,,,CA,,false,true,false,openstreetmap
+Camarena Field,baseball,pitch,38.6841478,-121.7800194,,,CA,,false,true,false,openstreetmap
+Campbell Field,baseball,pitch,35.1140238,-120.6029882,,,CA,,false,true,false,openstreetmap
+Caps Field,baseball,pitch,32.724678,-117.0326342,,,CA,,false,true,false,openstreetmap
+Cartan Baseball Field,baseball,pitch,37.4580231,-122.1956114,,,CA,,false,true,false,openstreetmap
+Cartan Baseball Field,baseball,pitch,37.4574201,-122.1943847,,,CA,,false,true,false,openstreetmap
+Cerritos Field,baseball,pitch,33.8189286,-116.5245891,,,CA,,false,true,false,openstreetmap
+Chico West Side Major's Field,baseball,pitch,39.8106718,-121.8521453,,,CA,,false,true,false,openstreetmap
+Chico West Side Minor's Field,baseball,pitch,39.8113085,-121.852958,,,CA,,false,true,false,openstreetmap
+Chico West Side Softball,baseball,pitch,39.8100764,-121.8523841,,,CA,,false,true,false,openstreetmap
+Chico West Side Softball,baseball,pitch,39.8103731,-121.8530198,,,CA,,false,true,false,openstreetmap
+Chico West Side Tee-Ball Field,baseball,pitch,39.8108244,-121.8532316,,,CA,,false,true,false,openstreetmap
+Cicerone Field at Anteater Ballpark,baseball,pitch,33.6514316,-117.8475752,,,CA,,false,true,false,openstreetmap
+Clahan Field,baseball,pitch,38.4087236,-122.8190745,,,CA,,false,true,false,openstreetmap
+Clahan Field,baseball,pitch,38.4078368,-122.8193217,,,CA,,false,true,false,openstreetmap
+Clark Field,baseball,pitch,38.6840823,-121.7820039,,,CA,,false,true,false,openstreetmap
+Clark Field,baseball,pitch,41.0034692,-121.4428904,,,CA,,false,true,false,openstreetmap
+Cleve Borman Field,baseball,pitch,38.3959396,-122.3707022,,,CA,,false,true,false,openstreetmap
+Club Field,baseball,pitch,33.6419724,-117.8269352,,,CA,,false,true,false,openstreetmap
+Coach Ron Redding Field,baseball,pitch,37.9797886,-122.0269594,,,CA,,false,true,false,openstreetmap
+Coker-Ewing Field,baseball,pitch,38.7332002,-121.2088192,,,CA,,false,true,false,openstreetmap
+College of Alameda Ball Park,baseball,stadium,37.7837973,-122.2791789,,,CA,,false,true,false,openstreetmap
+Colt,baseball,pitch,34.1636024,-118.4899104,,,CA,,false,true,false,openstreetmap
+Contratti Park Baseball Field,baseball,pitch,37.9867812,-122.59084,,,CA,,false,true,false,openstreetmap
+Cooper Field,baseball,pitch,37.5932428,-122.4739402,,,CA,,false,true,false,openstreetmap
+Culver City High School Baseball Field,baseball,pitch,34.0032912,-118.4009003,,,CA,,false,true,false,openstreetmap
+Dave West Field,baseball,pitch,38.6549832,-121.006276,,,CA,,false,true,false,openstreetmap
+Davis Field,baseball,pitch,33.7124622,-116.2127266,,,CA,,false,true,false,openstreetmap
+Davis Little League complex,baseball,sports_centre,38.5599705,-121.7437982,,,CA,,false,true,false,openstreetmap
+Dayor Sports Field,baseball,pitch,38.4900999,-121.432532,,,CA,,false,true,false,openstreetmap
+Dayton Playground,baseball,pitch,37.6867033,-122.1572284,,,CA,,false,true,false,openstreetmap
+Dedeaux Field,baseball,pitch,34.023848,-118.2899446,,,CA,,false,true,false,openstreetmap
+Dee Field,baseball,pitch,33.8480493,-117.9214058,,,CA,,false,true,false,openstreetmap
+Dennis A. Pugh Baseball Field,baseball,pitch,33.1307612,-117.1627757,,,CA,,false,true,false,openstreetmap
+Diablo Vista Ball Park,baseball,pitch,37.7979554,-121.8945739,,,CA,,false,true,false,openstreetmap
+Dick Bass Field,baseball,pitch,38.1446968,-122.2359848,,,CA,,false,true,false,openstreetmap
+Doane Field,baseball,pitch,32.7241309,-117.0330472,,,CA,,false,true,false,openstreetmap
+Dobbins Field,baseball,pitch,38.5415371,-121.7580252,,,CA,,false,true,false,openstreetmap
+Dobson Field,baseball,sports_centre,36.2988855,-119.1295621,,,CA,,false,true,false,openstreetmap
+Dodger Dream Field,baseball,pitch,33.9878808,-118.1773328,,,CA,,false,true,false,openstreetmap
+Dodgers Dreamfield #51,baseball,pitch,34.0800776,-117.4434031,,,CA,,false,true,false,openstreetmap
+Don Roberts Field,baseball,pitch,35.1131726,-120.6073516,,,CA,,false,true,false,openstreetmap
+Donley Field,baseball,pitch,34.1700882,-118.1282271,,,CA,,false,true,false,openstreetmap
+Doryland Baseball Field,baseball,pitch,39.7608178,-121.7947277,,,CA,,false,true,false,openstreetmap
+Dunphy Little League Field,baseball,pitch,38.0512174,-122.5115229,,,CA,,false,true,false,openstreetmap
+Durkee Duarte Memorial Field,baseball,pitch,41.1229409,-121.1376221,,,CA,,false,true,false,openstreetmap
+East Diamond,baseball,pitch,33.9197222,-118.1314466,,,CA,,false,true,false,openstreetmap
+East Side Community Park Baseball Field,baseball,pitch,33.8847829,-117.7476071,,,CA,,false,true,false,openstreetmap
+East Side Community Park Baseball Field,baseball,pitch,33.8839421,-117.7477861,,,CA,,false,true,false,openstreetmap
+East Side Community Park Baseball Field,baseball,pitch,33.8858409,-117.7473468,,,CA,,false,true,false,openstreetmap
+East Union Baseball Diamond,baseball,pitch,37.8207435,-121.231468,,,CA,,false,true,false,openstreetmap
+Ed Ellis Baseball Field,baseball,pitch,37.8327976,-121.9485039,,,CA,,false,true,false,openstreetmap
+Ed Parry Field,baseball,pitch,34.8429357,-114.6074725,,,CA,,false,true,false,openstreetmap
+Eddie Matthews Field,baseball,pitch,34.4270217,-119.6946924,,,CA,,false,true,false,openstreetmap
+El centro Municipal Stadium,baseball,sports_centre,32.7846981,-115.5514307,,,CA,,false,true,false,openstreetmap
+Elings Field #1,baseball,pitch,34.4258847,-119.8765468,,,CA,,false,true,false,openstreetmap
+Elings Field #2,baseball,pitch,34.4266539,-119.8764505,,,CA,,false,true,false,openstreetmap
+Elings Field #3,baseball,pitch,34.4264195,-119.8756731,,,CA,,false,true,false,openstreetmap
+Elings Field #4,baseball,pitch,34.425722,-119.8748955,,,CA,,false,true,false,openstreetmap
+Elks Field,baseball,pitch,34.9468819,-120.4322175,,,CA,,false,true,false,openstreetmap
+Elks Lodge,baseball,pitch,39.75947,-121.8053916,,,CA,,false,true,false,openstreetmap
+Ernie Raimondi Field,baseball,pitch,37.815881,-122.2930616,,,CA,,false,true,false,openstreetmap
+Eureka Valley Rec Center Rikki Streicher Field,baseball,pitch,37.7595227,-122.4366333,,,CA,,false,true,false,openstreetmap
+Evans Diamond,baseball,pitch,37.8694571,-122.2634178,,,CA,,false,true,false,openstreetmap
+FCS Baseball Field,baseball,pitch,39.1443455,-121.6725979,,,CA,,false,true,false,openstreetmap
+Fabbri field,baseball,pitch,37.5547824,-121.9630199,,,CA,,false,true,false,openstreetmap
+Fall River Baseball Field,baseball,pitch,41.0437943,-121.402181,,,CA,,false,true,false,openstreetmap
+Farm,baseball,pitch,34.164441,-118.4899642,,,CA,,false,true,false,openstreetmap
+Felipe Garza Park,baseball,park,37.4787811,-121.1250381,,,CA,,false,true,false,openstreetmap
+Ferrari Field,baseball,pitch,34.4302529,-119.2628828,,,CA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,32.8044857,-117.1835285,,,CA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,33.6884612,-117.8248042,,,CA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,33.6879322,-117.8232538,,,CA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,33.688655,-117.8232618,,,CA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,32.8028714,-117.1831162,,,CA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,33.6886912,-117.8223583,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.7085125,-117.7979182,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.7676046,-121.3364878,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.4847227,-117.0994927,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.1649533,-117.2984314,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,37.3680396,-118.3936441,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.9947179,-117.6881482,,,CA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,33.6641687,-117.6558085,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.7076359,-117.7983851,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,37.3186947,-122.0204985,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.7674586,-121.3374918,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.4852185,-117.0990367,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.1649706,-117.2993296,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,37.3683284,-118.3921236,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.9958213,-117.68819,,,CA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,33.6645476,-117.657028,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.7083086,-117.7991435,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,37.3193926,-122.02072,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.7667456,-121.3373126,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.1668558,-117.2995158,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,37.3683828,-118.3912532,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.9958403,-117.6868931,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,33.6655523,-117.6565088,,,CA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.6619658,-121.5189014,,,CA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.7080476,-117.8002476,,,CA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.7667752,-121.3361315,,,CA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.9947677,-117.6868367,,,CA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,33.6652105,-117.6554071,,,CA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.6627525,-121.5190284,,,CA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,33.7090623,-117.7992694,,,CA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,33.9955388,-117.6854412,,,CA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,33.6647488,-117.654361,,,CA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,38.6615362,-121.5164543,,,CA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,37.863817,-122.190813,,,CA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,33.7075244,-117.8011354,,,CA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,33.9944487,-117.6853983,,,CA,,false,true,false,openstreetmap
+Field 7,baseball,pitch,33.7097404,-117.7985255,,,CA,,false,true,false,openstreetmap
+Fiscalini Field,baseball,stadium,34.1350725,-117.2634395,,,CA,,false,true,false,openstreetmap
+Ford Field,baseball,pitch,37.3941672,-122.1908484,,,CA,,false,true,false,openstreetmap
+Fowler High School Baseball Field,baseball,pitch,36.632986,-119.669495,,,CA,,false,true,false,openstreetmap
+Fowler Park,baseball,pitch,32.7758101,-117.1832882,,,CA,,false,true,false,openstreetmap
+Freedom High School Baseball Field,baseball,pitch,37.970744,-121.7174502,,,CA,,false,true,false,openstreetmap
+Freshman and Junior Varsity Field,baseball,pitch,38.5599424,-121.7494877,,,CA,,false,true,false,openstreetmap
+GSB 1,baseball,pitch,37.678863,-121.8950459,,,CA,,false,true,false,openstreetmap
+GSB 2,baseball,pitch,37.6792135,-121.894012,,,CA,,false,true,false,openstreetmap
+GSB 3,baseball,pitch,37.6794845,-121.8930403,,,CA,,false,true,false,openstreetmap
+GSB 6,baseball,pitch,37.6808933,-121.8931539,,,CA,,false,true,false,openstreetmap
+GSB 7,baseball,pitch,37.6807007,-121.8936719,,,CA,,false,true,false,openstreetmap
+Garretson Field,baseball,pitch,38.0313256,-122.2678384,,,CA,,false,true,false,openstreetmap
+Gary A. Gavello Fields,baseball,pitch,37.451754,-122.1951623,,,CA,,false,true,false,openstreetmap
+Gault Field,baseball,pitch,33.6944001,-117.2745921,,,CA,,false,true,false,openstreetmap
+Gene Robertson Park,baseball,pitch,36.6711889,-121.617806,,,CA,,false,true,false,openstreetmap
+George Wolfman Baseball Fields,baseball,pitch,37.723971,-122.445452,,,CA,,false,true,false,openstreetmap
+George Wolfman Baseball Fields,baseball,pitch,37.7240476,-122.4452776,,,CA,,false,true,false,openstreetmap
+Gilley Field,baseball,pitch,34.1386269,-118.4442078,,,CA,,false,true,false,openstreetmap
+Golden Gate Playground,baseball,pitch,37.8448946,-122.2836011,,,CA,,false,true,false,openstreetmap
+Goodwin Field,baseball,pitch,33.8870361,-117.8852914,,,CA,,false,true,false,openstreetmap
+Greene Baseball Diamond,baseball,pitch,37.4406025,-122.132967,,,CA,,false,true,false,openstreetmap
+HB 'A',baseball,pitch,37.6801111,-121.894915,,,CA,,false,true,false,openstreetmap
+HB 'C',baseball,pitch,37.68195,-121.8917135,,,CA,,false,true,false,openstreetmap
+HB 'D',baseball,pitch,37.6836744,-121.8857431,,,CA,,false,true,false,openstreetmap
+Hamann Field,baseball,pitch,38.108668,-122.5554322,,,CA,,false,true,false,openstreetmap
+Hampton Field,baseball,pitch,37.8198816,-122.2183658,,,CA,,false,true,false,openstreetmap
+Hardt Field,baseball,pitch,35.3475454,-119.1074978,,,CA,,false,true,false,openstreetmap
+Harich Field,baseball,pitch,34.2419147,-117.23813,,,CA,,false,true,false,openstreetmap
+Harry Renfree Park,baseball,pitch,38.6406635,-121.3766035,,,CA,,false,true,false,openstreetmap
+Hartman Ball Field,baseball,pitch,40.77575,-124.1437107,,,CA,,false,true,false,openstreetmap
+Hayfork Baseball Field,baseball,pitch,40.5512913,-123.1888711,,,CA,,false,true,false,openstreetmap
+Heat One,baseball,pitch,36.8441365,-121.3822246,,,CA,,false,true,false,openstreetmap
+Heat Two,baseball,pitch,36.8437288,-121.3819872,,,CA,,false,true,false,openstreetmap
+Henry Ford field,baseball,pitch,37.457508,-122.2349884,,,CA,,false,true,false,openstreetmap
+Heritage Park,baseball,park,33.974026,-117.8431005,,,CA,,false,true,false,openstreetmap
+Hibbard Field,baseball,pitch,41.7082161,-122.6366119,,,CA,,false,true,false,openstreetmap
+Hjelte Sports Center,baseball,sports_centre,34.1668084,-118.4852047,,,CA,,false,true,false,openstreetmap
+Hollenbeck Park,baseball,park,34.1019996,-117.8977971,,,CA,,false,true,false,openstreetmap
+Hoover Tyler Little League Park,baseball,park,37.9688274,-121.3520015,,,CA,,false,true,false,openstreetmap
+Hunt Field,baseball,pitch,33.5557188,-117.2109405,,,CA,,false,true,false,openstreetmap
+Hyde Middle School Baseball Field,baseball,pitch,37.3126596,-122.0112473,,,CA,,false,true,false,openstreetmap
+Ikeda Field,baseball,pitch,35.1140661,-120.605127,,,CA,,false,true,false,openstreetmap
+Independent Field,baseball,pitch,37.6996441,-122.0511713,,,CA,,false,true,false,openstreetmap
+Infield,baseball,pitch,38.7026744,-121.2556063,,,CA,,false,true,false,openstreetmap
+Infield,baseball,pitch,38.702976,-121.2549738,,,CA,,false,true,false,openstreetmap
+Irene Larsen Field 1,baseball,pitch,38.3348074,-121.975466,,,CA,,false,true,false,openstreetmap
+Irene Larsen Field 2,baseball,pitch,38.334813,-121.9764551,,,CA,,false,true,false,openstreetmap
+Islander Field,baseball,pitch,37.8039423,-121.3164223,,,CA,,false,true,false,openstreetmap
+JSerra Field,baseball,pitch,33.5173386,-117.6679117,,,CA,,false,true,false,openstreetmap
+JV Baseball,baseball,pitch,34.4938156,-118.6572548,,,CA,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,37.6723842,-121.9166692,,,CA,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,37.5967502,-120.9530041,,,CA,,false,true,false,openstreetmap
+JV Softball Field,baseball,pitch,37.5970243,-120.9542604,,,CA,,false,true,false,openstreetmap
+Jackie Robinson Field,baseball,pitch,34.1560688,-118.1650177,,,CA,,false,true,false,openstreetmap
+Jackie Robinson Stadium,baseball,stadium,34.0592383,-118.4592942,,,CA,,false,true,false,openstreetmap
+James Hagerman Sports Complex,baseball,sports_centre,34.9019977,-120.4436849,,,CA,,false,true,false,openstreetmap
+James L. Sigman Field,baseball,pitch,37.5553896,-121.9905587,,,CA,,false,true,false,openstreetmap
+Jamul Little League Batting Cages,baseball,pitch,32.7293977,-116.8548435,,,CA,,false,true,false,openstreetmap
+Jamul Little League Majors Field,baseball,pitch,32.7276187,-116.8551063,,,CA,,false,true,false,openstreetmap
+Jamul Little League T-Ball Field,baseball,pitch,32.7289186,-116.8547329,,,CA,,false,true,false,openstreetmap
+Jay Littelton Ball Park,baseball,pitch,34.0764454,-117.6279911,,,CA,,false,true,false,openstreetmap
+Jellick Field,baseball,pitch,37.3777606,-122.0417377,,,CA,,false,true,false,openstreetmap
+Joe Medeiros Memorial Field,baseball,pitch,38.8920886,-121.2977349,,,CA,,false,true,false,openstreetmap
+Joe Miller Baseball Field,baseball,pitch,33.9728538,-118.0338528,,,CA,,false,true,false,openstreetmap
+Joe Rodgers Field,baseball,pitch,33.7799804,-118.1393671,,,CA,,false,true,false,openstreetmap
+Joe Wagner Field,baseball,pitch,37.9295443,-122.5324556,,,CA,,false,true,false,openstreetmap
+Joel Reisen Field,baseball,pitch,32.6837001,-115.48191,,,CA,,false,true,false,openstreetmap
+John Mendez Baseball Park,baseball,park,33.7823234,-118.2567423,920 Banning Blvd,,CA,,false,true,false,openstreetmap
+John Osborne Field,baseball,pitch,34.9437731,-120.4259971,,,CA,,false,true,false,openstreetmap
+Juniors Field,baseball,pitch,32.7235825,-117.0349422,,,CA,,false,true,false,openstreetmap
+Keating Field,baseball,pitch,38.3326988,-121.983277,,,CA,,false,true,false,openstreetmap
+Keating Field,baseball,pitch,38.3314785,-121.9847106,,,CA,,false,true,false,openstreetmap
+Keating Field,baseball,pitch,38.3314788,-121.9830284,,,CA,,false,true,false,openstreetmap
+Keating Field D,baseball,pitch,38.3314345,-121.985811,,,CA,,false,true,false,openstreetmap
+Keating Field E,baseball,pitch,38.3316251,-121.9867553,,,CA,,false,true,false,openstreetmap
+Keating Field K-2,baseball,pitch,38.3325861,-121.9862758,,,CA,,false,true,false,openstreetmap
+Kelly Field,baseball,pitch,34.183148,-118.5720118,,,CA,,false,true,false,openstreetmap
+Kennedy Ball Field,baseball,pitch,40.7750564,-124.1428,,,CA,,false,true,false,openstreetmap
+Kincaid Field,baseball,pitch,33.8857239,-118.0920289,,,CA,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,37.4734306,-122.2381765,,,CA,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,32.7991134,-115.551561,,,CA,,false,true,false,openstreetmap
+Kiwanis Field 1,baseball,pitch,40.5739827,-122.3865956,,,CA,,false,true,false,openstreetmap
+Kring Field,baseball,pitch,37.221349,-121.9097715,,,CA,,false,true,false,openstreetmap
+Krystin Gemar Memorial Field,baseball,pitch,32.8038905,-117.1835755,,,CA,,false,true,false,openstreetmap
+Kuhlken Baseball Field,baseball,pitch,32.7688175,-117.0163002,,,CA,,false,true,false,openstreetmap
+LL 1,baseball,pitch,37.6824254,-121.8903649,,,CA,,false,true,false,openstreetmap
+LL 10,baseball,pitch,37.6810341,-121.8901321,,,CA,,false,true,false,openstreetmap
+LL 2,baseball,pitch,37.683103,-121.8895247,,,CA,,false,true,false,openstreetmap
+LL 3,baseball,pitch,37.683533,-121.8885176,,,CA,,false,true,false,openstreetmap
+LL 4,baseball,pitch,37.6839189,-121.8874842,,,CA,,false,true,false,openstreetmap
+LL 5,baseball,pitch,37.6839591,-121.8866335,,,CA,,false,true,false,openstreetmap
+LL 6,baseball,pitch,37.6842482,-121.8863184,,,CA,,false,true,false,openstreetmap
+LL 7,baseball,pitch,37.6825226,-121.8872588,,,CA,,false,true,false,openstreetmap
+LL 8,baseball,pitch,37.6821344,-121.8882892,,,CA,,false,true,false,openstreetmap
+LL 9,baseball,pitch,37.6817049,-121.8892973,,,CA,,false,true,false,openstreetmap
+Lake Elsinore Diamond Stadium,baseball,stadium,33.6544215,-117.3026662,,,CA,,false,true,false,openstreetmap
+Laney Eagle Baseball Field,baseball,pitch,37.7939597,-122.2598177,,,CA,,false,true,false,openstreetmap
+Lil Guys and Gals Ball Park,baseball,pitch,37.3829214,-120.7295951,,,CA,,false,true,false,openstreetmap
+Lincoln JV Field,baseball,pitch,38.892784,-121.2987134,,,CA,,false,true,false,openstreetmap
+Linda E. Kissack Ballfield,baseball,pitch,35.6097828,-118.4841537,,,CA,,false,true,false,openstreetmap
+Lions Club Ball Park,baseball,pitch,39.1514172,-123.2225847,,,CA,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,39.1507999,-123.2213949,,,CA,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,39.1505099,-123.2211425,,,CA,,false,true,false,openstreetmap
+Little League 1,baseball,pitch,32.7865604,-117.0198208,,,CA,,false,true,false,openstreetmap
+Little League 2,baseball,pitch,32.7862295,-117.020676,,,CA,,false,true,false,openstreetmap
+Little League Baseball Field,baseball,pitch,37.4304595,-122.1286999,,,CA,,false,true,false,openstreetmap
+Little League Baseball Field,baseball,pitch,37.4417111,-122.118444,,,CA,,false,true,false,openstreetmap
+Little League Baseball Fields,baseball,pitch,39.6812867,-120.2463643,,,CA,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,34.0257757,-117.6396024,,,CA,,false,true,false,openstreetmap
+Little League field,baseball,pitch,38.5768532,-122.5715609,,,CA,,false,true,false,openstreetmap
+Lou Vierra Field,baseball,pitch,37.3570505,-121.9724378,,,CA,,false,true,false,openstreetmap
+Louis Guisto Baseball Field,baseball,pitch,37.8420397,-122.1118247,,,CA,,false,true,false,openstreetmap
+Lowder Baseball Field,baseball,pitch,34.1451499,-117.5669664,,,CA,,false,true,false,openstreetmap
+Lower Bechtel Baseball Field,baseball,pitch,39.1591517,-123.217944,,,CA,,false,true,false,openstreetmap
+Lower Field,baseball,pitch,35.554442,-121.0723018,,,CA,,false,true,false,openstreetmap
+Lower Softball Field,baseball,pitch,33.0999555,-117.2004655,,,CA,,false,true,false,openstreetmap
+Loyalton Baseball Field,baseball,pitch,39.6797402,-120.2463627,,,CA,,false,true,false,openstreetmap
+Luke C. Davis Field,baseball,pitch,33.6404116,-117.9225761,,,CA,,false,true,false,openstreetmap
+Main Baseball Diamond,baseball,pitch,33.0125619,-117.1206738,,,CA,,false,true,false,openstreetmap
+Main Field East,baseball,pitch,33.6423409,-117.8252282,,,CA,,false,true,false,openstreetmap
+Main Field West,baseball,pitch,33.6428925,-117.826315,,,CA,,false,true,false,openstreetmap
+Maino Batting Cages,baseball,pitch,35.2657921,-120.6475033,,,CA,,false,true,false,openstreetmap
+Maino Batting Cages,baseball,pitch,35.2659189,-120.6476353,,,CA,,false,true,false,openstreetmap
+Major,baseball,pitch,34.1640903,-118.4905077,,,CA,,false,true,false,openstreetmap
+Majors Field,baseball,pitch,37.8230743,-121.2297382,,,CA,,false,true,false,openstreetmap
+Maloney Field,baseball,pitch,37.7251485,-122.4822114,,,CA,,false,true,false,openstreetmap
+Manteca High Baseball,baseball,pitch,37.7936194,-121.2101616,,,CA,,false,true,false,openstreetmap
+Maria Field,baseball,pitch,38.0490424,-122.1530844,,,CA,,false,true,false,openstreetmap
+Marina Softball Field,baseball,pitch,36.67748,-121.7961672,,,CA,,false,true,false,openstreetmap
+Marine West Field,baseball,pitch,33.8951479,-118.3819672,,,CA,,false,true,false,openstreetmap
+Marshall Field #1,baseball,pitch,37.698626,-122.0677254,,,CA,,false,true,false,openstreetmap
+Marshall Field #2,baseball,pitch,37.6980139,-122.0677003,,,CA,,false,true,false,openstreetmap
+Marshall Field #3,baseball,pitch,37.698313,-122.0673852,,,CA,,false,true,false,openstreetmap
+Matador Field,baseball,pitch,34.244772,-118.5263303,,,CA,,false,true,false,openstreetmap
+Mater Dei Baseball Field,baseball,pitch,33.724765,-117.8842638,,,CA,,false,true,false,openstreetmap
+Maverick Field,baseball,pitch,34.0678168,-117.8884989,,,CA,,false,true,false,openstreetmap
+Mazmanian Field 45B,baseball,pitch,34.0449335,-117.8417084,,,CA,,false,true,false,openstreetmap
+McCurdy Baseball Field,baseball,pitch,33.9776217,-118.1550596,,,CA,,false,true,false,openstreetmap
+McGarvey Field,baseball,pitch,37.4726148,-122.2364353,,,CA,,false,true,false,openstreetmap
+McNamee Baseball Field,baseball,pitch,34.1264101,-118.0986031,,,CA,,false,true,false,openstreetmap
+Memorial Park Baseball Field,baseball,pitch,37.7582135,-121.9688888,,,CA,,false,true,false,openstreetmap
+Men,baseball,pitch,33.9748273,-117.3848009,,,CA,,false,true,false,openstreetmap
+Merlo Field Sports Complex,baseball,sports_centre,37.958588,-120.3133762,,,CA,,false,true,false,openstreetmap
+Michael Gray Memorial Field,baseball,pitch,37.0428666,-122.0482476,,,CA,,false,true,false,openstreetmap
+Mike Koll Field,baseball,pitch,38.1838137,-120.0069123,,,CA,,false,true,false,openstreetmap
+Mike Noakes Field,baseball,sports_centre,36.8183978,-119.8141782,,,CA,,false,true,false,openstreetmap
+Milpitas High Baseball Field,baseball,pitch,37.448836,-121.9036093,,,CA,,false,true,false,openstreetmap
+Minor,baseball,pitch,34.1640489,-118.4894036,,,CA,,false,true,false,openstreetmap
+Minor League,baseball,pitch,34.1110231,-117.4424861,,,CA,,false,true,false,openstreetmap
+Minors Field,baseball,pitch,32.7243215,-117.0340021,,,CA,,false,true,false,openstreetmap
+Mission Blue Baseball Field,baseball,pitch,37.6924477,-122.4137087,,,CA,,false,true,false,openstreetmap
+Mitchell Field,baseball,pitch,37.47301,-122.2376239,,,CA,,false,true,false,openstreetmap
+Mitchell Field,baseball,pitch,39.5057455,-121.563735,,,CA,,false,true,false,openstreetmap
+Mokelumne Hill Field,baseball,pitch,38.3008879,-120.6992937,,,CA,,false,true,false,openstreetmap
+Monta Loma Field,baseball,pitch,37.4089024,-122.0999783,,,CA,,false,true,false,openstreetmap
+Moody Field,baseball,pitch,37.9354127,-122.525053,,,CA,,false,true,false,openstreetmap
+Moorpark High School Baseball Field,baseball,pitch,34.2691293,-118.8974371,,,CA,,false,true,false,openstreetmap
+Moshier Field,baseball,pitch,33.8824877,-118.1377433,,,CA,,false,true,false,openstreetmap
+Mustang Field,baseball,pitch,36.2089952,-121.1371808,,,CA,,false,true,false,openstreetmap
+Navy Field,baseball,pitch,33.7771256,-118.3083042,,,CA,,false,true,false,openstreetmap
+"Nick Culjis, Sr. Field",baseball,pitch,38.5436138,-121.5023884,,,CA,,false,true,false,openstreetmap
+Nita Carman Park,baseball,pitch,33.5397242,-117.7753796,,,CA,,false,true,false,openstreetmap
+O'Malley Family Field,baseball,pitch,34.1808719,-118.506327,,,CA,,false,true,false,openstreetmap
+ONT Field,baseball,stadium,34.018118,-117.6035465,,,CA,,false,true,false,openstreetmap
+Old Baseball Field,baseball,pitch,37.5891922,-122.4794731,,,CA,,false,true,false,openstreetmap
+Olsen Field,baseball,pitch,33.7356638,-116.3717707,,,CA,,false,true,false,openstreetmap
+Ontario Eastern Little League,baseball,pitch,34.0750297,-117.6277244,,,CA,,false,true,false,openstreetmap
+Oracle Park,baseball,stadium,37.778646,-122.3895801,24 Willie Mays Plaza,,CA,94107,false,true,false,openstreetmap
+Orange Coast College Pirates Softball,baseball,pitch,33.6748555,-117.9128224,,,CA,,false,true,false,openstreetmap
+P.F.C. Pablo Manzano Jr. Memorial Field,baseball,pitch,32.7835171,-115.5511417,,,CA,,false,true,false,openstreetmap
+PLHS Carroll B. Land Stadium,baseball,stadium,32.71603,-117.2524432,,,CA,,false,true,false,openstreetmap
+PONY League Baseball Field,baseball,pitch,33.6245594,-117.9392057,,,CA,,false,true,false,openstreetmap
+Pac Rim Baseball,baseball,pitch,33.1131611,-117.3045118,,,CA,,false,true,false,openstreetmap
+Pacific Coast Baseball Club,baseball,sports_centre,34.0360826,-118.4506625,,,CA,,false,true,false,openstreetmap
+Padres,baseball,pitch,32.7958728,-115.5855455,,,CA,,false,true,false,openstreetmap
+Page Baseball Stadium,baseball,pitch,33.9666936,-118.4144859,,,CA,,false,true,false,openstreetmap
+Pete Beiden Field,baseball,stadium,36.8134937,-119.7557132,,,CA,,false,true,false,openstreetmap
+Peterson Field,baseball,pitch,38.6017972,-121.3133496,,,CA,,false,true,false,openstreetmap
+Phil Matthew's Field 1,baseball,pitch,37.3187336,-122.0214369,,,CA,,false,true,false,openstreetmap
+Phillips Field,baseball,pitch,34.8432107,-114.6081683,,,CA,,false,true,false,openstreetmap
+Piedmont High School Baseball Field,baseball,pitch,37.4003761,-121.8515354,,,CA,,false,true,false,openstreetmap
+Pike Field,baseball,pitch,34.1734257,-118.4152328,,,CA,,false,true,false,openstreetmap
+Pilg Field,baseball,pitch,35.1140658,-120.6042873,,,CA,,false,true,false,openstreetmap
+Pioneer County Park,baseball,pitch,35.3677058,-118.9286652,,,CA,,false,true,false,openstreetmap
+Pirate Park,baseball,pitch,33.6748039,-117.9089027,,,CA,,false,true,false,openstreetmap
+Pomona Baseball Field,baseball,pitch,34.0982044,-117.7105049,,,CA,,false,true,false,openstreetmap
+Pony,baseball,pitch,34.1637122,-118.4911977,,,CA,,false,true,false,openstreetmap
+Porter Field,baseball,pitch,35.1132529,-120.6062345,,,CA,,false,true,false,openstreetmap
+Pote Field,baseball,pitch,34.1330324,-118.2781774,,,CA,,false,true,false,openstreetmap
+Rancho Cucamonga Quakes Stadium,baseball,stadium,34.1028563,-117.5477937,,,CA,,false,true,false,openstreetmap
+Reeder Field,baseball,pitch,34.0653857,-118.1663991,,,CA,,false,true,false,openstreetmap
+Rialto Park Little League,baseball,pitch,34.078634,-117.3675782,,,CA,,false,true,false,openstreetmap
+Ribiero Field,baseball,pitch,38.0485921,-122.1527509,,,CA,,false,true,false,openstreetmap
+Ricky Henderson Field,baseball,pitch,37.8337041,-122.2619887,,,CA,,false,true,false,openstreetmap
+Riddle Field,baseball,pitch,33.548682,-117.7932617,,,CA,,false,true,false,openstreetmap
+Rim of the World Baseball Diamond,baseball,pitch,34.2328465,-117.2113016,,,CA,,false,true,false,openstreetmap
+Rim of the World Baseball Diamond,baseball,pitch,34.2320059,-117.2110004,,,CA,,false,true,false,openstreetmap
+Ringe Park,baseball,park,41.7387051,-122.6400556,,,CA,,false,true,false,openstreetmap
+Rio Americano Raiders,baseball,pitch,38.5796973,-121.3548979,,,CA,,false,true,false,openstreetmap
+Robb Field 5,baseball,pitch,32.7527712,-117.2439369,,,CA,,false,true,false,openstreetmap
+Robbins Field Ball Park,baseball,pitch,35.6210814,-120.689059,,,CA,,false,true,false,openstreetmap
+Robert W. Rosas Jr. Memorial Field,baseball,pitch,32.7835013,-115.5511351,,,CA,,false,true,false,openstreetmap
+Robertson Park Softball Fields,baseball,pitch,37.6692635,-121.7507046,,,CA,,false,true,false,openstreetmap
+Robertson Park Softball Fields,baseball,pitch,37.6697696,-121.751492,,,CA,,false,true,false,openstreetmap
+Robin Ventura Field,baseball,pitch,34.9093988,-120.42447,,,CA,,false,true,false,openstreetmap
+Rodriguez Park Field,baseball,pitch,32.6764392,-115.5067021,,,CA,,false,true,false,openstreetmap
+Rolling Hills LL Major Field,baseball,pitch,33.7779218,-118.3369448,,,CA,,false,true,false,openstreetmap
+Rolling Hills LL Minor Field,baseball,pitch,33.7783547,-118.3364388,,,CA,,false,true,false,openstreetmap
+Rolling Hills Rookie Field,baseball,pitch,33.7738473,-118.3393267,,,CA,,false,true,false,openstreetmap
+Rookies Field,baseball,pitch,32.7251406,-117.0324705,,,CA,,false,true,false,openstreetmap
+Rose Avenue Advanced Baseball Diamond,baseball,pitch,37.6584364,-120.9637895,,,CA,,false,true,false,openstreetmap
+Rose Avenue Softball Diamond,baseball,pitch,37.659173,-120.9638575,,,CA,,false,true,false,openstreetmap
+Royal Field,baseball,pitch,36.3176082,-119.3200328,,,CA,,false,true,false,openstreetmap
+Rudy Moreno Field,baseball,pitch,32.6035073,-117.0464247,,,CA,,false,true,false,openstreetmap
+Running Springs Ball Field,baseball,pitch,34.200547,-117.0927202,,,CA,,false,true,false,openstreetmap
+Russell Carr Field,baseball,pitch,34.4485629,-119.6639372,,,CA,,false,true,false,openstreetmap
+SDHS Caver Field,baseball,pitch,32.7226838,-117.1508811,,,CA,,false,true,false,openstreetmap
+Sage Hill Baseball,baseball,pitch,33.6197296,-117.8243512,,,CA,,false,true,false,openstreetmap
+Saint Vincent School,baseball,pitch,38.03494,-122.5225025,,,CA,,false,true,false,openstreetmap
+Saints (St Anthony) Baseball diamond,baseball,pitch,33.8462705,-118.1327298,,,CA,,false,true,false,openstreetmap
+San Diego City College Baseball Field,baseball,pitch,32.7359476,-117.1384736,,,CA,,false,true,false,openstreetmap
+San Jose Batting Cages,baseball,pitch,37.25438,-121.7734694,,,CA,,false,true,false,openstreetmap
+San Jose Christian School,baseball,pitch,37.2932138,-121.9263043,,,CA,,false,true,false,openstreetmap
+San Mateo High Softball Field,baseball,pitch,37.5792419,-122.3294076,,,CA,,false,true,false,openstreetmap
+San Mateo High baseball field,baseball,pitch,37.5804031,-122.3286485,,,CA,,false,true,false,openstreetmap
+Sanders Accessible Ballfield,baseball,pitch,34.1782033,-118.4940037,,,CA,,false,true,false,openstreetmap
+Santos Field,baseball,pitch,35.1140423,-120.6064784,,,CA,,false,true,false,openstreetmap
+Scolinos Field,baseball,pitch,34.0538606,-117.8159069,,,CA,,false,true,false,openstreetmap
+Senior League #1,baseball,pitch,34.1116889,-117.4418726,,,CA,,false,true,false,openstreetmap
+Shafter High School,baseball,pitch,35.5101801,-119.2658412,,,CA,,false,true,false,openstreetmap
+Shafter High School,baseball,pitch,35.5101629,-119.2672314,,,CA,,false,true,false,openstreetmap
+Shasta View Park,baseball,park,41.7255674,-122.6452563,,,CA,,false,true,false,openstreetmap
+Shira Field,baseball,pitch,32.790342,-117.0445352,,,CA,,false,true,false,openstreetmap
+Sierra High Baseball,baseball,pitch,37.7908247,-121.2427786,,,CA,,false,true,false,openstreetmap
+Silva Field,baseball,sports_centre,38.4860625,-121.4794407,,,CA,,false,true,false,openstreetmap
+Simoni Softball Field,baseball,pitch,37.9787377,-121.3150019,,,CA,,false,true,false,openstreetmap
+Sinsheimer Stadium,baseball,pitch,35.2665087,-120.6468577,,,CA,,false,true,false,openstreetmap
+Soft Ball Field,baseball,pitch,34.1473366,-118.0180166,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,36.8431877,-121.3827482,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,34.1111001,-117.4408228,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,37.8221069,-121.227216,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,37.8220811,-121.228269,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,37.8210823,-121.2271973,,,CA,,false,true,false,openstreetmap
+Softball,baseball,pitch,33.7065607,-116.6498558,,,CA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,38.5456876,-121.7600538,,,CA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,34.4057189,-118.5710651,,,CA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,38.8476977,-120.8562074,,,CA,,false,true,false,openstreetmap
+Softball Fields,baseball,pitch,36.7139511,-121.6153527,,,CA,,false,true,false,openstreetmap
+Softball field,baseball,sports_centre,37.5286616,-121.9164204,,,CA,,false,true,false,openstreetmap
+Softball field,baseball,pitch,36.8788156,-121.556743,,,CA,,false,true,false,openstreetmap
+Southern California Edison,baseball,pitch,37.1017696,-119.3198112,,,CA,,false,true,false,openstreetmap
+Spartan Diamond,baseball,pitch,37.3225857,-121.8663323,,,CA,,false,true,false,openstreetmap
+Spring Valley Lake Baseball Field,baseball,pitch,34.486055,-117.2592341,,,CA,,false,true,false,openstreetmap
+Spud Field,baseball,pitch,33.7957807,-118.1698482,,,CA,,false,true,false,openstreetmap
+Stark Field,baseball,pitch,32.7846427,-115.5510817,,,CA,,false,true,false,openstreetmap
+Steele Field,baseball,pitch,34.0593686,-118.4592899,,,CA,,false,true,false,openstreetmap
+Stockton Field,baseball,pitch,35.2672899,-120.6478595,,,CA,,false,true,false,openstreetmap
+Story Field,baseball,pitch,39.9444104,-120.9547884,,,CA,,false,true,false,openstreetmap
+Sullivan Field,baseball,pitch,38.6020766,-121.3110598,,,CA,,false,true,false,openstreetmap
+Sunken Diamond,baseball,pitch,37.4317374,-122.1587906,,,CA,,false,true,false,openstreetmap
+Sunnyslope Little League,baseball,pitch,34.0994266,-118.0787297,,,CA,,false,true,false,openstreetmap
+Talkin' Baseball,baseball,pitch,37.8137866,-121.9979607,103 Town and Country Drive,,CA,,false,true,false,openstreetmap
+Tavan Field,baseball,pitch,38.0160478,-122.1434371,,,CA,,false,true,false,openstreetmap
+Tball Field,baseball,pitch,37.822422,-121.2299478,,,CA,,false,true,false,openstreetmap
+Ted Greene Field,baseball,pitch,34.0839758,-117.7463274,,,CA,,false,true,false,openstreetmap
+Tee Rex Field,baseball,pitch,37.7003422,-122.0508632,,,CA,,false,true,false,openstreetmap
+Teeball,baseball,pitch,34.110383,-117.443428,,,CA,,false,true,false,openstreetmap
+Tepper Little League Field #1,baseball,sports_centre,37.8238417,-122.364586,849 4th Street,,CA,,false,true,false,openstreetmap
+The Hanger,baseball,stadium,34.7030058,-118.1725036,,,CA,,false,true,false,openstreetmap
+Thrasher Park,baseball,pitch,37.7219115,-122.1643615,,,CA,,false,true,false,openstreetmap
+Tiger Field,baseball,sports_centre,40.5750431,-122.3847482,,,CA,,false,true,false,openstreetmap
+Tim Moellering Field,baseball,pitch,37.8603576,-122.2704558,,,CA,,false,true,false,openstreetmap
+Tom A. Dicktakes Field,baseball,pitch,38.5430193,-121.5018806,,,CA,,false,true,false,openstreetmap
+Tony Gwynn Stadium,baseball,pitch,32.7746213,-117.0781267,,,CA,,false,true,false,openstreetmap
+Tony Jimenez Baseball Field,baseball,pitch,37.33682,-121.8184799,,,CA,,false,true,false,openstreetmap
+Tosh Field,baseball,pitch,40.1542786,-122.2432848,,,CA,,false,true,false,openstreetmap
+Triton Ballpark,baseball,stadium,32.8815101,-117.2261686,,,CA,,false,true,false,openstreetmap
+Trombly Field,baseball,pitch,33.8235489,-117.8442711,,,CA,,false,true,false,openstreetmap
+Tucker Field,baseball,pitch,34.2116137,-117.0783536,,,CA,,false,true,false,openstreetmap
+Tujunga Little Leage,baseball,pitch,34.2820309,-118.2926056,,,CA,,false,true,false,openstreetmap
+Tully Community Ballfields,baseball,park,37.3096181,-121.8420041,,,CA,,false,true,false,openstreetmap
+Uniqlo Field,baseball,pitch,34.0738366,-118.2398714,,,CA,,false,true,false,openstreetmap
+Up the Middle,baseball,sports_centre,37.5290998,-122.2854209,201 Old County Road,,CA,,false,true,false,openstreetmap
+Upper Bechtel Baseball Field,baseball,pitch,39.1600849,-123.2177727,,,CA,,false,true,false,openstreetmap
+Upper Field,baseball,pitch,33.6414344,-117.8258873,,,CA,,false,true,false,openstreetmap
+Upper Softball Field,baseball,pitch,33.1010652,-117.1981999,,,CA,,false,true,false,openstreetmap
+Varsity Baseball,baseball,pitch,34.494926,-118.6570547,,,CA,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,37.6734673,-121.9168815,,,CA,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,33.8149793,-117.8167831,,,CA,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,37.5976305,-120.9530415,,,CA,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,33.7892693,-117.811397,,,CA,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,33.8710351,-117.5890817,,,CA,,false,true,false,openstreetmap
+Varsity Softball Field,baseball,pitch,37.5970567,-120.9557238,,,CA,,false,true,false,openstreetmap
+Veteran's Park Baseball Field,baseball,pitch,37.6970463,-121.4247182,,,CA,,false,true,false,openstreetmap
+Visalia Rawhide,baseball,pitch,36.3324018,-119.3045377,,,CA,,false,true,false,openstreetmap
+Volunteer Field,baseball,pitch,35.1130501,-120.6053017,,,CA,,false,true,false,openstreetmap
+Wellman Field,baseball,pitch,37.6448009,-122.1111899,,,CA,,false,true,false,openstreetmap
+West Coast batting cages,baseball,pitch,34.1805921,-118.5073475,,,CA,,false,true,false,openstreetmap
+West Diamond,baseball,pitch,33.9197214,-118.1325246,,,CA,,false,true,false,openstreetmap
+West Valley Girls Softball,baseball,pitch,34.1755064,-118.6178211,,,CA,,false,true,false,openstreetmap
+Western Little League Headquarters,baseball,sports_centre,34.2023853,-117.368482,,,CA,,false,true,false,openstreetmap
+Wiest Lions Field,baseball,sports_centre,32.9858665,-115.5380695,,,CA,,false,true,false,openstreetmap
+Willy Mcove J.R Field,baseball,pitch,37.426688,-122.257434,,,CA,,false,true,false,openstreetmap
+Wilson Baseball Field,baseball,pitch,36.5808967,-121.9515188,,,CA,,false,true,false,openstreetmap
+Wolfpack Baseball,baseball,pitch,33.4526429,-117.0900853,,,CA,,false,true,false,openstreetmap
+Wolfpack Softball,baseball,pitch,33.4544203,-117.0906796,,,CA,,false,true,false,openstreetmap
+Women,baseball,pitch,33.9738691,-117.3841085,,,CA,,false,true,false,openstreetmap
+Wynne Price Athletic Field,baseball,sports_centre,40.6741454,-122.3694419,,,CA,,false,true,false,openstreetmap
+X - Baseball Field,baseball,pitch,36.6723322,-121.6708301,,,CA,,false,true,false,openstreetmap
+Yreka Park,baseball,park,41.7325673,-122.6423341,,,CA,,false,true,false,openstreetmap
+Z - Softball Field,baseball,pitch,36.6737893,-121.6705218,,,CA,,false,true,false,openstreetmap
+Zoeter Field,baseball,pitch,33.7426582,-118.1016392,,,CA,,false,true,false,openstreetmap
+bas,baseball,pitch,38.2542698,-122.6295776,,,CA,,false,true,false,openstreetmap
+minor League #2,baseball,pitch,34.1110541,-117.4422099,,,CA,,false,true,false,openstreetmap
+old baseball court,baseball,pitch,39.11977,-121.3961781,,,CA,,false,true,false,openstreetmap
+Neptune Beach Pearl,baseball,fitness_centre,37.7566038,-122.2505474,2224 South Shore Center,Alameda,CA,94501,false,true,false,openstreetmap
+American Canyon Litle League Baseball Fields,baseball,park,38.1870596,-122.2590229,,American Canyon,CA,94503,false,true,false,openstreetmap
+Angel Stadium of Anaheim,baseball,stadium,33.8002588,-117.8825624,2000 East Gene Autry Way,Anaheim,CA,92806,false,true,false,openstreetmap
+Robert A. Sessions Memorial Sports Park,baseball,sports_centre,34.8674922,-117.0131654,2800 Mayor Katy Parkway,Barstow,CA,92311,false,true,false,openstreetmap
+Fitzgerald Field,baseball,pitch,38.0498654,-122.1550254,,Benicia,CA,94510,false,true,false,openstreetmap
+Big League Dreams Sports Park,baseball,sports_centre,33.9584893,-117.6782923,16333 Fairfield Ranch Road,Chino Hills,CA,91709,false,true,false,openstreetmap
+Babe Herman Field,baseball,pitch,34.172699,-118.228381,1662-1710 Cañada Boulevard,Glendale,CA,91208,false,true,false,openstreetmap
+Brand Park,baseball,park,34.1822681,-118.2771533,1601 West Mountain Street,Glendale,CA,91201,false,true,false,openstreetmap
+Scholl Canyon Ball Field,baseball,pitch,34.1581437,-118.2047158,3200 East Glenoaks Boulevard,Glendale,CA,91206,false,true,false,openstreetmap
+Stengel Field,baseball,sports_centre,34.1689749,-118.230744,1601 Cañada Boulevard,Glendale,CA,91208,false,true,false,openstreetmap
+Big League Dreams - Jurupa Valley,baseball,sports_centre,34.0024925,-117.516497,10550 Cantu-Galleano Ranch Rd,Jurupa Valley,CA,91752,false,true,false,openstreetmap
+Dodger Stadium,baseball,stadium,34.073625,-118.239981,1000 Vin Scully Avenue,Los Angeles,CA,90012,false,true,false,openstreetmap
+Big League Dreams Sport Park,baseball,park,37.7883109,-121.2592031,1077 Milo Candini Drive,Manteca,CA,,false,true,false,openstreetmap
+Northgate Little League,baseball,sports_centre,37.822762,-121.2300041,1811 Hoyt Lane,Manteca,CA,95336,false,true,false,openstreetmap
+Joe DiMaggio Fields,baseball,sports_centre,38.0223006,-122.1332407,Joe DiMaggio Drive,Martinez,CA,94553,false,true,false,openstreetmap
+Sturgeon Field,baseball,pitch,38.0228431,-122.1328123,1204 Joe DiMaggio Drive,Martinez,CA,94553,false,true,false,openstreetmap
+Will Lafranchi Field,baseball,pitch,38.0615614,-122.6983431,1 Old Rancheria Road,Nicasio,CA,94946,false,true,false,openstreetmap
+Clark Field,baseball,park,33.9415063,-117.5575321,1740 Detroit Street,Norco,CA,92860,false,true,false,openstreetmap
+Palo Alto Little League,baseball,pitch,37.4233375,-122.1138773,3672 Middlefield Road,Palo Alto,CA,94306,false,true,false,openstreetmap
+Baseball Stadium,baseball,pitch,34.0676485,-117.1625643,1241 East Brockton Avenue,Redlands,CA,92374,false,true,false,openstreetmap
+Scandia Fun Center Baseball Court,baseball,pitch,38.6589223,-121.3639187,5070 Hillsdale Boulevard,Sacramento,CA,95842,false,true,false,openstreetmap
+Tahoe Tallac Park,baseball,park,38.5455858,-121.4182349,7401 San Joaquin Street,Sacramento,CA,95820,false,true,false,openstreetmap
+Inland Empire 66ers,baseball,pitch,34.0974202,-117.2954625,280 South E Street,San Bernardino,CA,92401,false,true,false,openstreetmap
+San Manuel Stadium,baseball,sports_centre,34.0967547,-117.2964425,280 South E Street,San Bernardino,CA,92418,false,true,false,openstreetmap
+Petco Park,baseball,stadium,32.7071795,-117.1568673,100 Park Boulevard,San Diego,CA,92101,false,true,false,openstreetmap
+San Diego Padres,baseball,pitch,32.7075395,-117.1570686,,San Diego,CA,92101,false,true,false,openstreetmap
+San Diego Padres Store,baseball,pitch,32.7077183,-117.1580906,215 Tony Gwynn Drive,San Diego,CA,92101,false,true,false,openstreetmap
+Excite Ballpark,baseball,stadium,37.3206176,-121.8623865,588 East Alma Avenue,San Jose,CA,95112,false,true,false,openstreetmap
+San Jose Batting Cages,baseball,sports_centre,37.2588399,-121.7794895,474 Piercy Road,San Jose,CA,95138,false,true,false,openstreetmap
+South Bay Sports Training,baseball,sports_centre,37.345782,-121.8710684,995 East Santa Clara Street,San Jose,CA,95116,false,true,false,openstreetmap
+Eastview Little League at Knoll Hill,baseball,sports_centre,33.7508824,-118.2847504,766 North Center Street,San Pedro,CA,90731,false,true,false,openstreetmap
+Stephen Schott Stadium,baseball,stadium,37.3484885,-121.9313801,500 El Camino Real,Santa Clara,CA,95053,false,true,false,openstreetmap
+Sunken Diamond Stadium,baseball,stadium,37.4318253,-122.1587906,643 Nelson Road,Stanford,CA,,false,true,false,openstreetmap
+Anderson Field,baseball,pitch,34.2276377,-118.8773639,115 Overton Court,Thousand Oaks,CA,91360,false,true,false,openstreetmap
+Fiore Playfield,baseball,sports_centre,34.2090883,-118.850259,1550 East Avenida de Los Arboles,Thousand Oaks,CA,91360,false,true,false,openstreetmap
+Soderquist Ballfield,baseball,pitch,37.4951201,-120.8614157,1110 Flower Street,Turlock,CA,95380,false,true,false,openstreetmap
+Big League Dreams,baseball,park,34.0400918,-117.910545,2100 South Azusa Avenue,West Covina,CA,91792,false,true,false,openstreetmap

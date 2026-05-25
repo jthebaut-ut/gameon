@@ -1,0 +1,14 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,44.2539857,-116.9660969,,,ID,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,43.7460316,-111.1155284,,,ID,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,43.7460254,-111.1158452,,,ID,,false,true,false,openstreetmap
+Basketball Hoops,basketball,pitch,45.9274157,-116.1104629,,,ID,,false,true,false,openstreetmap
+Blue Valley Basketball Court,basketball,pitch,43.5259281,-116.1587136,,,ID,,false,true,false,openstreetmap
+Creech Basketball Courts,basketball,pitch,43.5844748,-116.5510948,,,ID,,false,true,false,openstreetmap
+Grace Park Basketball Court,basketball,pitch,46.3777745,-117.002946,,,ID,,false,true,false,openstreetmap
+Mesa Park Basketball,basketball,pitch,44.0230321,-116.9131493,,,ID,,false,true,false,openstreetmap
+Park Place Basketball Courts,basketball,pitch,43.7053833,-116.6071991,,,ID,,false,true,false,openstreetmap
+Parking & Basketball Area,basketball,pitch,44.2513256,-116.9638168,,,ID,,false,true,false,openstreetmap
+Pheasant Ridge B Ball,basketball,pitch,42.9160929,-112.4575178,,,ID,,false,true,false,openstreetmap
+Shadow Canyon Basketball Court,basketball,pitch,43.485743,-111.992177,,,ID,,false,true,false,openstreetmap
+basketball,basketball,pitch,47.5369177,-116.237017,,,ID,,false,true,false,openstreetmap

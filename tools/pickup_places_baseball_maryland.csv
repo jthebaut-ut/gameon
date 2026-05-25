@@ -1,0 +1,250 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,39.0832793,-76.9205663,,,MD,,false,true,false,openstreetmap
+1,baseball,pitch,39.4177748,-76.6248028,,,MD,,false,true,false,openstreetmap
+1,baseball,pitch,39.4439586,-76.6367456,,,MD,,false,true,false,openstreetmap
+2,baseball,pitch,39.082085,-76.920644,,,MD,,false,true,false,openstreetmap
+3,baseball,pitch,39.3434115,-76.390317,,,MD,,false,true,false,openstreetmap
+3,baseball,pitch,39.0832602,-76.9191149,,,MD,,false,true,false,openstreetmap
+4,baseball,pitch,39.3427935,-76.391052,,,MD,,false,true,false,openstreetmap
+4,baseball,pitch,39.0838198,-76.9188247,,,MD,,false,true,false,openstreetmap
+Allen Heath Memorial Field,baseball,pitch,39.4420531,-76.3906793,,,MD,,false,true,false,openstreetmap
+American Legion Field (90'),baseball,pitch,39.3807836,-77.1646704,,,MD,,false,true,false,openstreetmap
+Annapolis High School Baseball Field,baseball,pitch,38.9757369,-76.5663248,,,MD,,false,true,false,openstreetmap
+Armstrong Field,baseball,pitch,38.9906662,-77.1235466,,,MD,,false,true,false,openstreetmap
+Babb Field,baseball,pitch,39.3325624,-76.619316,,,MD,,false,true,false,openstreetmap
+Ball Diamond (60'),baseball,pitch,38.2562746,-76.4349037,,,MD,,false,true,false,openstreetmap
+Ball Field #1,baseball,pitch,39.4699538,-76.2998586,,,MD,,false,true,false,openstreetmap
+Ball Field #1,baseball,pitch,39.5468969,-76.2800195,,,MD,,false,true,false,openstreetmap
+Ball Field #2,baseball,pitch,39.4692321,-76.2990056,,,MD,,false,true,false,openstreetmap
+Ball Field #2,baseball,pitch,39.5480901,-76.2801554,,,MD,,false,true,false,openstreetmap
+Ball Field #3,baseball,pitch,39.5491358,-76.2805971,,,MD,,false,true,false,openstreetmap
+Ball Field #4,baseball,pitch,39.5498709,-76.2806707,,,MD,,false,true,false,openstreetmap
+Ball Field #5,baseball,pitch,39.550865,-76.280582,,,MD,,false,true,false,openstreetmap
+Baseball,baseball,pitch,39.1568196,-77.058465,,,MD,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,38.983347,-77.1705928,,,MD,,false,true,false,openstreetmap
+Baseball Diamond #4,baseball,pitch,39.3307964,-76.5744703,,,MD,,false,true,false,openstreetmap
+Baseball Diamond (60'),baseball,pitch,38.3050603,-76.631168,,,MD,,false,true,false,openstreetmap
+Baseball Diamond (60'),baseball,pitch,38.2673782,-76.4623582,,,MD,,false,true,false,openstreetmap
+Baseball Diamond (90'),baseball,pitch,38.2557511,-76.4343722,,,MD,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,39.1380559,-77.0867583,,,MD,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,39.570977,-76.389538,,,MD,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,39.5710851,-76.3884725,,,MD,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,39.5713001,-76.3880505,,,MD,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,39.5709966,-76.3869139,,,MD,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,39.5702733,-76.387588,,,MD,,false,true,false,openstreetmap
+Baseball Field #6,baseball,pitch,39.5699854,-76.3884522,,,MD,,false,true,false,openstreetmap
+Baseball Field #7,baseball,pitch,39.5692791,-76.3890793,,,MD,,false,true,false,openstreetmap
+Baseball Field #8,baseball,pitch,39.5693108,-76.3857986,,,MD,,false,true,false,openstreetmap
+Baseball Field #9,baseball,pitch,39.570481,-76.3858943,,,MD,,false,true,false,openstreetmap
+Baseball practice infield,baseball,pitch,39.3705636,-76.639916,,,MD,,false,true,false,openstreetmap
+Bates Middle School Baseball Field,baseball,pitch,38.9718159,-76.5070397,,,MD,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,39.0449918,-76.6693549,,,MD,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,39.224973,-76.8907403,,,MD,,false,true,false,openstreetmap
+Bell Branch Baseball Field 1,baseball,pitch,38.9865898,-76.6713575,,,MD,,false,true,false,openstreetmap
+Bell Branch Baseball Field 2,baseball,pitch,38.9883531,-76.6746213,,,MD,,false,true,false,openstreetmap
+Bell Branch Baseball Field 3,baseball,pitch,38.9891834,-76.6760278,,,MD,,false,true,false,openstreetmap
+Bennett Cerf - Westminster Little League Field,baseball,pitch,39.5867972,-76.9778517,,,MD,,false,true,false,openstreetmap
+Blenchstone '62 Field,baseball,pitch,39.4318279,-76.6789945,,,MD,,false,true,false,openstreetmap
+Braden Field,baseball,pitch,39.0035756,-76.8793271,,,MD,,false,true,false,openstreetmap
+Brandenburg Field,baseball,pitch,39.4891363,-77.699082,,,MD,,false,true,false,openstreetmap
+Bronco Field,baseball,pitch,39.0959026,-76.5815185,,,MD,,false,true,false,openstreetmap
+Brown Baseball Field,baseball,pitch,39.0523686,-76.5140946,,,MD,,false,true,false,openstreetmap
+Bruce Winand Field,baseball,pitch,39.4143363,-76.6514284,,,MD,,false,true,false,openstreetmap
+CCBC Essex Baseball Field,baseball,pitch,39.3560088,-76.4782362,,,MD,,false,true,false,openstreetmap
+Cal Ripken Jr. Field,baseball,pitch,39.450243,-76.595904,,,MD,,false,true,false,openstreetmap
+Cantler Field,baseball,pitch,39.5039385,-77.6692562,,,MD,,false,true,false,openstreetmap
+Cedar Lane Park,baseball,park,38.9791845,-75.80717,,,MD,,false,true,false,openstreetmap
+Citi Field,baseball,pitch,39.5337389,-76.1868487,,,MD,,false,true,false,openstreetmap
+Citizens Bank Park,baseball,pitch,39.5328966,-76.1835703,,,MD,,false,true,false,openstreetmap
+Clara Barton Baseball Field,baseball,pitch,38.9731286,-77.1512057,,,MD,,false,true,false,openstreetmap
+Collison Field,baseball,pitch,38.9626739,-76.5037554,,,MD,,false,true,false,openstreetmap
+Crampton Field,baseball,pitch,39.5030579,-77.6693847,,,MD,,false,true,false,openstreetmap
+Cumberland Baseball Feild,baseball,pitch,39.6637597,-78.7654998,,,MD,,false,true,false,openstreetmap
+David G. Dauses Memorial Field 3,baseball,pitch,38.9421957,-76.4857499,,,MD,,false,true,false,openstreetmap
+Diamond #1,baseball,pitch,39.591029,-76.3473498,,,MD,,false,true,false,openstreetmap
+Diamond #1,baseball,pitch,39.6693774,-76.3769406,,,MD,,false,true,false,openstreetmap
+"Diamond #1, Baseball",baseball,pitch,39.5604548,-76.2418377,,,MD,,false,true,false,openstreetmap
+Diamond #2,baseball,pitch,39.5900864,-76.347162,,,MD,,false,true,false,openstreetmap
+Diamond #2,baseball,pitch,39.6704737,-76.3771526,,,MD,,false,true,false,openstreetmap
+"Diamond #2, Baseball",baseball,pitch,39.5601456,-76.2405301,,,MD,,false,true,false,openstreetmap
+Diamond #3,baseball,pitch,39.5904522,-76.3490704,,,MD,,false,true,false,openstreetmap
+Diamond #3,baseball,pitch,39.6668607,-76.3779327,,,MD,,false,true,false,openstreetmap
+"Diamond #3, Baseball",baseball,pitch,39.5603524,-76.2395368,,,MD,,false,true,false,openstreetmap
+"Diamond #4, Softball",baseball,pitch,39.5602335,-76.2386571,,,MD,,false,true,false,openstreetmap
+"Diamond #5, Softball",baseball,pitch,39.5603565,-76.23778,,,MD,,false,true,false,openstreetmap
+"Diamond #6, Baseball",baseball,pitch,39.56031,-76.2368139,,,MD,,false,true,false,openstreetmap
+"Diamond #7, Baseball",baseball,pitch,39.5616562,-76.2371595,,,MD,,false,true,false,openstreetmap
+"Diamond #8, Softball",baseball,pitch,39.5611692,-76.2387914,,,MD,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,39.4825401,-76.3887597,,,MD,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,39.5444863,-76.334877,,,MD,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,39.481328,-76.3884016,,,MD,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,39.544208,-76.33378,,,MD,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,39.4802028,-76.3888307,,,MD,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,39.5439826,-76.3325945,,,MD,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,39.4816116,-76.3900082,,,MD,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,39.545186,-76.3319338,,,MD,,false,true,false,openstreetmap
+Dutch Eyth Field,baseball,pitch,39.3972358,-76.7785656,,,MD,,false,true,false,openstreetmap
+E/W Baseball Field (70'),baseball,pitch,39.3835995,-77.1640753,,,MD,,false,true,false,openstreetmap
+Elkton highschool baseball field,baseball,pitch,39.6246381,-75.8332279,,,MD,,false,true,false,openstreetmap
+Fenway Park,baseball,pitch,39.5345278,-76.1850137,,,MD,,false,true,false,openstreetmap
+Field #1,baseball,pitch,39.208466,-77.2457739,,,MD,,false,true,false,openstreetmap
+Field #2,baseball,pitch,39.2084743,-77.2437917,,,MD,,false,true,false,openstreetmap
+Field #3,baseball,pitch,39.2093991,-77.2424242,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.1284822,-77.0702322,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.2819997,-76.8772768,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.4070641,-76.6715794,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.0724467,-76.8315963,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.140601,-76.8296571,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.2731853,-76.7706748,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.9433885,-76.4842338,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.5398957,-76.6454847,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.1127139,-76.5093929,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.1080578,-76.5953028,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.1511706,-76.6622023,,,MD,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.3488153,-77.6012027,,,MD,,false,true,false,openstreetmap
+Field 10,baseball,pitch,39.2792649,-76.8761938,,,MD,,false,true,false,openstreetmap
+Field 10,baseball,pitch,39.1150718,-76.5077179,,,MD,,false,true,false,openstreetmap
+Field 11,baseball,pitch,39.281121,-76.8743183,,,MD,,false,true,false,openstreetmap
+Field 11,baseball,pitch,39.1156711,-76.5091917,,,MD,,false,true,false,openstreetmap
+Field 12,baseball,pitch,39.2814615,-76.8770241,,,MD,,false,true,false,openstreetmap
+Field 12,baseball,pitch,39.1151842,-76.5102056,,,MD,,false,true,false,openstreetmap
+Field 13,baseball,pitch,39.1162291,-76.5104607,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.2818259,-76.8766244,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.4066896,-76.6723663,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.0717516,-76.8315901,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.2738815,-76.7709819,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.9427047,-76.4850747,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.5404073,-76.6453241,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.1122498,-76.5116996,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.1517662,-76.6651719,,,MD,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.1808483,-76.6262934,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.2810888,-76.8765473,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.4076753,-76.6725809,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.096626,-76.5804536,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.2733787,-76.7716327,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.1130594,-76.5106884,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.9858506,-76.30631,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.1069927,-76.5977273,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.3461055,-77.5997762,,,MD,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.1806501,-76.6250418,,,MD,,false,true,false,openstreetmap
+Field 3B,baseball,pitch,39.0707805,-76.8320978,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.2809025,-76.8769932,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.4073306,-76.6730583,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.3387362,-77.3655162,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.2747517,-76.7710182,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.1140699,-76.512051,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.1073964,-76.5971679,,,MD,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.3461874,-77.6063549,,,MD,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.2803575,-76.8766962,,,MD,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.3386217,-77.3642857,,,MD,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.2744691,-76.7720604,,,MD,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.1110989,-76.5129763,,,MD,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.1073965,-76.5983288,,,MD,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.2798392,-76.8763172,,,MD,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.1101395,-76.5134108,,,MD,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.107006,-76.5996641,,,MD,,false,true,false,openstreetmap
+Field 7,baseball,pitch,39.2794351,-76.8753497,,,MD,,false,true,false,openstreetmap
+Field 7,baseball,pitch,39.1096795,-76.512,,,MD,,false,true,false,openstreetmap
+Field 8,baseball,pitch,39.2788574,-76.8757473,,,MD,,false,true,false,openstreetmap
+Field 8,baseball,pitch,39.1141519,-76.5090871,,,MD,,false,true,false,openstreetmap
+Field 9,baseball,pitch,39.2806461,-76.8745827,,,MD,,false,true,false,openstreetmap
+Field 9,baseball,pitch,39.1142351,-76.5080571,,,MD,,false,true,false,openstreetmap
+Field D,baseball,pitch,39.1473826,-77.3013646,,,MD,,false,true,false,openstreetmap
+Field E,baseball,pitch,39.1483727,-77.3001176,,,MD,,false,true,false,openstreetmap
+Field F,baseball,pitch,39.1500027,-77.2996371,,,MD,,false,true,false,openstreetmap
+Fiueld 1,baseball,pitch,39.1820926,-76.6275498,,,MD,,false,true,false,openstreetmap
+Freedom Field,baseball,pitch,39.1114314,-76.5572392,,,MD,,false,true,false,openstreetmap
+Gillespie Field,baseball,pitch,39.0969943,-76.5816889,,,MD,,false,true,false,openstreetmap
+Glendening,baseball,pitch,39.672183,-78.9326516,,,MD,,false,true,false,openstreetmap
+Grahamer Ball Park,baseball,pitch,39.3635579,-76.0613022,,,MD,,false,true,false,openstreetmap
+Grantsville Baseball Field,baseball,pitch,39.7005623,-79.1600074,,,MD,,false,true,false,openstreetmap
+Greensboro Lions Club Community Park,baseball,park,38.9589079,-75.819958,,,MD,,false,true,false,openstreetmap
+HPAC Field 1,baseball,pitch,38.4103899,-75.5901678,,,MD,,false,true,false,openstreetmap
+HPAC Field 2,baseball,pitch,38.4102658,-75.588183,,,MD,,false,true,false,openstreetmap
+HPAC Field 3,baseball,pitch,38.4090431,-75.5893901,,,MD,,false,true,false,openstreetmap
+HPAC Field 4,baseball,pitch,38.4093096,-75.5906182,,,MD,,false,true,false,openstreetmap
+HPAC Field 5,baseball,pitch,38.4118144,-75.588018,,,MD,,false,true,false,openstreetmap
+HPAC Field 6,baseball,pitch,38.413373,-75.5894544,,,MD,,false,true,false,openstreetmap
+HPAC Field 7,baseball,pitch,38.4130478,-75.5878255,,,MD,,false,true,false,openstreetmap
+HPAC Field 7.5,baseball,pitch,38.413541,-75.5871421,,,MD,,false,true,false,openstreetmap
+HPAC Field 8,baseball,pitch,38.4142256,-75.5874756,,,MD,,false,true,false,openstreetmap
+HPHS Baseball,baseball,pitch,39.0406999,-76.9424445,,,MD,,false,true,false,openstreetmap
+Harry Grove Stadium,baseball,stadium,39.4016232,-77.4138473,21 Stadium Drive,,MD,21703,false,true,false,openstreetmap
+Hawk’s Nest,baseball,pitch,38.1920714,-76.4236093,,,MD,,false,true,false,openstreetmap
+Hot Sox Field,baseball,pitch,38.8485985,-76.5530621,,,MD,,false,true,false,openstreetmap
+Iglehart Baseball Field,baseball,pitch,39.3703449,-76.6394153,,,MD,,false,true,false,openstreetmap
+Johnies Ballfield,baseball,pitch,39.6242045,-75.9276698,,,MD,,false,true,false,openstreetmap
+Johnson Field (90'),baseball,pitch,39.3705124,-77.1774274,,,MD,,false,true,false,openstreetmap
+Jonah Kenney Field,baseball,pitch,39.2548162,-76.8300644,,,MD,,false,true,false,openstreetmap
+Kevin Mozelack Batting Cage,baseball,pitch,39.4182118,-76.6252748,,,MD,,false,true,false,openstreetmap
+Kingsvile Park,baseball,sports_centre,39.4408454,-76.3892971,,,MD,,false,true,false,openstreetmap
+Largo-Lottsford Park,baseball,pitch,38.9052438,-76.8322204,,,MD,,false,true,false,openstreetmap
+Largo-Lottsford baseball,baseball,pitch,38.9072746,-76.8312252,,,MD,,false,true,false,openstreetmap
+Leidos Field,baseball,pitch,39.5307649,-76.1853646,,,MD,,false,true,false,openstreetmap
+Leonard Field,baseball,pitch,39.5481228,-76.0527598,,,MD,,false,true,false,openstreetmap
+McManus Baseball Field,baseball,pitch,39.3924335,-76.5794092,,,MD,,false,true,false,openstreetmap
+Meadowbrook Baseball Field #1,baseball,pitch,39.2473491,-76.8222283,,,MD,,false,true,false,openstreetmap
+Meadowbrook Baseball Field #2,baseball,pitch,39.2489832,-76.8240389,,,MD,,false,true,false,openstreetmap
+Meadowbrook Baseball Field #3,baseball,pitch,39.2494624,-76.8230664,,,MD,,false,true,false,openstreetmap
+Memorial Stadium,baseball,pitch,39.534526,-76.183926,,,MD,,false,true,false,openstreetmap
+Miners Baseball Field,baseball,pitch,39.6487258,-78.9138303,,,MD,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,39.5500327,-76.2826926,,,MD,,false,true,false,openstreetmap
+Montgomery County Public Schools,baseball,pitch,39.0612181,-77.0429893,,,MD,,false,true,false,openstreetmap
+Municipal Stadium,baseball,pitch,39.6325363,-77.7120693,,,MD,,false,true,false,openstreetmap
+Murphy Field,baseball,pitch,39.5023534,-77.6693425,,,MD,,false,true,false,openstreetmap
+Mustang Field,baseball,pitch,39.0956834,-76.5803313,,,MD,,false,true,false,openstreetmap
+Nationals Park,baseball,pitch,39.5325385,-76.1842465,,,MD,,false,true,false,openstreetmap
+Navy Practice Baseball Field,baseball,pitch,38.9880943,-76.4956393,,,MD,,false,true,false,openstreetmap
+Navy Softball Field,baseball,pitch,38.9871723,-76.4964617,,,MD,,false,true,false,openstreetmap
+Northway Fields,baseball,pitch,39.0065719,-76.8657012,,,MD,,false,true,false,openstreetmap
+Northway Fields,baseball,pitch,39.0058984,-76.8661045,,,MD,,false,true,false,openstreetmap
+Old Bates Baseball Field,baseball,pitch,38.9733217,-76.5115348,,,MD,,false,true,false,openstreetmap
+Oriole Park at Camden Yards,baseball,stadium,39.2834973,-76.62157,,,MD,,false,true,false,openstreetmap
+Orioles-Saturn Field,baseball,pitch,39.3007445,-76.6304174,,,MD,,false,true,false,openstreetmap
+Our Lady of the Meadows Softball Field,baseball,pitch,39.6798935,-77.344621,,,MD,,false,true,false,openstreetmap
+Oxon Hill High School Baseball Field,baseball,pitch,38.7972483,-76.9908936,,,MD,,false,true,false,openstreetmap
+Oxon Hill High School Softball Field,baseball,pitch,38.7982529,-76.9916127,,,MD,,false,true,false,openstreetmap
+PNC Park,baseball,pitch,39.5337704,-76.1859959,,,MD,,false,true,false,openstreetmap
+Patsy E Huson Ballfield,baseball,pitch,39.1881466,-77.1760632,,,MD,,false,true,false,openstreetmap
+Pitch 1,baseball,pitch,39.0598347,-76.7180741,,,MD,,false,true,false,openstreetmap
+Pitch 2,baseball,pitch,39.0593544,-76.7177409,,,MD,,false,true,false,openstreetmap
+Pitch 3,baseball,pitch,39.05937,-76.7185401,,,MD,,false,true,false,openstreetmap
+Pitch 4,baseball,pitch,39.0589748,-76.7185844,,,MD,,false,true,false,openstreetmap
+Pocomoke High School Baseball Field,baseball,pitch,38.0575278,-75.5556449,,,MD,,false,true,false,openstreetmap
+Prince George's Community College,baseball,pitch,38.8849263,-76.8302312,,,MD,,false,true,false,openstreetmap
+Regency Stadium,baseball,pitch,38.562358,-76.903073,,,MD,,false,true,false,openstreetmap
+Rockburn Field 1,baseball,pitch,39.2217349,-76.7582943,,,MD,,false,true,false,openstreetmap
+Rockburn Field 2,baseball,pitch,39.220524,-76.7576841,,,MD,,false,true,false,openstreetmap
+Rockburn Field 3,baseball,pitch,39.2197995,-76.7583183,,,MD,,false,true,false,openstreetmap
+Rockburn Field 7,baseball,pitch,39.2178333,-76.7617573,,,MD,,false,true,false,openstreetmap
+Rockburn Field 8,baseball,pitch,39.2178626,-76.7607043,,,MD,,false,true,false,openstreetmap
+Ruritan Park,baseball,pitch,38.2053299,-75.7031739,,,MD,,false,true,false,openstreetmap
+"Shipley Field at Bob ""Turtle"" Smith Stadium",baseball,stadium,38.9893052,-76.944356,,,MD,,false,true,false,openstreetmap
+Shirley Povich Field,baseball,pitch,39.0310796,-77.1507932,,,MD,,false,true,false,openstreetmap
+Shriver Field,baseball,pitch,39.2186653,-76.0735485,,,MD,,false,true,false,openstreetmap
+Softball,baseball,pitch,39.4534171,-77.4213706,,,MD,,false,true,false,openstreetmap
+South Mountain Little League,baseball,pitch,39.5027163,-77.6695177,,,MD,,false,true,false,openstreetmap
+Summit 70',baseball,pitch,39.3860536,-77.1519355,,,MD,,false,true,false,openstreetmap
+Summit 90',baseball,pitch,39.385575,-77.1524786,,,MD,,false,true,false,openstreetmap
+Tee Ball,baseball,pitch,39.5487785,-76.053775,,,MD,,false,true,false,openstreetmap
+Terwilliger Brother's Field,baseball,pitch,38.9869006,-76.4949176,,,MD,,false,true,false,openstreetmap
+The Baseball Zone,baseball,pitch,39.1179594,-77.188491,9125 Gaither Road,,MD,,false,true,false,openstreetmap
+Tiger Softball Stadium,baseball,stadium,39.3859084,-76.6176186,,,MD,,false,true,false,openstreetmap
+Tri state baseball field,baseball,pitch,39.6240304,-75.8207483,,,MD,,false,true,false,openstreetmap
+Vi Ripken Field,baseball,pitch,39.5050532,-76.1560531,,,MD,,false,true,false,openstreetmap
+Washington Grove Baseball Field,baseball,pitch,39.1449443,-77.1694423,,,MD,,false,true,false,openstreetmap
+Washington Nationals Miracle Field,baseball,pitch,39.1489437,-77.3026718,,,MD,,false,true,false,openstreetmap
+Winfield Lions Club Baseball Complex,baseball,park,39.4494814,-77.0575075,,,MD,,false,true,false,openstreetmap
+Wrigley Field,baseball,pitch,39.5336934,-76.1835611,,,MD,,false,true,false,openstreetmap
+Yankee Stadium,baseball,pitch,39.5347675,-76.1864777,,,MD,,false,true,false,openstreetmap
+Youth Baseball Field,baseball,pitch,39.0297238,-77.1494005,,,MD,,false,true,false,openstreetmap
+Youth Baseball Field,baseball,pitch,39.6490955,-77.7065145,,,MD,,false,true,false,openstreetmap
+tristate baseball field,baseball,pitch,39.6230357,-75.8239775,,,MD,,false,true,false,openstreetmap
+"Cal, Sr.'s Yard",baseball,stadium,39.5330892,-76.186327,873 Long Drive,Aberdeen,MD,21001,false,true,false,openstreetmap
+The Baseball Warehouse,baseball,sports_centre,39.5769985,-76.3718887,131 Industry Lane,Forest Hill,MD,21050,false,true,false,openstreetmap
+City of Greenbelt Department of Recreation,baseball,pitch,39.0030543,-76.8783434,,Greenbelt,MD,20770,false,true,false,openstreetmap
+McDonald Field,baseball,pitch,38.9970608,-76.8765442,Southway,Greenbelt,MD,20770,false,true,false,openstreetmap
+Meritus Park,baseball,stadium,39.6402817,-77.7240422,50 West Baltimore Street,Hagerstown,MD,21740,false,true,false,openstreetmap
+Arundel High School Baseball Field,baseball,pitch,39.0698773,-76.6837321,Arundel High School,Odenton,MD,21113,false,true,false,openstreetmap
+BCC Baseball,baseball,pitch,39.1018975,-77.1280077,40 Southlawn Court,Rockville,MD,20855,false,true,false,openstreetmap
+Arthur W. Perdue Stadium,baseball,stadium,38.3698818,-75.5302117,6400 Hobbs Road,Salisbury,MD,21804,false,true,false,openstreetmap

@@ -1,0 +1,56 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Allegacy Federal Credit Union Stadium,football,stadium,36.1305526,-80.2546166,,,NC,,false,true,false,openstreetmap
+Apollo Field,football,pitch,36.0641564,-79.3941514,,,NC,,false,true,false,openstreetmap
+Armfield Athletic Center,football,pitch,36.0915449,-79.8860162,,,NC,,false,true,false,openstreetmap
+Asheville High Football Field,football,pitch,35.5716462,-82.5531228,,,NC,,false,true,false,openstreetmap
+Athens Drive High School Football Field,football,pitch,35.7687922,-78.7133047,,,NC,,false,true,false,openstreetmap
+Bagwell Field,football,pitch,35.5964678,-77.3652599,,,NC,,false,true,false,openstreetmap
+Bob Waters Field,football,pitch,35.3047595,-83.1825389,,,NC,,false,true,false,openstreetmap
+Cannon Memorial Stadium,football,stadium,35.4987696,-80.6177338,,,NC,,false,true,false,openstreetmap
+Chris Smith Field,football,pitch,35.9069491,-79.0478624,,,NC,,false,true,false,openstreetmap
+Clark Field,football,pitch,34.7487628,-79.4799692,,,NC,,false,true,false,openstreetmap
+Culton-Peerman Stadium,football,pitch,35.9432201,-79.0790983,,,NC,,false,true,false,openstreetmap
+Dowdy-Ficklen Stadium,football,stadium,35.5964891,-77.3653142,,,NC,,false,true,false,openstreetmap
+East Forsyth Eagles Track and Football Field,football,pitch,36.1155152,-80.151631,,,NC,,false,true,false,openstreetmap
+East Wake Football Field,football,pitch,35.8124264,-78.4256812,,,NC,,false,true,false,openstreetmap
+Eddie McGirt Field,football,pitch,35.2419868,-80.8522931,,,NC,,false,true,false,openstreetmap
+Ernest W. Spangler Football Stadium,football,stadium,35.2453955,-81.6735377,,,NC,,false,true,false,openstreetmap
+Field 12,football,pitch,35.10288,-80.979978,,,NC,,false,true,false,openstreetmap
+Football Multi-use,football,pitch,35.1130018,-80.7985973,,,NC,,false,true,false,openstreetmap
+Football Muppet,football,pitch,35.1113574,-80.799373,,,NC,,false,true,false,openstreetmap
+Freedom Park Football Field 1,football,pitch,35.74613,-81.7172174,,,NC,,false,true,false,openstreetmap
+Freedom Park Football Field 2,football,pitch,35.7461765,-81.7180526,,,NC,,false,true,false,openstreetmap
+JT Destoryers Football field,football,pitch,35.2680694,-80.8429622,,,NC,,false,true,false,openstreetmap
+James Carr Eagle Athletic Field,football,pitch,35.6975728,-80.4311542,,,NC,,false,true,false,openstreetmap
+Jerry Richardson Stadium,football,stadium,35.3104748,-80.740097,,,NC,,false,true,false,openstreetmap
+Jimmy Teague Field,football,pitch,36.3283394,-79.6772711,,,NC,,false,true,false,openstreetmap
+Joe Franks Field,football,pitch,36.0859786,-79.8163354,,,NC,,false,true,false,openstreetmap
+John R. Martin Field,football,pitch,34.9947205,-80.445253,,,NC,,false,true,false,openstreetmap
+Kevin E. Todd Field,football,pitch,35.7464697,-78.8392827,,,NC,,false,true,false,openstreetmap
+Knights Football Field,football,pitch,34.7492619,-79.4786505,,,NC,,false,true,false,openstreetmap
+Lee J. Stone Stadium,football,pitch,35.688646,-79.8191517,,,NC,,false,true,false,openstreetmap
+"Luther ""Nick"" Jeralds Stadium",football,stadium,35.0753493,-78.8965137,,,NC,,false,true,false,openstreetmap
+McKinnon Field,football,pitch,36.1099744,-79.507678,,,NC,,false,true,false,openstreetmap
+Mustang Stadium,football,pitch,35.6655382,-78.7594881,,,NC,,false,true,false,openstreetmap
+North Buncombe High School Stadium,football,pitch,35.7385832,-82.558807,,,NC,,false,true,false,openstreetmap
+Panthers' Practice Field #1,football,pitch,35.229804,-80.8522762,,,NC,,false,true,false,openstreetmap
+Panthers' Practice Field #2,football,pitch,35.2294614,-80.8527466,,,NC,,false,true,false,openstreetmap
+Panthers' Practice Field #3,football,pitch,35.2290541,-80.8531326,,,NC,,false,true,false,openstreetmap
+Practice Field,football,pitch,36.2827118,-76.2203514,,,NC,,false,true,false,openstreetmap
+Rams Field At Bowman Gray,football,pitch,36.0827272,-80.2220457,,,NC,,false,true,false,openstreetmap
+Randleman Stadium,football,stadium,35.8252567,-79.8201063,,,NC,,false,true,false,openstreetmap
+Rhodes Stadium,football,stadium,36.1101151,-79.5077912,,,NC,,false,true,false,openstreetmap
+Rick Holliday Stadium,football,stadium,34.2969441,-77.8709085,,,NC,,false,true,false,openstreetmap
+Truist Field,football,pitch,36.1305719,-80.2545585,,,NC,,false,true,false,openstreetmap
+Tucker Field,football,pitch,36.1097344,-79.5051124,,,NC,,false,true,false,openstreetmap
+"Vernon T. Bradley, Jr. Football Field",football,pitch,36.0121777,-77.7775762,,,NC,,false,true,false,openstreetmap
+"Vernon T. Bradley, Jr. Stadium",football,pitch,36.012764,-77.7730619,,,NC,,false,true,false,openstreetmap
+Vikings Football,football,pitch,36.1243004,-78.6744461,,,NC,,false,true,false,openstreetmap
+Vikings Stadium,football,stadium,34.2015261,-77.8916752,,,NC,,false,true,false,openstreetmap
+Wayne T. Day Family Field,football,pitch,35.8007959,-78.7194703,,,NC,,false,true,false,openstreetmap
+Woodruff Stadium,football,pitch,36.5109647,-81.124582,,,NC,,false,true,false,openstreetmap
+Kenan Stadium,football,stadium,35.9069392,-79.0479393,104 Stadium Drive,Chapel Hill,NC,27514,false,true,false,openstreetmap
+Hough High School Football / Lacrosse Field,football,pitch,35.4660128,-80.8295436,Bailey Road,Cornelius,NC,,false,true,false,openstreetmap
+E.J. Whitmire Stadium,football,stadium,35.3048142,-83.182418,Catamount Road,Cullowhee,NC,28723,false,true,false,openstreetmap
+Carter-Finley Stadium,football,stadium,35.8007951,-78.7197045,4600 Trinity Rd,Raleigh,NC,27607,false,true,false,openstreetmap
+George Blanton Memorial Stadium,football,stadium,35.2740927,-81.5365149,,Shelby,NC,28152,false,true,false,openstreetmap

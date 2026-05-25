@@ -1,0 +1,171 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+5v5 A,soccer,pitch,42.6232859,-71.5035026,,,MA,,false,true,false,openstreetmap
+5v5 B,soccer,pitch,42.6233131,-71.5039157,,,MA,,false,true,false,openstreetmap
+5v5 C,soccer,pitch,42.6237225,-71.5034526,,,MA,,false,true,false,openstreetmap
+5v5 D,soccer,pitch,42.6237492,-71.5038636,,,MA,,false,true,false,openstreetmap
+A,soccer,pitch,42.4461462,-71.6486025,,,MA,,false,true,false,openstreetmap
+Adams Field,soccer,pitch,42.6310729,-71.9126461,,,MA,,false,true,false,openstreetmap
+Almy Field,soccer,pitch,42.2588894,-71.1842946,,,MA,,false,true,false,openstreetmap
+Alumni Field,soccer,pitch,42.5046243,-70.8940385,,,MA,,false,true,false,openstreetmap
+Alumni Field,soccer,pitch,42.5619364,-71.2775782,,,MA,,false,true,false,openstreetmap
+Argenziano Field,soccer,pitch,42.3783813,-71.0991985,,,MA,,false,true,false,openstreetmap
+Athletic Field & Track,soccer,pitch,42.3157355,-71.7910866,,,MA,,false,true,false,openstreetmap
+B1,soccer,pitch,42.446231,-71.6495766,,,MA,,false,true,false,openstreetmap
+B2,soccer,pitch,42.4458424,-71.6495559,,,MA,,false,true,false,openstreetmap
+Barber Field,soccer,pitch,42.312184,-71.5310621,,,MA,,false,true,false,openstreetmap
+Bliss Soccer Fields,soccer,pitch,41.9021124,-71.2463902,,,MA,,false,true,false,openstreetmap
+Bond Road Soccer Fields,soccer,pitch,42.1204185,-71.9463006,,,MA,,false,true,false,openstreetmap
+Brigham Soccer Field,soccer,pitch,42.5879723,-70.8292569,,,MA,,false,true,false,openstreetmap
+Burlington Soccer,soccer,pitch,42.4808711,-71.1927646,,,MA,,false,true,false,openstreetmap
+Bus Barn,soccer,pitch,42.3368533,-71.3003394,,,MA,,false,true,false,openstreetmap
+C Field,soccer,pitch,42.3560486,-71.1001228,,,MA,,false,true,false,openstreetmap
+C1,soccer,pitch,42.4462547,-71.6478041,,,MA,,false,true,false,openstreetmap
+C2,soccer,pitch,42.44624,-71.6474709,,,MA,,false,true,false,openstreetmap
+C3,soccer,pitch,42.4462822,-71.647072,,,MA,,false,true,false,openstreetmap
+Cabbage Patch,soccer,pitch,42.463432,-71.0659543,,,MA,,false,true,false,openstreetmap
+Cansbrooke Soccer Field,soccer,pitch,42.3610101,-71.4858371,,,MA,,false,true,false,openstreetmap
+Capuano Field,soccer,pitch,42.3828262,-71.0863928,,,MA,,false,true,false,openstreetmap
+Chadwick Field,soccer,pitch,42.6954291,-71.014567,,,MA,,false,true,false,openstreetmap
+Chauncey Fields,soccer,pitch,42.2984787,-71.6096079,,,MA,,false,true,false,openstreetmap
+Chauncey Fields,soccer,pitch,42.2975797,-71.6068787,,,MA,,false,true,false,openstreetmap
+Class of 1985 Field,soccer,pitch,42.359204,-71.2178413,,,MA,,false,true,false,openstreetmap
+Clipper Community Complex,soccer,pitch,42.1543812,-70.8419676,,,MA,,false,true,false,openstreetmap
+Cole North,soccer,pitch,42.289981,-71.3918877,,,MA,,false,true,false,openstreetmap
+Cole South,soccer,pitch,42.2882001,-71.3912641,,,MA,,false,true,false,openstreetmap
+Concord Middle School Soccer Field 1,soccer,pitch,42.439723,-71.3970349,,,MA,,false,true,false,openstreetmap
+Concord Middle School Soccer Field 2,soccer,pitch,42.4391554,-71.3979756,,,MA,,false,true,false,openstreetmap
+Cow Pond 2,soccer,pitch,42.6235606,-71.5046488,,,MA,,false,true,false,openstreetmap
+Cow Pond 3,soccer,pitch,42.6235086,-71.5036832,,,MA,,false,true,false,openstreetmap
+Cumnock Field II,soccer,pitch,42.3706941,-71.1286583,,,MA,,false,true,false,openstreetmap
+Cumnock Field IV,soccer,pitch,42.3719897,-71.1285055,,,MA,,false,true,false,openstreetmap
+Cumnock Field V,soccer,pitch,42.3711433,-71.1278564,,,MA,,false,true,false,openstreetmap
+Cutting Field,soccer,pitch,42.4059211,-71.4398376,,,MA,,false,true,false,openstreetmap
+D Field,soccer,pitch,42.3556662,-71.1012643,,,MA,,false,true,false,openstreetmap
+Daly Field,soccer,pitch,42.3585895,-71.1683741,,,MA,,false,true,false,openstreetmap
+Doherty Water Field,soccer,pitch,42.6530366,-71.135064,,,MA,,false,true,false,openstreetmap
+E. Leo Madden Field,soccer,pitch,42.2416482,-70.9510298,,,MA,,false,true,false,openstreetmap
+East Field,soccer,pitch,42.160346,-70.8175908,,,MA,,false,true,false,openstreetmap
+East Knoll Field,soccer,pitch,42.4628447,-71.0648364,,,MA,,false,true,false,openstreetmap
+Edge Sports Center,soccer,pitch,42.4767162,-71.2918744,,,MA,,false,true,false,openstreetmap
+Edge Sports Center,soccer,pitch,42.4774364,-71.2927565,,,MA,,false,true,false,openstreetmap
+Edgerly Field,soccer,pitch,42.4321847,-71.1261295,,,MA,,false,true,false,openstreetmap
+F1,soccer,pitch,42.5150165,-71.6958513,,,MA,,false,true,false,openstreetmap
+F10,soccer,pitch,42.5138487,-71.6948486,,,MA,,false,true,false,openstreetmap
+F2,soccer,pitch,42.515908,-71.6957686,,,MA,,false,true,false,openstreetmap
+F3,soccer,pitch,42.51575,-71.6948134,,,MA,,false,true,false,openstreetmap
+F4,soccer,pitch,42.5168948,-71.6954682,,,MA,,false,true,false,openstreetmap
+F5,soccer,pitch,42.5167345,-71.6945069,,,MA,,false,true,false,openstreetmap
+F6,soccer,pitch,42.5159252,-71.693416,,,MA,,false,true,false,openstreetmap
+F7,soccer,pitch,42.5150549,-71.6936285,,,MA,,false,true,false,openstreetmap
+F8,soccer,pitch,42.5140093,-71.6936755,,,MA,,false,true,false,openstreetmap
+F9,soccer,pitch,42.5132536,-71.6937448,,,MA,,false,true,false,openstreetmap
+Fenn Field,soccer,pitch,42.4744276,-71.3472271,,,MA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,42.4236482,-71.3139453,,,MA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.5489511,-71.4114017,,,MA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.0519525,-70.7949774,,,MA,,false,true,false,openstreetmap
+Field 1 (1a + 1b),soccer,pitch,42.0132866,-71.243267,,,MA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,42.2154794,-71.5245212,,,MA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,42.2145312,-71.5260368,,,MA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,41.930126,-71.1219981,,,MA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,42.2124182,-71.5248077,,,MA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,41.9301755,-71.1211893,,,MA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,41.9302385,-71.1203865,,,MA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,41.9303015,-71.1195795,,,MA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.54857,-71.4108569,,,MA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.0515693,-70.7941365,,,MA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.5483531,-71.4127209,,,MA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.0508317,-70.7951078,,,MA,,false,true,false,openstreetmap
+Field 31,soccer,pitch,42.0106441,-71.2438731,,,MA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.5481059,-71.4119776,,,MA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.0518166,-70.7963249,,,MA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.5478439,-71.4124091,,,MA,,false,true,false,openstreetmap
+Field 5A,soccer,pitch,42.7487284,-70.9278015,,,MA,,false,true,false,openstreetmap
+Field 5B,soccer,pitch,42.7488662,-70.9272705,,,MA,,false,true,false,openstreetmap
+Field Four,soccer,pitch,42.748507,-70.9257654,,,MA,,false,true,false,openstreetmap
+Field Three,soccer,pitch,42.7481673,-70.9271259,,,MA,,false,true,false,openstreetmap
+Fifer's Field,soccer,pitch,42.5101404,-71.5342469,,,MA,,false,true,false,openstreetmap
+Gallagher Field at Town Farm,soccer,pitch,42.6830192,-71.0839849,,,MA,,false,true,false,openstreetmap
+Game Field,soccer,pitch,42.3445866,-71.1953451,,,MA,,false,true,false,openstreetmap
+Gillian Tara Shore Memorial Field,soccer,pitch,42.3058382,-71.4650899,,,MA,,false,true,false,openstreetmap
+Glavin Soccer Field,soccer,pitch,42.2706264,-71.7234734,,,MA,,false,true,false,openstreetmap
+Goodrich Field,soccer,pitch,42.3583069,-71.2177618,,,MA,,false,true,false,openstreetmap
+Gordon Field,soccer,pitch,42.3633353,-71.2575117,,,MA,,false,true,false,openstreetmap
+Great Hill Field,soccer,pitch,42.4631702,-71.4505688,,,MA,,false,true,false,openstreetmap
+Greene Field,soccer,pitch,42.2592909,-71.1861368,,,MA,,false,true,false,openstreetmap
+Grover Field,soccer,pitch,42.0656048,-71.5214598,,,MA,,false,true,false,openstreetmap
+Hartwell-Rogers Field,soccer,pitch,42.296436,-71.267929,,,MA,,false,true,false,openstreetmap
+Hedley Soccer Field,soccer,pitch,42.3167088,-71.1596573,,,MA,,false,true,false,openstreetmap
+Henry T. Wing Soccer Field,soccer,pitch,41.7514747,-70.493885,,,MA,,false,true,false,openstreetmap
+Hill's Hill Field,soccer,pitch,42.4243925,-71.17141,,,MA,,false,true,false,openstreetmap
+Hilstrom Farm Field,soccer,pitch,42.1082361,-71.0015923,,,MA,,false,true,false,openstreetmap
+James M. Salah Soccer Field,soccer,pitch,42.1750638,-71.1449059,,,MA,,false,true,false,openstreetmap
+Keefe Field,soccer,pitch,41.967147,-71.1798759,,,MA,,false,true,false,openstreetmap
+Kraft Field,soccer,pitch,42.4025551,-71.117925,,,MA,,false,true,false,openstreetmap
+Landry Soccer Field,soccer,pitch,42.6226826,-71.9243106,,,MA,,false,true,false,openstreetmap
+Lavacchia Field,soccer,pitch,42.5136634,-71.1615077,,,MA,,false,true,false,openstreetmap
+Linda Johnson Smith Soccer Stadium,soccer,pitch,42.2340533,-71.8045286,,,MA,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,41.9138296,-71.304857,,,MA,,false,true,false,openstreetmap
+Martin Field,soccer,pitch,42.6318417,-71.9109107,,,MA,,false,true,false,openstreetmap
+Mason Field,soccer,pitch,42.2580395,-71.1847416,,,MA,,false,true,false,openstreetmap
+Maynard High School Practice Field,soccer,pitch,42.4223004,-71.4523415,,,MA,,false,true,false,openstreetmap
+McCurdy Track,soccer,pitch,42.5298608,-71.5827276,,,MA,,false,true,false,openstreetmap
+McElhiney Field,soccer,pitch,42.4776091,-71.1847202,,,MA,,false,true,false,openstreetmap
+Merrimac Town Forest Soccer Fields (Beaumont Pitch),soccer,pitch,42.8389583,-71.0165022,,,MA,,false,true,false,openstreetmap
+Middle Field,soccer,pitch,42.4608039,-71.3559642,,,MA,,false,true,false,openstreetmap
+Middlesex School soccer field,soccer,pitch,42.4978437,-71.3611115,,,MA,,false,true,false,openstreetmap
+Mirrione Stadium,soccer,pitch,41.9655374,-71.1801896,,,MA,,false,true,false,openstreetmap
+Murphy Field,soccer,pitch,42.5775779,-71.3297217,,,MA,,false,true,false,openstreetmap
+Murray Field,soccer,pitch,42.3595161,-71.1456083,,,MA,,false,true,false,openstreetmap
+NEFC,soccer,pitch,42.0975293,-71.5036357,,,MA,,false,true,false,openstreetmap
+NEFC,soccer,pitch,42.0974007,-71.5044891,,,MA,,false,true,false,openstreetmap
+North Andover Middle School Soccer Field,soccer,pitch,42.6916402,-71.1224712,,,MA,,false,true,false,openstreetmap
+North Andover Middle School Soccer Field #2,soccer,pitch,42.6913779,-71.1231648,,,MA,,false,true,false,openstreetmap
+Ohiri Field,soccer,pitch,42.3653861,-71.1255743,,,MA,,false,true,false,openstreetmap
+Oneida Tablet,soccer,pitch,42.356232,-71.0671781,,,MA,,false,true,false,openstreetmap
+Pee Wee Soccer Field,soccer,pitch,42.2714158,-72.4110342,,,MA,,false,true,false,openstreetmap
+Pike School Soccer Field,soccer,pitch,42.6309311,-71.1333203,,,MA,,false,true,false,openstreetmap
+Pine Bluff Soccer Field #1,soccer,pitch,42.4076919,-71.4999524,,,MA,,false,true,false,openstreetmap
+Pine Bluff Soccer Field #2,soccer,pitch,42.4073415,-71.4993089,,,MA,,false,true,false,openstreetmap
+Pine Street Fields,soccer,pitch,42.1444853,-70.8004496,,,MA,,false,true,false,openstreetmap
+Pony Express Fields,soccer,pitch,42.6512532,-70.8177387,,,MA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,42.232902,-71.803392,,,MA,,false,true,false,openstreetmap
+Rec Sports Field,soccer,pitch,42.0528564,-71.0805027,,,MA,,false,true,false,openstreetmap
+Ronald J. Abdow Field,soccer,pitch,42.1173341,-72.5531072,,,MA,,false,true,false,openstreetmap
+Rooftop Field,soccer,pitch,42.2758283,-71.8102341,,,MA,,false,true,false,openstreetmap
+Rose Field,soccer,pitch,41.9791899,-71.3357539,,,MA,,false,true,false,openstreetmap
+Rotch Field,soccer,pitch,42.3416646,-71.0641351,,,MA,,false,true,false,openstreetmap
+Rudd Field,soccer,pitch,42.3825012,-72.5358535,,,MA,,false,true,false,openstreetmap
+Ryan Connolly Field,soccer,pitch,42.4649834,-71.1318503,,,MA,,false,true,false,openstreetmap
+Ryan Flannery Memorial Field,soccer,pitch,42.2162315,-70.762748,,,MA,,false,true,false,openstreetmap
+Sauta Cornfield Athletic Area,soccer,pitch,42.3879031,-71.5130245,,,MA,,false,true,false,openstreetmap
+Shrewsbury Youth Soccer Field,soccer,pitch,42.2686977,-71.7239305,,,MA,,false,true,false,openstreetmap
+Skyhawk Field,soccer,pitch,42.0547749,-71.0763006,,,MA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,42.8599234,-70.9541584,,,MA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,42.8608888,-70.9530346,,,MA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,42.8593965,-70.9506662,,,MA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,42.8588694,-70.9507857,,,MA,,false,true,false,openstreetmap
+Soccer,soccer,pitch,42.66016,-70.960341,,,MA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,42.2111874,-73.3854805,,,MA,,false,true,false,openstreetmap
+South Building Field,soccer,pitch,42.6171334,-71.576897,,,MA,,false,true,false,openstreetmap
+Suprenant Field,soccer,pitch,42.1123494,-72.5152581,,,MA,,false,true,false,openstreetmap
+Thayer Field,soccer,pitch,42.3106494,-71.5343187,,,MA,,false,true,false,openstreetmap
+Themeles Field,soccer,pitch,42.6322577,-71.2768555,,,MA,,false,true,false,openstreetmap
+Thirds Field,soccer,pitch,42.4755533,-71.3487577,,,MA,,false,true,false,openstreetmap
+Treasure Land Soccer Fields,soccer,pitch,42.1210329,-71.8680911,,,MA,,false,true,false,openstreetmap
+Trustee Field,soccer,pitch,42.2928693,-71.1924177,,,MA,,false,true,false,openstreetmap
+Turf Field,soccer,pitch,42.6564501,-71.4065087,,,MA,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,42.4607592,-71.3543847,,,MA,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,41.9158539,-71.3036017,,,MA,,false,true,false,openstreetmap
+West Knoll Field,soccer,pitch,42.4623612,-71.067561,,,MA,,false,true,false,openstreetmap
+Westford Community Field,soccer,pitch,42.6055099,-71.4456589,,,MA,,false,true,false,openstreetmap
+Weston Pond,soccer,recreation_ground,42.175063,-71.470117,,,MA,,false,true,false,openstreetmap
+Westwood Lodge Field,soccer,pitch,42.2078834,-71.2238437,,,MA,,false,true,false,openstreetmap
+Whitefield Field,soccer,pitch,42.5672158,-71.1608972,,,MA,,false,true,false,openstreetmap
+Wildcat,soccer,pitch,42.3373211,-71.3063844,,,MA,,false,true,false,openstreetmap
+soccer,soccer,pitch,42.5099815,-71.592338,,,MA,,false,true,false,openstreetmap
+soccer,soccer,pitch,42.5099856,-71.5936871,,,MA,,false,true,false,openstreetmap
+soccer,soccer,pitch,42.4101999,-72.0941602,,,MA,,false,true,false,openstreetmap
+New Balance Field,soccer,pitch,42.3535301,-71.1218565,278 Babcock Street,Boston,MA,02215,false,true,false,openstreetmap
+Hudson Portuguese Club,soccer,pitch,42.3850721,-71.5797842,13 Port Street,Hudson,MA,01749,false,true,false,openstreetmap
+Valeo Sports Center,soccer,sports_centre,42.2914022,-71.1960513,125 Wells Avenue,Newton,MA,02459,false,true,false,openstreetmap
+Reavis Field,soccer,pitch,42.3876319,-71.0973485,81 Highland Avenue,Somerville,MA,02143,false,true,false,openstreetmap

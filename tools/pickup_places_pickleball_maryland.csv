@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Columbia Gateway Drive Pickleball Court,pickleball,pitch,39.178959,-76.8075726,,,MD,,false,true,false,openstreetmap
+Owen Brown Pickleball Courts,pickleball,pitch,39.1877417,-76.8413422,,,MD,,false,true,false,openstreetmap
+Pickle Factory,pickleball,fitness_centre,39.556501,-76.2781991,2302 East Churchville Road,Bel Air,MD,21015,false,true,false,openstreetmap
+Dill Dinkers Pickleball,pickleball,pitch,39.4927822,-76.8842209,2950 Dede Road,Finksburg,MD,21048,false,true,false,openstreetmap

@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+City Hall Park Pickleball Courts,pickleball,pitch,45.1975472,-93.0839081,,,MN,,false,true,false,openstreetmap
+Pickleball courts,pickleball,pitch,45.2436067,-92.9959,,,MN,,false,true,false,openstreetmap
+The Premier Pickleball Club of Minnesota,pickleball,pitch,45.1044649,-93.3886332,,,MN,,false,true,false,openstreetmap
+Watermark Way Pickleball Courts,pickleball,pitch,45.1769975,-93.0375991,,,MN,,false,true,false,openstreetmap
+Chip's Pickleball Club,pickleball,pitch,44.8344327,-93.1399417,980 Discovery Road,Eagan,MN,,false,true,false,openstreetmap
+Champions Hall Sport & Event Center,pickleball,pitch,44.8760067,-93.4007208,7000 Washington Avenue South,Eden Prairie,MN,55344,false,true,false,openstreetmap
+Lucky Shots Pickleball Club,pickleball,pitch,45.0284611,-93.261446,3300 5th Street Northeast,Minneapolis,MN,55418,false,true,false,openstreetmap

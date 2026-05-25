@@ -1,0 +1,32 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bennie Purcell Tennis Courts,tennis,pitch,36.6164192,-88.319269,,,KY,,false,true,false,openstreetmap
+Boone Tennis Center,tennis,sports_centre,38.0267441,-84.5029205,,,KY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.5429906,-82.7415967,,,KY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.3404606,-82.9458958,,,KY,,false,true,false,openstreetmap
+Court 1,tennis,pitch,37.7373523,-83.0757838,,,KY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.5429659,-82.7414314,,,KY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.3405458,-82.945771,,,KY,,false,true,false,openstreetmap
+Court 2,tennis,pitch,37.7374847,-83.0757829,,,KY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.5429404,-82.7412673,,,KY,,false,true,false,openstreetmap
+Court 3,tennis,pitch,37.7376132,-83.0757829,,,KY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,38.5429115,-82.7411031,,,KY,,false,true,false,openstreetmap
+Court 4,tennis,pitch,37.7377485,-83.0757737,,,KY,,false,true,false,openstreetmap
+Court A,tennis,pitch,37.7503375,-83.0720257,,,KY,,false,true,false,openstreetmap
+Court B,tennis,pitch,37.7503676,-83.0718638,,,KY,,false,true,false,openstreetmap
+Court C,tennis,pitch,37.7503986,-83.0716996,,,KY,,false,true,false,openstreetmap
+Court D,tennis,pitch,37.7504305,-83.0715409,,,KY,,false,true,false,openstreetmap
+Crosby Park Tennis Courts,tennis,pitch,38.2504713,-85.5402448,,,KY,,false,true,false,openstreetmap
+Doc Hosbach Tennis Complex,tennis,park,37.8391719,-87.5952222,,,KY,,false,true,false,openstreetmap
+Drees Center Court,tennis,pitch,39.068055,-84.5324108,,,KY,,false,true,false,openstreetmap
+George A. Sadler Courts,tennis,pitch,38.19269,-83.4274665,,,KY,,false,true,false,openstreetmap
+Lake Forest Country Club Tennis Court,tennis,pitch,38.2663541,-85.4841177,,,KY,,false,true,false,openstreetmap
+Louisville Tennis Center,tennis,sports_centre,38.2081726,-85.7093281,,,KY,,false,true,false,openstreetmap
+Mahaffey Middle School,tennis,pitch,36.6416248,-87.4413289,,,KY,,false,true,false,openstreetmap
+Mahaffey Middle School,tennis,pitch,36.6416572,-87.4411734,,,KY,,false,true,false,openstreetmap
+Mahaffey Middle School,tennis,pitch,36.6419587,-87.4412814,,,KY,,false,true,false,openstreetmap
+Mahaffey Middle School,tennis,pitch,36.6419284,-87.4414232,,,KY,,false,true,false,openstreetmap
+Neighborhood Tennis Courts,tennis,pitch,37.0777751,-88.6658147,,,KY,,false,true,false,openstreetmap
+Springhurst Tennis Club,tennis,sports_centre,38.3058729,-85.570825,,,KY,,false,true,false,openstreetmap
+University of the Cumberlands Tennis Courts,tennis,pitch,36.7350175,-84.1707011,,,KY,,false,true,false,openstreetmap
+Yung Family Tennis Complex,tennis,sports_centre,39.0682382,-84.532521,,,KY,,false,true,false,openstreetmap
+Bass-Rudd Tennis Center,tennis,sports_centre,38.2135053,-85.7533901,2311 South Floyd Street,Louisville,KY,40208,false,true,false,openstreetmap

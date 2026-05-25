@@ -1,0 +1,64 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+AMCAT Field,football,pitch,42.3269719,-71.9169295,,,MA,,false,true,false,openstreetmap
+Alumni Field,football,pitch,42.29519,-71.1949364,,,MA,,false,true,false,openstreetmap
+Alumni Stadium,football,stadium,42.3350908,-71.1662887,,,MA,,false,true,false,openstreetmap
+Ballot-DelRossi Memorial Field,football,pitch,42.5978535,-71.2085661,,,MA,,false,true,false,openstreetmap
+Bradley Fuller Field Track,football,pitch,42.8079381,-70.8827616,,,MA,,false,true,false,openstreetmap
+Brooks Field,football,pitch,42.2511849,-71.0900194,,,MA,,false,true,false,openstreetmap
+Brother Gilbert Stadium,football,pitch,42.427738,-71.047999,,,MA,,false,true,false,openstreetmap
+Burr Field,football,pitch,42.2582207,-71.1860545,,,MA,,false,true,false,openstreetmap
+"Captain Gerald F. DeConto, USN Veterans Memorial Stadium",football,pitch,41.7346795,-70.4607444,365 Quaker Meetinghouse Road,,MA,,false,true,false,openstreetmap
+Challahan Football Field,football,pitch,42.2386305,-72.145351,,,MA,,false,true,false,openstreetmap
+Community Turf,football,pitch,42.1101406,-70.7414473,,,MA,,false,true,false,openstreetmap
+Cotter Field,football,pitch,42.3159051,-71.0437831,,,MA,,false,true,false,openstreetmap
+Crocker Field,football,pitch,42.5860431,-71.8082908,,,MA,,false,true,false,openstreetmap
+Dickinson Field,football,pitch,42.3451509,-71.2089219,,,MA,,false,true,false,openstreetmap
+Faxon Field,football,pitch,42.2556382,-70.9982403,,,MA,,false,true,false,openstreetmap
+Filton Field,football,pitch,42.2415609,-71.8099612,,,MA,,false,true,false,openstreetmap
+Gladchuck,football,pitch,42.3794893,-72.5388232,,,MA,,false,true,false,openstreetmap
+Harvard Stadium,football,stadium,42.3666927,-71.1267252,,,MA,,false,true,false,openstreetmap
+Hormel Stadium,football,pitch,42.4083967,-71.0968213,,,MA,,false,true,false,openstreetmap
+Hurd Stadium,football,pitch,42.5567161,-70.8696643,,,MA,,false,true,false,openstreetmap
+James G. Anderson Field,football,pitch,42.108042,-70.7402633,,,MA,,false,true,false,openstreetmap
+Keller Field,football,pitch,42.2635737,-71.1865551,,,MA,,false,true,false,openstreetmap
+Knowlton Stadium,football,pitch,42.4491323,-71.1357071,,,MA,,false,true,false,openstreetmap
+Kumin-Loring Field,football,pitch,42.3571187,-71.2169029,,,MA,,false,true,false,openstreetmap
+Kuzniewski Field,football,pitch,42.2323632,-71.8040712,,,MA,,false,true,false,openstreetmap
+Landrigan Field,football,pitch,42.493644,-71.0489161,,,MA,,false,true,false,openstreetmap
+Landry Memorial Stadium,football,stadium,42.8495939,-70.9277411,,,MA,,false,true,false,openstreetmap
+Leary Field,football,pitch,42.4781525,-71.4582217,,,MA,,false,true,false,openstreetmap
+Lexington High School Football Field,football,pitch,42.4447256,-71.2348754,,,MA,,false,true,false,openstreetmap
+Lower Fields,football,pitch,42.4794327,-71.454651,,,MA,,false,true,false,openstreetmap
+Masconomet Regional High School Football Field,football,pitch,42.6277337,-70.9725121,,,MA,,false,true,false,openstreetmap
+McGuirk Alumni Stadium,football,pitch,42.3773033,-72.53602,,,MA,,false,true,false,openstreetmap
+Memorial Field,football,pitch,42.2713209,-71.3623438,,,MA,,false,true,false,openstreetmap
+Michael Horne Stadium,football,pitch,41.6132776,-70.5074939,,,MA,,false,true,false,openstreetmap
+Minuteman High School,football,pitch,42.4461577,-71.2700322,,,MA,,false,true,false,openstreetmap
+Morgan Bowl,football,pitch,42.3797399,-71.581623,,,MA,,false,true,false,openstreetmap
+Myers Field,football,pitch,42.4005625,-71.4024424,,,MA,,false,true,false,openstreetmap
+New Balance Stadium,football,pitch,42.6116741,-70.6742759,,,MA,,false,true,false,openstreetmap
+New England Patriots Practice Facility,football,sports_centre,42.088776,-71.2639556,,,MA,,false,true,false,openstreetmap
+Newburyport High School football field,football,pitch,42.8122364,-70.8866968,,,MA,,false,true,false,openstreetmap
+Nikitas Field,football,pitch,42.5705109,-71.812686,,,MA,,false,true,false,openstreetmap
+North Andover Middle School Football Field,football,pitch,42.6908725,-71.1238499,,,MA,,false,true,false,openstreetmap
+Norwell High School Stadium Field,football,pitch,42.1541722,-70.8431801,,,MA,,false,true,false,openstreetmap
+O'Connell Field,football,pitch,42.2785514,-71.8042985,,,MA,,false,true,false,openstreetmap
+Oliver Ames High School Muscato Stadium,football,pitch,42.0527687,-71.1114873,,,MA,,false,true,false,openstreetmap
+Phelp's Stadium,football,stadium,42.6428669,-71.1286735,,,MA,,false,true,false,openstreetmap
+Practice Field,football,pitch,42.3441361,-71.1937223,,,MA,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,41.6121877,-70.5051644,,,MA,,false,true,false,openstreetmap
+Russell Field,football,pitch,42.3963099,-71.1378606,,,MA,,false,true,false,openstreetmap
+Sabourin Field,football,stadium,42.4890136,-71.2851844,,,MA,,false,true,false,openstreetmap
+Sager Bowl,football,pitch,42.750847,-70.8984081,,,MA,,false,true,false,openstreetmap
+Shrewsbury High School Football Field,football,pitch,42.3014815,-71.745327,,,MA,,false,true,false,openstreetmap
+Stagg Field,football,pitch,42.1054643,-72.5538182,,,MA,,false,true,false,openstreetmap
+Tiger Alumni Field,football,pitch,42.5440838,-71.4839233,,,MA,,false,true,false,openstreetmap
+Triton Memorial Field,football,pitch,42.745964,-70.9179731,,,MA,,false,true,false,openstreetmap
+VFW Memorial Knights Football Field,football,pitch,42.1303093,-71.1082526,,,MA,,false,true,false,openstreetmap
+Vendetti Field,football,pitch,42.0426435,-71.9277415,,,MA,,false,true,false,openstreetmap
+W.B. Mason Stadium,football,pitch,42.0572909,-71.0823808,,,MA,,false,true,false,openstreetmap
+Warren P. McGuirk Alumni Stadium,football,stadium,42.3773125,-72.5360189,,,MA,,false,true,false,openstreetmap
+Watkins Field,football,pitch,42.5839488,-71.9772422,,,MA,,false,true,false,openstreetmap
+Westborough High School Football Field,football,pitch,42.2628531,-71.6157017,,,MA,,false,true,false,openstreetmap
+Westborough High School Second football field,football,pitch,42.2619248,-71.6166278,,,MA,,false,true,false,openstreetmap
+Westford Academy,football,pitch,42.5765788,-71.4652655,,,MA,,false,true,false,openstreetmap

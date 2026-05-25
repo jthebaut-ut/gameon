@@ -1,0 +1,14 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Albertsons Stadium,football,stadium,43.6027074,-116.1959855,,,ID,,false,true,false,openstreetmap
+Albertsons Stadium at Lyle Smith Field,football,pitch,43.6028619,-116.1958633,,,ID,,false,true,false,openstreetmap
+Bengal Field,football,pitch,46.4086217,-117.0116641,,,ID,,false,true,false,openstreetmap
+DeChevrieux Field,football,pitch,43.6018635,-116.1984685,,,ID,,false,true,false,openstreetmap
+Irving Middle School Football Field,football,pitch,42.8647541,-112.4628225,,,ID,,false,true,false,openstreetmap
+John Grager Field,football,pitch,47.4705839,-115.7896715,,,ID,,false,true,false,openstreetmap
+Lookout Credit Union Field,football,pitch,42.8924751,-112.4719375,,,ID,,false,true,false,openstreetmap
+Millick Field,football,pitch,44.5096177,-114.2271554,,,ID,,false,true,false,openstreetmap
+New Plymouth High School Football Field,football,pitch,43.9610048,-116.8209827,,,ID,,false,true,false,openstreetmap
+Stands,football,stadium,44.2633154,-116.9803956,,,ID,,false,true,false,openstreetmap
+Stands,football,stadium,44.2632029,-116.9807815,,,ID,,false,true,false,openstreetmap
+Stands,football,stadium,44.2624175,-116.9785318,,,ID,,false,true,false,openstreetmap
+Stands,football,stadium,44.2624193,-116.9786486,,,ID,,false,true,false,openstreetmap

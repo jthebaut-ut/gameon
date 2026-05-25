@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Stadium,football,pitch,39.18934,-75.5432041,,,DE,,false,true,false,openstreetmap
+Bill Cole Stadium,football,pitch,39.6672519,-75.5867654,,,DE,,false,true,false,openstreetmap
+Delaware Stadium,football,stadium,39.6617421,-75.7489583,,,DE,,false,true,false,openstreetmap
+Eagles,football,pitch,39.2978568,-75.6255702,,,DE,,false,true,false,openstreetmap
+Frazer Football Field 1,football,pitch,39.6853326,-75.7499486,,,DE,,false,true,false,openstreetmap
+Frazer Football Field 2,football,pitch,39.6849426,-75.749888,,,DE,,false,true,false,openstreetmap
+Frazer Football Field 3,football,pitch,39.6845536,-75.7498283,,,DE,,false,true,false,openstreetmap
+Practice field,football,pitch,39.4475414,-75.695229,,,DE,,false,true,false,openstreetmap
+Tubby Raymond Field,football,pitch,39.6617258,-75.7488244,,,DE,,false,true,false,openstreetmap

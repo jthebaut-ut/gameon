@@ -1,0 +1,46 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Adair-Kennedy Memorial Field,baseball,pitch,58.3863336,-134.5695904,,,AK,,false,true,false,openstreetmap
+Akutan Basebal Field,baseball,pitch,54.1340249,-165.7758634,,,AK,,false,true,false,openstreetmap
+Arco Field,baseball,pitch,64.8436715,-147.7600706,,,AK,,false,true,false,openstreetmap
+Avery Lawrence David Memorial Baseball Field,baseball,pitch,62.9342597,-143.789497,,,AK,,false,true,false,openstreetmap
+Baranof Baseball Field,baseball,pitch,57.796571,-152.3867518,,,AK,,false,true,false,openstreetmap
+Baseball/Softball Diamond,baseball,pitch,61.6078155,-149.2205781,,,AK,,false,true,false,openstreetmap
+Coon Field,baseball,pitch,57.795297,-152.3932996,,,AK,,false,true,false,openstreetmap
+Coral Seymour Ballpark,baseball,pitch,60.5588887,-151.2026897,,,AK,,false,true,false,openstreetmap
+Creekside Park Baseball,baseball,pitch,61.2162987,-149.7459005,,,AK,,false,true,false,openstreetmap
+Darin Franus Baseball Field,baseball,pitch,64.8396018,-147.7628451,,,AK,,false,true,false,openstreetmap
+Durst Field,baseball,pitch,61.2019166,-149.9453112,,,AK,,false,true,false,openstreetmap
+East Elementary Park,baseball,pitch,57.8053189,-152.3690458,,,AK,,false,true,false,openstreetmap
+Goldpanner Field,baseball,pitch,64.8410625,-147.7583283,,,AK,,false,true,false,openstreetmap
+Growden Field #4,baseball,pitch,64.8403892,-147.753192,,,AK,,false,true,false,openstreetmap
+Growden Field #5,baseball,pitch,64.8406875,-147.7555286,,,AK,,false,true,false,openstreetmap
+Hermon Brothers Field,baseball,pitch,61.5786582,-149.1312624,,,AK,,false,true,false,openstreetmap
+Homer High School Baseball Soccer Field,baseball,pitch,59.6519419,-151.5243302,,,AK,,false,true,false,openstreetmap
+Jack Gist Field,baseball,pitch,59.657957,-151.4820914,,,AK,,false,true,false,openstreetmap
+Jack Gist Field,baseball,pitch,59.6590509,-151.4811872,,,AK,,false,true,false,openstreetmap
+Junior Field #3,baseball,pitch,64.8411522,-147.7527794,,,AK,,false,true,false,openstreetmap
+Kelty Field,baseball,pitch,53.8560564,-166.5066476,,,AK,,false,true,false,openstreetmap
+Ken Rankin Field,baseball,pitch,64.8386927,-147.7681283,,,AK,,false,true,false,openstreetmap
+Kenai Little League Fields,baseball,sports_centre,60.5575423,-151.2718416,,,AK,,false,true,false,openstreetmap
+King Cove Baseball Field,baseball,pitch,55.0440925,-162.2992479,,,AK,,false,true,false,openstreetmap
+Kiwanis Baseball Field,baseball,pitch,64.8406149,-147.7629786,,,AK,,false,true,false,openstreetmap
+Majors Field #2,baseball,pitch,64.8402875,-147.7513015,,,AK,,false,true,false,openstreetmap
+Marlin Field,baseball,pitch,64.8424361,-147.7610216,,,AK,,false,true,false,openstreetmap
+Michael Daugherty Baseball Field,baseball,pitch,59.6507401,-151.5548064,,,AK,,false,true,false,openstreetmap
+Mort Fryer,baseball,pitch,56.8139103,-132.9452442,,,AK,,false,true,false,openstreetmap
+Mulcahy Field,baseball,pitch,61.205271,-149.8777013,,,AK,,false,true,false,openstreetmap
+Newberry Field,baseball,pitch,59.6501341,-151.5536346,,,AK,,false,true,false,openstreetmap
+Norman Walker Baseball Field,baseball,pitch,55.3444379,-131.635419,Park Avenue,,AK,99901,false,true,false,openstreetmap
+Optimist Field,baseball,pitch,64.8388401,-147.7662677,,,AK,,false,true,false,openstreetmap
+Randy Smith Baseball Field,baseball,pitch,64.855043,-147.752386,,,AK,,false,true,false,openstreetmap
+Sand Point Base Ball Diamond,baseball,pitch,55.3505691,-160.4755374,,,AK,,false,true,false,openstreetmap
+Saul's Field,baseball,pitch,64.9129795,-147.9126555,,,AK,,false,true,false,openstreetmap
+Senior Field #1,baseball,pitch,64.8408695,-147.7506544,,,AK,,false,true,false,openstreetmap
+Seward Little League,baseball,pitch,60.1118227,-149.4394729,,,AK,,false,true,false,openstreetmap
+Sherry Hagen Ballfield,baseball,pitch,59.6503058,-151.5564699,,,AK,,false,true,false,openstreetmap
+Sladen J Mohl Memorial Baseball field,baseball,pitch,60.9602257,-149.1373823,,,AK,,false,true,false,openstreetmap
+St Paul Ballfield-originated in1868,baseball,pitch,57.1215254,-170.2785528,,,AK,,false,true,false,openstreetmap
+Talkeetna Ball Park,baseball,pitch;park,62.3217324,-150.1143754,,,AK,,false,true,false,openstreetmap
+Taylar Young Memorial Field,baseball,pitch,61.1004515,-149.8123248,,,AK,,false,true,false,openstreetmap
+baseball,baseball,pitch,55.4874088,-133.1283708,,,AK,,false,true,false,openstreetmap
+Goldpanners Stadium,baseball,stadium,64.8408034,-147.7586675,201 Wilbur Street,Fairbanks,AK,99701,false,true,false,openstreetmap

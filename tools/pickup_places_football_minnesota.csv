@@ -1,0 +1,87 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+17th Street Field,football,pitch,44.9427661,-95.7060216,,,MN,,false,true,false,openstreetmap
+AHS Football Field,football,pitch,45.2662952,-94.1110546,,,MN,,false,true,false,openstreetmap
+Armitage Field,football,pitch,44.7132067,-96.2839213,,,MN,,false,true,false,openstreetmap
+Bagley High School,football,pitch,47.5313545,-95.3959446,,,MN,,false,true,false,openstreetmap
+Bakken Field,football,pitch,44.957792,-93.0338619,,,MN,,false,true,false,openstreetmap
+Berquist Field,football,pitch,46.0241781,-92.93778,,,MN,,false,true,false,openstreetmap
+Bison Field West,football,pitch,45.1851399,-93.8295029,,,MN,,false,true,false,openstreetmap
+Blackduck School Footbal Field,football,pitch,47.7344112,-94.543422,,,MN,,false,true,false,openstreetmap
+Brantl Field,football,pitch,47.9101779,-96.0461021,,,MN,,false,true,false,openstreetmap
+Cardinal Field,football,pitch,43.6631144,-96.2158108,,,MN,,false,true,false,openstreetmap
+Charger Field,football,pitch,48.147903,-95.8078166,,,MN,,false,true,false,openstreetmap
+Clark Field,football,pitch,45.552325,-94.1632346,,,MN,,false,true,false,openstreetmap
+Darwin Hagen Field,football,pitch,48.3026387,-95.6234529,,,MN,,false,true,false,openstreetmap
+Eagles,football,pitch,43.9818643,-92.2324409,,,MN,,false,true,false,openstreetmap
+Ed Widseth Field,football,pitch,47.7966773,-96.6097827,,,MN,,false,true,false,openstreetmap
+Edor Nelson Athletic Field,football,pitch,44.965035,-93.2385367,,,MN,,false,true,false,openstreetmap
+Ettinger Field,football,pitch,44.8930204,-93.0438402,,,MN,,false,true,false,openstreetmap
+Field #1,football,pitch,44.1437682,-93.996911,,,MN,,false,true,false,openstreetmap
+Field #2,football,pitch,44.1437681,-93.9976472,,,MN,,false,true,false,openstreetmap
+Field #3,football,pitch,44.1437693,-93.9985011,,,MN,,false,true,false,openstreetmap
+Field 9,football,pitch,44.9898479,-93.596325,,,MN,,false,true,false,openstreetmap
+Foley Public School Football Field,football,pitch,45.6718329,-93.9078169,,,MN,,false,true,false,openstreetmap
+Football,football,pitch,43.8493802,-92.4952187,,,MN,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,44.4582863,-95.7596966,,,MN,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,44.4582824,-95.760425,,,MN,,false,true,false,openstreetmap
+Football Practice Fields,football,pitch,44.9831827,-93.2308065,,,MN,,false,true,false,openstreetmap
+Football Practice Fields,football,pitch,44.9825916,-93.2308321,,,MN,,false,true,false,openstreetmap
+Frank Magdziarz Feild,football,park,46.3215784,-92.8319887,,,MN,,false,true,false,openstreetmap
+Gold 28,football,pitch,44.8871915,-92.9309141,,,MN,,false,true,false,openstreetmap
+Gold 29,football,pitch,44.8871913,-92.9316105,,,MN,,false,true,false,openstreetmap
+Goodrich Field,football,pitch,45.1946605,-93.3846567,,,MN,,false,true,false,openstreetmap
+Greenway High School Football Field,football,pitch,47.2909093,-93.4269872,,,MN,,false,true,false,openstreetmap
+Griggs Field,football,stadium,46.81908,-92.0800932,,,MN,,false,true,false,openstreetmap
+Grizzly Field,football,pitch,43.6429975,-93.3579276,,,MN,,false,true,false,openstreetmap
+Harkins Field,football,pitch,46.8151417,-92.1086143,,,MN,,false,true,false,openstreetmap
+Hauge Memorial Field,football,pitch,44.7945998,-95.8065366,,,MN,,false,true,false,openstreetmap
+Highschool Football Field,football,pitch,45.5601476,-93.5878146,,,MN,,false,true,false,openstreetmap
+Hodapp Field,football,pitch,45.1116487,-95.0520648,,,MN,,false,true,false,openstreetmap
+Hollingsworth Field,football,stadium,44.3254803,-93.9737813,,,MN,,false,true,false,openstreetmap
+Hollingsworth Field,football,pitch,44.3254192,-93.9735918,,,MN,,false,true,false,openstreetmap
+Jay Sorenson Memorial Field,football,pitch,48.3288877,-96.8248569,,,MN,,false,true,false,openstreetmap
+Klahr Field,football,pitch,44.5253901,-93.0234995,,,MN,,false,true,false,openstreetmap
+Le Sueur Henderson Football Field,football,pitch,44.4593569,-93.9031464,,,MN,,false,true,false,openstreetmap
+LeClair Practice Fields,football,pitch,47.7983335,-96.6065941,,,MN,,false,true,false,openstreetmap
+Lowell T. Swenson Field,football,pitch,48.125534,-96.1576814,,,MN,,false,true,false,openstreetmap
+ML-WR Rebels Football Field,football,pitch,46.3215478,-92.8320828,,,MN,,false,true,false,openstreetmap
+MLC Football Field,football,pitch,44.3031745,-94.4713144,,,MN,,false,true,false,openstreetmap
+Mahtomedi Home Athletic Turf,football,pitch,45.0602983,-92.9451974,,,MN,,false,true,false,openstreetmap
+Maxwell Field,football,pitch,44.0443409,-91.6446434,,,MN,,false,true,false,openstreetmap
+McKnight Stadium,football,pitch,44.9791703,-93.3424902,,,MN,,false,true,false,openstreetmap
+Montevideo High School Stadium,football,pitch,44.9403248,-95.7054749,,,MN,,false,true,false,openstreetmap
+Nicollet Raiders Football,football,pitch,44.2794751,-94.1844723,,,MN,,false,true,false,openstreetmap
+North High Field,football,pitch,44.9972717,-93.2963426,,,MN,,false,true,false,openstreetmap
+North High School Stadium,football,pitch,45.014489,-92.9956562,,,MN,,false,true,false,openstreetmap
+North Practice Football Field,football,pitch,44.7805784,-94.137889,,,MN,,false,true,false,openstreetmap
+Northeast Range Football Field,football,pitch,47.7068794,-91.9489992,,,MN,,false,true,false,openstreetmap
+Old Prowler Field,football,pitch,48.1126576,-96.188805,,,MN,,false,true,false,openstreetmap
+Palmer Field,football,pitch,44.9438844,-93.1915166,,,MN,,false,true,false,openstreetmap
+Paul Giel Field,football,pitch,44.0550308,-91.6732014,,,MN,,false,true,false,openstreetmap
+Paulsen Field,football,pitch,43.9959777,-96.3364659,,,MN,,false,true,false,openstreetmap
+Pesonen Stadium,football,pitch,44.9939411,-93.5986597,,,MN,,false,true,false,openstreetmap
+Practice Field,football,pitch,43.6220493,-95.6305688,,,MN,,false,true,false,openstreetmap
+Price Field,football,pitch,45.0888176,-93.014627,,,MN,,false,true,false,openstreetmap
+RAHS Football Field,football,pitch,45.0129136,-93.1490801,,,MN,,false,true,false,openstreetmap
+RCTC Football,football,pitch,44.018332,-92.4213768,,,MN,,false,true,false,openstreetmap
+Reps Field,football,pitch,43.6982158,-92.3875391,,,MN,,false,true,false,openstreetmap
+Robbinsdale Armstrong High School football field,football,pitch,45.0193296,-93.414027,,,MN,,false,true,false,openstreetmap
+Royalton High School Football Field,football,pitch,45.8270497,-94.2812921,,,MN,,false,true,false,openstreetmap
+Scheels Field,football,pitch,46.8670356,-96.7507038,,,MN,,false,true,false,openstreetmap
+South Practice Football Field,football,pitch,44.7794852,-94.1381853,,,MN,,false,true,false,openstreetmap
+St. Charles High School Football,football,pitch,43.9713436,-92.0582612,,,MN,,false,true,false,openstreetmap
+Stacy L. Robinson Field,football,pitch,44.9505445,-93.1449031,,,MN,,false,true,false,openstreetmap
+Thompson Field,football,pitch,47.3528181,-96.8213498,,,MN,,false,true,false,openstreetmap
+University of Minnesota,football,pitch,44.976536,-93.2245779,,,MN,,false,true,false,openstreetmap
+University of Minnesota,football,pitch,44.9748115,-93.2445157,,,MN,,false,true,false,openstreetmap
+University of Minnesota,football,pitch,44.9751733,-93.2448201,,,MN,,false,true,false,openstreetmap
+Viking Savings Bank Field,football,pitch,45.8501162,-95.361587,,,MN,,false,true,false,openstreetmap
+Volstead Field,football,pitch,44.8105089,-95.5469143,,,MN,,false,true,false,openstreetmap
+Weinbeck Field,football,pitch,44.9645799,-94.0514262,,,MN,,false,true,false,openstreetmap
+Jim Gustafson Field,football,pitch,43.6737447,-93.3569792,1011 Hammer Road,Albert Lea,MN,56007,false,true,false,openstreetmap
+Chet Anderson Stadium,football,stadium,47.4836313,-94.8723576,1514 Birchmont Drive Northeast,Bemidji,MN,56601,false,true,false,openstreetmap
+Blakeslee Stadium,football,stadium,44.1441604,-93.995461,,Mankato,MN,,false,true,false,openstreetmap
+Loyola Field,football,pitch,44.1844704,-93.9757616,,Mankato,MN,,false,true,false,openstreetmap
+Huntington Bank Stadium,football,stadium,44.976537,-93.2244128,420 Southeast 23rd Avenue,Minneapolis,MN,55455,false,true,false,openstreetmap
+US Bank Stadium,football,stadium,44.9735445,-93.2574488,401 Chicago Avenue South,Minneapolis,MN,55415,false,true,false,openstreetmap
+Johnson Field,football,pitch,44.3184438,-94.4609355,400-500 North German Street,New Ulm,MN,56073,false,true,false,openstreetmap

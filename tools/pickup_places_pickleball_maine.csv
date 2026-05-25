@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Sherman Pickleball Court,pickleball,pitch,43.8632489,-69.6280809,,,ME,,false,true,false,openstreetmap

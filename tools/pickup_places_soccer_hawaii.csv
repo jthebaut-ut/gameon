@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Buddy Perry Soccer Fields,soccer,pitch,19.6225047,-155.0426528,,,HI,,false,true,false,openstreetmap
+Seasider Turf Field,soccer,pitch,21.6401544,-157.9224372,,,HI,,false,true,false,openstreetmap
+Stoneman Stadium,soccer,pitch,21.498081,-158.0524659,,,HI,,false,true,false,openstreetmap
+Waipio Peninsula Soccer Stadium,soccer,stadium,21.3745189,-157.9997103,,,HI,,false,true,false,openstreetmap

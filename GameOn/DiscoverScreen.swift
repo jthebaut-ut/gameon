@@ -3291,7 +3291,11 @@ struct DiscoverScreen: View {
 
         let detailTitle = guestMapsActionsToLogin ? "Log in / Sign up" : "Details & join"
         let openDetailAction = {
-            onOpenDetails()
+            if guestMapsActionsToLogin {
+                presentGuestPickupPreviewAuth()
+            } else {
+                onOpenDetails()
+            }
         }
         let showStarted = !guestMapsActionsToLogin && row.hasPickupGameStarted()
 
@@ -3482,6 +3486,14 @@ struct DiscoverScreen: View {
                 allowedActions: "discover_map_preview"
             )
         }
+    }
+
+    private func presentGuestPickupPreviewAuth() {
+#if DEBUG
+        print("[GuestPickupAuthDebug] loginSignupTapped source=pickupPreview")
+        print("[GuestPickupAuthDebug] presentAuth source=pickupPreview")
+#endif
+        viewModel.discoverPresentFanUserAuthSheet(openRegisterMode: false)
     }
 
     private var discoverPickupPinsInBounds: Int {

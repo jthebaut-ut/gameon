@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Fort Smith Athletic Club,tennis,sports_centre,35.3477646,-94.3727266,,,AR,,false,true,false,openstreetmap
+Live Oak Tennis Courts,tennis,pitch,33.2921453,-93.232608,,,AR,,false,true,false,openstreetmap
+Pleasant Forest POA Park Tennis Court,tennis,pitch,34.7906041,-92.4074078,,,AR,,false,true,false,openstreetmap
+Tennis Center,tennis,pitch,35.8118614,-90.7690192,,,AR,,false,true,false,openstreetmap
+Tennis Complex,tennis,sports_centre,35.0748775,-92.4577721,,,AR,,false,true,false,openstreetmap
+Varsity Tennis Courts,tennis,pitch,35.838417,-90.6824553,,,AR,,false,true,false,openstreetmap
+Conway Tennis Center,tennis,sports_centre,35.0916911,-92.45756,2215 Prince Street,Conway,AR,72034,false,true,false,openstreetmap
+Coronado Tennis Center,tennis,sports_centre,34.6501898,-92.9816122,151 Ponderosa Way,Hot Springs Village,AR,71909,false,true,false,openstreetmap
+David Elliott Tennis Complex,tennis,sports_centre,35.242849,-91.7217744,1250 Bison Lane,Searcy,AR,72149,false,true,false,openstreetmap

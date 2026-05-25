@@ -1,0 +1,3 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+The Picklr,pickleball,sports_centre,34.7414732,-86.673554,6123 University Drive Northwest,,AL,,false,true,false,openstreetmap
+Town Madison Pickleball Courts,pickleball,pitch,34.6704323,-86.7456637,,,AL,,false,true,false,openstreetmap

@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bethany Meadows Rec Association,tennis,pitch,38.5244318,-75.0818795,,,DE,,false,true,false,openstreetmap
+Clearwater villages,tennis,pitch,38.5217752,-75.0774846,,,DE,,false,true,false,openstreetmap
+Delcastle Tennis Center,tennis,sports_centre,39.74744,-75.6572743,,,DE,,false,true,false,openstreetmap

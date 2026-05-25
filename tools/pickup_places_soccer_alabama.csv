@@ -1,0 +1,85 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,soccer,pitch,34.6994915,-86.6083402,,,AL,,false,true,false,openstreetmap
+#10,soccer,pitch,34.7009925,-86.6058235,,,AL,,false,true,false,openstreetmap
+#11,soccer,pitch,34.7047522,-86.6049613,,,AL,,false,true,false,openstreetmap
+#12,soccer,pitch,34.7047384,-86.6040991,,,AL,,false,true,false,openstreetmap
+#13,soccer,pitch,34.7047283,-86.6032322,,,AL,,false,true,false,openstreetmap
+#14,soccer,pitch,34.7047177,-86.602366,,,AL,,false,true,false,openstreetmap
+#15,soccer,pitch,34.7035342,-86.601555,,,AL,,false,true,false,openstreetmap
+#16,soccer,pitch,34.7035439,-86.6024215,,,AL,,false,true,false,openstreetmap
+#17,soccer,pitch,34.7035544,-86.6032849,,,AL,,false,true,false,openstreetmap
+#18,soccer,pitch,34.7035674,-86.6041514,,,AL,,false,true,false,openstreetmap
+#2,soccer,pitch,34.6994808,-86.6072397,,,AL,,false,true,false,openstreetmap
+#3,soccer,pitch,34.7008844,-86.6089027,,,AL,,false,true,false,openstreetmap
+#4,soccer,pitch,34.7007851,-86.6080149,,,AL,,false,true,false,openstreetmap
+#5,soccer,pitch,34.7007741,-86.6071163,,,AL,,false,true,false,openstreetmap
+#6,soccer,pitch,34.7021898,-86.6088142,,,AL,,false,true,false,openstreetmap
+#7,soccer,pitch,34.7021898,-86.6078191,,,AL,,false,true,false,openstreetmap
+#8,soccer,pitch,34.7020905,-86.6069701,,,AL,,false,true,false,openstreetmap
+#9,soccer,pitch,34.7018754,-86.6060985,,,AL,,false,true,false,openstreetmap
+1,soccer,pitch,34.4250052,-86.9433568,,,AL,,false,true,false,openstreetmap
+2,soccer,pitch,34.4249166,-86.9426935,,,AL,,false,true,false,openstreetmap
+3,soccer,pitch,34.4250146,-86.942035,,,AL,,false,true,false,openstreetmap
+4,soccer,pitch,34.4250252,-86.9412964,,,AL,,false,true,false,openstreetmap
+5,soccer,pitch,34.4250014,-86.9402335,,,AL,,false,true,false,openstreetmap
+6,soccer,pitch,34.4249904,-86.9393484,,,AL,,false,true,false,openstreetmap
+ASU Soccer Complex,soccer,pitch,32.3623061,-86.2889349,,,AL,,false,true,false,openstreetmap
+Centerpoint Softball Park soccer field,soccer,pitch,33.6568245,-86.680639,,,AL,,false,true,false,openstreetmap
+Field 1,soccer,pitch,34.7077166,-86.7354486,,,AL,,false,true,false,openstreetmap
+Field 1,soccer,pitch,30.4076599,-87.7080392,,,AL,,false,true,false,openstreetmap
+Field 1,soccer,pitch,33.3696818,-86.6602795,,,AL,,false,true,false,openstreetmap
+Field 2,soccer,pitch,34.7088012,-86.7358919,,,AL,,false,true,false,openstreetmap
+Field 2,soccer,pitch,30.4084668,-87.7080372,,,AL,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.3597221,-86.5198367,,,AL,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.3703712,-86.6602917,,,AL,,false,true,false,openstreetmap
+Field 3,soccer,pitch,34.7095543,-86.7360628,,,AL,,false,true,false,openstreetmap
+Field 3,soccer,pitch,30.4094337,-87.7079802,,,AL,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.360014,-86.5201817,,,AL,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.3716114,-86.6606142,,,AL,,false,true,false,openstreetmap
+Field 4,soccer,pitch,34.7106185,-86.7359438,,,AL,,false,true,false,openstreetmap
+Field 4,soccer,pitch,33.3727965,-86.6602137,,,AL,,false,true,false,openstreetmap
+Field 4,soccer,pitch,30.4088312,-87.7091515,,,AL,,false,true,false,openstreetmap
+Field 5,soccer,pitch,34.711956,-86.7351304,,,AL,,false,true,false,openstreetmap
+Field 5,soccer,pitch,33.3702366,-86.6592122,,,AL,,false,true,false,openstreetmap
+Field 5,soccer,pitch,30.4098281,-87.7091883,,,AL,,false,true,false,openstreetmap
+Field 6,soccer,pitch,34.7126889,-86.7334734,,,AL,,false,true,false,openstreetmap
+Field 6,soccer,pitch,33.3708567,-86.6581473,,,AL,,false,true,false,openstreetmap
+Field 7,soccer,pitch,34.7135633,-86.733412,,,AL,,false,true,false,openstreetmap
+Field 8,soccer,pitch,34.7135552,-86.7345529,,,AL,,false,true,false,openstreetmap
+Field 9,soccer,pitch,34.7135282,-86.7354724,,,AL,,false,true,false,openstreetmap
+Fort Payne High School Soccer,soccer,pitch,34.4893153,-85.6780418,,,AL,,false,true,false,openstreetmap
+Frog Town Soccer Complex,soccer,pitch,33.8110797,-85.7743775,,,AL,,false,true,false,openstreetmap
+International 6,soccer,pitch,34.6878336,-86.7769476,,,AL,,false,true,false,openstreetmap
+Jax State Soccer Complex,soccer,pitch,33.8250053,-85.775048,,,AL,,false,true,false,openstreetmap
+John W. Stewart Soccer Field,soccer,pitch,33.1103099,-86.86756,,,AL,,false,true,false,openstreetmap
+Lily Field,soccer,pitch,33.522276,-86.758751,,,AL,,false,true,false,openstreetmap
+McEvoy 5,soccer,pitch,34.6879382,-86.7759374,,,AL,,false,true,false,openstreetmap
+Mega Field,soccer,pitch,33.4493007,-86.8398108,,,AL,,false,true,false,openstreetmap
+Mustangs Soccer Field,soccer,pitch,34.7004201,-86.7051656,,,AL,,false,true,false,openstreetmap
+PNC Field,soccer,pitch,33.4979175,-86.8123978,,,AL,,false,true,false,openstreetmap
+Pizitz Practice Field,soccer,pitch,33.4206772,-86.7916386,,,AL,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,33.3095968,-86.8224004,,,AL,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,34.8728465,-86.4590951,,,AL,,false,true,false,openstreetmap
+Preston Goldfarb Field at Berlyson Soccer Park,soccer,pitch,33.5155027,-86.8551345,,,AL,,false,true,false,openstreetmap
+Six Acre Field,soccer,pitch,33.4469874,-86.8340362,,,AL,,false,true,false,openstreetmap
+Soccer,soccer,sports_centre,33.6356345,-86.593591,,,AL,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,34.6901222,-86.7737916,,,AL,,false,true,false,openstreetmap
+Soccer 2,soccer,pitch,34.6898737,-86.772908,,,AL,,false,true,false,openstreetmap
+Soccer 3,soccer,pitch,34.6898079,-86.7719884,,,AL,,false,true,false,openstreetmap
+Soccer Complex,soccer,pitch,32.5964524,-85.4944049,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.4514381,-86.8085171,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.4525739,-86.8070714,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.453153,-86.8063973,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.4534637,-86.8060186,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.3598861,-86.730713,,,AL,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.359927,-86.7302035,,,AL,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,33.3594236,-86.5194058,,,AL,,false,true,false,openstreetmap
+The Cage,soccer,pitch,30.6917111,-88.1828677,,,AL,,false,true,false,openstreetmap
+Track and Soccer Stadium,soccer,pitch,33.4593276,-86.7938544,,,AL,,false,true,false,openstreetmap
+Walker Field,soccer,pitch,34.4546001,-86.9313549,,,AL,,false,true,false,openstreetmap
+Wicks Family Field at Joe Davis Stadium,soccer,stadium,34.6997256,-86.5886761,,,AL,,false,true,false,openstreetmap
+Women's Soccer Stadium,soccer,sports_centre,33.2107393,-87.5326783,,,AL,,false,true,false,openstreetmap
+YMCA Indoor Soccer Facility,soccer,pitch,32.3772322,-86.1842322,,,AL,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,34.6964724,-86.7343485,,,AL,,false,true,false,openstreetmap
+Youth Soccer Complex,soccer,sports_centre,34.4248772,-86.941109,621 Groover Road Southwest,Hartselle,AL,35640,false,true,false,openstreetmap
+Riverchase Sports Park,soccer,park,33.3701723,-86.7935822,2003 Parkway River Road,Hoover,AL,35244,false,true,false,openstreetmap

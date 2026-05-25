@@ -1,0 +1,12 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,21.3575253,-158.0836645,,,HI,,false,true,false,openstreetmap
+Basketball & Pickleball,basketball,pitch,22.2173626,-159.4753041,,,HI,,false,true,false,openstreetmap
+Covered Court,basketball,pitch,19.695951,-155.077946,,,HI,,true,false,false,openstreetmap
+Four Seasons Resort Hualalai,basketball,pitch,19.8278378,-155.9903489,,,HI,,false,true,false,openstreetmap
+Klum Gymnasium,basketball,sports_hall,21.2954076,-157.8190339,1333 Lower Campus Road,,HI,96822,false,true,false,openstreetmap
+Outdoor Courts,basketball,pitch,21.3021672,-157.816907,,,HI,,false,true,false,openstreetmap
+Paved Playcourt,basketball,pitch,21.3059038,-157.8109401,,,HI,,false,true,false,openstreetmap
+Puʻu Liʻi Basketball Court,basketball,pitch,19.6998349,-155.082336,,,HI,,false,true,false,openstreetmap
+Warriors Gymnasium,basketball,sports_hall,19.7004239,-155.0756102,,,HI,,false,true,false,openstreetmap
+basketball hmr,basketball,pitch,21.5366169,-158.0166149,,,HI,,false,true,false,openstreetmap
+Walter C.K. Victor Gymnasium,basketball,sports_hall,19.7139502,-155.0848784,1000 Ululani Street,Hilo,HI,96720,false,true,false,openstreetmap

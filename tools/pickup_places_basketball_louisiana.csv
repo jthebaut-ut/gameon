@@ -1,0 +1,17 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Best Western Basketball Court,basketball,pitch,30.1911513,-92.0139594,,,LA,,false,true,false,openstreetmap
+Court,basketball,pitch,32.4430867,-93.7585577,,,LA,,false,true,false,openstreetmap
+Huey P Long Field House;Maravich Assembly Center,basketball,sports_centre,30.4142729,-91.183531,,,LA,,false,true,false,openstreetmap
+Long Range Basketball,basketball,pitch,30.0513702,-89.9362533,,,LA,,false,true,false,openstreetmap
+MHSPBL Basketball Court,basketball,pitch,32.5586919,-92.1174965,,,LA,,false,true,false,openstreetmap
+Pete Maravich Assembly Center,basketball,stadium,30.414484,-91.1844944,,,LA,,false,true,false,openstreetmap
+Prather Coliseum,basketball,stadium,31.744049,-93.0951798,220 S Jefferson St,,LA,,false,true,false,openstreetmap
+Riverdale Gym,basketball,pitch,32.1633767,-93.4291553,,,LA,,false,true,false,openstreetmap
+Robert M. Conlin Gymnasium,basketball,sports_hall,30.0034536,-90.058357,,,LA,,false,true,false,openstreetmap
+Scott Park,basketball,sports_centre,30.2393766,-92.0991423,,,LA,,false,true,false,openstreetmap
+Smoothie King Center,basketball,stadium,29.9490545,-90.0821722,2500 Howard Avenue,,LA,,false,true,false,openstreetmap
+USCG,basketball,pitch,29.3772532,-90.714483,,,LA,,false,true,false,openstreetmap
+Willie Davis Recreational Center,basketball,pitch,32.7628118,-92.4047653,111 Cox Ferry Road,Farmerville,LA,71241,false,true,false,openstreetmap
+Legacy Center,basketball,sports_centre,30.1753554,-93.2097246,700 East McNeese Street,Lake Charles,LA,70607,false,true,false,openstreetmap
+Ewing Coliseum,basketball,stadium,32.5310269,-92.0693955,4099 Northeast Drive,Monroe,LA,71203,false,true,false,openstreetmap
+Alario Center,basketball,sports_centre,29.9054604,-90.1627586,2000 Segnette Boulevard,Westwego,LA,70094,false,true,false,openstreetmap

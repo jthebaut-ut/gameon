@@ -1,0 +1,72 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Allen Field,soccer,pitch,44.1965499,-70.4109727,,,ME,,false,true,false,openstreetmap
+Alumni Field,soccer,pitch,44.5234036,-69.6608696,,,ME,,false,true,false,openstreetmap
+Alumni Memorial Field,soccer,pitch,47.2482921,-68.5909192,,,ME,,false,true,false,openstreetmap
+Anderson Field,soccer,pitch,44.4071788,-70.7958715,,,ME,,false,true,false,openstreetmap
+Andover Soccer Field,soccer,pitch,44.6330104,-70.7524416,,,ME,,false,true,false,openstreetmap
+Barr Field,soccer,pitch,44.4082907,-70.7969242,,,ME,,false,true,false,openstreetmap
+Bernatchez Field,soccer,pitch,44.5225902,-69.6635521,,,ME,,false,true,false,openstreetmap
+Bicycle Path Field,soccer,pitch,43.9210041,-69.9542507,,,ME,,false,true,false,openstreetmap
+Bill Alfond Field,soccer,pitch,44.5683018,-69.6563732,,,ME,,false,true,false,openstreetmap
+Bowhay Field,soccer,pitch,44.4083393,-70.7960622,,,ME,,false,true,false,openstreetmap
+Bristol Consolidated School Soccer Field,soccer,pitch,43.9009688,-69.5056524,,,ME,,false,true,false,openstreetmap
+Calumet Soccer Field,soccer,pitch,44.3301836,-69.777738,,,ME,,false,true,false,openstreetmap
+Cascade Brook Soccer Field,soccer,pitch,44.673729,-70.1277824,,,ME,,false,true,false,openstreetmap
+Cross Soccer Field,soccer,pitch,44.4197986,-70.7680718,,,ME,,false,true,false,openstreetmap
+Cushing Field,soccer,park,44.0217378,-69.2491591,,,ME,,false,true,false,openstreetmap
+Field 3 - Turf Field,soccer,pitch,43.2298509,-70.8026517,,,ME,,false,true,false,openstreetmap
+Field A,soccer,pitch,43.7496418,-70.4433898,,,ME,,false,true,false,openstreetmap
+Field A1,soccer,pitch,43.7494955,-70.4423029,,,ME,,false,true,false,openstreetmap
+Field A2,soccer,pitch,43.7499741,-70.4428078,,,ME,,false,true,false,openstreetmap
+Field B,soccer,pitch,43.7499682,-70.4423482,,,ME,,false,true,false,openstreetmap
+Field C,soccer,pitch,43.7499203,-70.4420078,,,ME,,false,true,false,openstreetmap
+Field D,soccer,pitch,43.7498298,-70.4414402,,,ME,,false,true,false,openstreetmap
+Field E,soccer,pitch,43.7497685,-70.4408189,,,ME,,false,true,false,openstreetmap
+Field F,soccer,pitch,43.749697,-70.4390214,,,ME,,false,true,false,openstreetmap
+Field G,soccer,pitch,43.7497641,-70.4399518,,,ME,,false,true,false,openstreetmap
+Gehrig Johnson Soccer Field,soccer,pitch,46.700498,-68.0321175,,,ME,,false,true,false,openstreetmap
+Hodgdon Field,soccer,pitch,43.6812861,-70.4493819,,,ME,,false,true,false,openstreetmap
+Hosmer Soccer Field,soccer,pitch,44.5574929,-70.5506582,,,ME,,false,true,false,openstreetmap
+Hosmer Soccer Field,soccer,pitch,44.5590421,-70.5518059,,,ME,,false,true,false,openstreetmap
+KSB Soccer Field,soccer,pitch,44.5435132,-69.6045144,,,ME,,false,true,false,openstreetmap
+Kennebec Savings Bank Field,soccer,pitch,44.3000792,-69.7476423,,,ME,,false,true,false,openstreetmap
+LCYDC,soccer,pitch,43.6408272,-70.3090794,,,ME,,false,true,false,openstreetmap
+Leavitt Area High School Soccer Field,soccer,pitch,44.2653779,-70.2259002,,,ME,,false,true,false,openstreetmap
+Leib Soccer Field,soccer,pitch,44.6698406,-70.1548322,,,ME,,false,true,false,openstreetmap
+Lipman & Katz Field,soccer,pitch,44.3013603,-69.7478577,,,ME,,false,true,false,openstreetmap
+Lisbon High School Soccer Field,soccer,pitch,43.9997375,-70.0733003,,,ME,,false,true,false,openstreetmap
+Lura Hoit Soccer Field,soccer,pitch,44.7473031,-68.8511457,,,ME,,false,true,false,openstreetmap
+Mark J. Serdjenian Field,soccer,pitch,44.5692962,-69.6572738,,,ME,,false,true,false,openstreetmap
+Medomak Middle School Soccer Field,soccer,pitch,44.1202169,-69.3100984,,,ME,,false,true,false,openstreetmap
+Mount Blue Middle School Soccer Field,soccer,pitch,44.6736181,-70.1319416,,,ME,,false,true,false,openstreetmap
+New Balance Soccer Complex,soccer,pitch,44.9063209,-68.6706415,,,ME,,false,true,false,openstreetmap
+Oceanside Middle School Athletic Field,soccer,pitch,44.0825429,-69.1871959,,,ME,,false,true,false,openstreetmap
+Park Family Soccer Field,soccer,pitch,46.6685182,-68.0178358,,,ME,,false,true,false,openstreetmap
+Pickard Men's Soccer Field,soccer,pitch,43.9014834,-69.9565,,,ME,,false,true,false,openstreetmap
+Pickard Women's Soccer Field,soccer,pitch,43.9012433,-69.9581458,,,ME,,false,true,false,openstreetmap
+Pine Ridge Soccer Field,soccer,pitch,44.5328305,-69.6592064,,,ME,,false,true,false,openstreetmap
+Potter's Soccer Field,soccer,pitch,44.9024485,-70.2732534,,,ME,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,43.9032027,-69.9623014,,,ME,,false,true,false,openstreetmap
+Prescott Soccer Field,soccer,pitch,44.6686665,-70.1535253,,,ME,,false,true,false,openstreetmap
+Presumpscot Park Soccer Field,soccer,pitch,43.6715662,-70.2980095,,,ME,,false,true,false,openstreetmap
+Princeton Soccer Field,soccer,pitch,45.2185048,-67.5501553,,,ME,,false,true,false,openstreetmap
+Richards Way Field,soccer,pitch,43.4912826,-70.4151475,,,ME,,false,true,false,openstreetmap
+Riverside Soccer Field,soccer,pitch,45.0798695,-70.2129704,,,ME,,false,true,false,openstreetmap
+Riverside Youth Soccer Field,soccer,pitch,46.6792104,-68.0207025,,,ME,,false,true,false,openstreetmap
+Russell Street Field,soccer,pitch,44.1045541,-70.1956593,,,ME,,false,true,false,openstreetmap
+Smith Field,soccer,pitch,44.521829,-69.6637072,,,ME,,false,true,false,openstreetmap
+Stiman & McGee Field,soccer,pitch,44.3011598,-69.7468459,,,ME,,false,true,false,openstreetmap
+Stowe Field,soccer,pitch,43.9076365,-69.9744747,,,ME,,false,true,false,openstreetmap
+Thomaston Athletic Field,soccer,pitch,44.0837679,-69.1834317,,,ME,,false,true,false,openstreetmap
+Thomaston Green,soccer,park,44.076453,-69.1932323,,,ME,,false,true,false,openstreetmap
+Tory Hill Fields,soccer,pitch,43.6040069,-70.5386116,,,ME,,false,true,false,openstreetmap
+WHS Lower Field,soccer,pitch,44.0215906,-69.6703821,,,ME,,false,true,false,openstreetmap
+WHS Upper Field,soccer,pitch,44.0224531,-69.672901,,,ME,,false,true,false,openstreetmap
+William A. Clark Field,soccer,pitch,44.0390963,-69.5381594,,,ME,,false,true,false,openstreetmap
+Winslow Travel Soccer Club Field,soccer,pitch,44.5539265,-69.6164311,,,ME,,false,true,false,openstreetmap
+Youth Memorial Field,soccer,pitch,44.3014472,-69.7496054,,,ME,,false,true,false,openstreetmap
+Livesay Field,soccer,pitch,43.8737774,-69.9570212,18 Middle Bay Road,Brunswick,ME,04011,false,true,false,openstreetmap
+Leib Field,soccer,sports_centre,44.6688677,-70.155105,Front Street,Farmington,ME,04938,false,true,false,openstreetmap
+Gorham Sports Center,soccer,sports_hall,43.6658801,-70.463219,215 Narragansett Street,Gorham,ME,04038,false,true,false,openstreetmap
+Sanford Soccer Association Fields,soccer,pitch,43.4567531,-70.7718222,Shaw Road,Sanford,ME,04073,false,true,false,openstreetmap
+PITCH Indoor Sports Center,soccer,sports_centre,44.1573085,-69.1884661,2606 Camden Road,Warren,ME,04864,false,true,false,openstreetmap

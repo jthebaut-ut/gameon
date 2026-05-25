@@ -1,0 +1,81 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+2 Tennis Courts,tennis,pitch,42.2418055,-71.4468097,,,MA,,false,true,false,openstreetmap
+8 Tennis Courts,tennis,pitch,42.0564665,-70.7956812,,,MA,,false,true,false,openstreetmap
+Bass River Tennis Club,tennis,sports_centre,42.5719171,-70.8844529,31 Tozer Road,,MA,,false,true,false,openstreetmap
+Belmont Hill Club,tennis,pitch,42.4005531,-71.1895904,,,MA,,false,true,false,openstreetmap
+Bernon Family Branch Tennis Courts,tennis,pitch,42.0777407,-71.434936,,,MA,,false,true,false,openstreetmap
+Biggs Tennis Courts,tennis,pitch,42.6341441,-71.9155757,,,MA,,false,true,false,openstreetmap
+Blinn Courts,tennis,pitch,42.0559234,-72.5568478,,,MA,,false,true,false,openstreetmap
+Boston Common Tennis Courts,tennis,pitch,42.3537821,-71.066084,,,MA,,false,true,false,openstreetmap
+Bowling Green,tennis,pitch,42.6851508,-70.778472,,,MA,,false,true,false,openstreetmap
+Brigham Athletic Complex,tennis,pitch,42.586799,-70.8278422,,,MA,,false,true,false,openstreetmap
+Center Field Tennis,tennis,sports_centre,42.4468496,-71.2354463,,,MA,,false,true,false,openstreetmap
+Charles Watt Tennis Courts,tennis,pitch,42.0598347,-71.08273,,,MA,,false,true,false,openstreetmap
+Christian Camp Meeting Tennis Court,tennis,pitch,41.6397464,-70.3346518,,,MA,,false,true,false,openstreetmap
+Christian Camp Meeting Tennis Courts,tennis,pitch,41.6394953,-70.3350611,,,MA,,false,true,false,openstreetmap
+Christian Camp Meeting Tennis Courts,tennis,pitch,41.6394341,-70.3349177,,,MA,,false,true,false,openstreetmap
+Church St Tennis Courts,tennis,pitch,41.4550818,-70.605024,,,MA,,false,true,false,openstreetmap
+Clark Tennis Courts,tennis,pitch,41.9694913,-71.1866174,,,MA,,false,true,false,openstreetmap
+Crystal Street Tennis Courts,tennis,pitch,42.4630376,-71.0631855,,,MA,,false,true,false,openstreetmap
+Dick Norman's Tennis Courts,tennis,pitch,41.6645889,-70.3859906,,,MA,,false,true,false,openstreetmap
+East Sandwich Community Tennis Courts,tennis,pitch,41.7331278,-70.4588945,,,MA,,false,true,false,openstreetmap
+Gordon Indoor Track,tennis,track,42.3679144,-71.127693,65 North Harvard Street,,MA,,false,true,false,openstreetmap
+Hunnewell Tennis Courts,tennis,sports_centre,42.3046956,-71.2825567,,,MA,,false,true,false,openstreetmap
+John M. Hansen Tennis Courts,tennis,sports_centre,42.1270963,-72.7898685,,,MA,,false,true,false,openstreetmap
+Kings Grant,tennis,pitch,41.6313224,-70.4470269,,,MA,,false,true,false,openstreetmap
+Kings Grant,tennis,pitch,41.6313506,-70.4468505,,,MA,,false,true,false,openstreetmap
+Kings Grant,tennis,pitch,41.6313765,-70.4466797,,,MA,,false,true,false,openstreetmap
+Kings Grant,tennis,pitch,41.6314026,-70.4465092,,,MA,,false,true,false,openstreetmap
+Kings Grant 2nd Court,tennis,pitch,41.6310339,-70.4466494,,,MA,,false,true,false,openstreetmap
+Lake Street Courts,tennis,pitch,41.4558984,-70.6190617,,,MA,,false,true,false,openstreetmap
+Longwood Tennis Courts,tennis,pitch,42.3398457,-71.1141089,,,MA,,false,true,false,openstreetmap
+Lower Tennis Courts,tennis,pitch,42.6334497,-71.910208,,,MA,,false,true,false,openstreetmap
+Malden Towers Tennis Court,tennis,pitch,42.4283421,-71.0705571,,,MA,,false,true,false,openstreetmap
+Newman Tennis Courts,tennis,sports_centre,42.2836678,-71.2552821,,,MA,,false,true,false,openstreetmap
+Newton Center Clay Courts,tennis,pitch,42.3328081,-71.195742,,,MA,,false,true,false,openstreetmap
+Newton Squash & Tennis Club,tennis,pitch,42.3359164,-71.1904373,,,MA,,false,true,false,openstreetmap
+Prince Street Park Tennis Courts,tennis,pitch,42.3675331,-71.058487,,,MA,,false,true,false,openstreetmap
+Reade Court,tennis,pitch,41.4658771,-70.6082854,,,MA,,false,true,false,openstreetmap
+Rieger Tennis Courts,tennis,pitch,42.3640302,-71.2546624,,,MA,,false,true,false,openstreetmap
+Rieger Tennis Courts,tennis,pitch,42.364186,-71.2543742,,,MA,,false,true,false,openstreetmap
+Rieger Tennis Courts,tennis,pitch,42.3641085,-71.2545176,,,MA,,false,true,false,openstreetmap
+Schofield Tennis Courts,tennis,sports_centre,42.3224537,-71.2535429,,,MA,,false,true,false,openstreetmap
+Sinnott Family Tennis Facility,tennis,pitch,42.2396296,-71.811582,,,MA,,false,true,false,openstreetmap
+Sportsmen Tennis & Enrichment Center,tennis,sports_centre,42.2921432,-71.0879854,930 Blue Hill Avenue,,MA,02124,false,true,false,openstreetmap
+Spy Pond Tennis Courts,tennis,pitch,42.4119579,-71.1534904,,,MA,,false,true,false,openstreetmap
+Swan Pond Tennis Court,tennis,pitch,42.1419207,-71.2643331,,,MA,,false,true,false,openstreetmap
+Swan Pond Tennis Court,tennis,pitch,42.1418535,-71.2645353,,,MA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,42.682931,-71.236813,,,MA,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.6680886,-71.1167732,,,MA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.4978308,-70.8939531,,,MA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.5340609,-70.8718784,,,MA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.7858884,-71.1052268,,,MA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.4041051,-71.1831102,,,MA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.1294976,-71.1075436,,,MA,,false,true,false,openstreetmap
+Textron Tennis Courts,tennis,pitch,42.5407203,-71.1586908,,,MA,,false,true,false,openstreetmap
+Triton Tennis Court,tennis,pitch,42.7455895,-70.9189345,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #1,tennis,pitch,42.1353778,-71.2481327,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #2,tennis,pitch,42.135423,-71.2479703,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #3,tennis,pitch,42.1354707,-71.2478022,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #4,tennis,pitch,42.1350696,-71.2479738,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #5,tennis,pitch,42.1351167,-71.2478102,,,MA,,false,true,false,openstreetmap
+Walpole High School Tennis Court #6,tennis,pitch,42.1351605,-71.247643,,,MA,,false,true,false,openstreetmap
+Wimbledon Metrowest,tennis,pitch,42.202228,-71.2554473,20 County Street,,MA,,false,true,false,openstreetmap
+Winchester Swim and Tennis Club,tennis,swimming_pool,42.4471747,-71.1778838,,,MA,,false,true,false,openstreetmap
+duPont Tennis Courts,tennis,pitch,42.3568719,-71.09685,,,MA,,false,true,false,openstreetmap
+old tennis court,tennis,pitch,42.5172582,-71.299726,,,MA,,false,true,false,openstreetmap
+public tennis courts,tennis,pitch,41.625868,-70.3844031,,,MA,,false,true,false,openstreetmap
+r,tennis,pitch,41.6309128,-70.4470948,,,MA,,false,true,false,openstreetmap
+r,tennis,pitch,41.6310009,-70.4469612,,,MA,,false,true,false,openstreetmap
+tennis,tennis,recreation_ground,42.5110507,-71.293247,,,MA,,false,true,false,openstreetmap
+tennis,tennis,pitch,41.8977363,-70.0147535,,,MA,,false,true,false,openstreetmap
+tennis,tennis,pitch,42.4107601,-71.3196595,,,MA,,false,true,false,openstreetmap
+tennis,tennis,pitch,42.5551937,-70.8179597,,,MA,,false,true,false,openstreetmap
+tennis,tennis,pitch,42.5522851,-70.8241212,,,MA,,false,true,false,openstreetmap
+tennis,tennis,pitch,42.5170638,-71.3742212,,,MA,,false,true,false,openstreetmap
+Beren Tennis Center,tennis,sports_centre,42.3695815,-71.1288272,,Boston,MA,02163,false,true,false,openstreetmap
+Friends of Peters Park,tennis,pitch,42.343064,-71.0675468,1277 Washington Street,Boston,MA,02118,false,true,false,openstreetmap
+Palmer Dixon Indoor Tennis Courts,tennis,sports_centre,42.3689923,-71.1267713,780 Soldiers Field Road,Boston,MA,02163,false,true,false,openstreetmap
+The Field Club of Longmeadow,tennis,sports_centre,42.0401817,-72.5343679,750 Wolf Swamp Road,Longmeadow,MA,01106,false,true,false,openstreetmap
+Longfellow Raquet Club,tennis,sports_centre,42.3141441,-71.3347138,16 Michigan Drive,Natick,MA,01760,false,true,false,openstreetmap
+Woburn Raquet Club,tennis,pitch,42.5095048,-71.1668101,9 Webster Street,Woburn,MA,01801,false,true,false,openstreetmap

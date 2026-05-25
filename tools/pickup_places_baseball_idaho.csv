@@ -1,0 +1,36 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Armory Field,baseball,pitch,43.6601469,-116.6973976,,,ID,,false,true,false,openstreetmap
+Cascade Ballpark Field #1,baseball,pitch,44.5031105,-116.0255465,,,ID,,false,true,false,openstreetmap
+Casecade Ballpark Field #2,baseball,pitch,44.5026716,-116.0244208,,,ID,,false,true,false,openstreetmap
+Chapple Field,baseball,pitch,43.472494,-112.0399826,,,ID,,false,true,false,openstreetmap
+Cooper Field,baseball,pitch,47.8151902,-116.8875628,,,ID,,false,true,false,openstreetmap
+Craner Field,baseball,pitch,43.4729059,-112.0389666,,,ID,,false,true,false,openstreetmap
+Elk Softball Field,baseball,pitch,43.4748268,-112.0426545,,,ID,,false,true,false,openstreetmap
+Emmett Highschool Diamond,baseball,pitch,43.8621641,-116.5114508,,,ID,,false,true,false,openstreetmap
+Fenrich Field,baseball,pitch,43.6610833,-116.6971334,,,ID,,false,true,false,openstreetmap
+Fiest Sunken Fastpitch Softball Field,baseball,pitch,43.4743401,-112.0394451,,,ID,,false,true,false,openstreetmap
+Freedom Ballpark,baseball,pitch,42.9808358,-111.0497611,,,ID,,false,true,false,openstreetmap
+Halle Softball Field,baseball,pitch,43.5619704,-116.5692671,,,ID,,false,true,false,openstreetmap
+Hansen Softball Field,baseball,pitch,42.5282233,-114.2991315,,,ID,,false,true,false,openstreetmap
+Harris Field,baseball,stadium,46.4103809,-117.0254842,,,ID,,false,true,false,openstreetmap
+Hathaway Field,baseball,park,46.3797649,-117.0112062,,,ID,,false,true,false,openstreetmap
+Hereth Field,baseball,pitch,46.3691198,-116.9501747,,,ID,,false,true,false,openstreetmap
+Jack Acree Baseball Field,baseball,pitch,43.6143095,-116.1900204,,,ID,,false,true,false,openstreetmap
+Koval/Ward Field,baseball,pitch,42.7931933,-112.2468592,,,ID,,false,true,false,openstreetmap
+LDS Baseball Field #1,baseball,pitch,43.4785865,-112.0873864,,,ID,,false,true,false,openstreetmap
+LDS Baseball Field #2,baseball,pitch,43.4778273,-112.08739,,,ID,,false,true,false,openstreetmap
+Lofholm Field,baseball,pitch,43.5873732,-116.5454836,,,ID,,false,true,false,openstreetmap
+Mc Sorley Elementary Game Field,baseball,pitch,46.4005983,-117.0117667,,,ID,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,43.6616854,-116.6976824,,,ID,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,47.6766797,-116.7900817,,,ID,,false,true,false,openstreetmap
+New Plymouth High School Baseball Field,baseball,pitch,43.9695009,-116.8170808,,,ID,,false,true,false,openstreetmap
+Rainey Park,baseball,pitch,42.8547033,-112.4453899,,,ID,,false,true,false,openstreetmap
+Rollandet Park,baseball,park,43.4771297,-112.0441588,,,ID,,false,true,false,openstreetmap
+Stands,baseball,stadium,44.2539761,-116.9644016,,,ID,,false,true,false,openstreetmap
+Thorco Field,baseball,pitch,47.7067754,-116.8105688,,,ID,,false,true,false,openstreetmap
+Vail Baseball Field,baseball,pitch,43.5628314,-116.571188,,,ID,,false,true,false,openstreetmap
+Warmup Pit,baseball,pitch,44.254925,-116.9636522,,,ID,,false,true,false,openstreetmap
+Warmup Pit,baseball,pitch,44.2549261,-116.9637148,,,ID,,false,true,false,openstreetmap
+Weiser High School Baseball Field,baseball,pitch,44.2545677,-116.9644673,,,ID,,false,true,false,openstreetmap
+Play Deep Academy,baseball,training,43.6183495,-116.3104123,10353 West Fairview Avenue,Boise,ID,83704,false,true,false,openstreetmap
+Memorial Stadium,baseball,stadium,43.6565354,-116.2782775,5600 North Glenwood Street,Garden City,ID,83714,false,true,false,openstreetmap

@@ -1,0 +1,49 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Gymnasium,basketball,sports_hall,44.1048803,-70.2019823,,,ME,,false,true,false,openstreetmap
+Andover Basketball Court,basketball,pitch,44.6340395,-70.7496424,,,ME,,false,true,false,openstreetmap
+Bar Harbor Basketball Court,basketball,pitch,44.3816511,-68.2043903,,,ME,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.3911434,-68.085541,,,ME,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.4369428,-70.7784851,,,ME,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.4637456,-70.7976946,,,ME,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.4441294,-70.7651775,,,ME,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,44.1240703,-70.8896998,,,ME,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,43.9178036,-69.8315034,,,ME,,false,true,false,openstreetmap
+Basketball Hoop,basketball,pitch,44.1262691,-70.8899215,,,ME,,false,true,false,openstreetmap
+Calumet Park Basketball Court,basketball,pitch,44.3297846,-69.7778186,,,ME,,false,true,false,openstreetmap
+Clarks's Court,basketball,pitch,43.8259283,-70.4830721,,,ME,,false,true,false,openstreetmap
+Coach Beaudry's Court,basketball,pitch,43.4529134,-70.3897111,,,ME,,false,true,false,openstreetmap
+Edward's Field Basketball Court,basketball,pitch,43.9145606,-69.9531784,,,ME,,false,true,false,openstreetmap
+Half court,basketball,pitch,43.303953,-70.73527,,,ME,,false,true,false,openstreetmap
+Hallowell Recreational Basketball Court,basketball,pitch,44.2997882,-69.8227017,,,ME,,false,true,false,openstreetmap
+Hippach Basketball Court,basketball,pitch,44.6635966,-70.1469604,,,ME,,false,true,false,openstreetmap
+Kirk Gymnasium,basketball,pitch,44.1336517,-70.2349343,,,ME,,false,true,false,openstreetmap
+Larwence Family Fintess Center,basketball,pitch,44.4059601,-68.5983337,,,ME,,false,true,false,openstreetmap
+Laurance Court,basketball,pitch,44.4270133,-69.0373241,,,ME,,false,true,false,openstreetmap
+Longfellow Basketball Court,basketball,pitch,43.6726567,-70.2966556,,,ME,,false,true,false,openstreetmap
+Longfellow Basketball Court,basketball,pitch,43.9048061,-69.9624261,,,ME,,false,true,false,openstreetmap
+Maine Celtics 3-Point Basketball,basketball,pitch,43.5278789,-70.4282297,,,ME,,false,true,false,openstreetmap
+Mill Park Pentique,basketball,pitch,44.3232498,-69.7715532,,,ME,,false,true,false,openstreetmap
+Municipal Basketball Court,basketball,pitch,45.1837678,-69.2327152,,,ME,,false,true,false,openstreetmap
+Nelson Bailey Gymnasium,basketball,pitch,44.039242,-69.5392312,,,ME,,false,true,false,openstreetmap
+Ocean Gate Basketball Court,basketball,pitch,43.8456063,-69.6625042,,,ME,,false,true,false,openstreetmap
+Oceanside Middle School Basketball Court,basketball,pitch,44.0803291,-69.1847958,,,ME,,false,true,false,openstreetmap
+Princeton Basketball Court,basketball,pitch,45.2176856,-67.5502889,,,ME,,false,true,false,openstreetmap
+Public Basketball Courts,basketball,pitch,43.5143422,-70.3771405,,,ME,,false,true,false,openstreetmap
+Public Basketball Courts,basketball,pitch,43.5142665,-70.3769626,,,ME,,false,true,false,openstreetmap
+Richmond High School Basketball Court,basketball,pitch,44.0872046,-69.8115685,,,ME,,false,true,false,openstreetmap
+Riverside Basketball Court,basketball,pitch,45.079513,-70.2124524,,,ME,,false,true,false,openstreetmap
+Sherman Basketball Court,basketball,pitch,43.8631996,-69.6283031,,,ME,,false,true,false,openstreetmap
+The Pit,basketball,pitch,44.9035539,-68.6704181,,,ME,,false,true,false,openstreetmap
+UMF Basketball Court,basketball,pitch,44.6688265,-70.1479795,,,ME,,true,false,false,openstreetmap
+University of Maine at Presque Isle Basketball Court,basketball,pitch,46.6695282,-68.0149268,,,ME,,false,true,false,openstreetmap
+Warren Hill Gymnasium,basketball,pitch,43.682685,-70.4500311,,,ME,,false,true,false,openstreetmap
+West Cumberland Court,basketball,pitch,43.8148203,-70.3158155,,,ME,,false,true,false,openstreetmap
+Whitmore-Mitchell Basketball Court,basketball,pitch,44.5674918,-69.6646394,,,ME,,true,false,false,openstreetmap
+Wieden Gymnasium,basketball,pitch,46.6712276,-68.0175194,,,ME,,false,true,false,openstreetmap
+Youth Memorial Basketball Court,basketball,pitch,44.3127635,-69.7974884,,,ME,,false,true,false,openstreetmap
+Augusta Civic Center,basketball,stadium,44.3425089,-69.7988422,76 Community Drive,Augusta,ME,04330,false,true,false,openstreetmap
+Morrell Gymnasium,basketball,pitch,43.9086828,-69.9601612,6 Polar Loop,Brunswick,ME,04011,false,true,false,openstreetmap
+Sargent Gymnasium,basketball,pitch,43.9083713,-69.9608603,15 North Campus Drive,Brunswick,ME,04011,false,true,false,openstreetmap
+Hadlock Field,basketball,stadium,43.6568041,-70.2780818,271 Park Avenue,Portland,ME,04102,false,true,false,openstreetmap
+Flanagan Community Center,basketball,sports_hall,44.1046707,-69.1116431,61 Limerock Street,Rockland,ME,04841,false,true,false,openstreetmap
+Basket Ball Court,basketball,pitch,44.0464475,-69.134595,21 Stump Dump Road,South Thomaston,ME,04858,false,true,false,openstreetmap

@@ -146,6 +146,7 @@ Field #8,baseball,pitch,34.3149015,-84.0311235,,,GA,,false,true,false,openstreet
 Field #9,baseball,pitch,34.2456765,-84.1009393,,,GA,,false,true,false,openstreetmap
 Field #9,baseball,pitch,34.3140947,-84.0324438,,,GA,,false,true,false,openstreetmap
 Field 1,baseball,pitch,33.3411091,-84.5479102,,,GA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.0715674,-84.3089167,,,GA,,false,true,false,openstreetmap
 Field 1,baseball,pitch,33.8172034,-84.507086,,,GA,,false,true,false,openstreetmap
 Field 1,baseball,pitch,32.5432003,-83.6747656,,,GA,,false,true,false,openstreetmap
 Field 1,baseball,pitch,33.962261,-83.9771171,,,GA,,false,true,false,openstreetmap
@@ -153,29 +154,38 @@ Field 1,baseball,pitch,34.0643925,-84.3363815,,,GA,,false,true,false,openstreetm
 Field 10,baseball,pitch,33.3419329,-84.5438005,,,GA,,false,true,false,openstreetmap
 Field 10,baseball,pitch,32.5418962,-83.6757072,,,GA,,false,true,false,openstreetmap
 Field 2,baseball,pitch,33.3405106,-84.54692,,,GA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.0709698,-84.3094406,,,GA,,false,true,false,openstreetmap
 Field 2,baseball,pitch,32.5432075,-83.674131,,,GA,,false,true,false,openstreetmap
 Field 2,baseball,pitch,33.8413805,-84.0093887,,,GA,,false,true,false,openstreetmap
 Field 2,baseball,pitch,34.0643419,-84.3372847,,,GA,,false,true,false,openstreetmap
 Field 3,baseball,pitch,33.3399373,-84.5476307,,,GA,,false,true,false,openstreetmap
 Field 3,baseball,pitch,33.8653902,-83.4798795,,,GA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.070787,-84.3087766,,,GA,,false,true,false,openstreetmap
 Field 3,baseball,pitch,32.5432328,-83.673397,,,GA,,false,true,false,openstreetmap
 Field 3,baseball,pitch,34.0638488,-84.3382364,,,GA,,false,true,false,openstreetmap
 Field 4,baseball,pitch,33.3404527,-84.548439,,,GA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,34.0708912,-84.3078264,,,GA,,false,true,false,openstreetmap
 Field 4,baseball,pitch,32.5432695,-83.6723304,,,GA,,false,true,false,openstreetmap
 Field 4,baseball,pitch,34.0630916,-84.3382113,,,GA,,false,true,false,openstreetmap
 Field 5,baseball,pitch,33.3413159,-84.5453654,,,GA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,34.0717478,-84.3050344,,,GA,,false,true,false,openstreetmap
 Field 5,baseball,pitch,32.5423393,-83.6723482,,,GA,,false,true,false,openstreetmap
 Field 5,baseball,pitch,33.961792,-83.9765034,,,GA,,false,true,false,openstreetmap
 Field 5,baseball,pitch,34.0622025,-84.3374529,,,GA,,false,true,false,openstreetmap
 Field 6,baseball,pitch,33.3402067,-84.5452172,,,GA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,34.0719303,-84.3037589,,,GA,,false,true,false,openstreetmap
 Field 6,baseball,pitch,32.5423301,-83.6733836,,,GA,,false,true,false,openstreetmap
 Field 6,baseball,pitch,33.9609284,-83.9761288,,,GA,,false,true,false,openstreetmap
 Field 6,baseball,pitch,34.0617867,-84.3359638,,,GA,,false,true,false,openstreetmap
 Field 7,baseball,pitch,33.3408584,-84.5446828,,,GA,,false,true,false,openstreetmap
+Field 7,baseball,pitch,34.0708035,-84.3040562,,,GA,,false,true,false,openstreetmap
 Field 8,baseball,pitch,33.3407346,-84.5458117,,,GA,,false,true,false,openstreetmap
+Field 8,baseball,pitch,34.0708034,-84.3051592,,,GA,,false,true,false,openstreetmap
 Field 8,baseball,pitch,32.541666,-83.6733663,,,GA,,false,true,false,openstreetmap
 Field 9,baseball,pitch,32.5416762,-83.6723284,,,GA,,false,true,false,openstreetmap
 Field 9,baseball,pitch,32.5423142,-83.6745614,,,GA,,false,true,false,openstreetmap
+Field T-1,baseball,pitch,34.0721372,-84.3074445,,,GA,,false,true,false,openstreetmap
+Field T-2,baseball,pitch,34.0716917,-84.3074453,,,GA,,false,true,false,openstreetmap
 Field of Hope - Field 9,baseball,pitch,33.342232,-84.5442593,,,GA,,false,true,false,openstreetmap
 Frankie Allen Fields,baseball,sports_centre,33.8355676,-84.372432,,,GA,,false,true,false,openstreetmap
 Fred Stillwell Baseball Stadium,baseball,pitch,34.0337958,-84.5816359,208 Kennesaw State University Road,,GA,,false,true,false,openstreetmap
