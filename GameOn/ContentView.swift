@@ -20,7 +20,15 @@ struct ContentView: View {
                 FanGeoSplashView()
                     .zIndex(1)
             } else if let ban = viewModel.activeAccountBan {
-                AccountSuspensionGateView(viewModel: viewModel, ban: ban)
+                AccountSuspensionGateView(viewModel: viewModel, ban: ban, kind: .user)
+                    .zIndex(2)
+            } else if let ban = viewModel.activeBusinessAccountBan,
+                      viewModel.isBusinessBanGatePresented
+                        || viewModel.hasAuthenticatedVenueOwnerSession
+                        || viewModel.currentUserIsBusinessAccount
+                        || viewModel.venueOwnerMode
+                        || viewModel.isBusinessOwnerSessionRestorePending {
+                AccountSuspensionGateView(viewModel: viewModel, ban: ban, kind: .business)
                     .zIndex(2)
             } else {
                 PublicProfilePresentationHost(
@@ -60,6 +68,8 @@ struct ContentView: View {
                             await viewModel.bootstrapAuthSessionOnly()
                             await viewModel.refreshUserPersonalizationInBackground()
                         }
+                    } else if viewModel.activeBusinessAccountBan != nil {
+                        await viewModel.refreshActiveBusinessBanGateAndRestoreBusinessSessionIfAllowed(reason: "foregroundBusiness")
                     } else {
                         await viewModel.businessBanGuardBlocks(path: "foreground", action: "sceneActive")
                     }
@@ -104,8 +114,14 @@ struct ContentView: View {
 }
 
 private struct AccountSuspensionGateView: View {
+    enum SuspensionKind {
+        case user
+        case business
+    }
+
     @ObservedObject var viewModel: MapViewModel
     let ban: FanGeoAccountBan
+    let kind: SuspensionKind
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -118,7 +134,7 @@ private struct AccountSuspensionGateView: View {
                 .foregroundStyle(FGColor.dangerRed)
 
             VStack(spacing: 10) {
-                Text("Account suspended")
+                Text(kind == .business ? "Business account suspended" : "Account suspended")
                     .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                     .multilineTextAlignment(.center)
@@ -151,10 +167,15 @@ private struct AccountSuspensionGateView: View {
 
             Button {
                 Task {
-                    await viewModel.refreshActiveBanGateAndRestoreSessionIfAllowed(reason: "manualSuspensionRefresh")
+                    switch kind {
+                    case .user:
+                        await viewModel.refreshActiveBanGateAndRestoreSessionIfAllowed(reason: "manualSuspensionRefresh")
+                    case .business:
+                        await viewModel.refreshActiveBusinessBanGateAndRestoreBusinessSessionIfAllowed(reason: "manualBusinessSuspensionRefresh")
+                    }
                 }
             } label: {
-                Text(viewModel.isCheckingActiveBan ? "Checking..." : "Check status")
+                Text(isChecking ? "Checking..." : "Check status")
                     .font(.headline.weight(.bold))
                     .frame(maxWidth: 260)
                     .padding(.vertical, 14)
@@ -162,7 +183,7 @@ private struct AccountSuspensionGateView: View {
                     .foregroundStyle(.white)
             }
             .buttonStyle(.plain)
-            .disabled(viewModel.isCheckingActiveBan)
+            .disabled(isChecking)
 
             Spacer(minLength: 32)
         }
@@ -173,9 +194,13 @@ private struct AccountSuspensionGateView: View {
 
     private var primaryMessage: String {
         if ban.isPermanent {
-            return "Your account has been permanently suspended."
+            return kind == .business
+                ? "This business account has been permanently suspended."
+                : "Your account has been permanently suspended."
         }
-        return "Your account is suspended until \(formattedBanEnd)."
+        return kind == .business
+            ? "This business account is suspended until \(formattedBanEnd)."
+            : "Your account is suspended until \(formattedBanEnd)."
     }
 
     private var remainingMessage: String? {
@@ -184,6 +209,15 @@ private struct AccountSuspensionGateView: View {
             return "You can return after the suspension expires."
         }
         return "You can return in \(Self.remainingTimeText(seconds: remainingSeconds))."
+    }
+
+    private var isChecking: Bool {
+        switch kind {
+        case .user:
+            return viewModel.isCheckingActiveBan
+        case .business:
+            return viewModel.isCheckingActiveBusinessBan
+        }
     }
 
     private var formattedBanEnd: String {

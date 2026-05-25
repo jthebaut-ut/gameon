@@ -107,6 +107,9 @@ final class MapViewModel: ObservableObject {
     @Published var currentUserAuthId: UUID?
     @Published var activeAccountBan: FanGeoAccountBan?
     @Published var isCheckingActiveBan = false
+    @Published var activeBusinessAccountBan: FanGeoAccountBan?
+    @Published var isCheckingActiveBusinessBan = false
+    @Published var isBusinessBanGatePresented = false
     @Published var isBusinessOwnerSessionRestorePending = false
     var authSessionRestoreID: UUID?
     /// Bumped whenever private authenticated state is explicitly cleared so sibling view models can synchronously wipe their own caches.

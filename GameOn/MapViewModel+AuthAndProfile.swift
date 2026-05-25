@@ -580,6 +580,9 @@ extension MapViewModel {
         currentUserBio = ""
         currentUserIsBusinessAccount = false
         isBusinessOwnerSessionRestorePending = false
+        activeBusinessAccountBan = nil
+        isBusinessBanGatePresented = false
+        isCheckingActiveBusinessBan = false
         currentUserFanXP = .rookie
         currentUserFanIdentityPreferences = .empty
         currentUserHomeCrowdVenueId = nil

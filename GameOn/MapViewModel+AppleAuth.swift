@@ -213,7 +213,12 @@ extension MapViewModel {
             return
         }
 
-        if await businessBanGuardBlocks(path: "businessLogin", action: "appleBusiness") {
+        if await businessBanGuardBlocks(
+            path: "businessLogin",
+            action: "appleBusiness",
+            ownerEmail: sessionEmail,
+            ownerUserId: session.user.id
+        ) {
             clearExplicitLogoutMarkerAfterManualAuthSucceeded()
             return
         }

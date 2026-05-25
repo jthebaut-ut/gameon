@@ -305,7 +305,12 @@ extension MapViewModel {
 
         let ownerUserId = session.user.id
 
-        if await businessBanGuardBlocks(path: "businessSignup", action: "registerVenueOwner") {
+        if await businessBanGuardBlocks(
+            path: "businessSignup",
+            action: "registerVenueOwner",
+            ownerEmail: ownerEmail,
+            ownerUserId: ownerUserId
+        ) {
             return
         }
 
@@ -822,7 +827,12 @@ extension MapViewModel {
                 return
             }
 
-            if await businessBanGuardBlocks(path: "businessLogin", action: "emailPassword") {
+            if await businessBanGuardBlocks(
+                path: "businessLogin",
+                action: "emailPassword",
+                ownerEmail: ownerEmail,
+                ownerUserId: session.user.id
+            ) {
                 clearExplicitLogoutMarkerAfterManualAuthSucceeded()
                 return
             }
@@ -2721,6 +2731,15 @@ extension MapViewModel {
 
     /// User picked a venue from the switcher; persists selection and reloads profile + games lists (DEBUG logs).
     func selectManagedVenue(id: UUID) async {
+        let selectedBusinessId = managedVenuesForOwner().first(where: { $0.id == id })?.business_id
+        if await businessBanGuardBlocks(
+            path: "businessSwitcher",
+            action: "selectManagedVenue",
+            businessId: selectedBusinessId
+        ) {
+            return
+        }
+
         await MainActor.run {
             ownerVenueDatabaseId = id
             persistSelectedVenueId(id)
