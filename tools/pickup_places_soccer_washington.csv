@@ -1,0 +1,171 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+5,soccer,pitch,47.6660354,-122.1209989,,,WA,,false,true,false,openstreetmap
+"5, 6",soccer,pitch,47.3080143,-122.319475,,,WA,,false,true,false,openstreetmap
+6,soccer,pitch,47.6660046,-122.1225419,,,WA,,false,true,false,openstreetmap
+7,soccer,pitch,47.3061084,-122.3191552,,,WA,,false,true,false,openstreetmap
+8,soccer,pitch,47.3051829,-122.3199483,,,WA,,false,true,false,openstreetmap
+All Saints Episcopal Church Soccer Fields,soccer,pitch,45.6938705,-122.6937706,,,WA,,false,true,false,openstreetmap
+Alpine Lakes Soccer Field #1,soccer,pitch,47.6010405,-120.6601534,,,WA,,false,true,false,openstreetmap
+Alpine Lakes Soccer Field #2,soccer,pitch,47.6008222,-120.6601573,,,WA,,false,true,false,openstreetmap
+Alpine Lakes Soccer Field #3,soccer,pitch,47.6009088,-120.6592997,,,WA,,false,true,false,openstreetmap
+Alpine Lakes Soccer Field #4,soccer,pitch,47.6007839,-120.658437,,,WA,,false,true,false,openstreetmap
+Alpine Lakes Soccer Field #5,soccer,pitch,47.6007776,-120.6581891,,,WA,,false,true,false,openstreetmap
+Bellevue School District,soccer,pitch,47.6308998,-122.2130506,,,WA,,false,true,false,openstreetmap
+Center Spot,soccer,pitch,45.6817061,-122.6374724,,,WA,,false,true,false,openstreetmap
+Championship Field,soccer,pitch,47.6068547,-122.314853,,,WA,,false,true,false,openstreetmap
+Chinook Soccer Field,soccer,pitch,47.6296512,-122.2106111,,,WA,,false,true,false,openstreetmap
+Christensen Soccer Field,soccer,pitch,45.6352275,-122.6574023,,,WA,,false,true,false,openstreetmap
+City of Snoqualmie,soccer,pitch,47.5177891,-121.8811816,,,WA,,false,true,false,openstreetmap
+Diego's Field,soccer,pitch,47.3710714,-122.2826111,,,WA,,false,true,false,openstreetmap
+Doc Harris Stadium,soccer,pitch,45.5947574,-122.3985277,,,WA,,false,true,false,openstreetmap
+Doc Harris Stadium,soccer,sports_centre,45.5939693,-122.3992674,,,WA,,false,true,false,openstreetmap
+Dorthy Fox ES,soccer,pitch,45.5989239,-122.4317008,,,WA,,false,true,false,openstreetmap
+East Athletic Field,soccer,pitch,47.2587748,-122.4803025,,,WA,,false,true,false,openstreetmap
+Ferris High School Soccer Field,soccer,pitch,47.6190854,-117.3616325,,,WA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,47.6973608,-117.2386163,,,WA,,false,true,false,openstreetmap
+Field #10,soccer,pitch,47.4723346,-122.2498814,,,WA,,false,true,false,openstreetmap
+Field #11,soccer,pitch,47.6970079,-117.2340887,,,WA,,false,true,false,openstreetmap
+Field #11,soccer,pitch,47.4729856,-122.2506283,,,WA,,false,true,false,openstreetmap
+Field #12,soccer,pitch,47.6980621,-117.2341209,,,WA,,false,true,false,openstreetmap
+Field #12,soccer,pitch,47.4725421,-122.2515739,,,WA,,false,true,false,openstreetmap
+Field #13,soccer,pitch,47.6975421,-117.2350731,,,WA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,47.4692831,-122.2488156,,,WA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,47.6965538,-117.2387209,,,WA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,47.4704208,-122.2485245,,,WA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,47.6962009,-117.2371397,,,WA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,47.4707748,-122.2477775,,,WA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,47.695542,-117.2376185,,,WA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,47.4679148,-122.2503196,,,WA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,47.6948595,-117.2362962,,,WA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,47.468879,-122.2508813,,,WA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,47.693946,-117.2350972,,,WA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,47.4698046,-122.2509053,,,WA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,47.6937998,-117.2340351,,,WA,,false,true,false,openstreetmap
+Field #8,soccer,pitch,47.4707553,-122.251137,,,WA,,false,true,false,openstreetmap
+Field #9,soccer,pitch,47.4718694,-122.2508591,,,WA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,47.552567,-122.053126,,,WA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,47.7048007,-122.1412165,,,WA,,false,true,false,openstreetmap
+Field 10,soccer,pitch,47.7072599,-122.1396954,,,WA,,false,true,false,openstreetmap
+Field 11,soccer,pitch,47.7049641,-122.138302,,,WA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,47.7059916,-122.1382836,,,WA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,47.7070019,-122.138245,,,WA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,47.704964,-122.1371477,,,WA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,47.7059762,-122.1371202,,,WA,,false,true,false,openstreetmap
+Field 16,soccer,pitch,47.706987,-122.1370918,,,WA,,false,true,false,openstreetmap
+Field 17,soccer,pitch,47.7033663,-122.138046,,,WA,,false,true,false,openstreetmap
+Field 18,soccer,pitch,47.7023104,-122.1380717,,,WA,,false,true,false,openstreetmap
+Field 19,soccer,pitch,47.703378,-122.1391588,,,WA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,47.5532793,-122.0532687,,,WA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,47.7054037,-122.1411994,,,WA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,48.4313879,-122.3016346,,,WA,,false,true,false,openstreetmap
+Field 20,soccer,pitch,47.7023811,-122.1391878,,,WA,,false,true,false,openstreetmap
+Field 21,soccer,pitch,47.7033899,-122.1402784,,,WA,,false,true,false,openstreetmap
+Field 22,soccer,pitch,47.7023873,-122.1403063,,,WA,,false,true,false,openstreetmap
+Field 23,soccer,pitch,47.7031628,-122.1414657,,,WA,,false,true,false,openstreetmap
+Field 24,soccer,pitch,47.7023487,-122.1414983,,,WA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,47.5527003,-122.0604942,,,WA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,48.431326,-122.2993892,,,WA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,47.7060213,-122.1411775,,,WA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,47.5527711,-122.0613873,,,WA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,47.7066547,-122.1411561,,,WA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,47.3569791,-121.9811722,,,WA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,47.5528799,-122.0623082,,,WA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,47.7072833,-122.1411377,,,WA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,47.5529489,-122.0632301,,,WA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,47.7047832,-122.1397769,,,WA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,47.5540717,-122.0628874,,,WA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,47.7053845,-122.1397563,,,WA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,47.5539086,-122.0618971,,,WA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,47.7060019,-122.1397392,,,WA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,47.5538523,-122.0609342,,,WA,,false,true,false,openstreetmap
+Field 9,soccer,pitch,47.7066342,-122.1397166,,,WA,,false,true,false,openstreetmap
+Fort Vancouver HS,soccer,pitch,45.6362793,-122.6091784,,,WA,,false,true,false,openstreetmap
+Fort Vancouver HS,soccer,pitch,45.6369349,-122.6091083,,,WA,,false,true,false,openstreetmap
+Geoduck Pitch,soccer,pitch,47.0733135,-122.9701415,,,WA,,false,true,false,openstreetmap
+Grass #1,soccer,pitch,47.2193589,-122.353937,,,WA,,false,true,false,openstreetmap
+Grass #10,soccer,pitch,47.2141081,-122.3526979,,,WA,,false,true,false,openstreetmap
+Grass #11,soccer,pitch,47.2141163,-122.3537238,,,WA,,false,true,false,openstreetmap
+Grass #2,soccer,pitch,47.21867,-122.3538592,,,WA,,false,true,false,openstreetmap
+Grass #2C,soccer,pitch,47.2186723,-122.3529165,,,WA,,false,true,false,openstreetmap
+Grass #4,soccer,pitch,47.2178461,-122.3541081,,,WA,,false,true,false,openstreetmap
+Grass #5A,soccer,pitch,47.2187749,-122.3550485,,,WA,,false,true,false,openstreetmap
+Grass #5B,soccer,pitch,47.2179978,-122.3565788,,,WA,,false,true,false,openstreetmap
+Grass #6,soccer,pitch,47.2159567,-122.3529754,,,WA,,false,true,false,openstreetmap
+Grass #8,soccer,pitch,47.215081,-122.3526965,,,WA,,false,true,false,openstreetmap
+Grass #9,soccer,pitch,47.215081,-122.3537185,,,WA,,false,true,false,openstreetmap
+Harmony Sports Complex,soccer,pitch,45.6313171,-122.4805154,,,WA,,false,true,false,openstreetmap
+Harmony Sports Complex,soccer,pitch,45.6313141,-122.4795822,,,WA,,false,true,false,openstreetmap
+Harrington Field,soccer,pitch,48.7285316,-122.4885385,,,WA,,false,true,false,openstreetmap
+Henry M. Jackson Soccer Field,soccer,pitch,47.873084,-122.2056733,,,WA,,false,true,false,openstreetmap
+Karl Grosch Field,soccer,pitch,47.3211536,-122.2983365,,,WA,,false,true,false,openstreetmap
+Kash Park Field #1,soccer,pitch,47.9175884,-122.2629481,,,WA,,false,true,false,openstreetmap
+Kash Park Field #2,soccer,pitch,47.9167624,-122.2629713,,,WA,,false,true,false,openstreetmap
+Kash Park Field #3,soccer,pitch,47.9160742,-122.2629898,,,WA,,false,true,false,openstreetmap
+Kelly's Field,soccer,pitch,46.5654447,-120.5576459,,,WA,,false,true,false,openstreetmap
+Large Soccer Field,soccer,pitch,46.9494646,-123.788264,,,WA,,false,true,false,openstreetmap
+Lochsloy Fields,soccer,pitch,48.0576323,-122.0345201,,,WA,,false,true,false,openstreetmap
+Lower Woodland Park #7,soccer,pitch,47.6696854,-122.3416217,,,WA,,false,true,false,openstreetmap
+Magic Metals Field,soccer,pitch,46.5655235,-120.5631849,,,WA,,false,true,false,openstreetmap
+Margaret Mead Elementary Multiuse Sport Field,soccer,pitch,47.6251768,-122.0531408,,,WA,,false,true,false,openstreetmap
+Martin's Field,soccer,pitch,46.5653752,-120.5592654,,,WA,,false,true,false,openstreetmap
+McClaskey Field,soccer,pitch,45.6888382,-122.6071616,,,WA,,false,true,false,openstreetmap
+Meadowdale Playfields Field #1,soccer,pitch,47.8471289,-122.3233438,,,WA,,false,true,false,openstreetmap
+Meadowdale Playfields Field #2,soccer,pitch,47.8470379,-122.3248372,,,WA,,false,true,false,openstreetmap
+Microsoft Commons - Soccer Field,soccer,pitch,47.6442469,-122.1390587,,,WA,,false,true,false,openstreetmap
+Midway Elementary Soccer Field,soccer,pitch,47.8109263,-117.3957309,,,WA,,false,true,false,openstreetmap
+Miller Playfield - Soccer,soccer,pitch,47.6209796,-122.3057605,,,WA,,false,true,false,openstreetmap
+Orca Field,soccer,pitch,48.7952948,-122.4978007,,,WA,,false,true,false,openstreetmap
+P,soccer,pitch,46.5657649,-120.5642006,,,WA,,false,true,false,openstreetmap
+Patriot Roofing Field,soccer,pitch,47.2178454,-122.3531119,,,WA,,false,true,false,openstreetmap
+Pavilion Field,soccer,pitch,47.4694989,-122.248097,,,WA,,false,true,false,openstreetmap
+Pepsi Field,soccer,pitch,46.5643616,-120.5592712,,,WA,,false,true,false,openstreetmap
+Peter MacNair Activity Field,soccer,pitch,47.6617743,-122.1157008,,,WA,,false,true,false,openstreetmap
+Pioneer 3,soccer,pitch,46.720837,-122.9864228,,,WA,,false,true,false,openstreetmap
+Pioneer 4,soccer,pitch,46.7207657,-122.9853572,,,WA,,false,true,false,openstreetmap
+Playfield 1,soccer,pitch,47.4889257,-117.5883669,,,WA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,45.6343872,-122.6594554,,,WA,,false,true,false,openstreetmap
+Q,soccer,pitch,46.5652958,-120.5642081,,,WA,,false,true,false,openstreetmap
+R,soccer,pitch,46.5645628,-120.5642747,,,WA,,false,true,false,openstreetmap
+RAVE Soccer Spot,soccer,pitch,47.6010121,-122.3208949,,,WA,,false,true,false,openstreetmap
+Rotary Field,soccer,pitch,46.565521,-120.5621142,,,WA,,false,true,false,openstreetmap
+Shahala Middle School,soccer,pitch,45.6194718,-122.472593,,,WA,,false,true,false,openstreetmap
+Shahala Middle School,soccer,pitch,45.616944,-122.4713602,,,WA,,false,true,false,openstreetmap
+Shahala Middle School,soccer,pitch,45.6177496,-122.4749649,,,WA,,false,true,false,openstreetmap
+Shahala Middle School,soccer,pitch,45.6188762,-122.4730099,,,WA,,false,true,false,openstreetmap
+Silver Star ES,soccer,pitch,45.6857377,-122.5654145,,,WA,,false,true,false,openstreetmap
+Small Soccer Field,soccer,pitch,46.9498075,-123.7871181,,,WA,,false,true,false,openstreetmap
+Smiley's Bottom Fields,soccer,pitch,48.511068,-122.6302282,,,WA,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,47.3780177,-122.1662626,,,WA,,false,true,false,openstreetmap
+Soccer 2,soccer,pitch,47.3791018,-122.1660312,,,WA,,false,true,false,openstreetmap
+Soccer 3,soccer,pitch,47.3792548,-122.1666306,,,WA,,false,true,false,openstreetmap
+Soccer FIeld 1,soccer,pitch,47.667681,-122.1450102,,,WA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,47.0099075,-120.5333531,,,WA,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,48.6669872,-123.1518191,,,WA,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,47.6656057,-122.1190878,,,WA,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,47.6664014,-122.1189703,,,WA,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,47.6663877,-122.1175662,,,WA,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,47.6653185,-122.1177234,,,WA,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,47.66894,-122.1463635,,,WA,,false,true,false,openstreetmap
+Soccer and Baseball Practice Field,soccer,pitch,46.6620248,-123.7995794,,,WA,,false,true,false,openstreetmap
+Sophia Field,soccer,pitch,46.5643142,-120.5576558,,,WA,,false,true,false,openstreetmap
+South Whidbey Sports Complex,soccer,sports_centre,48.0073725,-122.3990167,,,WA,,false,true,false,openstreetmap
+Starfire Stadium,soccer,pitch,47.4698456,-122.2471418,,,WA,,false,true,false,openstreetmap
+Stevens 1,soccer,pitch,46.7212404,-122.9830308,,,WA,,false,true,false,openstreetmap
+Stevens 2,soccer,pitch,46.7216303,-122.9817402,,,WA,,false,true,false,openstreetmap
+Stocker Fields,soccer,sports_centre,47.9080308,-122.0841392,,,WA,,false,true,false,openstreetmap
+Tacoma Soccer Center,soccer,sports_centre,47.2404766,-122.4090954,,,WA,,false,true,false,openstreetmap
+The Joe,soccer,pitch,47.5036523,-122.154715,,,WA,,false,true,false,openstreetmap
+University of Washington Soccer Field,soccer,pitch,47.6555835,-122.2982439,,,WA,,false,true,false,openstreetmap
+Vale Soccer Field,soccer,pitch,47.5196338,-120.4713176,,,WA,,false,true,false,openstreetmap
+WSU Lower Soccer Field,soccer,pitch,46.7339264,-117.1648467,,,WA,,false,true,false,openstreetmap
+Wally Sigmar Soccer Field,soccer,pitch,48.4381339,-122.3069907,,,WA,,false,true,false,openstreetmap
+Walt Hundley Playfield,soccer,pitch,47.5398494,-122.3737602,,,WA,,false,true,false,openstreetmap
+White Field,soccer,pitch,47.2801815,-122.2017266,,,WA,,false,true,false,openstreetmap
+Yellow Field,soccer,pitch,47.2804255,-122.2026333,,,WA,,false,true,false,openstreetmap
+Bremerton Sports Center,soccer,sports_centre,47.5537015,-122.6867666,1191 Pendergast Parkway,Bremerton,WA,98312,false,true,false,openstreetmap
+T-CYSA Soccer Complex,soccer,sports_centre,46.2661432,-119.1709367,6160 Burden Boulevard,Pasco,WA,99301,false,true,false,openstreetmap
+Arena Sports,soccer,sports_centre,47.6870288,-122.2631286,7751 63rd Avenue Northeast,Seattle,WA,98115,false,true,false,openstreetmap
+Greater Seattle Soccer League,soccer,pitch,47.7010613,-122.355113,9750 Greenwood Avenue North,Seattle,WA,,false,true,false,openstreetmap
+Albert Haller Play Fields,soccer,pitch,48.0833483,-123.0820301,,Sequim,WA,98382,false,true,false,openstreetmap
+Howerton Soccer Complex,soccer,sports_centre,47.6547396,-122.7179025,10000 Dickey Road Northwest,Silverdale,WA,98383,false,true,false,openstreetmap
+Starfire Athletic Center,soccer,fitness_centre,47.4700586,-122.2493891,14800 Starfire Way,Tukwila,WA,98188,false,true,false,openstreetmap

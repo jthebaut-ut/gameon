@@ -1,0 +1,331 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,37.3993624,-77.5068921,,,VA,,false,true,false,openstreetmap
+10,baseball,pitch,37.4007005,-77.5029396,,,VA,,false,true,false,openstreetmap
+2,baseball,pitch,37.399459,-77.5055617,,,VA,,false,true,false,openstreetmap
+3,baseball,pitch,37.3985392,-77.5057372,,,VA,,false,true,false,openstreetmap
+4,baseball,pitch,37.3985462,-77.5068541,,,VA,,false,true,false,openstreetmap
+5,baseball,pitch,37.4006612,-77.5050027,,,VA,,false,true,false,openstreetmap
+6,baseball,pitch,37.4016636,-77.5052601,,,VA,,false,true,false,openstreetmap
+7,baseball,pitch,37.4017878,-77.5034348,,,VA,,false,true,false,openstreetmap
+8,baseball,pitch,37.4020879,-77.5016399,,,VA,,false,true,false,openstreetmap
+9,baseball,pitch,37.4009318,-77.5012467,,,VA,,false,true,false,openstreetmap
+AA Field,baseball,pitch,37.5458419,-77.9192361,Tilman Road,,VA,,false,true,false,openstreetmap
+Abingdon Little League,baseball,sports_centre,36.7107302,-81.9864009,,,VA,,false,true,false,openstreetmap
+Ace's Diamond Field,baseball,pitch,37.5464973,-77.9186033,2320 Skaggs Road,,VA,,false,true,false,openstreetmap
+Added Little Creek Pony Baseball Field,baseball,pitch,36.9210849,-76.1601447,,,VA,,false,true,false,openstreetmap
+Adult Softball Field 1,baseball,pitch,38.4571524,-77.899378,,,VA,,false,true,false,openstreetmap
+Adult Softball Field 2,baseball,pitch,38.4578967,-77.8980455,,,VA,,false,true,false,openstreetmap
+Americana Park,baseball,pitch,38.8329198,-77.2208581,,,VA,,false,true,false,openstreetmap
+Art Eagle Ball Field,baseball,pitch,38.9199862,-77.2074093,,,VA,,false,true,false,openstreetmap
+Atkins Softball Field,baseball,pitch,37.1130751,-76.4326177,,,VA,,false,true,false,openstreetmap
+Atlee Little League Ballfield,baseball,park,37.695209,-77.3909925,,,VA,,false,true,false,openstreetmap
+Aux BB,baseball,pitch,38.4655225,-77.4588211,,,VA,,false,true,false,openstreetmap
+Averett University Baseball Field,baseball,pitch,36.5982518,-79.4364327,,,VA,,false,true,false,openstreetmap
+Averett University Baseball Field,baseball,pitch,36.5977606,-79.4382886,,,VA,,false,true,false,openstreetmap
+BHS Baseball Field,baseball,pitch,38.608513,-78.7958985,,,VA,,false,true,false,openstreetmap
+BWHS Baseball Field,baseball,pitch,38.9915761,-77.5341381,,,VA,,false,true,false,openstreetmap
+BWHS Baseball Practice Field,baseball,pitch,38.991593,-77.5327577,,,VA,,false,true,false,openstreetmap
+Bank of the James Stadium,baseball,pitch,37.3930663,-79.1655354,,,VA,,false,true,false,openstreetmap
+Baseball,baseball,pitch,38.9609681,-77.7407246,,,VA,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,37.2762905,-80.0196765,,,VA,,false,true,false,openstreetmap
+Baseball Diamond 1,baseball,pitch,38.4710745,-77.5418097,,,VA,,false,true,false,openstreetmap
+Baseball Diamond 2,baseball,pitch,38.4719374,-77.5423445,,,VA,,false,true,false,openstreetmap
+Baseball Diamond 3,baseball,pitch,38.4717577,-77.5432475,,,VA,,false,true,false,openstreetmap
+Baseball Diamond 4,baseball,pitch,38.4696271,-77.5413486,,,VA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,38.8444953,-77.5154339,,,VA,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,38.8450572,-77.5180089,,,VA,,false,true,false,openstreetmap
+Baseball Practice Field,baseball,pitch,38.8470078,-77.6313016,,,VA,,false,true,false,openstreetmap
+Baseball Practice field,baseball,pitch,38.8878115,-77.4679174,,,VA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,37.5714271,-77.5429267,,,VA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.4710906,-77.5433903,,,VA,,false,true,false,openstreetmap
+Belle Meadows Field,baseball,pitch,36.6062745,-82.2035373,,,VA,,false,true,false,openstreetmap
+Bernier Field,baseball,pitch,37.245438,-78.4578398,,,VA,,false,true,false,openstreetmap
+Bishop Denis J O'Connell High School baseball field,baseball,pitch,38.8941945,-77.159438,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,baseball,pitch,37.2425218,-80.4115828,,,VA,,false,true,false,openstreetmap
+Bob Huff Field,baseball,pitch,36.9128359,-82.0966408,,,VA,,false,true,false,openstreetmap
+Bodie Grim Field,baseball,pitch,39.1771788,-78.1521812,,,VA,,false,true,false,openstreetmap
+Bolter Field,baseball,pitch,36.9602598,-78.1141253,,,VA,,false,true,false,openstreetmap
+Boyce Cox Field,baseball,pitch,36.6024562,-82.1993902,,,VA,,false,true,false,openstreetmap
+Bradford Field,baseball,pitch,37.4034276,-79.159407,,,VA,,false,true,false,openstreetmap
+Bridgeforth Field (SU),baseball,pitch,39.1763991,-78.1509699,,,VA,,false,true,false,openstreetmap
+Broyles Field,baseball,pitch,36.866654,-76.1822114,,,VA,,false,true,false,openstreetmap
+Buck Langhorne Field,baseball,pitch,37.4541583,-79.1919406,,,VA,,false,true,false,openstreetmap
+Bucknell Elementary Baseball Field,baseball,pitch,38.7672233,-77.0730303,,,VA,,false,true,false,openstreetmap
+Bud Metheny Baseball Facility,baseball,pitch,36.8839527,-76.3091664,,,VA,,false,true,false,openstreetmap
+Buddy Bolding Stadium,baseball,pitch,37.2936701,-78.3962236,,,VA,,false,true,false,openstreetmap
+CHS Baseball Field,baseball,pitch,38.8786489,-77.4077301,,,VA,,false,true,false,openstreetmap
+Calfee Park,baseball,stadium,37.0390249,-80.7757129,,,VA,,false,true,false,openstreetmap
+Captain Dick Smith Baseball Field,baseball,pitch,37.7944829,-79.4456809,,,VA,,false,true,false,openstreetmap
+Captains Park,baseball,stadium,37.062687,-76.5013457,,,VA,,false,true,false,openstreetmap
+Captains Park - Softball,baseball,pitch,37.0638383,-76.5003943,,,VA,,false,true,false,openstreetmap
+Cara Byrd Baker Elementary Baseball Field,baseball,pitch,37.2475616,-76.7668912,,,VA,,false,true,false,openstreetmap
+Carilion Clinic Field,baseball,pitch,37.2853068,-80.0367475,,,VA,,false,true,false,openstreetmap
+Carney Field,baseball,pitch,38.8608851,-77.4106297,,,VA,,false,true,false,openstreetmap
+Casey Field,baseball,pitch,37.7828621,-79.9936467,,,VA,,false,true,false,openstreetmap
+Central Little League,baseball,pitch,36.6030116,-82.2007561,,,VA,,false,true,false,openstreetmap
+Challenger Field,baseball,pitch,37.6272151,-77.6238659,,,VA,,false,true,false,openstreetmap
+Chandon Park Baseball Field,baseball,pitch,38.9592216,-77.3973141,,,VA,,false,true,false,openstreetmap
+Chantilly Park Field 1 (CP1),baseball,pitch,38.8797772,-77.409337,,,VA,,false,true,false,openstreetmap
+Chantilly Park Field 3 (CP3),baseball,pitch,38.8811168,-77.4087588,,,VA,,false,true,false,openstreetmap
+Charlottesville High School Baseball Field,baseball,pitch,38.0519004,-78.4739828,,,VA,,false,true,false,openstreetmap
+Childs Field,baseball,pitch,38.6574131,-77.7231216,,,VA,,false,true,false,openstreetmap
+Chimney Field baseball field,baseball,pitch,38.9330293,-78.2025053,,,VA,,false,true,false,openstreetmap
+City: Bekeley Middle Sch,baseball,pitch,37.2731242,-76.7357927,,,VA,,false,true,false,openstreetmap
+City: Bekeley Middle Sch,baseball,pitch,37.2740705,-76.7361892,,,VA,,false,true,false,openstreetmap
+Civic League Baseball Diamond,baseball,pitch,36.9025859,-76.1767135,,,VA,,false,true,false,openstreetmap
+Clarksville Dixie Youth,baseball,pitch,36.6219085,-78.570819,,,VA,,false,true,false,openstreetmap
+Colbert Baseball Field,baseball,pitch,37.240884,-77.4201158,,,VA,,false,true,false,openstreetmap
+Copeley Field,baseball,pitch,38.0512763,-78.5112418,,,VA,,false,true,false,openstreetmap
+Cora Kelly Field,baseball,pitch,38.8400923,-77.0567056,,,VA,,false,true,false,openstreetmap
+Crabtree Field,baseball,pitch,38.880148,-77.2507734,,,VA,,false,true,false,openstreetmap
+Crimora Community Softball Field,baseball,pitch,38.1557236,-78.8516222,,,VA,,false,true,false,openstreetmap
+Crimora Communtty Center baseball field,baseball,pitch,38.1561633,-78.8520339,,,VA,,false,true,false,openstreetmap
+D1,baseball,pitch,38.6945103,-77.7680212,,,VA,,false,true,false,openstreetmap
+D2,baseball,pitch,38.6937557,-77.7686263,,,VA,,false,true,false,openstreetmap
+D3,baseball,pitch,38.6933765,-77.7678118,,,VA,,false,true,false,openstreetmap
+D4,baseball,pitch,38.6934965,-77.7667102,,,VA,,false,true,false,openstreetmap
+D5,baseball,pitch,38.6945899,-77.7667762,,,VA,,false,true,false,openstreetmap
+Dale L. Frank Field,baseball,pitch,37.1191826,-76.442752,,,VA,,false,true,false,openstreetmap
+Dan & Norma Jean Curry Field,baseball,pitch,38.8835739,-77.2765284,,,VA,,false,true,false,openstreetmap
+Darden Towe Field 1,baseball,pitch,38.0421555,-78.4513595,,,VA,,false,true,false,openstreetmap
+Darden Towe Field 2,baseball,pitch,38.0425568,-78.45041,,,VA,,false,true,false,openstreetmap
+Darden Towe Field 3,baseball,pitch,38.0432877,-78.4509303,,,VA,,false,true,false,openstreetmap
+Darrell C. Gardner Field,baseball,pitch,38.0367925,-78.480222,,,VA,,false,true,false,openstreetmap
+Davenport Field at Disharoon Park,baseball,stadium,38.0455448,-78.5137774,,,VA,,false,true,false,openstreetmap
+Davenport Field at Disharoon Park,baseball,pitch,38.0457912,-78.5135355,,,VA,,false,true,false,openstreetmap
+David Splieger and Steven Cox Ball Field,baseball,pitch,38.8066552,-77.2857758,,,VA,,false,true,false,openstreetmap
+Declan's Field,baseball,pitch,39.2713271,-77.6422529,,,VA,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,37.6463274,-77.3064758,,,VA,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,37.6463814,-77.3076884,,,VA,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,37.6474081,-77.3076038,,,VA,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,37.6473266,-77.3063959,,,VA,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,38.8696518,-77.8279147,,,VA,,false,true,false,openstreetmap
+Diamond 6,baseball,pitch,38.8697406,-77.8265339,,,VA,,false,true,false,openstreetmap
+Diamond 7,baseball,pitch,38.8696763,-77.8229754,,,VA,,false,true,false,openstreetmap
+Diamond 8,baseball,pitch,38.8683313,-77.821802,,,VA,,false,true,false,openstreetmap
+Diamond Field 10,baseball,pitch,38.9691409,-77.553773,,,VA,,false,true,false,openstreetmap
+Diamond Field 11,baseball,pitch,38.9686352,-77.5547629,,,VA,,false,true,false,openstreetmap
+Diamond Field 8,baseball,pitch,38.9695788,-77.5550416,,,VA,,false,true,false,openstreetmap
+Diamond Field 9,baseball,pitch,38.9700759,-77.5540251,,,VA,,false,true,false,openstreetmap
+Discovery Elem. Baseball Field,baseball,pitch,39.0195974,-77.4790515,,,VA,,false,true,false,openstreetmap
+Doc Adams Baseball Field,baseball,pitch,36.8869301,-82.1090025,,,VA,,false,true,false,openstreetmap
+Duke's Baseball Den,baseball,sports_hall,36.6686967,-82.0592738,17146 Lee Highway,,VA,,false,true,false,openstreetmap
+Eagles Field,baseball,pitch,38.6072238,-77.2838788,,,VA,,false,true,false,openstreetmap
+Eagles Field,baseball,pitch,39.1741014,-78.1512264,,,VA,,false,true,false,openstreetmap
+English Field,baseball,pitch,37.2179106,-80.4234369,,,VA,,false,true,false,openstreetmap
+Eugene Simpson Stadium,baseball,pitch,38.8219305,-77.0530055,,,VA,,false,true,false,openstreetmap
+FCHS Baseball Field,baseball,pitch,37.8752806,-78.2974986,,,VA,,false,true,false,openstreetmap
+FCHS Baseball Practice Field,baseball,pitch,37.8778535,-78.2983147,,,VA,,false,true,false,openstreetmap
+FHS Baseball Field,baseball,pitch,38.8721036,-77.3209713,,,VA,,false,true,false,openstreetmap
+FMS Baseball Field,baseball,pitch,37.8249101,-78.2765643,,,VA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,39.0134305,-77.4073121,,,VA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,37.4188218,-79.2234496,,,VA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,37.6259778,-77.626218,,,VA,,false,true,false,openstreetmap
+Field #10,baseball,pitch,39.0144997,-77.4032609,,,VA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,39.0140885,-77.4075812,,,VA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,37.6270251,-77.6257207,,,VA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,37.6772328,-77.5080719,,,VA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,39.0144253,-77.4069099,,,VA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,37.6260382,-77.6203459,,,VA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,37.6759897,-77.5072019,,,VA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,39.0141766,-77.4058506,,,VA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,37.6245383,-77.6214631,,,VA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,37.67604,-77.5083602,,,VA,,false,true,false,openstreetmap
+Field #5,baseball,pitch,39.0132523,-77.406216,,,VA,,false,true,false,openstreetmap
+Field #5,baseball,pitch,37.624957,-77.6226244,,,VA,,false,true,false,openstreetmap
+Field #5,baseball,pitch,37.6777262,-77.5122528,,,VA,,false,true,false,openstreetmap
+Field #6,baseball,pitch,37.6252845,-77.6236502,,,VA,,false,true,false,openstreetmap
+Field #6,baseball,pitch,37.6782927,-77.512732,,,VA,,false,true,false,openstreetmap
+Field #7,baseball,pitch,37.6258049,-77.6225067,,,VA,,false,true,false,openstreetmap
+Field #7,baseball,pitch,37.6787895,-77.5135471,,,VA,,false,true,false,openstreetmap
+Field #8,baseball,pitch,37.6268149,-77.6211522,,,VA,,false,true,false,openstreetmap
+Field #9,baseball,pitch,39.0144116,-77.4041673,,,VA,,false,true,false,openstreetmap
+Field #9,baseball,pitch,37.6265368,-77.6246199,,,VA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.7291446,-77.1280665,,,VA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,37.3518811,-79.8352619,,,VA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.7081686,-77.116214,,,VA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.1912942,-77.5859421,,,VA,,false,true,false,openstreetmap
+Field 10,baseball,pitch,39.0671244,-77.5389268,,,VA,,false,true,false,openstreetmap
+Field 10,baseball,pitch,38.4754948,-77.9418127,,,VA,,false,true,false,openstreetmap
+Field 11,baseball,pitch,39.0675039,-77.5400592,,,VA,,false,true,false,openstreetmap
+Field 11,baseball,pitch,38.4760845,-77.9413938,,,VA,,false,true,false,openstreetmap
+Field 12,baseball,pitch,38.4772813,-77.9409732,,,VA,,false,true,false,openstreetmap
+Field 13,baseball,pitch,38.47779,-77.9413737,,,VA,,false,true,false,openstreetmap
+Field 14,baseball,pitch,38.477436,-77.9420926,,,VA,,false,true,false,openstreetmap
+Field 15,baseball,pitch,38.4769342,-77.9416875,,,VA,,false,true,false,openstreetmap
+Field 16,baseball,pitch,38.4762197,-77.9423369,,,VA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,37.3520645,-79.8343154,,,VA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.7082848,-77.1172352,,,VA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.1911157,-77.5850684,,,VA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.8841158,-77.277531,,,VA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.7286845,-77.129357,,,VA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.071184,-77.5435075,,,VA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.7108497,-77.1150046,,,VA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.8396735,-77.0590888,,,VA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.7297305,-77.1289809,,,VA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.0721208,-77.5432787,,,VA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.072091,-77.5422878,,,VA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.0712912,-77.5423294,,,VA,,false,true,false,openstreetmap
+Field 7,baseball,pitch,39.0722997,-77.5410162,,,VA,,false,true,false,openstreetmap
+Field 8,baseball,pitch,39.0683806,-77.5395893,,,VA,,false,true,false,openstreetmap
+Field 9,baseball,pitch,39.0680141,-77.5384355,,,VA,,false,true,false,openstreetmap
+Fireman's Field Center,baseball,pitch,39.1331954,-77.7148576,,,VA,,false,true,false,openstreetmap
+Floyd County High School Baseball Field,baseball,pitch,36.9096754,-80.3068804,,,VA,,false,true,false,openstreetmap
+Fort Branch Stadium,baseball,pitch,37.3246292,-80.7212064,,,VA,,false,true,false,openstreetmap
+Fox Field,baseball,pitch,37.3980231,-79.1872702,,,VA,,false,true,false,openstreetmap
+Frank Mann Field,baseball,pitch,38.83905,-77.0576228,,,VA,,false,true,false,openstreetmap
+Fredericksburg Nationals Ballpark,baseball,stadium,38.3185505,-77.5089151,,,VA,,false,true,false,openstreetmap
+Freedom Middle School baseball field,baseball,pitch,38.2559686,-77.576545,,,VA,,false,true,false,openstreetmap
+Freedom Middle School baseball field,baseball,pitch,38.252812,-77.5761799,,,VA,,false,true,false,openstreetmap
+Gary L. Walthall Park at Terrier Field,baseball,pitch,37.2880063,-79.8613795,,,VA,,false,true,false,openstreetmap
+Glyndon Park Baseball Field,baseball,pitch,38.9078088,-77.2645294,,,VA,,false,true,false,openstreetmap
+Gray-Minor Stadium,baseball,stadium,37.792428,-79.4399964,,,VA,,false,true,false,openstreetmap
+Greeen Acres Baseball Field,baseball,pitch,38.8332798,-77.3026947,,,VA,,false,true,false,openstreetmap
+Green Ballfield 1,baseball,pitch,36.7628933,-76.0957749,,,VA,,false,true,false,openstreetmap
+Green Ballfield 2,baseball,pitch,36.7617916,-76.0956292,,,VA,,false,true,false,openstreetmap
+Green Ballfield 3,baseball,pitch,36.7616769,-76.0969971,,,VA,,false,true,false,openstreetmap
+Green Ballfield 4,baseball,pitch,36.7627767,-76.0971423,,,VA,,false,true,false,openstreetmap
+Happy Lee Field,baseball,pitch,37.403873,-79.1603291,,,VA,,false,true,false,openstreetmap
+Harbor Park,baseball,stadium,36.8427009,-76.2788847,,,VA,,false,true,false,openstreetmap
+Haske Little League Field,baseball,pitch,39.1336979,-77.7161112,,,VA,,false,true,false,openstreetmap
+Hayfield Secondary Baseball Field,baseball,pitch,38.7519224,-77.1411408,,,VA,,false,true,false,openstreetmap
+Hayfield Softball Field,baseball,pitch,38.7536857,-77.1435024,,,VA,,false,true,false,openstreetmap
+Henkel Harris Field,baseball,pitch,39.1750864,-78.1529011,,,VA,,false,true,false,openstreetmap
+Heritage Baseball Field,baseball,pitch,39.085551,-77.5683413,,,VA,,false,true,false,openstreetmap
+Heritage Softball Field,baseball,pitch,39.0843536,-77.5679981,,,VA,,false,true,false,openstreetmap
+Hollymead Baseball Field,baseball,pitch,38.1116108,-78.4381762,,,VA,,false,true,false,openstreetmap
+Hooker Field,baseball,pitch,36.6961787,-79.8537881,,,VA,,false,true,false,openstreetmap
+Hope Field,baseball,pitch,38.4518646,-77.4593222,,,VA,,false,true,false,openstreetmap
+Huber,baseball,pitch,39.087541,-77.5707395,,,VA,,false,true,false,openstreetmap
+Hugh F. Stephens Field,baseball,pitch,37.7656761,-77.4780305,,,VA,,false,true,false,openstreetmap
+Hylton Ave. Park Baseball Diamond,baseball,pitch,36.5645869,-79.4258477,,,VA,,false,true,false,openstreetmap
+Hylton Ave. Park Baseball Diamond #2,baseball,pitch,36.5639302,-79.4256281,,,VA,,false,true,false,openstreetmap
+Hyman Brothers Field,baseball,pitch,37.5842991,-77.6728198,,,VA,,false,true,false,openstreetmap
+Ironbridge baseball Academy North,baseball,pitch,37.6336567,-77.5027339,,,VA,,false,true,false,openstreetmap
+"Ivan ""Pudge"" Rodriguez Field",baseball,pitch,38.8359389,-77.172408,,,VA,,false,true,false,openstreetmap
+Jack Jennings Field,baseball,pitch,38.9996278,-77.4076993,,,VA,,false,true,false,openstreetmap
+Jacobs Baseball Field,baseball,pitch,37.5807671,-77.5208626,,,VA,,false,true,false,openstreetmap
+James Oakley Field,baseball,pitch,37.1183065,-80.5664192,,,VA,,false,true,false,openstreetmap
+Jeff Cobb Field,baseball,pitch,39.0007677,-77.4080027,,,VA,,false,true,false,openstreetmap
+Jenny's Field,baseball,pitch,37.5396667,-77.9138666,3834 Old Buckingham Road,,VA,,false,true,false,openstreetmap
+Jessop-Savia Field,baseball,pitch,38.883187,-77.2729804,,,VA,,false,true,false,openstreetmap
+Kate Collins Field,baseball,pitch,38.0826153,-78.8948894,,,VA,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,37.2858097,-80.0478326,,,VA,,false,true,false,openstreetmap
+Kiwanis Park: Ballfield 1,baseball,pitch,37.2927793,-76.7294173,125,,VA,,false,true,false,openstreetmap
+Kiwanis Park: Ballfield 2,baseball,pitch,37.2921316,-76.7297372,127,,VA,,false,true,false,openstreetmap
+Kiwanis Park: Ballfield 3,baseball,pitch,37.2923632,-76.7306263,129,,VA,,false,true,false,openstreetmap
+Kiwanis Park: Ballfield 4,baseball,pitch,37.2930391,-76.7302229,123,,VA,,false,true,false,openstreetmap
+Lady Eagles Softball,baseball,pitch,38.5860342,-77.7675209,,,VA,,false,true,false,openstreetmap
+Lamore Field,baseball,pitch,37.7925396,-79.4400556,,,VA,,false,true,false,openstreetmap
+Lancer Park Ballfield,baseball,pitch,37.3073843,-78.4006297,,,VA,,false,true,false,openstreetmap
+Lee Barbash Field,baseball,pitch,38.8831486,-77.2772953,,,VA,,false,true,false,openstreetmap
+Liberty Baseball Stadium,baseball,stadium,37.356433,-79.1769862,,,VA,,false,true,false,openstreetmap
+Liberty Field,baseball,pitch,38.5887839,-77.7682736,,,VA,,false,true,false,openstreetmap
+Lisa's Field,baseball,pitch,37.5400496,-77.9143448,3834 Old Buckingham Road,,VA,,false,true,false,openstreetmap
+Little Creek Bronco Baseball Field,baseball,pitch,36.9208267,-76.1587192,,,VA,,false,true,false,openstreetmap
+Little Creek Mustang Baseball Field,baseball,pitch,36.9205584,-76.1576944,,,VA,,false,true,false,openstreetmap
+Little Creek Palomino Baseball Field,baseball,pitch,36.9219562,-76.1597225,,,VA,,false,true,false,openstreetmap
+Little Creek Pinto Baseball Field,baseball,pitch,36.9216013,-76.1591902,,,VA,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,37.0109679,-76.300864,,,VA,,false,true,false,openstreetmap
+Lloyd Field,baseball,pitch,37.4025257,-79.1601872,,,VA,,false,true,false,openstreetmap
+Lonesome Oak Field,baseball,pitch,37.5453031,-77.9185909,Tilman Road,,VA,,false,true,false,openstreetmap
+Long Field,baseball,pitch,38.4362396,-78.8646586,,,VA,,false,true,false,openstreetmap
+Loudoun County High School Baseball Field,baseball,pitch,39.1108526,-77.5817607,,,VA,,false,true,false,openstreetmap
+Loudoun County High School Softball Field,baseball,pitch,39.109725,-77.5811929,,,VA,,false,true,false,openstreetmap
+Lowes Island Elementary Little League field,baseball,pitch,39.0417299,-77.3514205,,,VA,,false,true,false,openstreetmap
+Luck Field,baseball,pitch,38.0126623,-77.9067723,,,VA,,false,true,false,openstreetmap
+Luray Middle School Baseball Diamond,baseball,pitch,38.6600947,-78.4554164,,,VA,,false,true,false,openstreetmap
+Madison County High School Baseball Field,baseball,pitch,38.3631875,-78.2687947,,,VA,,false,true,false,openstreetmap
+Major League Field,baseball,pitch,36.8583659,-76.3820812,,,VA,,false,true,false,openstreetmap
+Marion Stadium,baseball,pitch,36.8376642,-81.5035209,,,VA,,false,true,false,openstreetmap
+Marty Miller Baseball Field,baseball,pitch,36.84668,-76.2633821,,,VA,,false,true,false,openstreetmap
+Mason District Park Batting Cage,baseball,pitch,38.8359563,-77.1729194,,,VA,,false,true,false,openstreetmap
+Mathis Field,baseball,pitch,37.2939033,-77.3210797,,,VA,,false,true,false,openstreetmap
+Mauck Stadium,baseball,stadium,38.4365095,-78.8653563,,,VA,,false,true,false,openstreetmap
+McLean High School Baseball Field,baseball,pitch,38.9220861,-77.184623,,,VA,,false,true,false,openstreetmap
+Mechanicsville High School Baseball Field,baseball,pitch,37.6162395,-77.3403704,,,VA,,false,true,false,openstreetmap
+Minor League Field,baseball,pitch,36.8578539,-76.3815857,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,baseball,pitch,37.2123215,-80.4667006,,,VA,,false,true,false,openstreetmap
+NSU Softball Field,baseball,pitch,36.8464375,-76.2647568,,,VA,,false,true,false,openstreetmap
+Nance Field,baseball,pitch,38.8802154,-77.2498905,,,VA,,false,true,false,openstreetmap
+Narrows High School Baseball Field,baseball,pitch,37.3386164,-80.8047864,,,VA,,false,true,false,openstreetmap
+Nellie's Cave Park Field,baseball,pitch,37.2093101,-80.39202,,,VA,,false,true,false,openstreetmap
+Newington Comunity Ball Park,baseball,pitch,38.7322368,-77.2139758,,,VA,,false,true,false,openstreetmap
+Oak Hill ES baseball field,baseball,pitch,38.9124133,-77.4081663,,,VA,,false,true,false,openstreetmap
+Old Blacksburg High School Baseball Field,baseball,pitch,37.2420318,-80.4082503,,,VA,,false,true,false,openstreetmap
+Old Donation School Baseball Field,baseball,pitch,36.869699,-76.1368089,,,VA,,false,true,false,openstreetmap
+One,baseball,pitch,36.9305612,-76.2692047,,,VA,,false,true,false,openstreetmap
+Parker Field,baseball,pitch,37.5427689,-77.4217952,,,VA,,false,true,false,openstreetmap
+Parker Field Annex,baseball,pitch,37.5744416,-77.4628345,,,VA,,false,true,false,openstreetmap
+Pembroke Meadows Baseball Field,baseball,pitch,36.8662061,-76.1284892,,,VA,,false,true,false,openstreetmap
+Perry Field,baseball,pitch,36.8679565,-76.1820155,,,VA,,false,true,false,openstreetmap
+Pioneer Field,baseball,pitch,39.001631,-77.4073868,,,VA,,false,true,false,openstreetmap
+Pitt Baseball Field,baseball,pitch,37.5789906,-77.5411356,,,VA,,false,true,false,openstreetmap
+Pitt Baseball Field,baseball,pitch,37.5792745,-77.5409201,,,VA,,false,true,false,openstreetmap
+Pitt Field,baseball,pitch,37.5381627,-77.9137051,3834 Old Buckingham Road,,VA,,false,true,false,openstreetmap
+Plumeri Park,baseball,pitch,37.2898965,-76.7326558,,,VA,,false,true,false,openstreetmap
+Porterfiield-DeVault Field,baseball,pitch,36.7743653,-81.8251285,,,VA,,false,true,false,openstreetmap
+Preston Pierce Field at Chantilly Park (CP2),baseball,pitch,38.8805237,-77.4090001,,,VA,,false,true,false,openstreetmap
+Primary BB,baseball,pitch,38.4675495,-77.4592487,,,VA,,false,true,false,openstreetmap
+Rachel Carson MS softball field,baseball,pitch,38.9264202,-77.4178222,,,VA,,false,true,false,openstreetmap
+Reavis,baseball,pitch,39.0882967,-77.5704874,,,VA,,false,true,false,openstreetmap
+Red Ballfield 1,baseball,pitch,36.7625503,-76.0987133,,,VA,,false,true,false,openstreetmap
+Red Ballfield 2,baseball,pitch,36.7614509,-76.0985646,,,VA,,false,true,false,openstreetmap
+Red Ballfield 3,baseball,pitch,36.7613321,-76.0999347,,,VA,,false,true,false,openstreetmap
+Red Ballfield 4,baseball,pitch,36.7624346,-76.1000805,,,VA,,false,true,false,openstreetmap
+Rhodes Field,baseball,pitch,38.880198,-77.2488354,,,VA,,false,true,false,openstreetmap
+Rhonda Blevins Field,baseball,pitch,37.0947178,-81.7792433,,,VA,,false,true,false,openstreetmap
+Robbins Ballpark,baseball,pitch,36.6211063,-78.5693077,,,VA,,false,true,false,openstreetmap
+Rogers-Fuller Baseball Field,baseball,pitch,36.8329817,-79.4025323,,,VA,,false,true,false,openstreetmap
+Rolling Valley Elementary,baseball,pitch,38.7687729,-77.2300616,,,VA,,false,true,false,openstreetmap
+Rotary Field,baseball,pitch,39.175707,-78.1521986,,,VA,,false,true,false,openstreetmap
+Running Cedar Ballfield,baseball,pitch,38.9182947,-77.3441722,,,VA,,false,true,false,openstreetmap
+Salem Memorial Baseball Stadium,baseball,stadium,37.2854952,-80.0369326,,,VA,,false,true,false,openstreetmap
+Sawmill Park Baseballl Field,baseball,pitch,37.7195589,-75.6523399,,,VA,,false,true,false,openstreetmap
+Seahawks Baseball,baseball,pitch,38.9343105,-77.341305,,,VA,,false,true,false,openstreetmap
+Shaver Field,baseball,pitch,36.6215824,-78.5713332,,,VA,,false,true,false,openstreetmap
+Shepherd Field,baseball,pitch,37.2494805,-77.4152864,,,VA,,false,true,false,openstreetmap
+Siegel Baseball Field,baseball,pitch,37.578519,-77.5241373,,,VA,,false,true,false,openstreetmap
+Softball Stadium,baseball,pitch,37.0216542,-76.3295408,,,VA,,false,true,false,openstreetmap
+Spuhler Field,baseball,pitch,38.8347638,-77.3180249,,,VA,,false,true,false,openstreetmap
+St Georges Baseball Field,baseball,pitch,37.2452312,-76.7761288,,,VA,,false,true,false,openstreetmap
+Stallard Field,baseball,pitch,36.9690807,-82.55815,,,VA,,false,true,false,openstreetmap
+Stephen Paul Black Field,baseball,pitch,38.8842285,-77.2733575,,,VA,,false,true,false,openstreetmap
+Stuarts Draft Diamond Club,baseball,pitch,38.0312938,-79.0325118,,,VA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,37.5443679,-77.9181316,Tilman Road,,VA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,39.1743261,-78.1522401,,,VA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,38.0664694,-78.906531,,,VA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,38.0667945,-78.9072311,,,VA,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,37.8644681,-78.7227361,,,VA,,false,true,false,openstreetmap
+Tabb HS Baseball,baseball,pitch,37.1232105,-76.4348664,,,VA,,false,true,false,openstreetmap
+Tee-ball field,baseball,pitch,36.8577904,-76.3823324,,,VA,,false,true,false,openstreetmap
+The Ballpark,baseball,sports_centre,39.0633103,-77.4600338,,,VA,,false,true,false,openstreetmap
+The Diamond,baseball,pitch,37.5716937,-77.4632829,,,VA,,false,true,false,openstreetmap
+Titustown Baseball Diamond,baseball,pitch,36.9149708,-76.2958875,,,VA,,false,true,false,openstreetmap
+Tom Miles Field,baseball,pitch,37.9789934,-79.6055488,,,VA,,false,true,false,openstreetmap
+Tucker Field,baseball,pitch,38.8508323,-77.1036002,,,VA,,false,true,false,openstreetmap
+Turner Field,baseball,pitch,37.5387738,-77.9136199,3834 Old Buckingham Road,,VA,,false,true,false,openstreetmap
+Two,baseball,pitch,36.9308673,-76.2695913,,,VA,,false,true,false,openstreetmap
+Virginia Tech Rec Baseball Field,baseball,pitch,37.214398,-80.4203978,,,VA,,false,true,false,openstreetmap
+"W.W. Naff, Jr. Baseball Field",baseball,pitch,36.9314183,-80.0219882,,,VA,,false,true,false,openstreetmap
+Walsingham Baseball Field,baseball,pitch,37.2556556,-76.7235369,,,VA,,false,true,false,openstreetmap
+Westbriar Elementary Baseball Pitch,baseball,pitch,38.920908,-77.2442867,,,VA,,false,true,false,openstreetmap
+Westfield High School Baseball Diamond,baseball,pitch,38.8867618,-77.4669354,,,VA,,false,true,false,openstreetmap
+Women’s Softball Field,baseball,pitch,36.9709812,-82.5556335,,,VA,,false,true,false,openstreetmap
+Woodberry Baseball Field,baseball,pitch,36.6056549,-79.4061019,,,VA,,false,true,false,openstreetmap
+Yost Field,baseball,pitch,39.1762871,-78.1527967,,,VA,,false,true,false,openstreetmap
+War Memorial Park,baseball,pitch,37.1128565,-79.2879365,280 Franklin Avenue,Altavista,VA,24517,false,true,false,openstreetmap
+Ignite Baseball,baseball,pitch,38.8772213,-77.1230437,5130 Wilson Boulevard,Arlington,VA,22205,false,true,false,openstreetmap
+Upton Hill Batting Cages,baseball,pitch,38.8716329,-77.1437585,6060 Wilson Boulevard,Arlington,VA,22205,true,false,false,openstreetmap
+Baseball Stadium at English Field,baseball,stadium,37.2179922,-80.423502,260 Duck Pond Drive,Blacksburg,VA,24061,false,true,false,openstreetmap
+The Tiger Den,baseball,sports_centre,37.5553875,-76.3657663,15758 General Puller Highway,Deltaville,VA,23043,false,true,false,openstreetmap
+TopHand Foundation,baseball,sports_centre,36.6974278,-77.5402219,206 West Atlantic Street,Emporia,VA,23847,false,true,false,openstreetmap
+Baseball Field at Riverbend High School,baseball,pitch,38.2969928,-77.5716967,12301 Spotswood Furnance Road,Fredericksburg,VA,22407,false,true,false,openstreetmap
+Bing Crosby Stadium,baseball,stadium,38.9298551,-78.1890632,50 Stadium Drive,Front Royal,VA,22630,false,true,false,openstreetmap
+Metropolitan Baseball Academy,baseball,sports_centre,38.7365691,-77.1855114,7029 Newington Road,Lorton,VA,22079,false,true,false,openstreetmap
+Bank of the James Stadium,baseball,stadium,37.3929492,-79.1655584,3180 Fort Avenue,Lynchburg,VA,24501,false,true,false,openstreetmap
+Brookville Ruritan Club,baseball,sports_centre,37.3616465,-79.2346751,315 Beverly Hills Circle,Lynchburg,VA,24502,false,true,false,openstreetmap
+Building 130- Grandstand,baseball,stadium,37.2763482,-80.0192247,1970 Roanoke Boulevard,Salem,VA,24153,false,true,false,openstreetmap
+Stonewall Park,baseball,sports_centre,39.2384668,-78.1015206,235 Hot Run Drive,Stephenson,VA,22656,false,true,false,openstreetmap
+Capital One Park,baseball,pitch,38.9268131,-77.2074575,1600 Scotts Crossing Road,Tysons,VA,22102,false,true,false,openstreetmap
+G. Richard Pfitzner Stadium,baseball,stadium,38.6841119,-77.3524461,7 County Complex Court,Woodbridge,VA,22192,false,true,false,openstreetmap

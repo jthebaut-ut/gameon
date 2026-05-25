@@ -335,7 +335,7 @@ struct CalendarScreen: View {
         case .venueGames:
             return "Venue Games"
         case .pickupGames:
-            return "Pickup Games"
+            return "Community Games"
         case .proGames:
             return "Pro Games"
         }

@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+The Picklr,pickleball,pitch,41.1380672,-104.7636618,3741 East Lincolnway,Cheyenne,WY,82001,false,true,false,openstreetmap

@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Tennis,tennis,pitch,44.2990101,-96.7854566,,,SD,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,43.7072496,-98.0087738,,,SD,,false,true,false,openstreetmap
+Tennis Center of the Black Hills,tennis,fitness_centre,44.009838,-103.3017321,7802 Albertta Drive,Rapid City,SD,57702,false,true,false,openstreetmap
+Huether Family Match Pointe,tennis,fitness_centre,43.5930277,-96.7540672,4210 Bobhalla Drive,Sioux Falls,SD,57107,false,true,false,openstreetmap

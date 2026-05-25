@@ -204,7 +204,7 @@ struct DiscoverPickupGameDetailSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: FGSpacing.lg) {
                 VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                    FGStatusPill(title: "Pickup game", kind: .custom(tint: Color.orange))
+                    GameFormatBadgeView(format: g.gameFormat, colorScheme: colorScheme)
                     Text(g.title)
                         .font(FGTypography.sectionTitle)
                         .foregroundStyle(pickupDetailMainInk)
@@ -300,7 +300,8 @@ struct DiscoverPickupGameDetailSheet: View {
                         .gridCellColumns(2)
                 }
 
-                if let desc = g.description?.trimmingCharacters(in: .whitespacesAndNewlines), !desc.isEmpty {
+                let desc = g.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                if !desc.isEmpty {
                     Text(desc)
                         .font(FGTypography.body)
                         .foregroundStyle(pickupDetailMainInk)
@@ -578,7 +579,7 @@ struct DiscoverPickupGameDetailSheet: View {
             }
 
             VStack(alignment: .leading, spacing: FGSpacing.sm) {
-                FGStatusPill(title: "Pickup game", kind: .custom(tint: Color.orange))
+                GameFormatBadgeView(format: g.gameFormat, colorScheme: colorScheme)
 
                 Text(g.title)
                     .font(FGTypography.sectionTitle)

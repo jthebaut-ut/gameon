@@ -1,0 +1,74 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,47.4174606,-122.1723914,,,WA,,false,true,false,openstreetmap
+1,tennis,pitch,47.6837192,-122.0816872,,,WA,,false,true,false,openstreetmap
+2,tennis,pitch,47.4174603,-122.1721982,,,WA,,false,true,false,openstreetmap
+2,tennis,pitch,47.6837991,-122.0819322,,,WA,,false,true,false,openstreetmap
+3,tennis,pitch,47.4171118,-122.1720203,,,WA,,false,true,false,openstreetmap
+3,tennis,pitch,47.6838796,-122.0821775,,,WA,,false,true,false,openstreetmap
+4,tennis,pitch,47.4171118,-122.1717988,,,WA,,false,true,false,openstreetmap
+5,tennis,pitch,47.4175526,-122.1718381,,,WA,,false,true,false,openstreetmap
+6,tennis,pitch,47.4176262,-122.1716565,,,WA,,false,true,false,openstreetmap
+Ballard High School Tennis Courts,tennis,pitch,47.6775561,-122.3745335,,,WA,,false,true,false,openstreetmap
+Bill Quillian Tennis Stadium,tennis,pitch,47.6528945,-122.3011928,,,WA,,false,true,false,openstreetmap
+Bitter Lake Tennis Courts,tennis,pitch,47.7235158,-122.3498148,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.7617829,-122.2209232,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.761774,-122.2207274,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.7617693,-122.2205335,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.7617468,-122.219936,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.7617515,-122.2201297,,,WA,,false,true,false,openstreetmap
+Bothell High School,tennis,pitch,47.7617604,-122.2203257,,,WA,,false,true,false,openstreetmap
+Bratton Tennis Center,tennis,sports_centre,46.0702794,-118.3332082,,,WA,,false,true,false,openstreetmap
+Columbia Neighborhood Tennis Court,tennis,pitch,47.6298802,-122.0181795,,,WA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,47.2814711,-122.2075727,,,WA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,47.2814711,-122.2073504,,,WA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,47.2814715,-122.2071323,,,WA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,47.2814715,-122.20691,,,WA,,false,true,false,openstreetmap
+Cub Tennis,tennis,sports_centre,48.4991788,-122.2407274,,,WA,,false,true,false,openstreetmap
+Discovery Park Court #2,tennis,pitch,47.6568214,-122.4047257,,,WA,,false,true,false,openstreetmap
+Discovery Park Tennis Court #1,tennis,pitch,47.6568208,-122.4049486,,,WA,,false,true,false,openstreetmap
+Evergreen Tennis,tennis,sports_centre,45.6072044,-122.4633551,,,WA,,false,true,false,openstreetmap
+Fairhaven Park Tennis Courts,tennis,pitch,48.7142829,-122.4979752,,,WA,,false,true,false,openstreetmap
+Finn Hill Middle School Tennis Courts,tennis,sports_centre,47.7205181,-122.2329624,,,WA,,false,true,false,openstreetmap
+Forest Ridge Courts,tennis,pitch,47.2110933,-120.9172779,,,WA,,false,true,false,openstreetmap
+Kamiakin Middle School,tennis,pitch,47.7289633,-122.1649284,,,WA,,false,true,false,openstreetmap
+Kamiakin Middle School,tennis,pitch,47.7289496,-122.1643459,,,WA,,false,true,false,openstreetmap
+Lister Tennis Facility,tennis,pitch,47.0066517,-120.5357433,,,WA,,false,true,false,openstreetmap
+Liz Preble Courts,tennis,sports_centre,46.9834426,-123.8221564,,,WA,,false,true,false,openstreetmap
+Manette Playfield Tennis Courts,tennis,pitch,47.5717948,-122.610407,,,WA,,false,true,false,openstreetmap
+Miller Playfield - Tennis Court #1,tennis,pitch,47.6207694,-122.3070879,,,WA,,false,true,false,openstreetmap
+Miller Playfield - Tennis Court #2,tennis,pitch,47.6207678,-122.3068863,,,WA,,false,true,false,openstreetmap
+OHS Tennis Courts,tennis,sports_centre,47.0172632,-122.8820515,,,WA,,false,true,false,openstreetmap
+Observatory Courts,tennis,pitch,47.6313838,-122.3551752,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,tennis,pitch,46.9848339,-124.1630416,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,tennis,pitch,46.9849718,-124.163173,,,WA,,false,true,false,openstreetmap
+Pickleball Court,tennis,pitch,47.8452724,-121.6337319,,,WA,,false,true,false,openstreetmap
+Robinswood Tennis Center,tennis,sports_centre,47.5883218,-122.1378969,,,WA,,false,true,false,openstreetmap
+Sam Smith Tennis Courts,tennis,pitch,47.5900161,-122.2962354,,,WA,,false,true,false,openstreetmap
+Sam Smith Tennis Courts,tennis,pitch,47.5900145,-122.2960328,,,WA,,false,true,false,openstreetmap
+Scotford Tennis Center,tennis,sports_centre,47.7558489,-117.4209887,,,WA,,false,true,false,openstreetmap
+Seattle Tennis Club,tennis,social_club,47.6274706,-122.2802937,,,WA,,false,true,false,openstreetmap
+Shoreview Park Tennis Courts,tennis,pitch,47.7503522,-122.3659109,,,WA,,false,true,false,openstreetmap
+Silverleaf Tennis Courts,tennis,pitch,47.5585827,-122.1218784,,,WA,,false,true,false,openstreetmap
+Skykomish Tennis Court,tennis,pitch,47.7095901,-121.361648,,,WA,,false,true,false,openstreetmap
+Spiritridge Tennis Court,tennis,pitch,47.580813,-122.1271081,,,WA,,false,true,false,openstreetmap
+Tacoma Lawn Tennis Club,tennis,sports_centre,47.2676247,-122.4572117,,,WA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,47.7728877,-122.278591,,,WA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,47.1289542,-122.9274225,,,WA,,false,true,false,openstreetmap
+Tennis,tennis,pitch,47.0889747,-122.9458267,,,WA,,false,true,false,openstreetmap
+Tennis Court 1,tennis,pitch,47.6703232,-122.1584354,,,WA,,false,true,false,openstreetmap
+Tennis Court 2,tennis,pitch,47.6703224,-122.1582166,,,WA,,false,true,false,openstreetmap
+Tennis Court 3,tennis,pitch,47.6699952,-122.1584398,,,WA,,false,true,false,openstreetmap
+Tennis Court 4,tennis,pitch,47.6699933,-122.1582197,,,WA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,47.2983476,-122.8484064,,,WA,,false,true,false,openstreetmap
+Tibbets Valley Park Tennis Courts,tennis,pitch,47.5393611,-122.0612166,,,WA,,false,true,false,openstreetmap
+Woodland Park Lower Tennis Courts,tennis,pitch,47.6693898,-122.3433093,,,WA,,false,true,false,openstreetmap
+courtyard,tennis,pitch,48.5299482,-123.0044971,,,WA,,false,true,false,openstreetmap
+private tenis court,tennis,pitch,47.2915546,-122.5939519,,,WA,,false,true,false,openstreetmap
+tennis,tennis,pitch,48.6318655,-122.9945891,,,WA,,false,true,false,openstreetmap
+Evergreen Tennis,tennis,sports_centre,45.6076341,-122.4630683,5225 Northwest 38th Avenue,Camas,WA,98607,false,true,false,openstreetmap
+Jupiter Tennis Center,tennis,sports_centre,47.238037,-122.2953805,2112 Meridian Avenue East,Edgewood,WA,98371,false,true,false,openstreetmap
+Boeing 18-47 - Boeing Tennis Club,tennis,sports_centre,47.4226967,-122.250535,6727 South 199th Place,Kent,WA,98032,false,true,false,openstreetmap
+Redmond Tennis Club,tennis,pitch,47.6924231,-122.0281567,10600 231st Way Northeast,Redmond,WA,98053,false,true,false,openstreetmap
+Avanti Sports,tennis,pitch,47.6610014,-122.2900212,3503 Northeast 45th Street,Seattle,WA,98105,false,true,false,openstreetmap
+Nordstrom Tennis Center,tennis,sports_centre,47.6518308,-122.3000651,3833 Walla Walla Road Northeast,Seattle,WA,98195,false,true,false,openstreetmap
+YMCA Tennis,tennis,pitch,47.5853403,-122.2976398,2000 Martin Luther King Junior Way South,Seattle,WA,98144,false,true,false,openstreetmap

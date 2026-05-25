@@ -382,7 +382,7 @@ struct SettingsScreen: View {
                                     settingsRowDivider()
 
                                     Button {
-                                        venueOwnerDashboardSheet = .manageVenue
+                                        openBusinessVenueToolRoute(.manageVenue)
                                     } label: {
                                         settingsRow(
                                             title: "Set up business account",
@@ -492,7 +492,7 @@ struct SettingsScreen: View {
 
                                         settingsRowDivider()
 
-                                        Button { venueOwnerDashboardSheet = .statistics } label: {
+                                        Button { openBusinessVenueToolRoute(.statistics) } label: {
                                             settingsRow(
                                                 title: L10n.t("statistics", languageCode: appLanguageRaw),
                                                 subtitle: "Analytics and game history.",
@@ -1730,10 +1730,10 @@ struct SettingsScreen: View {
                 openBusinessVenueToolRoute(.manageGames)
             },
             onPredictions: {
-                venueOwnerDashboardSheet = .statistics
+                openBusinessVenueToolRoute(.statistics)
             },
             onAnalytics: {
-                venueOwnerDashboardSheet = .statistics
+                openBusinessVenueToolRoute(.statistics)
             },
             onCommentsReports: {
                 showReportedCommentsSheet = true
@@ -2302,38 +2302,56 @@ struct SettingsScreen: View {
 
     /// Presents add-location sheet with a blank form (used from Current managed venue menu).
     private func openAddLocationFromPicker() {
-#if DEBUG
-        print("[AddLocationForm] initialized fresh")
-        print("[AddLocationForm] opened from picker")
-#endif
-        addLocationSubmitBanner = nil
-        addLocationSheetFormState.reset(reason: "open")
-        showAddLocationSheet = true
+        openAddLocationIfAllowed(action: "picker")
     }
 
     private func openBusinessVenueToolRoute(_ route: VenueOwnerDashboardSheetRoute) {
-        switch route {
-        case .manageVenue, .manageGames:
-            guard !viewModel.managedVenuesForOwner().isEmpty else {
-#if DEBUG
-                print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
-#endif
-                openAddLocationFromBusinessDashboard()
+        Task {
+            if await viewModel.businessBanGuardBlocks(path: "businessDashboard", action: route.rawValue) {
                 return
             }
-            venueOwnerDashboardSheet = route
-        case .businessDashboard, .statistics:
-            venueOwnerDashboardSheet = route
+
+            await MainActor.run {
+                switch route {
+                case .manageVenue, .manageGames:
+                    guard !viewModel.managedVenuesForOwner().isEmpty else {
+#if DEBUG
+                        print("[VenueOwnerEmptyStateDebug] noManagedVenues=true")
+#endif
+                        presentAddLocationSheet(reason: "businessDashboard")
+                        return
+                    }
+                    venueOwnerDashboardSheet = route
+                case .businessDashboard, .statistics:
+                    venueOwnerDashboardSheet = route
+                }
+            }
         }
     }
 
     private func openAddLocationFromBusinessDashboard() {
+        openAddLocationIfAllowed(action: "businessDashboard")
+    }
+
+    private func openAddLocationIfAllowed(action: String) {
+        Task {
+            if await viewModel.businessBanGuardBlocks(path: "addLocationSheet", action: action) {
+                return
+            }
+
+            await MainActor.run {
+                presentAddLocationSheet(reason: action)
+            }
+        }
+    }
+
+    private func presentAddLocationSheet(reason: String) {
 #if DEBUG
         print("[AddLocationForm] initialized fresh")
-        print("[AddLocationForm] opened from businessDashboard")
+        print("[AddLocationForm] opened from \(reason)")
 #endif
         addLocationSubmitBanner = nil
-        addLocationSheetFormState.reset(reason: "businessDashboard")
+        addLocationSheetFormState.reset(reason: reason == "picker" ? "open" : reason)
         showAddLocationSheet = true
     }
 
@@ -4984,7 +5002,7 @@ private struct SettingsGameNotificationsCard: View {
             }
 
             notificationSection(
-                title: "Pickup Games",
+                title: "Community Games",
                 subtitle: "Games you host, join, or request to join.",
                 systemImage: "figure.basketball",
                 tint: FGColor.accentBlue

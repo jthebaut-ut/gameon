@@ -3,7 +3,7 @@ import Foundation
 import Supabase
 
 let pickupGamesSelectColumns =
-    "id,creator_user_id,creator_email,title,sport,description,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
+    "id,creator_user_id,creator_email,title,sport,description,game_format,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
 private let pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix = "gameon.settings.pickupOrganizerHistoryClearedIds."
 
@@ -664,7 +664,8 @@ extension MapViewModel {
         participantPreference: String,
         isFree: Bool,
         entryFeeAmount: Double?,
-        maxPlayers: Int?
+        maxPlayers: Int?,
+        gameFormat: GameType = .pickup
     ) async throws -> PickupGameRow {
         guard let uid = currentUserAuthId else {
             throw PickupGameClientError.notSignedIn
@@ -696,6 +697,7 @@ extension MapViewModel {
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             sport: sport.trimmingCharacters(in: .whitespacesAndNewlines),
             description: emptyStringToNil(description),
+            game_format: gameFormat.rawValue,
             skill_level: skillLevel,
             game_start_at: gameStartISO,
             end_time: endTimeISO,

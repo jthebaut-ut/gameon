@@ -1,0 +1,25 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,pickleball,pitch,48.7726408,-122.4814886,,,WA,,false,true,false,openstreetmap
+2,pickleball,pitch,48.7727663,-122.4813806,,,WA,,false,true,false,openstreetmap
+23 Kitchens,pickleball,pitch,47.0686894,-122.7674435,,,WA,,false,true,false,openstreetmap
+3,pickleball,pitch,48.7725958,-122.4813673,,,WA,,false,true,false,openstreetmap
+4,pickleball,pitch,48.7727214,-122.4812603,,,WA,,false,true,false,openstreetmap
+5,pickleball,pitch,48.7725513,-122.4812474,,,WA,,false,true,false,openstreetmap
+6,pickleball,pitch,48.7726763,-122.4811396,,,WA,,false,true,false,openstreetmap
+Armory Pickleball Ellensburg,pickleball,pitch,46.999078,-120.5696487,,,WA,,false,true,false,openstreetmap
+Bidwell Pickleball Courts,pickleball,pitch,47.8222319,-117.3981418,,,WA,,false,true,false,openstreetmap
+Clearidge Park pickleball courts,pickleball,pitch,48.496703,-122.6647866,,,WA,,false,true,false,openstreetmap
+Founders Courts,pickleball,sports_centre,47.6620354,-122.576462,,,WA,,false,true,false,openstreetmap
+Heritage Park Pickleball Court,pickleball,pitch,48.2464524,-122.3604708,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,pickleball,pitch,46.9741515,-124.1644569,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,pickleball,pitch,46.9741487,-124.1643143,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,pickleball,pitch,46.9741493,-124.1641636,,,WA,,false,true,false,openstreetmap
+Pickleball Kingdom,pickleball,pitch,47.7618841,-122.6614795,,,WA,,true,false,false,openstreetmap
+Pickleball Kingdom,pickleball,sports_centre,47.8217312,-122.2756029,,,WA,,false,true,false,openstreetmap
+Pickleplex,pickleball,pitch,46.0723644,-118.2886958,,,WA,,false,true,false,openstreetmap
+Pickleplex,pickleball,pitch,46.0721315,-118.2891264,,,WA,,false,true,false,openstreetmap
+Public Pickleball and Badminton Courts,pickleball,pitch,48.0800275,-123.0839906,,,WA,,false,true,false,openstreetmap
+Rainier Vista Pickleball Courts,pickleball,sports_centre,47.0042351,-122.8116845,,,WA,,false,true,false,openstreetmap
+Playtime Pickelball Club,pickleball,sports_centre,48.4633375,-122.3379637,300 Cascade Mall Drive,Burlington,WA,98233,false,true,false,openstreetmap
+South Whidbey Sports Complex Pickleball Courts,pickleball,pitch,48.00798,-122.399952,5598 Langley Rd,Langley,WA,98260,false,true,false,openstreetmap
+Pickle at the Palms,pickleball,pitch,47.6512736,-122.3766524,3435 15th Avenue West,Seattle,WA,98119,false,true,false,openstreetmap

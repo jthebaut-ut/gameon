@@ -42,6 +42,7 @@ enum PickupBulkImportParser {
 
     static let requiredHeaders = [
         "title",
+        "game_format",
         "sport",
         "description",
         "skill_level",
@@ -54,12 +55,14 @@ enum PickupBulkImportParser {
         "play_environment",
         "participant_preference",
         "is_free",
+        "entry_fee_amount",
         "max_players",
         "end_time"
     ]
 
     private static let fallbackSheetRequiredHeaders = [
         "title",
+        "game_format",
         "sport",
         "game_start_at",
         "address",
@@ -69,10 +72,7 @@ enum PickupBulkImportParser {
 
     static func bundledTemplateFileURL() throws -> URL {
         let bundle = Bundle.main
-        if let url = bundle.url(forResource: templateResourceName, withExtension: templateResourceExtension) {
-            return url
-        }
-        for subdirectory in ["Templates", "Resources/Templates"] {
+        for subdirectory in ["Resources/Templates", "Templates"] {
             if let url = bundle.url(
                 forResource: templateResourceName,
                 withExtension: templateResourceExtension,
@@ -80,6 +80,9 @@ enum PickupBulkImportParser {
             ) {
                 return url
             }
+        }
+        if let url = bundle.url(forResource: templateResourceName, withExtension: templateResourceExtension) {
+            return url
         }
         throw PickupBulkImportParseError.invalidXLSX("The official FanGeo pickup games template is missing from the app bundle.")
     }

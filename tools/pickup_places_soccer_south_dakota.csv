@@ -1,0 +1,59 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10,soccer,pitch,44.277586,-96.7845899,,,SD,,false,true,false,openstreetmap
+10,soccer,pitch,43.5128505,-96.7190611,,,SD,,false,true,false,openstreetmap
+11,soccer,pitch,43.512742,-96.719581,,,SD,,false,true,false,openstreetmap
+1A,soccer,pitch,43.5131826,-96.7154778,,,SD,,false,true,false,openstreetmap
+1B,soccer,pitch,43.5131666,-96.715756,,,SD,,false,true,false,openstreetmap
+2A,soccer,pitch,43.5131603,-96.7160572,,,SD,,false,true,false,openstreetmap
+2B,soccer,pitch,43.5130963,-96.7163504,,,SD,,false,true,false,openstreetmap
+3A,soccer,pitch,43.5130336,-96.7166732,,,SD,,false,true,false,openstreetmap
+3B,soccer,pitch,43.5130001,-96.7170263,,,SD,,false,true,false,openstreetmap
+3E,soccer,pitch,44.354478,-100.3136273,,,SD,,false,true,false,openstreetmap
+3F,soccer,pitch,44.354478,-100.3141253,,,SD,,false,true,false,openstreetmap
+4,soccer,pitch,43.513523,-96.7156253,,,SD,,false,true,false,openstreetmap
+4B,soccer,pitch,44.3538632,-100.3153795,,,SD,,false,true,false,openstreetmap
+5,soccer,pitch,43.5134965,-96.7162497,,,SD,,false,true,false,openstreetmap
+5A,soccer,pitch,44.3543559,-100.3147066,,,SD,,false,true,false,openstreetmap
+5B,soccer,pitch,44.3543602,-100.3153713,,,SD,,false,true,false,openstreetmap
+6,soccer,pitch,43.5133438,-96.7169685,,,SD,,false,true,false,openstreetmap
+7,soccer,pitch,43.5131711,-96.7175745,,,SD,,false,true,false,openstreetmap
+8,soccer,pitch,43.5130532,-96.7180615,,,SD,,false,true,false,openstreetmap
+9,soccer,pitch,43.5129525,-96.7185595,,,SD,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.8802343,-97.0862096,,,SD,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.1225721,-103.1520919,,,SD,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.1215284,-103.1547649,,,SD,,false,true,false,openstreetmap
+Field 11,soccer,pitch,44.1203098,-103.1547683,,,SD,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.1192289,-103.1547695,,,SD,,false,true,false,openstreetmap
+Field 14,soccer,pitch,44.8792167,-97.0852537,,,SD,,false,true,false,openstreetmap
+Field 15,soccer,pitch,44.8792172,-97.0845208,,,SD,,false,true,false,openstreetmap
+Field 16,soccer,pitch,44.880251,-97.0839156,,,SD,,false,true,false,openstreetmap
+Field 17,soccer,pitch,44.880257,-97.0829963,,,SD,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.8802328,-97.0872562,,,SD,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.1215514,-103.152101,,,SD,,false,true,false,openstreetmap
+Field 20,soccer,pitch,44.879222,-97.0837859,,,SD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.8790767,-97.0872496,,,SD,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.1201621,-103.1521216,,,SD,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.1191155,-103.1521216,,,SD,,false,true,false,openstreetmap
+Field 4A,soccer,pitch,44.8793558,-97.0858657,,,SD,,false,true,false,openstreetmap
+Field 4B,soccer,pitch,44.8793357,-97.0864262,,,SD,,false,true,false,openstreetmap
+Field 4C,soccer,pitch,44.8787571,-97.086422,,,SD,,false,true,false,openstreetmap
+Field 4D,soccer,pitch,44.8788233,-97.0858623,,,SD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.880425,-97.0854073,,,SD,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.1191247,-103.1531009,,,SD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.8804254,-97.0848256,,,SD,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.1201833,-103.153097,,,SD,,false,true,false,openstreetmap
+Field 7,soccer,pitch,44.1215329,-103.1530661,,,SD,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.8799548,-97.0854021,,,SD,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.1225841,-103.1530648,,,SD,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.8799596,-97.0848242,,,SD,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.1226008,-103.154771,,,SD,,false,true,false,openstreetmap
+Freeman Academy Soccer Field,soccer,pitch,43.3454819,-97.4395741,,,SD,,false,true,false,openstreetmap
+Morstad Field,soccer,pitch,43.519167,-96.7400416,,,SD,,false,true,false,openstreetmap
+Mountain View Soccer Field,soccer,pitch,44.0831502,-103.2495966,,,SD,,false,true,false,openstreetmap
+Mueller Center Socer Field,soccer,pitch,43.4234004,-103.4668158,,,SD,,false,true,false,openstreetmap
+Noordermeer Soccer Fields,soccer,pitch,44.0760425,-103.2602786,,,SD,,false,true,false,openstreetmap
+Ronnie Theisz Field,soccer,pitch,44.4990578,-103.8774102,,,SD,,false,true,false,openstreetmap
+Soccer,soccer,pitch,45.4487907,-98.1068188,,,SD,,false,true,false,openstreetmap
+WC Soccer Field,soccer,pitch,43.6203721,-96.9316171,,,SD,,false,true,false,openstreetmap
+St. Mary's Field,soccer,pitch,43.8183143,-96.7055141,201 South Garfield Avenue,Dell Rapids,SD,57022,false,true,false,openstreetmap
+HIllsview Soccer Fields,soccer,pitch,44.5020528,-103.878348,412 Hillsview Road,Spearfish,SD,57783,false,true,false,openstreetmap

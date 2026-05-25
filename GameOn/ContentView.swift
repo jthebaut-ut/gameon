@@ -51,7 +51,19 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task {
-                if viewModel.activeAccountBan != nil {
+                if viewModel.hasAuthenticatedVenueOwnerSession
+                    || viewModel.currentUserIsBusinessAccount
+                    || viewModel.venueOwnerMode {
+                    if viewModel.activeAccountBan != nil {
+                        let blocked = await viewModel.businessBanGuardBlocks(path: "foreground", action: "sceneActiveRestore")
+                        if !blocked {
+                            await viewModel.bootstrapAuthSessionOnly()
+                            await viewModel.refreshUserPersonalizationInBackground()
+                        }
+                    } else {
+                        await viewModel.businessBanGuardBlocks(path: "foreground", action: "sceneActive")
+                    }
+                } else if viewModel.activeAccountBan != nil {
                     await viewModel.refreshActiveBanGateAndRestoreSessionIfAllowed(reason: "foreground")
                 } else {
                     await viewModel.refreshActiveBanGate(reason: "foreground")

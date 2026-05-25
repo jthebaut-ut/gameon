@@ -1,0 +1,38 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+10-Foot Court,basketball,pitch,46.5104981,-91.7091746,,,WI,,false,true,false,openstreetmap
+8-Foot Court,basketball,pitch,46.5117013,-91.7094332,,,WI,,false,true,false,openstreetmap
+Baketball Court,basketball,pitch,44.2646185,-88.4318449,,,WI,,false,true,false,openstreetmap
+Blaine Gym,basketball,fitness_centre,43.1344216,-90.7048192,,,WI,,false,true,false,openstreetmap
+Dream Court,basketball,pitch,43.0259733,-89.4746631,,,WI,,false,true,false,openstreetmap
+Eric Park Basketball Court,basketball,pitch,45.3201742,-92.6943613,,,WI,,false,true,false,openstreetmap
+Firehouse Park Basketball Court,basketball,pitch,43.7842316,-87.7782754,,,WI,,false,true,false,openstreetmap
+Gesher Basketball Court,basketball,pitch,43.1390229,-88.539239,,,WI,,false,true,false,openstreetmap
+Goose Island County Park Basketball Court,basketball,pitch,43.7347029,-91.2288815,,,WI,,false,true,false,openstreetmap
+Grandview Park Basketball Courts,basketball,pitch,43.0263306,-88.254816,,,WI,,false,true,false,openstreetmap
+Koslo Park Basketball Court,basketball,pitch,44.2232627,-88.420555,,,WI,,false,true,false,openstreetmap
+Marquette Golden Eagles Men's Basketball,basketball,pitch,43.044855,-87.9165602,,,WI,,false,true,false,openstreetmap
+McCarty Park Basketball Court,basketball,pitch,42.9988065,-88.0116003,,,WI,,false,true,false,openstreetmap
+Milwaukee Aces,basketball,pitch,42.9823929,-87.9641819,,,WI,,false,true,false,openstreetmap
+Milwaukee Bucks,basketball,pitch,43.0451196,-87.9165053,,,WI,,false,true,false,openstreetmap
+Milwaukee Panthers Men's Basketball,basketball,pitch,43.0419869,-87.9165513,,,WI,,false,true,false,openstreetmap
+New Richmond Park Basketball,basketball,pitch,45.1125116,-92.5351707,,,WI,,false,true,false,openstreetmap
+Nicholas-Johnson Pavilion and Plaza,basketball,sports_centre,43.0693408,-89.3979821,,,WI,,false,true,false,openstreetmap
+Oakey Park Court,basketball,pitch,45.3224728,-92.7005961,,,WI,,false,true,false,openstreetmap
+Osceola Intermediate School Basketball Court,basketball,pitch,45.3312083,-92.6797414,,,WI,,false,true,false,openstreetmap
+Page Arena,basketball,sports_centre,44.8466634,-92.6274672,,,WI,,false,true,false,openstreetmap
+Parkcrest Swim and Tennis Club,basketball,pitch,43.0681323,-89.4929525,,,WI,,false,true,false,openstreetmap
+Philip's Supreme Court,basketball,pitch,43.1792576,-87.9013221,,,WI,,false,true,false,openstreetmap
+Public Basketball Court,basketball,pitch,44.2446517,-88.371537,,,WI,,false,true,false,openstreetmap
+R. John Buuck Field House,basketball,stadium,43.2543144,-87.916592,,,WI,,false,true,false,openstreetmap
+Rennebohm Park Basketball Court,basketball,pitch,43.0701337,-89.4626422,,,WI,,false,true,false,openstreetmap
+Resch Center,basketball,stadium,44.4994701,-88.0550279,,,WI,,false,true,false,openstreetmap
+Residents only,basketball,pitch,43.1958828,-88.0936577,,,WI,,false,true,false,openstreetmap
+St Leonard's Gym,basketball,pitch,42.9021435,-88.1327437,,,WI,,false,true,false,openstreetmap
+Tarble Arena,basketball,stadium,42.6214265,-87.8225032,,,WI,,false,true,false,openstreetmap
+Tenney Park Basketball Courts,basketball,pitch,43.0931483,-89.3698264,,,WI,,false,true,false,openstreetmap
+The Laser Dome,basketball,sports_centre,43.009378,-88.3786671,,,WI,,false,true,false,openstreetmap
+University of Wisconsin - Stout,basketball,sports_centre,44.873071,-91.9292772,,,WI,,false,true,false,openstreetmap
+Whitewater High School,basketball,pitch,42.8236388,-88.7520962,,,WI,,false,true,false,openstreetmap
+Woodland Creek Park basketball courts,basketball,pitch,45.1054281,-92.5576951,,,WI,,false,true,false,openstreetmap
+J. Martin Klotsche Center,basketball,stadium,43.0794221,-87.8794952,3409 North Downer Avenue,Milwaukee,WI,53211,false,true,false,openstreetmap
+Hoops With Eddie,basketball,pitch,43.6893618,-89.7523841,874 Gillette Lane,Wisconsin Dells,WI,53965,false,true,false,openstreetmap

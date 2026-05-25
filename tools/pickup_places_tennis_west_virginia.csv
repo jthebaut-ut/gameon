@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Court 1,tennis,pitch,38.3167071,-80.8325815,,,WV,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.9595168,-81.7610815,,,WV,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.8149571,-81.6976223,,,WV,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.3167174,-80.8327706,,,WV,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.9595172,-81.7609063,,,WV,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.8150088,-81.6978224,,,WV,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.3167277,-80.8329598,,,WV,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.9595191,-81.760681,,,WV,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.8150594,-81.6980254,,,WV,,false,true,false,openstreetmap
+Court 4,tennis,pitch,38.95952,-81.7605061,,,WV,,false,true,false,openstreetmap
+Court 4,tennis,pitch,38.8151099,-81.6982225,,,WV,,false,true,false,openstreetmap
+Dick Griffith Center Court,tennis,pitch,38.4062364,-82.4341438,,,WV,,false,true,false,openstreetmap
+Forest Hills Tennis,tennis,pitch,40.0867693,-80.6972124,,,WV,,false,true,false,openstreetmap
+Huntington Tennis Club,tennis,fitness_centre,38.4230017,-82.2586165,,,WV,,false,true,false,openstreetmap
+Katherine S. Thomas Tennis Center,tennis,pitch,38.9289793,-79.8468362,,,WV,,false,true,false,openstreetmap
+Marvin Mills Tennis Courts,tennis,sports_centre,38.3781542,-81.7691186,,,WV,,false,true,false,openstreetmap
+Morgan County Tennis Courts,tennis,sports_centre,39.63062,-78.2043811,,,WV,,false,true,false,openstreetmap
+Riverside tennis court,tennis,pitch,38.208387,-81.5156169,,,WV,,false,true,false,openstreetmap
+Tennis Indoor Center,tennis,sports_centre,38.3274982,-81.5976101,,,WV,,false,true,false,openstreetmap
+Williamstown Tennis Center,tennis,pitch,39.399714,-81.4529456,,,WV,,false,true,false,openstreetmap
+Williamstown Tennis Center,tennis,pitch,39.399596,-81.4533459,,,WV,,false,true,false,openstreetmap
+Williamstown Tennis Center,tennis,pitch,39.3996538,-81.4531464,,,WV,,false,true,false,openstreetmap
+Williamstown Tennis Center,tennis,pitch,39.3997681,-81.4527494,,,WV,,false,true,false,openstreetmap
+All Weather Tennis Court 1,tennis,pitch,39.1312461,-78.4804233,John Brill Road,Capon Springs,WV,26851,false,true,false,openstreetmap
+All Weather Tennis Court 2,tennis,pitch,39.1307925,-78.4807816,John Brill Road,Capon Springs,WV,26851,false,true,false,openstreetmap
+Har-Tru Tennis Court,tennis,pitch,39.1319264,-78.4794598,Capon Springs Road,Capon Springs,WV,26851,false,true,false,openstreetmap

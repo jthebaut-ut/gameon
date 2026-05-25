@@ -475,6 +475,8 @@ final class MapViewModel: ObservableObject {
     @Published var isLoadingMapVenues: Bool = false
     /// True while map venues are re-fetched but existing ``bars`` should stay visible (Phase 1 perf).
     @Published var isRefreshingMapVenues: Bool = false
+    /// Region-jump hint shown when the current viewport has no venue pins while Phase 1 is in flight or just completed empty.
+    @Published var discoverRegionVenueLoadMessage: String?
     @Published var calendarUsesVisibleMapRegionOnly: Bool = false
     @Published var mapDisplayMode: DiscoverMapDisplayMode = .allSpots {
         didSet {

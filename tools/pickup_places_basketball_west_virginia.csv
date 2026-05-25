@@ -1,0 +1,13 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Asphalt Court,basketball,pitch,39.6292617,-79.9451268,,,WV,,false,true,false,openstreetmap
+Basket Ball Court,basketball,pitch,39.3018361,-78.7991262,,,WV,,false,true,false,openstreetmap
+Coal Camp Basketball Court,basketball,pitch,37.3538116,-81.8011092,,,WV,,false,true,false,openstreetmap
+Davis Outdoor Basketball Court,basketball,pitch,39.1316679,-79.4668276,,,WV,,false,true,false,openstreetmap
+Half Court,basketball,pitch,38.2549854,-81.5715068,,,WV,,false,true,false,openstreetmap
+Reese Harmon Basketball Court,basketball,pitch,37.4236191,-81.1743638,,,WV,,false,true,false,openstreetmap
+Rex Pyles Arena,basketball,sports_centre,39.1573276,-80.0514338,,,WV,,false,true,false,openstreetmap
+The Big Red Gym,basketball,sports_hall,38.2226297,-80.5313394,,,WV,,false,true,false,openstreetmap
+The Pit,basketball,pitch,38.9509484,-81.7582113,,,WV,,true,false,false,openstreetmap
+Victoria Courts Park,basketball,park,37.6751986,-82.2901327,,,WV,,false,true,false,openstreetmap
+WVU Coliseum,basketball,sports_centre,39.6494043,-79.9814382,,,WV,,false,true,false,openstreetmap
+Walton Park Basketball Court,basketball,pitch,38.6383147,-81.4023534,,,WV,,false,true,false,openstreetmap

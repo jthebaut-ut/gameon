@@ -1,0 +1,240 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,soccer,pitch,38.8023419,-77.4847989,,,VA,,false,true,false,openstreetmap
+#1,soccer,pitch,37.6114831,-77.6596267,,,VA,,false,true,false,openstreetmap
+#2,soccer,pitch,38.8032432,-77.486482,,,VA,,false,true,false,openstreetmap
+#2,soccer,pitch,37.6104934,-77.6590705,,,VA,,false,true,false,openstreetmap
+#3,soccer,pitch,38.8040702,-77.4849193,,,VA,,false,true,false,openstreetmap
+#3,soccer,pitch,37.6114886,-77.6601811,,,VA,,false,true,false,openstreetmap
+#4,soccer,pitch,38.8035954,-77.4819352,,,VA,,false,true,false,openstreetmap
+#4,soccer,pitch,37.6104971,-77.6598426,,,VA,,false,true,false,openstreetmap
+#5,soccer,pitch,38.8050138,-77.4813674,,,VA,,false,true,false,openstreetmap
+#5,soccer,pitch,37.6114988,-77.6607901,,,VA,,false,true,false,openstreetmap
+#6,soccer,pitch,38.8070596,-77.4814739,,,VA,,false,true,false,openstreetmap
+#6,soccer,pitch,37.6105045,-77.6606171,,,VA,,false,true,false,openstreetmap
+#7,soccer,pitch,37.6115023,-77.6614384,,,VA,,false,true,false,openstreetmap
+#8,soccer,pitch,37.6105146,-77.6613962,,,VA,,false,true,false,openstreetmap
+15,soccer,pitch,37.3954533,-77.5046856,,,VA,,false,true,false,openstreetmap
+A,soccer,pitch,37.6117986,-77.6581822,,,VA,,false,true,false,openstreetmap
+Administration Building Soccer Field,soccer,pitch,37.5379399,-77.9151897,3834 Old Buckingham Road,,VA,,false,true,false,openstreetmap
+Arlington Public Schools,soccer,pitch,38.8996602,-77.1111294,,,VA,,false,true,false,openstreetmap
+Atkins Soccer Field,soccer,pitch,37.1142953,-76.4315319,,,VA,,false,true,false,openstreetmap
+Averett University Soccer Field,soccer,pitch,36.596602,-79.4387629,,,VA,,false,true,false,openstreetmap
+B,soccer,pitch,37.6118069,-77.6588366,,,VA,,false,true,false,openstreetmap
+BB&T Fields,soccer,pitch,38.7179648,-77.8208902,,,VA,,false,true,false,openstreetmap
+BWHS Football Practice Field,soccer,pitch,38.9925436,-77.5326925,,,VA,,false,true,false,openstreetmap
+Bill Goodell Soccer Field,soccer,pitch,38.8355191,-77.1739385,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,soccer,pitch,37.2426828,-80.4125928,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,soccer,pitch,37.2421571,-80.4124787,,,VA,,false,true,false,openstreetmap
+Bluemont Junction Soccer Field,soccer,pitch,38.8725445,-77.1321039,,,VA,,false,true,false,openstreetmap
+Bluffs Circle Community Field,soccer,pitch,37.2504976,-76.6537089,,,VA,,false,true,false,openstreetmap
+Botetourt County Parks and Recreation,soccer,pitch,37.3511032,-79.8354531,,,VA,,false,true,false,openstreetmap
+Breezyhill Soccer Field,soccer,pitch,39.0474489,-77.5063086,,,VA,,false,true,false,openstreetmap
+Bryant Alternative High School Soccer Field,soccer,pitch,38.762416,-77.0800952,,,VA,,false,true,false,openstreetmap
+C,soccer,pitch,37.6114831,-77.6581904,,,VA,,false,true,false,openstreetmap
+CYA Stringfellow Field 1,soccer,pitch,38.8456366,-77.4016027,,,VA,,false,true,false,openstreetmap
+CYA Stringfellow Field 2,soccer,pitch,38.8465757,-77.4013626,,,VA,,false,true,false,openstreetmap
+CYA Stringfellow Field 3,soccer,pitch,38.8477235,-77.4011252,,,VA,,false,true,false,openstreetmap
+Captains Field - Soccer,soccer,pitch,37.0630547,-76.4994168,,,VA,,false,true,false,openstreetmap
+Carr's Hill Field,soccer,pitch,38.0401406,-78.5055314,,,VA,,false,true,false,openstreetmap
+Cary Street Field,soccer,pitch,37.5439957,-77.455214,,,VA,,false,true,false,openstreetmap
+Charlottesville High School practice field,soccer,pitch,38.0526408,-78.47092,,,VA,,false,true,false,openstreetmap
+Chatham Hall Soccer Field,soccer,pitch,36.8239033,-79.3902236,,,VA,,false,true,false,openstreetmap
+Chinn Field,soccer,pitch,38.6704231,-77.3278047,,,VA,,false,true,false,openstreetmap
+Chinn Field,soccer,pitch,38.6705272,-77.3264709,,,VA,,false,true,false,openstreetmap
+Chinn Field,soccer,pitch,38.6708703,-77.3251547,,,VA,,false,true,false,openstreetmap
+City: Bekeley Middle Sch,soccer,pitch,37.2732778,-76.7366254,,,VA,,false,true,false,openstreetmap
+City: Matthew Whaley,soccer,pitch,37.2751104,-76.7046266,,,VA,,false,true,false,openstreetmap
+Country Chevrolet Field,soccer,pitch,38.715727,-77.8211194,,,VA,,false,true,false,openstreetmap
+Cupp Stadium,soccer,pitch,37.1393576,-80.543925,,,VA,,false,true,false,openstreetmap
+D,soccer,pitch,37.6114923,-77.6588476,,,VA,,false,true,false,openstreetmap
+Davenport Field,soccer,pitch,37.578784,-77.5243844,,,VA,,false,true,false,openstreetmap
+Dillard Practice Field,soccer,pitch,37.2896797,-76.7300489,,,VA,,false,true,false,openstreetmap
+Drill Field #1,soccer,pitch,37.7926398,-79.4360851,,,VA,,false,true,false,openstreetmap
+E,soccer,pitch,37.6111373,-77.6580325,,,VA,,false,true,false,openstreetmap
+East Field,soccer,pitch,37.5790926,-77.5191053,,,VA,,false,true,false,openstreetmap
+Elizabeth Burger Jackson Field,soccer,pitch,37.2915088,-78.3778913,,,VA,,false,true,false,openstreetmap
+Embrey Mill Field 3,soccer,pitch,38.4319691,-77.4357782,,,VA,,false,true,false,openstreetmap
+Embrey Mill Field 4,soccer,pitch,38.4319695,-77.4349075,,,VA,,false,true,false,openstreetmap
+Everett G. Germain Jr Field,soccer,pitch,38.8351844,-77.1717482,,,VA,,false,true,false,openstreetmap
+Evergreen SportsPlex,soccer,sports_centre,39.0787375,-77.5771938,,,VA,,false,true,false,openstreetmap
+F,soccer,pitch,37.611141,-77.6582775,,,VA,,false,true,false,openstreetmap
+FHS Football Field,soccer,pitch,38.8709344,-77.3221403,,,VA,,false,true,false,openstreetmap
+FHS Soccer Field,soccer,pitch,38.8719802,-77.3198482,,,VA,,false,true,false,openstreetmap
+Fauquier Health Fields,soccer,pitch,38.717012,-77.8220616,,,VA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,38.8352184,-77.3209164,,,VA,,false,true,false,openstreetmap
+Field #1,soccer,pitch,37.6718709,-77.6127949,,,VA,,false,true,false,openstreetmap
+Field #10,soccer,pitch,37.6718393,-77.6084836,,,VA,,false,true,false,openstreetmap
+Field #11,soccer,pitch,37.6724959,-77.6084948,,,VA,,false,true,false,openstreetmap
+Field #2,soccer,pitch,37.6712989,-77.6118475,,,VA,,false,true,false,openstreetmap
+Field #3,soccer,pitch,37.6701943,-77.6128864,,,VA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,38.8325287,-77.3239492,,,VA,,false,true,false,openstreetmap
+Field #4,soccer,pitch,37.6711191,-77.6106635,,,VA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,38.8313573,-77.3255623,,,VA,,false,true,false,openstreetmap
+Field #5,soccer,pitch,37.6699516,-77.6113009,,,VA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,39.0161624,-77.402773,,,VA,,false,true,false,openstreetmap
+Field #6,soccer,pitch,37.6708412,-77.6100005,,,VA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,37.6697531,-77.6094092,,,VA,,false,true,false,openstreetmap
+Field #7,soccer,pitch,39.0169746,-77.4023312,,,VA,,false,true,false,openstreetmap
+Field #8,soccer,pitch,37.6693039,-77.6085339,,,VA,,false,true,false,openstreetmap
+Field #9,soccer,pitch,37.6711687,-77.6084666,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.0751137,-77.5398889,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.0702364,-77.4511716,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.9195724,-78.2061761,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.6478625,-77.3646532,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.8451975,-77.5152296,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.4718596,-77.9459679,,,VA,,false,true,false,openstreetmap
+Field 1,soccer,pitch,37.4531429,-77.4951611,,,VA,,false,true,false,openstreetmap
+Field 12,soccer,pitch,39.0707692,-77.5395812,,,VA,,false,true,false,openstreetmap
+Field 13,soccer,pitch,39.0715778,-77.5381149,,,VA,,false,true,false,openstreetmap
+Field 14,soccer,pitch,39.0701339,-77.5379717,,,VA,,false,true,false,openstreetmap
+Field 15,soccer,pitch,39.0716472,-77.5369268,,,VA,,false,true,false,openstreetmap
+Field 16,soccer,pitch,39.0702037,-77.5367961,,,VA,,false,true,false,openstreetmap
+Field 17,soccer,pitch,39.0717443,-77.5356024,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.0748666,-77.5408435,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.0695635,-77.4503036,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.919583,-78.2071382,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.6482136,-77.3635541,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.4724204,-77.9458039,,,VA,,false,true,false,openstreetmap
+Field 2,soccer,pitch,37.4528729,-77.4942975,,,VA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.0702743,-77.4492028,,,VA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.9206117,-78.2060668,,,VA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.844431,-77.5167451,,,VA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.4716066,-77.9447032,,,VA,,false,true,false,openstreetmap
+Field 3,soccer,pitch,37.4521355,-77.495716,,,VA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.0686176,-77.4479661,,,VA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.9205904,-78.207117,,,VA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.8452191,-77.5166019,,,VA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.4721471,-77.9445204,,,VA,,false,true,false,openstreetmap
+Field 4,soccer,pitch,37.4518501,-77.4949535,,,VA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,37.452571,-77.4933226,,,VA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.471232,-77.9432238,,,VA,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.9218058,-78.2077658,,,VA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,37.4516751,-77.4927338,,,VA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.4717849,-77.9430237,,,VA,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.9214763,-78.2083444,,,VA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,38.639916,-77.453936,,,VA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,37.4506345,-77.4933937,,,VA,,false,true,false,openstreetmap
+Field 7,soccer,pitch,38.920608,-78.2082068,,,VA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,38.6392884,-77.4546119,,,VA,,false,true,false,openstreetmap
+Field 8,soccer,pitch,38.9195879,-78.2081823,,,VA,,false,true,false,openstreetmap
+Field of Dreams,soccer,sports_centre,38.845071,-77.5138337,,,VA,,false,true,false,openstreetmap
+Fincastle Field,soccer,pitch,39.0498077,-77.4750221,,,VA,,false,true,false,openstreetmap
+Founders Field,soccer,pitch,36.8714509,-76.1852517,,,VA,,false,true,false,openstreetmap
+Fredericksburg Soccer,soccer,pitch,38.2666436,-77.4530508,,,VA,,false,true,false,openstreetmap
+Freedom Middle School soccer field,soccer,pitch,38.2552362,-77.5773365,,,VA,,false,true,false,openstreetmap
+Fuge Field,soccer,pitch,37.7914765,-79.4507294,,,VA,,false,true,false,openstreetmap
+G,soccer,pitch,37.6111419,-77.6585178,,,VA,,false,true,false,openstreetmap
+Gary Braithwaite field at Quartermaster,soccer,pitch,38.9261198,-77.3376852,,,VA,,false,true,false,openstreetmap
+Green Acres Soccer Field #1,soccer,pitch,38.8342227,-77.3021198,,,VA,,false,true,false,openstreetmap
+Green Acres Soccer Field #2,soccer,pitch,38.8334658,-77.3019398,,,VA,,false,true,false,openstreetmap
+Greene County Park Soccer Fields,soccer,pitch,38.2742949,-78.4166727,,,VA,,false,true,false,openstreetmap
+Grove Park Soccer Field,soccer,pitch,36.5590175,-79.402304,,,VA,,false,true,false,openstreetmap
+H,soccer,pitch,37.6111469,-77.6587608,,,VA,,false,true,false,openstreetmap
+Hayfield Soccer Field,soccer,pitch,38.7526067,-77.1440704,,,VA,,false,true,false,openstreetmap
+Hensley Soccer Complex,soccer,sports_centre,37.3639653,-77.6584076,13861 West Hensley Road,,VA,23832,false,true,false,openstreetmap
+Highland School Field,soccer,pitch,38.7161546,-77.818138,,,VA,,false,true,false,openstreetmap
+Howard Hughes Medical Institute,soccer,pitch,39.0708239,-77.4677732,,,VA,,false,true,false,openstreetmap
+Immanuel Baptist Soccer Field,soccer,pitch,37.0911768,-76.4385672,,,VA,,false,true,false,openstreetmap
+Joe Arnold Field,soccer,pitch,37.5793678,-77.6755431,,,VA,,false,true,false,openstreetmap
+Jordan's Point Field,soccer,pitch,37.7930359,-79.4298811,,,VA,,false,true,false,openstreetmap
+Joyce Allred Soccer Field,soccer,pitch,38.9339145,-77.3668014,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 1,soccer,pitch,38.7521569,-77.3906808,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 2,soccer,pitch,38.7520139,-77.3917277,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 3,soccer,pitch,38.7522727,-77.3896947,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 4,soccer,pitch,38.7533065,-77.3916306,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 5,soccer,pitch,38.7534561,-77.3899033,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 6,soccer,pitch,38.7542813,-77.3916896,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 7,soccer,pitch,38.7536674,-77.3908595,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 8,soccer,pitch,38.7540512,-77.389851,,,VA,,false,true,false,openstreetmap
+Kincheloe Park Field 9,soccer,pitch,38.7511917,-77.3916881,,,VA,,false,true,false,openstreetmap
+Lagoon Field,soccer,pitch,37.2433348,-78.4536646,,,VA,,false,true,false,openstreetmap
+Lake Newport Soccer Field,soccer,sports_centre,38.9765345,-77.350954,,,VA,,false,true,false,openstreetmap
+Lancer Park Turf Field,soccer,pitch,37.3087746,-78.4008367,,,VA,,false,true,false,openstreetmap
+Legacy Energy Group Fields,soccer,pitch,38.7158346,-77.8225706,,,VA,,false,true,false,openstreetmap
+Liberty Hall Field,soccer,pitch,37.79106,-79.451403,,,VA,,false,true,false,openstreetmap
+Long Bridge Park Field 3,soccer,pitch,38.8658052,-77.0484455,,,VA,,false,true,false,openstreetmap
+Long Bridge Park Field 4,soccer,pitch,38.8652435,-77.0478863,,,VA,,false,true,false,openstreetmap
+Lower Athletic Field,soccer,pitch,38.1555492,-79.0664263,,,VA,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,37.5701096,-77.5216268,,,VA,,false,true,false,openstreetmap
+Lower Practice Field,soccer,pitch,38.4686899,-77.455954,,,VA,,false,true,false,openstreetmap
+Luther Jackson Soccer Field,soccer,pitch,38.8679467,-77.2314692,,,VA,,false,true,false,openstreetmap
+Maury Stadium,soccer,pitch,38.2999243,-77.4649859,,,VA,,false,true,false,openstreetmap
+McLean High School Practice Field,soccer,pitch,38.9223908,-77.1832209,,,VA,,false,true,false,openstreetmap
+Miller Field,soccer,pitch,37.247064,-78.4561101,,,VA,,false,true,false,openstreetmap
+Mosely Practice Field,soccer,pitch,37.2198109,-80.4204551,,,VA,,false,true,false,openstreetmap
+Open Field,soccer,pitch,36.7996322,-76.1943985,,,VA,,false,true,false,openstreetmap
+PRE-K Soccer Field,soccer,pitch,36.9052341,-82.071495,,,VA,,false,true,false,openstreetmap
+PRE-K Soccer Field,soccer,pitch,36.905266,-82.0717131,,,VA,,false,true,false,openstreetmap
+Patchin Field,soccer,pitch,37.7918863,-79.4412569,,,VA,,false,true,false,openstreetmap
+Penn-Roediger Field,soccer,pitch,36.9306791,-80.0227897,,,VA,,false,true,false,openstreetmap
+Pheasant Run Soccer Fields,soccer,pitch,37.2485632,-80.4161305,,,VA,,false,true,false,openstreetmap
+Poor Farm Park #1,soccer,pitch,37.7773244,-77.534316,,,VA,,false,true,false,openstreetmap
+Poor Farm Park #2,soccer,pitch,37.7767699,-77.5347893,,,VA,,false,true,false,openstreetmap
+Poor Farm Park #6,soccer,pitch,37.7825289,-77.5425723,,,VA,,false,true,false,openstreetmap
+Powhatan Field,soccer,pitch,36.8819793,-76.3133909,,,VA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.9155246,-77.5369059,,,VA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,36.8193539,-76.1553909,,,VA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.7745543,-77.073668,,,VA,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.5879695,-77.765417,,,VA,,false,true,false,openstreetmap
+Practice field,soccer,pitch,37.2122686,-79.9996063,,,VA,,false,true,false,openstreetmap
+Preston Sports Complex,soccer,pitch,39.1757552,-78.1539212,,,VA,,false,true,false,openstreetmap
+Promise Landscape Field,soccer,pitch,38.71866,-77.8209015,,,VA,,false,true,false,openstreetmap
+Rachel Carson MS soccer field 1,soccer,pitch,38.9281032,-77.4176181,,,VA,,false,true,false,openstreetmap
+Rachel Carson MS soccer field 2,soccer,pitch,38.9284473,-77.4181632,,,VA,,false,true,false,openstreetmap
+Radford Intramural Field,soccer,pitch,37.134389,-80.5408002,,,VA,,false,true,false,openstreetmap
+Recreation Field 1,soccer,pitch,38.9711179,-77.5512837,,,VA,,false,true,false,openstreetmap
+Recreation Field 14,soccer,pitch,38.971051,-77.5580015,,,VA,,false,true,false,openstreetmap
+Recreation Field 15,soccer,pitch,38.9722818,-77.5574576,,,VA,,false,true,false,openstreetmap
+Recreation Field 16,soccer,pitch,38.9735043,-77.5567236,,,VA,,false,true,false,openstreetmap
+Recreation Field 17,soccer,pitch,38.9732773,-77.5558447,,,VA,,false,true,false,openstreetmap
+Recreation Field 2,soccer,pitch,38.9710204,-77.5498913,,,VA,,false,true,false,openstreetmap
+Recreation Field 3,soccer,pitch,38.9731332,-77.5500394,,,VA,,false,true,false,openstreetmap
+Recreation Field 4,soccer,pitch,38.9744469,-77.5498939,,,VA,,false,true,false,openstreetmap
+Recreation Field 5,soccer,pitch,38.9757277,-77.5497584,,,VA,,false,true,false,openstreetmap
+Recreation Field 6,soccer,pitch,38.9772224,-77.5502124,,,VA,,false,true,false,openstreetmap
+Recreation Field 7,soccer,pitch,38.9771592,-77.5492929,,,VA,,false,true,false,openstreetmap
+Rectangle 1,soccer,pitch,38.8709827,-77.8221334,,,VA,,false,true,false,openstreetmap
+Rectangle 2,soccer,pitch,38.8693914,-77.8211906,,,VA,,false,true,false,openstreetmap
+Saint Andrew's School Soccer Field,soccer,pitch,37.5422716,-77.4550205,,,VA,,false,true,false,openstreetmap
+Shennandoah Soccer Academy,soccer,pitch,39.1967402,-78.161244,,,VA,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,38.4670162,-77.5427813,,,VA,,false,true,false,openstreetmap
+Soccer Organization of Charlottesville-Albemarle Fields,soccer,pitch,38.0952331,-78.4434792,,,VA,,false,true,false,openstreetmap
+Soccer Scene,soccer,pitch,38.7992344,-77.4474679,,,VA,,false,true,false,openstreetmap
+Soccer Stadium,soccer,pitch,36.8839357,-76.3108949,,,VA,,false,true,false,openstreetmap
+Sully Highlands Turf 1,soccer,pitch,38.9194655,-77.4248216,,,VA,,false,true,false,openstreetmap
+Sully Highlands Turf 2,soccer,pitch,38.9201374,-77.4248163,,,VA,,false,true,false,openstreetmap
+Tepeyac Title Field,soccer,pitch,38.7169457,-77.8208915,,,VA,,false,true,false,openstreetmap
+Thomas Indoor Soccer Center,soccer,sports_centre,37.3570125,-79.1740257,,,VA,,false,true,false,openstreetmap
+Turf Field,soccer,pitch,38.4707139,-78.8772628,,,VA,,false,true,false,openstreetmap
+U10 Soccer Field,soccer,pitch,36.9052302,-82.0701011,,,VA,,false,true,false,openstreetmap
+U12 Soccer Field,soccer,pitch,36.9052715,-82.070823,,,VA,,false,true,false,openstreetmap
+U6 Soccer Field,soccer,pitch,36.9051317,-82.0695383,,,VA,,false,true,false,openstreetmap
+U8 Soccer Field,soccer,pitch,36.9056005,-82.0715547,,,VA,,false,true,false,openstreetmap
+Ukrops Park,soccer,sports_centre,37.4515772,-77.4945938,,,VA,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,38.2662725,-78.5523091,,,VA,,false,true,false,openstreetmap
+Upper Practice Field,soccer,pitch,38.4684636,-77.4568151,,,VA,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,37.4516022,-79.187364,,,VA,,false,true,false,openstreetmap
+Veritas Athletic Field,soccer,pitch,37.578819,-77.4526172,,,VA,,false,true,false,openstreetmap
+Walsingham Practice Field,soccer,pitch,37.2547914,-76.7239049,,,VA,,false,true,false,openstreetmap
+Walsingham Soccer Field,soccer,pitch,37.2562775,-76.7247343,,,VA,,false,true,false,openstreetmap
+West Springfield Elementary Field,soccer,pitch,38.7692578,-77.2207064,,,VA,,false,true,false,openstreetmap
+Wildcat Soccer Field,soccer,pitch,38.8229066,-77.4121849,,,VA,,false,true,false,openstreetmap
+Windsor Forest Soccer Field,soccer,pitch,37.3062987,-76.7611457,,,VA,,false,true,false,openstreetmap
+Winston Wine Memorial Stadium,soccer,pitch,38.1572595,-79.0838535,,,VA,,false,true,false,openstreetmap
+YMCA field #1,soccer,pitch,37.6802349,-77.5889892,,,VA,,false,true,false,openstreetmap
+YMCA field #2,soccer,pitch,37.6798902,-77.5885193,,,VA,,false,true,false,openstreetmap
+YMCA field #3,soccer,pitch,37.6795943,-77.5880674,,,VA,,false,true,false,openstreetmap
+Banneker Soccer Field,soccer,pitch,38.8825954,-77.1561456,1680 North Sycamore Street,Arlington,VA,22205,false,true,false,openstreetmap
+Soccer Kicks,soccer,pitch,38.8740184,-77.1399493,6019 Wilson Boulevard,Arlington,VA,22205,false,true,false,openstreetmap
+Woodmont YMCA,soccer,pitch,38.9023613,-77.0977165,2422 North Fillmore Street,Arlington,VA,22207,false,true,false,openstreetmap
+Wintergrove Soccer Field,soccer,pitch,39.0399373,-77.51151,43153 Wintergrove Drive,Ashburn,VA,20147,false,true,false,openstreetmap
+Kincheloe Soccer Park,soccer,sports_centre,38.7528482,-77.3908144,8000 Kincheloe Road,Clifton,VA,20124,false,true,false,openstreetmap
+Segra Field,soccer,stadium,39.0690807,-77.545554,42095 Loudoun United Drive,Leesburg,VA,20175,false,true,false,openstreetmap
+Watt Field,soccer,pitch,37.7925308,-79.4491819,100 West Denny Circle,Lexington,VA,24450,false,true,false,openstreetmap
+Central Virginia United Soccer Club,soccer,sports_centre,37.3509454,-79.104911,5635 Campbell Highway,Lynchburg,VA,24501,false,true,false,openstreetmap
+Stadium District Indoor Soccer,soccer,sports_centre,37.399121,-79.163314,2599 Fort Avenue,Lynchburg,VA,24501,false,true,false,openstreetmap
+Animal Shelter Field,soccer,pitch,37.5392873,-77.9321521,3900 Old Plantation Road,Powhatan,VA,23139,false,true,false,openstreetmap
+KidsUnited,soccer,sports_hall,38.9359302,-77.3617665,2312 B Hunters Woods Plaza,Reston,VA,20191,false,true,false,openstreetmap
+Capital Park,soccer,sports_centre,37.6223765,-77.4219615,6900 Wilkinson Road,Richmond,VA,23227,false,true,false,openstreetmap
+City Stadium,soccer,stadium,37.5496354,-77.4864896,3201 Maplewood Avenue,Richmond,VA,23221,false,true,false,openstreetmap
+Tabb HS Soccer,soccer,pitch,37.1238973,-76.4356125,4431 Big Bethel Road,Yorktown,VA,23693,false,true,false,openstreetmap

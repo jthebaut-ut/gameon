@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Burlington Tennis Club,tennis,pitch,44.470455,-73.1888573,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4705138,-73.1890186,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.469989,-73.1889575,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4706645,-73.1894689,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4706097,-73.1893064,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4703392,-73.1885275,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.470397,-73.1886911,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4700491,-73.1891261,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4698177,-73.1894915,,,VT,,false,true,false,openstreetmap
+Burlington Tennis Club,tennis,pitch,44.4699329,-73.1895161,,,VT,,false,true,false,openstreetmap
+Cedar Meadow Tennis Court,tennis,pitch,44.9780789,-73.1066358,,,VT,,false,true,false,openstreetmap
+Nelson Recreation Center,tennis,pitch,44.0047387,-73.1771837,,,VT,,false,true,false,openstreetmap
+Private,tennis,pitch,44.2969237,-72.5685243,,,VT,,false,true,false,openstreetmap
+Quimby Country,tennis,pitch,44.9837603,-71.6841211,,,VT,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,43.2360855,-72.8454379,,,VT,,false,true,false,openstreetmap
+The Edge,tennis,sports_centre,44.4515498,-73.1722255,,,VT,,false,true,false,openstreetmap
+Middlebury Indoor Tennis,tennis,sports_centre,43.9988296,-73.1429222,360 Boardman Street,Middlebury,VT,05753,false,true,false,openstreetmap
+Windridge Tennis & Sports Camps,tennis,pitch,44.0980325,-72.7313421,1215 Roxbury Road,Roxbury,VT,05669,false,true,false,openstreetmap

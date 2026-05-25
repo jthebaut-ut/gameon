@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cancha Alida Oliveras Morales,pickleball,pitch,18.4881169,-66.857467,,,PR,,false,true,false,openstreetmap
+Cancha de Pickleball Louis Font Mojica,pickleball,pitch,18.3761329,-65.72128,,,PR,,false,true,false,openstreetmap
+Cancha de Pickleball Rafael Roberto Borrás López,pickleball,pitch,18.4672696,-66.7344056,,,PR,,false,true,false,openstreetmap

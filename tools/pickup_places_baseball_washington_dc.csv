@@ -1,0 +1,12 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bryce Harper Field,baseball,pitch,38.9689663,-77.0170111,,,DC,,false,true,false,openstreetmap
+Field #1,baseball,pitch,38.8814654,-77.0414543,,,DC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,38.8807682,-77.0412419,,,DC,,false,true,false,openstreetmap
+Field #3,baseball,pitch,38.8815707,-77.0428763,,,DC,,false,true,false,openstreetmap
+Field #4,baseball,pitch,38.8820519,-77.0435418,,,DC,,false,true,false,openstreetmap
+Field #5,baseball,pitch,38.8825604,-77.0442254,,,DC,,false,true,false,openstreetmap
+Field #6,baseball,pitch,38.883082,-77.0449103,,,DC,,false,true,false,openstreetmap
+Robert J. Talbot Baseball Field,baseball,pitch,38.9450774,-77.0012105,,,DC,,false,true,false,openstreetmap
+Rose Park baseball field,baseball,pitch,38.9091041,-77.0544187,,,DC,,false,true,false,openstreetmap
+Softball Complex,baseball,pitch,38.9068798,-76.9906772,,,DC,,false,true,false,openstreetmap
+Nationals Park,baseball,stadium,38.8727391,-77.0074855,1500 South Capitol Street Southeast,Washington,DC,,false,true,false,openstreetmap

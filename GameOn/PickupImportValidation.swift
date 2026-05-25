@@ -37,6 +37,12 @@ struct PickupBulkImportPreparedRow: Identifiable, Equatable {
     let playersNeeded: Int?
     let maxPlayers: Int?
     let coordinate: CLLocationCoordinate2D?
+    let gameType: GameType
+    let leagueName: String?
+    let homeTeam: String?
+    let awayTeam: String?
+    let season: String?
+    let division: String?
     let warnings: [String]
     let errors: [String]
 
@@ -120,6 +126,12 @@ enum PickupBulkImportValidator {
         let state = raw.value("state")
         let playersRaw = raw.value("players_needed")
         let maxPlayersRaw = raw.value("max_players")
+        let gameFormatRaw = raw.value("game_format")
+        let leagueName = raw.value("league_name")
+        let homeTeam = raw.value("home_team")
+        let awayTeam = raw.value("away_team")
+        let season = raw.value("season")
+        let division = raw.value("division")
 
         appendMissing("title", title, to: &errors)
         appendMissing("sport", sportRaw, to: &errors)
@@ -133,6 +145,11 @@ enum PickupBulkImportValidator {
         let sport = canonicalSport(from: sportRaw)
         if sport == nil, !sportRaw.isEmpty {
             errors.append("Invalid sport name.")
+        }
+
+        let gameFormat = canonicalGameFormat(from: gameFormatRaw)
+        if gameFormat == nil, !gameFormatRaw.isEmpty {
+            errors.append("Invalid game_format. Use pickup, practice, or scrimmage.")
         }
 
         let skillLevel = skillRaw.isEmpty ? PickupGameSkillLevel.casual.rawValue : canonicalSkillLevel(from: skillRaw)
@@ -231,7 +248,7 @@ enum PickupBulkImportValidator {
             rowNumber: raw.rowNumber,
             title: title,
             sport: sport ?? sportRaw,
-            description: description.isEmpty ? nil : description,
+            description: description,
             skillLevel: skillLevel ?? PickupGameSkillLevel.casual.rawValue,
             gameStartAt: start,
             endTime: end,
@@ -241,6 +258,12 @@ enum PickupBulkImportValidator {
             playersNeeded: playersNeeded,
             maxPlayers: maxPlayers,
             coordinate: coordinate,
+            gameType: gameFormat ?? .pickup,
+            leagueName: leagueName.isEmpty ? nil : leagueName,
+            homeTeam: homeTeam.isEmpty ? nil : homeTeam,
+            awayTeam: awayTeam.isEmpty ? nil : awayTeam,
+            season: season.isEmpty ? nil : season,
+            division: division.isEmpty ? nil : division,
             warnings: warnings,
             errors: errors
         )
@@ -270,6 +293,17 @@ enum PickupBulkImportValidator {
         for level in PickupGameSkillLevel.allCases {
             if normalizeToken(level.rawValue) == normalized || normalizeToken(level.displayTitle) == normalized {
                 return level.rawValue
+            }
+        }
+        return nil
+    }
+
+    private static func canonicalGameFormat(from raw: String) -> GameType? {
+        let normalized = normalizeToken(raw)
+        guard !normalized.isEmpty else { return .pickup }
+        for type in GameType.allCases {
+            if normalizeToken(type.rawValue) == normalized || normalizeToken(type.displayTitle) == normalized {
+                return type
             }
         }
         return nil

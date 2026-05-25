@@ -1,0 +1,101 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,43.1035693,-87.9133493,,,WI,,false,true,false,openstreetmap
+2,soccer,pitch,43.1019296,-87.9089575,,,WI,,false,true,false,openstreetmap
+Aldo Santaga Stadium,soccer,pitch,44.5301412,-87.9138213,,,WI,,false,true,false,openstreetmap
+Algoma Middle/High School Soccer Field,soccer,pitch,44.5989,-87.4448139,,,WI,,false,true,false,openstreetmap
+Bayer Field,soccer,pitch,44.2162376,-88.4436185,,,WI,,false,true,false,openstreetmap
+Brandt-Quirk Park,soccer,pitch,43.207972,-88.7463355,,,WI,,false,true,false,openstreetmap
+Breese Stevens Field,soccer,sports_centre,43.083382,-89.3730705,,,WI,,false,true,false,openstreetmap
+Burton E. Nelson Field,soccer,pitch,44.869427,-91.9253323,,,WI,,false,true,false,openstreetmap
+Championship Field,soccer,pitch,44.9364997,-89.6072982,,,WI,,false,true,false,openstreetmap
+Cloud Field,soccer,pitch,44.4420145,-88.0726218,,,WI,,false,true,false,openstreetmap
+Club Field,soccer,pitch,42.8443112,-88.7496225,,,WI,,false,true,false,openstreetmap
+Club Soccer Field,soccer,pitch,42.843341,-88.7472791,,,WI,,false,true,false,openstreetmap
+Collins Field,soccer,pitch,42.9248654,-89.2363269,,,WI,,false,true,false,openstreetmap
+Daleo East Soccer Field,soccer,pitch,43.151563,-89.4235773,,,WI,,false,true,false,openstreetmap
+Daleo West Soccer Field,soccer,pitch,43.1515677,-89.4245739,,,WI,,false,true,false,openstreetmap
+Edgewood College,soccer,pitch,43.0040651,-89.5254496,,,WI,,false,true,false,openstreetmap
+Eisenhower Park Soccer Field,soccer,pitch,44.488648,-87.9834749,,,WI,,false,true,false,openstreetmap
+Elkhorn Soccer Field A,soccer,pitch,42.6495041,-88.547693,,,WI,,false,true,false,openstreetmap
+Elkhorn Soccer Field B,soccer,pitch,42.6490228,-88.5477145,,,WI,,false,true,false,openstreetmap
+Elkhorn Soccer Field C,soccer,pitch,42.6491116,-88.5486023,,,WI,,false,true,false,openstreetmap
+Engelmann Stadium,soccer,stadium,43.076844,-87.8851218,,,WI,,false,true,false,openstreetmap
+Field 1,soccer,pitch,44.4651514,-88.0221962,,,WI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.9750457,-92.6923766,,,WI,,false,true,false,openstreetmap
+Field 10,soccer,pitch,44.3930765,-89.7860149,,,WI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,44.9750494,-92.6911819,,,WI,,false,true,false,openstreetmap
+Field 11,soccer,pitch,44.3939689,-89.7860664,,,WI,,false,true,false,openstreetmap
+Field 12,soccer,pitch,44.3941306,-89.7847962,,,WI,,false,true,false,openstreetmap
+Field 1A,soccer,pitch,44.3955053,-89.7913839,,,WI,,false,true,false,openstreetmap
+Field 1B,soccer,pitch,44.3954985,-89.7907211,,,WI,,false,true,false,openstreetmap
+Field 1N,soccer,pitch,44.9776599,-92.691107,,,WI,,false,true,false,openstreetmap
+Field 1S,soccer,pitch,44.9772064,-92.6911086,,,WI,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.4647961,-88.0213976,,,WI,,false,true,false,openstreetmap
+Field 2A,soccer,pitch,44.3952415,-89.7895861,,,WI,,false,true,false,openstreetmap
+Field 2B,soccer,pitch,44.3952631,-89.7890509,,,WI,,false,true,false,openstreetmap
+Field 2N,soccer,pitch,44.9776608,-92.6918237,,,WI,,false,true,false,openstreetmap
+Field 2S,soccer,pitch,44.9772552,-92.6919165,,,WI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.3952565,-89.7883846,,,WI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.9773911,-92.6930979,,,WI,,false,true,false,openstreetmap
+Field 3,soccer,pitch,44.464489,-88.0205688,,,WI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.395276,-89.7874842,,,WI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.9773939,-92.6939776,,,WI,,false,true,false,openstreetmap
+Field 4,soccer,pitch,44.4642851,-88.0197158,,,WI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.3963442,-89.7875151,,,WI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.9774971,-92.6948479,,,WI,,false,true,false,openstreetmap
+Field 5,soccer,pitch,44.4640463,-88.0188665,,,WI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.3963474,-89.7885947,,,WI,,false,true,false,openstreetmap
+Field 6,soccer,pitch,44.9763355,-92.6947548,,,WI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,44.9762807,-92.6935632,,,WI,,false,true,false,openstreetmap
+Field 7,soccer,pitch,44.397666,-89.7886066,,,WI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.9750423,-92.6947335,,,WI,,false,true,false,openstreetmap
+Field 8,soccer,pitch,44.3976581,-89.7875049,,,WI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.9750563,-92.6935683,,,WI,,false,true,false,openstreetmap
+Field 9,soccer,pitch,44.3901315,-89.7861985,,,WI,,false,true,false,openstreetmap
+Fiskum Soccer Field,soccer,pitch,42.8461063,-88.7486326,,,WI,,false,true,false,openstreetmap
+George Cobb H’80 Soccer Field,soccer,pitch,43.454943,-88.8244528,,,WI,,false,true,false,openstreetmap
+Goodman Pitch,soccer,pitch,43.0040496,-89.5243711,,,WI,,false,true,false,openstreetmap
+Halquist Youth Complex,soccer,pitch,43.1253706,-88.186775,,,WI,,false,true,false,openstreetmap
+Hayward United Soccer Club,soccer,sports_centre,46.0490866,-91.4472445,,,WI,,false,true,false,openstreetmap
+Hiestand Field,soccer,pitch,43.099466,-89.3095848,,,WI,,false,true,false,openstreetmap
+Hiestand Field,soccer,pitch,43.0994347,-89.3085776,,,WI,,false,true,false,openstreetmap
+Jack Omer Field,soccer,pitch,43.5026065,-88.555262,,,WI,,false,true,false,openstreetmap
+Jende Field,soccer,pitch,43.0746677,-88.2655358,,,WI,,false,true,false,openstreetmap
+Kroc Practice Soccer Field,soccer,pitch,44.480447,-87.9793315,,,WI,,false,true,false,openstreetmap
+Laura Moynihan Field,soccer,pitch,43.0768419,-87.885115,,,WI,,false,true,false,openstreetmap
+Lower Diamond,soccer,pitch,46.5119835,-91.7095015,,,WI,,false,true,false,openstreetmap
+Milwaukee Wave,soccer,pitch,43.0426687,-87.9168704,,,WI,,false,true,false,openstreetmap
+Nash Park Soccer Field #1,soccer,pitch,43.0856118,-88.011294,,,WI,,false,true,false,openstreetmap
+Nash Park Soccer Field #2,soccer,pitch,43.085112,-88.0109219,,,WI,,false,true,false,openstreetmap
+Neenah High School Soccer Stadium,soccer,stadium,44.1650022,-88.4979097,,,WI,,false,true,false,openstreetmap
+New Richmond Park Soccer Fields,soccer,pitch,45.1136084,-92.5368206,,,WI,,false,true,false,openstreetmap
+New Soccer Field,soccer,pitch,43.1390085,-88.5443423,,,WI,,false,true,false,openstreetmap
+Old Soccer Field,soccer,pitch,43.1380536,-88.5397794,,,WI,,false,true,false,openstreetmap
+Pabst Athletic Fields,soccer,pitch,43.0945294,-88.3812535,,,WI,,false,true,false,openstreetmap
+Port Soccer,soccer,sports_centre,43.3749585,-87.8964993,,,WI,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,43.5759726,-87.8284745,,,WI,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,45.3002989,-92.3492847,,,WI,,false,true,false,openstreetmap
+Resurrection Soccer Field,soccer,pitch,44.4591137,-88.0297949,,,WI,,false,true,false,openstreetmap
+Sarah Hegarty Field 1,soccer,pitch,43.1999762,-88.0818745,,,WI,,false,true,false,openstreetmap
+Sarah Hegarty Field 2,soccer,pitch,43.2009139,-88.0816123,,,WI,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,43.1940502,-88.7390636,,,WI,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,42.8477431,-88.7476507,,,WI,,false,true,false,openstreetmap
+Stone Ridge Park 55,soccer,pitch,42.9214113,-89.3954001,,,WI,,false,true,false,openstreetmap
+Stone Ridge Park 56,soccer,pitch,42.9214413,-89.3949851,,,WI,,false,true,false,openstreetmap
+Superior Choice Credit Union Stadium,soccer,stadium,46.7180336,-92.0857783,,,WI,,false,true,false,openstreetmap
+The Quad,soccer,pitch,43.1940494,-88.7370311,,,WI,,false,true,false,openstreetmap
+UW-La Crosse Turf Soccer Fields,soccer,pitch,43.8178137,-91.2266071,,,WI,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,45.3002616,-92.3503474,,,WI,,false,true,false,openstreetmap
+Warrior Pitch,soccer,pitch,43.1797941,-89.4587952,,,WI,,false,true,false,openstreetmap
+Wood Road Soccer Fields,soccer,pitch,42.6439481,-87.847791,,,WI,,false,true,false,openstreetmap
+Wood Road Soccer Fields,soccer,pitch,42.6440748,-87.8493246,,,WI,,false,true,false,openstreetmap
+Wood Road Soccer Fields,soccer,pitch,42.6434473,-87.84904,,,WI,,false,true,false,openstreetmap
+Wood Road Soccer Fields,soccer,pitch,42.6428408,-87.8487578,,,WI,,false,true,false,openstreetmap
+SUDA Soccer,soccer,pitch,43.4673641,-89.7387715,202 East Street,Baraboo,WI,53913,false,true,false,openstreetmap
+Stefans Soccer,soccer,pitch,43.0375595,-88.1583973,620 Elizabeth Court,Brookfield,WI,53045,false,true,false,openstreetmap
+Fiesta Loca,soccer,restaurant,45.3487843,-92.6399193,967 WI-35,Dresser,WI,54009,false,true,false,openstreetmap
+TOCA Soccer Center,soccer,sports_centre,43.0127717,-89.4591299,5964 Executive Drive,Fitchburg,WI,,false,true,false,openstreetmap
+Bricks & Minifigs,soccer,pitch,43.1745163,-87.9141738,8681 North Port Washington Road,Fox Point,WI,53217,false,true,false,openstreetmap
+FC Wisconsin,soccer,pitch,43.1996725,-88.0813108,Fond Du Lac Ave,Germantown,WI,53022,false,true,false,openstreetmap
+Ewald Soccer Park,soccer,sports_centre,43.168661,-88.5041826,N80W38200 McMahon Road,Oconomowoc,WI,53066,false,true,false,openstreetmap
+Rec Plex Dome,soccer,sports_centre,44.0214654,-88.5490029,140 Osceola Street,Oshkosh,WI,54901,false,true,false,openstreetmap

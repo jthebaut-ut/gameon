@@ -305,6 +305,10 @@ extension MapViewModel {
 
         let ownerUserId = session.user.id
 
+        if await businessBanGuardBlocks(path: "businessSignup", action: "registerVenueOwner") {
+            return
+        }
+
         if await activeFanUserProfileExistsForEmail(ownerEmail) {
 #if DEBUG
             print("[AuthAccountTypeGate] business registration blocked fanEmail=\(ownerEmail)")
@@ -601,6 +605,10 @@ extension MapViewModel {
             currentUserAuthId = ownerUserId
         }
 
+        if await businessBanGuardBlocks(path: "businessSignup", action: "completePendingBusinessSignupAfterConfirmation") {
+            return true
+        }
+
         guard let coverURL = await uploadVenuePhoto(data: coverData, fileName: "cover.jpg", assignToCurrentVenueProfile: false) else {
             await forceLogout(reason: "businessSignupCoverUploadFailedAfterEmailConfirmation", source: "MapViewModel.completePendingBusinessSignupAfterConfirmation")
             await MainActor.run {
@@ -814,7 +822,7 @@ extension MapViewModel {
                 return
             }
 
-            if await refreshActiveBanGate(reason: "emailPasswordBusinessLogin") {
+            if await businessBanGuardBlocks(path: "businessLogin", action: "emailPassword") {
                 clearExplicitLogoutMarkerAfterManualAuthSucceeded()
                 return
             }
@@ -1351,6 +1359,9 @@ extension MapViewModel {
         guard hasAuthenticatedVenueOwnerSession else {
             return "Sign in as a business owner to claim this venue."
         }
+        if await businessBanGuardBlocks(path: "venueClaim", action: "submitVenueOwnershipClaimFromVenueDetail") {
+            return "Your account is suspended."
+        }
         guard let businessId = await resolveCurrentBusinessIdForClaims() else {
             return "Finish setting up your business account before claiming venues."
         }
@@ -1605,6 +1616,10 @@ extension MapViewModel {
 
     /// Persists dismissal of a rejected claim for the signed-in business owner (``rejection_acknowledged_at``); claim row remains for audit.
     func acknowledgeRejectedVenueClaim(claimId: UUID) async {
+        if await businessBanGuardBlocks(path: "venueClaim", action: "acknowledgeRejectedVenueClaim") {
+            return
+        }
+
         struct Params: Encodable {
             let p_claim_id: UUID
         }
@@ -2011,6 +2026,10 @@ extension MapViewModel {
 
     /// Inserts a Phase C1 “add location” claim: ``venue_id`` nil, ``business_id`` set, no ``venues`` row until admin approval.
     func submitAddLocationClaim(form: AddLocationClaimForm) async -> String? {
+        if await businessBanGuardBlocks(path: "addLocation", action: "submitAddLocationClaim") {
+            return "Your account is suspended."
+        }
+
         let email = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(email) else {
             return OwnerBusinessEmail.invalidOwnerEmailUserMessage
@@ -2299,6 +2318,9 @@ extension MapViewModel {
     func releaseOrDeleteBusinessVenue(venueId: UUID) async throws -> BusinessVenueReleaseOrDeleteResult {
         guard hasAuthenticatedVenueOwnerSession else {
             throw BusinessVenueDeletionError.notSignedIn
+        }
+        if await businessBanGuardBlocks(path: "businessVenue", action: "releaseOrDeleteBusinessVenue") {
+            throw BusinessVenueDeletionError.serverRejected
         }
 
         let modeDebug = await MainActor.run {
@@ -2626,6 +2648,10 @@ extension MapViewModel {
     }
 
     func updateVenueSupporterCountry(_ country: String?) async -> Bool {
+        if await businessBanGuardBlocks(path: "venueProfile", action: "updateVenueSupporterCountry") {
+            return false
+        }
+
         struct Params: Encodable {
             let p_venue_id: UUID
             let p_supporter_country: String?
@@ -2734,6 +2760,10 @@ extension MapViewModel {
     }
 
     private func backfillApprovedManagedVenueCoordinatesIfNeeded(_ rows: [VenueProfileRow]) async -> Set<UUID> {
+        if await businessBanGuardBlocks(path: "venueProfile", action: "backfillApprovedManagedVenueCoordinatesIfNeeded") {
+            return []
+        }
+
         var patched: Set<UUID> = []
         for row in rows where approvedManagedVenueIsActive(row) {
             guard let venueId = row.id else { continue }
@@ -3158,6 +3188,10 @@ extension MapViewModel {
     func submitVenueClaim() {
         Task {
             do {
+                if await businessBanGuardBlocks(path: "venueClaim", action: "submitVenueClaim") {
+                    return
+                }
+
                 // Backend safety: required-field validation guard (UI should already enforce this).
                 let trimmedName = ownerVenueName.trimmingCharacters(in: .whitespacesAndNewlines)
                 let trimmedAddress = ownerVenueAddress.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -3451,6 +3485,9 @@ extension MapViewModel {
         hasProjector: Bool,
         petFriendly: Bool
     ) async -> Bool {
+        if await businessBanGuardBlocks(path: "venueProfile", action: "saveVenueProfile") {
+            return false
+        }
 
         do {
             let ownerEmailRow = OwnerBusinessEmail.normalized(venueOwnerEmail)
@@ -3714,6 +3751,10 @@ extension MapViewModel {
 
     // Uploads full + thumbnail JPEGs under the owner’s email folder in `venue-photos`; returns the full image public URL.
     func uploadVenuePhoto(data: Data, fileName: String, assignToCurrentVenueProfile: Bool = true) async -> String? {
+        if await businessBanGuardBlocks(path: "venuePhoto", action: "uploadVenuePhoto") {
+            return nil
+        }
+
         do {
             let session = try? await supabase.auth.session
             print("CURRENT SUPABASE USER:", session?.user.email ?? "NO USER")
@@ -3904,6 +3945,16 @@ extension MapViewModel {
         homeTeam: String? = nil,
         awayTeam: String? = nil
     ) async -> Result<VenueEventRow, Error> {
+        if await businessBanGuardBlocks(path: "venueGame", action: "saveVenueGameListingAsync") {
+            return .failure(
+                NSError(
+                    domain: "BusinessBanGuard",
+                    code: 403,
+                    userInfo: [NSLocalizedDescriptionKey: "Your account is suspended."]
+                )
+            )
+        }
+
         let ownerRowEmail = OwnerBusinessEmail.normalized(venueOwnerEmail)
         guard OwnerBusinessEmail.isValidStrict(ownerRowEmail) else {
             return .failure(
@@ -4108,6 +4159,10 @@ extension MapViewModel {
             let event_title: String
         }
 
+        if await businessBanGuardBlocks(path: "venueGame", action: "updateVenueGameEventTitle") {
+            return "Your account is suspended."
+        }
+
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "Title can’t be empty." }
 
@@ -4147,6 +4202,10 @@ extension MapViewModel {
         reservationInfo: String,
         socialCoordination: String
     ) async {
+        if await businessBanGuardBlocks(path: "venueGame", action: "updateVenueGameListing") {
+            return
+        }
+
         if VenueOwnerGameScheduleValidation.isPastSchedule(gameDate: gameDate, gameStartTime: gameStartTime) {
             print("VENUE GAME UPDATE BLOCKED: past schedule — \(VenueOwnerGameScheduleValidation.futureDateTimeMessage)")
             return
@@ -4360,6 +4419,10 @@ extension MapViewModel {
     /// Soft-cancels a venue game for the signed-in owner: sets `admin_status` to **archived** (Discover queries use `active` only).
     /// Returns `nil` on success or an error message.
     func deleteVenueGame(_ game: VenueEventRow) async -> String? {
+        if await businessBanGuardBlocks(path: "venueGame", action: "deleteVenueGame") {
+            return "Your account is suspended."
+        }
+
         guard let id = game.id else { return "This game can’t be removed (missing id)." }
 
 #if DEBUG

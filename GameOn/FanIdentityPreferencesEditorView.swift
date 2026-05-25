@@ -86,7 +86,7 @@ struct FanIdentityPreferencesEditorView: View {
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
                 .padding(.top, 4)
 
-            Text("Same sports as Pickup Games")
+            Text("Same sports as Community Games")
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(FGColor.mutedText(colorScheme))
 

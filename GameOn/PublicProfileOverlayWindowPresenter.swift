@@ -71,6 +71,7 @@ enum PublicProfileOverlayWindowPresenter {
             viewModel: viewModel,
             chatViewModel: chatViewModel
         )
+        .environmentObject(viewModel)
         .environmentObject(chatViewModel)
 
         let hosting = UIHostingController(rootView: root)

@@ -1283,6 +1283,7 @@ private enum DirectChatQuickReactions {
 struct DirectChatView: View {
 
     @EnvironmentObject private var chatViewModel: ChatViewModel
+    @EnvironmentObject private var mapViewModel: MapViewModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
@@ -1743,6 +1744,39 @@ struct DirectChatView: View {
                 presenter.menuBanner = error.localizedDescription
             }
         }
+    }
+
+    private func sendDraftIfBusinessAllowed() {
+        Task {
+            guard await directChatBusinessBanGuardAllows(action: "sendDraft") else { return }
+            await presenter.sendDraft()
+        }
+    }
+
+    private func sendQuickReactionIfBusinessAllowed(_ reaction: String) {
+        Task {
+            guard await directChatBusinessBanGuardAllows(action: "sendQuickReaction") else { return }
+            await presenter.sendQuickReaction(reaction)
+        }
+    }
+
+    private func directChatBusinessBanGuardAllows(action: String) async -> Bool {
+        guard mapViewModel.hasAuthenticatedVenueOwnerSession
+            || mapViewModel.currentUserIsBusinessAccount
+            || mapViewModel.venueOwnerMode else {
+            return true
+        }
+
+        let blocked = await mapViewModel.businessBanGuardBlocks(path: "businessChat", action: action)
+        if blocked {
+            await MainActor.run {
+                composerFocused = false
+                presenter.sendError = "Your account is suspended."
+            }
+            return false
+        }
+
+        return true
     }
 
     @ViewBuilder
@@ -2525,7 +2559,7 @@ struct DirectChatView: View {
                 .onSubmit {
                     guard presenter.canSend, !sendingDisabled else { return }
                     FGInteractionHaptics.softImpact()
-                    Task { await presenter.sendDraft() }
+                    sendDraftIfBusinessAllowed()
                 }
                 .padding(.horizontal, FGSpacing.md)
                 .padding(.vertical, FGSpacing.sm + 1)
@@ -2555,7 +2589,7 @@ struct DirectChatView: View {
 
             Button {
                 FGInteractionHaptics.softImpact()
-                Task { await presenter.sendDraft() }
+                sendDraftIfBusinessAllowed()
             } label: {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 15, weight: .bold))
@@ -2623,7 +2657,7 @@ struct DirectChatView: View {
             HStack(spacing: FGSpacing.sm + 1) {
                 ForEach(DirectChatQuickReactions.emojis, id: \.self) { emoji in
                     Button {
-                        Task { await presenter.sendQuickReaction(emoji) }
+                        sendQuickReactionIfBusinessAllowed(emoji)
                     } label: {
                         Text(emoji)
                             .font(.system(size: 22))

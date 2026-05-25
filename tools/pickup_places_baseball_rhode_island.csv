@@ -1,0 +1,36 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Allen Bicknell Park,baseball,pitch,41.7428752,-71.3392708,,,RI,,false,true,false,openstreetmap
+Amby Smith field,baseball,pitch,41.6902007,-71.5246102,,,RI,,false,true,false,openstreetmap
+Arthur Vincent Memorial Field,baseball,pitch,41.8196042,-71.3923241,,,RI,,false,true,false,openstreetmap
+BHS Baseball Field,baseball,pitch,41.9658591,-71.6598602,,,RI,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,41.6851669,-71.5950194,,,RI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.7400764,-71.4731359,,,RI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.8855491,-71.504869,,,RI,,false,true,false,openstreetmap
+Bentley Field,baseball,pitch,41.9849115,-71.4087632,,,RI,,false,true,false,openstreetmap
+Bill Beck Field,baseball,pitch,41.4853851,-71.5379861,,,RI,,false,true,false,openstreetmap
+Bristol Playground,baseball,pitch,41.6705393,-71.272904,,,RI,,false,true,false,openstreetmap
+Cardines Field,baseball,stadium,41.4913896,-71.3165455,,,RI,,false,true,false,openstreetmap
+Conaty Baseball Field,baseball,pitch,41.9256352,-71.5399954,,,RI,,false,true,false,openstreetmap
+Coventry Little League,baseball,pitch,41.7255193,-71.5467318,,,RI,,false,true,false,openstreetmap
+Dean Andrews Memorial Field,baseball,pitch,41.8294145,-71.6047273,,,RI,,false,true,false,openstreetmap
+EGHS Avenger Batting Cage,baseball,pitch,41.6352176,-71.4850295,,,RI,,false,true,false,openstreetmap
+Glay Field,baseball,stadium,41.8423877,-71.432756,,,RI,,false,true,false,openstreetmap
+Harry A. Wicklund Field,baseball,pitch,41.4479853,-71.6548982,,,RI,,false,true,false,openstreetmap
+Hartnett Field,baseball,pitch,42.0017179,-71.4832577,,,RI,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,41.9032249,-71.4256084,,,RI,,false,true,false,openstreetmap
+Lower Max Reed Field,baseball,pitch,41.8645244,-71.3804694,,,RI,,false,true,false,openstreetmap
+Old Mountain Field,baseball,pitch,41.4458379,-71.4884839,,,RI,,false,true,false,openstreetmap
+Pierce Memorial Field,baseball,pitch,41.809973,-71.3823208,,,RI,,false,true,false,openstreetmap
+Randy Hien Field,baseball,pitch,41.9082771,-71.4173392,,,RI,,false,true,false,openstreetmap
+Sam Moore Memorial Field,baseball,pitch,41.9088977,-71.417251,,,RI,,false,true,false,openstreetmap
+Softball Diamond,baseball,pitch,41.7452604,-71.3215728,,,RI,,false,true,false,openstreetmap
+Sprague Memorial Field,baseball,pitch,41.4352962,-71.4701339,,,RI,,false,true,false,openstreetmap
+Sprague Park,baseball,pitch,41.4344289,-71.4684524,,,RI,,false,true,false,openstreetmap
+Terrence Murray Baseball Stadium,baseball,pitch,41.8308971,-71.3937778,,,RI,,false,true,false,openstreetmap
+The Boys and Girls Club Baseball Field,baseball,pitch,41.9294503,-71.4231061,,,RI,,false,true,false,openstreetmap
+Tim O'Neil Baseball Fields,baseball,pitch,41.7908923,-71.4122948,,,RI,,false,true,false,openstreetmap
+Town Farm,baseball,pitch,41.5825235,-71.1902745,,,RI,,false,true,false,openstreetmap
+Town Farm,baseball,pitch,41.5830371,-71.1916628,,,RI,,false,true,false,openstreetmap
+Warwick Continental Little League,baseball,sports_centre,41.7105176,-71.4695394,,,RI,,false,true,false,openstreetmap
+Cragan Field,baseball,pitch,41.6557546,-71.4613532,50 Reilly Avenue,East Greenwich,RI,02818,false,true,false,openstreetmap
+Apponaug Baseball Complex,baseball,pitch,41.700841,-71.458176,3257 Post Road,Warwick,RI,02886,false,true,false,openstreetmap

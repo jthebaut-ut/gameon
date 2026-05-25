@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cardinal Field,football,pitch,44.7588662,-96.6757499,,,SD,,false,true,false,openstreetmap
+Chamberlain Cubs Field,football,pitch,43.7910483,-99.3280047,,,SD,,false,true,false,openstreetmap
+Crane-Youngworth Field,football,pitch,42.8822438,-97.3900437,,,SD,,false,true,false,openstreetmap
+Dave Broadie Field,football,pitch,44.13607,-103.0643212,,,SD,,false,true,false,openstreetmap
+Dunham Field,football,pitch,44.0727196,-103.2025297,,,SD,,false,true,false,openstreetmap
+Football Field - Iroquois High School,football,pitch,44.3662027,-97.8464942,,,SD,,false,true,false,openstreetmap
+Football/Athletic Field,football,pitch,43.8288754,-99.3226685,,,SD,,false,true,false,openstreetmap
+Freeman High School Football Field,football,pitch,43.3442333,-97.4280541,,,SD,,false,true,false,openstreetmap
+Fritz Field,football,pitch,43.98201,-96.8106846,,,SD,,false,true,false,openstreetmap
+Hall Football Complex,football,sports_centre,43.5214196,-96.742056,,,SD,,false,true,false,openstreetmap
+High School Football Field,football,pitch,43.5765567,-100.7490004,,,SD,,false,true,false,openstreetmap
+Hollister Field,football,pitch,44.3650088,-100.3467397,,,SD,,false,true,false,openstreetmap
+Joe Quintal Field,football,pitch,43.7190308,-98.0190543,,,SD,,false,true,false,openstreetmap
+Kirkeby-Over Stadium,football,stadium,43.5194575,-96.743061,,,SD,,false,true,false,openstreetmap
+McEneaney Field,football,pitch,43.5156528,-96.7626492,,,SD,,false,true,false,openstreetmap
+Sioux Valley Cossack Field,football,pitch,44.323139,-96.9191771,,,SD,,false,true,false,openstreetmap
+Titans,football,pitch,43.4551205,-96.8451884,,,SD,,false,true,false,openstreetmap
+W.H. White Field,football,pitch,44.431458,-96.6551128,,,SD,,false,true,false,openstreetmap
+WC Football Field,football,pitch,43.6211355,-96.9357919,,,SD,,false,true,false,openstreetmap
+Wildcat Field,football,pitch,43.7744765,-103.5958335,,,SD,,false,true,false,openstreetmap

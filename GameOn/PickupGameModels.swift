@@ -17,6 +17,27 @@ enum PickupExpirationEditDebug {
     }
 }
 
+enum GameType: String, Codable, CaseIterable {
+    case pickup
+    case practice
+    case scrimmage
+
+    var displayTitle: String {
+        switch self {
+        case .pickup:
+            return "Pickup"
+        case .practice:
+            return "Practice"
+        case .scrimmage:
+            return "Scrimmage"
+        }
+    }
+
+    var badgeTitle: String {
+        displayTitle.uppercased()
+    }
+}
+
 // MARK: - `public.pickup_games` (Supabase snake_case matches Codable)
 
 struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
@@ -26,6 +47,7 @@ struct PickupGameRow: Codable, Identifiable, Equatable, Hashable {
     let title: String
     let sport: String
     let description: String?
+    let game_format: String
     /// Stored tokens: `casual`, `beginner_friendly`, `intermediate`, `competitive`.
     let skill_level: String
     let game_start_at: String
@@ -62,6 +84,7 @@ extension PickupGameRow {
             title: title,
             sport: sport,
             description: description,
+            game_format: game_format,
             skill_level: skill_level,
             game_start_at: game_start_at,
             end_time: end_time,
@@ -129,6 +152,10 @@ extension PickupGameRow {
         }
         return start.formatted(date: .abbreviated, time: .shortened)
     }
+
+    var gameFormat: GameType {
+        GameType(rawValue: game_format) ?? .pickup
+    }
 }
 
 struct PickupGameInsert: Encodable {
@@ -137,6 +164,7 @@ struct PickupGameInsert: Encodable {
     let title: String
     let sport: String
     let description: String?
+    let game_format: String
     let skill_level: String
     let game_start_at: String
     let end_time: String
@@ -165,6 +193,7 @@ struct PickupGameInsert: Encodable {
             title: title,
             sport: sport,
             description: description,
+            game_format: game_format,
             skill_level: skill_level,
             game_start_at: game_start_at,
             end_time: end_time,
@@ -190,6 +219,7 @@ struct PickupGameFullUpdate: Encodable {
     let title: String
     let sport: String
     let description: String?
+    let game_format: String
     let skill_level: String
     let game_start_at: String
     let end_time: String
@@ -216,6 +246,7 @@ struct PickupGameFullUpdate: Encodable {
             title: title,
             sport: sport,
             description: description,
+            game_format: game_format,
             skill_level: skill_level,
             game_start_at: game_start_at,
             end_time: end_time,

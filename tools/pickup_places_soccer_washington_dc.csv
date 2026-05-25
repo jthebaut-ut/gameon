@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Auxiliary fields,soccer,pitch,38.8939325,-76.9736076,,,DC,,false,true,false,openstreetmap
+Community Soccer Field at Marie Reed Elementary,soccer,pitch,38.9182485,-77.0406878,,,DC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.8913605,-76.9696237,,,DC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.8930278,-76.9699926,,,DC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.8947814,-76.9692237,,,DC,,false,true,false,openstreetmap
+Shaw Field,soccer,pitch,38.9102916,-77.0767118,,,DC,,false,true,false,openstreetmap
+Audi Field,soccer,stadium,38.8682978,-77.0125708,100 Potomac Avenue Southwest,Washington,DC,20024,false,true,false,openstreetmap

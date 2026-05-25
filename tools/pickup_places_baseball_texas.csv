@@ -1,0 +1,718 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,33.0647561,-96.7773124,,,TX,,false,true,false,openstreetmap
+10,baseball,pitch,30.4638554,-97.7706374,,,TX,,false,true,false,openstreetmap
+12,baseball,pitch,30.4653694,-97.7720737,,,TX,,false,true,false,openstreetmap
+13,baseball,pitch,30.4656173,-97.771436,,,TX,,false,true,false,openstreetmap
+14,baseball,pitch,30.4656097,-97.770501,,,TX,,false,true,false,openstreetmap
+15,baseball,pitch,30.4648525,-97.7700868,,,TX,,false,true,false,openstreetmap
+2,baseball,pitch,33.063418,-96.7773267,,,TX,,false,true,false,openstreetmap
+21,baseball,pitch,30.4627024,-97.7676191,,,TX,,false,true,false,openstreetmap
+247 Line Drive,baseball,sports_centre,33.0994471,-96.6805692,,,TX,,false,true,false,openstreetmap
+3,baseball,pitch,33.0613016,-96.7748508,,,TX,,false,true,false,openstreetmap
+30,baseball,pitch,30.4600047,-97.7686777,,,TX,,false,true,false,openstreetmap
+4,baseball,pitch,33.0612899,-96.7742583,,,TX,,false,true,false,openstreetmap
+7,baseball,pitch,30.4629744,-97.7696171,,,TX,,false,true,false,openstreetmap
+8,baseball,pitch,30.4628804,-97.7704475,,,TX,,false,true,false,openstreetmap
+9,baseball,pitch,30.4634527,-97.7701524,,,TX,,false,true,false,openstreetmap
+Abernathy Community Baseball Field #1,baseball,pitch,33.8299728,-101.851573,,,TX,,false,true,false,openstreetmap
+Abernathy Community Baseball Field #2,baseball,pitch,33.8299729,-101.8528089,,,TX,,false,true,false,openstreetmap
+Abernathy Community T-Ball Field,baseball,pitch,33.8328591,-101.8490695,,,TX,,false,true,false,openstreetmap
+Abernathy ISD Baseball Field,baseball,pitch,33.8203965,-101.8378992,,,TX,,false,true,false,openstreetmap
+Abilene Baseball Academy,baseball,pitch,32.4922344,-99.7175857,,,TX,,false,true,false,openstreetmap
+Al Alford Field,baseball,pitch,33.2089397,-96.6321898,,,TX,,false,true,false,openstreetmap
+Alamo Field,baseball,pitch,33.0613087,-96.7804939,,,TX,,false,true,false,openstreetmap
+Alamo Heights Little League Fields,baseball,pitch,29.4815551,-98.4774134,,,TX,,false,true,false,openstreetmap
+Alex Alvarez Baseball Field,baseball,pitch,28.6854582,-100.4892319,,,TX,,false,true,false,openstreetmap
+Alvarado Youth Park,baseball,sports_centre,32.4167628,-97.2437652,,,TX,,false,true,false,openstreetmap
+Anderson Field,baseball,pitch,29.5550594,-98.2795521,,,TX,,false,true,false,openstreetmap
+Anna Baseball Field,baseball,pitch,27.5306152,-99.5203731,,,TX,,false,true,false,openstreetmap
+Antler Field,baseball,pitch,30.0403259,-99.1072361,,,TX,,false,true,false,openstreetmap
+Antonian Baseball field,baseball,pitch,29.5233751,-98.5279869,,,TX,,false,true,false,openstreetmap
+Arlington Stadium,baseball,pitch,32.8179417,-97.1084963,,,TX,,false,true,false,openstreetmap
+Armadillo Field,baseball,pitch,33.0613118,-96.781521,,,TX,,false,true,false,openstreetmap
+Arp Tigers Baseball Field,baseball,pitch,32.2269463,-95.0532994,,,TX,,false,true,false,openstreetmap
+Arthur P. Ruff Field,baseball,pitch,32.8907004,-96.8032521,,,TX,,false,true,false,openstreetmap
+Austin Field,baseball,pitch,32.969013,-101.8344417,,,TX,,false,true,false,openstreetmap
+Austin High Baseball Field,baseball,pitch,30.2713984,-97.7655905,,,TX,,false,true,false,openstreetmap
+B. F. Phillips Field #1,baseball,pitch,33.1267542,-96.862056,,,TX,,false,true,false,openstreetmap
+B. F. Phillips Field #2,baseball,pitch,33.1269408,-96.8629628,,,TX,,false,true,false,openstreetmap
+B. F. Phillips Field #3,baseball,pitch,33.1262946,-96.8635258,,,TX,,false,true,false,openstreetmap
+B. F. Phillips Field #4,baseball,pitch,33.1257003,-96.8629534,,,TX,,false,true,false,openstreetmap
+B. F. Phillips Field #5,baseball,pitch,33.1258555,-96.8620412,,,TX,,false,true,false,openstreetmap
+BYAA Merchant Field,baseball,pitch,29.7968985,-98.7397108,,,TX,,false,true,false,openstreetmap
+BYS Minor B Field,baseball,pitch,30.4207771,-97.7064013,,,TX,,false,true,false,openstreetmap
+Babe Ruth Park,baseball,sports_centre,29.9510561,-93.995283,,,TX,,false,true,false,openstreetmap
+Bacchus Field #1,baseball,pitch,33.1514315,-96.7560955,,,TX,,false,true,false,openstreetmap
+Bacchus Field #2 Miracle League,baseball,pitch,33.1516356,-96.7570512,,,TX,,false,true,false,openstreetmap
+Bacchus Field #3,baseball,pitch,33.1511305,-96.757702,,,TX,,false,true,false,openstreetmap
+Bacchus Field #4,baseball,pitch,33.1504409,-96.7572741,,,TX,,false,true,false,openstreetmap
+Bacchus Field #5 Rusty Greer Field,baseball,pitch,33.1503558,-96.756164,,,TX,,false,true,false,openstreetmap
+Baker Field,baseball,pitch,31.0970468,-97.3353776,,,TX,,false,true,false,openstreetmap
+Bakers Field,baseball,pitch,29.6292775,-95.6302278,,,TX,,false,true,false,openstreetmap
+Ball High School Baseball Field,baseball,pitch,29.258229,-94.8479587,,,TX,,false,true,false,openstreetmap
+Ball field at Converse Park,baseball,pitch,29.5076875,-98.3113792,,,TX,,false,true,false,openstreetmap
+Barbers Hill High School Baseball Field,baseball,pitch,29.8449466,-94.8501591,,,TX,,false,true,false,openstreetmap
+Baseball,baseball,pitch,32.2276957,-97.7669063,,,TX,,false,true,false,openstreetmap
+Baseball,baseball,pitch,28.8185743,-97.8618663,,,TX,,false,true,false,openstreetmap
+Baseball,baseball,pitch,28.8168399,-97.8631291,,,TX,,false,true,false,openstreetmap
+Baseball 6,baseball,pitch,29.7767014,-95.4320326,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,35.5521266,-100.9662784,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.1490832,-94.7945534,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.890624,-97.5326362,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,33.573368,-101.8191769,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.2391754,-94.9376233,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,33.5796074,-101.6776647,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,33.1901844,-102.8230185,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.6263095,-100.7502544,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,34.378911,-103.0343564,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,34.9460251,-100.9061813,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.0124774,-101.955214,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.0126457,-101.9543347,,,TX,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,32.0133909,-101.9545317,,,TX,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,29.451751,-98.622538,,,TX,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,32.3418001,-97.3730896,,,TX,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,32.5753568,-97.3505005,,,TX,,false,true,false,openstreetmap
+Baseball Field 11,baseball,pitch,30.4915474,-97.8078622,,,TX,,false,true,false,openstreetmap
+Baseball Field 12,baseball,pitch,30.4915386,-97.8074247,,,TX,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,32.3422396,-97.3720905,,,TX,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,32.5758754,-97.3498983,,,TX,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,32.341631,-97.3717315,,,TX,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,32.5757287,-97.3491048,,,TX,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,32.3411417,-97.3726897,,,TX,,false,true,false,openstreetmap
+Baseball Field No. 1,baseball,pitch,32.4958849,-94.7783805,,,TX,,false,true,false,openstreetmap
+Baseball Field No. 2,baseball,pitch,32.4958886,-94.777224,,,TX,,false,true,false,openstreetmap
+Baseball Field No. 3,baseball,pitch,32.4948411,-94.7773023,,,TX,,false,true,false,openstreetmap
+Baseball Field No. 4,baseball,pitch,32.4949663,-94.7784483,,,TX,,false,true,false,openstreetmap
+Baseball Fields Of Karnes City,baseball,pitch,28.8803853,-97.8971271,,,TX,,false,true,false,openstreetmap
+Baseball Practice Field,baseball,pitch,33.5805309,-101.676913,,,TX,,false,true,false,openstreetmap
+Baseball field,baseball,pitch,31.9851786,-102.1174912,,,TX,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,30.5453864,-97.6154632,,,TX,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,29.6946787,-95.4535844,,,TX,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,32.9059921,-97.1165293,,,TX,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,32.0123677,-101.9547005,,,TX,,false,true,false,openstreetmap
+Batting cages,baseball,pitch,32.9724276,-96.3368009,,,TX,,false,true,false,openstreetmap
+Bay Area Christian School Baseball Field,baseball,pitch,29.4965653,-95.1500244,,,TX,,false,true,false,openstreetmap
+Baylor Ball Park,baseball,pitch,31.5433162,-97.1319773,,,TX,,false,true,false,openstreetmap
+Baylor Ballpark,baseball,stadium,31.5507325,-97.1076426,,,TX,,false,true,false,openstreetmap
+Baylor Ballpark,baseball,pitch,31.5512106,-97.1076623,,,TX,,false,true,false,openstreetmap
+Bearcat Field,baseball,pitch,32.6159504,-99.8198505,,,TX,,false,true,false,openstreetmap
+Bearkat Softball Stadium,baseball,pitch,30.7144015,-95.5404361,,,TX,,false,true,false,openstreetmap
+Beaver Baseball,baseball,pitch,28.9772818,-98.0272236,,,TX,,false,true,false,openstreetmap
+Beaverette Softball,baseball,pitch,28.9783592,-98.0277746,,,TX,,false,true,false,openstreetmap
+Bechtol Harper Baseball Field,baseball,pitch,30.2687108,-97.7582857,,,TX,,false,true,false,openstreetmap
+Beck Baseball/Softball Complex,baseball,park,32.2277621,-97.7658694,,,TX,,false,true,false,openstreetmap
+Ben Gill Baseball Fields,baseball,pitch,32.7430817,-96.2936359,,,TX,,false,true,false,openstreetmap
+Berkner Baseball Field,baseball,pitch,32.9356734,-96.6917016,,,TX,,false,true,false,openstreetmap
+Bernard Davis Field,baseball,pitch,29.2596676,-94.8482403,,,TX,,false,true,false,openstreetmap
+Berry Field,baseball,pitch,29.630884,-95.6307644,,,TX,,false,true,false,openstreetmap
+Big Spring Refinery Ballpark,baseball,pitch,32.2514149,-101.4473003,,,TX,,false,true,false,openstreetmap
+Bill Jewel Baseball Park,baseball,pitch,29.3980226,-100.9196928,,,TX,,false,true,false,openstreetmap
+Bishop Field,baseball,pitch,33.2838817,-96.532385,,,TX,,false,true,false,openstreetmap
+Blacksox Field,baseball,pitch,34.0935738,-98.5843611,,,TX,,false,true,false,openstreetmap
+Bland High School baseball field,baseball,pitch,33.2092123,-96.2933057,,,TX,,false,true,false,openstreetmap
+Bland High School baseball field,baseball,pitch,33.2100401,-96.2938471,,,TX,,false,true,false,openstreetmap
+Bland Youth Sports Association Baseball Field,baseball,pitch,33.2088704,-96.2913533,,,TX,,false,true,false,openstreetmap
+Bob Henry Baseball Field,baseball,pitch,30.03328,-99.1272387,,,TX,,false,true,false,openstreetmap
+Bobcat Baseball Field,baseball,pitch,29.8879465,-97.9282546,,,TX,,false,true,false,openstreetmap
+Boude Storey,baseball,pitch,32.7093207,-96.8116133,,,TX,,false,true,false,openstreetmap
+Boude Storey Baseball Field (South),baseball,pitch,32.7079122,-96.8124451,,,TX,,false,true,false,openstreetmap
+Bradshaw Baseball Diamond,baseball,pitch,32.7005928,-96.9861751,,,TX,,false,true,false,openstreetmap
+Brazosport Exporters Baseball Field,baseball,pitch,28.9576976,-95.3683368,,,TX,,false,true,false,openstreetmap
+Brazoswood High School Baseball Field,baseball,pitch,29.0256774,-95.4108648,,,TX,,false,true,false,openstreetmap
+Brentfield Baseball field #2,baseball,pitch,32.9759235,-96.7934119,,,TX,,false,true,false,openstreetmap
+Brentfield baseball field #1,baseball,pitch,32.9758945,-96.7925224,,,TX,,false,true,false,openstreetmap
+Bristol Ball Field,baseball,pitch,32.4589058,-96.5683097,100 Church Street,,TX,,false,true,false,openstreetmap
+Bristol Ball Field,baseball,pitch,32.458809,-96.5677968,100 Church Street,,TX,,false,true,false,openstreetmap
+Brook Hill Ballpark,baseball,pitch,32.1515935,-95.330627,,,TX,,false,true,false,openstreetmap
+Brown Field,baseball,pitch,31.2461809,-95.9793545,,,TX,,false,true,false,openstreetmap
+Brownsboro City Field,baseball,pitch,32.3014688,-95.6133212,,,TX,,false,true,false,openstreetmap
+Buccaneer Field,baseball,pitch,29.2616042,-94.8491027,,,TX,,false,true,false,openstreetmap
+Buddy Mullen Field,baseball,pitch,29.276631,-94.8230469,,,TX,,false,true,false,openstreetmap
+Bulldog Baseball Field,baseball,pitch,30.7752227,-98.2271279,,,TX,,false,true,false,openstreetmap
+Burges High School Baseball Field,baseball,pitch,31.7839489,-106.3859313,,,TX,,false,true,false,openstreetmap
+C.E. 'Pat' Olsen Field,baseball,pitch,30.6059758,-96.3413307,,,TX,,false,true,false,openstreetmap
+CTCS Baseball,baseball,pitch,31.0362405,-97.4150695,,,TX,,false,true,false,openstreetmap
+Cabaniss Baseball Field,baseball,pitch,27.7073525,-97.4303803,,,TX,,false,true,false,openstreetmap
+Cain Sports Complex,baseball,pitch,33.2409657,-95.9169897,,,TX,,false,true,false,openstreetmap
+Calallen Ladycat Softball Field,baseball,pitch,27.8591577,-97.6358064,,,TX,,false,true,false,openstreetmap
+Cameron Field,baseball,pitch,29.7133533,-95.4040804,,,TX,,false,true,false,openstreetmap
+Canton Eagles Baseball,baseball,pitch,32.5448885,-95.8895555,,,TX,,false,true,false,openstreetmap
+Carver Park Baseball Field,baseball,pitch,32.3579222,-97.3731595,,,TX,,false,true,false,openstreetmap
+Celebration Park Baseball Diamonds,baseball,pitch,33.1094735,-96.6271781,,,TX,,false,true,false,openstreetmap
+Central CAtholic Kahlig Field,baseball,pitch,29.3185919,-98.6148115,,,TX,,false,true,false,openstreetmap
+Central Park Tee Ball field,baseball,pitch,30.4605757,-97.5860894,,,TX,,false,true,false,openstreetmap
+Chambers Field,baseball,pitch,29.556347,-98.2802712,,,TX,,false,true,false,openstreetmap
+Chandler Field,baseball,pitch,31.745449,-99.9648648,,,TX,,false,true,false,openstreetmap
+Chapel Hill Baseball Field,baseball,pitch,32.3066514,-95.193024,,,TX,,false,true,false,openstreetmap
+Chapel Hill Youth Baseball,baseball,sports_centre,32.3031172,-95.1531369,,,TX,,false,true,false,openstreetmap
+Charley Taylor Baseball Diamond,baseball,pitch,32.7385974,-96.996401,,,TX,,false,true,false,openstreetmap
+Charley Taylor Baseball Diamond,baseball,pitch,32.7397322,-96.9963714,,,TX,,false,true,false,openstreetmap
+Charlie Boykin Field,baseball,pitch,30.1146376,-94.1367905,,,TX,,false,true,false,openstreetmap
+Chateau Woods Baseball field,baseball,pitch,30.1680401,-95.4200173,,,TX,,false,true,false,openstreetmap
+Childress Baseball Field,baseball,pitch,34.432056,-100.2075782,,,TX,,false,true,false,openstreetmap
+Chisum Baseball Field,baseball,pitch,33.6260327,-95.5666619,,,TX,,false,true,false,openstreetmap
+Christensen Stadium,baseball,stadium,32.0446508,-102.0760367,,,TX,,false,true,false,openstreetmap
+Cistercian Preparatory School Baseball Field,baseball,pitch,32.8566421,-96.923155,,,TX,,false,true,false,openstreetmap
+City of Camp Wood Athletic and Baseball Fields,baseball,pitch,29.6713012,-100.0154288,,,TX,,false,true,false,openstreetmap
+Clay Gould Ballpark,baseball,pitch,32.7220158,-97.1309594,,,TX,,false,true,false,openstreetmap
+Clemmons Field,baseball,pitch,29.7295595,-95.4794969,,,TX,,false,true,false,openstreetmap
+Clyde Baseball Field,baseball,pitch,32.4138227,-99.526573,,,TX,,false,true,false,openstreetmap
+Coach Bob Rombach Field,baseball,pitch,32.6594032,-96.9301537,,,TX,,false,true,false,openstreetmap
+Cobb Stadium,baseball,pitch,32.7999074,-96.8140955,,,TX,,false,true,false,openstreetmap
+Colombo Field,baseball,pitch,29.2772734,-94.8227715,,,TX,,false,true,false,openstreetmap
+Comanche High School Baseball Field,baseball,pitch,31.9106201,-98.5948568,,,TX,,false,true,false,openstreetmap
+Conrad Vernon Field,baseball,pitch,32.4623897,-94.7285445,,,TX,,false,true,false,openstreetmap
+Converse Park Baseball Field,baseball,pitch,29.5082277,-98.3122603,,,TX,,false,true,false,openstreetmap
+Coronado Baseball Field,baseball,pitch,31.8364261,-106.5420726,,,TX,,false,true,false,openstreetmap
+Covington Field,baseball,pitch,33.5701436,-101.8995338,,,TX,,false,true,false,openstreetmap
+Crandall Pirates Baseball Field,baseball,pitch,32.6111998,-96.4612484,,,TX,,false,true,false,openstreetmap
+Crockett Little League Complex,baseball,park,29.2769745,-94.8226317,,,TX,,false,true,false,openstreetmap
+Crusader Baseball Field,baseball,pitch,32.3033313,-95.2826679,,,TX,,false,true,false,openstreetmap
+Crutcher Scott Field,baseball,pitch,32.4729288,-99.7069293,,,TX,,false,true,false,openstreetmap
+Cuero Little League Sports Complex,baseball,sports_centre,29.08177,-97.2674475,,,TX,,false,true,false,openstreetmap
+Cullom Softball Field,baseball,pitch,32.9230204,-96.6461706,,,TX,,false,true,false,openstreetmap
+Cypress Falls High School Baseball Field,baseball,pitch,29.919226,-95.6358011,,,TX,,false,true,false,openstreetmap
+Dan Fisher Memorial Field,baseball,pitch,30.7080988,-97.7539988,,,TX,,false,true,false,openstreetmap
+David C. Dickson Stadium,baseball,pitch,29.4526729,-98.566871,,,TX,,false,true,false,openstreetmap
+Deeter Smotherman Baseball Field,baseball,pitch,33.1596746,-96.8236043,,,TX,,false,true,false,openstreetmap
+Delwood Baseball 1,baseball,pitch,30.3039057,-97.6947702,,,TX,,false,true,false,openstreetmap
+Delwood Baseball 2,baseball,pitch,30.3033684,-97.6950933,,,TX,,false,true,false,openstreetmap
+Delwood Baseball 3,baseball,pitch,30.3037824,-97.6958917,,,TX,,false,true,false,openstreetmap
+Delwood Softball 2,baseball,pitch,30.3044316,-97.6963999,,,TX,,false,true,false,openstreetmap
+Detmore Field,baseball,pitch,32.6631579,-97.3238853,,,TX,,false,true,false,openstreetmap
+Doctor Jess Borg Baseball Field,baseball,pitch,29.7128758,-95.4590034,,,TX,,false,true,false,openstreetmap
+Don Sanders Stadium,baseball,pitch,30.7135131,-95.5398318,,,TX,,false,true,false,openstreetmap
+Don Shepard Park,baseball,pitch,31.7101563,-98.9925245,,,TX,,false,true,false,openstreetmap
+Dr. C.E. Sanchez Field,baseball,pitch,27.511251,-99.5213494,,,TX,,false,true,false,openstreetmap
+Dub Hayes Baseball Field,baseball,pitch,33.7054554,-96.6303577,,,TX,,false,true,false,openstreetmap
+Dustdevil Field,baseball,pitch,27.5702241,-99.431359,,,TX,,false,true,false,openstreetmap
+EM Stevens Field,baseball,pitch,29.4607433,-98.4837887,,,TX,,false,true,false,openstreetmap
+EPHS Training Diamond,baseball,pitch,31.7773333,-106.490207,,,TX,,false,true,false,openstreetmap
+EPHS Training diamond,baseball,pitch,31.7778556,-106.4892203,,,TX,,false,true,false,openstreetmap
+Eagle Baseball Field,baseball,pitch,32.2801459,-95.7476341,,,TX,,false,true,false,openstreetmap
+East Field,baseball,pitch,29.7519658,-95.4805834,,,TX,,false,true,false,openstreetmap
+Eastwood Junior High School Baseball Field,baseball,pitch,31.7778321,-106.3333693,,,TX,,false,true,false,openstreetmap
+Ed Hickman Field,baseball,pitch,31.9005553,-100.4802295,,,TX,,false,true,false,openstreetmap
+Edinburg Stadium,baseball,stadium,26.3123677,-98.1758028,,,TX,,false,true,false,openstreetmap
+Edwards Baseball Field,baseball,pitch,30.2108043,-97.7962706,,,TX,,false,true,false,openstreetmap
+Edwards Field,baseball,pitch,33.1681975,-94.9756483,,,TX,,false,true,false,openstreetmap
+El Paso Ballfield Reservations,baseball,pitch,31.7648075,-106.4399101,,,TX,,false,true,false,openstreetmap
+El Paso Community College Baseball Stadium,baseball,pitch,31.7554541,-106.3730532,,,TX,,false,true,false,openstreetmap
+Elkins High School Baseball Field,baseball,pitch,29.5492037,-95.5582338,,,TX,,false,true,false,openstreetmap
+Ellis Burks Field,baseball,pitch,32.4539969,-98.6844002,,,TX,,false,true,false,openstreetmap
+Elsik High School Baseball Field,baseball,pitch,29.7125954,-95.6013505,,,TX,,false,true,false,openstreetmap
+Erasmo Palos Memorial Baseball Park,baseball,pitch,28.7050656,-100.4786012,,,TX,,false,true,false,openstreetmap
+Ernie Johnson Field,baseball,pitch,32.0139294,-102.1311182,,,TX,,false,true,false,openstreetmap
+Evans Field,baseball,pitch,31.3783667,-97.2161586,,,TX,,false,true,false,openstreetmap
+Evea Bainum Memorial Baseball Field,baseball,pitch,32.4011421,-97.3303724,,,TX,,false,true,false,openstreetmap
+Exall Diamond,baseball,pitch,32.7932833,-96.7852255,,,TX,,false,true,false,openstreetmap
+FBC Baseball Field,baseball,pitch,35.6520374,-101.4053911,,,TX,,false,true,false,openstreetmap
+FIeld M3,baseball,pitch,29.6460181,-95.4770697,,,TX,,false,true,false,openstreetmap
+Fairgrounds Ball Park,baseball,pitch,29.5592258,-97.9720189,,,TX,,false,true,false,openstreetmap
+Fairgrounds Field,baseball,stadium,27.7899849,-97.6509511,,,TX,,false,true,false,openstreetmap
+Fatbat Diamond,baseball,pitch,32.8570776,-98.4861036,,,TX,,false,true,false,openstreetmap
+Father Wilson Field,baseball,pitch,29.7647481,-95.4067621,,,TX,,false,true,false,openstreetmap
+Fayetteville Baseball Field,baseball,pitch,29.9089245,-96.6706935,,,TX,,false,true,false,openstreetmap
+Fehrle Field,baseball,pitch,29.6305922,-95.6315034,,,TX,,false,true,false,openstreetmap
+Fenway Stadium,baseball,pitch,32.8197754,-97.108196,,,TX,,false,true,false,openstreetmap
+Field #1,baseball,pitch,29.8406126,-95.8049548,,,TX,,false,true,false,openstreetmap
+Field #1,baseball,pitch,29.5655746,-98.26749,,,TX,,false,true,false,openstreetmap
+Field #1,baseball,pitch,32.9253574,-96.4408294,,,TX,,false,true,false,openstreetmap
+Field #2,baseball,pitch,29.8406207,-95.8038752,,,TX,,false,true,false,openstreetmap
+Field #2,baseball,pitch,29.5649676,-98.2671375,,,TX,,false,true,false,openstreetmap
+Field #2,baseball,pitch,32.9243302,-96.4408509,,,TX,,false,true,false,openstreetmap
+Field #3,baseball,pitch,29.8398971,-95.803501,,,TX,,false,true,false,openstreetmap
+Field #3,baseball,pitch,29.5653546,-98.2663067,,,TX,,false,true,false,openstreetmap
+Field #3,baseball,pitch,32.9243306,-96.4396601,,,TX,,false,true,false,openstreetmap
+Field #4,baseball,pitch,29.8393481,-95.8041059,,,TX,,false,true,false,openstreetmap
+Field #4,baseball,pitch,29.5659616,-98.2667406,,,TX,,false,true,false,openstreetmap
+Field #4,baseball,pitch,32.9252047,-96.4398267,,,TX,,false,true,false,openstreetmap
+Field #5,baseball,pitch,29.8396796,-95.8048476,,,TX,,false,true,false,openstreetmap
+Field #5,baseball,pitch,29.5668147,-98.2670011,,,TX,,false,true,false,openstreetmap
+Field #5,baseball,pitch,32.924458,-96.4385957,,,TX,,false,true,false,openstreetmap
+Field #6,baseball,pitch,29.8398902,-95.8054121,,,TX,,false,true,false,openstreetmap
+Field #6,baseball,pitch,32.925178,-96.4386348,,,TX,,false,true,false,openstreetmap
+Field #7,baseball,pitch,29.8394621,-95.8053478,,,TX,,false,true,false,openstreetmap
+Field #7,baseball,pitch,29.5659148,-98.2655778,,,TX,,false,true,false,openstreetmap
+Field #7,baseball,pitch,32.925457,-96.4394589,,,TX,,false,true,false,openstreetmap
+Field #8,baseball,pitch,29.8392143,-95.8049548,,,TX,,false,true,false,openstreetmap
+Field #8,baseball,pitch,32.9254661,-96.4383736,,,TX,,false,true,false,openstreetmap
+Field 1,baseball,pitch,30.2064269,-95.4992751,,,TX,,false,true,false,openstreetmap
+Field 1,baseball,pitch,29.5536035,-98.2926171,,,TX,,false,true,false,openstreetmap
+Field 1,baseball,pitch,29.3997065,-94.8941444,,,TX,,false,true,false,openstreetmap
+Field 1,baseball,pitch,29.1608758,-95.4434158,,,TX,,false,true,false,openstreetmap
+Field 1,baseball,pitch,29.5740327,-95.6061065,,,TX,,false,true,false,openstreetmap
+Field 10,baseball,pitch,29.5730392,-95.6042819,,,TX,,false,true,false,openstreetmap
+Field 10,baseball,pitch,30.1184008,-95.4545666,,,TX,,false,true,false,openstreetmap
+Field 10,baseball,pitch,34.9682926,-101.9076361,,,TX,,false,true,false,openstreetmap
+Field 11,baseball,pitch,34.9673501,-101.9074389,,,TX,,false,true,false,openstreetmap
+Field 1:  Easton Electric Field,baseball,pitch,30.1289723,-97.3146467,,,TX,,false,true,false,openstreetmap
+Field 2,baseball,pitch,30.2057277,-95.4998145,,,TX,,false,true,false,openstreetmap
+Field 2,baseball,pitch,29.5546232,-98.2921223,,,TX,,false,true,false,openstreetmap
+Field 2,baseball,pitch,29.3995576,-94.8949927,,,TX,,false,true,false,openstreetmap
+Field 2,baseball,pitch,29.1608813,-95.4425553,,,TX,,false,true,false,openstreetmap
+Field 2,baseball,pitch,29.573548,-95.6055671,,,TX,,false,true,false,openstreetmap
+Field 2:  Victory Tickets Field,baseball,pitch,30.1278968,-97.3140762,,,TX,,false,true,false,openstreetmap
+Field 3,baseball,pitch,30.2052705,-95.4992563,,,TX,,false,true,false,openstreetmap
+Field 3,baseball,pitch,29.5543245,-98.2931053,,,TX,,false,true,false,openstreetmap
+Field 3,baseball,pitch,29.3996622,-94.8960457,,,TX,,false,true,false,openstreetmap
+Field 3,baseball,pitch,29.5731127,-95.6061127,,,TX,,false,true,false,openstreetmap
+Field 3:  T-Ball Field,baseball,pitch,30.1270289,-97.3136791,,,TX,,false,true,false,openstreetmap
+Field 4,baseball,pitch,30.2057504,-95.4988381,,,TX,,false,true,false,openstreetmap
+Field 4,baseball,pitch,29.399644,-94.8969046,,,TX,,false,true,false,openstreetmap
+Field 4,baseball,pitch,29.5735463,-95.6066147,,,TX,,false,true,false,openstreetmap
+Field 4:  Juniors Baseball Field,baseball,pitch,30.1259741,-97.3135445,,,TX,,false,true,false,openstreetmap
+Field 5,baseball,pitch,32.3435608,-97.3708649,,,TX,,false,true,false,openstreetmap
+Field 5,baseball,pitch,30.1181282,-95.4539496,,,TX,,false,true,false,openstreetmap
+Field 5,baseball,pitch,29.573242,-95.6074021,,,TX,,false,true,false,openstreetmap
+Field 6,baseball,pitch,32.3440297,-97.3696246,,,TX,,false,true,false,openstreetmap
+Field 6,baseball,pitch,30.1183614,-95.4551017,,,TX,,false,true,false,openstreetmap
+Field 6,baseball,pitch,29.5725527,-95.6049882,,,TX,,false,true,false,openstreetmap
+Field 7,baseball,pitch,32.343068,-97.3690548,,,TX,,false,true,false,openstreetmap
+Field 7,baseball,pitch,30.1189739,-95.4544136,,,TX,,false,true,false,openstreetmap
+Field 7,baseball,pitch,29.5726952,-95.6067767,,,TX,,false,true,false,openstreetmap
+Field 8,baseball,pitch,30.1169148,-95.4528137,,,TX,,false,true,false,openstreetmap
+Field 8,baseball,pitch,34.967377,-101.9064935,,,TX,,false,true,false,openstreetmap
+Field 8,baseball,pitch,29.5725149,-95.6061089,,,TX,,false,true,false,openstreetmap
+Field 9,baseball,pitch,30.1189425,-95.4551017,,,TX,,false,true,false,openstreetmap
+Field 9,baseball,pitch,34.9682131,-101.9064339,,,TX,,false,true,false,openstreetmap
+Field 9,baseball,pitch,29.5722834,-95.6041159,,,TX,,false,true,false,openstreetmap
+Field A,baseball,pitch,29.5673003,-95.0682455,,,TX,,false,true,false,openstreetmap
+Field A,baseball,pitch,29.8985158,-98.4173803,,,TX,,false,true,false,openstreetmap
+Field B,baseball,pitch,29.5675476,-95.0673455,,,TX,,false,true,false,openstreetmap
+Field B,baseball,pitch,29.8983081,-98.4181245,,,TX,,false,true,false,openstreetmap
+Field E,baseball,pitch,29.896726,-98.4181478,,,TX,,false,true,false,openstreetmap
+Field F,baseball,pitch,29.8969093,-98.4169711,,,TX,,false,true,false,openstreetmap
+Field M1,baseball,pitch,29.6470293,-95.477944,,,TX,,false,true,false,openstreetmap
+Field M2,baseball,pitch,29.6461885,-95.4779334,,,TX,,false,true,false,openstreetmap
+Field M4,baseball,pitch,29.6465591,-95.4768681,,,TX,,false,true,false,openstreetmap
+Field M5,baseball,pitch,29.6471071,-95.4771526,,,TX,,false,true,false,openstreetmap
+Fiesta Field,baseball,pitch,30.2451426,-97.7021692,,,TX,,false,true,false,openstreetmap
+Finnigan Park Baseball Field,baseball,pitch,29.7686442,-95.3189014,,,TX,,false,true,false,openstreetmap
+Fireman's Field,baseball,pitch,30.1741315,-96.4015681,,,TX,,false,true,false,openstreetmap
+Fireman's Park,baseball,pitch,30.1068243,-97.314335,,,TX,,false,true,false,openstreetmap
+Floydada Baseball Association,baseball,sports_centre,33.9781538,-101.3454738,,,TX,,false,true,false,openstreetmap
+Floydada Baseball Association,baseball,pitch,33.9781834,-101.3454366,,,TX,,false,true,false,openstreetmap
+Forest Cove Baseball Fields,baseball,pitch,30.0247359,-95.2328442,,,TX,,false,true,false,openstreetmap
+Forestridge Baseball Field,baseball,pitch,32.9203943,-96.7074808,,,TX,,false,true,false,openstreetmap
+Fort Duncan Little League Park,baseball,pitch,28.7008776,-100.5031015,,,TX,,false,true,false,openstreetmap
+Fort Worth Christian School Baseball Field,baseball,pitch,32.8576851,-97.2221979,,,TX,,false,true,false,openstreetmap
+Fort Worth Country Day School Baseball Field,baseball,pitch,32.6939445,-97.4105835,,,TX,,false,true,false,openstreetmap
+Foster Baseball Field,baseball,pitch,30.3271037,-97.8209796,,,TX,,false,true,false,openstreetmap
+Frankie Field,baseball,pitch,29.5912079,-95.6163217,,,TX,,false,true,false,openstreetmap
+Franklin High School Baseball Field,baseball,pitch,31.8627533,-106.5566974,,,TX,,false,true,false,openstreetmap
+Fredericksburg High School Field,baseball,pitch,30.2586178,-98.883776,,,TX,,false,true,false,openstreetmap
+Freedom Park Baseball Complex,baseball,sports_centre,29.1985713,-95.4207922,,,TX,,false,true,false,openstreetmap
+French Elementary Baseball Field,baseball,pitch,30.1293669,-95.509438,,,TX,,false,true,false,openstreetmap
+GHS Mustang Baseball,baseball,pitch,32.917628,-97.1196027,,,TX,,false,true,false,openstreetmap
+Garcia Vela Little League Field,baseball,pitch,27.4978979,-99.4674898,,,TX,,false,true,false,openstreetmap
+Garland High Softball Field,baseball,pitch,32.9296501,-96.6413639,,,TX,,false,true,false,openstreetmap
+Gary A Pasqua Field,baseball,pitch,32.9157277,-96.8191852,,,TX,,false,true,false,openstreetmap
+Gause Independent School District,baseball,pitch,30.7869001,-96.7286134,,,TX,,false,true,false,openstreetmap
+George Dobson Field - Texas A&M - Texarkana,baseball,pitch,33.4657964,-94.0584779,,,TX,,false,true,false,openstreetmap
+Georgetown High School Baseball Field,baseball,pitch,30.6615544,-97.6627664,,,TX,,false,true,false,openstreetmap
+Getterman Softball,baseball,pitch,31.549792,-97.1080768,,,TX,,false,true,false,openstreetmap
+Getterman Softball Stadium,baseball,stadium,31.5498677,-97.1082406,,,TX,,false,true,false,openstreetmap
+Gibson Field,baseball,pitch,32.52295,-94.7891522,,,TX,,false,true,false,openstreetmap
+Glen Rose Independent School District,baseball,pitch,32.231478,-97.7685288,,,TX,,false,true,false,openstreetmap
+Graham Field,baseball,pitch,29.5548852,-98.2806387,,,TX,,false,true,false,openstreetmap
+Grand Prairie High School Baseball Diamond,baseball,pitch,32.7506978,-97.0020355,,,TX,,false,true,false,openstreetmap
+Grapeland League Ball Fields,baseball,pitch,31.4898022,-95.4707918,,,TX,,false,true,false,openstreetmap
+Grapeland League Ball Fields,baseball,pitch,31.4891311,-95.470598,,,TX,,false,true,false,openstreetmap
+Grapevine Faith Baseball Field,baseball,stadium,32.9343934,-97.0687291,,,TX,,false,true,false,openstreetmap
+Greenhill School Baseball Field,baseball,pitch,32.9429266,-96.8466721,,,TX,,false,true,false,openstreetmap
+HBU Baseball Husky Field,baseball,pitch,29.6922501,-95.5132955,,,TX,,false,true,false,openstreetmap
+Hallford Baseball Field,baseball,pitch,31.1041154,-97.3529033,,,TX,,false,true,false,openstreetmap
+Happy Hill Farm Academy Baseball Field,baseball,pitch,32.2907601,-97.721768,,,TX,,false,true,false,openstreetmap
+Harrison Lollar Field,baseball,pitch,32.5338167,-95.639606,,,TX,,false,true,false,openstreetmap
+Hastings High School Baseball Field,baseball,pitch,29.7127683,-95.5997239,,,TX,,false,true,false,openstreetmap
+Havins Field 1,baseball,pitch,30.4041541,-97.6857629,,,TX,,false,true,false,openstreetmap
+Havins Field 2,baseball,pitch,30.4042923,-97.6843688,,,TX,,false,true,false,openstreetmap
+Havins Field 3,baseball,pitch,30.4030894,-97.6845619,,,TX,,false,true,false,openstreetmap
+Havins Field 4,baseball,pitch,30.4026584,-97.6831567,,,TX,,false,true,false,openstreetmap
+Havins Field 5,baseball,pitch,30.4016915,-97.6831766,,,TX,,false,true,false,openstreetmap
+Hays Field,baseball,pitch,33.5715027,-101.9334258,,,TX,,false,true,false,openstreetmap
+Heartland Baseball,baseball,pitch,32.684709,-96.4457418,,,TX,,false,true,false,openstreetmap
+Heath Hawks Baseball Field,baseball,pitch,32.8449279,-96.4752604,,,TX,,false,true,false,openstreetmap
+Hebron High School Baseball Field,baseball,pitch,33.0335254,-96.8598418,,,TX,,false,true,false,openstreetmap
+Hebron High School Softball Stadium,baseball,pitch,33.0324738,-96.8597727,,,TX,,false,true,false,openstreetmap
+Hector Chavez Memorial Baseball Park,baseball,pitch,28.7012863,-100.4776284,,,TX,,false,true,false,openstreetmap
+Hector Muñoz Jr. Memorial Baseball Park,baseball,pitch,28.700401,-100.4777012,,,TX,,false,true,false,openstreetmap
+Henderson Field,baseball,pitch,30.1749605,-96.397264,,,TX,,false,true,false,openstreetmap
+Hidden Creek Sports Complex,baseball,park,32.5270494,-97.3162229,,,TX,,false,true,false,openstreetmap
+Higginbotham Field,baseball,pitch,32.6620877,-97.3239849,,,TX,,false,true,false,openstreetmap
+Hogan Field,baseball,pitch,33.2847562,-96.531937,,,TX,,false,true,false,openstreetmap
+Holt Stadium,baseball,sports_centre,32.2463519,-94.9341867,,,TX,,false,true,false,openstreetmap
+Holy Cross of San Antonio School Baseball Field,baseball,pitch,29.4418564,-98.5552185,,,TX,,false,true,false,openstreetmap
+Horner Ballpark,baseball,pitch,32.7117707,-96.9453546,,,TX,,false,true,false,openstreetmap
+Hoskins Field,baseball,pitch,33.8554397,-98.5798564,,,TX,,false,true,false,openstreetmap
+Hub Hollis Field,baseball,pitch,33.644937,-95.5305307,,,TX,,false,true,false,openstreetmap
+I2,baseball,pitch,32.9818144,-96.750304,,,TX,,false,true,false,openstreetmap
+Intramural Fields,baseball,pitch,33.2095915,-97.1604959,,,TX,,false,true,false,openstreetmap
+Iowa Park Little League,baseball,pitch,33.9567778,-98.6851663,,,TX,,false,true,false,openstreetmap
+J.E. Pressly Field,baseball,pitch,31.8489545,-102.3818552,,,TX,,false,true,false,openstreetmap
+J.J. Tillery Baseball Field,baseball,pitch,32.7611718,-96.6320121,,,TX,,false,true,false,openstreetmap
+JHS Baseball Field,baseball,pitch,30.8174962,-97.6256685,,,TX,,false,true,false,openstreetmap
+JHS Softball Field,baseball,pitch,30.8164185,-97.625517,,,TX,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,33.5155867,-102.0041558,,,TX,,false,true,false,openstreetmap
+Jackie Robinson Softball Complex,baseball,sports_centre,31.1249435,-97.802134,,,TX,,false,true,false,openstreetmap
+Jacobs Field,baseball,pitch,32.8207118,-97.1087595,,,TX,,false,true,false,openstreetmap
+Jake Insellman Field,baseball,pitch,29.4511998,-98.6248642,,,TX,,false,true,false,openstreetmap
+Jay Allison Baseball Field,baseball,pitch,33.1306521,-96.8452075,,,TX,,false,true,false,openstreetmap
+Jerry McDonald Field,baseball,pitch,27.8313018,-97.0635914,,,TX,,false,true,false,openstreetmap
+Jesus Rangel Baseball Field,baseball,pitch,27.5696806,-99.489035,,,TX,,false,true,false,openstreetmap
+Jim Kethan Field,baseball,stadium,29.7079556,-95.1152353,,,TX,,false,true,false,openstreetmap
+Joe Hunter Field,baseball,pitch,28.4388216,-97.7540127,,,TX,,false,true,false,openstreetmap
+Joe Milligan Field,baseball,pitch,29.2769571,-94.8220934,,,TX,,false,true,false,openstreetmap
+John J. Hunter Field,baseball,pitch,32.4801858,-99.7363013,,,TX,,false,true,false,openstreetmap
+John Porter Sports Complex,baseball,sports_centre,33.3414264,-97.1834322,,,TX,,false,true,false,openstreetmap
+John W. Tankersley Baseball Field,baseball,pitch,30.09034,-95.9960847,,,TX,,false,true,false,openstreetmap
+Jonathan Elizondo Memorial Baseball Park,baseball,pitch,28.7034426,-100.4769634,,,TX,,false,true,false,openstreetmap
+Jorge Elias Gomez Memorial Baseball Park,baseball,pitch,28.7046314,-100.4782469,,,TX,,false,true,false,openstreetmap
+Jorge Haynes Baseball Field,baseball,pitch,27.5693976,-99.4308126,,,TX,,false,true,false,openstreetmap
+Judson Field,baseball,pitch,33.2839966,-96.5335782,,,TX,,false,true,false,openstreetmap
+Junior Field,baseball,pitch,30.1186723,-95.4532643,,,TX,,false,true,false,openstreetmap
+Juniors Field,baseball,pitch,29.7518199,-95.4820269,,,TX,,false,true,false,openstreetmap
+KC Baseball,baseball,pitch,29.7710754,-96.1648881,,,TX,,false,true,false,openstreetmap
+Karnes City Baseball,baseball,pitch,28.8862921,-97.8917817,,,TX,,false,true,false,openstreetmap
+Karnes City Softball,baseball,pitch,28.8852718,-97.8912822,,,TX,,false,true,false,openstreetmap
+Kashmere High School Baseball Field,baseball,pitch,29.8238006,-95.3143595,,,TX,,false,true,false,openstreetmap
+Kempner High School Baseball Field,baseball,pitch,29.6437619,-95.6424429,,,TX,,false,true,false,openstreetmap
+Kevin Field,baseball,pitch,32.6815409,-95.4687766,,,TX,,false,true,false,openstreetmap
+Kingsland Baseball Fields,baseball,pitch,30.6740235,-98.459509,,,TX,,false,true,false,openstreetmap
+Kiwanis Field,baseball,pitch,31.5440554,-97.1325021,,,TX,,false,true,false,openstreetmap
+Klatt-Isbell Baseball Field,baseball,pitch,29.5775392,-97.9832138,,,TX,,false,true,false,openstreetmap
+Knight Field,baseball,pitch,32.609532,-96.9661733,,,TX,,false,true,false,openstreetmap
+Kocurek Field,baseball,pitch,30.270417,-97.762034,,,TX,,false,true,false,openstreetmap
+Kokernot Field,baseball,pitch,30.3727739,-103.6646493,,,TX,,false,true,false,openstreetmap
+La Marque High School Baseball Field,baseball,pitch,29.37215,-94.9939882,,,TX,,false,true,false,openstreetmap
+La Porte High School Baseball Field,baseball,pitch,29.6577489,-95.0167881,,,TX,,false,true,false,openstreetmap
+LaPoynor ISD Baseball Field,baseball,pitch,32.0996148,-95.6397501,,,TX,,false,true,false,openstreetmap
+Labor Street Kickball Field,baseball,pitch,29.4128615,-98.4835791,,,TX,,false,true,false,openstreetmap
+Lady Hornet Field,baseball,pitch,32.913072,-97.5378198,,,TX,,false,true,false,openstreetmap
+Lady Lobos Softball Field,baseball,pitch,32.5446094,-94.7415538,,,TX,,false,true,false,openstreetmap
+Lake Highlands Baseball Field,baseball,pitch,32.8883782,-96.7240345,,,TX,,false,true,false,openstreetmap
+Lamar High School Baseball Field,baseball,pitch,32.7609564,-97.1239656,,,TX,,false,true,false,openstreetmap
+Legacy Park Fields,baseball,pitch,29.1863581,-96.2927926,,,TX,,false,true,false,openstreetmap
+Legends Field,baseball,pitch,32.8179195,-97.1068675,,,TX,,false,true,false,openstreetmap
+Leroy Dreyer Baseball Field,baseball,pitch,30.1614713,-96.4107038,,,TX,,false,true,false,openstreetmap
+Leroy Naschke Field,baseball,pitch,29.3178252,-94.7730368,,,TX,,false,true,false,openstreetmap
+Lewis Chinn Family Field,baseball,pitch,30.2314333,-97.7526502,,,TX,,false,true,false,openstreetmap
+Lewisville High School Baseball Diamond,baseball,pitch,33.0396986,-97.0155893,,,TX,,false,true,false,openstreetmap
+Liberty Baseball Field #1,baseball,pitch,33.1422222,-96.7440645,,,TX,,false,true,false,openstreetmap
+Lighted Baseball Field #3,baseball,pitch,29.869522,-95.0719141,,,TX,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,29.5555508,-98.2797552,,,TX,,false,true,false,openstreetmap
+Little League,baseball,pitch,28.9786569,-98.0269368,,,TX,,false,true,false,openstreetmap
+Live Oak Classical School,baseball,pitch,31.5390224,-97.1473516,,,TX,,false,true,false,openstreetmap
+Live Oak Little League Fields,baseball,sports_centre,28.3260165,-98.1226037,,,TX,,false,true,false,openstreetmap
+Lobo Field,baseball,pitch,32.5487311,-94.7424576,,,TX,,false,true,false,openstreetmap
+Lockney Little League Field,baseball,pitch,34.1215003,-101.4343824,,,TX,,false,true,false,openstreetmap
+Lockney Longhorns Field,baseball,pitch,34.1206755,-101.4343959,,,TX,,false,true,false,openstreetmap
+Lone Star Field,baseball,pitch,33.0621322,-96.7791574,,,TX,,false,true,false,openstreetmap
+Longhorn Field,baseball,pitch,33.0618057,-96.7820183,,,TX,,false,true,false,openstreetmap
+Lovelace Statium (WSOF),baseball,pitch,33.2012671,-97.1630348,,,TX,,false,true,false,openstreetmap
+Lytle Field,baseball,pitch,32.724614,-102.6494685,,,TX,,false,true,false,openstreetmap
+M3 Batting Cage,baseball,pitch,29.6466365,-95.4775535,,,TX,,false,true,false,openstreetmap
+M4 Batting Cage,baseball,pitch,29.6466453,-95.4773928,,,TX,,false,true,false,openstreetmap
+M6 (Tee Ball),baseball,pitch,29.6470782,-95.4766243,,,TX,,false,true,false,openstreetmap
+MLB Field,baseball,pitch,32.6628058,-97.3240679,,,TX,,false,true,false,openstreetmap
+Madison High School Baseball Field,baseball,pitch,29.6304013,-95.4352141,,,TX,,false,true,false,openstreetmap
+Maiorana Field,baseball,pitch,29.810909,-95.5507069,,,TX,,false,true,false,openstreetmap
+Major Field,baseball,pitch,30.1176677,-95.4527413,,,TX,,false,true,false,openstreetmap
+Manchaca Optimist Youth Sports Complex,baseball,sports_centre,30.1324813,-97.8520313,,,TX,,false,true,false,openstreetmap
+Marcus High School Baseball Field,baseball,pitch,33.0694815,-97.0735014,,,TX,,false,true,false,openstreetmap
+Marcus High School Softball Field,baseball,pitch,33.0674651,-97.0724206,,,TX,,false,true,false,openstreetmap
+Mark Humble Field,baseball,pitch,30.8654612,-96.9628781,,,TX,,false,true,false,openstreetmap
+Markle Steel Baseball Field,baseball,pitch,29.7099234,-95.5432641,,,TX,,false,true,false,openstreetmap
+Marti Van Ravenswaay Baseball Diamond,baseball,pitch,32.6730228,-97.2217659,,,TX,,false,true,false,openstreetmap
+Mary Guillot Memorial Baseball Park,baseball,pitch,28.7041189,-100.47761,,,TX,,false,true,false,openstreetmap
+Mason Park Baseball Field,baseball,pitch,29.7245455,-95.2931657,,,TX,,false,true,false,openstreetmap
+Maverick Baseball Field,baseball,pitch,32.5331086,-94.3540075,,,TX,,false,true,false,openstreetmap
+Mavs Ballpark,baseball,pitch,32.7934892,-96.8101219,,,TX,,false,true,false,openstreetmap
+Max O'Banion Baseball Field,baseball,pitch,33.558862,-101.9329423,,,TX,,false,true,false,openstreetmap
+McCanlies Field,baseball,pitch,31.8845517,-102.3569775,,,TX,,false,true,false,openstreetmap
+McConn Field 1,baseball,pitch,29.7709963,-95.4301971,,,TX,,false,true,false,openstreetmap
+McFalls Baseball Diamond,baseball,pitch,32.7277233,-97.0084292,,,TX,,false,true,false,openstreetmap
+McFalls Baseball Diamond,baseball,pitch,32.7271665,-97.0084748,,,TX,,false,true,false,openstreetmap
+McFalls Park Baseball Diamond,baseball,pitch,32.7276827,-97.0090729,,,TX,,false,true,false,openstreetmap
+McFalls Park Baseball Diamond,baseball,pitch,32.7271259,-97.0091198,,,TX,,false,true,false,openstreetmap
+McKelvey Field,baseball,pitch,30.4202907,-97.7069412,,,TX,,false,true,false,openstreetmap
+Medrano Reyna Besball Field,baseball,pitch,30.2430219,-97.7012906,,,TX,,false,true,false,openstreetmap
+Melissa Field,baseball,pitch,32.6615271,-97.3238512,,,TX,,false,true,false,openstreetmap
+Memorial HS Baseball Field,baseball,pitch,26.2130923,-98.217852,,,TX,,false,true,false,openstreetmap
+Meredith Field,baseball,pitch,32.6822813,-95.4707767,,,TX,,false,true,false,openstreetmap
+Meyer Baseball Field,baseball,pitch,30.211201,-97.7968188,,,TX,,false,true,false,openstreetmap
+Meyers Field,baseball,pitch,29.5558577,-98.2812535,,,TX,,false,true,false,openstreetmap
+Middle Field,baseball,pitch,29.7520857,-95.4812862,,,TX,,false,true,false,openstreetmap
+Mike Carter Field,baseball,pitch,32.3422861,-95.321546,,,TX,,false,true,false,openstreetmap
+Mike Dry Field,baseball,pitch,32.6610048,-97.3238282,,,TX,,false,true,false,openstreetmap
+Mineola Recreation Area,baseball,sports_centre,32.6828785,-95.4693765,,,TX,,false,true,false,openstreetmap
+Minor Field,baseball,pitch,29.6303262,-95.6321915,,,TX,,false,true,false,openstreetmap
+Minor Field,baseball,pitch,30.1176503,-95.4536921,,,TX,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,27.7649921,-97.4357057,,,TX,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,32.4895268,-94.7761172,,,TX,,false,true,false,openstreetmap
+Mitchell Campbell Field,baseball,pitch,31.7734844,-95.6329167,,,TX,,false,true,false,openstreetmap
+Moegle Field,baseball,pitch,33.5319,-101.8495908,,,TX,,false,true,false,openstreetmap
+Momentum Bank Ballpark,baseball,stadium,31.9870776,-102.1554072,,,TX,,false,true,false,openstreetmap
+Montgomery Field,baseball,pitch,32.8906389,-96.7989902,,,TX,,false,true,false,openstreetmap
+Montopolis Practice Fields,baseball,sports_centre,30.2321975,-97.6914227,,,TX,,false,true,false,openstreetmap
+Morck Softball Field,baseball,pitch,29.5764132,-97.9835642,,,TX,,false,true,false,openstreetmap
+Mount Carmel High School Baseball Field,baseball,pitch,29.6640727,-95.3098028,,,TX,,false,true,false,openstreetmap
+Mustang Baseball Field,baseball,pitch,30.58464,-98.2505434,,,TX,,false,true,false,openstreetmap
+Naaman Forest HS Baseball Field,baseball,pitch,32.9558271,-96.638411,,,TX,,false,true,false,openstreetmap
+Navasota Baseball Field,baseball,pitch,30.3860063,-96.0765535,,,TX,,false,true,false,openstreetmap
+Nixon-Smiley CISD Baseball Field,baseball,pitch,29.2810274,-97.7626279,,,TX,,false,true,false,openstreetmap
+Nolan Catholic High School Softball Fields,baseball,pitch,32.7619747,-97.2577201,,,TX,,false,true,false,openstreetmap
+Nolan Ryan Field,baseball,pitch,27.5294389,-97.8816561,,,TX,,false,true,false,openstreetmap
+Norm Cash Field,baseball,pitch,33.1787023,-101.3753783,,,TX,,false,true,false,openstreetmap
+Nort Mesquite Baseball Field,baseball,pitch,32.8096334,-96.6315088,,,TX,,false,true,false,openstreetmap
+North Austin Optimist Baseball Fields,baseball,sports_centre,30.3458271,-97.7207576,,,TX,,false,true,false,openstreetmap
+Northridge Park,baseball,park,29.4970732,-98.4493585,,,TX,,false,true,false,openstreetmap
+Northside High School Baseball Field,baseball,pitch,29.7827783,-95.356758,,,TX,,false,true,false,openstreetmap
+Northwest Little League,baseball,pitch,29.4966986,-98.6172089,,,TX,,false,true,false,openstreetmap
+Northwest Little League,baseball,sports_centre,29.4963462,-98.6171746,,,TX,,false,true,false,openstreetmap
+Northwest Little League - Senior Field,baseball,pitch,29.4778497,-98.6546278,,,TX,,false,true,false,openstreetmap
+O. D. McMillan Baseball Complex,baseball,pitch,31.1339118,-99.3502146,,,TX,,false,true,false,openstreetmap
+Oates Baseball Field,baseball,pitch,30.2103101,-97.7970595,,,TX,,false,true,false,openstreetmap
+Oil Belt Little League,baseball,sports_centre,27.843533,-97.5949734,,,TX,,false,true,false,openstreetmap
+Ore City BaseBall Field,baseball,pitch,32.8096169,-94.7188141,,,TX,,false,true,false,openstreetmap
+Ox Miller Field,baseball,pitch,28.3332818,-98.1216229,,,TX,,false,true,false,openstreetmap
+PCHS Baseball Field,baseball,pitch,33.2103913,-96.8617644,,,TX,,false,true,false,openstreetmap
+PYAA Sports Complex,baseball,sports_centre,31.7791182,-95.6620997,,,TX,,false,true,false,openstreetmap
+Painter Baseball Field,baseball,pitch,36.0129773,-101.8278186,,,TX,,false,true,false,openstreetmap
+Panther Field,baseball,pitch,30.098379,-95.5214735,,,TX,,false,true,false,openstreetmap
+Parr Park Baseball Fields,baseball,pitch,32.9067747,-97.116967,,,TX,,false,true,false,openstreetmap
+Pat Taylor Athletic Field,baseball,pitch,30.8800067,-102.8955514,,,TX,,false,true,false,openstreetmap
+Paul Matthews Jr Softball Field,baseball,pitch,27.8330457,-97.0592463,,,TX,,false,true,false,openstreetmap
+Pearce Field,baseball,pitch,30.4210905,-97.707099,,,TX,,false,true,false,openstreetmap
+Pecan Field,baseball,pitch,33.0613802,-96.7854923,,,TX,,false,true,false,openstreetmap
+Pee Wee,baseball,pitch,29.6455086,-95.4778462,,,TX,,false,true,false,openstreetmap
+Pee Wee Batting Cage,baseball,pitch,29.6454322,-95.4774256,,,TX,,false,true,false,openstreetmap
+Pee Wee Field,baseball,pitch,29.7510442,-95.4821362,,,TX,,false,true,false,openstreetmap
+Pflughaupt Field,baseball,pitch,30.1884984,-96.4088909,,,TX,,false,true,false,openstreetmap
+Phillips Park Baseball Fields,baseball,pitch,35.8520965,-101.9787848,,,TX,,false,true,false,openstreetmap
+Pioneer Park Baseball Field,baseball,pitch,35.8503207,-101.9684136,,,TX,,false,true,false,openstreetmap
+PlainsCapital Park,baseball,pitch,33.5710834,-101.936696,,,TX,,false,true,false,openstreetmap
+Portwood Park,baseball,pitch,33.5963208,-99.2619023,,,TX,,false,true,false,openstreetmap
+Portwood Park,baseball,pitch,33.597101,-99.262377,,,TX,,false,true,false,openstreetmap
+Poteet Baseball Field,baseball,pitch,32.8054828,-96.6094805,,,TX,,false,true,false,openstreetmap
+Practice Fields,baseball,pitch,32.7350835,-102.6455837,,,TX,,false,true,false,openstreetmap
+Preston Field,baseball,pitch,30.2660043,-97.7611166,,,TX,,false,true,false,openstreetmap
+Prickly Pear Field,baseball,pitch,33.0614027,-96.7865276,,,TX,,false,true,false,openstreetmap
+Princeton Baseball Field,baseball,pitch,33.1760098,-96.4893819,,,TX,,false,true,false,openstreetmap
+Princeton Softball Field,baseball,pitch,33.1770531,-96.4892903,,,TX,,false,true,false,openstreetmap
+Prosper Baseball Field,baseball,pitch,33.2608491,-96.7941047,,,TX,,false,true,false,openstreetmap
+R & L Baseball Field,baseball,pitch,30.243604,-97.70083,,,TX,,false,true,false,openstreetmap
+Randall Baseball Field,baseball,pitch,35.1139712,-101.8991334,,,TX,,false,true,false,openstreetmap
+Rattler Baseball,baseball,pitch,30.4020411,-96.0699728,,,TX,,false,true,false,openstreetmap
+Red and Charline McCombs Field,baseball,pitch,30.2808519,-97.7247902,2001 Comal Street,,TX,78705,false,true,false,openstreetmap
+Reeder Field,baseball,pitch,30.2655822,-97.7623873,,,TX,,false,true,false,openstreetmap
+Richards Park,baseball,pitch;park,32.3855318,-96.8551926,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field,baseball,pitch,32.865153,-97.2268407,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field 2,baseball,pitch,32.8656219,-97.2251177,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field 3,baseball,pitch,32.8650015,-97.2251043,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field 4,baseball,pitch,32.8667716,-97.2266772,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field 5,baseball,pitch,32.8643367,-97.2261336,,,TX,,false,true,false,openstreetmap
+Richfield Baseball Field 6,baseball,pitch,32.8644318,-97.2255007,,,TX,,false,true,false,openstreetmap
+Richland Baseball Field,baseball,pitch,32.9181001,-96.7241508,,,TX,,false,true,false,openstreetmap
+Roadrunner Baseball Field,baseball,pitch,31.2899174,-94.7371787,,,TX,,false,true,false,openstreetmap
+Robert Ryan Baseball Field,baseball,pitch,32.7242729,-102.6525253,,,TX,,false,true,false,openstreetmap
+Rock Field,baseball,pitch,34.4305329,-100.2045576,,,TX,,false,true,false,openstreetmap
+Rockwell Baseball Field,baseball,pitch,30.6369939,-97.6616996,,,TX,,false,true,false,openstreetmap
+Ronnie Roberts Field,baseball,sports_centre,33.2133585,-97.1078882,,,TX,,false,true,false,openstreetmap
+Rotary Field,baseball,pitch,29.2622357,-94.8492246,,,TX,,false,true,false,openstreetmap
+Rowe Baseball Field,baseball,pitch,26.227564,-98.2643499,,,TX,,false,true,false,openstreetmap
+Royals Stadium,baseball,pitch,32.8193338,-97.1085949,,,TX,,false,true,false,openstreetmap
+SHS Baseball Field,baseball,pitch,32.2154285,-98.2366161,,,TX,,false,true,false,openstreetmap
+Saint Michaels Academy Baseball Field,baseball,pitch,30.2899167,-97.8774997,,,TX,,false,true,false,openstreetmap
+Sam Houston Athletic Field,baseball,pitch,32.740614,-96.9563594,,,TX,,false,true,false,openstreetmap
+San Gabriel Park Adult Baseball field,baseball,pitch,30.653629,-97.6661302,,,TX,,false,true,false,openstreetmap
+San Jacinto College North Baseball Field,baseball,pitch,29.8139951,-95.1813114,,,TX,,false,true,false,openstreetmap
+Santos Merendon Jr. Memorial Baseball Park,baseball,pitch,28.7019195,-100.4788481,,,TX,,false,true,false,openstreetmap
+Sayers Baseball Field,baseball,pitch,30.2700746,-97.7616479,,,TX,,false,true,false,openstreetmap
+Scarborough High School Baseball Field,baseball,pitch,29.8283376,-95.4696847,,,TX,,false,true,false,openstreetmap
+Schulte Field,baseball,pitch,30.1887043,-96.4078075,,,TX,,false,true,false,openstreetmap
+Scorpion Field,baseball,pitch,25.8919275,-97.4913643,,,TX,,false,true,false,openstreetmap
+Scotland Ball Field,baseball,pitch,33.9170912,-98.5090813,,,TX,,false,true,false,openstreetmap
+Scotland Yard,baseball,stadium,30.1582795,-95.4965826,,,TX,,false,true,false,openstreetmap
+Seabourn Baseball Field,baseball,pitch,32.7591755,-96.6331875,,,TX,,false,true,false,openstreetmap
+Sealy Baseball,baseball,pitch,29.7711646,-96.1612781,,,TX,,false,true,false,openstreetmap
+Sealy HS Baseball,baseball,pitch,29.7619608,-96.1762984,,,TX,,false,true,false,openstreetmap
+Seminole Elementary Play Ground,baseball,pitch,32.7184602,-102.6499915,,,TX,,false,true,false,openstreetmap
+Seminole ISD Softball Field,baseball,pitch,32.7229713,-102.652389,,,TX,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,29.6307737,-95.6297935,,,TX,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,30.1166758,-95.4538424,,,TX,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,30.4198007,-97.7078434,,,TX,,false,true,false,openstreetmap
+Sharyland Pioneers Baseball,baseball,pitch,26.3056341,-98.2728807,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,baseball,pitch,33.1316445,-96.7884962,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,baseball,pitch,33.1320469,-96.7876164,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,baseball,pitch,33.1327804,-96.788083,,,TX,,false,true,false,openstreetmap
+Shawnee Trail,baseball,pitch,33.1323879,-96.7889668,,,TX,,false,true,false,openstreetmap
+Shea Stadium,baseball,pitch,32.820304,-97.1081859,,,TX,,false,true,false,openstreetmap
+Shiner Starplex,baseball,pitch,29.4252416,-97.1296742,,,TX,,false,true,false,openstreetmap
+Softball,baseball,pitch,33.1636736,-97.8516691,,,TX,,false,true,false,openstreetmap
+Softball,baseball,pitch,32.2283892,-97.7665842,,,TX,,false,true,false,openstreetmap
+Softball,baseball,pitch,28.8177408,-97.8614878,,,TX,,false,true,false,openstreetmap
+Softball,baseball,pitch,28.8179255,-97.8625606,,,TX,,false,true,false,openstreetmap
+Softball,baseball,pitch,28.8173568,-97.8621398,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,31.0708023,-97.3483072,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,33.70664,-96.6306962,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,32.0327152,-102.1035267,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,32.4627249,-94.7273612,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,35.5529043,-100.9669389,,,TX,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,32.5589457,-94.3760114,,,TX,,false,true,false,openstreetmap
+Softball Field No. 1,baseball,pitch,32.4910052,-94.7730911,,,TX,,false,true,false,openstreetmap
+Softball Field No. 2,baseball,pitch,32.4910073,-94.772144,,,TX,,false,true,false,openstreetmap
+Softball Field No. 3,baseball,pitch,32.490203,-94.7721404,,,TX,,false,true,false,openstreetmap
+Softball Field No. 4,baseball,pitch,32.4902003,-94.7730893,,,TX,,false,true,false,openstreetmap
+Softball Field No. 5,baseball,pitch,32.4889978,-94.7745146,,,TX,,false,true,false,openstreetmap
+Softball Field No. 6,baseball,pitch,32.4889954,-94.7754633,,,TX,,false,true,false,openstreetmap
+Softball Field No. 7,baseball,pitch,32.488162,-94.7754594,,,TX,,false,true,false,openstreetmap
+Softball Field No. 8,baseball,pitch,32.4881619,-94.7745137,,,TX,,false,true,false,openstreetmap
+Softball Stadium,baseball,pitch,29.4550382,-98.5666259,,,TX,,false,true,false,openstreetmap
+Softball field 1,baseball,pitch,32.9793379,-96.994869,,,TX,,false,true,false,openstreetmap
+Softball field 2,baseball,pitch,32.9793451,-96.9958584,,,TX,,false,true,false,openstreetmap
+Softball field 3,baseball,pitch,32.980194,-96.9958514,,,TX,,false,true,false,openstreetmap
+Softball field 4,baseball,pitch,32.9801966,-96.9948577,,,TX,,false,true,false,openstreetmap
+Sour Lake Baseball Parks,baseball,sports_centre,30.13115,-94.4054823,,,TX,,false,true,false,openstreetmap
+Southwest Assemblies of God University Baseball Fields,baseball,pitch,32.406637,-96.8512995,,,TX,,false,true,false,openstreetmap
+Spindletop Field,baseball,pitch,33.0615035,-96.7794847,,,TX,,false,true,false,openstreetmap
+Spring Hill High School Baseball Field,baseball,pitch,32.5600514,-94.7909802,,,TX,,false,true,false,openstreetmap
+Sr Field,baseball,pitch,29.6447225,-95.4780842,,,TX,,false,true,false,openstreetmap
+Stanton Baseball Field,baseball,pitch,32.1319716,-101.8093448,,,TX,,false,true,false,openstreetmap
+Steer Baseball Field,baseball,pitch,32.2507968,-101.4641991,,,TX,,false,true,false,openstreetmap
+Sterling High School Baseball Field,baseball,pitch,29.7727813,-94.9710292,,,TX,,false,true,false,openstreetmap
+Steve Chapman Field,baseball,pitch,27.8599056,-97.634631,,,TX,,false,true,false,openstreetmap
+Steve Macko Baseball Field,baseball,pitch,32.6964283,-96.8498578,,,TX,,false,true,false,openstreetmap
+Stockdale High School Baseball Field,baseball,pitch,29.2399391,-97.954234,,,TX,,false,true,false,openstreetmap
+Stoney Hollow Park Backstop,baseball,pitch,33.0481088,-96.6500462,,,TX,,false,true,false,openstreetmap
+Sunray Baseball Field #1,baseball,pitch,36.0192079,-101.8168663,,,TX,,false,true,false,openstreetmap
+Sunray Baseball Field #2,baseball,pitch,36.0122481,-101.8277957,,,TX,,false,true,false,openstreetmap
+Swan Lake Field,baseball,pitch,33.2326352,-98.1828791,,,TX,,false,true,false,openstreetmap
+T-Ball Field (10),baseball,pitch,30.0459592,-95.6774722,,,TX,,false,true,false,openstreetmap
+T-Ball Field (9),baseball,pitch,30.0452827,-95.6768151,,,TX,,false,true,false,openstreetmap
+THA Field,baseball,pitch,32.5691165,-94.8045578,,,TX,,false,true,false,openstreetmap
+Tarleton Baseball Field,baseball,pitch,32.2116593,-98.2199234,,,TX,,false,true,false,openstreetmap
+Taylor Softball Field,baseball,pitch,32.5591535,-94.3769663,,,TX,,false,true,false,openstreetmap
+Tee Ball Field,baseball,pitch,32.0117337,-101.9549617,,,TX,,false,true,false,openstreetmap
+Texas Bluechips Baseball Academy,baseball,pitch,29.2265882,-95.3433291,,,TX,,false,true,false,openstreetmap
+The Athletic DFW,baseball,fitness_centre,32.9248649,-97.127283,1215 Brumlow Avenue,,TX,76092,false,true,false,openstreetmap
+The Ballpark in Ranger,baseball,pitch,32.4739024,-98.685177,,,TX,,false,true,false,openstreetmap
+The Field Family Diamond at Finnie Park,baseball,pitch,30.1757199,-95.5236666,,,TX,,false,true,false,openstreetmap
+Thorp Baseball Field,baseball,pitch,30.2703583,-97.7644808,,,TX,,false,true,false,openstreetmap
+Tiger Baseball Field,baseball,pitch,30.591138,-96.3212098,,,TX,,false,true,false,openstreetmap
+Tiger Baseball Stadium,baseball,pitch,33.5155876,-102.0057222,,,TX,,false,true,false,openstreetmap
+Tiger Field,baseball,pitch,33.0458466,-97.0592753,,,TX,,false,true,false,openstreetmap
+Timber Preserve Diamond 1,baseball,pitch,33.0059256,-96.6068313,,,TX,,false,true,false,openstreetmap
+Timber Preserve Diamond 2,baseball,pitch,33.0063525,-96.6060521,,,TX,,false,true,false,openstreetmap
+Timber Preserve Diamond 3,baseball,pitch,33.0063503,-96.6047735,,,TX,,false,true,false,openstreetmap
+Timothy L. Hearn Ballfield,baseball,pitch,29.7630455,-95.4026912,,,TX,,false,true,false,openstreetmap
+Tomball Memorial High School,baseball,pitch,30.0375754,-95.6295475,,,TX,,false,true,false,openstreetmap
+"Tony ""Skipper"" Martinez Softball Field",baseball,pitch,29.4603708,-98.4753558,,,TX,,false,true,false,openstreetmap
+"Tony ""TC"" Castillo Field",baseball,pitch,30.2600488,-97.6807524,,,TX,,false,true,false,openstreetmap
+Toolen Field,baseball,pitch,31.0433136,-104.8220065,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Blue,baseball,pitch,33.1849072,-96.629199,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Green,baseball,pitch,33.1838151,-96.6278975,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Orange,baseball,pitch,33.1840093,-96.6265971,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Red,baseball,pitch,33.1850766,-96.6277721,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Silver,baseball,pitch,33.1850564,-96.6265745,,,TX,,false,true,false,openstreetmap
+Towne Lake Field Yellow,baseball,pitch,33.1838219,-96.6292071,,,TX,,false,true,false,openstreetmap
+Trinity Valley School Baseball Field,baseball,pitch,32.6526218,-97.4279988,,,TX,,false,true,false,openstreetmap
+Trinity Valley School Softball Field,baseball,pitch,32.6516487,-97.4282625,,,TX,,false,true,false,openstreetmap
+Tris Speaker Field,baseball,pitch,32.3404225,-97.3872682,,,TX,,false,true,false,openstreetmap
+Troup Tigers Baseball,baseball,pitch,32.1532743,-95.1154773,,,TX,,false,true,false,openstreetmap
+UFCU Disch-Falk Field,baseball,pitch,30.2799693,-97.7261032,,,TX,,false,true,false,openstreetmap
+UT Tyler Patriots Baseball Field,baseball,pitch,32.3130234,-95.2563679,,,TX,,false,true,false,openstreetmap
+UT Tyler Patriots Softball Field,baseball,pitch,32.313503,-95.2577444,,,TX,,false,true,false,openstreetmap
+University of Dallas Baseball Field,baseball,pitch,32.8465536,-96.9243935,,,TX,,false,true,false,openstreetmap
+University of Dallas Softball Field,baseball,pitch,32.8452264,-96.9239885,,,TX,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,27.5199209,-99.509097,,,TX,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,32.8201032,-97.1069996,,,TX,,false,true,false,openstreetmap
+Viking Park Baseball - Bryan High School,baseball,pitch,30.6545684,-96.3297212,,,TX,,false,true,false,openstreetmap
+Vista Ridge High School Baseball Field,baseball,pitch,30.5185659,-97.7888098,,,TX,,false,true,false,openstreetmap
+Walt Driggers Field,baseball,pitch,32.428425,-99.7455608,,,TX,,false,true,false,openstreetmap
+Warhorse Baseball Field,baseball,pitch,29.1537655,-98.9131957,,,TX,,false,true,false,openstreetmap
+Waskom Baseball Field,baseball,pitch,32.481178,-94.0585679,,,TX,,false,true,false,openstreetmap
+Waterhole,baseball,pitch,29.6452165,-95.4770616,,,TX,,false,true,false,openstreetmap
+Weatherford College Softball Fields,baseball,pitch,32.7396746,-97.7882633,,,TX,,false,true,false,openstreetmap
+Weber Field,baseball,pitch,30.2654012,-97.7616486,,,TX,,false,true,false,openstreetmap
+West Side Lions Little League Baseball Field,baseball,pitch,32.7650903,-97.3780056,,,TX,,false,true,false,openstreetmap
+Western Hills Little League - Bishop Field,baseball,pitch,30.2704049,-97.7612184,,,TX,,false,true,false,openstreetmap
+Westerner Field,baseball,pitch,33.6092193,-101.8716869,,,TX,,false,true,false,openstreetmap
+Westfield High School Baseball Field,baseball,pitch,30.0039539,-95.4485938,,,TX,,false,true,false,openstreetmap
+Westlake High School Baseball Field,baseball,pitch,30.2770194,-97.8122612,,,TX,,false,true,false,openstreetmap
+Westwood Baseball Field,baseball,pitch,30.4614905,-97.8003681,,,TX,,false,true,false,openstreetmap
+White Oak High School Baseball Field,baseball,pitch,32.5266022,-94.8510325,,,TX,,false,true,false,openstreetmap
+Whitehouse Wildcats Baseball,baseball,pitch,32.2360789,-95.2142482,,,TX,,false,true,false,openstreetmap
+Whitewright Baseball field,baseball,pitch,33.5079704,-96.3919884,,,TX,,false,true,false,openstreetmap
+Whitewright Youth Baseball Fields,baseball,pitch,33.5025045,-96.4097577,,,TX,,false,true,false,openstreetmap
+Wildcat Baseball Field,baseball,pitch,35.3057218,-101.8352086,,,TX,,false,true,false,openstreetmap
+Wilder Feild,baseball,pitch,34.1873022,-101.7322568,,,TX,,false,true,false,openstreetmap
+Will Weber Field,baseball,pitch,29.7317617,-95.4027283,,,TX,,false,true,false,openstreetmap
+Williams Field,baseball,pitch,33.2855757,-96.5326278,,,TX,,false,true,false,openstreetmap
+Williams-Reilly Field,baseball,pitch,32.7027829,-97.3721633,,,TX,,false,true,false,openstreetmap
+Willie Wells Field,baseball,pitch,30.3737348,-97.7521514,,,TX,,false,true,false,openstreetmap
+Willis High School Baseball Stadium,baseball,pitch,30.3940528,-95.4775395,,,TX,,false,true,false,openstreetmap
+Willowridge High School Baseball Field,baseball,pitch,29.5868498,-95.4776873,,,TX,,false,true,false,openstreetmap
+Willowridge High School Softball Field,baseball,pitch,29.5871601,-95.4788809,,,TX,,false,true,false,openstreetmap
+Woods Baseball Field,baseball,pitch,32.5577697,-94.3758645,,,TX,,false,true,false,openstreetmap
+Wrangler Field,baseball,pitch,31.9208535,-102.3954367,,,TX,,false,true,false,openstreetmap
+Wright Field,baseball,pitch,30.263466,-97.7671372,,,TX,,false,true,false,openstreetmap
+Wrigley Field,baseball,pitch,32.8180355,-97.1101441,,,TX,,false,true,false,openstreetmap
+YMCA Baseball,baseball,pitch,29.4434672,-98.658998,,,TX,,false,true,false,openstreetmap
+YMCA T-ball,baseball,pitch,29.4431952,-98.6598571,,,TX,,false,true,false,openstreetmap
+Yankee Stadium,baseball,pitch,32.8193302,-97.1101314,,,TX,,false,true,false,openstreetmap
+Yoe Field,baseball,pitch,30.8791497,-96.9687215,,,TX,,false,true,false,openstreetmap
+Youth Center Field,baseball,pitch,33.1534732,-96.8168399,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5379533,-100.9283693,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5379502,-100.9292963,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.537214,-100.9292861,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5372107,-100.9283799,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5365322,-100.9531444,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5368661,-100.9518859,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5357251,-100.9516718,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5355942,-100.9531546,,,TX,,false,true,false,openstreetmap
+baseball,baseball,pitch,35.5359606,-100.9526244,,,TX,,false,true,false,openstreetmap
+5 Tool Baseball,baseball,pitch,35.124859,-101.9372331,8209 South Soncy Road,Amarillo,TX,79119,false,true,false,openstreetmap
+Hodgetown Stadium,baseball,stadium,35.2056329,-101.8310091,715 South Buchanan Street,Amarillo,TX,79101,false,true,false,openstreetmap
+Cover All Bases,baseball,sports_centre,32.7035843,-97.1158619,705 Secretary Drive,Arlington,TX,76015,false,true,false,openstreetmap
+Globe Life Field,baseball,stadium,32.7474073,-97.084578,734 Stadium Drive,Arlington,TX,76011,false,true,false,openstreetmap
+Delwood Softball 1,baseball,pitch,30.303418,-97.6940577,1815 Greenbrook Parkway,Austin,TX,78723,false,true,false,openstreetmap
+Tornado Field,baseball,pitch,30.417993,-97.8402592,11400 Concordia University Drive,Austin,TX,78726,false,true,false,openstreetmap
+Becky Caldwell Baseball Fields,baseball,pitch,30.8054215,-97.4310064,199 Brazos Ln,Bartlett,TX,76511,false,true,false,openstreetmap
+Vincent-Beck Stadium,baseball,stadium,30.0347278,-94.0750039,960 Jim Gilligan Way,Beaumont,TX,77705,false,true,false,openstreetmap
+Don Moore Field,baseball,pitch,32.3374563,-97.3880779,901 South Walnut Street,Cleburne,TX,,false,true,false,openstreetmap
+La Moderna Field,baseball,stadium,32.3744131,-97.4129901,1906 Brazzle Boulevard,Cleburne,TX,76033,false,true,false,openstreetmap
+Old Cleburne Sports Complex,baseball,sports_centre,32.3478175,-97.3675558,225 South Washington Street,Cleburne,TX,76031,false,true,false,openstreetmap
+Calallen HS Baseball Training Facility,baseball,sports_centre,27.8593575,-97.6350542,Wildcat Drive,Corpus Christi,TX,78410,false,true,false,openstreetmap
+Whataburger Field,baseball,stadium,27.8099493,-97.399337,734 East Port Avenue,Corpus Christi,TX,78401,false,true,false,openstreetmap
+Southwest University Park,baseball,stadium,31.7591087,-106.492498,1 Ballpark Plaza,El Paso,TX,79901,false,true,false,openstreetmap
+Elgin Little League,baseball,sports_centre,30.3596125,-97.3735898,506 East 10th Street,Elgin,TX,78621,false,true,false,openstreetmap
+Lupton Baseball Stadium,baseball,stadium,32.7028714,-97.3720713,3700 West Berry Street,Fort Worth,TX,,false,true,false,openstreetmap
+Riders Field,baseball,stadium,33.0983843,-96.8197091,7300 Roughriders Trail,Frisco,TX,,false,true,false,openstreetmap
+Hooper Baseball Field,baseball,pitch,29.2606354,-94.8493386,"3059 81st Street,",Galveston,TX,77551,false,true,false,openstreetmap
+Grandview Youth Association Sports Complex,baseball,sports_centre,32.269163,-97.1668679,1200 East Criner Street,Grandview,TX,76050,false,true,false,openstreetmap
+Daikin Park,baseball,stadium,29.7572442,-95.3552505,501 Crawford Street,Houston,TX,,false,true,false,openstreetmap
+Schroeder Park,baseball,stadium,29.7268528,-95.3454767,4000 Elgin Street,Houston,TX,77204,false,true,false,openstreetmap
+Westbury Baseball,baseball,sports_centre,29.6502585,-95.4765977,5525 Gasmer Drive,Houston,TX,77035,false,true,false,openstreetmap
+Westbury Little League,baseball,sports_centre,29.6457756,-95.4775251,5300 Dryad Drive,Houston,TX,77035,false,true,false,openstreetmap
+Kerrville Sports Complex,baseball,sports_centre,30.0743354,-99.1449167,111 Home Run Dr N,Kerrville,TX,78028,false,true,false,openstreetmap
+Driller Park,baseball,stadium,32.3708444,-94.8791526,2100 South Commerce Street,Kilgore,TX,75662,false,true,false,openstreetmap
+Black Star Athletics Complex,baseball,pitch,29.9930852,-97.8400185,109 Bunton Lane,Kyle,TX,78640,false,true,false,openstreetmap
+Texas O Sports Ranch,baseball,sports_centre,31.066431,-98.205173,500 North Willis Street,Lampasas,TX,76550,false,true,false,openstreetmap
+Uni-Trade Stadium,baseball,stadium,27.5542672,-99.4549591,6320 Sinatra Parkway,Laredo,TX,78045,false,true,false,openstreetmap
+Texas Hit Lab,baseball,sports_centre,30.5713877,-97.8477019,607 Leander Drive,Leander,TX,78641,false,true,false,openstreetmap
+Dan Law Field at Rip Griffin Park,baseball,stadium,33.5886451,-101.8768625,2901 Drive of Champions,Lubbock,TX,79409,false,true,false,openstreetmap
+Bud Maddux Baseball Academy,baseball,sports_centre,31.336121,-94.7187906,1004 East Lufkin Avenue,Lufkin,TX,75901,false,true,false,openstreetmap
+Nacogdoches Baseball Complex,baseball,sports_centre,31.6349428,-94.6807588,3715 Old Tyler Road,Nacogdoches,TX,75964,false,true,false,openstreetmap
+SFA Softball Field,baseball,stadium,31.633086,-94.6818457,3715 Old Tyler Road,Nacogdoches,TX,75964,false,true,false,openstreetmap
+Pipe Creek Lakehills Little League Field,baseball,pitch,29.7214441,-98.9410333,390 East Pipe Creek Drive,Pipe Creek,TX,78063,false,true,false,openstreetmap
+Capitol Park Little League,baseball,sports_centre,29.5440375,-98.4318177,3503 Crosspoint,San Antonio,TX,78217,false,true,false,openstreetmap
+Nelson W Wolff San Antonio Municipal Stadium,baseball,stadium,29.4091653,-98.6011982,5757 West US Highway 90,San Antonio,TX,78227,false,true,false,openstreetmap
+The Hack Shack,baseball,pitch,29.5473625,-98.4695222,1502 East Bitters Road,San Antonio,TX,78216,false,true,false,openstreetmap
+Thulemeyer Park,baseball,park,29.5556461,-98.280687,901 Oak Street,Schertz,TX,78154,false,true,false,openstreetmap
+Baker Field,baseball,pitch,33.647072,-96.6001112,1105 East Brockett Street,Sherman,TX,75090,false,true,false,openstreetmap
+The Woodshed Batting Cages,baseball,sports_hall,30.0587593,-95.5465097,19825 Stuebner Airline Road,Spring,TX,77379,false,true,false,openstreetmap
+Constellation Field,baseball,stadium,29.6225905,-95.6469991,1 Stadium Drive,Sugar Land,TX,77479,false,true,false,openstreetmap
+Cougar Baseball Field,baseball,pitch,30.1116839,-95.6218504,,Tomball,TX,,false,true,false,openstreetmap
+Mike Carter Field,baseball,stadium,32.342363,-95.3216474,1718 West Houston Street,Tyler,TX,75702,false,true,false,openstreetmap

@@ -1,0 +1,79 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+16,football,pitch,37.3954618,-77.5062116,,,VA,,false,true,false,openstreetmap
+Alberta Smith Elementary Football Field,football,pitch,37.3966063,-77.6404003,,,VA,,false,true,false,openstreetmap
+Alumni Memorial Field,football,pitch,37.7890443,-79.4348873,,,VA,,false,true,false,openstreetmap
+Andrews Middle School Field,football,pitch,37.5785615,-77.5196096,,,VA,,false,true,false,openstreetmap
+Apprentice Athletic Field,football,stadium,36.9928927,-76.4229327,,,VA,,false,true,false,openstreetmap
+Averett University Football Field,football,pitch,36.595059,-79.4384321,,,VA,,false,true,false,openstreetmap
+Averett University Football Field,football,pitch,36.595161,-79.4368079,,,VA,,false,true,false,openstreetmap
+Bailey Field,football,pitch,37.2044117,-76.4977076,,,VA,,false,true,false,openstreetmap
+Beard DeLong Easley Field,football,pitch,36.7395284,-76.2587572,,,VA,,false,true,false,openstreetmap
+Bill Allen Field,football,pitch,38.9994827,-77.4090492,,,VA,,false,true,false,openstreetmap
+Bobby Ross Stadium,football,pitch,37.5822188,-77.673822,,,VA,,false,true,false,openstreetmap
+Bogle Field,football,stadium,37.2148074,-80.0173397,,,VA,,false,true,false,openstreetmap
+Bridgeforth Stadium,football,stadium,38.4352865,-78.8730824,,,VA,,false,true,false,openstreetmap
+Butler Stadium,football,pitch,38.5177609,-77.3049812,,,VA,,false,true,false,openstreetmap
+Cary Field,football,pitch,37.2729272,-76.7143569,,,VA,,false,true,false,openstreetmap
+Churchland Peewee Football,football,pitch,36.8582349,-76.3828699,,,VA,,false,true,false,openstreetmap
+Coffey Stadium,football,pitch,38.8167008,-77.305456,,,VA,,false,true,false,openstreetmap
+Colon L. Hall Stadium,football,stadium,36.7084867,-76.2334266,,,VA,,false,true,false,openstreetmap
+Costello Stadium,football,pitch,37.8272669,-78.2753162,,,VA,,false,true,false,openstreetmap
+Day Field,football,pitch,37.764191,-77.4776074,,,VA,,false,true,false,openstreetmap
+Dick Dyer Football Field,football,pitch,36.8303582,-79.4022329,,,VA,,false,true,false,openstreetmap
+Dobson Stadium,football,sports_centre,37.090247,-80.7173099,,,VA,,false,true,false,openstreetmap
+Eagle Stadium,football,pitch,38.5874508,-77.7677513,,,VA,,false,true,false,openstreetmap
+Ed Bassett Stadium,football,pitch,36.7287099,-79.9588535,,,VA,,false,true,false,openstreetmap
+Ernie Hicks Stadium,football,pitch,37.0947836,-81.7778491,,,VA,,false,true,false,openstreetmap
+FHS Lacrosse Field,football,pitch,38.8703148,-77.321386,,,VA,,false,true,false,openstreetmap
+Fairfax High School,football,pitch,38.8617272,-77.2861193,,,VA,,false,true,false,openstreetmap
+Field #3,football,pitch,38.8331167,-77.3231607,,,VA,,false,true,false,openstreetmap
+Fiorni Field,football,pitch,37.787954,-79.4339358,,,VA,,false,true,false,openstreetmap
+Floyd County High School Football Field,football,pitch,36.9082113,-80.3067,,,VA,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,38.4645552,-77.4555615,,,VA,,false,true,false,openstreetmap
+George Welsh Indoor Practice Field,football,pitch,38.0436035,-78.5077093,,,VA,,false,true,false,openstreetmap
+Harry W Aikens Field,football,pitch,39.1658926,-78.1558385,,,VA,,false,true,false,openstreetmap
+Heritage High School Football Field,football,pitch,39.0849702,-77.5708214,,,VA,,false,true,false,openstreetmap
+Heritage High School Football Practice Field,football,pitch,39.0859578,-77.570513,,,VA,,false,true,false,openstreetmap
+Hokies Practice Field,football,pitch,37.2215418,-80.4180547,,,VA,,false,true,false,openstreetmap
+Hovey Field,football,pitch,37.561265,-77.4487731,,,VA,,false,true,false,openstreetmap
+Indoor training field,football,sports_hall,39.0272839,-77.4462788,,,VA,,false,true,false,openstreetmap
+JRHS Swamp (Football Field),football,pitch,37.5530492,-77.6522909,,,VA,,false,true,false,openstreetmap
+Johnson Field,football,pitch,37.45126,-79.1890997,,,VA,,false,true,false,openstreetmap
+Kelican Field,football,pitch,38.7212636,-77.8132326,,,VA,,false,true,false,openstreetmap
+Knowles Field,football,pitch,37.5801511,-77.5187877,,,VA,,false,true,false,openstreetmap
+Kornblau Field,football,pitch,36.8889104,-76.3048891,,,VA,,false,true,false,openstreetmap
+LCA Bulldog Stadium,football,pitch,37.3633075,-79.1736133,,,VA,,false,true,false,openstreetmap
+Lunenburg Lightning,football,pitch,36.9590213,-78.1129236,,,VA,,false,true,false,openstreetmap
+Marching Band Field,football,pitch,39.1547216,-77.7242198,,,VA,,false,true,false,openstreetmap
+Marching Virginians Practice Field,football,pitch,37.2152824,-80.4154692,,,VA,,false,true,false,openstreetmap
+Martin Family Stadium at Albert-Daly Field,football,pitch,37.2911645,-76.7327676,,,VA,,false,true,false,openstreetmap
+McLean High Football Stadium,football,pitch,38.9246682,-77.1858807,,,VA,,false,true,false,openstreetmap
+Phil Browning Field,football,pitch,37.8761229,-78.2992407,,,VA,,false,true,false,openstreetmap
+Practice Field,football,pitch,37.6986549,-77.8954431,,,VA,,false,true,false,openstreetmap
+Practice Field,football,pitch,36.8476289,-76.2529133,,,VA,,false,true,false,openstreetmap
+Practice Field,football,pitch,38.4362924,-78.8632856,,,VA,,false,true,false,openstreetmap
+Practice Field,football,pitch,38.436829,-78.8632982,,,VA,,false,true,false,openstreetmap
+Proctor Field,football,pitch,38.98311,-78.363422,,,VA,,false,true,false,openstreetmap
+RAC Field,football,pitch,38.8321779,-77.3124232,,,VA,,false,true,false,openstreetmap
+Radford Bob Cats High School Football Field,football,pitch,37.133186,-80.568371,,,VA,,false,true,false,openstreetmap
+Ragsdale Field,football,pitch,37.3274113,-80.8141655,,,VA,,false,true,false,openstreetmap
+Rams Football Field,football,pitch,39.0911299,-77.4854327,,,VA,,false,true,false,openstreetmap
+Randolph Field,football,pitch,36.6017346,-82.1982125,,,VA,,false,true,false,openstreetmap
+SB Ballard Stadium,football,stadium,36.8889086,-76.3048957,,,VA,,false,true,false,openstreetmap
+Sanford B Wanner Stadium,football,stadium,37.3294636,-76.7612033,,,VA,,false,true,false,openstreetmap
+Tabb Middle School Football Field,football,pitch,37.1240385,-76.4517462,,,VA,,false,true,false,openstreetmap
+TowneBank Stadium,football,stadium,37.0643943,-76.4991589,,,VA,,false,true,false,openstreetmap
+Wallace Bolding Stadium,football,pitch,38.8220091,-77.2101383,,,VA,,false,true,false,openstreetmap
+War Memorial Building & Field,football,pitch,37.5472975,-77.9197154,Skaggs Road,,VA,,false,true,false,openstreetmap
+Water's Field,football,pitch,38.8999697,-77.2619613,,,VA,,false,true,false,openstreetmap
+Westfield High School Football Stadium,football,pitch,38.8882153,-77.4668229,,,VA,,false,true,false,openstreetmap
+Williams Stadium,football,stadium,37.3542888,-79.1749555,,,VA,,false,true,false,openstreetmap
+Willis White Field,football,pitch,37.2876517,-80.0364411,,,VA,,false,true,false,openstreetmap
+Wilson Field,football,pitch,37.7907185,-79.4459251,,,VA,,false,true,false,openstreetmap
+Worsham Field,football,pitch,37.2200062,-80.4180552,,,VA,,false,true,false,openstreetmap
+Zane Showker Field,football,pitch,38.4352432,-78.8729413,,,VA,,false,true,false,openstreetmap
+BigBear.ai Performance Center,football,sports_centre,39.026099,-77.4441978,21300 Coach Gibbs Drive,Ashburn,VA,20147,false,true,false,openstreetmap
+Lane Stadium,football,stadium,37.2198948,-80.4180467,285 Beamer Way,Blacksburg,VA,24061,false,true,false,openstreetmap
+Football Field at Riverbend High School,football,pitch,38.2979319,-77.5770558,12301 Spotswood Furnace Road,Fredericksburg,VA,22407,false,true,false,openstreetmap
+Hopewell High School Football Field,football,pitch,37.3019573,-77.2980612,North 12th Avenue,Hopewell,VA,23860,false,true,false,openstreetmap
+Lynchburg City Stadium,football,stadium,37.3932929,-79.1671949,3176 Fort Avenue,Lynchbur,VA,24501,false,true,false,openstreetmap

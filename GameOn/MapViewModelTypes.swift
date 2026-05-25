@@ -139,7 +139,7 @@ enum CalendarTabGameFilter: String, CaseIterable, Identifiable, Equatable {
     var segmentTitle: String {
         switch self {
         case .venueGames: return "Venue Games"
-        case .pickupGames: return "Pickup Games"
+        case .pickupGames: return "Community Games"
         case .proGames: return "Pro Games"
         }
     }

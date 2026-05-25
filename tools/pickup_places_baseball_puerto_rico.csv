@@ -1,0 +1,114 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bravos de Cidra,baseball,pitch,18.1815144,-66.1598479,,,PR,,false,true,false,openstreetmap
+Cancha Bajo Techo Bo. Pastillito,baseball,pitch,18.0085469,-66.4904688,,,PR,,false,true,false,openstreetmap
+Cangrejos de Santurce,baseball,pitch,18.4173275,-66.0731279,,,PR,,false,true,false,openstreetmap
+Estadio Adolfo Hanni Carillo,baseball,stadium,18.2091537,-65.7326942,,,PR,,false,true,false,openstreetmap
+Estadio Carlos Román Brull,baseball,stadium,18.4492444,-66.3934768,,,PR,,false,true,false,openstreetmap
+Estadio Concepción Pérez Alberto,baseball,stadium,18.3310215,-65.650479,,,PR,,false,true,false,openstreetmap
+Estadio Donna Terry,baseball,pitch,18.3739703,-66.1105702,,,PR,,false,true,false,openstreetmap
+Estadio Evelio Rivera Camacho,baseball,pitch,18.3343032,-66.1040337,,,PR,,false,true,false,openstreetmap
+"Estadio Félix ""Nacho"" Millán Martínez",baseball,stadium,18.0456209,-65.8719906,,,PR,,false,true,false,openstreetmap
+Estadio Hermanos Juan y Ernesto Miura,baseball,pitch,18.1381203,-67.1205029,,,PR,,false,true,false,openstreetmap
+Estadio Hiram Bithorn Sosa,baseball,stadium,18.4168195,-66.0729761,,,PR,,false,true,false,openstreetmap
+"Estadio I Luis A. ""Pegui"" Mercado Toro",baseball,pitch,18.0775396,-66.3673517,,,PR,,false,true,false,openstreetmap
+Estadio II,baseball,pitch,18.0778239,-66.366762,,,PR,,false,true,false,openstreetmap
+Estadio III,baseball,pitch,18.0773319,-66.3665205,,,PR,,false,true,false,openstreetmap
+"Estadio José ""Pepito"" Bonano",baseball,pitch,18.3742097,-66.1121653,,,PR,,false,true,false,openstreetmap
+Estadio Manuel González,baseball,stadium,17.9761401,-66.2943939,,,PR,,false,true,false,openstreetmap
+Estadio Roberto Clemente Walker,baseball,stadium,18.37683,-65.9493243,,,PR,,false,true,false,openstreetmap
+Estadio Yldefonso Solá Morales,baseball,stadium,18.2264225,-66.0342864,,,PR,,false,true,false,openstreetmap
+Indios de Mayagüez,baseball,pitch,18.193016,-67.155063,,,PR,,false,true,false,openstreetmap
+Parque Alexander Rivas Ramírez,baseball,pitch,18.0770826,-66.326519,,,PR,,false,true,false,openstreetmap
+Parque Atlético de París,baseball,pitch,18.2044825,-67.1338949,,,PR,,false,true,false,openstreetmap
+Parque Biffy Meléndez,baseball,pitch,18.5007834,-67.0161784,,,PR,,false,true,false,openstreetmap
+Parque Brenda Liz Colón Figueroa,baseball,pitch,18.0483331,-66.036851,,,PR,,false,true,false,openstreetmap
+Parque Canuto de León,baseball,pitch,18.1962071,-65.8131654,,,PR,,false,true,false,openstreetmap
+Parque Celestino Román Lay,baseball,pitch,18.4743915,-66.3485814,,,PR,,false,true,false,openstreetmap
+Parque Clemente de Jesús,baseball,pitch,18.2801264,-66.043253,,,PR,,false,true,false,openstreetmap
+Parque Comunidad del Ceiba,baseball,pitch,18.422279,-65.8350858,,,PR,,false,true,false,openstreetmap
+Parque César Agusto Santiago,baseball,pitch,18.4174191,-67.1545643,,,PR,,false,true,false,openstreetmap
+Parque Dolores Cruz,baseball,park,18.4290076,-66.1717465,,,PR,,false,true,false,openstreetmap
+Parque El 20,baseball,pitch,18.34638,-66.0931479,,,PR,,false,true,false,openstreetmap
+Parque Elsie Leonor Morales Gittens,baseball,pitch,18.2221371,-66.0592108,,,PR,,false,true,false,openstreetmap
+Parque Fernando Lucas Marín,baseball,pitch,18.4457337,-66.6642162,,,PR,,false,true,false,openstreetmap
+"Parque Francisco ""Panchito"" Silvagnoli",baseball,pitch,18.3892369,-66.1921519,,,PR,,false,true,false,openstreetmap
+Parque Francisco A. Sabater Rodríguez,baseball,pitch,17.9919273,-66.6525951,,,PR,,false,true,false,openstreetmap
+Parque Ismael “Maelo” González Ayala,baseball,pitch,18.4342486,-66.0376847,,,PR,,false,true,false,openstreetmap
+Parque John Bryan Alma,baseball,pitch,18.5006882,-67.0152415,,,PR,,false,true,false,openstreetmap
+Parque José Guillermo Alcadey,baseball,pitch,18.2478381,-67.1741444,,,PR,,false,true,false,openstreetmap
+"Parque José Manuel ""Chepito"" Figueroa",baseball,pitch,18.3939979,-65.9599274,,,PR,,false,true,false,openstreetmap
+Parque Julio Enrique Monagas,baseball,pitch,18.2318033,-66.029536,,,PR,,false,true,false,openstreetmap
+"Parque Luis ""Gugo"" Suárez",baseball,pitch,18.0090391,-65.8978173,,,PR,,false,true,false,openstreetmap
+Parque Martín Lebrón,baseball,pitch,18.1470288,-65.8959556,,,PR,,false,true,false,openstreetmap
+Parque Mayor,baseball,pitch,18.3922718,-66.116651,,,PR,,false,true,false,openstreetmap
+Parque Menor,baseball,pitch,18.3915208,-66.1150298,,,PR,,false,true,false,openstreetmap
+Parque Pedro Juan Vega Torres,baseball,pitch,18.454602,-66.7400414,,,PR,,false,true,false,openstreetmap
+Parque Puente de Jobos,baseball,pitch,17.9569144,-66.1652659,,,PR,,false,true,false,openstreetmap
+Parque Puerto de Jobos,baseball,pitch,17.9529998,-66.1779042,,,PR,,false,true,false,openstreetmap
+"Parque Rafael ""Caró"" Maldonado",baseball,pitch,17.9987153,-66.6032848,,,PR,,false,true,false,openstreetmap
+Parque Ramón Rodríguez,baseball,pitch,18.0747681,-66.1439314,,,PR,,false,true,false,openstreetmap
+Parque Riverview,baseball,pitch,18.4170418,-66.1644982,,,PR,,false,true,false,openstreetmap
+Parque Samuel Rosario Rivera,baseball,pitch,18.3428097,-66.4692694,,,PR,,false,true,false,openstreetmap
+Parque Santa Cruz,baseball,pitch,18.3514805,-65.9383968,,,PR,,false,true,false,openstreetmap
+Parque Santa Rosa 1,baseball,pitch,18.3439295,-66.1212017,,,PR,,false,true,false,openstreetmap
+Parque Servando Tatito Carrasquillo,baseball,pitch,18.1912346,-65.9625826,,,PR,,false,true,false,openstreetmap
+Parque Turabo Gardens,baseball,pitch,18.2224453,-66.0596245,,,PR,,false,true,false,openstreetmap
+Parque William Rivera Rosario,baseball,pitch,18.2115134,-67.1523079,,,PR,,false,true,false,openstreetmap
+Parque Yambele,baseball,pitch,18.3823935,-66.0990404,,,PR,,false,true,false,openstreetmap
+Parque de Beisbol Fair View,baseball,pitch,18.363557,-66.0346563,,,PR,,false,true,false,openstreetmap
+Parque de Cedro,baseball,pitch,18.2961007,-65.9149862,,,PR,,false,true,false,openstreetmap
+Parque de Pelota Montellano,baseball,pitch,18.2958537,-66.2072368,,,PR,,false,true,false,openstreetmap
+Parque de Pelota Villa Marina,baseball,pitch,18.2525543,-65.9768332,,,PR,,false,true,false,openstreetmap
+Parque de Pelota de Palmas Bajas,baseball,pitch,18.0124888,-66.1192658,,,PR,,false,true,false,openstreetmap
+Parque de Pequeñas Ligas Henry Ramos Lebrón,baseball,pitch,18.0035845,-65.8967351,,,PR,,false,true,false,openstreetmap
+"Parque Ángel Manuel ""Manolito"" Sullivan Rodríguez",baseball,stadium,18.2222821,-66.0247453,,,PR,,false,true,false,openstreetmap
+Pista Bo. Carreras,baseball,pitch,18.2875934,-67.1208958,,,PR,,false,true,false,openstreetmap
+Puerto Rico Baseball Academy and High School Training Center,baseball,pitch,18.2226457,-66.026361,,,PR,,false,true,false,openstreetmap
+Universidad del Turabo,baseball,pitch,18.2440179,-66.0050279,,,PR,,false,true,false,openstreetmap
+"Estadio Guillermo ""Guillito"" Hernández Villanueva",baseball,stadium,18.3782483,-67.1951697,Avenida Nativo Alers,Aguada,PR,00602,false,true,false,openstreetmap
+"Estadio Luis A. ""Canena"" Márquez",baseball,stadium,18.4373279,-67.1467938,,Aguadilla,PR,00603,false,true,false,openstreetmap
+Estadio Manolo Fontánez,baseball,stadium,18.2569605,-66.1087838,Carretera Bayamón - Aguas Buenas,Aguas Buenas,PR,00703,false,true,false,openstreetmap
+Mini Estadio Gregoria Tejada Rodríguez,baseball,stadium,18.4391267,-66.6813652,Calle 4,Arecibo,PR,00616,false,true,false,openstreetmap
+"Estadio José ""Cheo"" Cruz",baseball,stadium,17.9791266,-66.0705693,"Carretera Myrna Ivette ""Cuitza"" Rivera Torres",Arroyo,PR,00714,false,true,false,openstreetmap
+Estadio José Ignacio Camacho,baseball,stadium,18.4557669,-66.5410983,Avenida Palmas Altas,Barceloneta,PR,00617,false,true,false,openstreetmap
+Estadio Marcelino Blondet,baseball,stadium,17.972389,-66.1166402,Avenida José A. Torres,Barrio Pueblo,PR,,false,true,false,openstreetmap
+"Estadio Juan Francisco ""Cheo"" López Cabán",baseball,stadium,18.484455,-66.8416922,Avenida Luis Muñoz Rivera,Camuy,PR,00627,false,true,false,openstreetmap
+Parque de Doble A Roberto Clemente Walker,baseball,stadium,18.389185,-65.959662,Calle 23,Carolina,PR,00985,false,true,false,openstreetmap
+Estadio Guillermo Montañez,baseball,stadium,18.446772,-66.1358476,Calle Parque,Cataño,PR,00962,false,true,false,openstreetmap
+"Estadio Pedro ""Perucho"" Cepeda",baseball,stadium,18.4381197,-66.1257746,Avenida José Celso Barbosa,Cataño,PR,,false,true,false,openstreetmap
+Estadio Pedro Montañez,baseball,stadium,18.1167492,-66.1678399,Extensión Avenida Luis Muñoz Rivera,Cayey,PR,00736,false,true,false,openstreetmap
+"Estadio de Pequeñas Ligas Ingeniero Daniel ""Junior"" Oquendo Figueroa",baseball,stadium,18.1467907,-66.1006335,,Cayey,PR,00736,false,true,false,openstreetmap
+Estadio Nito Cotijo,baseball,stadium,18.2597752,-65.6465519,Calle Complejo Deportivo II,Ceiba,PR,00735,false,true,false,openstreetmap
+Estadio Jesús M. Fuertes,baseball,stadium,18.1811224,-66.1593426,Calle Irma,Cidra,PR,00739,false,true,false,openstreetmap
+"Estadio Luis ""Papa"" Rivera",baseball,stadium,18.1813616,-66.1581718,,Cidra,PR,00739,false,true,false,openstreetmap
+"Complejo Deportivo de Pequeñas Ligas Luis Alberto ""Negrito"" Ortiz Aponte",baseball,sports_centre,18.0772901,-66.3668707,Av. Luis Muñoz Marín,Coamo,PR,,false,true,false,openstreetmap
+Estadio Pedro Miguel Caratini,baseball,stadium,18.0697575,-66.3636894,Avenida José Ignacio Quintón,Coamo,PR,00769,false,true,false,openstreetmap
+Estadio Howard T. Jason,baseball,stadium,18.3411263,-66.3194575,,Corozal,PR,00783,false,true,false,openstreetmap
+Estadio Juan Eugenio Bou Cintrón,baseball,stadium,17.9548465,-66.1629582,Carretera Guayama - Salinas,Guayama,PR,00784,false,true,false,openstreetmap
+"Estadio Luis A. ""Pegui"" Mercado Toro",baseball,stadium,18.0225085,-66.7876191,Avenida Marcelo Trujillo Panisse,Guayanilla,PR,00656,false,true,false,openstreetmap
+Mini Estadio José Miguel Zavala Díaz,baseball,stadium,18.2802057,-66.0066079,Carretera Jaguas,Gurabo,PR,00778,false,true,false,openstreetmap
+Estadio Hermanos Ernesto y Juan Mira,baseball,stadium,18.1382977,-67.1203718,Calle Julio Pérez Irizarry,Hormigueros,PR,00660,false,true,false,openstreetmap
+Estadio Félix Mantilla,baseball,stadium,18.5006294,-67.0184566,Calle Pascua,Isabela,PR,00662,false,true,false,openstreetmap
+Estadio Marcos A. Massani,baseball,stadium,18.2171788,-66.5963342,,Jayuya,PR,00664,false,true,false,openstreetmap
+"Estadio José Rafael ""Palillo"" Santiago Alfonso",baseball,stadium,18.058833,-66.5104721,Boulevard Carlos Bernier Rodríguez,Juana Díaz,PR,00795,false,true,false,openstreetmap
+Estadio Raúl Torres Martínez,baseball,stadium,18.047278,-66.491761,PR-510,Juana Díaz,PR,00795,false,true,false,openstreetmap
+"Estadio Mariano ""Nini"" Meaux",baseball,stadium,18.2317889,-65.9251116,,Juncos,PR,,false,true,false,openstreetmap
+Estadio Francisco Negrón Díaz,baseball,stadium,18.1934338,-65.8834021,Calle José Celso Barbosa,Las Piedras,PR,00771,false,true,false,openstreetmap
+Estadio Miguel Fuentes Pinet,baseball,stadium,18.4334418,-65.8775358,Carretera 187,Loíza,PR,00772,false,true,false,openstreetmap
+Estadio Cabo Joaquín Robles,baseball,stadium,18.3784517,-65.7176909,Calle Benigno Fernández García,Luquillo,PR,00773,false,true,false,openstreetmap
+Estadio Francisco Rosario Paoli,baseball,stadium,18.0025001,-65.895693,Ruta Panorámica Luis Muñoz Marín / Carretera Ernesto Carasquillo,Maunabo,PR,00707,false,true,false,openstreetmap
+Estadio Isidoro García,baseball,stadium,18.1925136,-67.1545899,Avenida William C. Dunscombe,Mayagüez,PR,00682,false,true,false,openstreetmap
+Estadio Jorge ''Múcaro'' Rosas,baseball,stadium,18.1752195,-67.1437419,Camino Bechara,Mayagüez,PR,00682,false,true,false,openstreetmap
+Estadio Pelegrín Muñiz,baseball,stadium,18.3926369,-67.1103869,Calle José Celso Barbosa,Moca,PR,,false,true,false,openstreetmap
+Estadio Luis Martínez Lago,baseball,stadium,18.3358213,-66.4098496,Avenida Buenavista,Morovis,PR,00687,false,true,false,openstreetmap
+"Estadio Rafael ""Rafa"" Martínez Rivera",baseball,stadium,18.2224469,-66.3913584,Calle Teniente Juan de Rivera y Santiago (Calle Hospital),Orocovis,PR,00720,false,true,false,openstreetmap
+Estadio Gaspar Cochran,baseball,stadium,18.0063133,-66.0180811,Carretera Patillas - Arroyo,Patillas,PR,00723,false,true,false,openstreetmap
+"Estadio Luis ""Tite"" Arroyo",baseball,stadium,18.0519372,-66.7188526,Calle 2A,Peñuelas,PR,00624,false,true,false,openstreetmap
+Estadio Ovidio de Jesús,baseball,stadium,18.3761909,-65.8349971,Calle Marginal,Río Grande,PR,,false,true,false,openstreetmap
+"Estadio Municipal Rafael ""Tato"" Joglar Solís",baseball,stadium,18.3954274,-66.0686935,Calle 5,San Juan,PR,,false,true,false,openstreetmap
+"Estadio Cristóbal ""Cagüitas"" Colón",baseball,stadium,18.1877698,-65.9680916,,San Lorenzo,PR,00754,false,true,false,openstreetmap
+"Estadio Juan José ""Tití"" Beníquez",baseball,stadium,18.3444472,-66.9922975,Carretera Profesor Enrique A. Laguerre,San Sebastián,PR,00685,false,true,false,openstreetmap
+Estadio Luis Guillermo Moreno,baseball,stadium,17.9565815,-66.4035157,Calle José Celis Aguilera,Santa Isabel,PR,00757,false,true,false,openstreetmap
+Estadio Efraín de Jesús,baseball,stadium,18.3906774,-66.2497587,Carretera 861,Toa Alta,PR,00953,false,true,false,openstreetmap
+Mini-Estadio Clara Vázquez Serrano,baseball,stadium,18.3453568,-66.2711973,Carretera Naranjito - Toa Alta,Toa Alta,PR,00953,false,true,false,openstreetmap
+Estadio Herminio Cintrón,baseball,stadium,18.1267281,-66.4906178,Calle Alcalde Walter McKown Jones,Villalba,PR,00766,false,true,false,openstreetmap

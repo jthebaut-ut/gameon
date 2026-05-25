@@ -433,6 +433,8 @@ private struct PickupBulkImportPreviewRowView: View {
 
                     Spacer(minLength: 8)
 
+                    GameFormatBadgeView(format: row.gameType, colorScheme: colorScheme)
+
                     Text(row.status.displayTitle)
                         .font(FGTypography.caption.weight(.black))
                         .foregroundStyle(statusTint)
@@ -448,6 +450,13 @@ private struct PickupBulkImportPreviewRowView: View {
 
                 if !row.locationLine.isEmpty {
                     Text(cityStateLine)
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+                }
+
+                if let metadataLine {
+                    Text(metadataLine)
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                         .lineLimit(2)
@@ -489,6 +498,16 @@ private struct PickupBulkImportPreviewRowView: View {
 
     private var cityStateLine: String {
         [row.city, row.state].filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    private var metadataLine: String? {
+        let values = [row.leagueName, row.homeTeam, row.awayTeam, row.season, row.division]
+            .compactMap { value -> String? in
+                guard let value, !value.isEmpty else { return nil }
+                return value
+            }
+        guard !values.isEmpty else { return nil }
+        return values.joined(separator: " • ")
     }
 
     private static let dateFormatter: DateFormatter = {

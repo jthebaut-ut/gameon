@@ -1,0 +1,52 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bob Shelden Field,baseball,pitch,44.2981656,-96.785759,,,SD,,false,true,false,openstreetmap
+Boys Major Field,baseball,pitch,44.0721319,-103.2714477,,,SD,,false,true,false,openstreetmap
+Boys Minor Field,baseball,pitch,44.0714775,-103.2708921,,,SD,,false,true,false,openstreetmap
+Brewster/Gunderson Baseball Field,baseball,pitch,45.6592973,-97.0433725,,,SD,,false,true,false,openstreetmap
+Bryant Post 37 American Legion Field,baseball,pitch,44.5881036,-97.4699741,,,SD,,false,true,false,openstreetmap
+Bullpen,baseball,pitch,44.2978142,-96.7864268,,,SD,,false,true,false,openstreetmap
+Bullpen,baseball,pitch,44.2986417,-96.78527,,,SD,,false,true,false,openstreetmap
+CMS Explorers Field,baseball,pitch,43.7906063,-99.3226946,,,SD,,false,true,false,openstreetmap
+Canyon Lake Little League,baseball,pitch,44.0701301,-103.2697331,,,SD,,false,true,false,openstreetmap
+Canyon Lake Little League,baseball,pitch,44.0702742,-103.2708445,,,SD,,false,true,false,openstreetmap
+Collins Field,baseball,pitch,44.0698828,-103.2714833,,,SD,,false,true,false,openstreetmap
+DC Field,baseball,pitch,44.7601225,-96.6762779,,,SD,,false,true,false,openstreetmap
+DNRC Field,baseball,pitch,43.8327303,-96.7130868,,,SD,,false,true,false,openstreetmap
+Diamond C,baseball,pitch,43.6398471,-97.0707864,,,SD,,false,true,false,openstreetmap
+Don Giese Field (Greig Field),baseball,pitch,43.804802,-99.3301825,,,SD,,false,true,false,openstreetmap
+Erv Huether Field,baseball,pitch,44.3225398,-96.7771448,,,SD,,false,true,false,openstreetmap
+Field A,baseball,pitch,44.298087,-96.7880264,,,SD,,false,true,false,openstreetmap
+Field B,baseball,pitch,44.2974473,-96.7880283,,,SD,,false,true,false,openstreetmap
+Field C,baseball,pitch,44.2974445,-96.7871203,,,SD,,false,true,false,openstreetmap
+Field D,baseball,pitch,44.2980689,-96.7871257,,,SD,,false,true,false,openstreetmap
+Field E,baseball,pitch,43.819569,-96.7045652,,,SD,,false,true,false,openstreetmap
+Field F,baseball,pitch,43.8191774,-96.7033456,,,SD,,false,true,false,openstreetmap
+Floyd Fitzgerald Stadium,baseball,pitch,44.0753772,-103.2633448,,,SD,,false,true,false,openstreetmap
+Freeman Public Baseball Diamond,baseball,pitch,43.3554492,-97.4292875,,,SD,,false,true,false,openstreetmap
+Gary City Field,baseball,pitch,44.7929352,-96.4535552,,,SD,,false,true,false,openstreetmap
+Hickey Field,baseball,pitch,44.0708288,-103.270173,,,SD,,false,true,false,openstreetmap
+Hyde Baseball Stadium,baseball,pitch,44.3641816,-100.3446376,,,SD,,false,true,false,openstreetmap
+Jamie Johnson Field,baseball,pitch,44.068322,-103.2714931,,,SD,,false,true,false,openstreetmap
+Ken Hurley Field,baseball,pitch,44.084504,-103.2110455,,,SD,,false,true,false,openstreetmap
+Klock Field,baseball,pitch,44.367795,-98.1983763,,,SD,,false,true,false,openstreetmap
+Koch Softball Complex,baseball,sports_centre,44.8995744,-97.1441327,,,SD,,false,true,false,openstreetmap
+Langland Field,baseball,pitch,44.284582,-96.6900553,,,SD,,false,true,false,openstreetmap
+Larry Trautman Field,baseball,pitch,44.4929965,-103.8742827,,,SD,,false,true,false,openstreetmap
+Lavin Field,baseball,pitch,44.7603829,-96.6849713,,,SD,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,45.2253728,-96.6418816,,,SD,,false,true,false,openstreetmap
+McKeague Field,baseball,pitch,44.0756021,-103.2659766,,,SD,,false,true,false,openstreetmap
+Memorial Field Stadium,baseball,pitch,44.3689341,-98.1978707,,,SD,,false,true,false,openstreetmap
+Pesek Field,baseball,pitch,44.0844114,-103.2103025,,,SD,,false,true,false,openstreetmap
+Pete Lien Field,baseball,pitch,44.077504,-103.2631312,,,SD,,false,true,false,openstreetmap
+Plankinton Baseball Field,baseball,pitch,43.7134691,-98.4660675,,,SD,,false,true,false,openstreetmap
+Prentis Park Baseball Field,baseball,pitch,42.7817224,-96.9175633,,,SD,,false,true,false,openstreetmap
+Ronken Field,baseball,pitch,43.5208805,-96.743315,,,SD,,false,true,false,openstreetmap
+Saukerson Field,baseball,pitch,43.8068326,-99.3336207,,,SD,,false,true,false,openstreetmap
+Schoenhard Field,baseball,pitch,43.8030598,-99.3320383,,,SD,,false,true,false,openstreetmap
+Scotland City Park (Ballfield),baseball,pitch,43.1526456,-97.7117533,,,SD,,false,true,false,openstreetmap
+United Field,baseball,pitch,44.0693547,-103.2703982,,,SD,,false,true,false,openstreetmap
+Volunteer Field,baseball,pitch,43.8197553,-96.7060369,,,SD,,false,true,false,openstreetmap
+West Central Elementary School Baseball Field,baseball,pitch,43.6227462,-96.940771,,,SD,,false,true,false,openstreetmap
+Rickeman Field,baseball,pitch,43.8195739,-96.7088449,550 Zero Street,Dell Rapids,SD,57022,false,true,false,openstreetmap
+Uscoe Ballfield,baseball,pitch,44.0627229,-99.4602737,33630 Shore Beach Road,Fort Thompson,SD,57339,false,true,false,openstreetmap
+Sioux Falls Stadium,baseball,stadium,43.559576,-96.7488983,1001 North West Avenue,Sioux Falls,SD,57104,false,true,false,openstreetmap

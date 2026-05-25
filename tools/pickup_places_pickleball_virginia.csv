@@ -1,0 +1,14 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bangers & Dinks Indoor Pickleball,pickleball,pitch,37.515199,-77.6102762,1516 Koger Center Boulevard,,VA,23235,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,pickleball,pitch,37.2425199,-80.4075144,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.0769797,-80.7260939,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.0769093,-80.7259863,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.07685,-80.726222,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.0767786,-80.7261149,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.0760454,-80.7267893,,,VA,,false,true,false,openstreetmap
+Indoor Pickleball Court,pickleball,pitch,37.0761761,-80.7266608,,,VA,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,37.5447214,-76.5263105,,,VA,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,37.6425923,-77.3032822,,,VA,,false,true,false,openstreetmap
+The Pickleball Club of Tysons,pickleball,sports_centre,38.9334935,-77.2402171,8528 Tyco Road,,VA,22182,false,true,false,openstreetmap
+Village Pickle,pickleball,pitch,39.0895178,-77.5237238,1606 Village Market Boulevard Southeast,Leesburg,VA,20175,false,true,false,openstreetmap
+Colts Neck Pickleball Courts,pickleball,pitch,38.9299914,-77.3646805,Colts Neck Road,Reston,VA,,false,true,false,openstreetmap

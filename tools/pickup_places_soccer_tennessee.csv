@@ -1,0 +1,115 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+"""Blue Courts""",soccer,pitch,35.8629933,-84.1249208,,,TN,,false,true,false,openstreetmap
+AYSO 1390 Soccer Field,soccer,pitch,35.9783125,-83.8317767,,,TN,,false,true,false,openstreetmap
+AYSO 1390 Soccer Field,soccer,pitch,35.9788365,-83.8300102,,,TN,,false,true,false,openstreetmap
+AYSO U14/U15 Field,soccer,pitch,35.9864704,-84.0015513,,,TN,,false,true,false,openstreetmap
+AYSO-124 U10 Field 1,soccer,pitch,35.9889186,-84.0006316,,,TN,,false,true,false,openstreetmap
+AYSO-124 U10 Field 2,soccer,pitch,35.9887083,-84.0010813,,,TN,,false,true,false,openstreetmap
+AYSO-124 U12  Field,soccer,pitch,35.9883002,-84.0015184,,,TN,,false,true,false,openstreetmap
+AYSO-124 U6 Field 1,soccer,pitch,35.9873946,-84.0020276,,,TN,,false,true,false,openstreetmap
+AYSO-124 U6 Field 2,soccer,pitch,35.9876141,-84.0018227,,,TN,,false,true,false,openstreetmap
+AYSO-124 U6 Field 3,soccer,pitch,35.9878327,-84.0016261,,,TN,,false,true,false,openstreetmap
+AYSO-124 U8 Field 1,soccer,pitch,35.9875564,-84.0021943,,,TN,,false,true,false,openstreetmap
+AYSO-124 U8 Field 2,soccer,pitch,35.987854,-84.0019289,,,TN,,false,true,false,openstreetmap
+AYSO-124 U8 Field 3,soccer,pitch,35.9881309,-84.001785,,,TN,,false,true,false,openstreetmap
+Athletics Field,soccer,pitch,36.0018065,-87.0655618,,,TN,,false,true,false,openstreetmap
+Blankenship Field,soccer,pitch,35.0973738,-89.8579838,,,TN,,false,true,false,openstreetmap
+Blount United Soccer Club,soccer,pitch,35.7374398,-83.9527995,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,soccer,pitch,36.0360293,-86.8193608,,,TN,,false,true,false,openstreetmap
+Carter High Soccer Field,soccer,pitch,36.027567,-83.7176033,,,TN,,false,true,false,openstreetmap
+Cedar Springs Athletic Fields,soccer,pitch,35.9093752,-84.085333,,,TN,,false,true,false,openstreetmap
+Central High School Soccer Field,soccer,sports_centre,35.1085608,-85.1370716,Central High School,,TN,,false,true,false,openstreetmap
+Dunlap Soccer Fields,soccer,pitch,35.3443076,-85.4122327,,,TN,,false,true,false,openstreetmap
+Fairview High School Soccer Field,soccer,pitch,35.9486145,-87.1431551,,,TN,,false,true,false,openstreetmap
+Field #10,soccer,pitch,35.0226275,-89.7610578,,,TN,,false,true,false,openstreetmap
+Field #11,soccer,pitch,35.0214762,-89.7610267,,,TN,,false,true,false,openstreetmap
+Field #12,soccer,pitch,35.022612,-89.762057,,,TN,,false,true,false,openstreetmap
+Field #13,soccer,pitch,35.0214598,-89.7620293,,,TN,,false,true,false,openstreetmap
+Field #14,soccer,pitch,35.0230795,-89.7633316,,,TN,,false,true,false,openstreetmap
+Field #15,soccer,pitch,35.0219278,-89.7633052,,,TN,,false,true,false,openstreetmap
+Field #16,soccer,pitch,35.023063,-89.7643337,,,TN,,false,true,false,openstreetmap
+Field #17,soccer,pitch,35.0219124,-89.7643074,,,TN,,false,true,false,openstreetmap
+Field #2,soccer,pitch,35.0249831,-89.7641552,,,TN,,false,true,false,openstreetmap
+Field #3,soccer,pitch,35.026136,-89.7641794,,,TN,,false,true,false,openstreetmap
+Field #4,soccer,pitch,35.0249663,-89.765154,,,TN,,false,true,false,openstreetmap
+Field #5,soccer,pitch,35.0261179,-89.7651777,,,TN,,false,true,false,openstreetmap
+Field #6,soccer,pitch,35.0251165,-89.7665094,,,TN,,false,true,false,openstreetmap
+Field #7,soccer,pitch,35.0262731,-89.7665362,,,TN,,false,true,false,openstreetmap
+Field #8,soccer,pitch,35.0251034,-89.7675107,,,TN,,false,true,false,openstreetmap
+Field #9,soccer,pitch,35.0262577,-89.7675384,,,TN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.0020619,-85.1982665,,,TN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.8651146,-84.2292073,,,TN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.8459035,-84.1886336,,,TN,,false,true,false,openstreetmap
+Field 1,soccer,pitch,36.0275121,-86.6693312,,,TN,,false,true,false,openstreetmap
+Field 12,soccer,pitch,35.0053143,-85.1917471,,,TN,,false,true,false,openstreetmap
+Field 13,soccer,pitch,35.0042876,-85.1917449,,,TN,,false,true,false,openstreetmap
+Field 14,soccer,pitch,35.0026213,-85.1912592,,,TN,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.0021601,-85.1973776,,,TN,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.8660169,-84.2285073,,,TN,,false,true,false,openstreetmap
+Field 2,soccer,pitch,36.0276773,-86.6681198,,,TN,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.0022949,-85.1962362,,,TN,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.8656303,-84.2255033,,,TN,,false,true,false,openstreetmap
+Field 3,soccer,pitch,36.0264625,-86.6707889,,,TN,,false,true,false,openstreetmap
+Field 4,soccer,pitch,35.0027246,-85.1949947,,,TN,,false,true,false,openstreetmap
+Field 4,soccer,pitch,36.0264715,-86.6697795,,,TN,,false,true,false,openstreetmap
+Field 5,soccer,pitch,35.0033027,-85.1944364,,,TN,,false,true,false,openstreetmap
+Field 5,soccer,pitch,36.0264383,-86.6687634,,,TN,,false,true,false,openstreetmap
+Field 6,soccer,pitch,35.0038063,-85.1938969,,,TN,,false,true,false,openstreetmap
+Field 6,soccer,pitch,36.0264492,-86.6677472,,,TN,,false,true,false,openstreetmap
+Field 7,soccer,pitch,35.0038228,-85.1958124,,,TN,,false,true,false,openstreetmap
+Field 7,soccer,pitch,36.0254636,-86.6687797,,,TN,,false,true,false,openstreetmap
+Field 8,soccer,pitch,35.0043414,-85.1953061,,,TN,,false,true,false,openstreetmap
+Heritage Park Soccer Complex,soccer,sports_centre,36.5841258,-87.3871911,,,TN,,false,true,false,openstreetmap
+Human Foosball,soccer,pitch,35.801231,-85.2826034,,,TN,,false,true,false,openstreetmap
+Imre Lagler Soccer Field,soccer,pitch,35.5928374,-86.3470796,,,TN,,false,true,false,openstreetmap
+Katie Hunter Soccer Field,soccer,pitch,35.9911421,-84.3183889,,,TN,,false,true,false,openstreetmap
+Kever Field,soccer,pitch,36.1013763,-86.8662394,,,TN,,false,true,false,openstreetmap
+Kirk Field,soccer,pitch,36.2036013,-86.301563,,,TN,,false,true,false,openstreetmap
+Lexington Soccer Complex,soccer,sports_centre,35.6521824,-88.3810677,,,TN,,false,true,false,openstreetmap
+MLK Soccer Field,soccer,pitch,36.1620354,-86.8015701,,,TN,,false,true,false,openstreetmap
+Maryville College Soccer Field,soccer,pitch,35.7514164,-83.9588076,,,TN,,false,true,false,openstreetmap
+Middle School Soccer Field,soccer,pitch,35.9230286,-84.1139872,,,TN,,false,true,false,openstreetmap
+Middle Valley Soccer Fields,soccer,pitch,35.1862687,-85.1732477,,,TN,,false,true,false,openstreetmap
+Middleton City Soccer Fields,soccer,pitch,35.044221,-88.8891867,,,TN,,false,true,false,openstreetmap
+Mike Rose Soccer Complex,soccer,park,35.0239019,-89.7640143,,,TN,,false,true,false,openstreetmap
+Milligan College,soccer,pitch,36.2976611,-82.2971897,,,TN,,false,true,false,openstreetmap
+Nolensville Soccer League,soccer,pitch,35.9544631,-86.6684876,,,TN,,false,true,false,openstreetmap
+O-1,soccer,pitch,35.8845509,-86.6600899,,,TN,,false,true,false,openstreetmap
+O-2,soccer,pitch,35.8848124,-86.6600443,,,TN,,false,true,false,openstreetmap
+O-3,soccer,pitch,35.8845163,-86.6598104,,,TN,,false,true,false,openstreetmap
+O-4,soccer,pitch,35.8847809,-86.6597669,,,TN,,false,true,false,openstreetmap
+O-5,soccer,pitch,35.8844844,-86.6595399,,,TN,,false,true,false,openstreetmap
+O-6,soccer,pitch,35.8847497,-86.6594902,,,TN,,false,true,false,openstreetmap
+O-7,soccer,pitch,35.8844513,-86.6592655,,,TN,,false,true,false,openstreetmap
+O-8,soccer,pitch,35.8847226,-86.6592205,,,TN,,false,true,false,openstreetmap
+Overbrook Catholic School/St. Cecilia Academy Track and Field,soccer,pitch,36.134992,-86.8425294,,,TN,,false,true,false,openstreetmap
+Park Field,soccer,pitch,36.5866596,-82.1632018,,,TN,,false,true,false,openstreetmap
+Polk County Soccer Field,soccer,pitch,35.161422,-84.6618673,,,TN,,false,true,false,openstreetmap
+RBHS Soccer Field,soccer,pitch,35.1224265,-85.30435,,,TN,,false,true,false,openstreetmap
+Raleigh Bartlett Meadows Park,soccer,park,35.1937755,-89.8902835,,,TN,,false,true,false,openstreetmap
+Riley Soccer Complex,soccer,pitch,35.4339326,-88.6377872,,,TN,,false,true,false,openstreetmap
+Signal Mountain Soccer Field,soccer,pitch,35.1608891,-85.3734724,,,TN,,false,true,false,openstreetmap
+Signal Mountain Soccer Field,soccer,pitch,35.1605188,-85.3719972,,,TN,,false,true,false,openstreetmap
+Signal Mountain Soccer Field,soccer,pitch,35.1613664,-85.3718494,,,TN,,false,true,false,openstreetmap
+Signalgo Field,soccer,pitch,35.1284727,-89.9798804,,,TN,,false,true,false,openstreetmap
+Skyhawk Soccer Field,soccer,stadium,36.3436373,-88.8715135,,,TN,,false,true,false,openstreetmap
+Smith Memorial Soccer Complex,soccer,pitch,35.675426,-88.8569538,,,TN,,false,true,false,openstreetmap
+Soccer Complex,soccer,pitch,36.1017469,-86.8011776,,,TN,,false,true,false,openstreetmap
+Soccer Complex,soccer,pitch,36.2117062,-83.26033,,,TN,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.1348916,-85.3328866,,,TN,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.5003575,-84.9972604,,,TN,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.2423716,-89.7855233,,,TN,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,36.2977613,-82.2963559,,,TN,,false,true,false,openstreetmap
+Soccer Field (West),soccer,pitch,36.2982703,-82.3781489,,,TN,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,36.1464323,-88.5122342,,,TN,,false,true,false,openstreetmap
+Solomon Field,soccer,pitch,35.1575724,-89.9867355,,,TN,,false,true,false,openstreetmap
+Tech Soccer Field,soccer,pitch,36.1771012,-85.5103811,,,TN,,false,true,false,openstreetmap
+Tech Soccer Field,soccer,pitch,36.1770219,-85.5094932,,,TN,,false,true,false,openstreetmap
+Trevecca Soccar Complex,soccer,pitch,36.1415719,-86.7504325,,,TN,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,35.9227498,-84.1121477,,,TN,,false,true,false,openstreetmap
+Webb Field,soccer,pitch,35.0984985,-89.8535509,,,TN,,false,true,false,openstreetmap
+Wildcat Soccer Plex,soccer,pitch,36.1462735,-88.5112734,,,TN,,false,true,false,openstreetmap
+McCown Field,soccer,pitch,36.1213892,-83.4873511,1710 Pearl Street,Jefferson City,TN,37760,false,true,false,openstreetmap
+Regal Soccer Stadium,soccer,stadium,35.9458253,-83.9331033,2317 Stephenson Drive,Knoxville,TN,37916,false,true,false,openstreetmap
+GEODIS Park,soccer,stadium,36.1300236,-86.7659725,501 Benton Avenue,Nashville,TN,37203,false,true,false,openstreetmap
+Osborn Park Soccer Complex,soccer,sports_centre,35.8839648,-86.6591108,2904 Old Horton Highway,Nolensville,TN,37135,false,true,false,openstreetmap

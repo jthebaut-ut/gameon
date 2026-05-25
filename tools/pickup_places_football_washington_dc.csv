@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Buchanan Field,football,pitch,38.9010049,-77.0101449,,,DC,,false,true,false,openstreetmap
+RFK Campus,football,sports_centre,38.8897637,-76.9713914,,,DC,,false,true,false,openstreetmap
+Tiger Stadum,football,pitch,38.94946,-77.0767263,,,DC,,false,true,false,openstreetmap

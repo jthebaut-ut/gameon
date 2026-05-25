@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Pickleball Court,pickleball,pitch,46.510605,-91.7088446,,,WI,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,44.300008,-88.4762856,,,WI,,false,true,false,openstreetmap
+Pickleball Kingdom,pickleball,sports_centre,43.1869431,-89.2392074,,,WI,,false,true,false,openstreetmap
+Pickleball Kingdom,pickleball,sports_centre,44.2406992,-88.3619731,2411 South Kensington Drive,Appleton,WI,54915,false,true,false,openstreetmap
+Premier Pickleball Club & Complex,pickleball,pitch,42.9260446,-87.8566734,305 North Chicago Avenue,South Milwaukee,WI,53172,false,true,false,openstreetmap

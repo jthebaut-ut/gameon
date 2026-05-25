@@ -1,0 +1,35 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Barboursville Soccer Complex,soccer,sports_centre,38.3903223,-82.319648,,,WV,,false,true,false,openstreetmap
+Braxton County Soccer Club,soccer,pitch,38.686197,-80.6506303,,,WV,,false,true,false,openstreetmap
+Cheat Lake Soccer Fields,soccer,pitch,39.6532849,-79.8706912,,,WV,,false,true,false,openstreetmap
+Culloden Soccer Fields,soccer,pitch,38.4237195,-82.0480375,,,WV,,false,true,false,openstreetmap
+Dean Scott Fields,soccer,pitch,39.256322,-81.5440452,,,WV,,false,true,false,openstreetmap
+Eleanor Soccer Fields,soccer,pitch,38.5420693,-81.9342381,,,WV,,false,true,false,openstreetmap
+Encova Field 1,soccer,pitch,38.3760434,-81.7608566,,,WV,,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.0645823,-80.6596337,,,WV,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.0682,-80.6586133,,,WV,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.0693855,-80.6583413,,,WV,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.3764094,-81.7616827,,,WV,,false,true,false,openstreetmap
+Field 4,soccer,pitch,40.0702902,-80.6586319,,,WV,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.3773872,-81.7609683,,,WV,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.3768022,-81.7625409,,,WV,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.3777759,-81.7618313,,,WV,,false,true,false,openstreetmap
+Huggins Field,soccer,pitch,39.4027732,-81.4385826,,,WV,,false,true,false,openstreetmap
+Man Youth Soccer Field,soccer,pitch,37.7467331,-81.8699096,,,WV,,false,true,false,openstreetmap
+Schoenbaum Soccer Stadium,soccer,stadium,38.3947199,-81.5817854,,,WV,,false,true,false,openstreetmap
+Shepherd Soccer Complex,soccer,pitch,39.4409285,-77.8127776,,,WV,,false,true,false,openstreetmap
+St. Agnes Soccer Field,soccer,pitch,38.3222784,-81.5802682,,,WV,,false,true,false,openstreetmap
+Stayman Field,soccer,pitch,39.4388414,-78.9868589,,,WV,,false,true,false,openstreetmap
+Warrior Soccer Field,soccer,pitch,37.8544943,-81.2038527,,,WV,,false,true,false,openstreetmap
+West Family Athletic Complex,soccer,pitch,40.1649999,-80.5974228,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7850939,-81.1442784,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7848552,-81.1454166,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7850224,-81.1450677,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7845754,-81.1447165,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.784408,-81.1450653,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7842865,-81.1459521,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7854775,-81.1434818,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7839101,-81.1438545,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.783258,-81.145208,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7838907,-81.1467788,,,WV,,false,true,false,openstreetmap
+YMCA Soccer Field,soccer,pitch,37.7835213,-81.1475607,,,WV,,false,true,false,openstreetmap

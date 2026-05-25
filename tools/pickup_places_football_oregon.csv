@@ -1,0 +1,44 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Apollos Stadium,football,stadium,45.5297804,-122.8231613,,,OR,,false,true,false,openstreetmap
+Cobb Field,football,pitch,45.4259221,-122.7030187,,,OR,,false,true,false,openstreetmap
+Cobb Field,football,pitch,42.3166082,-122.8704151,,,OR,,false,true,false,openstreetmap
+Cronin Field,football,pitch,45.4850986,-122.7670073,,,OR,,false,true,false,openstreetmap
+Crook County Football Field,football,pitch,44.2980878,-120.8310665,,,OR,,false,true,false,openstreetmap
+Daly Field & Steninger Track,football,pitch,42.1863872,-120.3517724,,,OR,,false,true,false,openstreetmap
+Dutch Meyer Stadium,football,pitch,42.3810338,-122.9238979,,,OR,,false,true,false,openstreetmap
+Eagle Stadium,football,pitch,42.4767747,-122.8028259,,,OR,,false,true,false,openstreetmap
+Enterprise School Football Field,football,pitch,45.422014,-117.2716636,,,OR,,false,true,false,openstreetmap
+Finlay Field,football,pitch,43.2167389,-123.3534249,,,OR,,false,true,false,openstreetmap
+Football Practice Fields,football,sports_centre,44.5611935,-123.2826958,,,OR,,false,true,false,openstreetmap
+Fred Wilson Field,football,pitch,45.4520803,-122.6720632,,,OR,,false,true,false,openstreetmap
+Gary Wheeler Field,football,pitch,42.3011182,-122.8433396,,,OR,,false,true,false,openstreetmap
+Gold Beach High School football field,football,pitch,42.409385,-124.4220272,,,OR,,false,true,false,openstreetmap
+Grants Pass School District,football,pitch,42.4447385,-123.3144579,,,OR,,false,true,false,openstreetmap
+Hillsboro School District,football,pitch,45.528818,-122.9735101,,,OR,,false,true,false,openstreetmap
+Hillsboro Stadium,football,stadium,45.5544043,-122.9069779,,,OR,,false,true,false,openstreetmap
+Jan Watt Memorial Colosseum Track & Sports Field,football,pitch,45.4977636,-122.6323004,,,OR,,false,true,false,openstreetmap
+Kelly Field,football,pitch,45.6148289,-123.111301,,,OR,,false,true,false,openstreetmap
+Kelly Field Grandstands,football,stadium,45.614907,-123.111878,,,OR,,false,true,false,openstreetmap
+Ledbetter Field,football,pitch,45.5261144,-123.1100756,,,OR,,false,true,false,openstreetmap
+Lemmons Family Field,football,pitch,45.3051252,-122.9671724,,,OR,,false,true,false,openstreetmap
+Les Payne Field,football,pitch,45.3575523,-119.5473963,,,OR,,false,true,false,openstreetmap
+Maxwell Field,football,pitch,45.1988487,-123.1971808,,,OR,,false,true,false,openstreetmap
+McDaniel Field,football,pitch,45.5404082,-122.5802228,,,OR,,false,true,false,openstreetmap
+Modoc Field,football,pitch,42.2326436,-121.7775185,,,OR,,false,true,false,openstreetmap
+Morrow Field,football,pitch,44.6397118,-124.045569,,,OR,,false,true,false,openstreetmap
+Ogdahl Field,football,pitch,44.9298874,-123.0376117,,,OR,,false,true,false,openstreetmap
+Rich Brooks Field,football,pitch,44.0582761,-123.0685113,,,OR,,false,true,false,openstreetmap
+Ruppe Field,football,pitch,43.6917754,-124.1230676,,,OR,,false,true,false,openstreetmap
+Scots Field,football,pitch,45.5111355,-122.5268185,,,OR,,false,true,false,openstreetmap
+Silke Field,football,pitch,44.0539074,-123.0111965,,,OR,,false,true,false,openstreetmap
+Stands,football,stadium,43.7432516,-117.0670653,,,OR,,false,true,false,openstreetmap
+Stands,football,stadium,43.7427686,-117.0677687,,,OR,,false,true,false,openstreetmap
+Stands,football,stadium,43.7428394,-117.0676172,,,OR,,false,true,false,openstreetmap
+Stands,football,stadium,43.7429073,-117.0674724,,,OR,,false,true,false,openstreetmap
+Valley Football Center,football,sports_centre,44.5601333,-123.2822763,,,OR,,false,true,false,openstreetmap
+Viking Field,football,pitch,42.1995618,-121.7358734,,,OR,,false,true,false,openstreetmap
+Voris Field,football,pitch,44.9368872,-124.0171145,,,OR,,false,true,false,openstreetmap
+Woodburn High School Football Field,football,pitch,45.1536715,-122.8511707,,,OR,,false,true,false,openstreetmap
+Wortman Field,football,pitch,45.2196189,-123.1884894,,,OR,,false,true,false,openstreetmap
+Reser Stadium,football,stadium,44.5595538,-123.2814224,660 SW 26th St,Corvallis,OR,97331,false,true,false,openstreetmap
+Autzen Stadium,football,stadium,44.0582098,-123.06843,2700 Leo Harris Parkway,Eugene,OR,97401,false,true,false,openstreetmap

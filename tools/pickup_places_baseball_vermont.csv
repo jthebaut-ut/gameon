@@ -1,0 +1,26 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bill Black Field,baseball,pitch,44.6165907,-73.1262006,,,VT,,false,true,false,openstreetmap
+Burlingame Field,baseball,pitch,44.4102979,-72.0226706,,,VT,,false,true,false,openstreetmap
+"Darrell ""Skip"" Pound Baseball Field",baseball,pitch,44.5362808,-72.0261235,,,VT,,false,true,false,openstreetmap
+Foster Park Little League Field,baseball,pitch,44.4992915,-73.0610427,,,VT,,false,true,false,openstreetmap
+Foster Park Little League Field,baseball,pitch,44.4988692,-73.060399,,,VT,,false,true,false,openstreetmap
+Foster Park Little League Field,baseball,pitch,44.498308,-73.0614709,,,VT,,false,true,false,openstreetmap
+Foster Park Little League Field,baseball,pitch,44.4987659,-73.0619222,,,VT,,false,true,false,openstreetmap
+Foster Park Softball Field,baseball,pitch,44.4980236,-73.064137,,,VT,,false,true,false,openstreetmap
+Garrity Field,baseball,pitch,44.1399645,-72.6633098,,,VT,,false,true,false,openstreetmap
+James Patrick Brown Memorial Field,baseball,pitch,44.5367366,-72.0149467,,,VT,,false,true,false,openstreetmap
+Little League #1,baseball,pitch,43.1851286,-73.0549642,,,VT,,false,true,false,openstreetmap
+Little League #2,baseball,pitch,43.1827868,-73.0538839,,,VT,,false,true,false,openstreetmap
+Ludlow Little League Field,baseball,pitch,43.392898,-72.6815201,,,VT,,false,true,false,openstreetmap
+Ludlow Little League Field,baseball,pitch,43.3932353,-72.6823192,,,VT,,false,true,false,openstreetmap
+Lyman Field,baseball,pitch,44.3286103,-73.1081262,,,VT,,false,true,false,openstreetmap
+Orrie Jay Field,baseball,pitch,44.4954068,-73.2322671,,,VT,,false,true,false,openstreetmap
+Pullinen Field,baseball,pitch,43.3979516,-72.6872152,,,VT,,false,true,false,openstreetmap
+Richard G. Grassi Field,baseball,pitch,43.6238948,-72.3504403,,,VT,,false,true,false,openstreetmap
+Russell Field,baseball,pitch,44.5355946,-72.0084248,,,VT,,false,true,false,openstreetmap
+Tenney Field,baseball,pitch,42.8369477,-72.5592828,,,VT,,false,true,false,openstreetmap
+Varsity Baseball Dimond,baseball,pitch,43.1829159,-73.0550992,,,VT,,false,true,false,openstreetmap
+Centennial Field,baseball,stadium,44.4818469,-73.1875826,9 University Road,Burlington,VT,05401,false,true,false,openstreetmap
+Forbes Field,baseball,pitch,44.0036763,-73.168869,63 South Street Extension,Middlebury,VT,05753,false,true,false,openstreetmap
+Post Mills Baseball Field,baseball,pitch,43.8868279,-72.2528435,396 Vermont Route 244,Thetford,VT,05045,false,true,false,openstreetmap
+Thetford Academy,baseball,pitch,43.8160975,-72.2325015,201 Panther Way,Thetford,VT,05075,false,true,false,openstreetmap

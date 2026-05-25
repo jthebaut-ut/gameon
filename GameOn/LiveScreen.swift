@@ -1106,7 +1106,7 @@ struct LiveScreen: View {
                     .foregroundStyle(FGColor.primaryText(colorScheme))
                 Text(isBusinessLiveAudienceUser
                     ? "Check Crowd Momentum or open the map to find active watch spots."
-                    : "Check Venues & Pickup Games Today or open the map to find watch spots.")
+                    : "Check Venues & Community Games Today or open the map to find watch spots.")
                     .font(FGTypography.caption)
                     .foregroundStyle(FGColor.secondaryText(colorScheme))
                     .fixedSize(horizontal: false, vertical: true)
@@ -1714,7 +1714,7 @@ struct LiveScreen: View {
     private func liveVenuesAndPickupTodaySection(rows: [LiveVenuesPickupRow]) -> some View {
         livePanelSection(
             kind: .venuesPickup,
-            title: "Venues & Pickup Games Today",
+            title: "Venues & Community Games Today",
             subtitle: "Watch parties, pickup runs, and plans near you"
         ) {
             if rows.isEmpty {

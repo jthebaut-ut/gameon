@@ -33,7 +33,7 @@ struct FollowingScreen: View {
     @State private var followingMyPickupDidScheduleExpiryRefresh = false
     @State private var selectedGoingMode: GoingParticipationMode = .venueGames
     @State private var selectedGoingVenueTab: GoingVenueTab = .games
-    @State private var selectedGoingPickupTab: GoingPickupTab = .playing
+    @State private var selectedGoingGamesTab: GoingGamesTab = .playing
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -386,7 +386,7 @@ struct FollowingScreen: View {
                 case .venueGames:
                     goingVenueTabsGroup
                 case .pickupGames:
-                    goingPickupTabsGroup
+                    goingGamesTabsGroup
                 }
             }
             .id(selectedGoingMode)
@@ -436,12 +436,18 @@ struct FollowingScreen: View {
     private var goingModeSwitcher: some View {
         GameOnSegmentedControl(
             tabs: [
-                GameOnSegmentedTab(id: GoingParticipationMode.venueGames, title: GoingParticipationMode.venueGames.title, tint: GoingParticipationMode.venueGames.tint),
+                GameOnSegmentedTab(
+                    id: GoingParticipationMode.venueGames,
+                    title: GoingParticipationMode.venueGames.title,
+                    tint: GoingParticipationMode.venueGames.tint,
+                    accessibilityLabel: "Venue-hosted games"
+                ),
                 GameOnSegmentedTab(
                     id: GoingParticipationMode.pickupGames,
                     title: GoingParticipationMode.pickupGames.title,
                     tint: GoingParticipationMode.pickupGames.tint,
                     showsActivityDot: viewModel.pendingPickupGameJoinRequestCount > 0,
+                    accessibilityLabel: "Pickup and community games",
                     activityAccessibilityLabel: "Players waiting"
                 )
             ],
@@ -450,7 +456,7 @@ struct FollowingScreen: View {
     }
 
     private var goingVenueTabsGroup: some View {
-        goingTabbedPanel(title: "Venue Games", subtitle: "Venue games, sports bars, saved venues, and friends going later.") {
+        goingTabbedPanel(title: "Venue Games", subtitle: "Venue-hosted games, sports bars, saved venues, and friends going later.") {
             GameOnSegmentedControl(
                 tabs: [
                     GameOnSegmentedTab(id: GoingVenueTab.games, title: "I’m Going", systemImage: "checkmark.circle.fill", tint: FGColor.accentGreen, accessibilityLabel: "I’m Going venue games"),
@@ -478,32 +484,98 @@ struct FollowingScreen: View {
         }
     }
 
-    private var goingPickupTabsGroup: some View {
-        goingTabbedPanel(title: "Pickup Games", subtitle: "Games you joined, games you host, requests, and player management.") {
+    private var goingGamesTabsGroup: some View {
+        goingTabbedPanel(title: "Games", subtitle: "Pickup, practice, and scrimmage activity.") {
             GameOnSegmentedControl(
                 tabs: [
-                    GameOnSegmentedTab(id: GoingPickupTab.playing, title: "Playing", badge: pickupPlayingTabBadge, tint: FGColor.accentGreen),
-                    GameOnSegmentedTab(id: GoingPickupTab.hosting, title: "Hosting", badge: pickupHostingTabBadge, tint: Color.orange)
+                    GameOnSegmentedTab(id: GoingGamesTab.playing, title: "Playing", badge: pickupPlayingTabBadge, tint: FGColor.accentGreen),
+                    GameOnSegmentedTab(id: GoingGamesTab.hosting, title: "Hosting", badge: pickupHostingTabBadge, tint: Color.orange)
                 ],
-                selection: $selectedGoingPickupTab
+                selection: $selectedGoingGamesTab
             )
         } content: {
             Group {
-                switch selectedGoingPickupTab {
+                switch selectedGoingGamesTab {
                 case .playing:
-                    gamesToPlayTabContent
+                    playingGamesContent
                 case .hosting:
-                    myPickupGamesTabContent
+                    hostingGamesContent
                 }
             }
-            .id(selectedGoingPickupTab)
+            .id(selectedGoingGamesTab)
             .transition(.opacity.combined(with: .move(edge: .trailing)))
+        }
+    }
+
+    private var playingGamesContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !viewModel.canFanUsePickupGamesUI {
+                emptyCard(
+                    icon: "figure.run",
+                    title: "Games unavailable",
+                    subtitle: "Switch to a fan account to join and play games."
+                )
+            } else if playingGameCards.isEmpty {
+                emptyCard(
+                    icon: "figure.run",
+                    title: "No games you’re playing yet.",
+                    subtitle: "Join a game to see it here."
+                )
+            } else {
+                joinedGamesListContent
+            }
+        }
+        .padding(.top, 6)
+        .onAppear {
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            viewModel.acknowledgePickupFollowingGamesToPlayActivity()
+        }
+    }
+
+    private var hostingGamesContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !viewModel.canFanUsePickupGamesUI {
+                emptyCard(
+                    icon: "figure.run",
+                    title: "Games unavailable",
+                    subtitle: "Switch to a fan account to create and manage games."
+                )
+            } else {
+                hostPickupInlineCTA
+
+                if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
+                    emptyCard(
+                        icon: "sportscourt.fill",
+                        title: "No games you’re hosting yet.",
+                        subtitle: "Create a game when you’re ready to play."
+                    )
+                } else {
+                    hostedGamesListContent
+                }
+            }
+        }
+        .padding(.top, 6)
+        .onAppear {
+            guard viewModel.canFanUsePickupGamesUI else { return }
+            followingMyPickupClockTick = Date()
+            Task {
+                await viewModel.loadMyPickupGamesForSettings()
+                if let uid = viewModel.currentUserAuthId {
+                    await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
+                }
+                logFollowingMyPickupGames(action: "gamesListAppear")
+            }
+            scheduleFollowingMyPickupExpiryRefreshIfNeeded(now: Date())
         }
     }
 
     private var pickupPlayingTabBadge: String? {
         guard viewModel.pickupActivityCount > 0 else { return nil }
         return viewModel.pickupActivityCount > 9 ? "9+ new" : "\(viewModel.pickupActivityCount) new"
+    }
+
+    private var playingGameCards: [PickupGameJoinRequestCardDisplay] {
+        viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }
     }
 
     private var pickupHostingTabBadge: String? {
@@ -750,7 +822,7 @@ struct FollowingScreen: View {
                     .background(FGColor.accentGreen, in: Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Host Pickup Game")
+                    Text("Create Game")
                         .font(FGTypography.cardTitle)
                         .foregroundStyle(FGColor.primaryText(followingColorScheme))
                     Text("Create a casual game and manage it here.")
@@ -775,7 +847,7 @@ struct FollowingScreen: View {
         .buttonStyle(.plain)
         .disabled(!viewModel.canFanUsePickupGamesUI)
         .opacity(viewModel.canFanUsePickupGamesUI ? 1 : 0.55)
-        .accessibilityLabel("Host Pickup Game")
+        .accessibilityLabel("Create Game")
     }
 
     private var venueGamesTabContent: some View {
@@ -817,35 +889,86 @@ struct FollowingScreen: View {
         .padding(.top, 6)
     }
 
-    private var gamesToPlayTabContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if viewModel.isPickupFollowingJoinListRefreshing && !viewModel.myPickupGameJoinRequestCards.isEmpty {
+    private var joinedGamesListContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if viewModel.isPickupFollowingJoinListRefreshing && !playingGameCards.isEmpty {
                 HStack(spacing: 8) {
                     ProgressView()
                         .scaleEffect(0.9)
-                    Text("Refreshing pickup games…")
+                    Text("Refreshing games...")
                         .font(FGTypography.caption.weight(.medium))
                         .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                 }
                 .padding(.horizontal, 4)
             }
-            if viewModel.myPickupGameJoinRequestCards.isEmpty {
+
+            if playingGameCards.isEmpty {
                 emptyCard(
                     icon: "figure.run",
-                    title: "No pickup games joined yet.",
-                    subtitle: "Join a pickup game to see it here."
+                    title: "No games you’re playing yet.",
+                    subtitle: "Join a game to see it here."
                 )
             } else {
-                VStack(spacing: 12) {
-                    ForEach(viewModel.myPickupGameJoinRequestCards) { card in
-                        pickupGameJoinCard(card)
-                    }
+                ForEach(playingGameCards) { card in
+                    pickupGameJoinCard(card)
                 }
             }
         }
-        .padding(.top, 6)
-        .onAppear {
-            viewModel.acknowledgePickupFollowingGamesToPlayActivity()
+    }
+
+    private var hostedGamesListContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if viewModel.myPickupGamesForSettings.isEmpty, viewModel.myRemovedPickupGamesForSettings.isEmpty {
+                hostingEmptyStateCard
+            } else {
+                ForEach(viewModel.myPickupGamesForSettings) { row in
+                    let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
+                    SettingsPickupMyGameListCard(
+                        viewModel: viewModel,
+                        row: row,
+                        pendingJoinCount: pendingHere,
+                        withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
+                        now: followingMyPickupClockTick,
+                        colorScheme: followingColorScheme,
+                        onEdit: {
+                            logFollowingMyPickupGames(action: "editTap", selectedGameId: row.id)
+                            followingMyPickupFormMode = .edit(row)
+                        },
+                        onDelete: {
+                            logFollowingMyPickupGames(action: "cancelGameTap", selectedGameId: row.id)
+                            followingMyPickupDeleteTarget = row
+                        },
+                        onManageRequests: {
+                            logFollowingMyPickupGames(action: "manageRequestsTap", selectedGameId: row.id)
+                            followingMyPickupOrganizerRequestsGame = row
+                        },
+                        displayStyle: .followingCompact,
+                        onOpenDetails: {
+                            logFollowingMyPickupGames(action: "openDetailSheet", selectedGameId: row.id)
+                            followingMyPickupDetailGame = row
+                        }
+                    )
+                    .environmentObject(chatViewModel)
+                }
+
+                if !viewModel.myRemovedPickupGamesForSettings.isEmpty {
+                    Text("History")
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                    ForEach(viewModel.myRemovedPickupGamesForSettings) { row in
+                        SettingsPickupRemovedHistoryCard(
+                            viewModel: viewModel,
+                            row: row,
+                            withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
+                            now: followingMyPickupClockTick,
+                            colorScheme: followingColorScheme,
+                            useCompactCopy: true
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -855,11 +978,11 @@ struct FollowingScreen: View {
                 .font(.largeTitle)
                 .foregroundStyle(FGColor.secondaryText(followingColorScheme))
 
-            Text("You’re not hosting yet.")
+            Text("No games you’re hosting yet.")
                 .font(FGTypography.cardTitle)
                 .foregroundStyle(FGColor.primaryText(followingColorScheme))
 
-            Text("Create a pickup game when you’re ready to play.")
+            Text("Create a game when you’re ready to play.")
                 .font(FGTypography.caption)
                 .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                 .multilineTextAlignment(.center)
@@ -867,7 +990,7 @@ struct FollowingScreen: View {
             Button {
                 openCreatePickupFromGoing()
             } label: {
-                Text("Host Pickup Game")
+                Text("Create Game")
                     .font(FGTypography.metadata.weight(.semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -875,7 +998,7 @@ struct FollowingScreen: View {
             .buttonStyle(.borderedProminent)
             .tint(FGColor.accentGreen)
             .padding(.top, 2)
-            .accessibilityLabel("Host Pickup Game")
+            .accessibilityLabel("Create Game")
         }
         .frame(maxWidth: .infinity)
         .padding(18)
@@ -885,86 +1008,6 @@ struct FollowingScreen: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .modifier(FollowingCardChromeModifier(colorScheme: followingColorScheme, cornerRadius: 22))
-    }
-
-    private var myPickupGamesTabContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if !viewModel.canFanUsePickupGamesUI {
-                emptyCard(
-                    icon: "figure.run",
-                    title: "Pickup games unavailable",
-                    subtitle: "Switch to a fan account to create and manage pickup games."
-                )
-            } else if viewModel.myPickupGamesForSettings.isEmpty {
-                hostingEmptyStateCard
-            } else {
-                VStack(spacing: 12) {
-                    hostPickupInlineCTA
-
-                    if !viewModel.myPickupGamesForSettings.isEmpty {
-                        ForEach(viewModel.myPickupGamesForSettings) { row in
-                            let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
-                            SettingsPickupMyGameListCard(
-                                viewModel: viewModel,
-                                row: row,
-                                pendingJoinCount: pendingHere,
-                                withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
-                                now: followingMyPickupClockTick,
-                                colorScheme: followingColorScheme,
-                                onEdit: {
-                                    logFollowingMyPickupGames(action: "editTap", selectedGameId: row.id)
-                                    followingMyPickupFormMode = .edit(row)
-                                },
-                                onDelete: {
-                                    logFollowingMyPickupGames(action: "cancelGameTap", selectedGameId: row.id)
-                                    followingMyPickupDeleteTarget = row
-                                },
-                                onManageRequests: {
-                                    logFollowingMyPickupGames(action: "manageRequestsTap", selectedGameId: row.id)
-                                    followingMyPickupOrganizerRequestsGame = row
-                                },
-                                displayStyle: .followingCompact,
-                                onOpenDetails: {
-                                    logFollowingMyPickupGames(action: "openDetailSheet", selectedGameId: row.id)
-                                    followingMyPickupDetailGame = row
-                                }
-                            )
-                            .environmentObject(chatViewModel)
-                        }
-                    }
-                    if !viewModel.myRemovedPickupGamesForSettings.isEmpty {
-                        Text("History")
-                            .font(FGTypography.caption.weight(.semibold))
-                            .foregroundStyle(FGColor.secondaryText(followingColorScheme))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
-                        ForEach(viewModel.myRemovedPickupGamesForSettings) { row in
-                            SettingsPickupRemovedHistoryCard(
-                                viewModel: viewModel,
-                                row: row,
-                                withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
-                                now: followingMyPickupClockTick,
-                                colorScheme: followingColorScheme,
-                                useCompactCopy: true
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.top, 6)
-        .onAppear {
-            guard viewModel.canFanUsePickupGamesUI else { return }
-            followingMyPickupClockTick = Date()
-            Task {
-                await viewModel.loadMyPickupGamesForSettings()
-                if let uid = viewModel.currentUserAuthId {
-                    await viewModel.refreshPickupCreatorPublicRatingStats(creatorUserIds: [uid])
-                }
-                logFollowingMyPickupGames(action: "tabAppear")
-            }
-            scheduleFollowingMyPickupExpiryRefreshIfNeeded(now: Date())
-        }
     }
 
     // MARK: - Session / cache (Following tab only)
@@ -1307,6 +1350,10 @@ struct FollowingScreen: View {
                         .foregroundStyle(FGColor.primaryText(followingColorScheme))
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
+                    GameFormatBadgeView(
+                        format: viewModel.resolvedPickupGameRow(for: card.pickupGameId)?.gameFormat ?? .pickup,
+                        colorScheme: followingColorScheme
+                    )
                     pickupJoinStatusPill(card.pill)
                     if isOrganizerCanceled {
                         Text("Canceled by organizer")
@@ -2108,8 +2155,8 @@ private enum GoingParticipationMode: Hashable {
 
     var title: String {
         switch self {
-        case .venueGames: return "Venue Games"
-        case .pickupGames: return "Pickup Games"
+        case .venueGames: return "Venues"
+        case .pickupGames: return "Games"
         }
     }
 
@@ -2126,7 +2173,7 @@ private enum GoingVenueTab: Hashable {
     case saved
 }
 
-private enum GoingPickupTab: Hashable {
+private enum GoingGamesTab: Hashable {
     case playing
     case hosting
 }

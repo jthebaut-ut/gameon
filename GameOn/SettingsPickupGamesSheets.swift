@@ -125,7 +125,7 @@ struct SettingsPickupGamesListSheet: View {
                 } label: {
                     Image(systemName: "plus.circle.fill")
                 }
-                .accessibilityLabel("Host Pickup Game")
+                .accessibilityLabel("Create Game")
             }
         }
         .task {
@@ -238,7 +238,7 @@ private struct SettingsPickupGamesEmptyStateCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(action: onAdd) {
-                Text("Host Pickup Game")
+                Text("Create Game")
                     .font(FGTypography.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
             }
@@ -264,6 +264,25 @@ private struct SettingsPickupGamesEmptyStateCard: View {
 enum SettingsPickupMyGameListCardDisplayStyle: Equatable {
     case settingsFull
     case followingCompact
+}
+
+struct GameFormatBadgeView: View {
+    let format: GameType
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        Text(format.badgeTitle)
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(FGColor.accentGreen)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.18 : 0.11), in: Capsule(style: .continuous))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(FGColor.accentGreen.opacity(colorScheme == .dark ? 0.35 : 0.22), lineWidth: 1)
+            )
+            .accessibilityLabel("Game format: \(format.displayTitle)")
+    }
 }
 
 private enum SettingsPickupGameListCardStatus: Equatable {
@@ -598,6 +617,9 @@ struct SettingsPickupMyGameListCard: View {
                             .fixedSize(horizontal: true, vertical: false)
                             .accessibilityLabel("Status: \(status.pillTitle)")
                     }
+
+                    GameFormatBadgeView(format: row.gameFormat, colorScheme: colorScheme)
+                        .opacity(cardTextOpacity)
 
                     if !isFollowingCompact {
                         PickupCreatorTrustLineView(stats: viewModel.pickupCreatorTrustStats(for: row.creator_user_id))
@@ -1388,6 +1410,7 @@ struct SettingsPickupGameFormView: View {
     @State private var didInitializeForm = false
     @State private var showPickupTimeConflictConfirmation = false
     @State private var creationTab: PickupGameCreationTab = .manual
+    @State private var gameFormat: GameType = .pickup
 
     private var organizerPostStartLockedRow: PickupGameRow? {
         if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
@@ -1551,8 +1574,23 @@ struct SettingsPickupGameFormView: View {
         return false
     }
 
+    private var gameFormatFormSection: some View {
+        Section {
+            Picker("Game format", selection: $gameFormat) {
+                ForEach(GameType.allCases, id: \.self) { type in
+                    Text(type.displayTitle).tag(type)
+                }
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
     private var manualPickupGameForm: some View {
         Form {
+            if shouldShowCreationTabs {
+                gameFormatFormSection
+            }
+
             if let errorText, !errorText.isEmpty {
                 Section {
                     Text(errorText)
@@ -1728,9 +1766,8 @@ struct SettingsPickupGameFormView: View {
 
             Section("Details") {
                 if isOrganizerPostStartManage {
-                    let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
                     LabeledContent("Description") {
-                        Text(desc.isEmpty ? "—" : desc)
+                        Text(description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "—" : description)
                             .foregroundStyle(FGColor.primaryText(colorScheme))
                             .multilineTextAlignment(.trailing)
                     }
@@ -1792,7 +1829,7 @@ struct SettingsPickupGameFormView: View {
         }
         .fanGeoScreenBackground()
         .navigationTitle(
-            mode == .add ? "Host Pickup Game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
+            mode == .add ? "Create Game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
         )
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -1962,6 +1999,7 @@ struct SettingsPickupGameFormView: View {
             state = ""
             zipCode = ""
             description = ""
+            gameFormat = .pickup
             playEnvironment = .either
             skillLevel = .casual
             participantPreference = .everyone
@@ -1991,6 +2029,7 @@ struct SettingsPickupGameFormView: View {
             state = splitState.state
             zipCode = splitState.zipCode
             description = row.description ?? ""
+            gameFormat = row.gameFormat
             playEnvironment = row.playEnvironmentEnum
             skillLevel = row.skillLevelEnum
             participantPreference = row.participantPreferenceEnum
@@ -2362,7 +2401,8 @@ struct SettingsPickupGameFormView: View {
                     participantPreference: participantPreference.rawValue,
                     isFree: isFree,
                     entryFeeAmount: feeParsed,
-                    maxPlayers: maxP
+                    maxPlayers: maxP,
+                    gameFormat: gameFormat
                 )
             case .edit(let row):
                 let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(start)
@@ -2372,6 +2412,7 @@ struct SettingsPickupGameFormView: View {
                     title: trimmedTitle,
                     sport: sport,
                     description: desc.isEmpty ? nil : desc,
+                    game_format: gameFormat.rawValue,
                     skill_level: skillLevel.rawValue,
                     game_start_at: gameStartISO,
                     end_time: endISO,

@@ -213,6 +213,11 @@ extension MapViewModel {
             return
         }
 
+        if await businessBanGuardBlocks(path: "businessLogin", action: "appleBusiness") {
+            clearExplicitLogoutMarkerAfterManualAuthSucceeded()
+            return
+        }
+
         if await activeFanUserProfileExistsForEmail(sessionEmail) {
             await undoPartialSupabaseSessionAfterAccountTypeMismatch()
             await MainActor.run { venueAuthErrorMessage = Self.businessLoginBlockedBecauseFanMessage }

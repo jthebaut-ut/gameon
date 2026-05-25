@@ -1,0 +1,325 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,baseball,pitch,47.6266026,-122.0553768,,,WA,,false,true,false,openstreetmap
+#2,baseball,pitch,47.6257081,-122.0553457,,,WA,,false,true,false,openstreetmap
+1,baseball,pitch,47.6660724,-122.1209492,,,WA,,false,true,false,openstreetmap
+1,baseball,pitch,46.6639806,-120.5244135,,,WA,,false,true,false,openstreetmap
+1,baseball,pitch,47.5611777,-122.2857016,,,WA,,false,true,false,openstreetmap
+1 (Jim Webster Memorial Field),baseball,pitch,47.3089109,-122.3186529,,,WA,,false,true,false,openstreetmap
+2,baseball,pitch,47.6660554,-122.1225964,,,WA,,false,true,false,openstreetmap
+2,baseball,pitch,47.3098215,-122.3188037,,,WA,,false,true,false,openstreetmap
+2,baseball,pitch,46.6646925,-120.5240769,,,WA,,false,true,false,openstreetmap
+2,baseball,pitch,47.562035,-122.2869841,,,WA,,false,true,false,openstreetmap
+3,baseball,pitch,47.3099287,-122.3170935,,,WA,,false,true,false,openstreetmap
+3,baseball,pitch,46.6645226,-120.5231069,,,WA,,false,true,false,openstreetmap
+3,baseball,pitch,47.5620513,-122.2856994,,,WA,,false,true,false,openstreetmap
+4,baseball,pitch,47.3089597,-122.3170608,,,WA,,false,true,false,openstreetmap
+4,baseball,pitch,46.6638302,-120.5231944,,,WA,,false,true,false,openstreetmap
+5,baseball,pitch,46.6644302,-120.5225524,,,WA,,false,true,false,openstreetmap
+6,baseball,pitch,47.663131,-122.1086509,,,WA,,false,true,false,openstreetmap
+6,baseball,pitch,46.6638052,-120.5258472,,,WA,,false,true,false,openstreetmap
+7,baseball,pitch,47.6626036,-122.1070341,,,WA,,false,true,false,openstreetmap
+7,baseball,pitch,46.6625358,-120.5258458,,,WA,,false,true,false,openstreetmap
+8,baseball,pitch,47.6615429,-122.1069001,,,WA,,false,true,false,openstreetmap
+Allan Yorke City Park Playfield,baseball,pitch,47.1910378,-122.1670236,,,WA,,false,true,false,openstreetmap
+Alton R. Daniels Field,baseball,pitch,48.5110611,-122.6290582,,,WA,,false,true,false,openstreetmap
+Arlington Heights Baseball Field,baseball,pitch,48.2067593,-122.064452,,,WA,,false,true,false,openstreetmap
+Art Wright Field,baseball,pitch,47.3900046,-122.2295857,,,WA,,false,true,false,openstreetmap
+Avista Stadium,baseball,stadium,47.6615459,-117.3446008,,,WA,,false,true,false,openstreetmap
+BB/SB Field 1,baseball,pitch,47.3777264,-122.166052,,,WA,,false,true,false,openstreetmap
+BB/SB Field 2,baseball,pitch,47.3783267,-122.1665275,,,WA,,false,true,false,openstreetmap
+BB/SB Field 3,baseball,pitch,47.3789115,-122.1665579,,,WA,,false,true,false,openstreetmap
+Badger NW Field,baseball,pitch,46.2373764,-119.279872,,,WA,,false,true,false,openstreetmap
+Bailey-Brayton Field,baseball,pitch,46.7349641,-117.1552535,,,WA,,false,true,false,openstreetmap
+Balch Fields,baseball,pitch,45.9265623,-122.7460412,,,WA,,false,true,false,openstreetmap
+Ball Field,baseball,pitch,47.2133529,-121.0996732,,,WA,,false,true,false,openstreetmap
+Ball Field #4,baseball,pitch,47.1931674,-122.1677223,,,WA,,false,true,false,openstreetmap
+Ball Field 1,baseball,pitch,47.7356176,-122.1451646,,,WA,,false,true,false,openstreetmap
+Ball Field 1,baseball,pitch,47.8902051,-122.2777434,,,WA,,false,true,false,openstreetmap
+Ball Field 2,baseball,pitch,47.7346499,-122.1450412,,,WA,,false,true,false,openstreetmap
+Ball Field 2,baseball,pitch,47.8897932,-122.2784032,,,WA,,false,true,false,openstreetmap
+Ball Field 3,baseball,pitch,47.7346458,-122.1439236,,,WA,,false,true,false,openstreetmap
+Ball Field 3,baseball,pitch,47.8907722,-122.278141,,,WA,,false,true,false,openstreetmap
+Ball Field 4,baseball,pitch,47.7354785,-122.143889,,,WA,,false,true,false,openstreetmap
+Ball Field 4,baseball,pitch,47.8900923,-122.278937,,,WA,,false,true,false,openstreetmap
+Ball Field 5,baseball,pitch,47.7358623,-122.1463752,,,WA,,false,true,false,openstreetmap
+Ball Field 6,baseball,pitch,47.7340393,-122.1448187,,,WA,,false,true,false,openstreetmap
+Ball Field 7,baseball,pitch,47.7340377,-122.1441381,,,WA,,false,true,false,openstreetmap
+Bannerwood Park Baseball Field,baseball,pitch,47.5961603,-122.1623757,,,WA,,false,true,false,openstreetmap
+Bar-S Playground,baseball,pitch,47.5751459,-122.4161075,,,WA,,false,true,false,openstreetmap
+Baseball,baseball,pitch,47.0817005,-122.9618864,,,WA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,47.009358,-120.5360165,,,WA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,47.5213978,-121.8168941,,,WA,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,47.80736,-117.3425132,,,WA,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,47.5406222,-122.0583265,,,WA,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,47.5406838,-122.0594329,,,WA,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,47.6646458,-122.1236912,,,WA,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,47.5398663,-122.0596226,,,WA,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,47.6646391,-122.1251767,,,WA,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,47.5388496,-122.0597065,,,WA,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,47.6638028,-122.1252094,,,WA,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,47.5402356,-122.0609376,,,WA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,47.5861513,-122.0127942,,,WA,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,47.0156995,-122.8556635,,,WA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,47.5861551,-122.0114011,,,WA,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,47.0149479,-122.8556099,,,WA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,47.5852258,-122.0113987,,,WA,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,47.0156913,-122.8567551,,,WA,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,47.0149361,-122.8567216,,,WA,,false,true,false,openstreetmap
+Baseball Field 5,baseball,pitch,47.0151271,-122.8580962,,,WA,,false,true,false,openstreetmap
+Baseball Field 6,baseball,pitch,47.0151482,-122.8595232,,,WA,,false,true,false,openstreetmap
+Baseball/Softball Field #1,baseball,pitch,47.3838401,-122.2602683,,,WA,,false,true,false,openstreetmap
+Bates Field,baseball,pitch,45.583056,-122.3452267,,,WA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,47.3857912,-122.2590123,,,WA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,47.0099422,-120.53639,,,WA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,47.7915567,-117.3235366,,,WA,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,47.801481,-117.3921423,,,WA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,47.4651827,-122.2439513,,,WA,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,46.5838167,-120.6063565,,,WA,,false,true,false,openstreetmap
+Biddle Memorial Sports Facility,baseball,pitch,47.6330862,-122.5299657,,,WA,,false,true,false,openstreetmap
+Big Rock Ballfields,baseball,pitch,47.7215226,-121.9566865,,,WA,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,47.3128962,-122.2151771,,,WA,,false,true,false,openstreetmap
+Boeing Mariners Care Athletic Field,baseball,pitch,47.6411857,-121.9170531,,,WA,,false,true,false,openstreetmap
+Boeing Softball Field,baseball,pitch,47.9388323,-122.2837728,,,WA,,false,true,false,openstreetmap
+Bond Field,baseball,pitch,48.0106202,-122.0631377,,,WA,,false,true,false,openstreetmap
+Bonneville Field,baseball,pitch,48.0111857,-122.0473837,,,WA,,false,true,false,openstreetmap
+Brock O'Connor Field,baseball,pitch,47.5906206,-122.0560263,,,WA,,false,true,false,openstreetmap
+CG Field,baseball,pitch,46.8882663,-124.1158435,,,WA,,false,true,false,openstreetmap
+Camano Center Baseball Field,baseball,pitch,48.2158096,-122.4790217,,,WA,,false,true,false,openstreetmap
+Cedarcrest High School Baseball Field,baseball,pitch,47.7379363,-121.9531813,,,WA,,false,true,false,openstreetmap
+Chaffey Field,baseball,pitch,47.6545221,-122.2984541,,,WA,,false,true,false,openstreetmap
+Clarence Hovde Field,baseball,pitch,47.5206758,-122.6136461,,,WA,,false,true,false,openstreetmap
+Coach Art Grosso Field,baseball,pitch,47.5206604,-122.6121884,,,WA,,false,true,false,openstreetmap
+Coach Steve Hertz Field,baseball,pitch,47.662645,-117.3989679,,,WA,,false,true,false,openstreetmap
+Courter Baseball Field,baseball,pitch,47.5884035,-122.1493751,,,WA,,false,true,false,openstreetmap
+Crusaders,baseball,pitch,47.6078427,-122.0291596,,,WA,,false,true,false,openstreetmap
+Darrington High School Baseball Field,baseball,pitch,48.245591,-121.6029176,,,WA,,false,true,false,openstreetmap
+David B. Story Field,baseball,pitch,46.1428393,-122.9391871,,,WA,,false,true,false,openstreetmap
+David Bryson Field,baseball,pitch,47.6335371,-122.5299551,,,WA,,false,true,false,openstreetmap
+Deer Park Sports Complex,baseball,pitch,47.9467333,-117.4539777,S Weber Rd,,WA,,false,true,false,openstreetmap
+Dick Tagman Field,baseball,pitch,46.9849503,-123.5962236,,,WA,,false,true,false,openstreetmap
+Downer Field,baseball,pitch,48.745605,-122.4595419,,,WA,,false,true,false,openstreetmap
+Dunbar Field,baseball,pitch,46.5881726,-120.5282925,,,WA,,false,true,false,openstreetmap
+Eastlake Community Sports Field,baseball,pitch,47.6123157,-122.0262048,,,WA,,false,true,false,openstreetmap
+Eldridge Playfield,baseball,pitch,47.2283404,-122.4439875,,,WA,,false,true,false,openstreetmap
+Erik K Tesarik Memorial Baseball Field,baseball,pitch,48.5095564,-122.2377699,,,WA,,false,true,false,openstreetmap
+Everett little league,baseball,pitch,47.9393675,-122.225002,,,WA,,false,true,false,openstreetmap
+Failor Field,baseball,pitch,46.9668979,-123.7944064,,,WA,,false,true,false,openstreetmap
+Fallen Leaf Softball Field,baseball,pitch,45.5969386,-122.4081937,,,WA,,false,true,false,openstreetmap
+Father William Slate Field,baseball,pitch,47.4890121,-122.3494012,,,WA,,false,true,false,openstreetmap
+Federal Field,baseball,pitch,47.601796,-122.137635,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,48.0083183,-122.4076189,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.5217549,-121.8083398,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.5789945,-121.9325737,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.4182259,-122.1731132,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,48.76804,-122.5005551,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.4417441,-122.1196411,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.2800911,-122.206783,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.2856923,-122.2723246,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.1777307,-122.5554274,,,WA,,false,true,false,openstreetmap
+Field #1,baseball,pitch,47.381998,-122.2415594,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.3910035,-122.2296492,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,48.0075396,-122.4077586,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.522453,-121.8076981,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.5792985,-121.9334227,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.4182368,-122.174528,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.4417742,-122.1180558,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.2814957,-122.2054832,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,48.7687035,-122.5014209,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.2849548,-122.2723278,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.1774947,-122.5571023,,,WA,,false,true,false,openstreetmap
+Field #2,baseball,pitch,47.3826544,-122.2415638,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.3909845,-122.2287582,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,48.0071479,-122.4070023,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.5218778,-121.8063174,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.4428488,-122.1181126,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.2811613,-122.204283,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.2851427,-122.2742941,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,47.1772303,-122.5590046,,,WA,,false,true,false,openstreetmap
+Field #3,baseball,pitch,48.7681846,-122.5024298,,,WA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,48.009133,-122.407372,,,WA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,47.4428736,-122.1194885,,,WA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,47.2800519,-122.2046778,,,WA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,47.2844052,-122.2746004,,,WA,,false,true,false,openstreetmap
+Field #4,baseball,pitch,47.1770161,-122.560478,,,WA,,false,true,false,openstreetmap
+Field #5,baseball,pitch,47.2831662,-122.2746221,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6097743,-122.1723005,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6829607,-122.082455,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6450588,-121.9210586,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6924839,-122.1102245,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.5337751,-122.3947718,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.0438341,-122.943527,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6901652,-122.1963776,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6595426,-122.5773353,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.6709532,-122.1919601,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.3579421,-121.9809032,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,46.2369689,-119.2794573,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,46.598573,-120.4834173,,,WA,,false,true,false,openstreetmap
+Field 1,baseball,pitch,47.5075402,-121.7979333,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6834516,-122.0837698,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6456171,-121.9209795,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6917691,-122.1102125,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.7453601,-122.3069413,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.5328888,-122.3942683,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.0440069,-122.9421162,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6910967,-122.1963708,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6717719,-122.1919579,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.6089231,-122.1729171,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.3585983,-121.9833507,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,46.2362045,-119.2797056,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,46.5986101,-120.4820136,,,WA,,false,true,false,openstreetmap
+Field 2,baseball,pitch,47.5069439,-121.797352,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.6917339,-122.1091285,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.7450674,-122.3067573,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.0430557,-122.9418043,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.6717368,-122.1929405,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.3574229,-121.9834551,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,46.235794,-119.2788166,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,46.5996112,-120.4824621,,,WA,,false,true,false,openstreetmap
+Field 3,baseball,pitch,47.5064595,-121.7982483,,,WA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,47.6924664,-122.1091819,,,WA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,47.042036,-122.9412389,,,WA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,47.6727894,-122.1930292,,,WA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,46.5996861,-120.4837612,,,WA,,false,true,false,openstreetmap
+Field 4,baseball,pitch,47.5068898,-121.7988884,,,WA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,47.5424063,-122.0012735,,,WA,,false,true,false,openstreetmap
+Field 5,baseball,pitch,46.600915,-120.4836891,,,WA,,false,true,false,openstreetmap
+Field 6,baseball,pitch,47.5421055,-122.0004654,,,WA,,false,true,false,openstreetmap
+Field A,baseball,pitch,46.6002589,-120.4857213,,,WA,,false,true,false,openstreetmap
+Field B,baseball,pitch,46.6009997,-120.4857897,,,WA,,false,true,false,openstreetmap
+Field C,baseball,pitch,46.9468354,-123.848952,,,WA,,false,true,false,openstreetmap
+Field C,baseball,pitch,46.6010401,-120.4868924,,,WA,,false,true,false,openstreetmap
+Field1,baseball,pitch,45.7834345,-122.5280981,,,WA,,false,true,false,openstreetmap
+Field2,baseball,pitch,45.7833866,-122.5273553,,,WA,,false,true,false,openstreetmap
+Field3,baseball,pitch,45.7828535,-122.5282932,,,WA,,false,true,false,openstreetmap
+Floyd Gates Field,baseball,pitch,46.2906129,-119.2735469,,,WA,,false,true,false,openstreetmap
+Frank Geri Field #1,baseball,pitch,48.7512684,-122.456326,,,WA,,false,true,false,openstreetmap
+Frank Geri Field #2,baseball,pitch,48.7512713,-122.4577857,,,WA,,false,true,false,openstreetmap
+Frank Geri Field #3,baseball,pitch,48.7512538,-122.4594362,,,WA,,false,true,false,openstreetmap
+Frank Geri Field #4,baseball,pitch,48.7498854,-122.4561254,,,WA,,false,true,false,openstreetmap
+Frank Papasedero Field,baseball,pitch,47.6777941,-122.2579449,,,WA,,false,true,false,openstreetmap
+Funko Field,baseball,pitch,47.9668616,-122.2025665,,,WA,,false,true,false,openstreetmap
+Green Field,baseball,pitch,47.3129482,-122.214702,,,WA,,false,true,false,openstreetmap
+Greene Memorial Field,baseball,pitch,47.9715106,-118.973604,,,WA,,false,true,false,openstreetmap
+Harm's Field,baseball,pitch,46.885792,-124.1025693,,,WA,,false,true,false,openstreetmap
+Hartford Field,baseball,pitch,48.0353015,-122.0583931,,,WA,,false,true,false,openstreetmap
+Hartman Field,baseball,pitch,48.5320064,-123.0257266,,,WA,,false,true,false,openstreetmap
+Henry M. Jackson Baseball Field,baseball,pitch,47.8733431,-122.2039395,,,WA,,false,true,false,openstreetmap
+Hillwood Park,baseball,park,47.7675659,-122.3631501,,,WA,,false,true,false,openstreetmap
+Husky Ballpark,baseball,stadium,47.6546948,-122.2986842,,,WA,,false,true,false,openstreetmap
+Jackson Roos Memorial Field,baseball,pitch,47.6904713,-122.0336338,,,WA,,false,true,false,openstreetmap
+Joe Martin Field,baseball,pitch,48.747103,-122.459894,,,WA,,false,true,false,openstreetmap
+Joe Martin Stadium,baseball,stadium,48.7471641,-122.4597229,,,WA,,false,true,false,openstreetmap
+Johnny Lazor Community Field,baseball,pitch,47.4149114,-121.9727612,,,WA,,false,true,false,openstreetmap
+Jon Lester Field,baseball,pitch,47.1706862,-122.276114,,,WA,,false,true,false,openstreetmap
+Kamiak baseball field,baseball,pitch,47.8981246,-122.3003495,,,WA,,false,true,false,openstreetmap
+Keiter Park Ballfield,baseball,pitch,48.700306,-122.9334369,,,WA,,false,true,false,openstreetmap
+Ken Waite Field,baseball,pitch,46.9665525,-123.7930959,,,WA,,false,true,false,openstreetmap
+Ken Wilson Field,baseball,pitch,47.1703631,-122.2767917,,,WA,,false,true,false,openstreetmap
+Kentlake High School Baseball Park,baseball,pitch,47.3301162,-122.0562908,,,WA,,false,true,false,openstreetmap
+Key Peninsula Little League,baseball,pitch,47.3086697,-122.7544061,,,WA,,false,true,false,openstreetmap
+Key Peninsula Little League,baseball,pitch,47.3089011,-122.7564522,,,WA,,false,true,false,openstreetmap
+Key Peninsula Little League,baseball,pitch,47.309364,-122.7541056,,,WA,,false,true,false,openstreetmap
+Kingsgate 1 & 2 Baseball Field,baseball,pitch,47.7217076,-122.1834099,,,WA,,false,true,false,openstreetmap
+Knights Field,baseball,pitch,47.5893887,-122.6260499,,,WA,,false,true,false,openstreetmap
+Lee Johnson Field,baseball,pitch,47.6770319,-122.2023809,,,WA,,false,true,false,openstreetmap
+Legends Fields,baseball,pitch,46.8088002,-123.1642082,,,WA,,false,true,false,openstreetmap
+Les Dow Field,baseball,pitch,47.6920313,-122.1079617,,,WA,,false,true,false,openstreetmap
+Lewis River Little League,baseball,sports_centre,45.9264844,-122.7469464,7055 Green Mountain Road,,WA,,false,true,false,openstreetmap
+Little League,baseball,pitch,46.2612515,-118.1479845,,,WA,,false,true,false,openstreetmap
+Little League AA fields,baseball,pitch,46.9674165,-123.7940865,,,WA,,false,true,false,openstreetmap
+Little League Baseball Diamond,baseball,pitch,46.3636595,-123.8133542,,,WA,,false,true,false,openstreetmap
+Logan Field,baseball,pitch,47.6067767,-122.3174546,,,WA,,false,true,false,openstreetmap
+Loggers Field,baseball,pitch,47.190815,-120.9475957,,,WA,,false,true,false,openstreetmap
+Lummi Nation,baseball,pitch,48.8183801,-122.6291768,,,WA,,false,true,false,openstreetmap
+Lummi Nation,baseball,pitch,48.8183805,-122.6307972,,,WA,,false,true,false,openstreetmap
+Mariners All-Star Field at Lower Woodland Park,baseball,pitch,47.6660057,-122.3413606,,,WA,,false,true,false,openstreetmap
+McWhirter Field,baseball,pitch,47.5738684,-122.0060466,,,WA,,false,true,false,openstreetmap
+Meadowbrook Field #1,baseball,pitch,47.7062794,-122.291969,,,WA,,false,true,false,openstreetmap
+Mel Olson Stadium,baseball,stadium,47.510756,-122.351686,,,WA,,false,true,false,openstreetmap
+Michael J. Nolan Fields,baseball,pitch,45.8619774,-122.6593667,,,WA,,false,true,false,openstreetmap
+Midway Elementary Main Baseball and Softball Field,baseball,pitch,47.8108739,-117.3969721,,,WA,,false,true,false,openstreetmap
+Midway Elementary Secondary Baseball and Softball Field,baseball,pitch,47.8109853,-117.395872,,,WA,,false,true,false,openstreetmap
+Minnitti Field,baseball,pitch,47.2491311,-122.517517,,,WA,,false,true,false,openstreetmap
+"Morris ""Red"" Badgro Field",baseball,pitch,47.4044715,-122.271392,,,WA,,false,true,false,openstreetmap
+Naselle High School Baseball Diamond,baseball,pitch,46.3629524,-123.8135286,,,WA,,false,true,false,openstreetmap
+Nelson Field,baseball,pitch,46.9839394,-123.6026401,,,WA,,false,true,false,openstreetmap
+Oakville Baseball,baseball,pitch,46.8379357,-123.2282229,,,WA,,false,true,false,openstreetmap
+Osborne Field,baseball,pitch,47.1889525,-122.0099626,,,WA,,false,true,false,openstreetmap
+PE Baseball Fields,baseball,pitch,48.9922282,-122.736791,,,WA,,false,true,false,openstreetmap
+PLU Baseball Stadium,baseball,pitch,47.1429653,-122.4445853,,,WA,,false,true,false,openstreetmap
+Pacific Little Leauge,baseball,pitch,47.8268384,-122.3315186,,,WA,,false,true,false,openstreetmap
+Parker Faller Field,baseball,pitch,46.5861904,-120.5263408,,,WA,,false,true,false,openstreetmap
+Patrick's Field,baseball,pitch,47.3754207,-122.0408087,,,WA,,false,true,false,openstreetmap
+Patterson Baseball Complex,baseball,stadium,47.6627742,-117.3991132,,,WA,,false,true,false,openstreetmap
+Pete Ross Field #1,baseball,pitch,47.6674549,-122.6890478,,,WA,,false,true,false,openstreetmap
+Pete Ross Field #2,baseball,pitch,47.6671403,-122.6893449,,,WA,,false,true,false,openstreetmap
+Pete Ross Field #3,baseball,pitch,47.666607,-122.6891838,,,WA,,false,true,false,openstreetmap
+Pete Ross Field #4,baseball,pitch,47.665956,-122.6889234,,,WA,,false,true,false,openstreetmap
+Pete Ross Field #5,baseball,pitch,47.6653486,-122.6890545,,,WA,,false,true,false,openstreetmap
+Pilchuck Fields,baseball,pitch,47.9113257,-122.0832556,,,WA,,false,true,false,openstreetmap
+Pilchuck Fields,baseball,pitch,47.9105828,-122.0842295,,,WA,,false,true,false,openstreetmap
+QHS Baseball Field,baseball,pitch,47.8237627,-122.8729048,,,WA,,false,true,false,openstreetmap
+Redband Field,baseball,pitch,47.6595473,-117.4317722,,,WA,,false,true,false,openstreetmap
+Redmond High Baseball Field,baseball,pitch,47.6958414,-122.1090897,,,WA,,false,true,false,openstreetmap
+Ridgeview Elementary School,baseball,pitch,47.7096062,-117.4328144,,,WA,,false,true,false,openstreetmap
+Rister Stadium,baseball,pitch,46.1403602,-122.8924389,,,WA,,false,true,false,openstreetmap
+Riverfront 1 East,baseball,pitch,48.4921263,-122.2236976,,,WA,,false,true,false,openstreetmap
+Riverfront 2 West,baseball,pitch,48.4921331,-122.2246774,,,WA,,false,true,false,openstreetmap
+Robert W. Sherman Field,baseball,pitch,48.2092151,-122.6912018,,,WA,,false,true,false,openstreetmap
+Robinswood Park Baseball Field #1,baseball,pitch,47.5899596,-122.1395417,,,WA,,false,true,false,openstreetmap
+Ross Field,baseball,sports_centre,47.6664749,-122.6889178,,,WA,,false,true,false,openstreetmap
+Salnave Field #1,baseball,pitch,47.4805002,-117.5944047,,,WA,,false,true,false,openstreetmap
+Salnave Field #2,baseball,pitch,47.4794865,-117.5941513,,,WA,,false,true,false,openstreetmap
+Salnave Field #3,baseball,pitch,47.4791446,-117.5960706,,,WA,,false,true,false,openstreetmap
+Schmid Fields,baseball,pitch,45.5759732,-122.3191574,,,WA,,false,true,false,openstreetmap
+Sehome Baseball Field,baseball,pitch,48.7259389,-122.4833858,,,WA,,false,true,false,openstreetmap
+Selah Vikings (Pepsi Pak) Field,baseball,pitch,46.6626883,-120.5243078,,,WA,,false,true,false,openstreetmap
+Sigel Field,baseball,pitch,45.9262995,-122.7489267,,,WA,,false,true,false,openstreetmap
+Snyder Park,baseball,pitch,47.7723046,-122.6500104,,,WA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,46.2620323,-118.1481723,,,WA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,47.1436695,-122.4472559,,,WA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,46.8584176,-122.8576958,,,WA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,46.8590077,-122.8579706,,,WA,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,46.2073095,-119.7546172,,,WA,,false,true,false,openstreetmap
+Softball Field #2,baseball,pitch,47.3848007,-122.2613454,,,WA,,false,true,false,openstreetmap
+Softball Field #3,baseball,pitch,47.3851191,-122.2595568,,,WA,,false,true,false,openstreetmap
+Softball Field #4,baseball,pitch,47.3851192,-122.2581644,,,WA,,false,true,false,openstreetmap
+Softball Field #5,baseball,pitch,47.3841582,-122.2581513,,,WA,,false,true,false,openstreetmap
+Softball Field 1,baseball,pitch,47.6687388,-122.1449668,,,WA,,false,true,false,openstreetmap
+Softball Field 2,baseball,pitch,47.6689403,-122.1465655,,,WA,,false,true,false,openstreetmap
+Stanley Field,baseball,pitch,46.3564644,-124.0528069,,,WA,,false,true,false,openstreetmap
+Stanwood Elementary Baseball Field,baseball,pitch,48.2454752,-122.374392,,,WA,,false,true,false,openstreetmap
+Swanstrom Field,baseball,pitch,46.0422209,-122.840798,,,WA,,false,true,false,openstreetmap
+TPS Field,baseball,pitch,47.2471645,-122.4638714,,,WA,,false,true,false,openstreetmap
+Tesarik Playfield,baseball,pitch,48.5060807,-122.2467306,,,WA,,false,true,false,openstreetmap
+Tinker Field,baseball,pitch,46.3500323,-124.050507,,,WA,,false,true,false,openstreetmap
+Tomahawk Stadium,baseball,pitch,46.8142151,-123.1721354,,,WA,,false,true,false,openstreetmap
+Town Well Field NC Little League,baseball,sports_centre,45.8707836,-122.4078165,,,WA,,false,true,false,openstreetmap
+Vern Kindsfather Field,baseball,pitch,45.6355418,-122.6592182,,,WA,,false,true,false,openstreetmap
+Viking Baseball Complex,baseball,pitch,47.185197,-119.3320956,,,WA,,false,true,false,openstreetmap
+Viking Softball Field,baseball,pitch,47.1865687,-119.3326546,,,WA,,false,true,false,openstreetmap
+Volunteer Field,baseball,pitch,48.1180563,-123.4814736,,,WA,,false,true,false,openstreetmap
+Wheeler Field,baseball,pitch,46.7221839,-122.9830832,,,WA,,false,true,false,openstreetmap
+Wickersham Field,baseball,pitch,46.2847412,-119.2921094,,,WA,,false,true,false,openstreetmap
+Wiffco Field,baseball,pitch,47.3904637,-122.2285657,,,WA,,false,true,false,openstreetmap
+Wiffle ball,baseball,pitch,47.2266854,-122.3503542,,,WA,,false,true,false,openstreetmap
+Willis Tucker baseball fields,baseball,pitch,47.8631933,-122.1390008,,,WA,,false,true,false,openstreetmap
+Yakima County Stadium,baseball,stadium,46.5912002,-120.4856685,,,WA,,false,true,false,openstreetmap
+everett little league,baseball,pitch,47.9390813,-122.2239979,,,WA,,false,true,false,openstreetmap
+rochester middle school baseball field,baseball,pitch,46.8197765,-123.0914392,,,WA,,false,true,false,openstreetmap
+Don Daniels Field,baseball,pitch,48.510932,-122.6273337,1915 13th Street,Anacortes,WA,98221,false,true,false,openstreetmap
+Trident Field,baseball,pitch,48.5005847,-122.6205375,1313 27th Street,Anacortes,WA,98221,false,true,false,openstreetmap
+Windermere Field,baseball,pitch,48.5005888,-122.6210204,2717 J Avenue,Anacortes,WA,98221,false,true,false,openstreetmap
+Stod's Baseball,baseball,sports_centre,47.5523206,-122.1774828,5606 119th Avenue Southeast,Bellevue,WA,98006,false,true,false,openstreetmap
+Blue's Baseball Facility,baseball,sports_centre,46.998762,-120.5552881,605 West 7th Avenue,Ellensburg,WA,98926,false,true,false,openstreetmap
+The Natural Ball Player,baseball,pitch,47.7145497,-122.1597169,13424 Northeast 126th Place,Kirkland,WA,98034,false,true,false,openstreetmap
+Sherman Anderson Ballpark,baseball,pitch,48.4107785,-122.3399294,1501 Cleveland Avenue,Mount Vernon,WA,98273,false,true,false,openstreetmap
+South Kitsap Southern Little League,baseball,pitch,47.4479304,-122.5762741,5795 Southeast Hovgaard Road,Olalla,WA,98359,false,true,false,openstreetmap
+Gesa Stadium,baseball,stadium,46.2663269,-119.171931,6200 Burden Boulevard,Pasco,WA,99301,false,true,false,openstreetmap
+Driveline Baseball,baseball,sports_centre,47.1936599,-122.2967709,239 West Stewart,Puyallup,WA,98371,false,true,false,openstreetmap
+Deema Smakman Little League Field,baseball,sports_centre,47.8211496,-122.8960891,260 Deema Smakman Road,Quilcene,WA,,false,true,false,openstreetmap
+Riverdale Baseball Fields,baseball,sports_centre,46.6923936,-123.7428514,1700 Willapa Street,Raymond,WA,,false,true,false,openstreetmap
+T-Mobile Park,baseball,stadium,47.5913642,-122.3324281,1250 1st Avenue South,Seattle,WA,98134,false,true,false,openstreetmap
+Heidelberg Sports Complex,baseball,sports_centre,47.24145,-122.4962854,1902 South Tyler Street,Tacoma,WA,98405,false,true,false,openstreetmap
+North Rotary Fast Pitch Field,baseball,pitch,47.4321523,-120.3389363,1503 9th Street,Wenatchee,WA,98801,false,true,false,openstreetmap
+Paul Thomas Baseball Stadium,baseball,stadium,47.4317162,-120.3397959,1520 5th Street,Wenatchee,WA,98801,false,true,false,openstreetmap

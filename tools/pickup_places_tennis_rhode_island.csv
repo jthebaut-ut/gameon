@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BHS Tennis Court,tennis,pitch,41.9685092,-71.660939,,,RI,,false,true,false,openstreetmap
+Rotary Park Tennis Court,tennis,pitch,41.3458357,-71.8142973,,,RI,,false,true,false,openstreetmap
+Spencer Gray Tennis Courts,tennis,sports_centre,41.8350531,-71.3610106,,,RI,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,41.8455693,-71.4344153,,,RI,,false,true,false,openstreetmap
+Todd Morsilli Tennis Courts,tennis,pitch,41.7900765,-71.4127988,,,RI,,false,true,false,openstreetmap
+Varsity Courts,tennis,pitch,41.8297371,-71.3943717,,,RI,,false,true,false,openstreetmap
+International Tennis Hall of Fame,tennis,pitch,41.4827656,-71.3083177,194 Bellevue Avenue,Newport,RI,02840,false,true,false,openstreetmap

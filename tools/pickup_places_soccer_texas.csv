@@ -1,0 +1,439 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+.,soccer,pitch,29.6736188,-98.4810806,,,TX,,false,true,false,openstreetmap
+1,soccer,pitch,32.9532405,-96.9357635,,,TX,,false,true,false,openstreetmap
+1,soccer,pitch,30.463843,-97.7715768,,,TX,,false,true,false,openstreetmap
+1,soccer,pitch,30.1032325,-97.8799092,,,TX,,false,true,false,openstreetmap
+11,soccer,pitch,30.4649477,-97.771078,,,TX,,false,true,false,openstreetmap
+2,soccer,pitch,30.4631211,-97.7712896,,,TX,,false,true,false,openstreetmap
+2,soccer,pitch,32.953061,-96.9348087,,,TX,,false,true,false,openstreetmap
+2,soccer,pitch,30.1032121,-97.8807117,,,TX,,false,true,false,openstreetmap
+20,soccer,pitch,30.4635677,-97.7681903,,,TX,,false,true,false,openstreetmap
+22,soccer,pitch,30.4644293,-97.7670856,,,TX,,false,true,false,openstreetmap
+23,soccer,pitch,30.4637743,-97.7668434,,,TX,,false,true,false,openstreetmap
+24,soccer,pitch,30.4630843,-97.7665832,,,TX,,false,true,false,openstreetmap
+25,soccer,pitch,30.4623962,-97.7663054,,,TX,,false,true,false,openstreetmap
+26,soccer,pitch,30.4645292,-97.7661304,,,TX,,false,true,false,openstreetmap
+27,soccer,pitch,30.4636016,-97.7657729,,,TX,,false,true,false,openstreetmap
+28,soccer,pitch,30.4624431,-97.7653143,,,TX,,false,true,false,openstreetmap
+3,soccer,pitch,30.4619877,-97.7707061,,,TX,,false,true,false,openstreetmap
+3,soccer,pitch,32.9531895,-96.932899,,,TX,,false,true,false,openstreetmap
+3,soccer,pitch,30.1031916,-97.8814949,,,TX,,false,true,false,openstreetmap
+31,soccer,pitch,30.4600121,-97.7693737,,,TX,,false,true,false,openstreetmap
+32,soccer,pitch,30.459447,-97.769131,,,TX,,false,true,false,openstreetmap
+33,soccer,pitch,30.4598834,-97.7697914,,,TX,,false,true,false,openstreetmap
+34,soccer,pitch,30.459377,-97.7695715,,,TX,,false,true,false,openstreetmap
+35,soccer,pitch,30.4589238,-97.7690281,,,TX,,false,true,false,openstreetmap
+36,soccer,pitch,30.4596202,-97.768539,,,TX,,false,true,false,openstreetmap
+4,soccer,pitch,30.4620146,-97.770011,,,TX,,false,true,false,openstreetmap
+4,soccer,pitch,32.9532216,-96.9319027,,,TX,,false,true,false,openstreetmap
+5,soccer,pitch,32.9530314,-96.9309337,,,TX,,false,true,false,openstreetmap
+5 & 6,soccer,pitch,30.4618813,-97.7691334,,,TX,,false,true,false,openstreetmap
+A,soccer,pitch,32.9639445,-96.9385191,,,TX,,false,true,false,openstreetmap
+A,soccer,pitch,33.0641388,-96.7745738,,,TX,,false,true,false,openstreetmap
+Austin FC Training Pitch,soccer,pitch,30.4083734,-97.651409,,,TX,,false,true,false,openstreetmap
+Austin FC Training Pitch,soccer,pitch,30.4083885,-97.6506392,,,TX,,false,true,false,openstreetmap
+Austin FC Training Pitch,soccer,pitch,30.4083573,-97.653021,,,TX,,false,true,false,openstreetmap
+B,soccer,pitch,32.9641237,-96.9394504,,,TX,,false,true,false,openstreetmap
+B,soccer,pitch,33.0641269,-96.773635,,,TX,,false,true,false,openstreetmap
+BCFS Soccer Field,soccer,pitch,29.3996275,-98.6340689,,,TX,,false,true,false,openstreetmap
+BCFS Staff Secure Soccer Field,soccer,pitch,29.4001407,-98.632267,,,TX,,false,true,false,openstreetmap
+Berkner Soccer Field,soccer,pitch,32.9343257,-96.6936687,,,TX,,false,true,false,openstreetmap
+Betty Lou Mays Soccer Field,soccer,pitch,31.5517853,-97.1091136,,,TX,,false,true,false,openstreetmap
+Big REC. Soccer Field,soccer,pitch,31.3950008,-103.5349422,,,TX,,false,true,false,openstreetmap
+Briercliff Field #2,soccer,pitch,33.1707269,-97.0924774,,,TX,,false,true,false,openstreetmap
+Briercliff field #1,soccer,pitch,33.1703579,-97.0912288,,,TX,,false,true,false,openstreetmap
+Brown Road Recreation Complex,soccer,park,34.9811928,-101.9511356,,,TX,,false,true,false,openstreetmap
+Brushy Creek Community Center Soccer Field,soccer,pitch,30.4956163,-97.7322318,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 1,soccer,pitch,32.0352072,-102.1421612,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 10,soccer,pitch,32.0352187,-102.1406255,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 11,soccer,pitch,32.0355098,-102.1405229,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 12,soccer,pitch,32.0355441,-102.1403686,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 13,soccer,pitch,32.035364,-102.1404733,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 14,soccer,pitch,32.0353979,-102.1403217,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 15,soccer,pitch,32.0352068,-102.1404178,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 16,soccer,pitch,32.0352403,-102.1402727,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 17,soccer,pitch,32.0353734,-102.1400229,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 18,soccer,pitch,32.0354495,-102.13971,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 19,soccer,pitch,32.0355215,-102.1393948,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 2,soccer,pitch,32.035258,-102.1419318,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 20,soccer,pitch,32.0355911,-102.1390905,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 21,soccer,pitch,32.0357611,-102.1400721,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 22,soccer,pitch,32.0358322,-102.1397515,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 23,soccer,pitch,32.0359045,-102.1394387,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 24,soccer,pitch,32.0359758,-102.1391324,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 25,soccer,pitch,32.0361226,-102.1401872,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 26,soccer,pitch,32.0361951,-102.1398693,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 27,soccer,pitch,32.0362693,-102.1395579,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 28,soccer,pitch,32.0363392,-102.1392436,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 3,soccer,pitch,32.0353074,-102.1417058,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 4,soccer,pitch,32.035359,-102.1414803,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 5,soccer,pitch,32.0354156,-102.1412376,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 6,soccer,pitch,32.0354747,-102.1409844,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 7,soccer,pitch,32.0355344,-102.1407289,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 8,soccer,pitch,32.0351055,-102.1411355,,,TX,,false,true,false,openstreetmap
+Butler Soccer Field 9,soccer,pitch,32.0351619,-102.1408823,,,TX,,false,true,false,openstreetmap
+C,soccer,pitch,32.9652577,-96.9391107,,,TX,,false,true,false,openstreetmap
+C,soccer,pitch,33.0629982,-96.7736609,,,TX,,false,true,false,openstreetmap
+Celebration Park Soccer Fields,soccer,pitch,33.1061432,-96.6251808,,,TX,,false,true,false,openstreetmap
+Championship Field A,soccer,pitch,29.6357521,-95.395296,,,TX,,false,true,false,openstreetmap
+Championship Field B,soccer,pitch,29.6357816,-95.3942787,,,TX,,false,true,false,openstreetmap
+Chihuahua Youth Soccer Field,soccer,pitch,29.3510917,-100.9126991,,,TX,,false,true,false,openstreetmap
+Children's Lighthouse Learning Center,soccer,pitch,33.0080893,-97.0209249,,,TX,,false,true,false,openstreetmap
+Chinn Chapel Soccer Complex,soccer,pitch,33.0733848,-97.0897892,,,TX,,false,true,false,openstreetmap
+Chisholm Trail Soccer Field,soccer,pitch,30.5034633,-97.7003945,,,TX,,false,true,false,openstreetmap
+Citizens National Bank Soccer Field,soccer,pitch,31.7099529,-98.9948557,,,TX,,false,true,false,openstreetmap
+Classics Elite Soccer Academy - McAllister Fields,soccer,pitch,29.5488914,-98.4573018,11600 Starcrest Drive,,TX,78216,false,true,false,openstreetmap
+Clint Dempsey Soccer Complex,soccer,sports_centre,31.5967486,-94.6511344,,,TX,,false,true,false,openstreetmap
+Columbus Youth Soccer Fields,soccer,sports_centre,29.6992787,-96.5558768,,,TX,,false,true,false,openstreetmap
+Compeition Soccer Field,soccer,pitch,29.7027115,-95.5913236,,,TX,,false,true,false,openstreetmap
+Cornish Soccer Field,soccer,pitch,32.5629144,-94.3760006,,,TX,,false,true,false,openstreetmap
+Cougar Field,soccer,pitch,31.5610481,-97.167125,,,TX,,false,true,false,openstreetmap
+Crane Hill Soccer Complex,soccer,pitch,29.2467803,-94.8733664,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #1,soccer,pitch,31.1249203,-97.4100246,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #2,soccer,pitch,31.125702,-97.4109616,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #3,soccer,pitch,31.12633,-97.4096817,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #4,soccer,pitch,31.1254572,-97.4083574,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #4,soccer,pitch,31.1265826,-97.4081743,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #6,soccer,pitch,31.1232327,-97.4098914,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #7,soccer,pitch,31.1235197,-97.4109094,,,TX,,false,true,false,openstreetmap
+Crossroads Soccer Field #8,soccer,pitch,31.1237826,-97.4118131,,,TX,,false,true,false,openstreetmap
+D,soccer,pitch,32.9649337,-96.9383563,,,TX,,false,true,false,openstreetmap
+D,soccer,pitch,33.0630134,-96.7745894,,,TX,,false,true,false,openstreetmap
+Dash Pitch,soccer,pitch,29.7152786,-95.478841,,,TX,,false,true,false,openstreetmap
+Dr. Pink Field,soccer,stadium,33.1561709,-96.836509,,,TX,,false,true,false,openstreetmap
+Dynamo Pitch,soccer,pitch,29.7152775,-95.47899,,,TX,,false,true,false,openstreetmap
+E,soccer,pitch,32.9656836,-96.9381423,,,TX,,false,true,false,openstreetmap
+E,soccer,pitch,33.0647623,-96.7754176,,,TX,,false,true,false,openstreetmap
+ENHS Soccer Field,soccer,pitch,26.3328309,-98.1603102,,,TX,,false,true,false,openstreetmap
+Eagle Soccer Park,soccer,pitch,30.54902,-97.6705833,,,TX,,false,true,false,openstreetmap
+Eanes ISD  Field,soccer,pitch,30.2821565,-97.8191148,,,TX,,false,true,false,openstreetmap
+Ellis Field,soccer,pitch,30.6040178,-96.3443411,,,TX,,false,true,false,openstreetmap
+Empire of Amenti LARP,soccer,pitch,26.1697085,-98.0552649,,,TX,,false,true,false,openstreetmap
+Evea Bainum Memorial Soccer Field,soccer,pitch,32.4000201,-97.3316051,,,TX,,false,true,false,openstreetmap
+F,soccer,pitch,33.0650634,-96.7741444,,,TX,,false,true,false,openstreetmap
+Field #1,soccer,pitch,33.1399811,-96.7000411,,,TX,,false,true,false,openstreetmap
+Field #1,soccer,pitch,32.8875926,-96.7564724,,,TX,,false,true,false,openstreetmap
+Field #1,soccer,pitch,29.5653573,-98.2904335,,,TX,,false,true,false,openstreetmap
+Field #10,soccer,pitch,33.1438619,-96.6969825,,,TX,,false,true,false,openstreetmap
+Field #10,soccer,pitch,29.5676303,-98.2885524,,,TX,,false,true,false,openstreetmap
+Field #11,soccer,pitch,33.1426143,-96.6978303,,,TX,,false,true,false,openstreetmap
+Field #11,soccer,pitch,29.5671297,-98.2895608,,,TX,,false,true,false,openstreetmap
+Field #12,soccer,pitch,33.1426057,-96.6969976,,,TX,,false,true,false,openstreetmap
+Field #12,soccer,pitch,29.5657123,-98.287836,,,TX,,false,true,false,openstreetmap
+Field #13 - Championship Field,soccer,pitch,33.1423997,-96.7003847,,,TX,,false,true,false,openstreetmap
+Field #2,soccer,pitch,33.1410934,-96.7000097,,,TX,,false,true,false,openstreetmap
+Field #2,soccer,pitch,32.8877315,-96.7559316,,,TX,,false,true,false,openstreetmap
+Field #2,soccer,pitch,32.8873233,-96.7559404,,,TX,,false,true,false,openstreetmap
+Field #2,soccer,pitch,29.56568,-98.2897603,,,TX,,false,true,false,openstreetmap
+Field #3,soccer,pitch,32.887617,-96.7552496,,,TX,,false,true,false,openstreetmap
+Field #3,soccer,pitch,32.8871227,-96.7552702,,,TX,,false,true,false,openstreetmap
+Field #3,soccer,pitch,29.5661944,-98.2909837,,,TX,,false,true,false,openstreetmap
+Field #3 A-B,soccer,pitch,33.1410713,-96.701639,,,TX,,false,true,false,openstreetmap
+Field #4,soccer,pitch,32.8870462,-96.7545362,,,TX,,false,true,false,openstreetmap
+Field #4,soccer,pitch,29.5665252,-98.2903107,,,TX,,false,true,false,openstreetmap
+Field #4 A-B,soccer,pitch,33.1422875,-96.7018573,,,TX,,false,true,false,openstreetmap
+Field #5,soccer,pitch,32.8867251,-96.753733,,,TX,,false,true,false,openstreetmap
+Field #5,soccer,pitch,29.5670424,-98.2915408,,,TX,,false,true,false,openstreetmap
+Field #6,soccer,pitch,32.8865913,-96.7529062,,,TX,,false,true,false,openstreetmap
+Field #6,soccer,pitch,29.5673705,-98.290863,,,TX,,false,true,false,openstreetmap
+Field #7,soccer,pitch,29.5677726,-98.290219,,,TX,,false,true,false,openstreetmap
+Field #8,soccer,pitch,29.5681017,-98.2895452,,,TX,,false,true,false,openstreetmap
+Field #9,soccer,pitch,33.1438752,-96.6978125,,,TX,,false,true,false,openstreetmap
+Field #9,soccer,pitch,29.5684434,-98.2888863,,,TX,,false,true,false,openstreetmap
+Field 1,soccer,pitch,33.1563511,-96.8349355,,,TX,,false,true,false,openstreetmap
+Field 1,soccer,pitch,30.2044041,-95.4975249,,,TX,,false,true,false,openstreetmap
+Field 1,soccer,pitch,29.54791,-98.4579674,,,TX,,false,true,false,openstreetmap
+Field 1,soccer,pitch,32.9215685,-96.9227757,,,TX,,false,true,false,openstreetmap
+Field 1,soccer,pitch,30.1911523,-95.493098,,,TX,,false,true,false,openstreetmap
+Field 10,soccer,pitch,33.1604503,-96.8356468,,,TX,,false,true,false,openstreetmap
+Field 10,soccer,pitch,30.5410341,-97.6304497,,,TX,,false,true,false,openstreetmap
+Field 11,soccer,pitch,33.1604248,-96.8347135,,,TX,,false,true,false,openstreetmap
+Field 12,soccer,pitch,33.1615517,-96.8365585,,,TX,,false,true,false,openstreetmap
+Field 12,soccer,pitch,32.3408613,-97.371214,,,TX,,false,true,false,openstreetmap
+Field 13,soccer,pitch,33.1615241,-96.8356194,,,TX,,false,true,false,openstreetmap
+Field 13,soccer,pitch,32.3404531,-97.370952,,,TX,,false,true,false,openstreetmap
+Field 14,soccer,pitch,33.1615095,-96.8346978,,,TX,,false,true,false,openstreetmap
+Field 14,soccer,pitch,32.3401111,-97.3707249,,,TX,,false,true,false,openstreetmap
+Field 15,soccer,pitch,33.1626445,-96.8365424,,,TX,,false,true,false,openstreetmap
+Field 15,soccer,pitch,32.3412828,-97.3705773,,,TX,,false,true,false,openstreetmap
+Field 16,soccer,pitch,33.1626106,-96.8355943,,,TX,,false,true,false,openstreetmap
+Field 16,soccer,pitch,32.3409601,-97.3703791,,,TX,,false,true,false,openstreetmap
+Field 17,soccer,pitch,33.1625998,-96.8346791,,,TX,,false,true,false,openstreetmap
+Field 2,soccer,pitch,33.1562462,-96.8359479,,,TX,,false,true,false,openstreetmap
+Field 2,soccer,pitch,30.2041444,-95.4969305,,,TX,,false,true,false,openstreetmap
+Field 2,soccer,pitch,29.5484984,-98.4573915,,,TX,,false,true,false,openstreetmap
+Field 2,soccer,pitch,30.1902453,-95.4929084,,,TX,,false,true,false,openstreetmap
+Field 2,soccer,pitch,32.9219942,-96.9218211,,,TX,,false,true,false,openstreetmap
+Field 21,soccer,pitch,30.0075913,-95.5184938,,,TX,,false,true,false,openstreetmap
+Field 22,soccer,pitch,30.0081522,-95.517646,,,TX,,false,true,false,openstreetmap
+Field 23,soccer,pitch,32.3416388,-97.3697454,,,TX,,false,true,false,openstreetmap
+Field 23,soccer,pitch,30.0075378,-95.5171584,,,TX,,false,true,false,openstreetmap
+Field 24,soccer,pitch,32.3411875,-97.3694483,,,TX,,false,true,false,openstreetmap
+Field 25,soccer,pitch,32.3404526,-97.3689436,,,TX,,false,true,false,openstreetmap
+Field 27,soccer,pitch,32.3419215,-97.367904,,,TX,,false,true,false,openstreetmap
+Field 28,soccer,pitch,32.3412803,-97.367588,,,TX,,false,true,false,openstreetmap
+Field 29,soccer,pitch,32.3406433,-97.3671582,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,33.1573692,-96.8361082,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,29.5490863,-98.4568113,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,30.1910867,-95.4940831,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,30.5422624,-97.6334012,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,30.2047013,-95.4982721,,,TX,,false,true,false,openstreetmap
+Field 3,soccer,pitch,32.9230623,-96.9219145,,,TX,,false,true,false,openstreetmap
+Field 4,soccer,pitch,33.1574774,-96.835088,,,TX,,false,true,false,openstreetmap
+Field 4,soccer,pitch,29.5496824,-98.4562326,,,TX,,false,true,false,openstreetmap
+Field 4,soccer,pitch,30.191308,-95.4956126,,,TX,,false,true,false,openstreetmap
+Field 4,soccer,pitch,30.5422577,-97.6324893,,,TX,,false,true,false,openstreetmap
+Field 4,soccer,pitch,32.9226181,-96.9227147,,,TX,,false,true,false,openstreetmap
+Field 5,soccer,pitch,33.1586643,-96.8371693,,,TX,,false,true,false,openstreetmap
+Field 5,soccer,pitch,29.5483677,-98.4553475,,,TX,,false,true,false,openstreetmap
+Field 5,soccer,pitch,30.541108,-97.6334388,,,TX,,false,true,false,openstreetmap
+Field 5,soccer,pitch,32.9225816,-96.923475,,,TX,,false,true,false,openstreetmap
+Field 5,soccer,pitch,30.1919442,-95.4963301,,,TX,,false,true,false,openstreetmap
+Field 6,soccer,pitch,33.1586473,-96.8362582,,,TX,,false,true,false,openstreetmap
+Field 6,soccer,pitch,29.5476385,-98.4553433,,,TX,,false,true,false,openstreetmap
+Field 6,soccer,pitch,30.1920464,-95.495268,,,TX,,false,true,false,openstreetmap
+Field 6,soccer,pitch,30.5410699,-97.6325322,,,TX,,false,true,false,openstreetmap
+Field 6,soccer,pitch,32.9225981,-96.9242751,,,TX,,false,true,false,openstreetmap
+Field 7,soccer,pitch,33.1586245,-96.8353606,,,TX,,false,true,false,openstreetmap
+Field 7,soccer,pitch,30.542224,-97.6313547,,,TX,,false,true,false,openstreetmap
+Field 7,soccer,pitch,30.1928847,-95.4934411,,,TX,,false,true,false,openstreetmap
+Field 8,soccer,pitch,33.1586292,-96.8344335,,,TX,,false,true,false,openstreetmap
+Field 8,soccer,pitch,32.9445442,-96.4577783,,,TX,,false,true,false,openstreetmap
+Field 8,soccer,pitch,32.3426276,-97.3700001,,,TX,,false,true,false,openstreetmap
+Field 8,soccer,pitch,30.5422009,-97.6304046,,,TX,,false,true,false,openstreetmap
+Field 9,soccer,pitch,33.1604756,-96.836585,,,TX,,false,true,false,openstreetmap
+Field 9,soccer,pitch,32.3423182,-97.3706331,,,TX,,false,true,false,openstreetmap
+Field 9,soccer,pitch,30.5410572,-97.6313939,,,TX,,false,true,false,openstreetmap
+Field A,soccer,pitch,33.0935748,-96.7566546,,,TX,,false,true,false,openstreetmap
+Field B,soccer,pitch,33.0935875,-96.7576191,,,TX,,false,true,false,openstreetmap
+Field C,soccer,pitch,33.0947589,-96.7566449,,,TX,,false,true,false,openstreetmap
+Field D,soccer,pitch,33.0947561,-96.7576124,,,TX,,false,true,false,openstreetmap
+Field E,soccer,pitch,33.0960862,-96.7570884,,,TX,,false,true,false,openstreetmap
+Field F,soccer,pitch,33.0961156,-96.7580106,,,TX,,false,true,false,openstreetmap
+Field G,soccer,pitch,33.0961262,-96.7589447,,,TX,,false,true,false,openstreetmap
+Field H,soccer,pitch,33.0961568,-96.7598212,,,TX,,false,true,false,openstreetmap
+Field J,soccer,pitch,33.0981392,-96.7625958,,,TX,,false,true,false,openstreetmap
+Field K,soccer,pitch,33.0988083,-96.761755,,,TX,,false,true,false,openstreetmap
+Field L,soccer,pitch,33.0988189,-96.7609348,,,TX,,false,true,false,openstreetmap
+Field M,soccer,pitch,33.0988385,-96.7600933,,,TX,,false,true,false,openstreetmap
+Field N,soccer,pitch,33.0993088,-96.7626394,,,TX,,false,true,false,openstreetmap
+Field O,soccer,pitch,33.0999441,-96.7617563,,,TX,,false,true,false,openstreetmap
+Field P,soccer,pitch,33.0999361,-96.7609261,,,TX,,false,true,false,openstreetmap
+Field R,soccer,pitch,33.0999222,-96.7600887,,,TX,,false,true,false,openstreetmap
+FieldTurf™ field,soccer,pitch,29.637321,-95.3957816,,,TX,,false,true,false,openstreetmap
+G,soccer,pitch,33.0650303,-96.7728276,,,TX,,false,true,false,openstreetmap
+GLASA,soccer,pitch,33.0435239,-97.0313252,,,TX,,false,true,false,openstreetmap
+GVTC Soccer Complex,soccer,sports_centre,29.7268818,-98.449058,,,TX,,false,true,false,openstreetmap
+Gabriel and Jayne Serna Athletic Fields,soccer,pitch,30.5657651,-97.8671997,,,TX,,false,true,false,openstreetmap
+Gause Independent School District,soccer,pitch,30.7866095,-96.7279879,,,TX,,false,true,false,openstreetmap
+Gavin Garrett Soccer Park,soccer,park,31.0575301,-98.1858812,,,TX,,false,true,false,openstreetmap
+George R Brown Field,soccer,pitch,29.7159556,-95.4573244,,,TX,,false,true,false,openstreetmap
+Great Hearts Western Hills Soccer,soccer,pitch,29.443718,-98.6517143,,,TX,,false,true,false,openstreetmap
+Gustafson Soccer Field,soccer,pitch,29.5738221,-97.9872898,,,TX,,false,true,false,openstreetmap
+H,soccer,pitch,33.0647404,-96.7714857,,,TX,,false,true,false,openstreetmap
+HEB Park,soccer,stadium,26.2825856,-98.1350427,,,TX,,false,true,false,openstreetmap
+Hidden Lakes Soccer Fields,soccer,pitch,32.9221166,-97.192567,,,TX,,false,true,false,openstreetmap
+Holloway Field,soccer,pitch,29.7128708,-95.4020107,,,TX,,false,true,false,openstreetmap
+Hornet Field,soccer,pitch,32.940971,-96.8446355,,,TX,,false,true,false,openstreetmap
+Houston Dynamo FC and Houston Dash Mini-Pitch,soccer,pitch,29.6712238,-95.5534061,,,TX,,false,true,false,openstreetmap
+Intramural Field,soccer,pitch,30.1599776,-96.4109177,,,TX,,false,true,false,openstreetmap
+Intramural Field 3,soccer,pitch,29.7176008,-95.4055804,,,TX,,false,true,false,openstreetmap
+Intramural Soccer Field,soccer,pitch,29.4527971,-98.5657524,,,TX,,false,true,false,openstreetmap
+J-1,soccer,pitch,33.0615779,-96.775471,,,TX,,false,true,false,openstreetmap
+J-2,soccer,pitch,33.0617578,-96.7745276,,,TX,,false,true,false,openstreetmap
+J. V. Hilliard Field,soccer,pitch,34.1892005,-101.7324149,,,TX,,false,true,false,openstreetmap
+Jack Pierce Soccer Complex,soccer,pitch,33.6481289,-96.6002806,,,TX,,false,true,false,openstreetmap
+John Walker Soccer Complex,soccer,pitch,33.5842255,-101.8995321,,,TX,,false,true,false,openstreetmap
+Johnson Family Soccer Fields,soccer,pitch,30.0032232,-98.0873979,,,TX,,false,true,false,openstreetmap
+K,soccer,pitch,33.0615411,-96.7736014,,,TX,,false,true,false,openstreetmap
+Kenjura Field,soccer,pitch,30.1861975,-96.4057026,,,TX,,false,true,false,openstreetmap
+L,soccer,pitch,33.0617306,-96.7720514,,,TX,,false,true,false,openstreetmap
+LSC Soccer Field,soccer,pitch,30.2130911,-95.4676077,,,TX,,false,true,false,openstreetmap
+Leander Youth Soccer,soccer,pitch,30.5655352,-97.8676302,,,TX,,false,true,false,openstreetmap
+Lions Soccer Field,soccer,pitch,33.2380979,-95.9160291,,,TX,,false,true,false,openstreetmap
+Longhorn Cove Community Field,soccer,pitch,33.2103499,-97.0971752,,,TX,,false,true,false,openstreetmap
+M,soccer,pitch,33.0617085,-96.7711073,,,TX,,false,true,false,openstreetmap
+Marti Van Ravenswaay Practice Field,soccer,pitch,32.6732742,-97.2214114,,,TX,,false,true,false,openstreetmap
+Mayde Creek M.U.D Soccer Field,soccer,pitch,29.8266365,-95.7096494,,,TX,,false,true,false,openstreetmap
+McCallum Stadium,soccer,pitch,32.3039106,-95.2836929,,,TX,,false,true,false,openstreetmap
+Mean Green Soccer Stadium (WSOC),soccer,pitch,33.200289,-97.1625767,,,TX,,false,true,false,openstreetmap
+Memorial Indoor Soccer,soccer,sports_centre,29.7578344,-95.6067998,,,TX,,false,true,false,openstreetmap
+Merideth Soccer Field,soccer,pitch,30.3287803,-97.8161955,,,TX,,false,true,false,openstreetmap
+Mike A. Myers Stadium,soccer,stadium,30.2825484,-97.7300223,,,TX,,false,true,false,openstreetmap
+Mini Soccer,soccer,pitch,30.0623761,-99.3380438,,,TX,,false,true,false,openstreetmap
+Mini Soccer Pitches,soccer,sports_centre,29.7152759,-95.4789143,,,TX,,false,true,false,openstreetmap
+Mission City Soccer Complex,soccer,sports_centre,29.2129069,-98.4520308,,,TX,,false,true,false,openstreetmap
+Mopac Field,soccer,pitch,27.5135749,-97.8765422,,,TX,,false,true,false,openstreetmap
+Moss Soccer Park,soccer,pitch,32.8876572,-96.7548135,,,TX,,false,true,false,openstreetmap
+Mount Carmel High School Football Stadium,soccer,pitch,29.6647017,-95.3102073,,,TX,,false,true,false,openstreetmap
+Multi-Use Field,soccer,pitch,30.1861225,-96.4082511,,,TX,,false,true,false,openstreetmap
+Multi-Use Field,soccer,pitch,30.1858644,-96.4071324,,,TX,,false,true,false,openstreetmap
+Multi-Use Field,soccer,pitch,30.1850256,-96.4063282,,,TX,,false,true,false,openstreetmap
+Multi-Use Field 7,soccer,pitch,29.776897,-95.4331098,,,TX,,false,true,false,openstreetmap
+Multi-Use Field 8,soccer,pitch,29.7757946,-95.4298262,,,TX,,false,true,false,openstreetmap
+Nolan Ryan Soccer Field,soccer,pitch,31.9893046,-102.1623631,,,TX,,false,true,false,openstreetmap
+PIT+,soccer,pitch,33.0242689,-97.2098563,,,TX,,false,true,false,openstreetmap
+PIT+,soccer,pitch,33.0242626,-97.2090013,,,TX,,false,true,false,openstreetmap
+PIT+,soccer,pitch,33.0242484,-97.2081432,,,TX,,false,true,false,openstreetmap
+PSA Soccer Field,soccer,pitch,33.1723899,-96.7120525,,,TX,,false,true,false,openstreetmap
+Palmer Field,soccer,pitch,33.2852915,-96.5290211,,,TX,,false,true,false,openstreetmap
+Paparruchos Indoor,soccer,sports_hall,29.708372,-95.5106903,,,TX,,false,true,false,openstreetmap
+Parr Park Soccer Field,soccer,pitch,32.9066244,-97.1152836,,,TX,,false,true,false,openstreetmap
+Phillip Thompson Soccer Complex,soccer,sports_centre,32.5859583,-97.0848215,,,TX,,false,true,false,openstreetmap
+Pioneer Soccer Park,soccer,pitch,33.2289612,-97.1213564,,,TX,,false,true,false,openstreetmap
+Practice Field (Multi Sport),soccer,pitch,30.363721,-97.9000303,,,TX,,false,true,false,openstreetmap
+Practice Fields,soccer,pitch,34.9694108,-101.9088146,,,TX,,false,true,false,openstreetmap
+Practice Fields,soccer,pitch,29.7013906,-95.5909178,,,TX,,false,true,false,openstreetmap
+Raider Field 2,soccer,pitch,26.2156194,-97.6751149,,,TX,,false,true,false,openstreetmap
+Rankin Field,soccer,pitch,30.1870714,-96.4074023,,,TX,,false,true,false,openstreetmap
+Regency at Stone Oak Apartments,soccer,pitch,29.6813201,-98.4590043,,,TX,,false,true,false,openstreetmap
+Rhett Field,soccer,pitch,33.2842617,-96.5302664,,,TX,,false,true,false,openstreetmap
+Richland Soccer Complex,soccer,pitch,32.9209337,-96.7242856,,,TX,,false,true,false,openstreetmap
+"Robert K. Moses, Jr. Field",soccer,pitch,30.636018,-97.6685221,,,TX,,false,true,false,openstreetmap
+Rolling Hills Rugby and Soccer Complex,soccer,sports_centre,32.6734452,-97.2883095,,,TX,,false,true,false,openstreetmap
+S10,soccer,pitch,32.9794628,-96.7531788,,,TX,,false,true,false,openstreetmap
+S2,soccer,pitch,32.9831985,-96.7525572,,,TX,,false,true,false,openstreetmap
+S3,soccer,pitch,32.983168,-96.753524,,,TX,,false,true,false,openstreetmap
+S5,soccer,pitch,32.9819048,-96.7528076,,,TX,,false,true,false,openstreetmap
+S6,soccer,pitch,32.98196,-96.7537194,,,TX,,false,true,false,openstreetmap
+S7,soccer,pitch,32.9805947,-96.7522684,,,TX,,false,true,false,openstreetmap
+S8,soccer,pitch,32.9805622,-96.7532016,,,TX,,false,true,false,openstreetmap
+S9,soccer,pitch,32.9794686,-96.7522615,,,TX,,false,true,false,openstreetmap
+STAR Soccer Complex,soccer,pitch,29.5426838,-98.3915807,,,TX,,false,true,false,openstreetmap
+Salado Soccer Grass Field,soccer,pitch,30.9504356,-97.540697,,,TX,,false,true,false,openstreetmap
+San Gabriel Park Soccer Field 1,soccer,pitch,30.6530001,-97.6722168,,,TX,,false,true,false,openstreetmap
+San Gabriel Park Soccer Field 2,soccer,pitch,30.6529573,-97.6711147,,,TX,,false,true,false,openstreetmap
+San Gabriel Park Soccer Field 3,soccer,pitch,30.6532584,-97.6705701,,,TX,,false,true,false,openstreetmap
+Seguin Independent School District,soccer,pitch,29.5757991,-97.9435401,,,TX,,false,true,false,openstreetmap
+Shadow Creek Soccer Field,soccer,pitch,29.5577972,-95.4183431,,,TX,,false,true,false,openstreetmap
+Shenandoah Park Fields,soccer,pitch,30.1851692,-95.4655741,,,TX,,false,true,false,openstreetmap
+Sigma Beta Chi Varsity Soccer Field,soccer,pitch,29.4550546,-98.5676781,,,TX,,false,true,false,openstreetmap
+Silcock Field,soccer,pitch,32.8899456,-96.7990159,,,TX,,false,true,false,openstreetmap
+Skip Lee Field,soccer,pitch,29.7405,-95.4284568,,,TX,,false,true,false,openstreetmap
+Small REC. Yard Soccer Field,soccer,pitch,31.3948531,-103.5337488,,,TX,,false,true,false,openstreetmap
+Snyder Athletic Field,soccer,pitch,30.634737,-97.6684951,,,TX,,false,true,false,openstreetmap
+Soccer,soccer,pitch,27.5526909,-99.4829621,,,TX,,false,true,false,openstreetmap
+Soccer,soccer,pitch,27.5523419,-99.4832063,,,TX,,false,true,false,openstreetmap
+Soccer,soccer,pitch,28.8148149,-97.8622949,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,sports_centre,30.1153109,-95.8265635,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,30.557261,-97.7623749,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,30.5574809,-97.7607849,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9516041,-96.5456748,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9514106,-96.5451544,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9506176,-96.5456128,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9534502,-96.5386192,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9536104,-96.5384322,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9532676,-96.5382233,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.953109,-96.5380422,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9539333,-96.5378707,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9537732,-96.5380578,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9536926,-96.5375904,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9535325,-96.5377776,,,TX,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,32.9540824,-96.5373012,,,TX,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,30.0269997,-95.8145651,,,TX,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,30.0270082,-95.8136128,,,TX,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,30.0270094,-95.8126696,,,TX,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,30.0270291,-95.8117232,,,TX,,false,true,false,openstreetmap
+Soccer Field #5,soccer,pitch,30.0279628,-95.8131686,,,TX,,false,true,false,openstreetmap
+Soccer Field #6,soccer,pitch,30.027957,-95.8119421,,,TX,,false,true,false,openstreetmap
+Soccer Field East,soccer,pitch,29.6961304,-95.4941418,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 1,soccer,pitch,32.4957016,-94.7828572,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 10,soccer,pitch,32.4929628,-94.7818721,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 11,soccer,pitch,32.4927986,-94.7826501,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 12,soccer,pitch,32.4922072,-94.7817964,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 13,soccer,pitch,32.4920811,-94.7825998,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 14,soccer,pitch,32.4948103,-94.7802145,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 15,soccer,pitch,32.494433,-94.7797271,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 2,soccer,pitch,32.4956817,-94.7822769,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 3,soccer,pitch,32.4949557,-94.7827973,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 4,soccer,pitch,32.4949509,-94.7821586,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 5,soccer,pitch,32.4940899,-94.7826999,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 6,soccer,pitch,32.4943119,-94.7820181,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 7,soccer,pitch,32.4938455,-94.781971,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 8,soccer,pitch,32.4935249,-94.7819164,,,TX,,false,true,false,openstreetmap
+Soccer Field No. 9,soccer,pitch,32.4933975,-94.7825908,,,TX,,false,true,false,openstreetmap
+Soccer Field West,soccer,pitch,29.6962941,-95.4995193,,,TX,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,31.1288771,-99.3533728,,,TX,,false,true,false,openstreetmap
+Soccer Game Field,soccer,pitch,30.0324112,-99.1285978,,,TX,,false,true,false,openstreetmap
+Soccer Hub Houston,soccer,pitch,29.7863147,-95.4654251,7620 Katy Freeway,,TX,,false,true,false,openstreetmap
+Soccer Indoors,soccer,sports_centre,33.487452,-101.8863679,,,TX,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,30.032409,-99.126074,,,TX,,false,true,false,openstreetmap
+Soccer Zone,soccer,pitch,30.1765365,-97.8197265,9501 Manchaca Road,,TX,,false,true,false,openstreetmap
+South HOA Soccer Fields,soccer,pitch,32.5838098,-97.0520647,,,TX,,false,true,false,openstreetmap
+Sport Club Soccer Field,soccer,pitch,32.2178749,-98.2239179,,,TX,,false,true,false,openstreetmap
+Sports Field,soccer,pitch,32.2055419,-97.6935216,,,TX,,false,true,false,openstreetmap
+Sports Field 4,soccer,pitch,30.489422,-97.8064192,,,TX,,false,true,false,openstreetmap
+Sports Field 5,soccer,pitch,30.4891701,-97.8066821,,,TX,,false,true,false,openstreetmap
+St. Edward's Soccer Field,soccer,pitch,30.2304913,-97.7538961,,,TX,,false,true,false,openstreetmap
+Sting Soccer Complex,soccer,park,32.9357443,-96.7216107,,,TX,,false,true,false,openstreetmap
+Sutton Field,soccer,pitch,33.284768,-96.5296739,,,TX,,false,true,false,openstreetmap
+TCU,soccer,pitch,32.7026901,-97.3685622,,,TX,,false,true,false,openstreetmap
+TFC Allen,soccer,pitch,33.1359939,-96.6875725,,,TX,,false,true,false,openstreetmap
+Temple Baptist Soccer Field,soccer,pitch,33.0095667,-97.0671909,,,TX,,false,true,false,openstreetmap
+The Cage,soccer,pitch,28.817774,-96.9755771,,,TX,,false,true,false,openstreetmap
+The Grove Soccer Field,soccer,pitch,33.1455602,-96.7460511,,,TX,,false,true,false,openstreetmap
+Tomball Memorial High School,soccer,pitch,30.036026,-95.6304703,,,TX,,false,true,false,openstreetmap
+Tomball Memorial High School,soccer,pitch,30.0360357,-95.6314847,,,TX,,false,true,false,openstreetmap
+Toyota Field,soccer,stadium,29.5394384,-98.3946422,,,TX,,false,true,false,openstreetmap
+Toyota Stadium,soccer,stadium,33.1541886,-96.8353364,9200 World Cup Way,,TX,75034,false,true,false,openstreetmap
+UTRGV Soccer and Track & Field Complex,soccer,pitch,26.3088219,-98.1831604,,,TX,,false,true,false,openstreetmap
+University Academy - Mixed Use Field,soccer,pitch,32.310608,-95.2403324,,,TX,,false,true,false,openstreetmap
+University Field,soccer,pitch,31.7820232,-106.5093081,,,TX,,false,true,false,openstreetmap
+University of Dallas Soccer Field,soccer,pitch,32.8466701,-96.9230276,,,TX,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,31.4364496,-100.46071,,,TX,,false,true,false,openstreetmap
+Vineyard Ranch Soccer Field,soccer,pitch,29.6094882,-98.5223218,,,TX,,false,true,false,openstreetmap
+Westbury High School,soccer,pitch,29.6483604,-95.4799801,,,TX,,false,true,false,openstreetmap
+Westcott Field,soccer,pitch,32.8396433,-96.7823407,,,TX,,false,true,false,openstreetmap
+Willis High School Soccer and Football Field,soccer,pitch,30.3952157,-95.4778606,,,TX,,false,true,false,openstreetmap
+Willis High School Soccer and Football Field,soccer,pitch,30.3953994,-95.4786544,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 1,soccer,pitch,32.023528,-102.096245,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 10,soccer,pitch,32.0236892,-102.0943585,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 10 North,soccer,pitch,32.0238915,-102.0944214,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 10 South,soccer,pitch,32.0234805,-102.0942814,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 11,soccer,pitch,32.0228374,-102.0940773,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 11 North,soccer,pitch,32.0230418,-102.0941409,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 11 South,soccer,pitch,32.0226292,-102.0940006,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 2,soccer,pitch,32.0231967,-102.0961397,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 3,soccer,pitch,32.0236731,-102.0956437,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 4,soccer,pitch,32.0233432,-102.0955387,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 5,soccer,pitch,32.0230108,-102.0954296,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 6,soccer,pitch,32.0226778,-102.095323,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 7,soccer,pitch,32.0223437,-102.0952154,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 8,soccer,pitch,32.0232078,-102.0949978,,,TX,,false,true,false,openstreetmap
+Windlands Soccer Field 9,soccer,pitch,32.0226491,-102.0946817,,,TX,,false,true,false,openstreetmap
+Youth,soccer,pitch,29.715997,-95.4788881,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1851542,-96.4080776,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1846463,-96.4079239,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1842696,-96.4072496,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1838268,-96.406542,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1835178,-96.4066477,,,TX,,false,true,false,openstreetmap
+Youth Field,soccer,pitch,30.1867021,-96.4058262,,,TX,,false,true,false,openstreetmap
+Youth Soccer Field,soccer,pitch,30.4475492,-97.7569247,,,TX,,false,true,false,openstreetmap
+soccer,soccer,pitch,27.5522875,-99.4828628,,,TX,,false,true,false,openstreetmap
+Delwood Multipurpose Field,soccer,pitch,30.3027231,-97.6945784,1815 Greenbrook Parkway,Austin,TX,78723,false,true,false,openstreetmap
+Onion Creek Soccer Complex,soccer,sports_centre,30.1753108,-97.7409229,5600 East William Cannon Drive,Austin,TX,78744,false,true,false,openstreetmap
+Saint David's Performance Center,soccer,pitch,30.4083373,-97.6520594,700 Performance Drive,Austin,TX,78753,false,true,false,openstreetmap
+Soccer Hub,soccer,pitch,30.4727812,-97.7975712,13945 Highway 183 North,Austin,TX,78717,false,true,false,openstreetmap
+Wells Branch Soccer Complex,soccer,sports_centre,30.4599924,-97.6912401,3908 Shoreline Drive,Austin,TX,78728,false,true,false,openstreetmap
+Burleson Independent Soccer Fields,soccer,sports_centre,32.5323365,-97.3189192,406 South Dobson Street,Burleson,TX,76028,false,true,false,openstreetmap
+TOCA Soccer Center Carrollton,soccer,sports_centre,32.9664452,-96.9354631,1850 Legends Trail,Carrollton,TX,75006,false,true,false,openstreetmap
+Plaza Sports Center,soccer,stadium,26.2327759,-98.1664327,1101 E. Nolana Loop,Edinburg,TX,78577,false,true,false,openstreetmap
+Dallas Texans Soccer Club,soccer,pitch,32.9212104,-96.9233597,1777 Keenan Bridge Road,Farmers Branch,TX,75234,false,true,false,openstreetmap
+Ross Stewart Soccer Complex,soccer,sports_centre,32.9223092,-96.922977,1641 Keenan Bridge Road,Farmers Branch,TX,75234,false,true,false,openstreetmap
+Canchas La Pulga Loca,soccer,sports_centre,29.7199156,-95.5186359,8784 Glenmont Drive,Houston,TX,77036,false,true,false,openstreetmap
+Carl Lewis International Track & Field Complex,soccer,pitch,29.7264836,-95.3482276,3604 Elgin Street,Houston,TX,77204,false,true,false,openstreetmap
+Dragos Magna Field,soccer,pitch,29.6629597,-95.4449496,4113 Willowbend Boulevard,Houston,TX,77025,false,true,false,openstreetmap
+Toros HTX soccer field,soccer,pitch,29.7733091,-95.380542,2202 Summer Street,Houston,TX,77007,false,true,false,openstreetmap
+West Houston Indoor Soccer,soccer,sports_centre,29.8309544,-95.6599631,17115 Clay Road,Houston,TX,77084,false,true,false,openstreetmap
+Kerrville Sports Complex,soccer,sports_centre,30.0674056,-99.1458612,117 Sweeper Lane,Kerrville,TX,78028,false,true,false,openstreetmap
+Soccer Pups,soccer,sports_centre,30.5697582,-97.8455875,706 Leander Drive,Leander,TX,78641,false,true,false,openstreetmap
+Floyd Gwin Soccer Park,soccer,sports_centre,31.8472911,-102.3947857,1307 Edison Avenue,Odessa,TX,79763,false,true,false,openstreetmap
+Performance Indoor Training Plano,soccer,sports_centre,33.0157635,-96.6489402,4401 14th Street,Plano,TX,75054,false,true,false,openstreetmap
+Boles Sports Complex West,soccer,sports_centre,30.5219214,-97.6859785,West Old Bowman Road,Round Rock,TX,78664,false,true,false,openstreetmap
+Black Panther Alamo Soccer League,soccer,sports_centre,29.3362179,-98.5887084,9089 New Laredo Highway,San Antonio,TX,78211,false,true,false,openstreetmap
+Cantera Soccer Field,soccer,sports_centre,29.3356686,-98.5841547,9120 New Laredo Highway,San Antonio,TX,78211,false,true,false,openstreetmap
+Classics Elite Soccer Academy - Blossom Fields,soccer,pitch,29.5459732,-98.4673524,1600 East Bitters Road,San Antonio,TX,78216,false,true,false,openstreetmap
+Levi Strauss Park,soccer,park,29.4109291,-98.606723,6100 Historic Old Highway 90,San Antonio,TX,78227,false,true,false,openstreetmap
+Bobcat Soccer Complex,soccer,pitch,29.8892038,-97.9517681,1101 Academy Street,San Marcos,TX,78666,false,true,false,openstreetmap
+Lions Pride Park,soccer,pitch,29.5656728,-98.291801,49 Maske Road,Schertz,TX,78154,false,true,false,openstreetmap
+Schertz Soccer Complex,soccer,sports_centre,29.5666117,-98.2894937,75 Maske Road,Schertz,TX,78154,false,true,false,openstreetmap

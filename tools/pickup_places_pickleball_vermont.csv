@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Converted Tennis Court. Now Pickleball Courts,pickleball,pitch,44.4360226,-73.1993712,,,VT,,false,true,false,openstreetmap

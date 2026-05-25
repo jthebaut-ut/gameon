@@ -1,0 +1,36 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Benton Field,football,pitch,33.7928659,-79.0174927,,,SC,,false,true,false,openstreetmap
+Brooks Stadium,football,stadium,33.792947,-79.0174652,,,SC,,false,true,false,openstreetmap
+Buccaneer Field,football,pitch,32.9782371,-80.0678504,,,SC,,false,true,false,openstreetmap
+District 5 Stadium,football,pitch,34.5154833,-82.6865155,,,SC,,false,true,false,openstreetmap
+Football Practice Fields,football,pitch,34.6753941,-82.847819,,,SC,,false,true,false,openstreetmap
+Gibbs Stadium,football,stadium,34.9620076,-81.9330281,,,SC,,false,true,false,openstreetmap
+Indoor Football Practice Facility,football,pitch,34.6760321,-82.8479185,,,SC,,false,true,false,openstreetmap
+John Fulmer Football Field,football,pitch,32.9755843,-80.0172051,,,SC,,false,true,false,openstreetmap
+John McKissick Field,football,pitch,33.0101351,-80.1810067,,,SC,,false,true,false,openstreetmap
+King Football Practice Field,football,pitch,34.9203768,-82.44068,,,SC,,false,true,false,openstreetmap
+Lexington High School Lacrosse Field,football,pitch,33.9771337,-81.3042742,,,SC,,false,true,false,openstreetmap
+Liberty Athletic Complex,football,pitch,34.7873808,-82.702878,,,SC,,false,true,false,openstreetmap
+Long Football Center,football,sports_centre,33.9685252,-81.0235718,,,SC,,false,true,false,openstreetmap
+Matthews Field,football,pitch,34.0041223,-81.7768443,,,SC,,false,true,false,openstreetmap
+Memorial Field,football,pitch,34.7674319,-83.0661228,,,SC,,false,true,false,openstreetmap
+Memorial Stadium,football,stadium,33.9791631,-80.9980721,,,SC,,false,true,false,openstreetmap
+Memorial Stadium,football,stadium,34.6787661,-82.8434605,,,SC,,false,true,false,openstreetmap
+Nixon Field,football,stadium,34.9338489,-82.1264419,,,SC,,false,true,false,openstreetmap
+Orangeburg Prep Football Field,football,pitch,33.5279795,-80.8857115,,,SC,,false,true,false,openstreetmap
+Orangeburg Prep Football Stadium,football,pitch,33.5434337,-80.8912497,,,SC,,false,true,false,openstreetmap
+Paladin Stadium,football,stadium,34.9201116,-82.4372094,,,SC,,false,true,false,openstreetmap
+Panthers Stadium,football,pitch,33.7765386,-78.9742416,,,SC,,false,true,false,openstreetmap
+Phillip Simmons High School Football Field,football,pitch,32.9200218,-79.8494747,,,SC,,false,true,false,openstreetmap
+Pleasant Hill Football Field,football,pitch,33.9623566,-81.2924417,,,SC,,false,true,false,openstreetmap
+Practice Field,football,pitch,34.6287645,-82.4796304,,,SC,,false,true,false,openstreetmap
+R.B Stall Stadium,football,pitch,32.9433081,-80.0588929,,,SC,,false,true,false,openstreetmap
+Ray Stackley Field,football,pitch,33.0123854,-80.0852445,,,SC,,false,true,false,openstreetmap
+Royal Stadium,football,stadium,34.986736,-81.8420394,,,SC,,false,true,false,openstreetmap
+Setzler Field,football,stadium,34.2861573,-81.6225012,,,SC,,false,true,false,openstreetmap
+Spaulding Middle Football Feild,football,pitch,34.1632978,-80.0593792,,,SC,,false,true,false,openstreetmap
+The Devils Den,football,sports_centre,33.3951132,-81.4138649,,,SC,,false,true,false,openstreetmap
+Williams-Brice Stadium,football,stadium,33.9731241,-81.0191788,,,SC,,false,true,false,openstreetmap
+Williams-Brice Stadium,football,pitch,33.9730856,-81.019183,,,SC,,false,true,false,openstreetmap
+Wilson Field,football,pitch,32.8002591,-79.9606613,,,SC,,false,true,false,openstreetmap
+Lancaster County Memorial Stadium,football,stadium,34.7311499,-80.7829057,1100 Stadium Drive,Lancaster,SC,29720,false,true,false,openstreetmap

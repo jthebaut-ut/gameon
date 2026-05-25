@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ashley Hall Foundation,pickleball,pitch,32.78613,-79.9443778,,,SC,,false,true,false,openstreetmap
+Ashley Hall Foundation,pickleball,pitch,32.7862605,-79.9444309,,,SC,,false,true,false,openstreetmap
+Burton Wells Pickleball Courts,pickleball,pitch,32.4349634,-80.7627749,,,SC,,false,true,false,openstreetmap
+City of Charleston,pickleball,pitch,32.7994852,-79.9384077,,,SC,,false,true,false,openstreetmap
+City of Charleston,pickleball,pitch,32.7994235,-79.9385748,,,SC,,false,true,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0146348,-80.0452776,,,SC,,false,true,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0146107,-80.0451846,,,SC,,false,true,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0145859,-80.0450901,,,SC,,false,true,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0145626,-80.0449976,,,SC,,false,true,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0143682,-80.0450687,,,SC,,true,false,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0143914,-80.0451614,,,SC,,true,false,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0144163,-80.0452559,,,SC,,true,false,false,openstreetmap
+City of Goose Creek,pickleball,pitch,33.0144403,-80.0453487,,,SC,,true,false,false,openstreetmap
+Habersham Pickleball Courts,pickleball,pitch,32.4283107,-80.7812091,,,SC,,false,true,false,openstreetmap
+Lakestone Neighborhood Pickleball Courts,pickleball,pitch,34.7708421,-82.0690099,,,SC,,false,true,false,openstreetmap
+Stoney Creek Pickleball Courts,pickleball,pitch,34.8792764,-82.2628663,,,SC,,false,true,false,openstreetmap
+Short Court,pickleball,pitch,32.7809922,-79.9321911,205 Meeting Street,Charleston,SC,29401,false,true,false,openstreetmap
+baseline gvl,pickleball,sports_centre,34.8466345,-82.3302484,8 Gladys Drive,Greenville,SC,29607,false,true,false,openstreetmap

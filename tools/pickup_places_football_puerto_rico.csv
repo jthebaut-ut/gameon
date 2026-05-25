@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Spartans Football Field,football,pitch,18.4412592,-66.2440815,,,PR,,false,true,false,openstreetmap

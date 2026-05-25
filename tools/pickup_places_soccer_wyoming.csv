@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alpine Soccer Field,soccer,pitch,43.460981,-110.8028888,,,WY,,false,true,false,openstreetmap
+Alpine Soccer Field,soccer,pitch,43.4609808,-110.802244,,,WY,,false,true,false,openstreetmap
+Laramie Soccer Complex,soccer,pitch,41.317686,-105.5634491,,,WY,,false,true,false,openstreetmap
+Louis S. Madrid Sports Complex,soccer,pitch,41.3148269,-105.5589427,,,WY,,false,true,false,openstreetmap
+Old Soccer Field,soccer,pitch,41.2684654,-110.3416462,,,WY,,false,true,false,openstreetmap
+Rien Park,soccer,pitch,43.0180993,-108.4066562,,,WY,,false,true,false,openstreetmap
+Soccer Field,soccer,sports_centre,41.323598,-105.562956,,,WY,,false,true,false,openstreetmap
+LCCC Athletic Fields,soccer,pitch,41.1045425,-104.782989,1400 East College Drive,Cheyenne,WY,82007,false,true,false,openstreetmap

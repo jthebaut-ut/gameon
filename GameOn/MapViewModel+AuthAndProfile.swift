@@ -420,6 +420,10 @@ extension MapViewModel {
     func ensureBusinessOwnerSessionFlagsIfPossible(context: String) async -> Bool {
         logBusinessOwnerSessionFlags(context: "\(context)_before")
 
+        if await businessBanGuardBlocks(path: context, action: "ensureBusinessOwnerSessionFlagsIfPossible") {
+            return false
+        }
+
         if hasAuthenticatedVenueOwnerSession {
             logBusinessOwnerSessionFlags(context: "\(context)_already_valid")
             return true
@@ -494,6 +498,10 @@ extension MapViewModel {
         context: String
     ) async -> Bool {
         logBusinessOwnerSessionFlags(context: "\(context)_before")
+
+        if await businessBanGuardBlocks(path: context, action: "restoreBusinessOwnerSessionFromSupabaseSessionIfNeeded") {
+            return false
+        }
 
         guard !hasAuthenticatedVenueOwnerSession else {
             logBusinessOwnerSessionFlags(context: "\(context)_already_valid")

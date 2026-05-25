@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Croell Field,football,pitch,44.4043374,-104.3697432,,,WY,,false,true,false,openstreetmap
+Fulmer Stadium,football,pitch,42.7582513,-104.4598646,,,WY,,false,true,false,openstreetmap
+JHHS practice football feild,football,pitch,43.4564484,-110.7990153,,,WY,,false,true,false,openstreetmap
+Laramie Middle School Football Field,football,pitch,41.3244045,-105.5637564,,,WY,,false,true,false,openstreetmap
+Middle School Field,football,pitch,43.4626634,-110.802402,,,WY,,false,true,false,openstreetmap
+Mountain View High School Football Field,football,pitch,41.2752543,-110.3297737,,,WY,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,41.3235148,-105.5638534,,,WY,,false,true,false,openstreetmap
+Ten Sleep High School Football Field,football,pitch,44.0324508,-107.4548811,,,WY,,false,true,false,openstreetmap
+William T. McIntosh Stadium,football,pitch,43.4615579,-110.8010394,,,WY,,false,true,false,openstreetmap

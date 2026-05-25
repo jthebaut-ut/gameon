@@ -1,0 +1,49 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+50 Yard Line,football,pitch,45.6817061,-122.6374718,,,WA,,false,true,false,openstreetmap
+Art Fiker Memorial Stadium,football,pitch,46.2052646,-119.7604384,,,WA,,false,true,false,openstreetmap
+Ballard High School Football Field,football,pitch,47.6768851,-122.3731234,,,WA,,false,true,false,openstreetmap
+Cardon Field,football,pitch,45.6133447,-122.4006391,,,WA,,false,true,false,openstreetmap
+Cedarcrest High School Football Field,football,pitch,47.73552,-121.950203,,,WA,,false,true,false,openstreetmap
+Chief Leschi Warriors,football,pitch,47.2110519,-122.3595351,,,WA,,false,true,false,openstreetmap
+Chinook Football Field,football,pitch,47.629391,-122.2115964,,,WA,,false,true,false,openstreetmap
+Dan Doornick Field,football,pitch,46.4367085,-120.4208981,,,WA,,false,true,false,openstreetmap
+Darrington High School Practice Field,football,pitch,48.24472,-121.6027112,,,WA,,false,true,false,openstreetmap
+Eastmont Football Practice Field,football,pitch,47.4115973,-120.2750597,,,WA,,false,true,false,openstreetmap
+Fort Vancouver HS,football,pitch,45.6369371,-122.6091086,,,WA,,false,true,false,openstreetmap
+Gesa Field,football,pitch,46.7318286,-117.1604394,,,WA,,false,true,false,openstreetmap
+Harding Field,football,pitch,46.9899782,-120.4249547,,,WA,,false,true,false,openstreetmap
+Hart Field Practice Field,football,pitch,47.6212663,-117.4060947,,,WA,,false,true,false,openstreetmap
+Henry M. Jackson Football Field,football,pitch,47.8753073,-122.2044875,,,WA,,false,true,false,openstreetmap
+Husky Football Practice Field,football,pitch,47.6495221,-122.3000716,,,WA,,false,true,false,openstreetmap
+JV Field,football,pitch,47.5722194,-122.2202668,,,WA,,false,true,false,openstreetmap
+Kentlake High School Football Field,football,pitch,47.3299866,-122.0588724,,,WA,,false,true,false,openstreetmap
+Kiwanis Field,football,pitch,47.3276362,-119.5518147,,,WA,,false,true,false,openstreetmap
+Liberty Patriots Football Field,football,pitch,47.4783664,-122.1190144,,,WA,,false,true,false,openstreetmap
+Lynden High School Football Field,football,pitch,48.95222,-122.4257143,,,WA,,false,true,false,openstreetmap
+Memorial Football Field,football,pitch,48.0339569,-122.4048052,,,WA,,false,true,false,openstreetmap
+Naches Valley Football Field,football,pitch,46.7347904,-120.7027012,,,WA,,false,true,false,openstreetmap
+North Mason Football Stadium,football,pitch,47.4123331,-122.84138,,,WA,,false,true,false,openstreetmap
+Northwood Field,football,pitch,47.7747641,-117.3816151,,,WA,,false,true,false,openstreetmap
+Pat Ryan Memorial Field,football,pitch,47.4767315,-122.3085994,,,WA,,false,true,false,openstreetmap
+Petes Pool,football,stadium,47.1973502,-121.9616395,,,WA,,false,true,false,openstreetmap
+Peyton Field,football,pitch,47.2604492,-122.4825952,,,WA,,false,true,false,openstreetmap
+Pine Bowl,football,pitch,47.7524539,-117.4208779,,,WA,,false,true,false,openstreetmap
+Practice Field,football,pitch,46.2028162,-119.764053,,,WA,,false,true,false,openstreetmap
+Rice Field,football,pitch,48.507862,-122.6245854,,,WA,,false,true,false,openstreetmap
+Rottle Field,football,pitch,46.9839402,-123.5955594,,,WA,,false,true,false,openstreetmap
+Schroeder Field,football,pitch,46.1418529,-122.8898818,,,WA,,false,true,false,openstreetmap
+Seahawks Practice Field,football,pitch,47.5346409,-122.1995965,,,WA,,false,true,false,openstreetmap
+Sid Orton Field,football,pitch,46.9879377,-122.9149435,,,WA,,false,true,false,openstreetmap
+Steve Hertling Field,football,pitch,47.0086566,-120.5384004,,,WA,,false,true,false,openstreetmap
+Tenino High School Stadium,football,stadium,46.8600713,-122.8532979,,,WA,,false,true,false,openstreetmap
+Tiger Field,football,pitch,46.7244355,-122.9860585,,,WA,,false,true,false,openstreetmap
+Troy Field,football,pitch,47.3118508,-122.2210809,,,WA,,false,true,false,openstreetmap
+Wiser Field,football,pitch,46.2363264,-119.2781968,,,WA,,false,true,false,openstreetmap
+Zaepfel Stadium,football,stadium,46.5916393,-120.5632015,,,WA,,false,true,false,openstreetmap
+Zillah High School Football Field,football,pitch,46.3994727,-120.2443567,,,WA,,false,true,false,openstreetmap
+High School Football Field,football,pitch,48.9915397,-122.7369151,,Blaine,WA,,false,true,false,openstreetmap
+Roos Field,football,sports_centre,47.4927363,-117.5880303,1250 Swoop Lane,Cheney,WA,99004,false,true,false,openstreetmap
+Federal Way Memorial Field,football,pitch,47.3275802,-122.3170669,1300 South 308th Street,Federal Way,WA,98003,false,true,false,openstreetmap
+Martin Stadium,football,stadium,46.7316408,-117.1602955,1775 Northeast Stadium Way,Pullman,WA,99164,false,true,false,openstreetmap
+Virginia Mason Athletic Center,football,sports_centre,47.5357819,-122.1980086,12 Seahawks Way,Renton,WA,98056,false,true,false,openstreetmap
+Husky Stadium,football,stadium,47.6503741,-122.3018364,3800 Montlake Boulevard Northeast,Seattle,WA,98105,false,true,false,openstreetmap

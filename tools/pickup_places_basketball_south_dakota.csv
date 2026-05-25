@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,43.452895,-96.8345587,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.4495582,-96.8421599,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.5353432,-96.797871,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.5094093,-96.6921964,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,45.4767236,-98.4808891,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.3109187,-96.8055979,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.2896394,-96.7925217,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.8873207,-97.147932,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.9132293,-97.093153,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.9159499,-97.0800641,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.8939749,-97.0920381,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.9146463,-97.1104485,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.9335468,-97.1703856,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.908123,-97.0908266,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.706705,-98.007493,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.0637265,-103.2695896,,,SD,,false,true,false,openstreetmap
+Basketball,basketball,pitch,44.0629786,-103.2694743,,,SD,,false,true,false,openstreetmap
+Basketball (3),basketball,pitch,43.4526889,-96.8436081,,,SD,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,44.0626846,-103.2151028,,,SD,,false,true,false,openstreetmap
+Beeler Center,basketball,pitch,45.9427611,-102.1598556,,,SD,,false,true,false,openstreetmap

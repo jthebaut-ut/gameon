@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anthem Court,pickleball,pitch,35.8405198,-86.5616108,,,TN,,false,true,false,openstreetmap
+Dinkville Pickleball,pickleball,sports_centre,36.157685,-86.7849396,,,TN,,false,true,false,openstreetmap
+Pickleball Courts,pickleball,pitch,35.059543,-85.0706204,,,TN,,false,true,false,openstreetmap
+Pickleball Courts 1 & 2,pickleball,pitch,35.8465639,-84.1906955,,,TN,,false,true,false,openstreetmap
+Pickleball Courts 3 & 4,pickleball,pitch,35.8466181,-84.1905044,,,TN,,false,true,false,openstreetmap
+Union City Parks and Rec Taylor St Courts,pickleball,pitch,36.4203776,-89.0447123,,,TN,,false,true,false,openstreetmap
+Ace Pickleball Club,pickleball,sports_hall,35.1392837,-85.244081,5450 TN 153,Hixson,TN,37343,true,false,false,openstreetmap

@@ -1,0 +1,29 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Brasada Ranch,pickleball,pitch,44.1568969,-121.04598,,,OR,,false,true,false,openstreetmap
+Emerald Valley Pickleball Club,pickleball,pitch,43.7968749,-123.0531267,,,OR,,false,true,false,openstreetmap
+Emerald Valley Pickleball Club,pickleball,pitch,43.7968741,-123.053016,,,OR,,false,true,false,openstreetmap
+Emerald Valley Pickleball Club,pickleball,pitch,43.7970361,-123.0531242,,,OR,,false,true,false,openstreetmap
+Emerald Valley Pickleball Club,pickleball,pitch,43.7970348,-123.0530153,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3115205,-122.8690622,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3115202,-122.8691627,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3116751,-122.8691533,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3116744,-122.8690562,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3117027,-122.8688415,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3117005,-122.8689385,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3115454,-122.8689398,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,pickleball,pitch,42.3115487,-122.8688394,,,OR,,false,true,false,openstreetmap
+Got Pickleball?,pickleball,sports_centre,45.5572241,-122.6619618,,,OR,,false,true,false,openstreetmap
+Harry E. Wojahn Courts,pickleball,sports_centre,45.5159004,-122.9742716,,,OR,,false,true,false,openstreetmap
+Hidden Creek East Pickleball Courts,pickleball,sports_centre,45.523933,-122.9284031,,,OR,,false,true,false,openstreetmap
+Ida B. Wells-Barnett Pickleball Courts,pickleball,sports_centre,45.4780094,-122.6893411,,,OR,,false,true,false,openstreetmap
+Meadow Park Pickleball Courts,pickleball,sports_centre,44.0530271,-123.0247423,,,OR,,false,true,false,openstreetmap
+Outdoor Pickleball Courts,pickleball,sports_centre,43.8733316,-121.4428383,,,OR,,false,true,false,openstreetmap
+Raleigh Park Pickleball & Tennis Courts,pickleball,sports_centre,45.4946618,-122.7561779,,,OR,,false,true,false,openstreetmap
+Rolling Hills Pickleball,pickleball,pitch,45.3736141,-122.7123266,,,OR,,false,true,false,openstreetmap
+The Max,pickleball,sports_centre,45.3828065,-122.5900557,,,OR,,false,true,false,openstreetmap
+The Spa at Sunriver Resort,pickleball,sports_centre,43.8714552,-121.4417649,,,OR,,false,true,false,openstreetmap
+Umso Park Pickleball Courts,pickleball,pitch,44.0969089,-123.0593721,,,OR,,false,true,false,openstreetmap
+Umso Park Pickleball Courts,pickleball,pitch,44.096932,-123.0592354,,,OR,,false,true,false,openstreetmap
+Westmoreland Park Pickleball Courts,pickleball,sports_centre,44.0375316,-123.1126973,,,OR,,false,true,false,openstreetmap
+The People's Courts,pickleball,sports_centre,45.5413656,-122.5779839,2700 Northeast 82nd Avenue,Portland,OR,97220,false,true,false,openstreetmap
+Pickleball Kingdom,pickleball,sports_centre,45.3985914,-122.7474518,16800 Southwest 72nd Avenue,Tigard,OR,97224,true,false,false,openstreetmap

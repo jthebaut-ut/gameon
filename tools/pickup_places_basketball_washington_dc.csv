@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Stead Park Basketball Court,basketball,pitch,38.9099189,-77.037843,,,DC,,false,true,false,openstreetmap
+White House Basketball Court,basketball,pitch,38.8961257,-77.0376623,,,DC,,false,true,false,openstreetmap
+Alice Deal Middle School Basketball Court,basketball,pitch,38.9533817,-77.075653,3815 Fort Drive Northwest,Washington,DC,20016,false,true,false,openstreetmap
+Brentwood Recreation Center,basketball,sports_hall,38.9210027,-76.9829385,2311 14th Street Northeast,Washington,DC,20018,false,true,false,openstreetmap

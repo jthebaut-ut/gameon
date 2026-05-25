@@ -1,0 +1,3 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Outdoor Basketball Court,basketball,pitch,41.3065111,-105.5696758,,,WY,,false,true,false,openstreetmap
+South Fork Basketball Court,basketball,pitch,41.0798158,-104.8053364,,,WY,,false,true,false,openstreetmap

@@ -1,0 +1,16 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Field,soccer,pitch,43.1421687,-72.509447,,,VT,,false,true,false,openstreetmap
+E.K. Hall Playing Field,soccer,pitch,43.1453797,-72.508484,,,VT,,false,true,false,openstreetmap
+Field 2,soccer,pitch,44.5033549,-73.1099338,,,VT,,false,true,false,openstreetmap
+Field 2-A,soccer,pitch,44.5034107,-73.1095987,,,VT,,false,true,false,openstreetmap
+Field 2-B,soccer,pitch,44.5033008,-73.1102693,,,VT,,false,true,false,openstreetmap
+Frelinghuysen Field,soccer,pitch,43.1639024,-73.0790416,,,VT,,false,true,false,openstreetmap
+Fuller Field,soccer,pitch,43.1423964,-72.5104267,,,VT,,false,true,false,openstreetmap
+Green Mountain High School Soccer Field,soccer,pitch,43.2543238,-72.58414,,,VT,,false,true,false,openstreetmap
+Howard Field,soccer,pitch,44.1419896,-72.6619295,,,VT,,false,true,false,openstreetmap
+John H. Lucy Field,soccer,pitch,43.1444123,-72.509854,,,VT,,false,true,false,openstreetmap
+Marion W. Cross School Soccer Nets,soccer,pitch,43.712859,-72.3076429,,,VT,,false,true,false,openstreetmap
+Tree Farm Soccer Complex,soccer,sports_centre,44.5046379,-73.1112947,,,VT,,false,true,false,openstreetmap
+Weston Island Soccer Fields,soccer,pitch,43.25328,-72.7922197,,,VT,,false,true,false,openstreetmap
+Taylor Mini Soccer Field,soccer,pitch,44.5191242,-73.2633476,26 Edson Street,Burlington,VT,05408,false,true,false,openstreetmap
+Garvey Field,soccer,pitch,44.156976,-72.6633552,271;349 Garvey Hill Road,Northfield,VT,05663,false,true,false,openstreetmap

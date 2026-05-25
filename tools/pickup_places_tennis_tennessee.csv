@@ -1,0 +1,67 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Addison at Collierville Tennis Court,tennis,pitch,35.0506493,-89.6988389,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0327275,-86.819371,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0327456,-86.8195309,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0327652,-86.8197381,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0327809,-86.8198973,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0326857,-86.8189605,,,TN,,false,true,false,openstreetmap
+Brentwood Academy,tennis,pitch,36.0327043,-86.8191222,,,TN,,false,true,false,openstreetmap
+Bruton-Guerry Tennis Center,tennis,sports_centre,35.209902,-85.9154614,,,TN,,false,true,false,openstreetmap
+Carriage Park Apartments Tennis Courts,tennis,pitch,35.0126215,-85.164004,,,TN,,false,true,false,openstreetmap
+Cherokee Landing Tennis Court,tennis,pitch,35.0318145,-89.0151034,,,TN,,false,true,false,openstreetmap
+Cherokee Landing Tennis Courts,tennis,pitch,35.0316928,-89.0150275,,,TN,,false,true,false,openstreetmap
+Conger Park,tennis,park,35.637825,-88.8276497,,,TN,,false,true,false,openstreetmap
+Dr. Robert L. Barksdale Tennis Stadium,tennis,pitch,35.9512614,-83.9375468,,,TN,,false,true,false,openstreetmap
+Dunavant Tennis Center,tennis,sports_centre,35.1573692,-89.9881007,,,TN,,false,true,false,openstreetmap
+East Ridge High School Tennis Court,tennis,pitch,34.9889363,-85.2468846,,,TN,,false,true,false,openstreetmap
+Edgar Rand Courts,tennis,sports_centre,36.142354,-86.8072322,,,TN,,false,true,false,openstreetmap
+Field House,tennis,pitch,35.0950125,-89.854516,,,TN,,false,true,false,openstreetmap
+Frances B Wyatt Courts,tennis,pitch,35.069332,-85.3025578,,,TN,,false,true,false,openstreetmap
+Goodfriend Tennis Stadium,tennis,stadium,35.9515272,-83.9366159,,,TN,,false,true,false,openstreetmap
+Governors Tennis Center,tennis,sports_centre,36.5372885,-87.3535133,,,TN,,false,true,false,openstreetmap
+Indoor Tennis Courts,tennis,fitness_centre,36.0562649,-86.9233004,,,TN,,false,true,false,openstreetmap
+Knoxville Racquet Club,tennis,sports_centre,35.9467572,-84.0096563,,,TN,,false,true,false,openstreetmap
+Knoxville Racquet Club,tennis,sports_centre,35.9475402,-84.0092461,,,TN,,false,true,false,openstreetmap
+Liberty Bell Tennis Center,tennis,pitch,36.3253215,-82.3743523,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0311625,-86.7972013,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.031186,-86.7970019,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0312111,-86.7968013,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0312353,-86.7965997,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0312595,-86.7964,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0312846,-86.7962014,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0321576,-86.7962318,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0321817,-86.7960312,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.0326045,-86.7960959,,,TN,,false,true,false,openstreetmap
+Maryland Farms YMCA,tennis,pitch,36.032627,-86.7958953,,,TN,,false,true,false,openstreetmap
+Middleton City Tennis Courts,tennis,pitch,35.0562927,-88.8919451,,,TN,,false,true,false,openstreetmap
+Piccidilly tennis court,tennis,pitch,36.3160306,-86.6961434,,,TN,,false,true,false,openstreetmap
+Pickleball,tennis,pitch,35.0655231,-89.6734122,,,TN,,false,true,false,openstreetmap
+Poteet Tennis Complex,tennis,sports_centre,36.5763072,-83.665769,,,TN,,false,true,false,openstreetmap
+Racquet Hall,tennis,sports_centre,36.1305255,-86.8235475,,,TN,,false,true,false,openstreetmap
+Riverview Park Tennis,tennis,pitch,35.0660784,-85.2878501,,,TN,,false,true,false,openstreetmap
+Smokey Mountain Tennis Academy,tennis,sports_centre,35.9662976,-84.1206885,2810 Ball Camp Byington Rd,,TN,37931,false,true,false,openstreetmap
+T Courts,tennis,pitch,36.0035656,-87.0675369,,,TN,,false,true,false,openstreetmap
+TSU Tennis Complex,tennis,sports_centre,36.1697903,-86.8233566,,,TN,,false,true,false,openstreetmap
+Tech Tennis Courts,tennis,sports_centre,36.1769495,-85.5081304,,,TN,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,35.8825533,-84.6219085,,,TN,,false,true,false,openstreetmap
+Tennis Court 1,tennis,pitch,35.846899,-84.1908499,,,TN,,false,true,false,openstreetmap
+Tennis Court 2,tennis,pitch,35.8469542,-84.1906528,,,TN,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,36.4291272,-83.6181373,,,TN,,false,true,false,openstreetmap
+Tennis court ,tennis,sports_centre,35.4983439,-84.9974887,,,TN,,false,true,false,openstreetmap
+Viera Cool Springs,tennis,pitch,35.9253187,-86.823434,,,TN,,false,true,false,openstreetmap
+Village Green Clubhouse Tennis Courts,tennis,pitch,35.8800827,-84.1714267,,,TN,,false,true,false,openstreetmap
+Village Green Clubhouse Tennis Courts,tennis,pitch,35.8800204,-84.1712593,,,TN,,false,true,false,openstreetmap
+W. T. Mathes Tennis Center,tennis,pitch,36.297415,-82.2949152,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.147372,-88.5101921,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1473807,-88.5103621,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1473973,-88.5106904,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1473888,-88.5105216,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1474131,-88.5109666,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1474385,-88.5114649,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.1474219,-88.5111366,,,TN,,false,true,false,openstreetmap
+Wildcat Tennis Complex,tennis,pitch,36.14743,-88.5112961,,,TN,,false,true,false,openstreetmap
+Village Green Monticello Courts,tennis,pitch,35.8866548,-84.1754192,11525 South Monticello Drive,Farragut,TN,37934,false,true,false,openstreetmap
+Village Green Monticello Courts,tennis,pitch,35.8867229,-84.1752629,11525 South Monticello Drive,Farragut,TN,37934,false,true,false,openstreetmap
+Skyhawk Tennis Complex,tennis,pitch,36.3417682,-88.8684712,3 Pat Head Summit Drive,Martin,TN,38237,false,true,false,openstreetmap
+Frayser Tennis Center,tennis,pitch,35.2066797,-90.004471,2907 North Watkins Street,Memphis,TN,38127,false,true,false,openstreetmap
+Wolbrecht Tennis Center,tennis,pitch,35.0922101,-89.8592604,1645 Ridgeway Road,Memphis,TN,38119,false,true,false,openstreetmap

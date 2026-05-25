@@ -39,8 +39,8 @@ private enum DiscoverVenueFastPinFallback {
 }
 
 private enum DiscoverViewportVenueCacheConfig {
-    static let ttl: TimeInterval = 90
-    static let maxEntries = 6
+    static let ttl: TimeInterval = 180
+    static let maxEntries = 12
     static let expansionFactor = 1.35
 }
 
@@ -2403,6 +2403,7 @@ extension MapViewModel {
             }) {
                 let filtered = filterVenueRows(entry.rows, within: requestedBounds)
                 #if DEBUG
+                print("[DiscoverRegionJumpDebug] cacheHit=true")
                 print("[Perf] Venue viewport cache hit key=\(entry.key) requestedRows=\(filtered.count) cachedRows=\(entry.rows.count)")
                 print("[CommunityVenueDebug] fetchBounds=cacheHit requested=\(String(format: "%.4f", requestedBounds.minLat)),\(String(format: "%.4f", requestedBounds.maxLat)),\(String(format: "%.4f", requestedBounds.minLon)),\(String(format: "%.4f", requestedBounds.maxLon)) coverage=\(String(format: "%.4f", entry.coverageBounds.minLat)),\(String(format: "%.4f", entry.coverageBounds.maxLat)),\(String(format: "%.4f", entry.coverageBounds.minLon)),\(String(format: "%.4f", entry.coverageBounds.maxLon)) source=\(entry.source)")
                 print("[CommunityVenueDebug] queryLimit=\(limit) cacheHit=true")
@@ -2417,6 +2418,7 @@ extension MapViewModel {
         let coverageBounds = expandedViewportBounds(for: requestedBounds)
         let cacheKey = discoverViewportVenueCacheKey(for: coverageBounds, source: source)
         #if DEBUG
+        print("[DiscoverRegionJumpDebug] cacheMiss=true")
         print("[Perf] Venue viewport cache miss key=\(cacheKey)")
         print("[CommunityVenueDebug] fetchBounds=requested=\(String(format: "%.4f", requestedBounds.minLat)),\(String(format: "%.4f", requestedBounds.maxLat)),\(String(format: "%.4f", requestedBounds.minLon)),\(String(format: "%.4f", requestedBounds.maxLon)) coverage=\(String(format: "%.4f", coverageBounds.minLat)),\(String(format: "%.4f", coverageBounds.maxLat)),\(String(format: "%.4f", coverageBounds.minLon)),\(String(format: "%.4f", coverageBounds.maxLon)) source=\(source)")
         print("[CommunityVenueDebug] queryLimit=\(limit) cacheHit=false")
@@ -2635,7 +2637,11 @@ extension MapViewModel {
         }
     }
 
-    func loadVenuesFromSupabase(forceRefresh: Bool = false, logManualMapReload: Bool = false) async {
+    func loadVenuesFromSupabase(
+        forceRefresh: Bool = false,
+        logManualMapReload: Bool = false,
+        fastRegionJump: Bool = false
+    ) async {
         let t0 = Date()
         let requestID = UUID()
         loadVenuesRequestID = requestID
@@ -2653,6 +2659,9 @@ extension MapViewModel {
         }
         if logManualMapReload {
             print("[ManualMapReloadDebug] requestID=\(requestID.uuidString.lowercased())")
+        }
+        if fastRegionJump {
+            print("[DiscoverRegionJumpDebug] requestId=\(requestID.uuidString.lowercased())")
         }
         #endif
 
@@ -2675,6 +2684,9 @@ extension MapViewModel {
             guard !Task.isCancelled, loadVenuesRequestID == requestID else {
                 #if DEBUG
                 print("[DiscoverReloadSmoothDebug] staleRequestIgnored phase=\(phase)")
+                if fastRegionJump {
+                    print("[DiscoverRegionJumpDebug] staleRequestIgnored=true requestId=\(requestID.uuidString.lowercased()) phase=\(phase)")
+                }
                 #endif
                 return false
             }
@@ -2695,6 +2707,11 @@ extension MapViewModel {
         let showBlockingMapSpinner = coldStartPhase1Allowed
         isLoadingMapVenues = showBlockingMapSpinner
         isRefreshingMapVenues = false
+        if fastRegionJump, mapVisibleBars.isEmpty {
+            discoverRegionVenueLoadMessage = "Loading venues in this area…"
+        } else if !fastRegionJump {
+            discoverRegionVenueLoadMessage = nil
+        }
         if !showBlockingMapSpinner {
             Task { @MainActor [weak self] in
                 try? await Task.sleep(for: .seconds(1))
@@ -2783,6 +2800,11 @@ extension MapViewModel {
             discoverCurrentVisibleVenueIds = visibleVenueContext.venueIds
             discoverCurrentVisibleOwnerEmails = visibleVenueContext.ownerEmails
             discoverCurrentVisibleVenueNames = visibleVenueContext.venueNames
+#if DEBUG
+            if fastRegionJump {
+                print("[DiscoverRegionJumpDebug] phase1VenueCount=\(visibleVenueContext.venueRows.count)")
+            }
+#endif
 
 #if DEBUG
             let decodeStart = Date()
@@ -2820,6 +2842,9 @@ extension MapViewModel {
             isLoadingMapVenues = false
             isRefreshingMapVenues = false
             loadVenuesPhase1AppliedRequestID = requestID
+            if fastRegionJump {
+                discoverRegionVenueLoadMessage = phase1Bars.isEmpty ? "No venues found in this area yet." : nil
+            }
             flushDiscoverMapRenderSnapshotRebuild(reason: "loadVenuesFromSupabasePhase1")
 
             let phase1CompletedAt = Date()
@@ -2833,6 +2858,19 @@ extension MapViewModel {
             print("[Phase1Perf] fast venue load ms=\(phase1Ms) bars=\(phase1Bars.count) source=\(visibleVenueContext.querySource)")
             print("[Perf] Phase 1 pins loaded ms=\(phase1Ms) bars=\(phase1Bars.count)")
             #endif
+
+            guard !visibleVenueContext.venueIds.isEmpty
+                || !visibleVenueContext.ownerEmails.isEmpty
+                || !visibleVenueContext.venueNames.isEmpty else {
+                guard loadVenuesRequestIsCurrent(phase: "phase2SkippedNoVisibleVenues") else { return }
+                venueEventRows = []
+                rebuildVenueEventIDsByKey(from: [])
+                persistDiscoverCoreSnapshot()
+#if DEBUG
+                print("[Phase2Perf] selected-day venue event load skipped reason=noVisibleVenues")
+#endif
+                return
+            }
 
             let selectedDay = DiscoverVenueGameDateFormatting.sqlDate.string(from: selectedDate)
             let supplementVenueIds = try await discoverSupplementVenueIdsFromSelectedDayEvents(
@@ -2942,6 +2980,9 @@ extension MapViewModel {
             #endif
 
         } catch {
+            if fastRegionJump, loadVenuesRequestIsCurrent(phase: "catchLoadingState") {
+                discoverRegionVenueLoadMessage = nil
+            }
             #if DEBUG
             if logManualMapReload {
                 print("[ManualMapReloadDebug] rowsReturned=0")

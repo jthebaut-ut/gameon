@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Cancha de Tenis,tennis,pitch,18.1190961,-66.1594663,,,PR,,false,true,false,openstreetmap
+Cancha de Tennis de Horizontes,tennis,pitch,18.2471538,-66.0005977,,,PR,,false,true,false,openstreetmap
+Canchas de Tennis,tennis,pitch,18.2421443,-66.0048478,,,PR,,false,true,false,openstreetmap
+Praderas Tennis Court,tennis,pitch,18.2292521,-66.0005519,,,PR,,false,true,false,openstreetmap
+"Canchas de Tenis Elvin ""Vinchy"" Velázquez Cortés",tennis,sports_centre,18.0405593,-67.0546115,Calle Dalia,Lajas,PR,00667,false,true,false,openstreetmap

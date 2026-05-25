@@ -67,7 +67,8 @@ enum PickupBulkImportService {
                     participantPreference: PickupParticipantPreference.everyone.rawValue,
                     isFree: true,
                     entryFeeAmount: nil,
-                    maxPlayers: row.maxPlayers
+                    maxPlayers: row.maxPlayers,
+                    gameFormat: row.gameType
                 )
                 inserted.append(insertedRow)
 #if DEBUG

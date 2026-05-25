@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BHS Football Field,football,pitch,41.9677336,-71.6602104,,,RI,,false,true,false,openstreetmap
+Beirne Football Field,football,pitch,41.924174,-71.5385165,,,RI,,false,true,false,openstreetmap
+Berine Stadium,football,stadium,41.9242598,-71.5379135,,,RI,,false,true,false,openstreetmap
+Berylson Family Fields,football,pitch,41.8320362,-71.3944809,,,RI,,false,true,false,openstreetmap
+Campanella Field,football,pitch,41.8345451,-71.3968408,,,RI,,false,true,false,openstreetmap
+Gaudet Field,football,pitch,41.5209222,-71.2773793,,,RI,,false,true,false,openstreetmap
+Max Reed Field,football,stadium,41.865142,-71.3819225,,,RI,,false,true,false,openstreetmap
+Nimitz Field,football,pitch,41.5199488,-71.3242857,,,RI,,false,true,false,openstreetmap
+Tucker Field,football,pitch,41.9643234,-71.4415178,,,RI,,false,true,false,openstreetmap

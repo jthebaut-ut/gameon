@@ -1360,6 +1360,32 @@ struct DiscoverScreen: View {
         )
     }
 
+    private func mapVenueRegionJumpIsMajor(
+        distanceMovedMiles: Double,
+        boundsChangedSignificantly: Bool
+    ) -> Bool {
+        distanceMovedMiles >= 50 || (distanceMovedMiles >= 15 && boundsChangedSignificantly)
+    }
+
+    private func logDiscoverRegionJump(
+        oldRegion: MKCoordinateRegion?,
+        newRegion: MKCoordinateRegion,
+        distanceMovedMiles: Double?,
+        triggeredFastBoundsFetch: Bool
+    ) {
+#if DEBUG
+        let oldCenter = oldRegion.map {
+            "\($0.center.latitude),\($0.center.longitude)"
+        } ?? "nil"
+        let newCenter = "\(newRegion.center.latitude),\(newRegion.center.longitude)"
+        let distance = distanceMovedMiles.map { String(format: "%.2f", $0) } ?? "nil"
+        print("[DiscoverRegionJumpDebug] oldCenter=\(oldCenter)")
+        print("[DiscoverRegionJumpDebug] newCenter=\(newCenter)")
+        print("[DiscoverRegionJumpDebug] distanceMiles=\(distance)")
+        print("[DiscoverRegionJumpDebug] triggeredFastBoundsFetch=\(triggeredFastBoundsFetch)")
+#endif
+    }
+
     private enum VenuePinDisplayState {
         case gameScheduled
         case noGameScheduled
@@ -1793,11 +1819,27 @@ struct DiscoverScreen: View {
             print("[CommunityVenuePerf] cameraEnd=center=\(region.center.latitude),\(region.center.longitude) span=\(region.span.latitudeDelta),\(region.span.longitudeDelta)")
 #endif
             mapVenueReloadTask?.cancel()
+            let priorReloadRegion = lastMapVenueReloadRegion
+            let precomputedDelta = priorReloadRegion.map { mapVenueReloadDelta(from: $0, to: region) }
+            let isMajorRegionJump = precomputedDelta.map {
+                mapVenueRegionJumpIsMajor(
+                    distanceMovedMiles: $0.distanceMovedMiles,
+                    boundsChangedSignificantly: $0.boundsChangedSignificantly
+                )
+            } ?? false
+            logDiscoverRegionJump(
+                oldRegion: priorReloadRegion,
+                newRegion: region,
+                distanceMovedMiles: precomputedDelta?.distanceMovedMiles,
+                triggeredFastBoundsFetch: isMajorRegionJump
+            )
             mapVenueReloadTask = Task { @MainActor in
-                do {
-                    try await Task.sleep(for: .milliseconds(250))
-                } catch {
-                    return
+                if !isMajorRegionJump {
+                    do {
+                        try await Task.sleep(for: .milliseconds(250))
+                    } catch {
+                        return
+                    }
                 }
                 guard !Task.isCancelled else { return }
                 let shouldReloadMapRows = viewModel.discoverMapContentMode == .venues
@@ -1816,8 +1858,7 @@ struct DiscoverScreen: View {
 #endif
                     return
                 }
-                if let last = lastMapVenueReloadRegion {
-                    let delta = mapVenueReloadDelta(from: last, to: region)
+                if let delta = precomputedDelta {
 #if DEBUG
                     print("[ManualMapReloadDebug] distanceMovedMiles=\(String(format: "%.2f", delta.distanceMovedMiles))")
 #endif
@@ -1839,7 +1880,10 @@ struct DiscoverScreen: View {
                 if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
                     await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
                 } else {
-                    await viewModel.loadVenuesFromSupabase(logManualMapReload: true)
+                    await viewModel.loadVenuesFromSupabase(
+                        logManualMapReload: true,
+                        fastRegionJump: isMajorRegionJump
+                    )
                 }
                 lastMapVenueReloadRegion = region
             }
@@ -1859,7 +1903,9 @@ struct DiscoverScreen: View {
             venueAnnotationsCount: venueAnnotationsCount,
             renderedAnnotationsCount: renderedAnnotationsCount
         )
-        return renderedAnnotationsCount == 0
+        let venueRegionMessageVisible = viewModel.discoverMapContentMode == .venues
+            && viewModel.discoverRegionVenueLoadMessage != nil
+        return renderedAnnotationsCount == 0 && !venueRegionMessageVisible
     }
 
     private func discoverLogRedesignDebug() {
@@ -1902,6 +1948,26 @@ struct DiscoverScreen: View {
                 HStack(spacing: FGSpacing.sm) {
                     FGStatusPill(title: "No visible matches", kind: .custom(tint: FGColor.accentBlue))
                     Text("Zoom out or search this area.")
+                        .font(FGTypography.caption)
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .discoverLightGlassCard(style: .overlay)
+            }
+
+            if let regionVenueLoadMessage = viewModel.discoverRegionVenueLoadMessage,
+               viewModel.discoverMapContentMode == .venues,
+               viewModel.mapVisibleBars.isEmpty {
+                HStack(spacing: FGSpacing.sm) {
+                    if viewModel.isLoadingMapVenues || viewModel.isRefreshingMapVenues {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(FGColor.accentBlue)
+                    }
+                    Text(regionVenueLoadMessage)
                         .font(FGTypography.caption)
                         .foregroundStyle(FGColor.secondaryText(colorScheme))
                 }
@@ -2740,19 +2806,32 @@ struct DiscoverScreen: View {
     private func submitDiscoverSearchFromReturn() {
         dismissDiscoverSearchKeyboard()
         Task { @MainActor in
+            let oldRegion = lastMapVenueReloadRegion ?? viewModel.cameraPosition.region
             let addressSearchMovedMap = await viewModel.submitDiscoverAddressSearchFromReturn()
             guard addressSearchMovedMap else { return }
             dismissDiscoverSearchKeyboard()
 #if DEBUG
             print("[DiscoverSearchDebug] keyboardDismissedAfterAddressSearch=true")
 #endif
+            let newRegion = viewModel.cameraPosition.region
+            let distanceMovedMiles = oldRegion.flatMap { old in
+                newRegion.map { mapVenueReloadDelta(from: old, to: $0).distanceMovedMiles }
+            }
+            if let newRegion {
+                logDiscoverRegionJump(
+                    oldRegion: oldRegion,
+                    newRegion: newRegion,
+                    distanceMovedMiles: distanceMovedMiles,
+                    triggeredFastBoundsFetch: true
+                )
+            }
             if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .games {
                 await viewModel.refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
             } else if viewModel.discoverMapContentMode == .pickupGames, viewModel.discoverPickupSubMode == .places {
                 await viewModel.refreshPickupPlacesForDiscoverMap(force: true)
                 lastMapVenueReloadRegion = viewModel.cameraPosition.region
             } else {
-                await viewModel.loadVenuesFromSupabase(forceRefresh: true)
+                await viewModel.loadVenuesFromSupabase(fastRegionJump: true)
                 lastMapVenueReloadRegion = viewModel.cameraPosition.region
             }
             scheduleDiscoverWeatherRefresh(force: true)
@@ -3341,10 +3420,7 @@ struct DiscoverScreen: View {
                     }
                 } label: {
                     VStack(alignment: .leading, spacing: 7) {
-                        Text("Pickup game")
-                            .font(.caption.weight(.heavy))
-                            .foregroundStyle(Color.orange)
-                            .tracking(0.4)
+                        GameFormatBadgeView(format: row.gameFormat, colorScheme: colorScheme)
                         Text(guestMapsActionsToLogin ? row.sport : row.title)
                             .font(FGTypography.sectionTitle)
                             .foregroundStyle(mainInk)

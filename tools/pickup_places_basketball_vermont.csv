@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Able Mountain Campground,basketball,pitch,43.9305857,-72.7039681,,,VT,,false,true,false,openstreetmap
+C.T.E.S. Basketball Court,basketball,pitch,43.3836226,-72.6379355,,,VT,,false,true,false,openstreetmap
+Everett Mansion Basketball Court,basketball,pitch,42.8673386,-73.2196158,,,VT,,false,true,false,openstreetmap
+Pepin Gymnasium,basketball,pitch,44.0041994,-73.177812,,,VT,,false,true,false,openstreetmap
+Patrick Gymnasium,basketball,fitness_centre,44.470106,-73.1947393,131 Catamount Way,Burlington,VT,,false,true,false,openstreetmap

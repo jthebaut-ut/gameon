@@ -1,0 +1,68 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,tennis,pitch,35.0204695,-82.4976052,,,SC,,false,true,false,openstreetmap
+2,tennis,pitch,35.0205579,-82.4974954,,,SC,,false,true,false,openstreetmap
+3,tennis,pitch,35.0206637,-82.4973652,,,SC,,false,true,false,openstreetmap
+4,tennis,pitch,35.0207445,-82.4972404,,,SC,,false,true,false,openstreetmap
+Aiken Tennis Club,tennis,sports_centre,33.5597178,-81.7209461,,,SC,,false,true,false,openstreetmap
+Althea Gibson Club Court,tennis,pitch,32.8614494,-79.9011429,,,SC,,false,true,false,openstreetmap
+Ashley Hall Foundation,tennis,pitch,32.7862596,-79.9444295,,,SC,,false,true,false,openstreetmap
+Ashley Hall Foundation,tennis,pitch,32.7861304,-79.9443781,,,SC,,false,true,false,openstreetmap
+Belton Tennis Association,tennis,pitch,34.5209144,-82.493534,,,SC,,false,true,false,openstreetmap
+Belton Tennis Association,tennis,pitch,34.5212906,-82.4937998,,,SC,,false,true,false,openstreetmap
+Broome High School tennis court,tennis,pitch,34.9865537,-81.8453984,,,SC,,false,true,false,openstreetmap
+CCU Tennis,tennis,pitch,33.8002551,-78.9963556,,,SC,,false,true,false,openstreetmap
+Carolina Tennis Center,tennis,sports_centre,33.9853813,-81.0228656,,,SC,,false,true,false,openstreetmap
+City of Greer,tennis,pitch,34.9461086,-82.2394843,,,SC,,false,true,false,openstreetmap
+Court 1,tennis,pitch,32.8615782,-79.9001121,,,SC,,false,true,false,openstreetmap
+Court 10,tennis,pitch,32.8618668,-79.9020224,,,SC,,false,true,false,openstreetmap
+Court 11,tennis,pitch,32.8618722,-79.9022601,,,SC,,false,true,false,openstreetmap
+Court 12,tennis,pitch,32.8618741,-79.9025216,,,SC,,false,true,false,openstreetmap
+Court 13,tennis,pitch,32.861874,-79.9027163,,,SC,,false,true,false,openstreetmap
+Court 14,tennis,pitch,32.8622534,-79.9020073,,,SC,,false,true,false,openstreetmap
+Court 15,tennis,pitch,32.8622553,-79.9023725,,,SC,,false,true,false,openstreetmap
+Court 16,tennis,pitch,32.8622644,-79.9025692,,,SC,,false,true,false,openstreetmap
+Court 17,tennis,pitch,32.8626148,-79.9017151,,,SC,,false,true,false,openstreetmap
+Court 18,tennis,pitch,32.8626159,-79.9019229,,,SC,,false,true,false,openstreetmap
+Court 2,tennis,pitch,32.8615782,-79.9003044,,,SC,,false,true,false,openstreetmap
+Court 3,tennis,pitch,32.8617561,-79.9005659,,,SC,,false,true,false,openstreetmap
+Court 4,tennis,pitch,32.8617524,-79.9007625,,,SC,,false,true,false,openstreetmap
+Court 5,tennis,pitch,32.8611008,-79.9019878,,,SC,,false,true,false,openstreetmap
+Court 6,tennis,pitch,32.8611008,-79.9021867,,,SC,,false,true,false,openstreetmap
+Court 7,tennis,pitch,32.861099,-79.9025151,,,SC,,false,true,false,openstreetmap
+Court 8,tennis,pitch,32.8610935,-79.9027118,,,SC,,false,true,false,openstreetmap
+Court 9,tennis,pitch,32.8618668,-79.9018322,,,SC,,false,true,false,openstreetmap
+Cox Tennis Complex,tennis,sports_centre,34.7285679,-82.7658154,,,SC,,false,true,false,openstreetmap
+Dr Eddie Floyd Florence Tennis Center,tennis,pitch,34.2112117,-79.7901763,1060 N Cashua Dr,,SC,29501,false,true,false,openstreetmap
+Earle Tennis Center,tennis,pitch,32.7946346,-79.9608877,,,SC,,false,true,false,openstreetmap
+Emmie Evans Rector Tennis Center,tennis,sports_centre,35.0557311,-81.6469802,,,SC,,false,true,false,openstreetmap
+Greenville Tennis Club,tennis,sports_centre,34.8018237,-82.2287938,,,SC,,false,true,false,openstreetmap
+Hallmark Shores Raquet Club,tennis,pitch,34.0189231,-81.3358398,,,SC,,false,true,false,openstreetmap
+Hallmark Shores Raquet Club,tennis,pitch,34.018908,-81.3360224,,,SC,,false,true,false,openstreetmap
+Julian Weston Park Tennis Courts,tennis,pitch,32.7842614,-79.8719499,,,SC,,false,true,false,openstreetmap
+Knightsbridge Tennis,tennis,pitch,35.0730287,-80.9675805,,,SC,,false,true,false,openstreetmap
+Knightsbridge Tennis,tennis,pitch,35.0730387,-80.9674208,,,SC,,false,true,false,openstreetmap
+Litchfield Racquet Club,tennis,sports_centre,33.4719298,-79.108442,,,SC,,false,true,false,openstreetmap
+Main Court,tennis,pitch,34.8498597,-82.4080142,,,SC,,false,true,false,openstreetmap
+Newberry College Tennis Courts,tennis,sports_centre,34.2872632,-81.6202273,,,SC,,false,true,false,openstreetmap
+Oakland Tennis Center,tennis,sports_centre,34.2907731,-81.62699,,,SC,,false,true,false,openstreetmap
+Palmetto Dunes Tennis & Pickleball Center,tennis,pitch,32.169132,-80.7191201,,,SC,,false,true,false,openstreetmap
+Ray & Joan Kroc Tennis Center,tennis,sports_centre,34.8501314,-82.40791,,,SC,,false,true,false,openstreetmap
+River Landing Tennis Court,tennis,pitch,33.7182299,-78.9202638,,,SC,,false,true,false,openstreetmap
+Riverview Park Tennis Courts,tennis,pitch,33.4999533,-81.985536,,,SC,,false,true,false,openstreetmap
+Rock Hill Tennis Center,tennis,pitch,34.9595462,-81.0039007,,,SC,,false,true,false,openstreetmap
+Sea Pines Racquet Club,tennis,pitch,32.1369549,-80.8085174,,,SC,,false,true,false,openstreetmap
+Sloan Tennis Center,tennis,sports_centre,34.6820738,-82.8400665,,,SC,,false,true,false,openstreetmap
+Stonefield Tennis Court,tennis,pitch,32.7135201,-79.9541687,,,SC,,false,true,false,openstreetmap
+Stoneridge Apartments Tennis Court,tennis,pitch,34.0136844,-81.0667665,,,SC,,false,true,false,openstreetmap
+Stoneridge Apartments Tennis Court,tennis,pitch,34.0138171,-81.0666899,,,SC,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,34.1853058,-79.772784,,,SC,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,34.1852709,-79.7714448,,,SC,,false,true,false,openstreetmap
+The Racket Club,tennis,pitch,32.3169458,-80.4796591,Tarpon Boulevard,,SC,,false,true,false,openstreetmap
+The Reserve Tennis Court,tennis,pitch,33.4887251,-81.741799,,,SC,,false,true,false,openstreetmap
+The Reserve Tennis Court,tennis,pitch,33.488639,-81.741366,,,SC,,false,true,false,openstreetmap
+The Reserve Tennis Court,tennis,pitch,33.4882508,-81.7414732,,,SC,,false,true,false,openstreetmap
+Van Der Meer Tennis Academy,tennis,sports_centre,32.15435,-80.7335991,,,SC,,false,true,false,openstreetmap
+Credit One Stadium,tennis,stadium,32.861457,-79.9036235,161 Seven Farms Drive,Charleston,SC,29492,false,true,false,openstreetmap
+Carolina Indoor Tennis Center,tennis,sports_centre,33.9811119,-81.016025,523 Superior Street,Columbia,SC,29205,false,true,false,openstreetmap
+Dunes West Tennis Center,tennis,pitch,32.898401,-79.8104815,3003 Dunes West Boulevard,Mount Pleasant,SC,29466,false,true,false,openstreetmap
+Whitmire Recreational Complex,tennis,sports_centre,34.5023247,-81.6137989,44 Setzler Alley,Whitmire,SC,29178,false,true,false,openstreetmap

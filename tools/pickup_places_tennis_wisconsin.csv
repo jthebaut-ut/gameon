@@ -1,0 +1,62 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Court # 8,tennis,pitch,43.0475854,-89.3207016,,,WI,,false,true,false,openstreetmap
+Court #1,tennis,pitch,43.0476569,-89.3194478,,,WI,,false,true,false,openstreetmap
+Court #2,tennis,pitch,43.0476465,-89.319628,,,WI,,false,true,false,openstreetmap
+Court #3,tennis,pitch,43.0476369,-89.3198052,,,WI,,false,true,false,openstreetmap
+Court #4,tennis,pitch,43.0476265,-89.3199849,,,WI,,false,true,false,openstreetmap
+Court #5,tennis,pitch,43.047616,-89.3201636,,,WI,,false,true,false,openstreetmap
+Court #6,tennis,pitch,43.0476067,-89.3203421,,,WI,,false,true,false,openstreetmap
+Court #7,tennis,pitch,43.0475972,-89.3205208,,,WI,,false,true,false,openstreetmap
+Court 1,tennis,pitch,46.5122856,-91.7091451,,,WI,,false,true,false,openstreetmap
+Court 2,tennis,pitch,46.5123615,-91.7090094,,,WI,,false,true,false,openstreetmap
+Court 3,tennis,pitch,46.5126135,-91.7089238,,,WI,,false,true,false,openstreetmap
+Court 4,tennis,pitch,46.5127154,-91.7088511,,,WI,,false,true,false,openstreetmap
+Court 5,tennis,pitch,46.5128165,-91.7087738,,,WI,,false,true,false,openstreetmap
+Fox Cities Racquet Club,tennis,sports_centre,44.2902002,-88.4750499,,,WI,,false,true,false,openstreetmap
+Hartford Square Tennis Court,tennis,pitch,43.3128923,-88.3548462,,,WI,,false,true,false,openstreetmap
+Horace Mann Tennis Court,tennis,pitch,43.8133635,-88.4881152,,,WI,,false,true,false,openstreetmap
+John Powless Tennis Center,tennis,sports_centre,43.0478676,-89.4952706,,,WI,,false,true,false,openstreetmap
+Menards Tennis Center,tennis,pitch,44.8009397,-91.5275715,,,WI,,false,true,false,openstreetmap
+Milwaukee County Park System,tennis,sports_centre,43.054124,-87.8855504,,,WI,,false,true,false,openstreetmap
+Northstar Tennis Court,tennis,pitch,44.8465812,-91.4674936,,,WI,,false,true,false,openstreetmap
+Oak Park Tennis Court,tennis,pitch,43.9129376,-91.2317871,,,WI,,false,true,false,openstreetmap
+Oak Park Tennis Court,tennis,pitch,43.9129364,-91.2319782,,,WI,,false,true,false,openstreetmap
+PIckle Ball Courts,tennis,pitch,42.8620866,-88.9115376,,,WI,,false,true,false,openstreetmap
+Parkcrest Swim and Tennis Club,tennis,pitch,43.0681142,-89.4925287,,,WI,,false,true,false,openstreetmap
+Parkcrest Swim and Tennis Club,tennis,pitch,43.0681135,-89.4927117,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9678327,-88.2820579,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9685068,-88.281463,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.968507,-88.2816957,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9685085,-88.2818748,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9681616,-88.2816978,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9681613,-88.2818779,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9678323,-88.2816994,,,WI,,false,true,false,openstreetmap
+School District of Waukesha,tennis,pitch,42.9678328,-88.2818785,,,WI,,false,true,false,openstreetmap
+St. Croix Valley Indoor Tennis Club,tennis,sports_centre,44.9689964,-92.6716923,648 Brakke Drive,,WI,,false,true,false,openstreetmap
+Tennis & Basketball Courts,tennis,pitch,43.2075188,-89.3154602,,,WI,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,44.334913,-88.6432541,,,WI,,false,true,false,openstreetmap
+Tennis Shop,tennis,pitch,43.1624771,-87.9425888,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.8668315,-91.925832,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.866828,-91.9249268,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.8668288,-91.9250991,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.8668288,-91.9252929,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.8668309,-91.9254648,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Stout,tennis,pitch,44.8668309,-91.9256607,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Whitewater,tennis,pitch,42.8423997,-88.7411776,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Whitewater,tennis,pitch,42.8423985,-88.7413513,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Whitewater,tennis,pitch,42.8420706,-88.7411752,,,WI,,false,true,false,openstreetmap
+University of Wisconsin-Whitewater,tennis,pitch,42.8420711,-88.7413444,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.82364,-88.7523393,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.823639,-88.7525183,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.8236386,-88.752697,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.8236381,-88.7528764,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.824021,-88.7523393,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.824021,-88.7525183,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.8240205,-88.7526984,,,WI,,false,true,false,openstreetmap
+Whitewater High School,tennis,pitch,42.82402,-88.7528767,,,WI,,false,true,false,openstreetmap
+The Town Club,tennis,sports_centre,43.1599799,-87.9013572,7950 North Santa Monica Boulevard,Fox Point,WI,53217,false,true,false,openstreetmap
+Athletic Club,tennis,sports_centre,42.7055984,-89.0078114,1301 Black Bridge Road,Janesville,WI,53545,false,true,false,openstreetmap
+Lake Geneva Tennis,tennis,sports_centre,42.5845197,-88.4108236,630 Veterans Way,Lake Geneva,WI,,false,true,false,openstreetmap
+Nielsen Tennis Stadium,tennis,sports_centre,43.0795756,-89.4302761,1000 Highland Avenue,Madison,WI,,false,true,false,openstreetmap
+Elite Mequon,tennis,sports_centre,43.2298119,-87.9214956,11616 North Port Washington Lane,Mequon,WI,53092,false,true,false,openstreetmap
+River Tennis Club,tennis,pitch,43.1723573,-87.9525263,8188 North Green Bay Road,River Hills,WI,53217,false,true,false,openstreetmap

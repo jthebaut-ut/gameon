@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Buck Hard Field,football,pitch,44.4949538,-73.2338204,,,VT,,false,true,false,openstreetmap
+Dr. Ray W. Collins Field,football,pitch,44.0079655,-73.1640393,,,VT,,false,true,false,openstreetmap
+Fairbanks Field,football,pitch,44.4128828,-72.0216481,,,VT,,false,true,false,openstreetmap
+Hays-Naramore Field,football,pitch,43.1460927,-72.509975,,,VT,,false,true,false,openstreetmap
+Natowich Field,football,pitch,42.8358764,-72.5594578,,,VT,,false,true,false,openstreetmap
+Robert K. Lewis Field,football,pitch,44.5381009,-72.0135419,,,VT,,false,true,false,openstreetmap
+Spartan Stadium,football,stadium,43.6041788,-73.1820114,,,VT,,false,true,false,openstreetmap
+Youngman Field,football,pitch,44.0016516,-73.179613,,,VT,,false,true,false,openstreetmap
+Rutland High School Football Field,football,pitch,43.6201103,-72.9535192,22 Stratton Road,Rutland,VT,05701,false,true,false,openstreetmap

@@ -1,0 +1,18 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bayamon Soccer Complex Cancha 1,soccer,pitch,18.366779,-66.1661022,,,PR,,false,true,false,openstreetmap
+Bayamon Soccer Complex Cancha 3,soccer,pitch,18.3662962,-66.1669385,,,PR,,false,true,false,openstreetmap
+Campo de Futbol Complejo Deportivo Caguas,soccer,pitch,18.2410351,-66.0561793,,,PR,,false,true,false,openstreetmap
+Campo de Fútbol de Cayey,soccer,pitch,18.1179128,-66.1535998,,,PR,,false,true,false,openstreetmap
+Cancha de Fútbol de Cedro Abajo,soccer,pitch,18.2914446,-66.271687,,,PR,,false,true,false,openstreetmap
+Club de Fútbol Fraigcomar,soccer,pitch,18.3807701,-66.0748495,,,PR,,false,true,false,openstreetmap
+"Estadio Miguel A. ""Mickey"" Jiménez Aponte",soccer,pitch,18.2129759,-66.0431863,,,PR,,false,true,false,openstreetmap
+"Estadio de Fútbol Don Ángel ""El Mulo"" Flores",soccer,pitch,18.1411013,-66.2772882,,,PR,,false,true,false,openstreetmap
+Estadio de Fútbol de Country Club,soccer,sports_centre,18.4011357,-66.0020016,,,PR,,false,true,false,openstreetmap
+Estadio de Fútbol de Guayama,soccer,stadium,17.9689247,-66.1164368,,,PR,,false,true,false,openstreetmap
+Fútbol Atlético de Añasco,soccer,pitch,18.2789142,-67.1488647,,,PR,,false,true,false,openstreetmap
+Parque de Fútbol Benjamín Martínez González,soccer,pitch,18.4149131,-66.046866,,,PR,,false,true,false,openstreetmap
+"Parque de Fútbol Jorge ""Pollo"" Cajigas Chaparro",soccer,pitch,18.3742335,-67.1439513,,,PR,,false,true,false,openstreetmap
+Parque de Fútbol Ángel Luis Correa,soccer,pitch,18.1180618,-66.1521239,,,PR,,false,true,false,openstreetmap
+Union Soccer Academy,soccer,pitch,18.4514369,-66.0887489,,,PR,,false,true,false,openstreetmap
+Complejo de Fútbol de Bayamón 1,soccer,sports_centre,18.3664011,-66.166352,Expreso Río Hondo,Bayamón,PR,00956,false,true,false,openstreetmap
+Estadio de Fútbol Edwin Pérez Caraballo,soccer,stadium,18.2587515,-65.9742866,Carretera Jaguas,Gurabo,PR,00778,false,true,false,openstreetmap

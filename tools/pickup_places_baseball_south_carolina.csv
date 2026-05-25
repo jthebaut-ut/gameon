@@ -1,0 +1,180 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,35.0216378,-82.4984727,,,SC,,false,true,false,openstreetmap
+1,baseball,pitch,34.7755473,-82.4291031,,,SC,,false,true,false,openstreetmap
+1,baseball,pitch,34.9020271,-82.4738995,,,SC,,false,true,false,openstreetmap
+1,baseball,pitch,34.8724599,-82.1040538,,,SC,,false,true,false,openstreetmap
+1,baseball,pitch,34.9307614,-82.2396748,,,SC,,false,true,false,openstreetmap
+10,baseball,pitch,34.8703628,-82.1011368,,,SC,,false,true,false,openstreetmap
+11,baseball,pitch,34.8714017,-82.1010834,,,SC,,false,true,false,openstreetmap
+12,baseball,pitch,34.8716681,-82.1021634,,,SC,,false,true,false,openstreetmap
+2,baseball,pitch,35.0212114,-82.4979141,,,SC,,false,true,false,openstreetmap
+2,baseball,pitch,34.775971,-82.4283089,,,SC,,false,true,false,openstreetmap
+2,baseball,pitch,34.9025914,-82.4744749,,,SC,,false,true,false,openstreetmap
+2,baseball,pitch,34.8728952,-82.1048,,,SC,,false,true,false,openstreetmap
+2,baseball,pitch,34.93073,-82.2406934,,,SC,,false,true,false,openstreetmap
+3,baseball,pitch,34.7753177,-82.4278127,,,SC,,false,true,false,openstreetmap
+3,baseball,pitch,34.903062,-82.4737935,,,SC,,false,true,false,openstreetmap
+3,baseball,pitch,34.8724572,-82.1055833,,,SC,,false,true,false,openstreetmap
+3,baseball,pitch,34.9297252,-82.2395157,,,SC,,false,true,false,openstreetmap
+4,baseball,pitch,34.7748958,-82.4285986,,,SC,,false,true,false,openstreetmap
+4,baseball,pitch,34.9024983,-82.4732217,,,SC,,false,true,false,openstreetmap
+4,baseball,pitch,34.8716643,-82.1052896,,,SC,,false,true,false,openstreetmap
+5,baseball,pitch,34.8702844,-82.1052488,,,SC,,false,true,false,openstreetmap
+6,baseball,pitch,34.869276,-82.1053273,,,SC,,false,true,false,openstreetmap
+7,baseball,pitch,34.868971,-82.1043108,,,SC,,false,true,false,openstreetmap
+8,baseball,pitch,34.8695814,-82.103627,,,SC,,false,true,false,openstreetmap
+9,baseball,pitch,34.870229,-82.1023214,,,SC,,false,true,false,openstreetmap
+Avalon Baseball,baseball,pitch,33.766781,-78.9156808,,,SC,,false,true,false,openstreetmap
+BSHS Baseball Field,baseball,pitch,35.0513266,-81.9757759,,,SC,,false,true,false,openstreetmap
+Ball Park Road Recreation Center,baseball,park,33.9680669,-81.2819928,,,SC,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,34.2015477,-80.7470564,,,SC,,false,true,false,openstreetmap
+Baseball Field 1,baseball,pitch,35.100736,-81.104309,,,SC,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,34.2014613,-80.7486077,,,SC,,false,true,false,openstreetmap
+Baseball Field 2,baseball,pitch,35.0996575,-81.1043073,,,SC,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,34.2001655,-80.7485062,,,SC,,false,true,false,openstreetmap
+Baseball Field 3,baseball,pitch,35.0996531,-81.1030066,,,SC,,false,true,false,openstreetmap
+Baseball Field 4,baseball,pitch,34.2002543,-80.7469463,,,SC,,false,true,false,openstreetmap
+Baseball Field at Dock Campbell Park,baseball,pitch,34.5773226,-80.0341395,,,SC,,false,true,false,openstreetmap
+Baseball/Football,baseball,pitch,34.1932034,-79.748363,,,SC,,false,true,false,openstreetmap
+Beckham Field,baseball,stadium,33.9848838,-81.0218218,,,SC,,false,true,false,openstreetmap
+Belton Church of God Activity Field,baseball,pitch,34.5277607,-82.4966731,,,SC,,false,true,false,openstreetmap
+Bill Griffin Field,baseball,pitch,34.0317047,-80.9793971,,,SC,,false,true,false,openstreetmap
+Bill Troublefield Park,baseball,pitch,35.1142668,-81.5199124,,,SC,,false,true,false,openstreetmap
+Billy Crosby Field,baseball,pitch,32.8819698,-79.9856038,,,SC,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,34.7997087,-82.5846313,,,SC,,false,true,false,openstreetmap
+Bob Prevatte Baseball Field,baseball,pitch,35.0544598,-81.6444938,,,SC,,false,true,false,openstreetmap
+Bolick Field,baseball,pitch,34.7240647,-82.7795603,,,SC,,false,true,false,openstreetmap
+Broome High School baseball field,baseball,pitch,34.9877734,-81.845625,,,SC,,false,true,false,openstreetmap
+Broome High School softball field,baseball,pitch,34.9865252,-81.8460889,,,SC,,false,true,false,openstreetmap
+Bruce Edgerly Memorial Ballpark,baseball,park;pitch,32.3799629,-80.6871398,,,SC,,false,true,false,openstreetmap
+Cal Ripken Experience,baseball,sports_centre,33.717431,-78.9056916,,,SC,,false,true,false,openstreetmap
+Cannons Ball Field,baseball,pitch,35.0114468,-81.8642901,,,SC,,false,true,false,openstreetmap
+Carolina Playmakers,baseball,sports_centre,33.9753956,-81.0112972,,,SC,,false,true,false,openstreetmap
+Championship Field,baseball,pitch,34.870866,-82.1061598,,,SC,,false,true,false,openstreetmap
+Chaplin Park Baseball Field,baseball,pitch,32.1944393,-80.7017594,,,SC,,false,true,false,openstreetmap
+City of Charleston,baseball,pitch,32.7903956,-79.9613872,,,SC,,false,true,false,openstreetmap
+Clark's Hill Ball Field,baseball,pitch,33.6761562,-82.1784244,,,SC,,false,true,false,openstreetmap
+Cleveland S Harley Baseball Park,baseball,pitch,35.0044664,-81.9700562,,,SC,,false,true,false,openstreetmap
+College Park,baseball,pitch,32.8019026,-79.9536809,,,SC,,false,true,false,openstreetmap
+Crosley Field,baseball,pitch,33.7179969,-78.9063176,,,SC,,false,true,false,openstreetmap
+Cross Keys Ballfield,baseball,pitch,34.718717,-81.6671269,,,SC,,false,true,false,openstreetmap
+Cyrill Softball Stadium,baseball,pitch,35.0031661,-81.9694322,,,SC,,false,true,false,openstreetmap
+Doomsday Corner,baseball,pitch,34.730224,-80.7797742,,,SC,,false,true,false,openstreetmap
+Duffy Basbeall Complex,baseball,sports_centre,32.7806235,-79.8620521,,,SC,,false,true,false,openstreetmap
+Duncan Field,baseball,pitch,33.7165575,-78.9075824,,,SC,,false,true,false,openstreetmap
+Duncan Park Stadium,baseball,pitch,34.9361593,-81.9124327,,,SC,,false,true,false,openstreetmap
+Earle and Eleanor Sargent Field,baseball,pitch,34.9012594,-82.47501,,,SC,,false,true,false,openstreetmap
+Ebbets Field,baseball,pitch,33.7179006,-78.9040508,,,SC,,false,true,false,openstreetmap
+Field #1,baseball,pitch,34.7728945,-82.3214483,,,SC,,false,true,false,openstreetmap
+Field #1,baseball,pitch,34.720974,-82.2330102,,,SC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,34.773025,-82.3206388,,,SC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,34.7200453,-82.2330334,,,SC,,false,true,false,openstreetmap
+Field #3,baseball,pitch,34.7737799,-82.3206989,,,SC,,false,true,false,openstreetmap
+Field #3,baseball,pitch,34.7198728,-82.2319999,,,SC,,false,true,false,openstreetmap
+Field #4,baseball,pitch,34.7736141,-82.3217124,,,SC,,false,true,false,openstreetmap
+Field #4,baseball,pitch,34.7207742,-82.230481,,,SC,,false,true,false,openstreetmap
+Field #5,baseball,pitch,34.7217939,-82.2305004,,,SC,,false,true,false,openstreetmap
+Field #6,baseball,pitch,34.7218905,-82.2315746,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.78435,-82.3021759,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.9582031,-82.3556763,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.6881381,-82.2011301,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.7786999,-82.3499097,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.0824893,-80.8914123,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.8025116,-82.5851706,,,SC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,34.9841566,-80.9225514,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.7844745,-82.3030458,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.9580399,-82.3566835,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.6874406,-82.2021329,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.7785475,-82.348847,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.0837315,-80.8909474,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.8030633,-82.5844066,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.0053857,-81.003021,,,SC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,34.985151,-80.9235314,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.7851977,-82.3028433,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.6873736,-82.2012031,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.084267,-80.8917256,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.7777916,-82.3493613,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.8030961,-82.586156,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,35.0053232,-81.002632,,,SC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,34.9842754,-80.9239293,,,SC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,34.7852431,-82.3037219,,,SC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,34.084591,-80.8910177,,,SC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,34.7779249,-82.3504251,,,SC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,35.0050403,-81.0027019,,,SC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,34.7844568,-82.3014227,,,SC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,34.0854432,-80.8916909,,,SC,,false,true,false,openstreetmap
+Field 6,baseball,pitch,34.0879839,-80.8924552,,,SC,,false,true,false,openstreetmap
+Finsball,baseball,pitch,32.2870442,-81.023799,,,SC,,false,true,false,openstreetmap
+Finsball,baseball,pitch,32.2869784,-81.0243724,,,SC,,false,true,false,openstreetmap
+Fluor Field at the West End,baseball,stadium,34.8423055,-82.408114,,,SC,,false,true,false,openstreetmap
+Founders Park,baseball,stadium,33.9864942,-81.0425539,,,SC,,false,true,false,openstreetmap
+Friarsgate Park,baseball,pitch,34.1073883,-81.2119098,,,SC,,false,true,false,openstreetmap
+Goose Creek High School Baseball Field,baseball,pitch,32.9773558,-80.0113495,,,SC,,false,true,false,openstreetmap
+Goose Creek High School Softball Field,baseball,pitch,32.9758957,-80.015282,,,SC,,false,true,false,openstreetmap
+Green Field,baseball,pitch,34.7996895,-82.5859547,,,SC,,false,true,false,openstreetmap
+Greenville Drive Stadium,baseball,pitch,34.8424892,-82.4081479,,,SC,,false,true,false,openstreetmap
+Grier Field,baseball,pitch,34.3320577,-82.394634,,,SC,,false,true,false,openstreetmap
+Griffith Field,baseball,pitch,33.7164548,-78.9055562,,,SC,,false,true,false,openstreetmap
+Honea Path First Baptist Baseball Field,baseball,pitch,34.4269763,-82.4094705,,,SC,,false,true,false,openstreetmap
+Huntington Park,baseball,pitch,33.7188226,-78.9082428,,,SC,,false,true,false,openstreetmap
+Indian Land Base Ball,baseball,pitch,34.8985983,-80.8000161,,,SC,,false,true,false,openstreetmap
+Jacob R. Oaks Memorial Field,baseball,pitch,34.8224338,-82.2527804,,,SC,,false,true,false,openstreetmap
+James F Moorer Ball Field,baseball,pitch,34.7139418,-81.6125169,,,SC,,false,true,false,openstreetmap
+Jim Everhart Field,baseball,pitch,35.0385273,-82.0981852,,,SC,,false,true,false,openstreetmap
+"Joseph A. Coates, Jr. Field",baseball,pitch,32.779832,-79.8616781,,,SC,,false,true,false,openstreetmap
+Julia Lester Dillon Park,baseball,park,33.9520762,-80.3567048,,,SC,,false,true,false,openstreetmap
+Langford Street Ballfield,baseball,pitch,34.2135831,-81.5331693,,,SC,,false,true,false,openstreetmap
+Latham Baseball Stadium,baseball,stadium,34.9210972,-82.442597,,,SC,,false,true,false,openstreetmap
+Lent's Field,baseball,pitch,32.8841272,-79.9910374,,,SC,,false,true,false,openstreetmap
+Lexington High School Baseball Stadium,baseball,pitch,33.9761413,-81.3053288,,,SC,,false,true,false,openstreetmap
+Lexington High School Softball Field,baseball,pitch,33.9756574,-81.3085887,,,SC,,false,true,false,openstreetmap
+Library Field,baseball,pitch,33.4045186,-81.4191387,,,SC,,false,true,false,openstreetmap
+Mike Walsh Field,baseball,pitch,32.7808894,-79.8627608,,,SC,,false,true,false,openstreetmap
+Miller Field,baseball,pitch,34.0724283,-81.075793,,,SC,,false,true,false,openstreetmap
+Mirmow Field,baseball,stadium,33.4825277,-80.8550253,,,SC,,false,true,false,openstreetmap
+Molony Field,baseball,pitch,33.3510223,-81.2800401,,,SC,,false,true,false,openstreetmap
+Mooneyham Baseball Field,baseball,pitch,34.9537039,-81.9683895,,,SC,,false,true,false,openstreetmap
+Municipal Stadium,baseball,stadium,34.7795325,-82.3512017,,,SC,,false,true,false,openstreetmap
+Navin Field,baseball,pitch,33.7176816,-78.9079974,,,SC,,false,true,false,openstreetmap
+Ninety Six High School Baseball Field,baseball,pitch,34.1597718,-82.0260697,,,SC,,false,true,false,openstreetmap
+Orange Field,baseball,pitch,34.8011171,-82.5855622,,,SC,,false,true,false,openstreetmap
+Orangeburg Prep Baseball Field,baseball,pitch,33.5425234,-80.8880299,,,SC,,false,true,false,openstreetmap
+PC Baseball Complex,baseball,pitch,34.4613108,-81.8641056,,,SC,,false,true,false,openstreetmap
+Patrick Ballfield,baseball,pitch,34.5730352,-80.047335,,,SC,,false,true,false,openstreetmap
+Pelicans Ballpark,baseball,stadium,33.7114336,-78.8842667,,,SC,,false,true,false,openstreetmap
+Pepsi Stadium,baseball,pitch,34.9207846,-82.4448197,,,SC,,false,true,false,openstreetmap
+Polo Grounds,baseball,pitch,33.7166802,-78.903891,,,SC,,false,true,false,openstreetmap
+Practice Diamond,baseball,pitch,34.6778053,-82.850182,,,SC,,false,true,false,openstreetmap
+Purple Field,baseball,pitch,34.8005527,-82.5863107,,,SC,,false,true,false,openstreetmap
+RHHS Baseball Diamond,baseball,pitch,34.9072246,-80.9793917,,,SC,,false,true,false,openstreetmap
+Red Field,baseball,pitch,34.8007929,-82.5845501,,,SC,,false,true,false,openstreetmap
+Riley Park,baseball,stadium,33.935191,-80.3453456,,,SC,,false,true,false,openstreetmap
+Roberto Hernandez Stadium,baseball,pitch,33.5754941,-81.7759924,,,SC,,false,true,false,openstreetmap
+Robinson Field,baseball,pitch,34.3337715,-82.3850068,,,SC,,false,true,false,openstreetmap
+Russell C King Field,baseball,pitch,34.9589481,-81.9308846,,,SC,,false,true,false,openstreetmap
+SWU Baseball Field,baseball,pitch,34.7262391,-82.7608135,,,SC,,false,true,false,openstreetmap
+Shark Field,baseball,pitch,33.6170931,-79.0514254,,,SC,,false,true,false,openstreetmap
+Shibe Park,baseball,pitch,33.7196941,-78.9069864,,,SC,,false,true,false,openstreetmap
+Simmons Field,baseball,pitch,32.9365127,-80.0428807,,,SC,,false,true,false,openstreetmap
+Smith Road Baseball Complex,baseball,sports_centre,34.2906899,-81.618999,,,SC,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,32.9804114,-80.0691569,,,SC,,false,true,false,openstreetmap
+Stephen Washington Park,baseball,pitch,32.7263406,-79.9430262,,,SC,,false,true,false,openstreetmap
+Tom Conley Park,baseball,park,33.0284119,-80.1101585,,,SC,,false,true,false,openstreetmap
+Tom J. New Baseball Field,baseball,pitch,34.3768039,-80.063237,,,SC,,false,true,false,openstreetmap
+Tuck Horse Field,baseball,pitch,32.7957603,-79.901775,,,SC,,false,true,false,openstreetmap
+Victor Field,baseball,pitch,34.9348674,-82.2231703,,,SC,,false,true,false,openstreetmap
+Vrooman Field,baseball,pitch,33.793265,-79.0149421,,,SC,,false,true,false,openstreetmap
+Watson Park,baseball,pitch,33.8283326,-81.8106135,,,SC,,false,true,false,openstreetmap
+Westside Grounds,baseball,pitch,33.718839,-78.9067812,,,SC,,false,true,false,openstreetmap
+Willow Street Park,baseball,pitch,35.073366,-81.6415526,,,SC,,false,true,false,openstreetmap
+Martin Field,baseball,pitch,33.3580763,-81.2736271,173 Campbell Street,Blackville,SC,29817,false,true,false,openstreetmap
+Joseph P. Riley Jr. Park,baseball,stadium,32.7906521,-79.9609326,360 Fishburne Street,Charleston,SC,29403,false,true,false,openstreetmap
+Oscar Fordham Athletic Complex at Harmon Park,baseball,pitch,32.7915034,-79.9531615,201 President Street,Charleston,SC,29403,false,true,false,openstreetmap
+Doug Kingsmore Stadium,baseball,stadium,34.6789133,-82.849377,114 Baseball Drive,Clemson,SC,29634,false,true,false,openstreetmap
+St. John Stadium,baseball,pitch,33.7945581,-79.0154895,132 Chanticleer Drive West,Conway,SC,29526,false,true,false,openstreetmap
+J D Rook Park,baseball,pitch,34.2714959,-81.6148674,718 Coates Street,Newberry,SC,29108,false,true,false,openstreetmap
+SRP Park,baseball,stadium,33.4845635,-81.9741582,187 Railroad Avenue,North Augusta,SC,29841,false,true,false,openstreetmap
+Prosperity Dixie Youth Baseball Field,baseball,pitch,34.2113427,-81.5382067,252 School Drive,Prosperity,SC,29127,false,true,false,openstreetmap
+Fifth Third Park,baseball,stadium,34.9457633,-81.9354691,300 West Henry Street,Spartanburg,SC,29306,false,true,false,openstreetmap
+17co Performance Center,baseball,fitness_centre,34.9201559,-82.2850526,255 Mill Street,Taylors,SC,29687,false,true,false,openstreetmap
+Harold Peeples Athletic Park,baseball,pitch,32.6854979,-80.8558419,29240 Pocotaligo Road,Yemassee,SC,29945,false,true,false,openstreetmap

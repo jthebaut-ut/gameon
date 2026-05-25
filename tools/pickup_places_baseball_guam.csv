@@ -1,0 +1,5 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Mangilao Mayors Baseball Field,baseball,pitch,13.4472243,144.800819,,,GU,,false,true,false,openstreetmap
+Old Mangilao Baseball Field,baseball,pitch,13.4471043,144.7999298,,,GU,,false,true,false,openstreetmap
+Piti Ballpark,baseball,park,13.4596942,144.6919565,,,GU,,false,true,false,openstreetmap
+Richard Naputi Baseball Field,baseball,pitch,13.3527476,144.7588255,,,GU,,false,true,false,openstreetmap

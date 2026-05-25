@@ -1,0 +1,13 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BHS soccer field,soccer,pitch,41.9665709,-71.6608275,,,RI,,false,true,false,openstreetmap
+Burrillville/Glocester Youth Soccer Association,soccer,pitch,41.921627,-71.6900752,,,RI,,false,true,false,openstreetmap
+Chapey Field,soccer,pitch,41.8453267,-71.4335664,,,RI,,false,true,false,openstreetmap
+Goldberger Family Field,soccer,pitch,41.8308262,-71.3952279,,,RI,,false,true,false,openstreetmap
+Hendricken Field,soccer,pitch,41.8450268,-71.4387719,,,RI,,false,true,false,openstreetmap
+J Paul Braga Junior Memorial Field,soccer,pitch,41.4953354,-71.2972784,,,RI,,false,true,false,openstreetmap
+Louis C. Yip Soccer Field,soccer,pitch,41.8976113,-71.3866274,,,RI,,false,true,false,openstreetmap
+Middletown Soccer Fields,soccer,sports_centre,41.5220053,-71.2647967,,,RI,,false,true,false,openstreetmap
+Stevenson Field,soccer,pitch,41.831841,-71.3958163,,,RI,,false,true,false,openstreetmap
+Town Farm,soccer,pitch,41.5837272,-71.1906811,,,RI,,false,true,false,openstreetmap
+URI Soccer Complex,soccer,pitch,41.487464,-71.537516,,,RI,,false,true,false,openstreetmap
+Upper Sports Fields,soccer,pitch,41.3719639,-71.6681689,,,RI,,false,true,false,openstreetmap

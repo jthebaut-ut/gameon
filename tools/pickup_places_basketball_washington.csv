@@ -1,0 +1,65 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alder Crossing Neighborhood Park,basketball,park,47.4863769,-122.1525531,,,WA,,false,true,false,openstreetmap
+Ashton Basketball Court,basketball,pitch,47.6482096,-122.3658914,,,WA,,false,true,false,openstreetmap
+BBC Court,basketball,pitch,45.6564108,-122.5220882,,,WA,,false,true,false,openstreetmap
+Basketball,basketball,pitch,47.0900893,-122.9446149,,,WA,,false,true,false,openstreetmap
+Basketball,basketball,pitch,47.0030769,-122.8949505,,,WA,,false,true,false,openstreetmap
+Basketball,basketball,pitch,48.666849,-123.1550501,,,WA,,false,true,false,openstreetmap
+Basketball 1/2 Court,basketball,pitch,47.0366181,-122.7594242,,,WA,,false,true,false,openstreetmap
+Basketball Court (abandoned),basketball,pitch,48.9588818,-122.4327412,,,WA,,false,true,false,openstreetmap
+Bidwell Basketball Courts,basketball,pitch,47.8216425,-117.3962393,,,WA,,false,true,false,openstreetmap
+Block 40 Basketball,basketball,pitch,47.2658222,-119.2834088,,,WA,,false,true,false,openstreetmap
+Camlyn Basketball Court,basketball,pitch,47.8970655,-122.2181274,,,WA,,false,true,false,openstreetmap
+Cascade Ridge Basketball Shelter,basketball,pitch,47.5908059,-121.972775,,,WA,,true,false,false,openstreetmap
+Covered Basketball Court,basketball,pitch,47.0188045,-122.7590814,,,WA,,true,false,false,openstreetmap
+East Gym,basketball,pitch,47.3855917,-122.2383331,,,WA,,false,true,false,openstreetmap
+Fairhaven Park Basketball Court,basketball,pitch,48.7130152,-122.498993,,,WA,,false,true,false,openstreetmap
+Glacier Pointe Basketball Court,basketball,pitch,47.3475823,-122.0304153,,,WA,,false,true,false,openstreetmap
+Half Court,basketball,pitch,47.7744235,-122.2775628,,,WA,,false,true,false,openstreetmap
+Hangar 169,basketball,dance,47.1275676,-118.3842906,,,WA,,false,true,false,openstreetmap
+Harlie's Hoops,basketball,pitch,46.1310303,-122.9481608,,,WA,,true,false,false,openstreetmap
+Hoop Fest,basketball,pitch,47.6304682,-117.3644813,,,WA,,false,true,false,openstreetmap
+Horseshoes,basketball,pitch,47.2592289,-122.4488031,,,WA,,false,true,false,openstreetmap
+International District Village Square II,basketball,community_centre,47.5962775,-122.3228352,719 8th Avenue South,,WA,,false,true,false,openstreetmap
+Kent Rotary Basketball Court,basketball,pitch,47.3858024,-122.2419719,,,WA,,false,true,false,openstreetmap
+Kulshan Middle School Blacktop,basketball,pitch,48.744391,-122.432329,,,WA,,false,true,false,openstreetmap
+Loganberry Basketball Court,basketball,pitch,47.9080211,-122.2564354,,,WA,,false,true,false,openstreetmap
+Lundeen Park Basketball Court,basketball,pitch,48.0172695,-122.0956444,,,WA,,false,true,false,openstreetmap
+McCarthey Athletic Center,basketball,sports_centre,47.6653904,-117.3991159,,,WA,,false,true,false,openstreetmap
+Miller Playfield - Basketball,basketball,pitch,47.6214627,-122.306223,,,WA,,false,true,false,openstreetmap
+Mirabella Basketball Court,basketball,pitch,47.896754,-122.2206728,,,WA,,false,true,false,openstreetmap
+Mission Highland Basketball Court,basketball,pitch,48.070115,-122.2548032,,,WA,,false,true,false,openstreetmap
+Newport Bluffs Basketball Court,basketball,pitch,48.0037058,-122.1174997,,,WA,,false,true,false,openstreetmap
+Nikkei Basketball Half Court,basketball,pitch,45.6576772,-122.5326918,,,WA,,false,true,false,openstreetmap
+Northwood Basketball Hoop,basketball,pitch,47.7741744,-117.3825536,,,WA,,false,true,false,openstreetmap
+Northwood Basketball Hoop,basketball,pitch,47.7739854,-117.3826727,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,basketball,pitch,46.9847662,-124.1634123,,,WA,,false,true,false,openstreetmap
+Ocean Shores Community Club,basketball,pitch,46.9740943,-124.1646409,,,WA,,false,true,false,openstreetmap
+Outdoor Basketball Court,basketball,pitch,48.9930487,-122.7399888,,,WA,,false,true,false,openstreetmap
+Pacific West Basketball Half-Court,basketball,pitch,47.9094468,-122.2569104,,,WA,,false,true,false,openstreetmap
+Park Ridge Basketball Court,basketball,pitch,47.2118882,-122.5566487,,,WA,,false,true,false,openstreetmap
+Ridgeview Elementary School,basketball,pitch,47.7091902,-117.4327055,,,WA,,false,true,false,openstreetmap
+Ridgeview Elementary School,basketball,pitch,47.7091919,-117.4329637,,,WA,,false,true,false,openstreetmap
+Silver Crest Park Basketball Court,basketball,pitch,47.8741063,-122.195172,,,WA,,false,true,false,openstreetmap
+Soperwood Community Basketball Court,basketball,pitch,48.0141978,-122.1195157,,,WA,,false,true,false,openstreetmap
+Spiritridge Basketball Court,basketball,pitch,47.5807546,-122.1268656,,,WA,,false,true,false,openstreetmap
+Sports Center,basketball,pitch,47.6474001,-122.1299541,,,WA,,false,true,false,openstreetmap
+Sports Court,basketball,pitch,47.7565656,-122.0858541,,,WA,,false,true,false,openstreetmap
+The Cage,basketball,pitch,47.8634803,-122.1642535,,,WA,,false,true,false,openstreetmap
+Tibbets Valley Park Basketball Court,basketball,pitch,47.5392663,-122.0586823,,,WA,,false,true,false,openstreetmap
+Underground Play Area,basketball,pitch,48.2463794,-121.6035036,,,WA,,false,true,false,openstreetmap
+WSU Vancouver Sport Court,basketball,pitch,45.7294016,-122.6392678,,,WA,,false,true,false,openstreetmap
+West Gym,basketball,pitch,47.3855936,-122.2385994,,,WA,,false,true,false,openstreetmap
+basketball,basketball,pitch,47.0096555,-122.8321244,,,WA,,false,true,false,openstreetmap
+basketball,basketball,pitch,47.7751921,-117.3798522,,,WA,,false,true,false,openstreetmap
+Rainier Auditorium,basketball,sports_centre,47.2812645,-122.1640971,5000 Auburn Way South,Auburn,WA,98092,false,true,false,openstreetmap
+Miner's Corner Park,basketball,park,47.7894058,-122.1716911,228th Street Southeast and 45th Avenue Southeast,Bothell,WA,98021,false,true,false,openstreetmap
+Bucoda Gym,basketball,sports_centre,46.8019023,-122.8651795,401 Nenant Street North,Bucoda,WA,98530,false,true,false,openstreetmap
+Gymnasium,basketball,sports_centre,47.7335336,-122.2566499,14445 Juanita Drive Northeast,Kenmore,WA,98028,false,true,false,openstreetmap
+13 - Northwest Pavilion,basketball,sports_centre,47.6567177,-122.193924,5416 110th Way Northeast,Kirkland,WA,98033,false,true,false,openstreetmap
+Finesse Inferno Basketball Training,basketball,fitness_centre,47.9098446,-122.2955946,9700 Harbour Place,Mukilteo,WA,98275,false,true,false,openstreetmap
+Beasley Coliseum,basketball,stadium,46.7352464,-117.1581132,925 Northeast North Fairway Road,Pullman,WA,99164,false,true,false,openstreetmap
+"Clarence S. ""Hec"" Edmundson Pavilion",basketball,stadium,47.6521628,-122.3021444,3870 Montlake Boulevard Northeast,Seattle,WA,98195,false,true,false,openstreetmap
+Hoop Land,basketball,sports_hall,47.7220521,-122.3464406,927 North 128th Street,Seattle,WA,98133,false,true,false,openstreetmap
+Seattle Storm Center for Basketball Performance,basketball,sports_centre,47.6507402,-122.3781903,3411 Thorndyke Avenue West,Seattle,WA,98199,false,true,false,openstreetmap
+Shoot 360,basketball,pitch,45.6654253,-122.549495,12001 Northeast 60th Way,Vancouver,WA,98682,false,true,false,openstreetmap

@@ -1,0 +1,160 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Banks Tennis Center,tennis,sports_centre,37.7616297,-77.4828041,,,VA,,false,true,false,openstreetmap
+"Barcroft Sport & Fitness, Tennis",tennis,pitch,38.849347,-77.0998161,,,VA,,false,true,false,openstreetmap
+Batten Tennis Center,tennis,pitch,37.3579275,-79.9453688,,,VA,,false,true,false,openstreetmap
+Bell Creek Tennis courts,tennis,pitch,37.6448463,-77.3472182,,,VA,,false,true,false,openstreetmap
+Belmont Greene Tennis Court,tennis,pitch,39.0524969,-77.5105445,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2411352,-80.411896,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2414941,-80.4119044,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2411911,-80.4120618,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2410816,-80.4117326,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2414383,-80.4117385,,,VA,,false,true,false,openstreetmap
+Blacksburg Parks and Recreation,tennis,pitch,37.2413847,-80.4115752,,,VA,,false,true,false,openstreetmap
+Bluffs Circle Community Tennis Court,tennis,pitch,37.2508018,-76.6540297,,,VA,,false,true,false,openstreetmap
+Botetourt County Parks and Recreation,tennis,pitch,37.3526641,-79.8331158,,,VA,,false,true,false,openstreetmap
+Brixton Tennis Courts,tennis,pitch,38.8465973,-77.4128735,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7905973,-77.3056312,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7905826,-77.3050954,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7905929,-77.3054525,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7905879,-77.3052736,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7954723,-77.3012499,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7954692,-77.3010589,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.784864,-77.2898266,,,VA,,false,true,false,openstreetmap
+Burke Centre Conservancy,tennis,pitch,38.7848558,-77.2896596,,,VA,,false,true,false,openstreetmap
+Burkwood Indoor Tennis Courts,tennis,pitch,37.6505439,-77.3740392,9114 Burkwood Club Drive,,VA,23116,false,true,false,openstreetmap
+CNU Courts - Tennis,tennis,pitch,37.065802,-76.4978867,,,VA,,false,true,false,openstreetmap
+CNU Courts - Tennis,tennis,pitch,37.0651102,-76.4974376,,,VA,,false,true,false,openstreetmap
+Circle Woods Tennis Court,tennis,pitch,38.8686413,-77.2719617,,,VA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,37.5658451,-77.4391154,,,VA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,39.1056516,-77.4863461,,,VA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,39.0844213,-77.5691566,,,VA,,false,true,false,openstreetmap
+Court 1,tennis,pitch,38.8791091,-77.4069096,,,VA,,false,true,false,openstreetmap
+Court 10,tennis,pitch,37.568107,-77.4405474,,,VA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,37.5658135,-77.4392619,,,VA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,39.1056004,-77.4865118,,,VA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,39.0843719,-77.5689882,,,VA,,false,true,false,openstreetmap
+Court 2,tennis,pitch,38.87905,-77.4067563,,,VA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,37.5661626,-77.4393674,,,VA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,39.1056526,-77.4868723,,,VA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,39.0843222,-77.5688192,,,VA,,false,true,false,openstreetmap
+Court 3,tennis,pitch,38.8789916,-77.4066068,,,VA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,37.5664562,-77.4395629,,,VA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,39.1056021,-77.4870373,,,VA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,39.0847281,-77.569007,,,VA,,false,true,false,openstreetmap
+Court 4,tennis,pitch,38.8789306,-77.4064551,,,VA,,false,true,false,openstreetmap
+Court 5,tennis,pitch,37.5668452,-77.4398247,,,VA,,false,true,false,openstreetmap
+Court 5,tennis,pitch,39.0846786,-77.5688387,,,VA,,false,true,false,openstreetmap
+Court 5,tennis,pitch,38.8788241,-77.4061917,,,VA,,false,true,false,openstreetmap
+Court 6,tennis,pitch,37.5671482,-77.4400241,,,VA,,false,true,false,openstreetmap
+Court 6,tennis,pitch,39.084629,-77.5686697,,,VA,,false,true,false,openstreetmap
+Court 6,tennis,pitch,38.8787656,-77.4060444,,,VA,,false,true,false,openstreetmap
+Court 7,tennis,pitch,37.5674528,-77.4402517,,,VA,,false,true,false,openstreetmap
+Court 8,tennis,pitch,37.5677481,-77.4404455,,,VA,,false,true,false,openstreetmap
+Court 9,tennis,pitch,37.568046,-77.4406938,,,VA,,false,true,false,openstreetmap
+Craighill Tennis Center,tennis,sports_centre,37.4524334,-79.1879901,,,VA,,false,true,false,openstreetmap
+DCC Tennis Court,tennis,pitch,36.5627694,-79.4093081,,,VA,,false,true,false,openstreetmap
+Daventry Tennis Court,tennis,pitch,38.7614392,-77.2107904,,,VA,,false,true,false,openstreetmap
+Dell Tennis Courts,tennis,pitch,38.0362214,-78.5105223,,,VA,,false,true,false,openstreetmap
+Doug Will Tennis Center,tennis,sports_centre,38.3870178,-78.9740217,,,VA,,false,true,false,openstreetmap
+Eagles Pointe Tennis Court,tennis,pitch,38.5989258,-77.2982103,,,VA,,false,true,false,openstreetmap
+Event Tent / Tennis Court,tennis,pitch,36.8018097,-76.1901066,,,VA,,false,true,false,openstreetmap
+Everett Tennis Center,tennis,sports_centre,36.8688277,-76.1847219,,,VA,,false,true,false,openstreetmap
+FCHS Court 1,tennis,pitch,37.8749392,-78.2987988,,,VA,,false,true,false,openstreetmap
+FCHS Court 2,tennis,pitch,37.8749476,-78.2989657,,,VA,,false,true,false,openstreetmap
+FCHS Court 3,tennis,pitch,37.8749545,-78.299132,,,VA,,false,true,false,openstreetmap
+FCHS Court 4,tennis,pitch,37.8749646,-78.2993426,,,VA,,false,true,false,openstreetmap
+FCHS Court 5,tennis,pitch,37.8749703,-78.2995109,,,VA,,false,true,false,openstreetmap
+FCHS Court 6,tennis,pitch,37.8749813,-78.2996744,,,VA,,false,true,false,openstreetmap
+Fairlington Arbor Tennis Court,tennis,pitch,38.8299561,-77.090379,,,VA,,false,true,false,openstreetmap
+Fairlington Commons Tennis Court,tennis,pitch,38.835197,-77.0906672,,,VA,,false,true,false,openstreetmap
+Fairlington Glen Tennis Court,tennis,pitch,38.8301335,-77.0883846,,,VA,,false,true,false,openstreetmap
+Fairlington Green Tennis Court,tennis,pitch,38.837074,-77.0877042,,,VA,,false,true,false,openstreetmap
+Fairlington Mews Tennis Court,tennis,pitch,38.8338288,-77.0934005,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 10,tennis,pitch,38.8368555,-77.1010985,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 11,tennis,pitch,38.840589,-77.1049752,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 12,tennis,pitch,38.840598,-77.1048072,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 13,tennis,pitch,38.840868,-77.1017561,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 14,tennis,pitch,38.8405877,-77.09991,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 6,tennis,pitch,38.8384532,-77.0960744,,,VA,,false,true,false,openstreetmap
+Fairlington Villages Tennis Court 9,tennis,pitch,38.8368236,-77.0986581,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1251972,-78.4360964,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1251909,-78.4363123,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1247999,-78.4355597,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1247791,-78.4357613,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1244801,-78.4347863,,,VA,,false,true,false,openstreetmap
+Forest Lakes North Tennis Court,tennis,pitch,38.1244594,-78.4349875,,,VA,,false,true,false,openstreetmap
+Fox Mill Woods Swim & Tennis,tennis,pitch,38.9188566,-77.359387,2634 Black Fir Court,,VA,,false,true,false,openstreetmap
+Great Falls Swim & Tennis,tennis,pitch,38.9944313,-77.2859629,,,VA,,false,true,false,openstreetmap
+Greenbriar Park Tennis Court,tennis,pitch,38.8647516,-77.4032581,,,VA,,false,true,false,openstreetmap
+Henry A Lowry Tennis Courts,tennis,pitch,39.1678711,-78.1609791,,,VA,,false,true,false,openstreetmap
+Hethwood Foundation,tennis,pitch,37.2176353,-80.4470904,,,VA,,false,true,false,openstreetmap
+Hethwood Foundation,tennis,pitch,37.2182535,-80.4519406,,,VA,,false,true,false,openstreetmap
+Hethwood Foundation,tennis,pitch,37.2182373,-80.4517863,,,VA,,false,true,false,openstreetmap
+Hethwood Foundation,tennis,pitch,37.217631,-80.4469352,,,VA,,false,true,false,openstreetmap
+Hyland Hills Tennis Court,tennis,sports_centre,38.8965654,-77.4974431,,,VA,,false,true,false,openstreetmap
+Indoor Tennis (private),tennis,sports_centre,38.9626636,-77.3460625,,,VA,,false,true,false,openstreetmap
+Junior Tennis,tennis,pitch,38.8192424,-77.2234387,,,VA,,false,true,false,openstreetmap
+Junior Tennis,tennis,pitch,38.7880179,-77.0601573,,,VA,,false,true,false,openstreetmap
+Junior Tennis,tennis,pitch,38.7878323,-77.0599053,,,VA,,false,true,false,openstreetmap
+Keuffel and Rowe Tennis Courts,tennis,pitch,37.5546204,-79.0834096,,,VA,,false,true,false,openstreetmap
+Key West Club Tennis Court,tennis,pitch,38.0617142,-78.4497001,,,VA,,false,true,false,openstreetmap
+Kinkaid Forest Tennis Court,tennis,pitch,39.090571,-77.5411001,,,VA,,false,true,false,openstreetmap
+Lafeyette Tennis Courts,tennis,pitch,37.9258507,-78.3492513,,,VA,,false,true,false,openstreetmap
+Legacy Park Tennis Courts,tennis,pitch,38.982675,-77.5317818,,,VA,,false,true,false,openstreetmap
+Legacy Park Tennis Courts,tennis,pitch,38.982625,-77.531603,,,VA,,false,true,false,openstreetmap
+Lighted Tennis Court Complex,tennis,pitch,38.8196941,-77.2244422,,,VA,,false,true,false,openstreetmap
+Little Hunting Park Tennis Courts,tennis,pitch,38.7662735,-77.0708465,,,VA,,false,true,false,openstreetmap
+Lyon Village Tennis Court,tennis,pitch,38.8941628,-77.0947186,,,VA,,false,true,false,openstreetmap
+Lyon Village Tennis Court,tennis,pitch,38.894119,-77.0948761,,,VA,,false,true,false,openstreetmap
+Main Tennis Court,tennis,pitch,38.8463712,-77.6300936,,,VA,,false,true,false,openstreetmap
+Main Tennis Courts,tennis,sports_centre,37.9199729,-78.3117043,,,VA,,false,true,false,openstreetmap
+Mains & Crosses Professional Racket Stringer,tennis,pitch,38.7584051,-77.1396657,,,VA,,false,true,false,openstreetmap
+Marlbank Recreation Association Tennis Courts,tennis,pitch,37.2050372,-76.478131,,,VA,,false,true,false,openstreetmap
+Marlbank Recreation Association Tennis Courts,tennis,pitch,37.2050067,-76.4782769,,,VA,,false,true,false,openstreetmap
+McCormack-Nagelsen Tennis Center,tennis,pitch,37.2622925,-76.7044999,,,VA,,false,true,false,openstreetmap
+McNair Farms Community Association,tennis,pitch,38.9437396,-77.4102879,,,VA,,false,true,false,openstreetmap
+McNair Farms Community Association,tennis,pitch,38.9450826,-77.4106956,,,VA,,false,true,false,openstreetmap
+Monterey Estates Tennis Court,tennis,pitch,38.9354807,-77.3948013,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2088906,-80.4612725,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2089282,-80.461116,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2089657,-80.4609563,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2092399,-80.4614055,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.209278,-80.461247,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2093161,-80.4610906,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2142888,-80.4596212,,,VA,,false,true,false,openstreetmap
+Montgomery County Public Schools,tennis,pitch,37.2142243,-80.4597744,,,VA,,false,true,false,openstreetmap
+OSRC tennis court,tennis,pitch,38.8797973,-77.3508801,,,VA,,false,true,false,openstreetmap
+PS Tennis,tennis,pitch,38.9380086,-77.1508694,,,VA,,false,true,false,openstreetmap
+Parrish Outdoor Tennis Complex,tennis,pitch,37.578195,-77.5250382,,,VA,,false,true,false,openstreetmap
+Practice Tennis Court,tennis,pitch,38.8462655,-77.6291642,,,VA,,false,true,false,openstreetmap
+Practice Wall,tennis,pitch,38.7633602,-77.1931268,,,VA,,false,true,false,openstreetmap
+Practice Wall,tennis,pitch,38.7634834,-77.1931371,,,VA,,false,true,false,openstreetmap
+Racquetball Court,tennis,pitch,37.3173759,-79.5356624,,,VA,,false,true,false,openstreetmap
+Roanoke College,tennis,sports_centre,37.2915159,-80.0408818,,,VA,,false,true,false,openstreetmap
+Salem Fields tennis courts,tennis,pitch,38.260318,-77.5756167,,,VA,,false,true,false,openstreetmap
+Shady Point Tennis Courts,tennis,pitch,39.0126066,-77.3751328,,,VA,,false,true,false,openstreetmap
+St Georges Tennis Courts,tennis,pitch,37.2452301,-76.7766599,,,VA,,false,true,false,openstreetmap
+Tennis (2),tennis,pitch,38.8859813,-77.2736354,,,VA,,false,true,false,openstreetmap
+Tennis (4),tennis,pitch,38.885691,-77.2730667,,,VA,,false,true,false,openstreetmap
+Tennis Bubble,tennis,pitch,39.125624,-77.5678224,,,VA,,false,true,false,openstreetmap
+Tennis Court 1,tennis,pitch,38.8552392,-77.1497763,,,VA,,false,true,false,openstreetmap
+Tennis Court 2,tennis,pitch,38.8553177,-77.1499415,,,VA,,false,true,false,openstreetmap
+Tennis Court 3,tennis,pitch,38.8554444,-77.1501878,,,VA,,false,true,false,openstreetmap
+Tennis Court 4,tennis,pitch,38.8555216,-77.1503533,,,VA,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.0411058,-78.1598876,,,VA,,false,true,false,openstreetmap
+The Plaid Racquet & More,tennis,pitch,37.6064876,-77.5701409,8962 Quioccasin Road,,VA,23229,false,true,false,openstreetmap
+Town Hall Tennis Courts,tennis,pitch,38.9130636,-77.5135171,,,VA,,false,true,false,openstreetmap
+Trump National Tennis Court Facility,tennis,pitch,39.0518145,-77.3486736,,,VA,,false,true,false,openstreetmap
+Upper Lakes Tenis Courts,tennis,pitch,38.9431108,-77.3378429,,,VA,,false,true,false,openstreetmap
+Virginia Tech Tennis Courts,tennis,pitch,37.2142331,-80.4191898,,,VA,,false,true,false,openstreetmap
+Walden Glen Tennis Court,tennis,pitch,38.7841753,-77.2138571,,,VA,,false,true,false,openstreetmap
+Walsingham Academy,tennis,pitch,37.2554833,-76.722649,,,VA,,false,true,false,openstreetmap
+Washburn Tennis Courts,tennis,pitch,37.7896017,-79.4457921,,,VA,,false,true,false,openstreetmap
+Wilson Collegiate Tennis Camps University of Virginia,tennis,sports_centre,38.0451299,-78.5075791,290 Massie Rd,,VA,22903,false,true,false,openstreetmap
+Windsor Forest Tennis Court,tennis,pitch,37.3057278,-76.7620037,,,VA,,false,true,false,openstreetmap
+Woodland Park Tennis Courts,tennis,pitch,37.2548717,-79.987714,,,VA,,false,true,false,openstreetmap
+Colasanto Tennis Court,tennis,pitch,38.8295705,-77.0598755,,Alexandria,VA,22305,false,true,false,openstreetmap
+Chandon Park Tennis Courts,tennis,pitch,38.95998,-77.3986187,900 Palmer Drive,Herndon,VA,20170,false,true,false,openstreetmap
+Duchossois Tennis Center,tennis,sports_centre,37.7951048,-79.4485084,155 West Denny Circle,Lexington,VA,24450,false,true,false,openstreetmap
+Middleburg Tennis Club,tennis,pitch,38.9579756,-77.7645591,1777 Zulla Road,Middleburg,VA,20117,false,true,false,openstreetmap
+Williamsburg Tennis Club Pro Shop,tennis,pitch,37.2691375,-76.6954137,412 Bucktrout Lane,Williamsburg,VA,23185,false,true,false,openstreetmap

@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bert Starnes Gymnasium,basketball,pitch,36.3334859,-82.8392836,,,TN,,false,true,false,openstreetmap
+Bruce High School Basketball Court,basketball,pitch,36.0245194,-89.3776897,,,TN,,false,true,false,openstreetmap
+Canale Arena,basketball,stadium,35.1267905,-89.9830399,,,TN,,false,true,false,openstreetmap
+Cherokee Landing Basketball Court #1,basketball,pitch,35.0307649,-89.0175698,,,TN,,false,true,false,openstreetmap
+Cherokee Landing Basketball Court #2,basketball,pitch,35.0240319,-89.0192888,,,TN,,false,true,false,openstreetmap
+Cumberland Street Basketball,basketball,pitch,35.9334274,-84.5457358,,,TN,,false,true,false,openstreetmap
+East Lake Basketball Courts,basketball,pitch,35.0003198,-85.2822719,,,TN,,false,true,false,openstreetmap
+Grand Oaks Basketball Court,basketball,pitch,36.0268005,-84.0639437,,,TN,,false,true,false,openstreetmap
+Highland Court,basketball,pitch,36.5377767,-82.525422,,,TN,,false,true,false,openstreetmap
+Hooper Eblen Center,basketball,sports_centre,36.1784428,-85.5098213,,,TN,,false,true,false,openstreetmap
+Kate Campbell Anderson Memorial Park,basketball,park,35.6209305,-88.7737408,,,TN,,false,true,false,openstreetmap
+Nelson Merry Courts,basketball,pitch,36.1315316,-83.4927068,,,TN,,false,true,false,openstreetmap
+Okeena Basketball Courts,basketball,pitch,36.0493805,-89.3924268,,,TN,,false,true,false,openstreetmap
+Old Gym,basketball,pitch,36.4239174,-84.9362744,,,TN,,false,true,false,openstreetmap
+Piccidilly basketball court,basketball,pitch,36.3160667,-86.695949,,,TN,,false,true,false,openstreetmap
+Riverwalk Basketball Court,basketball,pitch,35.784309,-87.4628263,,,TN,,false,true,false,openstreetmap
+Soddy Daisy Park Basketball Courts,basketball,pitch,35.230437,-85.2106462,,,TN,,false,true,false,openstreetmap
+Summers Gymnasium,basketball,sports_hall,35.4980395,-84.9967444,,,TN,,false,true,false,openstreetmap
+Sunset Gap  Community Center,basketball,pitch,35.8588746,-83.2925207,,,TN,,false,true,false,openstreetmap
+Tacoa Park Half Court,basketball,pitch,35.012768,-85.2219664,,,TN,,false,true,false,openstreetmap
+Turner-Clark Basketball Court,basketball,pitch,36.2500752,-85.9508085,,,TN,,false,true,false,openstreetmap
+private basketball court,basketball,sports_centre,35.3926939,-85.7936444,,,TN,,false,true,false,openstreetmap
+Winfield Dunn Center,basketball,stadium,36.536238,-87.356669,Drane Street,Clarksville,TN,37040,false,true,false,openstreetmap
+Cumberland Estates Recreation Center,basketball,sports_centre,35.9888084,-84.0163108,4529 Silverhill Drive Northwest,Knoxville,TN,37921,false,true,false,openstreetmap
+Skyhawk Arena,basketball,stadium,36.3439448,-88.8679844,95 Mount Pelia Road,Martin,TN,38238,false,true,false,openstreetmap
+FedExForum,basketball,stadium,35.1382028,-90.0508019,191 Beale Street,Memphis,TN,38103,false,true,false,openstreetmap

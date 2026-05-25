@@ -1,0 +1,25 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Ashley Hall Foundation,basketball,pitch,32.7861303,-79.9443787,,,SC,,false,true,false,openstreetmap
+Ashley Hall Foundation,basketball,pitch,32.7862592,-79.9444302,,,SC,,false,true,false,openstreetmap
+Basketball Court at Dock Campbell Park,basketball,pitch,34.5775403,-80.0347342,,,SC,,false,true,false,openstreetmap
+Beaufort Elementary basketball court,basketball,pitch,32.4347191,-80.6834411,,,SC,,false,true,false,openstreetmap
+Broome High School basketball gymnasium,basketball,pitch,34.9868744,-81.8443502,,,SC,,false,true,false,openstreetmap
+City of Charleston,basketball,pitch,32.7925402,-79.9347464,,,SC,,false,true,false,openstreetmap
+City of Charleston,basketball,pitch,32.7941989,-79.9488621,,,SC,,false,true,false,openstreetmap
+City of Charleston,basketball,pitch,32.7998542,-79.9394284,,,SC,,false,true,false,openstreetmap
+City of Charleston,basketball,pitch,32.7996536,-79.9384142,,,SC,,false,true,false,openstreetmap
+City of Charleston,basketball,pitch,32.7990966,-79.9352876,,,SC,,false,true,false,openstreetmap
+Country Walk Neighborhood Basketball Court,basketball,pitch,34.6800042,-82.7994358,,,SC,,false,true,false,openstreetmap
+Eubanks Basketball Court,basketball,pitch,33.0137518,-80.0453626,,,SC,,false,true,false,openstreetmap
+Green Earth Basketball Pavilion,basketball,sports_centre,34.9431516,-80.9102579,,,SC,,false,true,false,openstreetmap
+Lenevar Basketball Court,basketball,pitch,32.8055556,-80.0047176,,,SC,,false,true,false,openstreetmap
+Littlejohn Coliseum,basketball,sports_centre,34.6801884,-82.8464717,,,SC,,false,true,false,openstreetmap
+Love and Hope Basketball Courts,basketball,pitch,34.8516332,-82.413503,,,SC,,false,true,false,openstreetmap
+North Charleston Sports Complex Gym,basketball,pitch,32.8843259,-79.9919718,,,SC,,false,true,false,openstreetmap
+Reuben Seigel Memorial Gym,basketball,fitness_centre,34.4774448,-82.5673988,,,SC,,false,true,false,openstreetmap
+Ten Oaks Basketball Court,basketball,pitch,33.7561158,-78.902716,,,SC,,false,true,false,openstreetmap
+The Housing Authority of the City of Charleston,basketball,pitch,32.8024869,-79.9408406,,,SC,,false,true,false,openstreetmap
+The Housing Authority of the City of Charleston,basketball,pitch,32.8016225,-79.9390653,,,SC,,false,true,false,openstreetmap
+Winthrop Coliseum,basketball,stadium,34.9481301,-81.0149222,,,SC,,false,true,false,openstreetmap
+Cane Bay Family YMCA,basketball,sports_centre,33.124239,-80.1030961,1655 Cane Bay Boulevard,Summerville,SC,29486,false,true,false,openstreetmap
+Willis Street Athletic Courts,basketball,pitch,32.6953033,-80.8591575,25 Willis Street South,Yemassee,SC,29945,false,true,false,openstreetmap

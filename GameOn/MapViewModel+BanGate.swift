@@ -22,6 +22,14 @@ struct FanGeoAccountBan: Equatable {
 
 extension MapViewModel {
     @discardableResult
+    func businessBanGuardBlocks(path: String, action: String) async -> Bool {
+        let blocked = await refreshActiveBanGate(reason: "business:\(path):\(action)")
+        let ban = await MainActor.run { activeAccountBan }
+        logBusinessBanGuard(path: path, action: action, ban: ban, blocked: blocked)
+        return blocked
+    }
+
+    @discardableResult
     func refreshActiveBanGate(reason: String) async -> Bool {
 #if DEBUG
         print("[BanGateDebug] checkingActiveBan=true")
@@ -106,6 +114,17 @@ extension MapViewModel {
         print("[BanGateDebug] bannedUntil=\(ban?.bannedUntilRaw ?? "nil")")
         print("[BanGateDebug] serverNow=\(ban?.serverNowRaw ?? "nil")")
         print("[BanGateDebug] remainingSeconds=\(ban?.remainingSeconds.map(String.init) ?? "nil")")
+#endif
+    }
+
+    private func logBusinessBanGuard(path: String, action: String, ban: FanGeoAccountBan?, blocked: Bool) {
+#if DEBUG
+        print("[BusinessBanGuardDebug] path=\(path)")
+        print("[BusinessBanGuardDebug] action=\(action)")
+        print("[BusinessBanGuardDebug] banned=\(ban != nil)")
+        print("[BusinessBanGuardDebug] blocked=\(blocked)")
+        print("[BusinessBanGuardDebug] bannedUntil=\(ban?.bannedUntilRaw ?? "nil")")
+        print("[BusinessBanGuardDebug] isPermanent=\(ban?.isPermanent.description ?? "nil")")
 #endif
     }
 

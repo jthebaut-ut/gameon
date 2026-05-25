@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court,basketball,pitch,41.5096981,-71.1733371,,,RI,,false,true,false,openstreetmap
+Camp Fuller Basketball Court,basketball,pitch,41.4077413,-71.5095565,,,RI,,false,true,false,openstreetmap
+Chafee Street Basketball Court,basketball,pitch,41.5174553,-71.3126484,,,RI,,false,true,false,openstreetmap
+First Year Basketball Court,basketball,pitch,41.9189512,-71.535803,,,RI,,false,true,false,openstreetmap
+quinn basketball court,basketball,pitch,41.6904483,-71.5237504,,,RI,,false,true,false,openstreetmap

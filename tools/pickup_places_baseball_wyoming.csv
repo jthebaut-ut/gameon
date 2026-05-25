@@ -1,0 +1,21 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alpine Field,baseball,pitch,43.4616794,-110.8022491,,,WY,,false,true,false,openstreetmap
+Batting Practice Cages,baseball,pitch,41.1566484,-104.7850469,,,WY,,false,true,false,openstreetmap
+Cheyenne Youth Baseball Dutcher Field,baseball,sports_centre,41.1581229,-104.788386,,,WY,,false,true,false,openstreetmap
+Cowboy Field,baseball,pitch,41.314844,-105.5609476,,,WY,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.2599508,-110.9651223,,,WY,,false,true,false,openstreetmap
+Field 1,baseball,pitch,44.005525,-107.9592014,,,WY,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.2604135,-110.9660353,,,WY,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.2598768,-110.9666759,,,WY,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.259384,-110.9659724,,,WY,,false,true,false,openstreetmap
+Legion Ball Field,baseball,pitch,43.1632546,-111.0251162,,,WY,,false,true,false,openstreetmap
+Little League Baseball fields,baseball,sports_centre,41.158291,-104.7830385,,,WY,,false,true,false,openstreetmap
+Mateosky Field,baseball,pitch,43.4746447,-110.766296,,,WY,,false,true,false,openstreetmap
+McClure Baseball Field,baseball,pitch,41.2080773,-106.7853382,,,WY,,false,true,false,openstreetmap
+Mike Lansing Field,baseball,pitch,42.8605053,-106.3294916,,,WY,,false,true,false,openstreetmap
+Post 43 Jackson Giants Baseball Field,baseball,pitch,43.460173,-110.8007048,,,WY,,false,true,false,openstreetmap
+Powderhorn Field,baseball,pitch,43.471745,-110.7857996,,,WY,,false,true,false,openstreetmap
+Powers Field baseball field and lockers,baseball,sports_centre,41.1578769,-104.7801868,,,WY,,false,true,false,openstreetmap
+Sandy Aragon Softball Complex,baseball,pitch,41.3169156,-105.5652707,,,WY,,false,true,false,openstreetmap
+Jaycee Park Baseball Field,baseball,pitch,43.0344659,-108.411125,West Sunset Drive,Riverton,WY,82501,false,true,false,openstreetmap
+Riverton Raiders Legion Field,baseball,pitch,43.0345047,-108.4238418,Day Drive,Riverton,WY,82501,false,true,false,openstreetmap

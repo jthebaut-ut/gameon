@@ -1,0 +1,234 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+"""Red"" Oberbruner Baseball Field",baseball,pitch,42.6404793,-87.8523089,,,WI,,false,true,false,openstreetmap
+#1,baseball,pitch,43.0546512,-87.9235436,,,WI,,false,true,false,openstreetmap
+#2,baseball,pitch,43.0552564,-87.9231932,,,WI,,false,true,false,openstreetmap
+#3,baseball,pitch,43.0575505,-87.9222454,,,WI,,false,true,false,openstreetmap
+#4,baseball,pitch,43.0580114,-87.9212179,,,WI,,false,true,false,openstreetmap
+#5,baseball,pitch,43.0573875,-87.9205168,,,WI,,false,true,false,openstreetmap
+1,baseball,pitch,42.9920006,-87.8913362,,,WI,,false,true,false,openstreetmap
+1,baseball,pitch,42.9964433,-87.8910669,,,WI,,false,true,false,openstreetmap
+2,baseball,pitch,42.9926706,-87.8917627,,,WI,,false,true,false,openstreetmap
+2,baseball,pitch,42.996052,-87.891273,,,WI,,false,true,false,openstreetmap
+3,baseball,pitch,42.991877,-87.8923607,,,WI,,false,true,false,openstreetmap
+3,baseball,pitch,43.2402317,-88.2447205,,,WI,,false,true,false,openstreetmap
+4,baseball,pitch,42.9911505,-87.8907114,,,WI,,false,true,false,openstreetmap
+6,baseball,pitch,43.2381951,-88.246267,,,WI,,false,true,false,openstreetmap
+7,baseball,pitch,43.2381138,-88.2450172,,,WI,,false,true,false,openstreetmap
+ABC Supply Stadium,baseball,stadium,42.497377,-89.0403683,,,WI,,false,true,false,openstreetmap
+Alumni Stadium and Tedeman Field,baseball,pitch,44.0224929,-88.5611504,,,WI,,false,true,false,openstreetmap
+Baer Field,baseball,pitch,45.0042042,-92.6773319,,,WI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,42.9716727,-87.9616438,,,WI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,42.9612063,-87.8491471,,,WI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,44.2517333,-88.4846994,,,WI,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,44.2645224,-88.4328304,,,WI,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,42.8603555,-88.9101859,,,WI,,false,true,false,openstreetmap
+Baseball/Softball,baseball,pitch,44.522301,-89.5411849,,,WI,,false,true,false,openstreetmap
+Baseball/Softball Fields - G3,baseball,pitch,43.8223789,-91.2317884,,,WI,,false,true,false,openstreetmap
+Baseball/Softball Fields - G3,baseball,pitch,43.8221889,-91.2332147,,,WI,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,44.302337,-88.3564493,,,WI,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,44.264487,-88.4644123,,,WI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,42.5656103,-87.9563729,,,WI,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,42.8079193,-88.1682517,,,WI,,false,true,false,openstreetmap
+Bay View Pitch,baseball,pitch,44.575095,-88.0854056,,,WI,,false,true,false,openstreetmap
+Bay View Pitch,baseball,pitch,44.5751402,-88.088183,,,WI,,false,true,false,openstreetmap
+Beaumont Field,baseball,pitch,42.6837124,-88.2730235,,,WI,,false,true,false,openstreetmap
+Beckum - Stapleton Little League,baseball,pitch,43.0571092,-87.9222427,,,WI,,false,true,false,openstreetmap
+Beloit College,baseball,pitch,42.5005643,-89.0155802,,,WI,,false,true,false,openstreetmap
+Bill Schultz Miracle Field,baseball,pitch,43.0738768,-89.207021,,,WI,,false,true,false,openstreetmap
+Brandt-Quirk Park,baseball,pitch,43.2096015,-88.7533852,,,WI,,false,true,false,openstreetmap
+Brannen Field,baseball,pitch,42.6690718,-88.2885835,,,WI,,false,true,false,openstreetmap
+Brinkman Field,baseball,pitch,42.9351128,-87.9961621,,,WI,,false,true,false,openstreetmap
+Burlington Baseball Diamond,baseball,pitch,42.6712589,-88.2510698,,,WI,,false,true,false,openstreetmap
+Carroll Field,baseball,pitch,43.7957971,-91.2551659,,,WI,,false,true,false,openstreetmap
+Carroll Field,baseball,pitch,43.7968924,-91.2553295,,,WI,,false,true,false,openstreetmap
+Centennial East,baseball,pitch,43.1830648,-89.4669613,,,WI,,false,true,false,openstreetmap
+Centennial West,baseball,pitch,43.183066,-89.4683346,,,WI,,false,true,false,openstreetmap
+Citizens Field,baseball,pitch;park,45.1197827,-92.5327593,,,WI,,false,true,false,openstreetmap
+City Diamond #1,baseball,pitch,44.2752503,-88.2652772,,,WI,,false,true,false,openstreetmap
+City Diamond #2,baseball,pitch,44.2740076,-88.2612637,,,WI,,false,true,false,openstreetmap
+Clarence Buss Field,baseball,pitch,43.0748921,-89.2034658,,,WI,,false,true,false,openstreetmap
+Cochrane Ball Field Park,baseball,pitch,44.2219061,-91.8323475,,,WI,,false,true,false,openstreetmap
+Craig Counsell Field,baseball,pitch,43.1063657,-87.8989124,,,WI,,false,true,false,openstreetmap
+Cub Mancheski Field,baseball,pitch,44.5297435,-89.5966936,,,WI,,false,true,false,openstreetmap
+Dan Wentland Field,baseball,pitch,42.6757951,-88.0446798,,,WI,,false,true,false,openstreetmap
+Dave Howe Memorial Field,baseball,pitch,44.9001293,-91.9209333,,,WI,,false,true,false,openstreetmap
+Diamond #1,baseball,pitch,44.2032964,-87.7204848,,,WI,,false,true,false,openstreetmap
+Diamond #2,baseball,pitch,44.2036117,-87.7183399,,,WI,,false,true,false,openstreetmap
+Diamond #3,baseball,pitch,44.2027311,-87.7174816,,,WI,,false,true,false,openstreetmap
+Diamond A,baseball,pitch,44.2996131,-88.5382417,,,WI,,false,true,false,openstreetmap
+Diamond B,baseball,pitch,44.2999619,-88.5389724,,,WI,,false,true,false,openstreetmap
+Diamond C,baseball,pitch,44.2998497,-88.5398628,,,WI,,false,true,false,openstreetmap
+Diamond D,baseball,pitch,44.3007124,-88.5399074,,,WI,,false,true,false,openstreetmap
+Dogtown Diamond,baseball,pitch,44.871032,-91.9495956,,,WI,,false,true,false,openstreetmap
+Doty Bay Orgeon Field,baseball,pitch,44.2744567,-88.2626218,,,WI,,false,true,false,openstreetmap
+EJ Schneider Field,baseball,pitch,44.0457045,-88.5460196,,,WI,,false,true,false,openstreetmap
+East,baseball,pitch,42.8695292,-88.0131286,,,WI,,false,true,false,openstreetmap
+East Diamond,baseball,pitch,44.3426865,-88.6370222,,,WI,,false,true,false,openstreetmap
+East Hall Park,baseball,park,44.0312229,-88.5438115,,,WI,,false,true,false,openstreetmap
+East Side Ball Parks,baseball,park,45.056539,-87.7377338,,,WI,,false,true,false,openstreetmap
+East Street Ball Park,baseball,pitch,44.9071777,-90.3120254,,,WI,,false,true,false,openstreetmap
+Ed Hellenbrand Field,baseball,pitch,43.1910919,-89.4472536,,,WI,,false,true,false,openstreetmap
+Ed Sabey Memorial Baseball Field,baseball,pitch,43.8745106,-90.1717608,,,WI,,false,true,false,openstreetmap
+Ed Wack Memorial Field,baseball,pitch,42.6397399,-88.1142389,,,WI,,false,true,false,openstreetmap
+Elk Point Ball Field,baseball,pitch,44.9890682,-91.8492588,,,WI,,false,true,false,openstreetmap
+Eric Morgan Field,baseball,pitch,42.6761945,-88.0456448,,,WI,,false,true,false,openstreetmap
+Ernie Schneider Field,baseball,pitch,43.7869812,-88.4639336,,,WI,,false,true,false,openstreetmap
+FSVD Field,baseball,pitch,43.6283199,-88.7221051,,,WI,,false,true,false,openstreetmap
+Field #1,baseball,pitch,42.9579734,-87.9793932,,,WI,,false,true,false,openstreetmap
+Field #2,baseball,pitch,42.9582443,-87.9804369,,,WI,,false,true,false,openstreetmap
+Firehouse Park Baseball Diamond North,baseball,pitch,43.7850883,-87.7756478,,,WI,,false,true,false,openstreetmap
+Firehouse Park Baseball Diamond South,baseball,pitch,43.7840126,-87.7757596,,,WI,,false,true,false,openstreetmap
+Fireman's Park Baseball Field,baseball,pitch,43.1708257,-89.0645631,,,WI,,false,true,false,openstreetmap
+Francis Field,baseball,pitch,43.8406925,-88.8531038,,,WI,,false,true,false,openstreetmap
+Fred Zirkel Field,baseball,pitch,42.9963827,-88.0141041,,,WI,,false,true,false,openstreetmap
+Frederick Field,baseball,sports_centre,43.1006558,-88.4932769,,,WI,,false,true,false,openstreetmap
+"Gerald E. Thompson Field ""The Gus""",baseball,pitch,43.6281333,-88.7185022,,,WI,,false,true,false,openstreetmap
+Glarner Park,baseball,park,42.8167696,-89.6369994,,,WI,,false,true,false,openstreetmap
+Gran Grae Baseball Field,baseball,pitch,43.0912694,-91.0265881,,,WI,,false,true,false,openstreetmap
+Grosskopf Field,baseball,pitch,44.8588881,-88.9826461,,,WI,,false,true,false,openstreetmap
+Harden Field,baseball,pitch,42.9718866,-87.9629888,,,WI,,false,true,false,openstreetmap
+Harmony Grove Ballfield,baseball,pitch,43.3736977,-89.5454501,,,WI,,false,true,false,openstreetmap
+Harold Smart Memorial Field,baseball,pitch,42.7399602,-88.0445768,,,WI,,false,true,false,openstreetmap
+Hawthorne Park Field,baseball,pitch,43.0251526,-88.2483346,,,WI,,false,true,false,openstreetmap
+Helfaer Field,baseball,stadium,43.0300848,-87.9737468,,,WI,,false,true,false,openstreetmap
+Henry Aaron Field,baseball,pitch,43.101525,-87.9281288,,,WI,,false,true,false,openstreetmap
+Herr-Baker Field,baseball,pitch,43.7774646,-88.409019,,,WI,,false,true,false,openstreetmap
+High School Diamond #1,baseball,pitch,44.2538338,-88.2542542,,,WI,,false,true,false,openstreetmap
+Hitting Backstop,baseball,pitch,43.1085799,-89.3514433,,,WI,,false,true,false,openstreetmap
+Homan Field,baseball,pitch,43.6283186,-88.7209448,,,WI,,false,true,false,openstreetmap
+Home Bullpen,baseball,pitch,44.2838662,-88.4677977,,,WI,,false,true,false,openstreetmap
+Home Run Heaven,baseball,sports_centre,42.6940532,-87.9582545,,,WI,,false,true,false,openstreetmap
+Iowa-Grant Baseball Diamond,baseball,pitch,42.9320226,-90.3979197,,,WI,,false,true,false,openstreetmap
+James B. Miller Stadium,baseball,pitch,42.8477986,-88.7491123,,,WI,,false,true,false,openstreetmap
+James W. Beckum Indoor Baseball Practice Facility,baseball,sports_centre,43.0553435,-87.9224301,,,WI,,false,true,false,openstreetmap
+Jean Kilgour Field,baseball,pitch,43.0034231,-88.2311562,,,WI,,false,true,false,openstreetmap
+Jerry Barsness Field,baseball,pitch,43.1380985,-89.7445007,,,WI,,false,true,false,openstreetmap
+Joannes Stadium,baseball,pitch,44.5044545,-87.9921263,,,WI,,false,true,false,openstreetmap
+John Galewski Field,baseball,pitch,42.922557,-87.8725792,,,WI,,false,true,false,openstreetmap
+Jonas Baseball Field,baseball,pitch,42.5725851,-88.4223882,,,WI,,false,true,false,openstreetmap
+Kapco Park,baseball,stadium,43.2563878,-87.9138983,,,WI,,false,true,false,openstreetmap
+Katner Field,baseball,pitch,45.0049059,-92.676553,,,WI,,false,true,false,openstreetmap
+Ken Keltner Field,baseball,pitch,42.9906547,-87.9026582,,,WI,,false,true,false,openstreetmap
+Kettle Moraine Baseball,baseball,pitch,42.9968406,-88.3798466,,,WI,,false,true,false,openstreetmap
+Kiwani's Field,baseball,pitch,42.7388966,-88.0431442,,,WI,,false,true,false,openstreetmap
+La Pointe Baseball,baseball,pitch,46.7791194,-90.7842514,,,WI,,false,true,false,openstreetmap
+Lakemen Field,baseball,pitch,44.3529571,-89.0703142,,,WI,,false,true,false,openstreetmap
+Larry Somerville Field,baseball,pitch,46.0155506,-91.4924606,,,WI,,false,true,false,openstreetmap
+Larry Van Alstein Baseball Field,baseball,pitch,44.436646,-88.0752298,,,WI,,false,true,false,openstreetmap
+Lions Club Field,baseball,pitch,42.7390944,-88.0445769,,,WI,,false,true,false,openstreetmap
+Little League Diamond #2,baseball,pitch,42.9714486,-87.933137,,,WI,,false,true,false,openstreetmap
+Little League Diamond #3,baseball,pitch,42.9713072,-87.9320723,,,WI,,false,true,false,openstreetmap
+Little League Diamond #4,baseball,pitch,42.9725019,-87.9327196,,,WI,,false,true,false,openstreetmap
+Lomira HS Baseball Field,baseball,pitch,43.5878946,-88.4447438,,,WI,,false,true,false,openstreetmap
+Lower Field,baseball,pitch,45.213424,-90.3345573,,,WI,,false,true,false,openstreetmap
+Lublin Ball Field,baseball,pitch,45.0755853,-90.7255832,,,WI,,false,true,false,openstreetmap
+LumberJack Baseball Field,baseball,pitch,46.5818856,-90.8718214,,,WI,,false,true,false,openstreetmap
+MFLL Complex,baseball,sports_centre,43.1375005,-88.0983153,,,WI,,false,true,false,openstreetmap
+Mansfield Baseball Field,baseball,pitch,43.0615303,-89.5013852,,,WI,,false,true,false,openstreetmap
+Marshall High School Baseball Field,baseball,pitch,43.1630695,-89.0765758,,,WI,,false,true,false,openstreetmap
+Mary Roundtree Evans athletic Field,baseball,pitch,43.4677523,-89.7523088,,,WI,,false,true,false,openstreetmap
+Meadowbrook East,baseball,pitch,43.2057755,-89.4727433,,,WI,,false,true,false,openstreetmap
+Meadowbrook West,baseball,pitch,43.2058762,-89.4736136,,,WI,,false,true,false,openstreetmap
+Men's Varsity Baseball Diamond,baseball,pitch,42.6235174,-87.8226192,,,WI,,false,true,false,openstreetmap
+Menasha Baseball Field,baseball,pitch,44.2239095,-88.4226759,,,WI,,false,true,false,openstreetmap
+Meyer Ball Diamond 1,baseball,pitch,42.8082283,-88.1676642,,,WI,,false,true,false,openstreetmap
+Meyer Ball Diamond 2,baseball,pitch,42.8076408,-88.1667681,,,WI,,false,true,false,openstreetmap
+Meyer Ball Diamond 3,baseball,pitch,42.8086909,-88.1662976,,,WI,,false,true,false,openstreetmap
+Meyer Ball Diamond 4,baseball,pitch,42.8060168,-88.1680822,,,WI,,false,true,false,openstreetmap
+Middle School Lower Diamond,baseball,pitch,44.2952628,-88.5326254,,,WI,,false,true,false,openstreetmap
+Middle School Upper Diamond,baseball,pitch,44.2934649,-88.5323169,,,WI,,false,true,false,openstreetmap
+Miller Park Ball Diamond,baseball,pitch,44.3349481,-88.6423474,,,WI,,false,true,false,openstreetmap
+Milwaukee Brewers,baseball,pitch,43.0278884,-87.9708338,,,WI,,false,true,false,openstreetmap
+Mindor Lion's Club Park,baseball,pitch,44.018281,-91.1004414,,,WI,,false,true,false,openstreetmap
+Minong Little League Park,baseball,pitch,46.099396,-91.823863,,,WI,,false,true,false,openstreetmap
+Miracle Field,baseball,pitch,44.4873228,-88.0095403,,,WI,,false,true,false,openstreetmap
+Miracle League Feild,baseball,pitch,44.2937974,-88.3822809,,,WI,,false,true,false,openstreetmap
+Miracle League of the Lakeshore Baseball Field,baseball,pitch,44.0761497,-87.6926681,,,WI,,false,true,false,openstreetmap
+Miracle Little League Baseball Field,baseball,pitch,43.9092931,-91.23976,,,WI,,false,true,false,openstreetmap
+Miron Construction Softball Field,baseball,pitch,44.4365808,-88.0737975,,,WI,,false,true,false,openstreetmap
+Molitor Field,baseball,pitch,42.583715,-88.4081004,,,WI,,false,true,false,openstreetmap
+Moreland North Field,baseball,pitch,43.0165444,-88.2497639,,,WI,,false,true,false,openstreetmap
+Murphy Field,baseball,pitch,43.190046,-89.4483533,,,WI,,false,true,false,openstreetmap
+National Bank Field,baseball,pitch,43.6275507,-88.7220981,,,WI,,false,true,false,openstreetmap
+Neenah Middle School Baseball Stadium,baseball,pitch,44.1608053,-88.498712,,,WI,,false,true,false,openstreetmap
+Neuroscience Group Field,baseball,pitch,44.2835488,-88.468447,,,WI,,false,true,false,openstreetmap
+New Richmond Park Ballfield 1,baseball,pitch,45.1148574,-92.5366,,,WI,,false,true,false,openstreetmap
+New Richmond Park Teeball,baseball,pitch,45.1136055,-92.5360237,,,WI,,false,true,false,openstreetmap
+Nienhaus Field,baseball,pitch,44.2580353,-88.4290435,,,WI,,false,true,false,openstreetmap
+North Diamond,baseball,pitch,44.0765356,-88.5344693,,,WI,,false,true,false,openstreetmap
+North Diamond,baseball,pitch,44.3435822,-88.6371165,,,WI,,false,true,false,openstreetmap
+Norway Lutheran Ball Diamond,baseball,pitch,42.8044656,-88.1695103,,,WI,,false,true,false,openstreetmap
+Olson Field,baseball,pitch,43.0674623,-89.5016855,,,WI,,false,true,false,openstreetmap
+Pierce Park Baseball Diamond,baseball,pitch,44.2526736,-88.4245195,,,WI,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,45.3002869,-92.3477644,,,WI,,false,true,false,openstreetmap
+Practice Field #1,baseball,pitch,43.0956408,-88.019197,,,WI,,false,true,false,openstreetmap
+Prairie Springs Park Ball Field Pavilion,baseball,pitch,42.5261385,-87.9202414,,,WI,,false,true,false,openstreetmap
+Prairie Springs Park Ball Field Pavilion,baseball,pitch,42.5260789,-87.9186495,,,WI,,false,true,false,openstreetmap
+Reds Field,baseball,pitch,45.2147315,-90.3338223,,,WI,,false,true,false,openstreetmap
+Robert “Rocky” Gilbert Memorial Ball Field,baseball,pitch,43.0583794,-88.3955626,,,WI,,false,true,false,openstreetmap
+Robin Roberts Baseball Field,baseball,pitch,43.1162173,-89.3352327,,,WI,,false,true,false,openstreetmap
+SYSA Sports Complex,baseball,pitch,42.5599992,-89.0065817,,,WI,,false,true,false,openstreetmap
+Schlieve Field,baseball,pitch,43.6414685,-88.7236065,,,WI,,false,true,false,openstreetmap
+Senior League Ball Diamond,baseball,pitch,45.142602,-89.1431403,,,WI,,false,true,false,openstreetmap
+Shepherds College Baseball Field,baseball,pitch,42.6777034,-88.0623841,,,WI,,false,true,false,openstreetmap
+Shoreland Lutheran High School Baseball Field,baseball,pitch,42.6419493,-87.9161162,,,WI,,false,true,false,openstreetmap
+Simon FIeld,baseball,pitch,44.9011332,-89.5958966,,,WI,,false,true,false,openstreetmap
+Siren Ball Field,baseball,pitch,45.7753639,-92.3787594,,,WI,,false,true,false,openstreetmap
+Snowshoe Park,baseball,pitch,45.8158315,-89.5969071,,,WI,,false,true,false,openstreetmap
+Softball Diamond,baseball,pitch,42.8795186,-87.958253,,,WI,,false,true,false,openstreetmap
+Softball Diamond #1,baseball,pitch,42.994011,-88.0142709,,,WI,,false,true,false,openstreetmap
+Softball Diamond #1,baseball,pitch,42.9459119,-87.8532953,,,WI,,false,true,false,openstreetmap
+Softball Diamond #1,baseball,pitch,42.959809,-87.8494249,,,WI,,false,true,false,openstreetmap
+Softball Diamond #1,baseball,pitch,43.0117359,-87.9733542,,,WI,,false,true,false,openstreetmap
+Softball Diamond #1,baseball,pitch,42.9718094,-87.9396919,,,WI,,false,true,false,openstreetmap
+Softball Diamond #2,baseball,pitch,43.0967207,-88.0180285,,,WI,,false,true,false,openstreetmap
+Softball Diamond #2,baseball,pitch,42.9949421,-88.0143743,,,WI,,false,true,false,openstreetmap
+Softball Diamond #2,baseball,pitch,42.9451542,-87.8538274,,,WI,,false,true,false,openstreetmap
+Softball Diamond #2,baseball,pitch,43.0107814,-87.9733572,,,WI,,false,true,false,openstreetmap
+Softball Diamond #2,baseball,pitch,42.971115,-87.9408253,,,WI,,false,true,false,openstreetmap
+Softball Diamond #3,baseball,pitch,42.9952104,-88.0132167,,,WI,,false,true,false,openstreetmap
+Softball Diamond #3,baseball,pitch,43.011581,-87.9757806,,,WI,,false,true,false,openstreetmap
+Softball Diamond #3,baseball,pitch,42.970074,-87.9423055,,,WI,,false,true,false,openstreetmap
+Softball Diamond #4,baseball,pitch,43.0108738,-87.9762458,,,WI,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,44.1974967,-88.3027893,,,WI,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,44.1963646,-88.3006206,,,WI,,false,true,false,openstreetmap
+South Diamond,baseball,pitch,44.074995,-88.5341006,,,WI,,false,true,false,openstreetmap
+South Diamond,baseball,pitch,44.3437892,-88.6387562,,,WI,,false,true,false,openstreetmap
+Spanbauer Field,baseball,pitch,44.0120115,-88.5680982,,,WI,,false,true,false,openstreetmap
+St. Feriole Island,baseball,pitch,43.0495929,-91.1551891,,,WI,,false,true,false,openstreetmap
+State Road Baseball Fields,baseball,pitch,43.7867145,-91.2011748,,,WI,,false,true,false,openstreetmap
+Staudacher Field,baseball,sports_centre,45.2277057,-91.1123937,,,WI,,false,true,false,openstreetmap
+Stemphi Memorial Field,baseball,sports_centre,42.9929948,-89.5196268,,,WI,,false,true,false,openstreetmap
+Sturtevant Ball Field,baseball,pitch,42.7014654,-87.8923384,,,WI,,false,true,false,openstreetmap
+Sun Prairie Youth Baseball Complex,baseball,pitch,43.1721182,-89.2299914,,,WI,,false,true,false,openstreetmap
+The Duck Pond,baseball,stadium,43.1308753,-89.3671095,,,WI,,false,true,false,openstreetmap
+Turtle Tap Ballpark,baseball,pitch,42.4969052,-89.021654,,,WI,,false,true,false,openstreetmap
+Tyler Kahle Memorial Field,baseball,pitch,45.4733187,-89.7211468,,,WI,,false,true,false,openstreetmap
+Upper Field,baseball,pitch,45.2128344,-90.3360754,,,WI,,false,true,false,openstreetmap
+Valders High School Baseball Field,baseball,pitch,44.0701817,-87.8832026,,,WI,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,45.3023896,-92.3480269,,,WI,,false,true,false,openstreetmap
+Viking Field (the Pit),baseball,pitch,43.9651739,-91.2587699,,,WI,,false,true,false,openstreetmap
+Village Ball Diamond,baseball,pitch,45.0344355,-90.0795851,,,WI,,false,true,false,openstreetmap
+Visitor Bullpen,baseball,pitch,44.2840243,-88.4680502,,,WI,,false,true,false,openstreetmap
+Wavro Field,baseball,pitch,42.6068817,-87.8522535,,,WI,,false,true,false,openstreetmap
+West,baseball,pitch,42.8695359,-88.0143045,,,WI,,false,true,false,openstreetmap
+West Diamond,baseball,pitch,44.3426439,-88.6382532,,,WI,,false,true,false,openstreetmap
+Wiggly Field,baseball,pitch,44.9077305,-89.5982366,,,WI,,false,true,false,openstreetmap
+Wilson Premier Youth Baseball,baseball,sports_centre,42.9454276,-87.9268548,,,WI,,false,true,false,openstreetmap
+Wisconsin Brewing Company Park,baseball,pitch,43.0675011,-88.4757432,,,WI,,false,true,false,openstreetmap
+Witter Field,baseball,pitch,44.3850032,-89.8200177,,,WI,,false,true,false,openstreetmap
+Women's Varsity Sofball Diamond,baseball,pitch,42.6260843,-87.8225579,,,WI,,false,true,false,openstreetmap
+YP.com Softball Park,baseball,pitch,44.0224015,-88.5641998,,,WI,,false,true,false,openstreetmap
+Zimmermann Field,baseball,pitch,44.5331783,-89.5683877,,,WI,,false,true,false,openstreetmap
+Carson Park Stadium,baseball,stadium,44.807703,-91.5208435,Carson Park Drive,Eau Claire,WI,54703,false,true,false,openstreetmap
+Franklin Field,baseball,pitch,42.9179367,-88.0150984,7035 South Ballpark Drive,Franklin,WI,53132,false,true,false,openstreetmap
+Joannes Stadium,baseball,stadium,44.5044492,-87.9921753,1495 Kurtz Ave.,Green Bay,WI,54301,false,true,false,openstreetmap
+Mauston Sports Complex,baseball,sports_centre,43.8090779,-89.981856,4217 50th Street,Mauston,WI,53948,false,true,false,openstreetmap
+Schmit Field,baseball,pitch,43.2556402,-87.9600214,,Mequon,WI,,false,true,false,openstreetmap
+American Family Field,baseball,stadium,43.02807,-87.9712364,1 Brewers Way,Milwaukee,WI,53214,false,true,false,openstreetmap
+American Family Field,baseball,pitch,43.028636,-87.9720011,1 Brewers Way,Milwaukee,WI,53214,false,true,false,openstreetmap
+Oconto High School Baseball Diamond,baseball,pitch,44.899744,-87.8711042,1717 Superior Avenue,Oconto,WI,54153,false,true,false,openstreetmap
+Oconto High School Softball Diamond,baseball,pitch,44.9023815,-87.8705867,1717 Superior Avenue,Oconto,WI,54153,false,true,false,openstreetmap
+Boileau Field,baseball,pitch,44.9752926,-89.6262027,2404 North 5th Street,Wausau,WI,54403,false,true,false,openstreetmap
+Grove Baseball Field,baseball,sports_centre,44.3709387,-89.8256453,Clyde Avenue,Wisconsin Rapids,WI,,false,true,false,openstreetmap
+Wisconsin Rapids Rafters Baseball Team ,baseball,sports_centre,44.3857096,-89.8196913,521 Lincoln Street,Wisconsin Rapids ,WI,,false,true,false,openstreetmap

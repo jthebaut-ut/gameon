@@ -1,0 +1,64 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anderson County Mavericks,football,pitch,36.162311,-84.094298,,,TN,,false,true,false,openstreetmap
+Band Practice Field,football,pitch,36.1466566,-88.5136039,,,TN,,false,true,false,openstreetmap
+Bill Wray Field,football,pitch,36.3760263,-89.4743624,,,TN,,false,true,false,openstreetmap
+Blankenship Field,football,pitch,36.0314338,-84.2394714,,,TN,,false,true,false,openstreetmap
+CCHS Jets football field,football,pitch,35.940402,-85.0378268,,,TN,,false,true,false,openstreetmap
+Cherokee High School Football Field,football,pitch,36.3530119,-83.0242852,,,TN,,false,true,false,openstreetmap
+Choctaw Stadium,football,pitch,36.1056604,-89.2940057,,,TN,,false,true,false,openstreetmap
+Clay County High School Football,football,pitch,36.5611418,-85.5157423,,,TN,,false,true,false,openstreetmap
+Dudley Field,football,pitch,36.1440212,-86.808908,,,TN,,false,true,false,openstreetmap
+East Ridge Football Field,football,pitch,34.9881892,-85.2473428,,,TN,,false,true,false,openstreetmap
+Everett Football Field,football,pitch,35.7672289,-83.9539654,,,TN,,false,true,false,openstreetmap
+Fairview High School Football Field and Track,football,pitch,35.9494267,-87.1394602,,,TN,,false,true,false,openstreetmap
+Fargason Field,football,pitch,35.1575558,-89.989662,,,TN,,false,true,false,openstreetmap
+Goddard Field,football,pitch,35.7912509,-83.9795192,,,TN,,false,true,false,openstreetmap
+Grainger High School Football Field,football,pitch,36.3093991,-83.4428972,,,TN,,false,true,false,openstreetmap
+Grassland Field,football,pitch,36.0085032,-86.8845543,,,TN,,false,true,false,openstreetmap
+Greenbrier High School Football Field,football,pitch,36.4223881,-86.8049699,,,TN,,false,true,false,openstreetmap
+H. K. Grantham Field,football,pitch,36.3448588,-88.8610694,,,TN,,false,true,false,openstreetmap
+Hardee-McGee Field at Harris Stadium,football,pitch,35.2092263,-85.9222262,,,TN,,false,true,false,openstreetmap
+Hawk's Stadium,football,pitch,35.570701,-88.8111815,,,TN,,false,true,false,openstreetmap
+Hendersonville High School Football Stadium,football,pitch,36.3043942,-86.6048833,,,TN,,false,true,false,openstreetmap
+Honaker Field,football,pitch,35.7490207,-83.963747,,,TN,,false,true,false,openstreetmap
+Howard Gamble Stadium,football,pitch,35.9404451,-86.8767845,,,TN,,false,true,false,openstreetmap
+Hunter Middle School Football Field,football,pitch,35.1148259,-85.0907557,,,TN,,false,true,false,openstreetmap
+Indoor Practice Facility,football,pitch,36.3456027,-88.8622707,,,TN,,false,true,false,openstreetmap
+J.C. Sawyer Stadium,football,stadium,36.0538135,-89.3866017,,,TN,,false,true,false,openstreetmap
+Jack Renfro Stadium,football,stadium,35.7652397,-83.8630796,,,TN,,false,true,false,openstreetmap
+James D. Lillard Field,football,pitch,35.7655854,-83.8627255,,,TN,,false,true,false,openstreetmap
+Jim Carell Athletic Complex,football,stadium,36.3166263,-86.6713331,,,TN,,false,true,false,openstreetmap
+Jim Stowe Field,football,pitch,35.6590897,-88.3874724,,,TN,,false,true,false,openstreetmap
+Kirkland Field,football,pitch,35.7080209,-88.8913836,,,TN,,false,true,false,openstreetmap
+Lipscomb Academy Football Field,football,pitch,36.1048819,-86.7904711,,,TN,,false,true,false,openstreetmap
+Melrose High School Football Field,football,pitch,35.1074209,-89.975431,,,TN,,false,true,false,openstreetmap
+Memphis City Schools Football Stadium,football,pitch,35.1247215,-89.9784344,,,TN,,false,true,false,openstreetmap
+Nelson Street Football Field,football,pitch,35.7891385,-84.2634303,,,TN,,false,true,false,openstreetmap
+Neyland Stadium,football,stadium,35.9550658,-83.9250396,,,TN,,false,true,false,openstreetmap
+Oliver Springs High School Football Field,football,pitch,36.0424171,-84.3462939,,,TN,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,35.2113955,-85.9249876,,,TN,,false,true,false,openstreetmap
+Pratice Football Field,football,pitch,36.0553735,-89.3878068,,,TN,,false,true,false,openstreetmap
+Rex Dockery Field,football,pitch,35.1211076,-89.9774087,,,TN,,false,true,false,openstreetmap
+Rotary Field,football,pitch,36.2735411,-88.6638581,,,TN,,false,true,false,openstreetmap
+Roy Harmon Field,football,pitch,36.1218573,-83.485744,,,TN,,false,true,false,openstreetmap
+Scrappy Moore Field,football,pitch,35.0527961,-85.2956509,,,TN,,false,true,false,openstreetmap
+Shields Stadium,football,stadium,35.7481532,-83.9790766,,,TN,,false,true,false,openstreetmap
+Shields-Watkins Field,football,pitch,35.9549888,-83.924994,,,TN,,false,true,false,openstreetmap
+South Fulton Youth Football Field,football,stadium,36.4982585,-88.878953,,,TN,,false,true,false,openstreetmap
+Spears Stadium,football,pitch,35.030051,-85.2618294,,,TN,,false,true,false,openstreetmap
+Tucker Stadium (East),football,pitch,36.1780459,-85.5054664,,,TN,,false,true,false,openstreetmap
+Una Bears Youth Football,football,pitch,36.0993872,-86.6391097,,,TN,,false,true,false,openstreetmap
+Una Bears Youth Football,football,pitch,36.0978829,-86.6382847,,,TN,,false,true,false,openstreetmap
+"W.C. ""Dub"" Cooper Field",football,pitch,35.3695033,-86.2219922,,,TN,,false,true,false,openstreetmap
+West High School,football,pitch,35.9466945,-83.975062,,,TN,,false,true,false,openstreetmap
+William B. Greene Jr. Stadium,football,stadium,36.2985416,-82.3749152,,,TN,,false,true,false,openstreetmap
+York Football Field,football,pitch,36.4439154,-84.9354206,,,TN,,false,true,false,openstreetmap
+coffman,football,pitch,35.2386278,-87.3289965,,,TN,,false,true,false,openstreetmap
+foot,football,pitch,35.1965894,-84.6194688,,,TN,,false,true,false,openstreetmap
+Fortera Stadium,football,stadium,36.5363559,-87.352629,Drane Street,Clarksville,TN,37040,false,true,false,openstreetmap
+Hardy M. Graham Stadium,football,stadium,36.3448401,-88.8610862,435 University Street,Martin,TN,38238,false,true,false,openstreetmap
+Lloyd L. Thornton Stadium,football,stadium,35.7490436,-83.9636971,502 East Lamar Alexander Parkway,Maryville,TN,37804,false,true,false,openstreetmap
+Simmons Bank Liberty Stadium,football,stadium,35.1211081,-89.9774119,335 South Hollywood Street,Memphis,TN,38104,false,true,false,openstreetmap
+FirstBank Stadium,football,stadium,36.1439094,-86.80891,210 Jess Neely Drive,Nashville,TN,37203,false,true,false,openstreetmap
+Hale Stadium,football,pitch,36.168265,-86.8268864,3500 John A Merritt Boulevard,Nashville,TN,37209,false,true,false,openstreetmap
+Nissan Stadium,football,stadium,36.1665191,-86.7713834,1 Titans Way,Nashville,TN,37201,false,true,false,openstreetmap

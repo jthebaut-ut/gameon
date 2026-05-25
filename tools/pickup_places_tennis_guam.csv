@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+University of Guam Tennis Court,tennis,pitch,13.4344557,144.803561,,,GU,,false,true,false,openstreetmap

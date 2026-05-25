@@ -1,0 +1,80 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+96 PUMAS,soccer,sports_centre,34.1838043,-82.0795604,,,SC,,false,true,false,openstreetmap
+Atwater Field,soccer,pitch,34.2824742,-81.6232457,,,SC,,false,true,false,openstreetmap
+Avalon Soccer Field,soccer,pitch,33.7666773,-78.9153166,,,SC,,false,true,false,openstreetmap
+Brannan Field,soccer,stadium,34.9452253,-80.9839235,,,SC,,false,true,false,openstreetmap
+Brushy Creek Soccer Complex,soccer,sports_centre,34.8830628,-82.3063968,,,SC,,false,true,false,openstreetmap
+Carolina Park Soccer Fields,soccer,sports_centre,32.8999201,-79.7752743,,,SC,,false,true,false,openstreetmap
+Championship Sports Field,soccer,pitch,34.6831326,-82.8604143,,,SC,,false,true,false,openstreetmap
+Chaplin Park Soccer Field,soccer,pitch,32.1954746,-80.7005057,,,SC,,false,true,false,openstreetmap
+Country Walk Neighborhood Soccer Field,soccer,pitch,34.6795468,-82.7994081,,,SC,,false,true,false,openstreetmap
+Eagle Field,soccer,pitch,34.9436282,-81.0121296,,,SC,,false,true,false,openstreetmap
+Eugene E Stone III Soccer Stadium,soccer,stadium,34.9215433,-82.4410411,,,SC,,false,true,false,openstreetmap
+Eugene E. Stone III Stadium,soccer,stadium,33.9877862,-81.0248237,,,SC,,false,true,false,openstreetmap
+Field #1,soccer,pitch,34.7823457,-82.3389461,,,SC,,false,true,false,openstreetmap
+Field #1 Sportsclub,soccer,pitch,34.8123729,-82.1974436,,,SC,,false,true,false,openstreetmap
+Field #10 Carter,soccer,pitch,34.8135906,-82.1930442,,,SC,,false,true,false,openstreetmap
+Field #11 Hartness International,soccer,pitch,34.8101763,-82.1948971,,,SC,,false,true,false,openstreetmap
+Field #12 Resurgent Capital,soccer,pitch,34.8106213,-82.1942348,,,SC,,false,true,false,openstreetmap
+Field #13 Monster Energy Drink,soccer,pitch,34.8111691,-82.1934989,,,SC,,false,true,false,openstreetmap
+Field #14 Hughes Investment,soccer,pitch,34.8116196,-82.1928261,,,SC,,false,true,false,openstreetmap
+Field #15,soccer,pitch,34.8121163,-82.1921338,,,SC,,false,true,false,openstreetmap
+Field #19 Mac Foundation,soccer,pitch,34.8125748,-82.1914619,,,SC,,false,true,false,openstreetmap
+Field #2,soccer,pitch,34.7813376,-82.3380893,,,SC,,false,true,false,openstreetmap
+Field #2 Marriott,soccer,pitch,34.8128736,-82.1966941,,,SC,,false,true,false,openstreetmap
+Field #3,soccer,pitch,34.7808822,-82.3389097,,,SC,,false,true,false,openstreetmap
+Field #3 Tuffalloy,soccer,pitch,34.8137757,-82.1953255,,,SC,,false,true,false,openstreetmap
+Field #4,soccer,pitch,34.7822694,-82.3404214,,,SC,,false,true,false,openstreetmap
+Field #4 Pepsi,soccer,pitch,34.8141818,-82.1947418,,,SC,,false,true,false,openstreetmap
+Field #5,soccer,pitch,34.781436,-82.340541,,,SC,,false,true,false,openstreetmap
+Field #5 TD Bank,soccer,pitch,34.8146108,-82.1941164,,,SC,,false,true,false,openstreetmap
+Field #6,soccer,pitch,34.7807391,-82.3408739,,,SC,,false,true,false,openstreetmap
+Field #6 Bi-Lo,soccer,pitch,34.8112821,-82.1962147,,,SC,,false,true,false,openstreetmap
+Field #7 Friends of Soccer,soccer,pitch,34.8120733,-82.1949465,,,SC,,false,true,false,openstreetmap
+Field #8 Summers Orthodonics,soccer,pitch,34.8124809,-82.1943376,,,SC,,false,true,false,openstreetmap
+Field #9 Fusion,soccer,pitch,34.8128734,-82.193786,,,SC,,false,true,false,openstreetmap
+Field 1,soccer,pitch,35.1017821,-81.103776,,,SC,,false,true,false,openstreetmap
+Field 2,soccer,pitch,35.101777,-81.1028906,,,SC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,34.9436177,-80.9849042,,,SC,,false,true,false,openstreetmap
+Field 3,soccer,pitch,35.1017769,-81.1020641,,,SC,,false,true,false,openstreetmap
+Field 4,soccer,pitch,34.9434663,-80.9839782,,,SC,,false,true,false,openstreetmap
+Field 5,soccer,pitch,34.9433174,-80.9830673,,,SC,,false,true,false,openstreetmap
+Field 6,soccer,pitch,34.9425189,-80.9851716,,,SC,,false,true,false,openstreetmap
+Field 7,soccer,pitch,34.9423674,-80.9842455,,,SC,,false,true,false,openstreetmap
+Field 8,soccer,pitch,34.9422186,-80.9833347,,,SC,,false,true,false,openstreetmap
+Field A,soccer,pitch,34.7996901,-82.5812806,,,SC,,false,true,false,openstreetmap
+Field B,soccer,pitch,34.7988951,-82.5809558,,,SC,,false,true,false,openstreetmap
+Field C,soccer,pitch,34.7980976,-82.5805712,,,SC,,false,true,false,openstreetmap
+Field D,soccer,pitch,34.7973588,-82.5805979,,,SC,,false,true,false,openstreetmap
+Field E,soccer,pitch,34.7966374,-82.580642,,,SC,,false,true,false,openstreetmap
+Gibson Road Park,soccer,park,33.9772503,-81.2567672,,,SC,,false,true,false,openstreetmap
+Gibson Road Park,soccer,park,33.9795925,-81.2544188,,,SC,,false,true,false,openstreetmap
+Goose Creek High School Soccer Field,soccer,pitch,32.9758512,-80.016178,,,SC,,false,true,false,openstreetmap
+Harrisburg Sports Complex,soccer,sports_centre,35.0154497,-80.8615209,,,SC,,false,true,false,openstreetmap
+Home Depot Field,soccer,pitch,34.9812529,-81.8753704,,,SC,,false,true,false,openstreetmap
+Huggins Field,soccer,pitch,34.3336375,-82.3938066,,,SC,,false,true,false,openstreetmap
+LoConte Family Field,soccer,pitch,34.6855215,-82.8618642,,,SC,,false,true,false,openstreetmap
+Lower Fields,soccer,pitch,34.8695831,-82.3629347,,,SC,,false,true,false,openstreetmap
+Nash Soccer Field,soccer,pitch,34.9546748,-81.9687849,,,SC,,false,true,false,openstreetmap
+Newspring Church Soccer Field,soccer,pitch,33.5814934,-81.7671294,,,SC,,false,true,false,openstreetmap
+Owens Field Soccer Fields,soccer,pitch,33.9766818,-80.9952926,,,SC,,false,true,false,openstreetmap
+Patriot Park Sports Complex,soccer,park,33.9322963,-80.4277294,,,SC,,false,true,false,openstreetmap
+Patriots Point Soccer Stadium,soccer,pitch,32.7949186,-79.9029658,,,SC,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,34.164469,-82.019669,,,SC,,false,true,false,openstreetmap
+Riggs Field,soccer,stadium,34.6818119,-82.838876,,,SC,,false,true,false,openstreetmap
+Snyder Athletic Field,soccer,pitch,34.9601381,-81.9315404,,,SC,,false,true,false,openstreetmap
+Soccer and Lacrosse Field,soccer,pitch,35.0554011,-81.6432767,,,SC,,false,true,false,openstreetmap
+Soccer practice field,soccer,pitch,33.9757501,-81.3096205,,,SC,,false,true,false,openstreetmap
+Soccer/football,soccer,pitch,34.1670055,-79.7514285,,,SC,,false,true,false,openstreetmap
+Soccer/football,soccer,pitch,34.1661808,-79.7518109,,,SC,,false,true,false,openstreetmap
+Soccer/football,soccer,pitch,34.1654794,-79.7521569,,,SC,,false,true,false,openstreetmap
+South Carolina Surf Soccer Club,soccer,pitch,32.9406771,-79.709238,,,SC,,false,true,false,openstreetmap
+USCL Lancer Soccer Field,soccer,pitch,34.73948,-80.786516,,,SC,,false,true,false,openstreetmap
+University of South Carolina,soccer,pitch,33.9904711,-81.0314207,,,SC,,false,true,false,openstreetmap
+University of South Carolina,soccer,pitch,33.9902484,-81.0320373,,,SC,,false,true,false,openstreetmap
+Varsity Soccer Practice Field,soccer,pitch,34.9201406,-82.443556,,,SC,,false,true,false,openstreetmap
+Wellington Green Soccer Complex,soccer,pitch,34.8797336,-82.3270549,,,SC,,false,true,false,openstreetmap
+City of Charleston,soccer,pitch,32.7913109,-79.9553023,201 President Street,Charleston,SC,29403,false,true,false,openstreetmap
+City of Charleston,soccer,pitch,32.7916504,-79.9528821,201 President Street,Charleston,SC,29403,false,true,false,openstreetmap
+Daniel Island Soccer Academy,soccer,sports_centre,32.8412027,-79.9139642,1683 Oak Leaf Street,Charleston,SC,29492,false,true,false,openstreetmap
+Ralph Lundy Field,soccer,pitch,34.3332262,-82.3841303,2 Washington St,Due West,SC,29639,false,true,false,openstreetmap
