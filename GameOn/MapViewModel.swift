@@ -785,6 +785,8 @@ final class MapViewModel: ObservableObject {
     var followingTabGlobalRefreshTask: Task<Void, Never>?
     var myPickupGamesLightweightLoadTask: Task<Void, Never>?
     var lastMyPickupGamesLightweightLoadAt: Date?
+    var incomingPickupInvitesLoadTask: Task<Void, Never>?
+    var lastIncomingPickupInvitesLoadAt: Date?
     /// Bumped when join-request rows affecting organizer summaries may have changed (realtime / withdraw); drives ``PickupOrganizerRequestsSheet`` reload.
     @Published var pickupOrganizerRequestsSyncGeneration: UInt64 = 0
     /// Bumped after join-request mutations so pickup detail sheets reload request + counts.

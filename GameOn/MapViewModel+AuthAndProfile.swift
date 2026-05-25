@@ -647,6 +647,9 @@ extension MapViewModel {
         myPickupGamesLightweightLoadTask?.cancel()
         myPickupGamesLightweightLoadTask = nil
         lastMyPickupGamesLightweightLoadAt = nil
+        incomingPickupInvitesLoadTask?.cancel()
+        incomingPickupInvitesLoadTask = nil
+        lastIncomingPickupInvitesLoadAt = nil
         pendingPickupGameJoinRequestCount = 0
         myPickupGameJoinRequestCards = []
         incomingPickupGameInvites = []

@@ -36,6 +36,7 @@ private struct PickupAlreadyInvitedUserRow: Decodable {
 
 extension MapViewModel {
     private static let followingJoinRequestsFreshnessInterval: TimeInterval = 60
+    private static let incomingPickupInvitesFreshnessInterval: TimeInterval = 25
 
     func resolvedPickupGameRow(for id: UUID) -> PickupGameRow? {
         if let s = selectedPickupGameForMap, s.id == id { return s }
@@ -160,9 +161,10 @@ extension MapViewModel {
         }
     }
 
-    func loadIncomingPickupGameInvites() async {
+    func loadIncomingPickupGameInvites(forceRefresh: Bool = false) async {
         guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
             incomingPickupGameInvites = []
+            lastIncomingPickupInvitesLoadAt = nil
 #if DEBUG
             print("[PickupInviteDebug] pendingInviteCount=0")
             print("[PickupInviteDebug] inviteListLoaded=false")
@@ -171,6 +173,33 @@ extension MapViewModel {
             return
         }
 
+        if !forceRefresh, let inFlight = incomingPickupInvitesLoadTask {
+#if DEBUG
+            print("[StartupPrefetchDebug] tier=1 task=pickupInvites coalesced=true")
+#endif
+            await inFlight.value
+            return
+        }
+
+        if !forceRefresh,
+           let lastIncomingPickupInvitesLoadAt,
+           Date().timeIntervalSince(lastIncomingPickupInvitesLoadAt) < Self.incomingPickupInvitesFreshnessInterval {
+#if DEBUG
+            print("[StartupPrefetchDebug] tier=1 task=pickupInvites cacheHit=true")
+#endif
+            return
+        }
+
+        let task = Task<Void, Never> { [weak self] in
+            guard let self else { return }
+            await self.loadIncomingPickupGameInvitesNow(uid: uid)
+        }
+        incomingPickupInvitesLoadTask = task
+        await task.value
+        incomingPickupInvitesLoadTask = nil
+    }
+
+    private func loadIncomingPickupGameInvitesNow(uid: UUID) async {
         do {
             let invites: [PickupGameInviteRow] = try await supabase
                 .from("pickup_game_invites")
@@ -184,6 +213,7 @@ extension MapViewModel {
 
             guard !invites.isEmpty else {
                 incomingPickupGameInvites = []
+                lastIncomingPickupInvitesLoadAt = Date()
 #if DEBUG
                 print("[PickupInviteDebug] pendingInviteCount=0")
                 print("[PickupInviteDebug] inviteListLoaded=true")
@@ -224,6 +254,7 @@ extension MapViewModel {
                 )
             }
             incomingPickupGameInvites = displayRows
+            lastIncomingPickupInvitesLoadAt = Date()
 #if DEBUG
             print("[PickupInviteDebug] pendingInviteCount=\(displayRows.count)")
             print("[PickupInviteDebug] inviteListLoaded=true")
@@ -265,7 +296,7 @@ extension MapViewModel {
                 )
                 .execute()
                 .value
-            await loadIncomingPickupGameInvites()
+            await loadIncomingPickupGameInvites(forceRefresh: true)
             if normalized == "accepted" {
                 await loadMyPickupGameJoinRequestsForFollowing(forceRefresh: true, reason: "pickupInviteAccepted")
                 await loadMyLatestJoinRequestForPickupGame(pickupGameId: invite.pickup_game_id)

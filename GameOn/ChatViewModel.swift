@@ -45,6 +45,7 @@ final class ChatViewModel: ObservableObject {
         let subtitle: String?
         let lastMessageAt: Date?
         let unreadCount: Int
+        let isConversationBacked: Bool
     }
 
     struct IncomingRequestDisplay: Identifiable, Hashable {
@@ -723,7 +724,8 @@ final class ChatViewModel: ObservableObject {
             preview: old.preview,
             subtitle: old.subtitle,
             lastMessageAt: old.lastMessageAt,
-            unreadCount: 0
+            unreadCount: 0,
+            isConversationBacked: old.isConversationBacked
         )
         var next = friends
         next[idx] = updated
@@ -787,7 +789,8 @@ final class ChatViewModel: ObservableObject {
             preview: old.preview,
             subtitle: rawPreview,
             lastMessageAt: lastAt,
-            unreadCount: newUnread
+            unreadCount: newUnread,
+            isConversationBacked: true
         )
         var next = friends
         next[idx] = updated
@@ -1148,7 +1151,8 @@ final class ChatViewModel: ObservableObject {
                     preview: preview,
                     subtitle: rawPreview,
                     lastMessageAt: lastAt,
-                    unreadCount: unread
+                    unreadCount: unread,
+                    isConversationBacked: true
                 )
             }
 
@@ -1306,7 +1310,8 @@ final class ChatViewModel: ObservableObject {
                     preview: preview,
                     subtitle: rawPreview,
                     lastMessageAt: lastAt,
-                    unreadCount: unread
+                    unreadCount: unread,
+                    isConversationBacked: true
                 )
             }
             friendDisplays = try await mergeAcceptedFriendsMissingFromInbox(me: me, inboxDisplays: friendDisplays)
@@ -1624,7 +1629,7 @@ final class ChatViewModel: ObservableObject {
         await refreshInboxSummaries()
     }
 
-    /// Accepted friends without a DM thread yet still appear under Chat → Friends (presentation only; inbox RPC unchanged).
+    /// Accepted friends without a DM thread yet still appear in the Friends directory (presentation only; inbox RPC unchanged).
     private func mergeAcceptedFriendsMissingFromInbox(
         me: UUID,
         inboxDisplays: [FriendDisplay]
@@ -1650,7 +1655,8 @@ final class ChatViewModel: ObservableObject {
                     preview: preview,
                     subtitle: "Say hi",
                     lastMessageAt: nil,
-                    unreadCount: 0
+                    unreadCount: 0,
+                    isConversationBacked: false
                 )
             )
         }
@@ -1881,7 +1887,8 @@ final class ChatViewModel: ObservableObject {
             preview: preview,
             subtitle: existing.subtitle,
             lastMessageAt: existing.lastMessageAt,
-            unreadCount: existing.unreadCount
+            unreadCount: existing.unreadCount,
+            isConversationBacked: existing.isConversationBacked
         )
     }
 

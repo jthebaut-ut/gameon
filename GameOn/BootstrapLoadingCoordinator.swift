@@ -56,6 +56,7 @@ final class BootstrapLoadingCoordinator: ObservableObject {
 
         #if DEBUG
         print("[FanGeoLoadingDebug] appReady")
+        print("[StartupPrefetchDebug] firstUsableScreenMs=\(Int(Date().timeIntervalSince(startedAt) * 1000))")
         #endif
         isBootstrapping = false
         print("[BusinessLaunchPerf] splashNoLongerBlockedByBusinessRefresh=true")

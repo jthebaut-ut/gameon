@@ -29,11 +29,14 @@ struct MainTabView: View {
     @State private var tabSwitchStartAt: Date?
     @State private var tabSwitchCachedData: Bool?
     @State private var tabSwitchFromTab: AppTab?
+    @State private var tabPreloadTasks: [AppTab: Task<Void, Never>] = [:]
+    @State private var lastTabPreloadAt: [AppTab: Date] = [:]
 
     private static let pokesBadgePollIntervalUnseenSeconds = 22
     private static let pokesBadgePollIntervalIdleSeconds = 105
     private static let chatSocialRealtimeGracePeriodSeconds: TimeInterval = 9
     private static let foregroundDeferredBatchDelayNs: UInt64 = 1_750_000_000
+    private static let tabPreloadFreshnessInterval: TimeInterval = 30
 
     private var selectedTab: AppTab {
         AppTab(rawValue: selectedTabStorage) ?? .discover
@@ -237,8 +240,16 @@ struct MainTabView: View {
                 didStartChatSocialRealtime = false
                 chatSocialRealtimeDeferTask?.cancel()
                 chatSocialRealtimeDeferTask = nil
+                cancelTabPreloadTasks()
+                LaunchWarmPreloadCoordinator.shared.cancel()
             } else {
                 scheduleDeferredChatSocialRealtimeStartupIfNeeded()
+                LaunchWarmPreloadCoordinator.shared.beginIfNeeded(
+                    viewModel: viewModel,
+                    chatViewModel: chatViewModel,
+                    accountTabVisible: selectedTab == .account,
+                    forceRefresh: true
+                )
             }
             Task { await syncChatAuthState() }
         }
@@ -250,6 +261,8 @@ struct MainTabView: View {
         }
         .onChange(of: viewModel.privateSessionClearNonce) { _, _ in
             chatViewModel.clearForSignOut()
+            cancelTabPreloadTasks()
+            LaunchWarmPreloadCoordinator.shared.cancel()
         }
         .onChange(of: chatViewModel.unreadDirectMessageCount) { _, newValue in
 #if DEBUG
@@ -425,6 +438,7 @@ struct MainTabView: View {
         tabSwitchFromTab = selectedTab
         tabSwitchStartAt = Date()
         tabSwitchCachedData = tabHasCachedData(tab)
+        startTabIntentPreload(tab, reason: reason)
         UIPerformanceDiagnostics.signpost(
             "tab switch",
             "from=\(tabSwitchFromTab?.rawValue ?? "unknown") to=\(tab.rawValue) reason=\(reason)"
@@ -445,8 +459,14 @@ struct MainTabView: View {
         switch tab {
         case .chat:
             UIPerformanceDiagnostics.signpost("DM inbox open", "ms=\(ms)")
+            print("[TabPreloadDebug] tab=chat readyMs=\(ms)")
         case .account:
             UIPerformanceDiagnostics.signpost("Profile tab open", "ms=\(ms)")
+            print("[TabPreloadDebug] tab=account readyMs=\(ms)")
+        case .following:
+            print("[TabPreloadDebug] tab=following readyMs=\(ms)")
+        case .discover:
+            print("[TabPreloadDebug] tab=discover readyMs=\(ms)")
         default:
             break
         }
@@ -458,6 +478,99 @@ struct MainTabView: View {
         tabSwitchStartAt = nil
         tabSwitchCachedData = nil
         tabSwitchFromTab = nil
+    }
+
+    private func startTabIntentPreload(_ tab: AppTab, reason: String) {
+        let warmAtStart = tabHasCachedData(tab)
+        if let last = lastTabPreloadAt[tab],
+           Date().timeIntervalSince(last) < Self.tabPreloadFreshnessInterval,
+           warmAtStart {
+#if DEBUG
+            print("[TabPreloadDebug] tab=\(tab.rawValue)")
+            print("[TabPreloadDebug] warm=true")
+            print("[TabPreloadDebug] skippedReason=fresh")
+#endif
+            return
+        }
+        if tabPreloadTasks[tab] != nil {
+#if DEBUG
+            print("[TabPreloadDebug] tab=\(tab.rawValue)")
+            print("[TabPreloadDebug] warm=\(warmAtStart)")
+            print("[TabPreloadDebug] skippedReason=inFlight")
+#endif
+            return
+        }
+
+        let startedAt = Date()
+#if DEBUG
+        print("[TabPreloadDebug] tab=\(tab.rawValue)")
+        print("[TabPreloadDebug] warm=\(warmAtStart)")
+        print("[TabPreloadDebug] reason=\(reason)")
+#endif
+        let task = Task { @MainActor in
+            await runTabIntentPreload(tab: tab, reason: reason)
+            let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+            lastTabPreloadAt[tab] = Date()
+            tabPreloadTasks[tab] = nil
+#if DEBUG
+            print("[TabPreloadDebug] tab=\(tab.rawValue)")
+            print("[TabPreloadDebug] durationMs=\(ms)")
+#endif
+        }
+        tabPreloadTasks[tab] = task
+    }
+
+    private func runTabIntentPreload(tab: AppTab, reason _: String) async {
+        guard !hasConfirmedSuspensionGateForPreload else { return }
+        switch tab {
+        case .chat:
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            _ = await chatViewModel.prefetchLightweightStartupChatData()
+            await chatViewModel.refreshFriendRequestListsOnly()
+        case .following:
+            guard viewModel.isAuthenticatedForSocialFeatures, viewModel.canUseFollowingTab else { return }
+            await viewModel.refreshFollowingTabDataGloballyUnlessFresh()
+            if viewModel.canFanUsePickupGamesUI {
+                await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "tabPreload")
+                await viewModel.loadMyPickupGamesForSettings()
+                await viewModel.loadIncomingPickupGameInvites()
+            }
+        case .account:
+            guard viewModel.isAuthenticatedForSocialFeatures else { return }
+            await viewModel.prefetchLightweightUserDataForStartup()
+            if viewModel.canReceiveProfilePokes {
+                await viewModel.refreshUnseenPokesBadgeIfNeeded()
+            }
+        case .discover:
+            guard viewModel.bars.isEmpty else { return }
+            await viewModel.refreshDiscoverCoreInBackground()
+        case .calendar:
+            if viewModel.canFanUsePickupGamesUI {
+                await viewModel.refreshCalendarTabPickupSources()
+            }
+        case .live:
+            break
+        }
+    }
+
+    private var hasConfirmedSuspensionGateForPreload: Bool {
+        if viewModel.activeAccountBan != nil { return true }
+        if viewModel.activeBusinessAccountBan != nil,
+           viewModel.isBusinessBanGatePresented
+            || viewModel.hasAuthenticatedVenueOwnerSession
+            || viewModel.currentUserIsBusinessAccount
+            || viewModel.venueOwnerMode {
+            return true
+        }
+        return false
+    }
+
+    private func cancelTabPreloadTasks() {
+        for task in tabPreloadTasks.values {
+            task.cancel()
+        }
+        tabPreloadTasks.removeAll()
+        lastTabPreloadAt.removeAll()
     }
 
     private func tabHasCachedData(_ tab: AppTab) -> Bool {
@@ -839,6 +952,7 @@ struct MainTabView: View {
     private func chatTabButton() -> some View {
         Button {
             FGInteractionHaptics.selection()
+            startTabIntentPreload(.chat, reason: "chatTabButtonIntent")
             Task { await selectChatTabAfterDeviceAuth() }
         } label: {
             ZStack(alignment: .topTrailing) {

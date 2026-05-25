@@ -1,6 +1,6 @@
 import Foundation
 
-/// In-feed native ad slot for the Chat → Friends inbox list (not DM threads).
+/// In-feed native ad slot for the Chat → Chats inbox list (not DM threads).
 enum ChatInboxListItem: Identifiable {
     case conversation(ChatViewModel.FriendDisplay)
     case nativeAd

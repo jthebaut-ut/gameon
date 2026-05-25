@@ -863,12 +863,6 @@ struct PickupGameInviteFriendsSheet: View {
 
                 List {
                     Section {
-                        TextField("Search fans by @handle or name", text: $searchText)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
-
-                    Section {
                         if eligibleFriends.isEmpty {
                             Text("No friends to invite yet")
                                 .foregroundStyle(FGColor.secondaryText(colorScheme))
@@ -881,6 +875,16 @@ struct PickupGameInviteFriendsSheet: View {
                         Text("Friends")
                     } footer: {
                         Text("\(selectedFriendIds.count)/20 selected")
+                    }
+
+                    Section {
+                        TextField("Search fans by @handle or name", text: $searchText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    } header: {
+                        Text("Invite non-friends")
+                    } footer: {
+                        Text("Optional. Search FanGeo users by handle or display name.")
                     }
 
                     Section {
