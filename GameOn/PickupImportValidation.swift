@@ -1,17 +1,28 @@
 import CoreLocation
 import Foundation
 
-enum PickupImportRowStatus: String, Equatable {
+enum PickupBulkImportRowStatus: String, Equatable {
     case valid
     case warning
     case failed
 
     var isImportable: Bool {
-        self != .failed
+        self == .valid
+    }
+
+    var displayTitle: String {
+        switch self {
+        case .valid:
+            return "Ready"
+        case .warning:
+            return "Warning"
+        case .failed:
+            return "Error"
+        }
     }
 }
 
-struct PickupImportPreparedRow: Identifiable, Equatable {
+struct PickupBulkImportPreparedRow: Identifiable, Equatable {
     let id = UUID()
     let rowNumber: Int
     let title: String
@@ -29,7 +40,7 @@ struct PickupImportPreparedRow: Identifiable, Equatable {
     let warnings: [String]
     let errors: [String]
 
-    var status: PickupImportRowStatus {
+    var status: PickupBulkImportRowStatus {
         if !errors.isEmpty { return .failed }
         if !warnings.isEmpty { return .warning }
         return .valid
@@ -39,18 +50,18 @@ struct PickupImportPreparedRow: Identifiable, Equatable {
         [address, city, state].filter { !$0.isEmpty }.joined(separator: ", ")
     }
 
-    static func == (lhs: PickupImportPreparedRow, rhs: PickupImportPreparedRow) -> Bool {
+    static func == (lhs: PickupBulkImportPreparedRow, rhs: PickupBulkImportPreparedRow) -> Bool {
         lhs.id == rhs.id
     }
 }
 
-struct PickupImportSummary: Equatable {
+struct PickupBulkImportSummary: Equatable {
     let validCount: Int
     let warningCount: Int
     let failedCount: Int
 
     var importableCount: Int {
-        validCount + warningCount
+        validCount
     }
 
     var totalCount: Int {
@@ -58,9 +69,9 @@ struct PickupImportSummary: Equatable {
     }
 }
 
-enum PickupImportValidation {
-    static func summary(for rows: [PickupImportPreparedRow]) -> PickupImportSummary {
-        PickupImportSummary(
+enum PickupBulkImportValidator {
+    static func summary(for rows: [PickupBulkImportPreparedRow]) -> PickupBulkImportSummary {
+        PickupBulkImportSummary(
             validCount: rows.filter { $0.status == .valid }.count,
             warningCount: rows.filter { $0.status == .warning }.count,
             failedCount: rows.filter { $0.status == .failed }.count
@@ -68,12 +79,12 @@ enum PickupImportValidation {
     }
 
     @MainActor
-    static func validate(rawRows: [PickupImportRawRow], viewModel: MapViewModel) async -> [PickupImportPreparedRow] {
+    static func validate(rawRows: [PickupBulkImportRawRow], viewModel: MapViewModel) async -> [PickupBulkImportPreparedRow] {
 #if DEBUG
         print("[PickupBulkValidation] started rows=\(rawRows.count)")
 #endif
         let duplicateKeys = duplicateRowKeys(rawRows)
-        var output: [PickupImportPreparedRow] = []
+        var output: [PickupBulkImportPreparedRow] = []
         output.reserveCapacity(rawRows.count)
 
         for raw in rawRows {
@@ -91,10 +102,10 @@ enum PickupImportValidation {
 
     @MainActor
     private static func validate(
-        raw: PickupImportRawRow,
+        raw: PickupBulkImportRawRow,
         duplicateKeys: Set<String>,
         viewModel: MapViewModel
-    ) async -> PickupImportPreparedRow {
+    ) async -> PickupBulkImportPreparedRow {
         var errors: [String] = []
         var warnings: [String] = []
 
@@ -118,19 +129,22 @@ enum PickupImportValidation {
         appendMissing("city", city, to: &errors)
         appendMissing("state", state, to: &errors)
         appendMissing("players_needed", playersRaw, to: &errors)
-        appendMissing("end_time", endRaw, to: &errors)
 
         let sport = canonicalSport(from: sportRaw)
         if sport == nil, !sportRaw.isEmpty {
             errors.append("Invalid sport name.")
         }
 
-        let skillLevel = canonicalSkillLevel(from: skillRaw)
-        if skillLevel == nil, !skillRaw.isEmpty {
+        let skillLevel = skillRaw.isEmpty ? PickupGameSkillLevel.casual.rawValue : canonicalSkillLevel(from: skillRaw)
+        if skillLevel == nil {
             errors.append("Invalid skill level.")
         }
 
         let start = parseDateTime(startRaw)
+#if DEBUG
+        print("[PickupBulkValidation] rawStart=\(startRaw)")
+        print("[PickupBulkValidation] parsedStart=\(debugDateString(start))")
+#endif
         if start == nil, !startRaw.isEmpty {
             errors.append("Invalid game_start_at date.")
         } else if let start, start <= Date() {
@@ -138,6 +152,10 @@ enum PickupImportValidation {
         }
 
         let end = parseEndTime(endRaw, start: start)
+#if DEBUG
+        print("[PickupBulkValidation] rawEnd=\(endRaw)")
+        print("[PickupBulkValidation] parsedEnd=\(debugDateString(end))")
+#endif
         if end == nil, !endRaw.isEmpty {
             errors.append("Invalid end_time.")
         } else if let start, let end, end <= start {
@@ -153,7 +171,7 @@ enum PickupImportValidation {
 
         var maxPlayers: Int?
         if maxPlayersRaw.isEmpty {
-            warnings.append("max_players is blank; capacity will stay unset.")
+            maxPlayers = nil
         } else if let parsed = Int(maxPlayersRaw) {
             maxPlayers = parsed
             if !(1...100).contains(parsed) {
@@ -163,10 +181,6 @@ enum PickupImportValidation {
             }
         } else {
             errors.append("max_players must be numeric when provided.")
-        }
-
-        if description.isEmpty {
-            warnings.append("description is blank.")
         }
 
         if duplicateKeys.contains(duplicateKey(for: raw)) {
@@ -194,12 +208,12 @@ enum PickupImportValidation {
 
         if errors.isEmpty,
            let start,
-           let end,
            let coordinate {
+            let conflictEnd = end ?? PickupGameModels.defaultPickupEndTime(forStart: start)
             do {
                 if try await viewModel.findOverlappingPickupGameAtLocation(
                     newStart: start,
-                    newEnd: end,
+                    newEnd: conflictEnd,
                     latitude: coordinate.latitude,
                     longitude: coordinate.longitude,
                     address: address,
@@ -213,12 +227,12 @@ enum PickupImportValidation {
             }
         }
 
-        return PickupImportPreparedRow(
+        return PickupBulkImportPreparedRow(
             rowNumber: raw.rowNumber,
             title: title,
             sport: sport ?? sportRaw,
             description: description.isEmpty ? nil : description,
-            skillLevel: skillLevel ?? skillRaw,
+            skillLevel: skillLevel ?? PickupGameSkillLevel.casual.rawValue,
             gameStartAt: start,
             endTime: end,
             address: address,
@@ -261,7 +275,7 @@ enum PickupImportValidation {
         return nil
     }
 
-    private static func duplicateRowKeys(_ rows: [PickupImportRawRow]) -> Set<String> {
+    private static func duplicateRowKeys(_ rows: [PickupBulkImportRawRow]) -> Set<String> {
         var counts: [String: Int] = [:]
         for row in rows {
             let key = duplicateKey(for: row)
@@ -270,7 +284,7 @@ enum PickupImportValidation {
         return Set(counts.filter { $0.value > 1 }.map(\.key))
     }
 
-    private static func duplicateKey(for row: PickupImportRawRow) -> String {
+    private static func duplicateKey(for row: PickupBulkImportRawRow) -> String {
         [
             row.value("title"),
             row.value("sport"),
@@ -298,12 +312,14 @@ enum PickupImportValidation {
         if let supabase = SupabaseTimestampParsing.parseTimestamptz(trimmed) {
             return supabase
         }
-        if let serial = Double(trimmed), serial > 1 {
+        if let serial = excelSerialNumber(from: trimmed), serial > 1 {
             return excelSerialDate(serial)
         }
 
         let formats = [
+            "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd'T'HH:mm:ss",
             "yyyy-MM-dd h:mm a",
             "MM/dd/yyyy HH:mm",
             "MM/dd/yyyy h:mm a",
@@ -323,8 +339,12 @@ enum PickupImportValidation {
             }
             return full
         }
-        if let serial = Double(trimmed), serial > 0, serial < 1, let start {
-            return Calendar.current.startOfDay(for: start).addingTimeInterval(serial * 86_400)
+        if let serial = excelSerialNumber(from: trimmed), serial > 0, serial < 1, let start {
+            var combined = Calendar.current.startOfDay(for: start).addingTimeInterval(serial * 86_400)
+            if combined <= start {
+                combined = Calendar.current.date(byAdding: .day, value: 1, to: combined) ?? combined
+            }
+            return combined
         }
         guard let start else { return nil }
         let formats = ["HH:mm", "H:mm", "h:mm a", "ha", "h a"]
@@ -349,10 +369,17 @@ enum PickupImportValidation {
         return nil
     }
 
+    private static func excelSerialNumber(from raw: String) -> Double? {
+        let normalized = raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: "")
+        return Double(normalized)
+    }
+
     private static func excelSerialDate(_ serial: Double) -> Date? {
         var components = DateComponents()
         components.calendar = Calendar(identifier: .gregorian)
-        components.timeZone = TimeZone(secondsFromGMT: 0)
+        components.timeZone = .current
         components.year = 1899
         components.month = 12
         components.day = 30
@@ -374,5 +401,10 @@ enum PickupImportValidation {
         combined.minute = timeParts.minute
         combined.second = timeParts.second
         return calendar.date(from: combined) ?? date
+    }
+
+    private static func debugDateString(_ date: Date?) -> String {
+        guard let date else { return "nil" }
+        return PickupGameModels.encodeSupabaseTimestamptz(date)
     }
 }

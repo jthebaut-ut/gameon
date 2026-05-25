@@ -1,0 +1,98 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+11-12,tennis,pitch,40.2617851,-74.6306087,,,NJ,,false,true,false,openstreetmap
+13-14,tennis,pitch,40.2613171,-74.6303658,,,NJ,,false,true,false,openstreetmap
+15-16,tennis,pitch,40.2608405,-74.6301839,,,NJ,,false,true,false,openstreetmap
+17-18,tennis,pitch,40.2616958,-74.6299613,,,NJ,,false,true,false,openstreetmap
+19-20,tennis,pitch,40.2612099,-74.6297828,,,NJ,,false,true,false,openstreetmap
+21-22,tennis,pitch,40.2615741,-74.629376,,,NJ,,false,true,false,openstreetmap
+23-24,tennis,pitch,40.262099,-74.6292454,,,NJ,,false,true,false,openstreetmap
+7-8,tennis,pitch,40.2618467,-74.6311628,,,NJ,,false,true,false,openstreetmap
+9-10,tennis,pitch,40.2614627,-74.6309642,,,NJ,,false,true,false,openstreetmap
+Alexandra Tennis Court,tennis,pitch,40.5112009,-74.6395706,,,NJ,,false,true,false,openstreetmap
+Althea Gibson Tennis Center,tennis,pitch,40.7791137,-74.1734092,,,NJ,,false,true,false,openstreetmap
+Atlantic City Racquet Club,tennis,pitch,39.3781547,-74.4910543,,,NJ,,false,true,false,openstreetmap
+Bradley Gardens Tennis Courts,tennis,pitch,40.5614445,-74.662712,,,NJ,,false,true,false,openstreetmap
+Bradley Gardens Tennis Courts,tennis,pitch,40.5620588,-74.6629382,,,NJ,,false,true,false,openstreetmap
+Brittany Tennis Courts,tennis,pitch,40.3257418,-74.5664164,,,NJ,,false,true,false,openstreetmap
+Cherry Hill Health & Racquet Club,tennis,sports_centre,39.9107186,-74.9812878,1820 Old Cuthbert Rd,,NJ,08034,false,true,false,openstreetmap
+Chestnut Ave Tennis Courts,tennis,pitch,40.2003553,-74.7465549,,,NJ,,false,true,false,openstreetmap
+Court 1,tennis,pitch,40.4231577,-74.1633896,,,NJ,,false,true,false,openstreetmap
+Court 2,tennis,pitch,40.4231501,-74.1635539,,,NJ,,false,true,false,openstreetmap
+Cranbury School,tennis,pitch,40.3125716,-74.5169914,,,NJ,,false,true,false,openstreetmap
+Cranbury School,tennis,pitch,40.3126146,-74.5171543,,,NJ,,false,true,false,openstreetmap
+Cranbury School,tennis,pitch,40.3126576,-74.5173171,,,NJ,,false,true,false,openstreetmap
+Fair Lawn Racquet Club,tennis,sports_centre,40.9394747,-74.0982977,11-19 Saddle River Road,,NJ,,false,true,false,openstreetmap
+G1-G2,tennis,pitch,40.2623019,-74.6298764,,,NJ,,false,true,false,openstreetmap
+Grover Ceveland Tennis Courts,tennis,pitch,40.8367117,-74.2809311,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,tennis,pitch,40.9220749,-74.6991833,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,tennis,pitch,40.9219051,-74.6989195,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,tennis,pitch,40.9219887,-74.6990517,,,NJ,,false,true,false,openstreetmap
+Long Tennis Court,tennis,pitch,39.9973543,-74.0650251,,,NJ,,false,true,false,openstreetmap
+Memoral Park Tennis Courts,tennis,pitch,40.8525617,-74.2837223,,,NJ,,false,true,false,openstreetmap
+Mendham Golf and tennis courts,tennis,pitch,40.7786947,-74.5709977,,,NJ,,false,true,false,openstreetmap
+Monmouth University,tennis,sports_centre,40.28461,-74.0067156,,,NJ,,false,true,false,openstreetmap
+Nutley Tennis Club,tennis,pitch,40.8215278,-74.1520587,,,NJ,,false,true,false,openstreetmap
+Old Tennis Court,tennis,pitch,40.0986439,-74.0696871,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,tennis,pitch,41.0329782,-74.0391113,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,tennis,pitch,41.0329733,-74.0389339,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,tennis,pitch,41.0326515,-74.0391326,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,tennis,pitch,41.0326441,-74.0389615,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,tennis,pitch,41.0328234,-74.0393215,,,NJ,,false,true,false,openstreetmap
+Pat and B.J. Highland Memorial Tennis Courts,tennis,pitch,40.7842186,-74.4004616,,,NJ,,false,true,false,openstreetmap
+Practice,tennis,pitch,40.2621643,-74.6302229,,,NJ,,false,true,false,openstreetmap
+Presidental Estates Tennis Court,tennis,pitch,40.36433,-74.3626959,,,NJ,,false,true,false,openstreetmap
+Princeton Orchards Apartments Tennis Courts,tennis,pitch,40.3757424,-74.5059041,,,NJ,,false,true,false,openstreetmap
+Rock Ridge Tennis Courts,tennis,pitch,40.9118133,-74.4616679,,,NJ,,false,true,false,openstreetmap
+S1-S2,tennis,pitch,40.2625358,-74.6305329,,,NJ,,false,true,false,openstreetmap
+Society Hill Tennis Court,tennis,pitch,40.7418586,-74.1828398,,,NJ,,false,true,false,openstreetmap
+Society Hill Tennis Court,tennis,pitch,40.7421618,-74.1826688,,,NJ,,false,true,false,openstreetmap
+Somerset Park Tennis Court,tennis,pitch,40.4499702,-74.5289354,,,NJ,,false,true,false,openstreetmap
+Tara Park,tennis,pitch,40.5398626,-74.4913924,Ellis Pky,,NJ,,false,true,false,openstreetmap
+Tennis,tennis,pitch,40.9299192,-74.7363344,,,NJ,,false,true,false,openstreetmap
+Tennis Complex,tennis,pitch,40.2626565,-74.6317874,,,NJ,,true,false,false,openstreetmap
+Tennis Court,tennis,pitch,40.4029525,-74.5624908,,,NJ,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,40.8818921,-74.2465969,,,NJ,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,40.2893983,-73.9904508,,,NJ,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,40.2900021,-73.989649,,,NJ,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,40.0125413,-74.9303599,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.7434865,-75.0762442,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.8665362,-74.197626,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,41.0242757,-74.2488727,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.947112,-74.1952214,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.9328649,-74.2018786,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,41.0173884,-74.333725,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,41.0833064,-74.1786228,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,39.9714051,-74.9346919,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.3037076,-73.9793054,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.2896781,-73.9897114,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.9560064,-74.2136176,,,NJ,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,41.0173285,-74.3335591,,,NJ,,false,true,false,openstreetmap
+Tennis Courts - Tamarack GC,tennis,sports_centre,40.4241789,-74.4468959,,,NJ,,false,true,false,openstreetmap
+Tennis Half,tennis,pitch,40.7640917,-74.0197019,,,NJ,,false,true,false,openstreetmap
+Tennis Pitch x4,tennis,pitch,40.9727226,-74.100813,,,NJ,,false,true,false,openstreetmap
+Tennis and Golf Center,tennis,pitch,39.8564072,-75.2074065,,,NJ,,false,true,false,openstreetmap
+Township of Cranbury,tennis,pitch,40.3116858,-74.5126269,,,NJ,,false,true,false,openstreetmap
+Township of Cranbury,tennis,pitch,40.3116437,-74.5124644,,,NJ,,false,true,false,openstreetmap
+Venue Tennis Courts,tennis,pitch,40.3621701,-74.4560994,,,NJ,,false,true,false,openstreetmap
+WOHS Tennis Court,tennis,sports_centre,40.8042959,-74.2612099,,,NJ,,false,true,false,openstreetmap
+Waldwick Covered Courts,tennis,pitch,41.0203687,-74.1255371,,,NJ,,false,true,false,openstreetmap
+Wayne Indoor Tennis Club,tennis,pitch,40.928983,-74.2334219,,,NJ,,false,true,false,openstreetmap
+Westfield Indoor Tennis Center,tennis,pitch,40.6474886,-74.3332006,,,NJ,,false,true,false,openstreetmap
+Westville Community Tennis Courts,tennis,pitch,40.8412945,-74.2984725,,,NJ,,false,true,false,openstreetmap
+Windtryst Tennis Court,tennis,pitch,40.7996539,-75.0786882,,,NJ,,false,true,false,openstreetmap
+🎾,tennis,pitch,40.6669829,-74.2722571,,,NJ,,false,true,false,openstreetmap
+🎾,tennis,pitch,40.6670058,-74.2720682,,,NJ,,false,true,false,openstreetmap
+🎾,tennis,pitch,40.6672229,-74.2716995,,,NJ,,false,true,false,openstreetmap
+🎾,tennis,pitch,40.6671957,-74.2718921,,,NJ,,false,true,false,openstreetmap
+"International Sports, Skating and Fun Center",tennis,sports_centre,39.8887691,-75.0001159,600 Kresson Road,Cherry Hill,NJ,08034,false,true,false,openstreetmap
+East Brunswick Racquet Club,tennis,pitch,40.4660567,-74.4085798,11 Ruth Street,East Brunswick,NJ,08816,false,true,false,openstreetmap
+Binghamton Racquet Club,tennis,pitch,40.8211523,-73.976463,737 River Road,Edgewater,NJ,07020,false,true,false,openstreetmap
+Smoke Rise Tennis - AUX Courts,tennis,pitch,40.9921887,-74.3980559,Sleepy Hollow Road,Kinnelon,NJ,07405,false,true,false,openstreetmap
+Smoke Rise Tennis Club,tennis,pitch,40.9912667,-74.401994,9 Perimeter Road,Kinnelon,NJ,07405,false,true,false,openstreetmap
+Loveladies Tennis Club,tennis,pitch,39.7276107,-74.1249695,291 Riviera Drive,Long Beach Township,NJ,08008,false,true,false,openstreetmap
+Upper Ridgewood Tennis Club,tennis,sports_centre,41.0052396,-74.1196765,915 Glenview Rd,Ridgewood,NJ,07450,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.9509194,-74.2218503,1 Pike Drive,Wayne,NJ,07470,false,true,false,openstreetmap
+Tennis court,tennis,pitch,40.9389608,-74.2044326,50 Greenup Court,Wayne,NJ,07470,false,true,false,openstreetmap
+Tennis court,tennis,pitch,40.9660207,-74.2401067,8900 Brittany Drive,Wayne,NJ,07470,false,true,false,openstreetmap
+Township of Wayne Tennis Court,tennis,pitch,40.9279425,-74.2337055,45 Nellis Drive,Wayne,NJ,07470,false,true,false,openstreetmap
+Wayne Racquet Club,tennis,pitch,40.9773598,-74.2645337,170 Colfax Road,Wayne,NJ,07470,false,true,false,openstreetmap

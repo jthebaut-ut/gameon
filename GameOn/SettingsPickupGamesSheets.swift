@@ -26,7 +26,6 @@ struct SettingsPickupGamesListSheet: View {
     @State private var deleteTarget: PickupGameRow?
     @State private var banner: String?
     @State private var organizerRequestsGame: PickupGameRow?
-    @State private var showPickupBulkImport = false
     /// Drives local countdown label refresh every minute without refetching Supabase.
     @State private var listClockTick: Date = Date()
     /// At most one delayed refresh per sheet visit when any row passes its cleanup deadline.
@@ -128,13 +127,6 @@ struct SettingsPickupGamesListSheet: View {
                 }
                 .accessibilityLabel("Host Pickup Game")
             }
-            ToolbarItem(placement: .secondaryAction) {
-                Button {
-                    showPickupBulkImport = true
-                } label: {
-                    Label("Import Pickup Games", systemImage: "square.and.arrow.down")
-                }
-            }
         }
         .task {
             await viewModel.loadMyPickupGamesForSettings()
@@ -158,13 +150,6 @@ struct SettingsPickupGamesListSheet: View {
             NavigationStack {
                 SettingsPickupGameFormView(viewModel: viewModel, mode: mode) {
                     formMode = nil
-                    Task { await viewModel.loadMyPickupGamesForSettings() }
-                }
-            }
-        }
-        .sheet(isPresented: $showPickupBulkImport) {
-            NavigationStack {
-                PickupImportPreviewView(viewModel: viewModel) {
                     Task { await viewModel.loadMyPickupGamesForSettings() }
                 }
             }
@@ -1355,6 +1340,13 @@ private enum PickupCostKind: String, CaseIterable, Identifiable {
     }
 }
 
+private enum PickupGameCreationTab: String, CaseIterable, Identifiable {
+    case manual = "Manual"
+    case csvImport = "CSV Import"
+
+    var id: String { rawValue }
+}
+
 /// Add or edit a pickup game (fan accounts only; caller gates).
 struct SettingsPickupGameFormView: View {
     @ObservedObject var viewModel: MapViewModel
@@ -1395,6 +1387,7 @@ struct SettingsPickupGameFormView: View {
     @State private var pickupSafetyAcknowledged = false
     @State private var didInitializeForm = false
     @State private var showPickupTimeConflictConfirmation = false
+    @State private var creationTab: PickupGameCreationTab = .manual
 
     private var organizerPostStartLockedRow: PickupGameRow? {
         if case .edit(let row) = mode, row.hasPickupGameStarted(), isCurrentUserCreator(of: row) {
@@ -1553,7 +1546,12 @@ struct SettingsPickupGameFormView: View {
         return "Enter a complete street address, city, state, and ZIP code."
     }
 
-    var body: some View {
+    private var shouldShowCreationTabs: Bool {
+        if case .add = mode { return true }
+        return false
+    }
+
+    private var manualPickupGameForm: some View {
         Form {
             if let errorText, !errorText.isEmpty {
                 Section {
@@ -1761,6 +1759,38 @@ struct SettingsPickupGameFormView: View {
         }
         .scrollContentBackground(.hidden)
         .fanGeoScreenBackground()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if shouldShowCreationTabs {
+                Picker("Creation mode", selection: $creationTab) {
+                    ForEach(PickupGameCreationTab.allCases) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            }
+
+            if shouldShowCreationTabs && creationTab == .csvImport {
+                PickupBulkImportPreviewView(
+                    viewModel: viewModel,
+                    showsNavigationChrome: false,
+                    onImported: {
+                        Task { await viewModel.loadMyPickupGamesForSettings() }
+                    },
+                    onDoneAfterSuccess: {
+                        onFinished()
+                    }
+                )
+            } else {
+                manualPickupGameForm
+            }
+        }
+        .fanGeoScreenBackground()
         .navigationTitle(
             mode == .add ? "Host Pickup Game" : (isOrganizerPostStartManage ? "Manage pickup game" : "Edit pickup game")
         )
@@ -1769,16 +1799,18 @@ struct SettingsPickupGameFormView: View {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { onFinished(); dismiss() }
             }
-            ToolbarItem(placement: .confirmationAction) {
-                Button(mode == .add ? "Post" : "Save") {
-                    Task { await save() }
+            if !shouldShowCreationTabs || creationTab == .manual {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(mode == .add ? "Post" : "Save") {
+                        Task { await save() }
+                    }
+                    .disabled(
+                        isSaving
+                            || (!isOrganizerPostStartManage && title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            || (!isOrganizerPostStartManage && !hasPlacedLocationForPostButton)
+                            || (requiresPickupSafetyAcknowledgment && !pickupSafetyAcknowledged)
+                    )
                 }
-                .disabled(
-                    isSaving
-                        || (!isOrganizerPostStartManage && title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        || (!isOrganizerPostStartManage && !hasPlacedLocationForPostButton)
-                        || (requiresPickupSafetyAcknowledgment && !pickupSafetyAcknowledged)
-                )
             }
         }
         .onAppear {
@@ -1799,6 +1831,9 @@ struct SettingsPickupGameFormView: View {
             if !viewModel.canFanUsePickupGamesUI {
                 onFinished()
                 dismiss()
+            }
+            if !shouldShowCreationTabs {
+                creationTab = .manual
             }
         }
         .fullScreenCover(isPresented: $showPickupMapLocationPicker) {

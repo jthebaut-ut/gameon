@@ -1,0 +1,64 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alexander Field,soccer,pitch,43.3888144,-72.0978284,,,NH,,false,true,false,openstreetmap
+Alumni Field,soccer,pitch,42.9089427,-72.0586759,,,NH,,false,true,false,openstreetmap
+Auburn Soccer Field,soccer,pitch,43.0068701,-71.341615,,,NH,,false,true,false,openstreetmap
+Back 40 Soccer Fields,soccer,pitch,43.6725945,-72.0385721,,,NH,,false,true,false,openstreetmap
+Back 40 Soccer Fields,soccer,pitch,43.6726454,-72.0377827,,,NH,,false,true,false,openstreetmap
+Brewster Field,soccer,pitch,43.5838273,-71.2085964,,,NH,,false,true,false,openstreetmap
+Brewster Field,soccer,pitch,43.5456738,-72.2511865,,,NH,,false,true,false,openstreetmap
+Carver Field,soccer,pitch,43.5423765,-72.2560048,,,NH,,false,true,false,openstreetmap
+Don Melander Turf Field,soccer,pitch,43.1754418,-71.8261356,,,NH,,false,true,false,openstreetmap
+Dr. Ron Butcher Field,soccer,pitch,42.9190756,-72.2835361,,,NH,,false,true,false,openstreetmap
+Exeter Area YMCA,soccer,pitch,42.9738839,-70.9573795,,,NH,,false,true,false,openstreetmap
+Farrell Field,soccer,pitch,43.4386651,-71.8250263,,,NH,,false,true,false,openstreetmap
+Field 1,soccer,pitch,42.8443959,-71.4207536,,,NH,,false,true,false,openstreetmap
+Field 1,soccer,pitch,43.1438351,-71.4318373,,,NH,,false,true,false,openstreetmap
+Field 2,soccer,pitch,42.8455641,-71.4208529,,,NH,,false,true,false,openstreetmap
+Field 2,soccer,pitch,43.1429061,-71.4310306,,,NH,,false,true,false,openstreetmap
+Field 3,soccer,pitch,42.8469539,-71.4198175,,,NH,,false,true,false,openstreetmap
+Field 3,soccer,pitch,43.1432736,-71.4302512,,,NH,,false,true,false,openstreetmap
+Field 4,soccer,pitch,42.839995,-71.4235589,,,NH,,false,true,false,openstreetmap
+Field 4,soccer,pitch,43.1423868,-71.4299753,,,NH,,false,true,false,openstreetmap
+Field 5,soccer,pitch,42.841141,-71.4238103,,,NH,,false,true,false,openstreetmap
+Field 5,soccer,pitch,43.1416011,-71.4318694,,,NH,,false,true,false,openstreetmap
+Field 6,soccer,pitch,42.8427439,-71.4260025,,,NH,,false,true,false,openstreetmap
+Field 7,soccer,pitch,42.8433544,-71.4260805,,,NH,,false,true,false,openstreetmap
+Freedom Field,soccer,pitch,42.7904097,-71.4421943,,,NH,,false,true,false,openstreetmap
+Gateway Hills Soccer Field,soccer,pitch,42.7122486,-71.4605681,,,NH,,false,true,false,openstreetmap
+Greenfield Farms Field,soccer,pitch,42.9057663,-71.5053652,,,NH,,false,true,false,openstreetmap
+Grennier Field,soccer,pitch,43.545894,-72.2524457,,,NH,,false,true,false,openstreetmap
+Hardy North,soccer,pitch,42.7348403,-71.5864353,,,NH,,false,true,false,openstreetmap
+Hardy South,soccer,pitch,42.7330012,-71.5858352,,,NH,,false,true,false,openstreetmap
+Jerry Fortin Fields #1,soccer,pitch,42.96296,-71.4500525,,,NH,,false,true,false,openstreetmap
+Jerry Fortin Fields #2,soccer,pitch,42.9624023,-71.4497336,,,NH,,false,true,false,openstreetmap
+Larkin Field,soccer,pitch,43.0391181,-71.4553171,,,NH,,false,true,false,openstreetmap
+Long Field,soccer,pitch,42.8216879,-71.4848309,,,NH,,false,true,false,openstreetmap
+Lower Fields,soccer,pitch,43.1915305,-71.5688849,,,NH,,false,true,false,openstreetmap
+Lower Fields,soccer,pitch,43.1924233,-71.5697,,,NH,,false,true,false,openstreetmap
+Melucci Field,soccer,pitch,42.9811179,-71.5059836,,,NH,,false,true,false,openstreetmap
+Migrash Sport,soccer,pitch,43.1831827,-71.1642691,,,NH,,false,true,false,openstreetmap
+Miller Field,soccer,pitch,43.5456679,-72.25487,,,NH,,false,true,false,openstreetmap
+New London Outing Club,soccer,pitch,43.4182088,-71.9871813,,,NH,,false,true,false,openstreetmap
+Packard Field,soccer,pitch,43.9484944,-71.5023034,,,NH,,false,true,false,openstreetmap
+Paul E. Arold Field,soccer,pitch,43.7607363,-71.6814382,,,NH,,false,true,false,openstreetmap
+Pelham Soccer Fields,soccer,pitch,42.7654674,-71.3522905,,,NH,,false,true,false,openstreetmap
+Pelham Soccer Fields,soccer,pitch,42.7656855,-71.3516153,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,soccer,pitch,42.9757522,-70.9416104,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,soccer,pitch,42.975411,-70.9448161,,,NH,,false,true,false,openstreetmap
+Pope Turf Field,soccer,pitch,43.5465479,-72.2520023,,,NH,,false,true,false,openstreetmap
+Powers Field,soccer,pitch,43.5452054,-72.2526,,,NH,,false,true,false,openstreetmap
+Practice Fields,soccer,pitch,42.981229,-71.5049764,,,NH,,false,true,false,openstreetmap
+Raiders Field,soccer,pitch,42.739779,-71.4524312,,,NH,,false,true,false,openstreetmap
+Raymond Practice Field,soccer,pitch,42.7646404,-71.3584642,,,NH,,false,true,false,openstreetmap
+Robert T. Low Turf Field,soccer,pitch,43.7616958,-71.6702258,,,NH,,false,true,false,openstreetmap
+Shaker Road School Complex,soccer,pitch,43.2320634,-71.5497654,,,NH,,false,true,false,openstreetmap
+Sichol Soccer Field,soccer,pitch,43.3812033,-72.1780045,,,NH,,false,true,false,openstreetmap
+Smith Field,soccer,pitch,43.5492871,-72.2549418,,,NH,,false,true,false,openstreetmap
+Stevens Field,soccer,pitch,43.1238393,-71.0144079,,,NH,,false,true,false,openstreetmap
+Tucker Field,soccer,pitch,43.1374594,-70.9378262,,,NH,,false,true,false,openstreetmap
+Woodlock Park Soccer Field #1,soccer,pitch,42.8374197,-71.1767079,,,NH,,false,true,false,openstreetmap
+Woodlock Park Soccer Field #2,soccer,pitch,42.8374909,-71.1760661,,,NH,,false,true,false,openstreetmap
+Seacoast United,soccer,sports_centre,42.9293529,-70.8222846,311 Winnacunnet Road,Hampton,NH,03842,false,true,false,openstreetmap
+Burnham Field,soccer,pitch,43.6993093,-72.2795704,5 Summer Court,Hanover,NH,03755,false,true,false,openstreetmap
+Chase Field #4,soccer,pitch,43.6975962,-72.2792015,3 Summer Court,Hanover,NH,03755,false,true,false,openstreetmap
+Sodexho Field,soccer,pitch,42.7780856,-72.0533176,323 Mountian Road,Rindge,NH,03461,false,true,false,openstreetmap

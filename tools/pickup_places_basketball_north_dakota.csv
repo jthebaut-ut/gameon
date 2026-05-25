@@ -1,0 +1,4 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Quam Court,basketball,pitch,46.1381037,-98.0902155,,,ND,,false,true,false,openstreetmap
+Sanford Health Athletic Complex,basketball,sports_centre,46.9002292,-96.7991488,,,ND,,false,true,false,openstreetmap
+Wellness Center Basketball Court,basketball,pitch,47.9267653,-97.0757605,,,ND,,false,true,false,openstreetmap

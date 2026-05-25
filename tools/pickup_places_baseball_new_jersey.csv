@@ -1,0 +1,305 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+50/70 Field,baseball,pitch,40.4108307,-74.3483811,,,NJ,,false,true,false,openstreetmap
+Al Robin Field,baseball,pitch,40.9558493,-74.2593819,,,NJ,,false,true,false,openstreetmap
+Allen Parker Memorial Field,baseball,pitch,40.0416402,-74.9047732,,,NJ,,false,true,false,openstreetmap
+Arm & Hammer Park,baseball,stadium,40.2032977,-74.7609084,,,NJ,,false,true,false,openstreetmap
+B1,baseball,pitch,40.2572334,-74.6334335,,,NJ,,false,true,false,openstreetmap
+B2,baseball,pitch,40.2584578,-74.6346308,,,NJ,,false,true,false,openstreetmap
+Babe Ruth Field,baseball,pitch,41.0608098,-74.7456136,,,NJ,,false,true,false,openstreetmap
+Ballfield #1,baseball,pitch,40.9203866,-74.5792265,,,NJ,,false,true,false,openstreetmap
+Ballfield #2,baseball,pitch,40.921314,-74.5777301,,,NJ,,false,true,false,openstreetmap
+Ballfield 1,baseball,pitch,40.489897,-74.4274496,,,NJ,,false,true,false,openstreetmap
+Ballfield 2,baseball,pitch,40.4897467,-74.425587,,,NJ,,false,true,false,openstreetmap
+Ballfield 5,baseball,pitch,40.4905469,-74.4208664,,,NJ,,false,true,false,openstreetmap
+Barbour Pond Field #1,baseball,pitch,40.9629771,-74.2291867,,,NJ,,false,true,false,openstreetmap
+Barbour Pond Field #2,baseball,pitch,40.9631327,-74.2303512,,,NJ,,false,true,false,openstreetmap
+Barrington Little League,baseball,pitch,39.86458,-75.0523884,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,40.4064773,-74.5653432,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,40.4055881,-74.5645234,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,40.4047784,-74.5643775,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond,baseball,pitch,40.404632,-74.5628444,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond 1,baseball,pitch,40.5551464,-74.5321981,,,NJ,,false,true,false,openstreetmap
+Baseball Diamond 2,baseball,pitch,40.5546329,-74.5316478,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.6686806,-74.3156635,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.6720317,-74.318564,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.6244396,-74.576257,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.624994,-74.5751285,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.6237688,-74.5754099,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.624416,-74.5743298,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.2870221,-73.9896739,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.2879952,-73.989525,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.2892939,-73.9897004,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,41.0634726,-74.1439347,,,NJ,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,41.0627483,-74.1436995,,,NJ,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,40.8652813,-74.7240393,,,NJ,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,40.8653156,-74.7230285,,,NJ,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,40.8645462,-74.7229793,,,NJ,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,40.8627089,-74.7239273,,,NJ,,false,true,false,openstreetmap
+Baseball Pitch,baseball,pitch,41.0089789,-73.9775284,,,NJ,,false,true,false,openstreetmap
+Baseball field,baseball,pitch,41.0631221,-74.1432408,,,NJ,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,40.0083221,-74.6242317,,,NJ,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,40.0086572,-74.624218,,,NJ,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,40.0081943,-74.623627,,,NJ,,false,true,false,openstreetmap
+Bill Randazzo Jr. Memorial Field,baseball,pitch,39.7424852,-75.0965964,,,NJ,,false,true,false,openstreetmap
+Bonnel Field Softball Field,baseball,pitch,40.8400654,-74.2963412,,,NJ,,false,true,false,openstreetmap
+Borough Field,baseball,pitch,40.7839058,-74.3995994,,,NJ,,false,true,false,openstreetmap
+Boundless Field,baseball,pitch,39.9001266,-75.0182801,,,NJ,,false,true,false,openstreetmap
+Boys Field,baseball,pitch,40.993361,-74.304564,,,NJ,,false,true,false,openstreetmap
+Bradley Gardens Little Loop Field,baseball,pitch,40.5593741,-74.6539823,,,NJ,,false,true,false,openstreetmap
+Breslin Stadium,baseball,pitch,40.8174201,-74.1333111,,,NJ,,false,true,false,openstreetmap
+Brian E. Fleury Field,baseball,pitch,40.7787517,-74.5241687,,,NJ,,false,true,false,openstreetmap
+Brian Fleury Field,baseball,pitch,40.8335354,-74.4678076,,,NJ,,false,true,false,openstreetmap
+Broadmead Field,baseball,pitch,40.34857,-74.6440675,,,NJ,,false,true,false,openstreetmap
+Brooks Field,baseball,pitch,39.8658868,-74.8017253,,,NJ,,false,true,false,openstreetmap
+Brower Field,baseball,pitch,40.8898655,-74.1727867,,,NJ,,false,true,false,openstreetmap
+Brown Field,baseball,pitch,39.7355891,-75.1370432,,,NJ,,false,true,false,openstreetmap
+Bunning Field,baseball,pitch,39.8921323,-74.8263731,,,NJ,,false,true,false,openstreetmap
+C1 Field,baseball,pitch,40.3126071,-74.5108678,,,NJ,,false,true,false,openstreetmap
+C3 Field,baseball,pitch,40.3115523,-74.5132975,,,NJ,,false,true,false,openstreetmap
+Carlstadt Little League,baseball,pitch,40.8384726,-74.0847067,,,NJ,,false,true,false,openstreetmap
+Central Park Baseball Field,baseball,pitch,40.66205,-75.1656517,,,NJ,,false,true,false,openstreetmap
+Christopher Coop Memorial Field,baseball,pitch,40.4126486,-74.3366242,,,NJ,,false,true,false,openstreetmap
+Clarke Field,baseball,pitch,40.346603,-74.6480635,,,NJ,,false,true,false,openstreetmap
+Commons Field,baseball,pitch,40.9269126,-74.1817833,,,NJ,,false,true,false,openstreetmap
+Croydon Hall Baseball Fields,baseball,pitch,40.4084227,-74.0563269,,,NJ,,false,true,false,openstreetmap
+Dean D'Ambola Athletic Field,baseball,pitch,40.8046406,-74.3697179,,,NJ,,false,true,false,openstreetmap
+Del's Field,baseball,pitch,40.4072963,-74.3453365,,,NJ,,false,true,false,openstreetmap
+Delaney Field,baseball,pitch,40.8623684,-74.3955811,,,NJ,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,40.8426165,-74.118788,,,NJ,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,40.8437556,-74.119806,,,NJ,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,40.8451235,-74.1202171,,,NJ,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,40.8441619,-74.1206188,,,NJ,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,40.8430812,-74.1159093,,,NJ,,false,true,false,openstreetmap
+Diamond 6,baseball,pitch,40.8436114,-74.1167662,,,NJ,,false,true,false,openstreetmap
+Diamond 7,baseball,pitch,40.8431086,-74.1180861,,,NJ,,false,true,false,openstreetmap
+Diamond 9,baseball,pitch,40.8458467,-74.1202565,,,NJ,,false,true,false,openstreetmap
+Dobbelaar Baseball Field,baseball,pitch,40.7449301,-74.0261818,,,NJ,,false,true,false,openstreetmap
+Don Jenkins Field,baseball,pitch,40.9844126,-74.2954862,,,NJ,,false,true,false,openstreetmap
+Doug Davis Field,baseball,pitch,40.9111156,-74.2571308,,,NJ,,false,true,false,openstreetmap
+East Rutherford Little League,baseball,pitch,40.8246405,-74.0978808,,,NJ,,false,true,false,openstreetmap
+Ed Sanicki Field,baseball,pitch,40.8882434,-74.1732708,,,NJ,,false,true,false,openstreetmap
+Eddie Mayo Field,baseball,pitch,40.8605203,-74.1658208,,,NJ,,false,true,false,openstreetmap
+Edison Boys Baseball Leauge,baseball,sports_centre,40.5126814,-74.4203488,,,NJ,,false,true,false,openstreetmap
+Emmett Field #1,baseball,pitch,40.7862372,-74.4030772,,,NJ,,false,true,false,openstreetmap
+Emmett Field #2,baseball,pitch,40.7866895,-74.4036404,,,NJ,,false,true,false,openstreetmap
+Emmett Field #3,baseball,pitch,40.7853596,-74.4037283,,,NJ,,false,true,false,openstreetmap
+Essex County Baseball Field,baseball,pitch,40.7348735,-74.1430163,,,NJ,,false,true,false,openstreetmap
+Everett Park,baseball,pitch,40.8270782,-74.2349762,,,NJ,,false,true,false,openstreetmap
+FDU Baseball Field,baseball,pitch,40.9015895,-74.0278407,,,NJ,,false,true,false,openstreetmap
+FDU Softball Field,baseball,pitch,40.8990486,-74.0327939,,,NJ,,false,true,false,openstreetmap
+Farm Field,baseball,pitch,40.9925676,-74.3048035,,,NJ,,false,true,false,openstreetmap
+Fernwood Field,baseball,pitch,40.8214954,-74.3063185,,,NJ,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.8674815,-74.1903778,,,NJ,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.8543906,-74.1592236,,,NJ,,false,true,false,openstreetmap
+Field #1,baseball,pitch,40.8601636,-74.1550423,,,NJ,,false,true,false,openstreetmap
+Field #1 (Lowry Field),baseball,pitch,40.8330962,-74.1365134,,,NJ,,false,true,false,openstreetmap
+Field #1 (Potts Field),baseball,pitch,40.8830201,-74.1321426,,,NJ,,false,true,false,openstreetmap
+Field #2,baseball,pitch,40.8593138,-74.154993,,,NJ,,false,true,false,openstreetmap
+Field #2,baseball,pitch,40.8553848,-74.1597825,,,NJ,,false,true,false,openstreetmap
+Field #2 (Wienbrock Field),baseball,pitch,40.8325553,-74.1361613,,,NJ,,false,true,false,openstreetmap
+Field #3,baseball,pitch,40.8549988,-74.1603392,,,NJ,,false,true,false,openstreetmap
+Field #3 (Bondinell Field),baseball,pitch,40.8840073,-74.1317994,,,NJ,,false,true,false,openstreetmap
+Field #3 (Joseph Kolodziej Field),baseball,pitch,40.8598446,-74.1544047,,,NJ,,false,true,false,openstreetmap
+Field #4,baseball,pitch,40.854957,-74.1591706,,,NJ,,false,true,false,openstreetmap
+Field 1,baseball,pitch,41.0239454,-74.2504301,,,NJ,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.8961925,-75.0253628,,,NJ,,false,true,false,openstreetmap
+Field 2,baseball,pitch,41.0233142,-74.2508816,,,NJ,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.8956867,-75.0246511,,,NJ,,false,true,false,openstreetmap
+Field 2 at Mannino Park,baseball,pitch,40.4131206,-74.3359964,,,NJ,,false,true,false,openstreetmap
+Field 3,baseball,pitch,41.0236328,-74.2498931,,,NJ,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.8963107,-75.0238732,,,NJ,,false,true,false,openstreetmap
+Field 4,baseball,pitch,41.0229924,-74.2500863,,,NJ,,false,true,false,openstreetmap
+Field 5,baseball,pitch,41.0234861,-74.2491663,,,NJ,,false,true,false,openstreetmap
+Field 6,baseball,pitch,41.0226266,-74.2494082,,,NJ,,false,true,false,openstreetmap
+Field 7,baseball,pitch,41.0231847,-74.2486401,,,NJ,,false,true,false,openstreetmap
+Field 8,baseball,pitch,41.0225097,-74.2482315,,,NJ,,false,true,false,openstreetmap
+Field 8,baseball,pitch,40.8563073,-74.5076112,,,NJ,,false,true,false,openstreetmap
+Field 9,baseball,pitch,41.0225787,-74.2470037,,,NJ,,false,true,false,openstreetmap
+Field 9,baseball,pitch,40.8552344,-74.5077086,,,NJ,,false,true,false,openstreetmap
+Field A,baseball,pitch,39.7486358,-75.3178259,,,NJ,,false,true,false,openstreetmap
+Field B,baseball,pitch,39.7477439,-75.317553,,,NJ,,false,true,false,openstreetmap
+Field E,baseball,pitch,39.7466266,-75.3183688,,,NJ,,false,true,false,openstreetmap
+Field H,baseball,pitch,39.7468035,-75.31989,,,NJ,,false,true,false,openstreetmap
+Field I,baseball,pitch,39.7466554,-75.3209033,,,NJ,,false,true,false,openstreetmap
+Field N,baseball,pitch,39.7483127,-75.3241541,,,NJ,,false,true,false,openstreetmap
+Field O,baseball,pitch,39.7477835,-75.3245867,,,NJ,,false,true,false,openstreetmap
+Field P,baseball,pitch,39.7471898,-75.3248784,,,NJ,,false,true,false,openstreetmap
+Field Q,baseball,pitch,39.746613,-75.3233369,,,NJ,,false,true,false,openstreetmap
+Firemen's Field,baseball,pitch,40.8610146,-74.2599581,,,NJ,,false,true,false,openstreetmap
+First Responders Field,baseball,pitch,40.4103557,-74.3476934,,,NJ,,false,true,false,openstreetmap
+Five Fireman's Field,baseball,pitch,40.8322596,-73.9999319,,,NJ,,false,true,false,openstreetmap
+Flannagan Field,baseball,pitch,40.6058709,-74.2566715,,,NJ,,false,true,false,openstreetmap
+Fullerton Youth Baseball Field,baseball,pitch,39.9712754,-74.9353254,,,NJ,,false,true,false,openstreetmap
+Gardner Field 7,baseball,pitch,40.8964033,-74.4839713,,,NJ,,false,true,false,openstreetmap
+"Gardner Field, Field 1",baseball,pitch,40.8984588,-74.4862969,,,NJ,,false,true,false,openstreetmap
+"Gardner Field, Field 2",baseball,pitch,40.8976752,-74.4861324,,,NJ,,false,true,false,openstreetmap
+"Gardner Field, Field 4",baseball,pitch,40.8982687,-74.4850775,,,NJ,,false,true,false,openstreetmap
+"Gardner Field, Field 5",baseball,pitch,40.8979894,-74.4837324,,,NJ,,false,true,false,openstreetmap
+"Gardner Field, Field 6",baseball,pitch,40.8975174,-74.4839373,,,NJ,,false,true,false,openstreetmap
+Garfield Little League,baseball,pitch,40.8774186,-74.1048588,,,NJ,,false,true,false,openstreetmap
+"George ""Z"" Zampini Baseball Field",baseball,pitch,40.8011804,-74.160763,,,NJ,,false,true,false,openstreetmap
+George Ackerman Park,baseball,pitch,40.2660137,-74.7774345,,,NJ,,false,true,false,openstreetmap
+Girls Field,baseball,pitch,40.9932432,-74.3052875,,,NJ,,false,true,false,openstreetmap
+Gorman Field,baseball,pitch,40.6455996,-74.1351831,,,NJ,,false,true,false,openstreetmap
+Grover Cleveland Baseball Field,baseball,pitch,40.8336348,-74.2841007,,,NJ,,false,true,false,openstreetmap
+Grover Cleveland Middle School Baseball Field,baseball,pitch,40.842134,-74.2838098,,,NJ,,false,true,false,openstreetmap
+Hank Greenberg Field,baseball,pitch,39.8843653,-75.0782387,,,NJ,,false,true,false,openstreetmap
+Harmon Field,baseball,pitch,39.7365496,-75.1372972,,,NJ,,false,true,false,openstreetmap
+Harrison Field,baseball,pitch,40.8221815,-74.2893676,,,NJ,,false,true,false,openstreetmap
+Hasbrouck Heights Little League,baseball,pitch,40.8592735,-74.0685576,,,NJ,,false,true,false,openstreetmap
+Hayes Field,baseball,pitch,39.7914702,-75.1581508,,,NJ,,false,true,false,openstreetmap
+Hebron Fields,baseball,pitch,40.8397846,-74.2032328,,,NJ,,false,true,false,openstreetmap
+Herb & Joan Young Softball Field,baseball,pitch,40.2856648,-74.7428168,,,NJ,,false,true,false,openstreetmap
+Heritage Field,baseball,pitch,40.3252456,-74.7931616,,,NJ,,false,true,false,openstreetmap
+High School Baseball Field,baseball,pitch,40.9543028,-74.1213842,,,NJ,,false,true,false,openstreetmap
+Hoffman Field,baseball,pitch,41.0073496,-74.0157368,,,NJ,,false,true,false,openstreetmap
+Howard St Field,baseball,pitch,40.7670949,-74.4146965,,,NJ,,false,true,false,openstreetmap
+Hudson Park,baseball,park,40.7413591,-74.0271121,,,NJ,,false,true,false,openstreetmap
+Independence Field 1,baseball,pitch,40.9930413,-74.2994169,,,NJ,,false,true,false,openstreetmap
+Independence Field 2,baseball,pitch,40.9923732,-74.2994374,,,NJ,,false,true,false,openstreetmap
+Irma Neatch Memorial Field,baseball,pitch,40.4103387,-74.3484932,,,NJ,,false,true,false,openstreetmap
+JV Baseball Field,baseball,pitch,40.7714487,-74.411028,,,NJ,,false,true,false,openstreetmap
+Jeff Maund Memorial Baseball Field,baseball,pitch,41.0845616,-74.1774598,,,NJ,,false,true,false,openstreetmap
+Jericho Baseball Field 1,baseball,pitch,40.6622747,-74.8973439,,,NJ,,false,true,false,openstreetmap
+Joe Black Field,baseball,pitch,40.9846555,-74.2937234,,,NJ,,false,true,false,openstreetmap
+"John ""Chick"" Choka Field",baseball,pitch,40.9378784,-74.214052,,,NJ,,false,true,false,openstreetmap
+John Dolak Field,baseball,pitch,40.6609471,-75.1571843,,,NJ,,false,true,false,openstreetmap
+Joseph A. Cervino Field,baseball,pitch,39.87686,-75.0573159,,,NJ,,false,true,false,openstreetmap
+June Walker Field,baseball,pitch,40.2645952,-74.7797445,,,NJ,,false,true,false,openstreetmap
+Kiwanis Oval Baseball Field,baseball,pitch,40.8373798,-74.2752795,,,NJ,,false,true,false,openstreetmap
+LCJSMS Recreational Field,baseball,pitch,40.7128064,-74.3609374,,,NJ,,false,true,false,openstreetmap
+LP1,baseball,pitch,40.8315819,-74.3448954,,,NJ,,false,true,false,openstreetmap
+LP2,baseball,pitch,40.8311135,-74.3445328,,,NJ,,false,true,false,openstreetmap
+LP3,baseball,pitch,40.8309876,-74.3433237,,,NJ,,false,true,false,openstreetmap
+LP4,baseball,pitch,40.8303419,-74.342951,,,NJ,,false,true,false,openstreetmap
+Lakeview Field,baseball,sports_centre,40.85577,-74.0377338,,,NJ,,false,true,false,openstreetmap
+Langston Field,baseball,pitch,39.7866446,-75.1491819,,,NJ,,false,true,false,openstreetmap
+Larry Doby Field,baseball,pitch,40.9157885,-74.1343965,,,NJ,,false,true,false,openstreetmap
+Laurie Field,baseball,pitch,41.0248167,-74.2974089,,,NJ,,false,true,false,openstreetmap
+Lazar Baseball field,baseball,pitch,40.8975316,-74.3674007,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9188788,-74.6991788,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9197891,-74.6997485,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9176565,-74.6970532,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9178903,-74.6979265,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9184451,-74.6978972,,,NJ,,false,true,false,openstreetmap
+Lenape Valley High School,baseball,pitch,40.9165706,-74.6961832,,,NJ,,false,true,false,openstreetmap
+Liberty Field,baseball,pitch,40.8367314,-74.2570532,,,NJ,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,40.7007988,-74.3974734,,,NJ,,false,true,false,openstreetmap
+Little League Baseball Field,baseball,pitch,40.645836,-74.139328,,,NJ,,false,true,false,openstreetmap
+Lizzy Baseball field,baseball,pitch,39.8961124,-75.046182,,,NJ,,false,true,false,openstreetmap
+Lonnstorm Stadium,baseball,pitch,40.7618091,-74.4291271,,,NJ,,false,true,false,openstreetmap
+Lucy D Field,baseball,pitch,40.7665248,-74.4150906,,,NJ,,false,true,false,openstreetmap
+Lurker Park Main Baseball Field,baseball,pitch,40.8322403,-74.345794,,,NJ,,false,true,false,openstreetmap
+Lyndhurst Little League,baseball,pitch,40.8183901,-74.1318466,,,NJ,,false,true,false,openstreetmap
+Main Baseball Field,baseball,pitch,40.428446,-74.1521514,,,NJ,,false,true,false,openstreetmap
+Main Street Field,baseball,pitch,40.9552418,-74.1392515,,,NJ,,false,true,false,openstreetmap
+Manor Park,baseball,pitch,40.8841536,-74.4240454,,,NJ,,false,true,false,openstreetmap
+Matthew Hurte Junior Baseball Field,baseball,pitch,40.6654283,-75.1197485,,,NJ,,false,true,false,openstreetmap
+Meadowbrook Field Complex,baseball,pitch,40.7758439,-74.3304557,,,NJ,,false,true,false,openstreetmap
+Middle School Baseball Field,baseball,pitch,40.0580149,-74.8437953,,,NJ,,false,true,false,openstreetmap
+Middle School Baseball Field,baseball,pitch,40.0578017,-74.8429074,,,NJ,,false,true,false,openstreetmap
+Middletown North Varsity Baseball Field,baseball,pitch,40.4019459,-74.0954389,,,NJ,,false,true,false,openstreetmap
+Middletown South JV Baseball Field,baseball,pitch,40.3540433,-74.1164474,,,NJ,,false,true,false,openstreetmap
+Miller Stadium,baseball,stadium,40.7885545,-74.0192685,,,NJ,,false,true,false,openstreetmap
+Mount Olive Baseball,baseball,pitch,40.8595434,-74.7134558,,,NJ,,false,true,false,openstreetmap
+Mountwell Baseball Field,baseball,pitch,39.8900146,-75.0275065,,,NJ,,false,true,false,openstreetmap
+Myrtle Ave Field,baseball,pitch,40.7663767,-74.4142819,,,NJ,,false,true,false,openstreetmap
+NBTHS,baseball,pitch,40.4557321,-74.4667574,,,NJ,,false,true,false,openstreetmap
+NBTHS,baseball,pitch,40.4551031,-74.4657472,,,NJ,,false,true,false,openstreetmap
+NJCU Baseball Field,baseball,pitch,40.7036188,-74.1034193,,,NJ,,false,true,false,openstreetmap
+NJCU Softball Field,baseball,pitch,40.7041579,-74.1014756,,,NJ,,false,true,false,openstreetmap
+Neeta Field,baseball,pitch,39.8672967,-74.8068627,,,NJ,,false,true,false,openstreetmap
+Nokomis Field,baseball,pitch,39.8516682,-74.805695,,,NJ,,false,true,false,openstreetmap
+North Howell Little League,baseball,sports_centre,40.2397178,-74.2373445,,,NJ,,false,true,false,openstreetmap
+Nutley American Little League,baseball,pitch,40.8098706,-74.1744911,,,NJ,,false,true,false,openstreetmap
+Nyikita Field,baseball,pitch,40.1173369,-74.7805177,,,NJ,,false,true,false,openstreetmap
+Oak Meadows Field,baseball,pitch,40.9311025,-74.4703642,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,baseball,pitch,41.0304629,-74.0399288,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School,baseball,pitch,41.0298341,-74.0403912,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School Baseball Field,baseball,pitch,41.0332861,-74.0414147,,,NJ,,false,true,false,openstreetmap
+Park Ridge High School Baseball Field,baseball,pitch,41.0328561,-74.0403366,,,NJ,,false,true,false,openstreetmap
+Peterson Field 4,baseball,pitch,40.9099643,-74.5413272,,,NJ,,false,true,false,openstreetmap
+Pony League Field,baseball,pitch,40.6458966,-74.1383848,,,NJ,,false,true,false,openstreetmap
+Practice Field,baseball,pitch,40.5393436,-74.2879791,,,NJ,,false,true,false,openstreetmap
+Rash Field,baseball,pitch,40.1713724,-74.0340935,,,NJ,,false,true,false,openstreetmap
+Robert Labbe Memorial Park Baseball Field,baseball,pitch,40.4132323,-74.1703228,,,NJ,,false,true,false,openstreetmap
+Roberto Clemente Baseball Field,baseball,pitch,40.7255612,-74.0414459,,,NJ,,false,true,false,openstreetmap
+Rock Ridge Baseball Field,baseball,sports_centre,40.9152158,-74.4620664,,,NJ,,false,true,false,openstreetmap
+Ron Brown Field,baseball,pitch,40.8335498,-74.465404,,,NJ,,false,true,false,openstreetmap
+Rosa Middle school,baseball,pitch,39.8867691,-74.9986392,,,NJ,,false,true,false,openstreetmap
+Rosa Middle school,baseball,pitch,39.8867882,-74.997301,,,NJ,,false,true,false,openstreetmap
+Rosedale Field 2,baseball,pitch,40.756436,-74.4005394,,,NJ,,false,true,false,openstreetmap
+Rutherford Little League,baseball,pitch,40.8441512,-74.1179174,,,NJ,,false,true,false,openstreetmap
+Ryan Field,baseball,pitch,39.9840087,-74.1929849,,,NJ,,false,true,false,openstreetmap
+S1,baseball,pitch,40.2564848,-74.635069,,,NJ,,false,true,false,openstreetmap
+S2,baseball,pitch,40.2576962,-74.6362466,,,NJ,,false,true,false,openstreetmap
+S3,baseball,pitch,40.2604369,-74.6333503,,,NJ,,false,true,false,openstreetmap
+S4,baseball,pitch,40.2598094,-74.6322401,,,NJ,,false,true,false,openstreetmap
+S5,baseball,pitch,40.2591298,-74.6312748,,,NJ,,false,true,false,openstreetmap
+S6,baseball,pitch,40.2595728,-74.6333781,,,NJ,,false,true,false,openstreetmap
+S7,baseball,pitch,40.2588954,-74.632608,,,NJ,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,40.9360774,-74.6607373,,,NJ,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,40.9845387,-74.2944023,,,NJ,,false,true,false,openstreetmap
+Senior Field,baseball,pitch,40.4107741,-74.3494494,,,NJ,,false,true,false,openstreetmap
+Sherman Avenue Field,baseball,pitch,40.8115157,-74.2024497,,,NJ,,false,true,false,openstreetmap
+Skylands Stadium,baseball,stadium,41.1264273,-74.7127033,,,NJ,,false,true,false,openstreetmap
+Smith Field,baseball,pitch,40.8941064,-74.5103941,,,NJ,,false,true,false,openstreetmap
+Softball,baseball,pitch,40.6828447,-74.1138726,,,NJ,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,40.9489754,-74.2213404,,,NJ,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,41.0861237,-74.1773644,,,NJ,,false,true,false,openstreetmap
+Softball Pitch,baseball,pitch,41.0094361,-73.9809078,,,NJ,,false,true,false,openstreetmap
+Softball/Baseball Field,baseball,pitch,39.7526011,-75.0947137,,,NJ,,false,true,false,openstreetmap
+Sonny Pittaro Baseball Field,baseball,pitch,40.2825607,-74.746432,,,NJ,,false,true,false,openstreetmap
+Sonny Vitale Memorial Field,baseball,pitch,40.7567449,-74.4011553,,,NJ,,false,true,false,openstreetmap
+South River Little League Field,baseball,pitch,40.4573513,-74.3904046,,,NJ,,false,true,false,openstreetmap
+Steinert High School Baseball Field,baseball,pitch,40.2179944,-74.6642595,,,NJ,,false,true,false,openstreetmap
+Steinert High School Practice Softball Field,baseball,pitch,40.2167166,-74.6639937,,,NJ,,false,true,false,openstreetmap
+Steinert High School Softball Field,baseball,pitch,40.2176068,-74.661551,,,NJ,,false,true,false,openstreetmap
+Stobaeus Field,baseball,pitch,40.7823626,-74.3877318,,,NJ,,false,true,false,openstreetmap
+T-Ball Field,baseball,pitch,39.7403184,-75.0955093,,,NJ,,false,true,false,openstreetmap
+T-Ball Field 1,baseball,pitch,40.9848875,-74.2955787,,,NJ,,false,true,false,openstreetmap
+T-Ball Field 2,baseball,pitch,40.9848555,-74.2952134,,,NJ,,false,true,false,openstreetmap
+TD Bank Ballpark,baseball,stadium,40.5607559,-74.553163,,,NJ,,false,true,false,openstreetmap
+Thomas J. O'Beirne Field,baseball,pitch,40.8228618,-74.2905651,,,NJ,,false,true,false,openstreetmap
+Toms River Little League,baseball,sports_centre,39.9757535,-74.1911275,,,NJ,,false,true,false,openstreetmap
+Toomer Memorial Field,baseball,pitch,40.4203023,-74.2463177,,,NJ,,false,true,false,openstreetmap
+Toomer Memorial Field,baseball,pitch,40.4202777,-74.2463393,,,NJ,,false,true,false,openstreetmap
+Ungerman Field,baseball,pitch,41.0360793,-74.6385625,,,NJ,,false,true,false,openstreetmap
+Upper Baseball Field,baseball,pitch,40.8866476,-74.5076188,,,NJ,,false,true,false,openstreetmap
+Upper Faber Field,baseball,pitch,40.9712916,-74.1297144,,,NJ,,false,true,false,openstreetmap
+Valley Road Baseball Field,baseball,pitch,40.5252187,-74.6406936,,,NJ,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,39.8748114,-74.9038762,,,NJ,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,40.7710115,-74.4098246,,,NJ,,false,true,false,openstreetmap
+Veteran's Park,baseball,pitch,40.4726441,-74.283427,,,NJ,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,40.8334501,-74.00066,,,NJ,,false,true,false,openstreetmap
+Volunteers Park Field 2,baseball,pitch,40.786246,-74.4092246,,,NJ,,false,true,false,openstreetmap
+Volunteers Park Field 3,baseball,pitch,40.784034,-74.4072105,,,NJ,,false,true,false,openstreetmap
+Volunteers Park Little League Field,baseball,pitch,40.7858324,-74.4103071,,,NJ,,false,true,false,openstreetmap
+WOHS Baseball Field,baseball,pitch,40.8036472,-74.2612669,,,NJ,,false,true,false,openstreetmap
+Waldwick High School baseball field,baseball,pitch,41.0127577,-74.1322881,,,NJ,,false,true,false,openstreetmap
+Wallington Little League,baseball,pitch,40.8525507,-74.1027457,,,NJ,,false,true,false,openstreetmap
+Walter Woods Field,baseball,pitch,40.3531546,-74.1152221,,,NJ,,false,true,false,openstreetmap
+Westerly Drive Baseball Field,baseball,pitch,39.9124233,-74.9494441,,,NJ,,false,true,false,openstreetmap
+Wetzel Field,baseball,park,40.2112532,-74.7374174,,,NJ,,false,true,false,openstreetmap
+Wiffle Ball Field,baseball,pitch,40.9276596,-74.7322458,,,NJ,,false,true,false,openstreetmap
+Willow Field,baseball,pitch,40.9824167,-74.2956593,,,NJ,,false,true,false,openstreetmap
+Wilson Field,baseball,pitch,39.8642233,-74.810966,,,NJ,,false,true,false,openstreetmap
+Wilson School Baseball Field,baseball,pitch,40.6619196,-74.3440629,,,NJ,,false,true,false,openstreetmap
+Woodcrest Baseball Field,baseball,pitch,39.8735149,-74.993338,,,NJ,,false,true,false,openstreetmap
+Zitone Field,baseball,pitch,41.3148573,-74.7398349,,,NJ,,false,true,false,openstreetmap
+baseball feild,baseball,pitch,41.0649125,-74.1437683,,,NJ,,false,true,false,openstreetmap
+baseball field,baseball,pitch,41.0637821,-74.1430087,,,NJ,,false,true,false,openstreetmap
+⚾,baseball,pitch,40.6666869,-74.2731294,,,NJ,,false,true,false,openstreetmap
+⚾,baseball,pitch,40.6664018,-74.2726531,,,NJ,,false,true,false,openstreetmap
+⚾,baseball,pitch,40.6655752,-74.2733571,,,NJ,,false,true,false,openstreetmap
+⚾,baseball,pitch,40.6654621,-74.2703563,,,NJ,,false,true,false,openstreetmap
+⚾,baseball,pitch,40.665098,-74.2708696,,,NJ,,false,true,false,openstreetmap
+Surf Stadium,baseball,sports_centre,39.3588172,-74.4589854,545 Albany Avenue,Atlantic City,NJ,08401,false,true,false,openstreetmap
+Belleville Little League,baseball,pitch,40.791461,-74.1737628,92 Montgomery Place,Belleville,NJ,07109,false,true,false,openstreetmap
+ShoreTown Ballpark,baseball,stadium,40.0750827,-74.1869056,2 Stadium Way,Lakewood,NJ,08701,false,true,false,openstreetmap
+Yogi Berra Stadium,baseball,stadium,40.8689021,-74.195174,27 Clove Road,Little Falls,NJ,07424,false,true,false,openstreetmap
+Makina Baseball Academy,baseball,pitch,40.7378013,-74.1401498,2-6 Lister Avenue,Newark,NJ,07105,false,true,false,openstreetmap
+North Arlington Little League,baseball,pitch,40.7903447,-74.1431016,137 River Road,North Arlington,NJ,07031,false,true,false,openstreetmap
+"Biermans Baseball Gym ""Baseball Training""",baseball,fitness_centre,40.9277626,-74.2727367,90 Newark-Pompton Turnpike,Wayne,NJ,07470,false,true,false,openstreetmap
+Peralta Baseball LLC,baseball,fitness_centre,40.92735,-74.2724423,90 Newark Pompton Turnpike,Wayne,NJ,07470,false,true,false,openstreetmap
+Wood-Ridge Moonachie Little League,baseball,pitch,40.8466372,-74.0920371,75 6th Street,Wood-Ridge,NJ,07075,false,true,false,openstreetmap

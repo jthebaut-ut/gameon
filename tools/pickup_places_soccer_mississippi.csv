@@ -1,0 +1,16 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+City Soccer Field,soccer,pitch,33.5260038,-90.1997542,,,MS,,false,true,false,openstreetmap
+City Soccer Field,soccer,pitch,33.524969,-90.2003849,,,MS,,false,true,false,openstreetmap
+Danny Owens Field,soccer,pitch,31.304265,-89.2951773,,,MS,,false,true,false,openstreetmap
+Delta State Soccer Field,soccer,pitch,33.7537683,-90.7403166,,,MS,,false,true,false,openstreetmap
+Football Field,soccer,pitch,33.5121782,-90.1653514,,,MS,,false,true,false,openstreetmap
+Football/Soccer Field,soccer,pitch,32.2169205,-90.1502595,,,MS,,false,true,false,openstreetmap
+Intramural Athletics Fields,soccer,pitch,33.4414166,-88.797177,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,soccer,pitch,31.5910769,-89.1984823,,,MS,,false,true,false,openstreetmap
+LHS Practice Field,soccer,pitch,34.3483209,-89.5022281,,,MS,,false,true,false,openstreetmap
+Lewisburg High School Soccer Field,soccer,pitch,34.8735074,-89.8730367,,,MS,,false,true,false,openstreetmap
+MGCCC Soccer Field,soccer,pitch,30.7803162,-89.1463093,,,MS,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,33.5293821,-90.185042,,,MS,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,31.5478468,-91.3684039,,,MS,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,31.5483443,-91.3678137,,,MS,,false,true,false,openstreetmap
+Ole Miss Soccer Stadium,soccer,pitch,34.3581306,-89.5462276,960 Hathorn Road,University,MS,38677,false,true,false,openstreetmap

@@ -1,0 +1,36 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball court,basketball,pitch,34.7291812,-98.4036318,,,OK,,false,true,false,openstreetmap
+Beggs Event Center,basketball,sports_centre,35.7495264,-96.0815512,,,OK,,false,true,false,openstreetmap
+Deer Creek Basket Ball Court,basketball,pitch,36.0515549,-95.7071122,,,OK,,false,true,false,openstreetmap
+Elgin High School Gym,basketball,pitch,34.780136,-98.2892782,,,OK,,false,true,false,openstreetmap
+Family Life Center Gym,basketball,fitness_centre,35.4454404,-97.4350157,,,OK,,false,true,false,openstreetmap
+Field House,basketball,pitch,35.7922127,-95.2414538,,,OK,,false,true,false,openstreetmap
+Gym Time Hoops,basketball,fitness_centre,36.0315872,-95.8161067,,,OK,,false,true,false,openstreetmap
+Heatly Arena,basketball,pitch,34.8342405,-97.6135533,,,OK,,false,true,false,openstreetmap
+Highland Trails Basketball Cout,basketball,pitch,35.734816,-97.5030013,,,OK,,false,true,false,openstreetmap
+Kingston Gymnasium,basketball,pitch,34.0001865,-96.7141472,,,OK,,false,true,false,openstreetmap
+Leopard Arena,basketball,sports_hall,34.8341999,-97.6144264,,,OK,,false,true,false,openstreetmap
+Norman Parks and Recreation,basketball,pitch,35.2290225,-97.4320245,,,OK,,false,true,false,openstreetmap
+OBA Basketball Courts,basketball,pitch,36.4040533,-97.9523031,,,OK,,false,true,false,openstreetmap
+Oakcliff Church of Nazarene,basketball,pitch,35.4067744,-97.4510777,,,OK,,false,true,false,openstreetmap
+Oklahoma Playing With Purpose,basketball,sports_centre,36.0323762,-95.9504673,,,OK,,false,true,false,openstreetmap
+Old Gym,basketball,sports_hall,35.7922736,-95.239683,,,OK,,true,false,false,openstreetmap
+Outdoor Basketball Court,basketball,pitch,35.4913316,-95.319244,,,OK,,false,true,false,openstreetmap
+Outside Basketball Courts,basketball,pitch,36.5951421,-101.6374567,,,OK,,false,true,false,openstreetmap
+Pete Byrd Basketball Gym,basketball,sports_centre,34.499152,-97.1146576,,,OK,,false,true,false,openstreetmap
+Practice,basketball,pitch,35.2868147,-97.8071955,,,OK,,false,true,false,openstreetmap
+Practice,basketball,pitch,35.2867443,-97.8069775,,,OK,,false,true,false,openstreetmap
+Practice,basketball,pitch,35.2846586,-97.8060851,,,OK,,false,true,false,openstreetmap
+Roland Park Basketball Court,basketball,pitch,35.9625546,-95.6624043,,,OK,,false,true,false,openstreetmap
+Ron D. Milam Gymnasium,basketball,sports_hall,35.7724806,-95.3298671,,,OK,,false,true,false,openstreetmap
+Thunder Community Court,basketball,pitch,35.4541634,-97.5173468,,,OK,,false,true,false,openstreetmap
+Varsity House Basketball Court,basketball,pitch,35.1796653,-97.4212957,,,OK,,false,true,false,openstreetmap
+basketball court,basketball,pitch,34.6405713,-98.4125813,,,OK,,false,true,false,openstreetmap
+maddische basketball court,basketball,pitch,34.7308109,-98.4017386,,,OK,,false,true,false,openstreetmap
+Hydro-Eakly High School Event Center,basketball,pitch,35.5509397,-98.5715369,618 North Blake Avenue,Hydro,OK,73048,false,true,false,openstreetmap
+The Fieldhouse at Rougher Village,basketball,sports_hall,35.7714831,-95.3331879,3200 East Shawnee Road,Muskogee,OK,74403,false,true,false,openstreetmap
+Lloyd Noble Center,basketball,stadium,35.1870319,-97.4442739,2900 Jenkins Avenue,Norman,OK,73069,false,true,false,openstreetmap
+240 Sports Complex,basketball,park,35.3880898,-97.4453065,3820 East Interstate 240 Service Road,Oklahoma City,OK,73135,false,true,false,openstreetmap
+Paycom Center,basketball,stadium,35.4633944,-97.5151217,100 West Reno Avenue,Oklahoma City,OK,73102,false,true,false,openstreetmap
+NSU Event Center,basketball,sports_hall,35.9267637,-94.9677233,1041 North Grand Avenue,Tahlequah,OK,74464,false,true,false,openstreetmap
+Reynolds Center,basketball,stadium,36.1490281,-95.9421326,3208 East 8th Street South,Tulsa,OK,74104,false,true,false,openstreetmap

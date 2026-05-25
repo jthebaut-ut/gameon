@@ -1,0 +1,40 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Benton Park Tennis Courts,tennis,pitch,38.5978981,-90.2240733,,,MO,,false,true,false,openstreetmap
+Bucklin Tennis Court,tennis,pitch,39.7824148,-92.8871732,,,MO,,false,true,false,openstreetmap
+Cherry Creek Apartments,tennis,pitch,38.5915939,-90.4939078,,,MO,,false,true,false,openstreetmap
+City Park Tennis Court,tennis,pitch,38.6279224,-92.5648409,,,MO,,false,true,false,openstreetmap
+"City of Manchester, MO Parks & Recreation Department",tennis,pitch,38.5876404,-90.5111986,,,MO,,false,true,false,openstreetmap
+"City of Manchester, MO Parks & Recreation Department",tennis,pitch,38.5876399,-90.5108642,,,MO,,false,true,false,openstreetmap
+"City of Manchester, MO Parks & Recreation Department",tennis,pitch,38.5876404,-90.5110326,,,MO,,false,true,false,openstreetmap
+Elder Tennis Courts,tennis,pitch,38.8476077,-91.9579251,,,MO,,false,true,false,openstreetmap
+Fairview Park Tennis Courts,tennis,pitch,38.942027,-92.3819495,,,MO,,false,true,false,openstreetmap
+Frontenac Racquet Club,tennis,sports_centre,38.6444626,-90.4096198,10455 German Blvd.,,MO,63131,false,true,false,openstreetmap
+Green Tennis Center,tennis,sports_centre,38.9272766,-92.3412101,2003 South Providence Road,,MO,,false,true,false,openstreetmap
+Henry Shaw Tennis Center,tennis,pitch,38.6074655,-90.2598293,,,MO,,false,true,false,openstreetmap
+Lucy Brown Tennis Courts,tennis,pitch,39.0491397,-94.2758449,,,MO,,false,true,false,openstreetmap
+Main Tennis Courts,tennis,pitch,38.6438992,-90.4731529,,,MO,,false,true,false,openstreetmap
+Mediacom Tennis Stadium,tennis,sports_centre,37.2192259,-93.2495136,,,MO,,false,true,false,openstreetmap
+Metro East Tennis Center,tennis,sports_centre,39.0206464,-94.3001183,,,MO,,false,true,false,openstreetmap
+North Tennis Court,tennis,pitch,38.6892122,-90.4681928,,,MO,,false,true,false,openstreetmap
+Noyes Tennis Courts,tennis,pitch,39.7651357,-94.8251724,,,MO,,false,true,false,openstreetmap
+Plaza Tennis Center,tennis,sports_centre,39.0414454,-94.5872041,,,MO,,false,true,false,openstreetmap
+Rapp Tennis Courts,tennis,sports_centre,38.9711983,-92.3681903,,,MO,,false,true,false,openstreetmap
+Richard Hudlin Tennis Courts,tennis,pitch,38.6342197,-90.2651063,,,MO,,false,true,false,openstreetmap
+Royal Pines Condominiums Tennis Court,tennis,pitch,38.7077137,-90.4774505,,,MO,,false,true,false,openstreetmap
+Shaw Park Tennis Center,tennis,sports_centre,38.6466637,-90.3425249,,,MO,,false,true,false,openstreetmap
+Steel Shop Tennis Club,tennis,sports_centre,38.7896856,-90.4772133,900 N. Main Ctr.,,MO,63301,false,true,false,openstreetmap
+Stone Ridge Tennis Court,tennis,pitch,38.7409331,-90.5989723,,,MO,,false,true,false,openstreetmap
+Sunset Tennis Center,tennis,sports_centre,38.5115819,-90.4091069,,,MO,,false,true,false,openstreetmap
+Suzanne Neal Memorial Tennis Complex,tennis,sports_centre,38.8593426,-91.9474908,,,MO,,false,true,false,openstreetmap
+Tao Tennis Center,tennis,pitch,38.6492562,-90.3134586,,,MO,,false,true,false,openstreetmap
+Ted Drewes Tennis Courts,tennis,sports_centre,38.6371754,-90.3141992,,,MO,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,38.50143,-90.4587606,,,MO,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,38.5210747,-90.4008374,,,MO,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,38.5216394,-90.3978655,,,MO,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,38.7365301,-90.6301036,,,MO,,false,true,false,openstreetmap
+The Highlands Tennis Center,tennis,pitch,38.6357831,-90.2715089,,,MO,,false,true,false,openstreetmap
+72nd Street Tennis Courts,tennis,sports_centre,39.22387,-94.5547684,Northeast 72nd Street,Gladstone,MO,64118,false,true,false,openstreetmap
+Happy Rock Park,tennis,sports_centre,39.2308812,-94.5340366,North Antioch Road,Gladstone,MO,64119,false,true,false,openstreetmap
+Oak Park High School Tennis Courts,tennis,sports_centre,39.2360286,-94.5704082,825 Northeast 79th Terrace,Kansas City,MO,64118,false,true,false,openstreetmap
+Macken Park Tennis Courts,tennis,sports_centre,39.1488039,-94.5713097,Clark Ferguson Drive,North Kansas City,MO,64116,false,true,false,openstreetmap
+Gillenwater Tennis Complex,tennis,sports_centre,37.1485925,-93.2921166,3635 South Jefferson Avenue,Springfield,MO,65807,false,true,false,openstreetmap

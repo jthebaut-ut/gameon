@@ -24,7 +24,7 @@ struct FanGeoAppleSignInButton: View {
             }
             print("[AppleAuthDebug] authorizationStarted=true")
             Task {
-                await viewModel.clearAppleAuthMessage(accountMode: accountMode, reason: "retry")
+                viewModel.clearAppleAuthMessage(accountMode: accountMode, reason: "retry")
             }
             request.requestedScopes = [.fullName, .email]
             request.nonce = Self.sha256(nonce)

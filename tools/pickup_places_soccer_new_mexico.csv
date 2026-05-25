@@ -1,0 +1,39 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Burn Lake Soccer Complex,soccer,pitch,32.2970216,-106.7997983,,,NM,,false,true,false,openstreetmap
+First Financial Training Center,soccer,pitch,34.9969846,-106.6229464,5600 University Boulevard Southeast,,NM,,false,true,false,openstreetmap
+High Noon Soccer Complex,soccer,sports_centre,32.3253045,-106.8084566,2004 Bruins Lane,,NM,,false,true,false,openstreetmap
+High Noon Soccer Complex,soccer,sports_centre,32.3221993,-106.8086609,2004 Bruins Lane,,NM,,false,true,false,openstreetmap
+La Cueva Soccer Field,soccer,pitch,35.18279,-106.5565635,,,NM,,false,true,false,openstreetmap
+Lightning Loop Soccer Field,soccer,pitch,35.8915965,-106.0161587,,,NM,,false,true,false,openstreetmap
+Manzano Mountain Retreat,soccer,pitch,34.6875339,-106.3477214,,,NM,,false,true,false,openstreetmap
+Mesa Del Sol Regional Outdoor Facility,soccer,pitch,34.997654,-106.6226448,5600 University Boulevard Southeast,,NM,,false,true,false,openstreetmap
+Middle Soccer Field,soccer,pitch,35.154434,-106.5593841,,,NM,,false,true,false,openstreetmap
+Mountain View Soccer Field,soccer,pitch,35.6157741,-105.2142759,,,NM,,false,true,false,openstreetmap
+NMT Soccer Field,soccer,pitch,34.0637787,-106.9043204,,,NM,,false,true,false,openstreetmap
+NMT Youth Soccer Field,soccer,pitch,34.0634594,-106.9046462,,,NM,,false,true,false,openstreetmap
+North Mesa Soccer Fields,soccer,sports_centre,35.8920909,-106.2838759,,,NM,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,35.6696079,-105.9158457,,,NM,,false,true,false,openstreetmap
+Robertson Field,soccer,pitch,35.0654883,-106.6250345,,,NM,,false,true,false,openstreetmap
+Rover Park Soccer Field,soccer,pitch,35.8166812,-106.2009717,,,NM,,false,true,false,openstreetmap
+Russell Watanabe Soccer Field,soccer,pitch,35.9024433,-106.2804904,,,NM,,false,true,false,openstreetmap
+Soccer #5,soccer,pitch,32.82462,-104.4377231,,,NM,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,32.8247078,-104.4373006,,,NM,,false,true,false,openstreetmap
+Soccer Field #10,soccer,pitch,32.8250808,-104.4388445,,,NM,,false,true,false,openstreetmap
+Soccer Field #11,soccer,pitch,32.8245696,-104.4383086,,,NM,,false,true,false,openstreetmap
+Soccer Field #12,soccer,pitch,32.8245694,-104.4388475,,,NM,,false,true,false,openstreetmap
+Soccer Field #13,soccer,pitch,32.8239306,-104.4385816,,,NM,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,32.824152,-104.4373036,,,NM,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,32.8251003,-104.4377211,,,NM,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,32.8248714,-104.4377212,,,NM,,false,true,false,openstreetmap
+Soccer Field #6,soccer,pitch,32.8243502,-104.4377264,,,NM,,false,true,false,openstreetmap
+Soccer Field #7,soccer,pitch,32.8240806,-104.4377262,,,NM,,false,true,false,openstreetmap
+Soccer Field #8,soccer,pitch,32.8238103,-104.4377276,,,NM,,false,true,false,openstreetmap
+Soccer Field #9,soccer,pitch,32.8250758,-104.4383079,,,NM,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,35.1288946,-106.5146907,,,NM,,false,true,false,openstreetmap
+Spirio Soccer Field,soccer,pitch,35.82525,-106.1885942,,,NM,,false,true,false,openstreetmap
+Sun Mountain Field,soccer,pitch,35.6695476,-105.9172549,,,NM,,false,true,false,openstreetmap
+Town Centers,soccer,pitch,35.0597788,-106.5410746,,,NM,,false,true,false,openstreetmap
+Bosque School Klaus Weber Field,soccer,pitch,35.1413844,-106.6888554,4000 Learning Road Northwest,Albuquerque,NM,87120,false,true,false,openstreetmap
+Milne II,soccer,pitch,35.0741133,-106.632679,1200 Hazeldine Avenue Southeast,Albuquerque,NM,87106,false,true,false,openstreetmap
+MLK Soccerplex,soccer,sports_centre,32.6875965,-103.1257593,1509 South Dal Paso Street,Hobbs,NM,88240,false,true,false,openstreetmap
+Aspect Shellaberger,soccer,pitch,35.6537555,-105.9771865,1003 Midtown Calle Central,Santa Fe,NM,87505,false,true,false,openstreetmap

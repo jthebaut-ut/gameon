@@ -1,0 +1,32 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Amherst Basketball Court,basketball,pitch,38.6675062,-90.2892859,,,MO,,false,true,false,openstreetmap
+Athletictron,basketball,pitch,38.650185,-90.4082002,,,MO,,false,true,false,openstreetmap
+Barrett Brothers Park Basketball Court,basketball,pitch,38.6807472,-90.2740904,,,MO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.1164535,-93.2542021,,,MO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.9530048,-90.9249432,,,MO,,false,true,false,openstreetmap
+Basketball,basketball,pitch,37.9368731,-90.925237,,,MO,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,39.1033031,-94.4834743,,,MO,,false,true,false,openstreetmap
+Basketball court,basketball,pitch,38.9473813,-94.3227416,,,MO,,false,true,false,openstreetmap
+Beckett Basketball Court,basketball,pitch,38.6547958,-90.2498596,,,MO,,false,true,false,openstreetmap
+Bucklin City Park Basketball Court,basketball,pitch,39.7869216,-92.8870243,,,MO,,false,true,false,openstreetmap
+City Park Courts,basketball,pitch,38.6279258,-92.5651379,,,MO,,false,true,false,openstreetmap
+"City of Manchester, MO Parks & Recreation Department",basketball,pitch,38.5875945,-90.5117664,,,MO,,false,true,false,openstreetmap
+Clifton Heights Basketball Court,basketball,pitch,38.6128846,-90.2910383,,,MO,,false,true,false,openstreetmap
+Davis Lodge,basketball,pitch,38.0940939,-93.5734297,,,MO,,false,true,false,openstreetmap
+DeSoto Basketball Park,basketball,pitch,38.6396394,-90.2086735,,,MO,,false,true,false,openstreetmap
+"Eugene ""Tink"" Bradley Basketball Court",basketball,pitch,38.6740157,-90.2423034,,,MO,,false,true,false,openstreetmap
+Jackson Place Park Basketball Court,basketball,pitch,38.648424,-90.1928975,,,MO,,false,true,false,openstreetmap
+KMS Basketball,basketball,pitch,36.2408505,-90.0533794,,,MO,,false,true,false,openstreetmap
+Lake Chesterfield Basketball,basketball,pitch,38.5811608,-90.6112604,,,MO,,false,true,false,openstreetmap
+Mizzou Arena,basketball,stadium,38.9324894,-92.3337704,,,MO,,false,true,false,openstreetmap
+Nicholas J. Booker Basketball Courts in Forest Park,basketball,pitch,38.6448908,-90.283188,,,MO,,false,true,false,openstreetmap
+Norman Seay Park Basketball Court,basketball,pitch,38.64179,-90.2184683,,,MO,,false,true,false,openstreetmap
+Old Monroe Basketball Court,basketball,pitch,38.9304192,-90.7476586,,,MO,,false,true,false,openstreetmap
+Palmyra Flower City Basketball court,basketball,pitch,39.8038283,-91.5351443,,,MO,,false,true,false,openstreetmap
+Sports Court,basketball,pitch,38.6452442,-90.3031543,,,MO,,false,true,false,openstreetmap
+St. Louis Place Basketball Courts,basketball,pitch,38.6482637,-90.2051696,,,MO,,false,true,false,openstreetmap
+Tiffany Park Basketball Court,basketball,pitch,38.6185774,-90.2424854,,,MO,,false,true,false,openstreetmap
+Armory Sports & Recreation Center,basketball,sports_centre,38.9539346,-92.329374,701 East Ash Street,Columbia,MO,65201,false,true,false,openstreetmap
+Activity Center,basketball,sports_centre,39.4180872,-92.4566346,101 College Avenue,Moberly,MO,65270,false,true,false,openstreetmap
+O'Reilly Family Event Center,basketball,sports_centre,37.2184159,-93.2846934,Summit Ave,Springfield,MO,65802,false,true,false,openstreetmap
+Black Power Vanguards Basketball Court,basketball,pitch,38.6726211,-90.217029,4368 College Avenue,St. Louis,MO,63107,false,true,false,openstreetmap

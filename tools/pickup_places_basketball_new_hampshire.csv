@@ -1,0 +1,17 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+3 Point Challenge,basketball,pitch,42.7936737,-71.2493616,,,NH,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.0729833,-70.9502312,,,NH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.9817822,-71.507641,,,NH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.9818027,-71.5074402,,,NH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.981825,-71.5072417,,,NH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.9818472,-71.5070433,,,NH,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.9818659,-71.5068424,,,NH,,false,true,false,openstreetmap
+Christensen Basketball Court,basketball,pitch,43.130525,-70.935588,,,NH,,false,true,false,openstreetmap
+Gibbs Basketball Court,basketball,pitch,43.1320791,-70.9302079,,,NH,,false,true,false,openstreetmap
+Lower Basketball Court,basketball,pitch,43.2157034,-71.772035,,,NH,,false,true,false,openstreetmap
+Marion Gymnasium,basketball,pitch,43.6746207,-72.0388244,,,NH,,false,true,false,openstreetmap
+New Ipswich Town Courts,basketball,pitch,42.7598732,-71.8506307,,,NH,,false,true,false,openstreetmap
+SERCs Basketball Court,basketball,pitch,43.1333429,-70.9370781,,,NH,,false,true,false,openstreetmap
+Stoke Hall Basketball Court,basketball,pitch,43.1376728,-70.9289637,,,NH,,false,true,false,openstreetmap
+Upper Basketball Court,basketball,pitch,43.2157167,-71.7725365,,,NH,,false,true,false,openstreetmap
+Boys & Girls Club of Greater Nashua,basketball,sports_centre,42.7568051,-71.4827885,47 Grand Avenue,Nashua,NH,03060,false,true,false,openstreetmap

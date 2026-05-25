@@ -1,0 +1,356 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,39.2877927,-84.3588899,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,39.7038188,-84.0204697,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,40.0473111,-82.9306266,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,41.7152614,-83.757517,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,39.9910139,-83.1661008,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,39.0837602,-84.1833093,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,40.1017965,-83.1829982,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,40.097968,-83.1918709,,,OH,,false,true,false,openstreetmap
+1,soccer,pitch,39.7207614,-83.9335949,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,39.7025357,-84.0215521,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,41.7114272,-83.7574417,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,39.9944804,-83.1689622,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,39.0815393,-84.1786254,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,40.0983599,-83.1986622,,,OH,,false,true,false,openstreetmap
+10,soccer,pitch,40.0527101,-82.9289045,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,41.7114432,-83.757018,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,39.7027789,-84.022206,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,39.9955765,-83.1689206,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,39.0811741,-84.1793562,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,40.1008722,-83.1819883,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,40.0988328,-83.1987467,,,OH,,false,true,false,openstreetmap
+11,soccer,pitch,40.0551871,-82.927279,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,39.7026229,-84.022904,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,41.7114632,-83.7565887,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,39.9953503,-83.1675164,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,39.0808689,-84.1777321,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,40.1008168,-83.182844,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,40.0982952,-83.1995903,,,OH,,false,true,false,openstreetmap
+12,soccer,pitch,40.0548319,-82.9287449,,,OH,,false,true,false,openstreetmap
+12N,soccer,pitch,39.9958727,-83.1669558,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,39.7026809,-84.0237009,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,41.7110227,-83.7567229,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,39.9957222,-83.1660459,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,39.0803849,-84.178579,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,40.0987528,-83.1996627,,,OH,,false,true,false,openstreetmap
+13,soccer,pitch,40.0556993,-82.928022,,,OH,,false,true,false,openstreetmap
+13S,soccer,pitch,39.995205,-83.1661747,,,OH,,false,true,false,openstreetmap
+14,soccer,pitch,39.702726,-84.024508,,,OH,,false,true,false,openstreetmap
+14,soccer,pitch,41.7110087,-83.7572674,,,OH,,false,true,false,openstreetmap
+14,soccer,pitch,39.9940069,-83.1662484,,,OH,,false,true,false,openstreetmap
+14,soccer,pitch,40.0981209,-83.2005131,,,OH,,false,true,false,openstreetmap
+15,soccer,pitch,39.7027772,-84.0253152,,,OH,,false,true,false,openstreetmap
+15,soccer,pitch,41.7108104,-83.7590725,,,OH,,false,true,false,openstreetmap
+15,soccer,pitch,39.994028,-83.1668734,,,OH,,false,true,false,openstreetmap
+15,soccer,pitch,40.0985237,-83.2005834,,,OH,,false,true,false,openstreetmap
+16,soccer,pitch,39.7028469,-84.0262898,,,OH,,false,true,false,openstreetmap
+16,soccer,pitch,41.7104341,-83.7572969,,,OH,,false,true,false,openstreetmap
+16,soccer,pitch,39.9934604,-83.1668566,,,OH,,false,true,false,openstreetmap
+16,soccer,pitch,40.097038,-83.1999279,,,OH,,false,true,false,openstreetmap
+17,soccer,pitch,39.7013249,-84.0211878,,,OH,,false,true,false,openstreetmap
+17,soccer,pitch,41.7104661,-83.7565888,,,OH,,false,true,false,openstreetmap
+17,soccer,pitch,40.0970001,-83.2005208,,,OH,,false,true,false,openstreetmap
+17A,soccer,pitch,39.9941714,-83.1677351,,,OH,,false,true,false,openstreetmap
+17B,soccer,pitch,39.9936905,-83.1677652,,,OH,,false,true,false,openstreetmap
+18,soccer,pitch,39.7008216,-84.0211796,,,OH,,false,true,false,openstreetmap
+18,soccer,pitch,41.7098834,-83.7570743,,,OH,,false,true,false,openstreetmap
+18,soccer,pitch,39.9932086,-83.1677921,,,OH,,false,true,false,openstreetmap
+18,soccer,pitch,40.0975463,-83.2001489,,,OH,,false,true,false,openstreetmap
+19,soccer,pitch,39.7014426,-84.0217538,,,OH,,false,true,false,openstreetmap
+19,soccer,pitch,41.7100977,-83.7583322,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,39.703846,-84.0211911,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,40.0474285,-82.929902,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,41.7158202,-83.756637,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,39.9910658,-83.1670392,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,39.0832214,-84.1824636,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,40.1018478,-83.1821304,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,40.0991016,-83.1919514,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,39.721172,-83.9337887,,,OH,,false,true,false,openstreetmap
+2,soccer,pitch,39.288758,-84.3588343,,,OH,,false,true,false,openstreetmap
+20,soccer,pitch,39.7008527,-84.021695,,,OH,,false,true,false,openstreetmap
+20,soccer,pitch,41.7100816,-83.7588687,,,OH,,false,true,false,openstreetmap
+21,soccer,pitch,41.7100846,-83.7594361,,,OH,,false,true,false,openstreetmap
+22,soccer,pitch,39.7008886,-84.0221946,,,OH,,false,true,false,openstreetmap
+22,soccer,pitch,41.7107665,-83.7604999,,,OH,,false,true,false,openstreetmap
+23,soccer,pitch,39.7014059,-84.0226632,,,OH,,false,true,false,openstreetmap
+23,soccer,pitch,41.7107878,-83.7597806,,,OH,,false,true,false,openstreetmap
+24,soccer,pitch,39.7009148,-84.0227165,,,OH,,false,true,false,openstreetmap
+24,soccer,pitch,41.7117315,-83.7587131,,,OH,,false,true,false,openstreetmap
+25,soccer,pitch,39.7015564,-84.0232578,,,OH,,false,true,false,openstreetmap
+25,soccer,pitch,41.7117595,-83.7599416,,,OH,,false,true,false,openstreetmap
+26,soccer,pitch,39.7008923,-84.0233343,,,OH,,false,true,false,openstreetmap
+26,soccer,pitch,41.7117236,-83.7609125,,,OH,,false,true,false,openstreetmap
+27,soccer,pitch,39.7015926,-84.0238983,,,OH,,false,true,false,openstreetmap
+27,soccer,pitch,41.7137048,-83.7594494,,,OH,,false,true,false,openstreetmap
+28,soccer,pitch,39.7009235,-84.0239582,,,OH,,false,true,false,openstreetmap
+28,soccer,pitch,41.7137218,-83.7586648,,,OH,,false,true,false,openstreetmap
+29,soccer,pitch,39.7013124,-84.0246623,,,OH,,false,true,false,openstreetmap
+29,soccer,pitch,41.7146187,-83.7586755,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,39.2885428,-84.3577414,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,39.7038888,-84.0220022,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,40.0484785,-82.9305928,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,41.7159513,-83.7552463,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,39.9911328,-83.1682659,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,39.082806,-84.1809543,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,40.1019237,-83.18124,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,40.0990339,-83.1928378,,,OH,,false,true,false,openstreetmap
+3,soccer,pitch,39.7213974,-83.9345156,,,OH,,false,true,false,openstreetmap
+30,soccer,pitch,41.7116959,-83.7618303,,,OH,,false,true,false,openstreetmap
+33,soccer,pitch,39.701361,-84.025489,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,39.2882999,-84.3567839,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,39.7039442,-84.0228367,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,40.0485063,-82.9298545,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,41.7159882,-83.7543947,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,39.9911898,-83.1692074,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,39.0824087,-84.1816288,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,40.1019944,-83.1803522,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,40.0989549,-83.1937525,,,OH,,false,true,false,openstreetmap
+4,soccer,pitch,39.7210147,-83.9344833,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,39.7040049,-84.023646,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,41.7147262,-83.7541497,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,39.0828362,-84.1785337,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,40.0988923,-83.1946014,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,40.0496743,-82.9304466,,,OH,,false,true,false,openstreetmap
+5,soccer,pitch,39.7206516,-83.9344492,,,OH,,false,true,false,openstreetmap
+5A,soccer,pitch,39.9901071,-83.1661121,,,OH,,false,true,false,openstreetmap
+5B,soccer,pitch,39.9896136,-83.1661585,,,OH,,false,true,false,openstreetmap
+5S,soccer,pitch,41.713864,-83.7541001,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,39.2860434,-84.3574449,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,39.7040538,-84.0244466,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,41.7140089,-83.7549624,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,39.0823965,-84.1794702,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,40.0987897,-83.1957923,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,40.0495868,-82.9297003,,,OH,,false,true,false,openstreetmap
+6,soccer,pitch,39.7201864,-83.934075,,,OH,,false,true,false,openstreetmap
+6A,soccer,pitch,39.9901664,-83.1671965,,,OH,,false,true,false,openstreetmap
+6B,soccer,pitch,39.9896743,-83.167243,,,OH,,false,true,false,openstreetmap
+6N,soccer,pitch,41.7148067,-83.7550572,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,39.704089,-84.0252483,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,41.7117476,-83.7565941,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,39.9899846,-83.168374,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,39.0819922,-84.1801469,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,40.1010743,-83.1791921,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,40.0988041,-83.196731,,,OH,,false,true,false,openstreetmap
+7,soccer,pitch,40.0509515,-82.9301531,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,41.7117275,-83.7570341,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,39.9900354,-83.1693167,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,39.0815912,-84.1808549,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,40.1009871,-83.180222,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,40.0984502,-83.1977208,,,OH,,false,true,false,openstreetmap
+8,soccer,pitch,40.0508314,-82.9294369,,,OH,,false,true,false,openstreetmap
+9,soccer,pitch,39.7024897,-84.0207511,,,OH,,false,true,false,openstreetmap
+9,soccer,pitch,41.7117135,-83.7574819,,,OH,,false,true,false,openstreetmap
+9,soccer,pitch,39.08225,-84.1780285,,,OH,,false,true,false,openstreetmap
+9,soccer,pitch,40.1009255,-83.1810857,,,OH,,false,true,false,openstreetmap
+9,soccer,pitch,40.0989252,-83.1977852,,,OH,,false,true,false,openstreetmap
+9A,soccer,pitch,39.9936854,-83.1687281,,,OH,,false,true,false,openstreetmap
+9B,soccer,pitch,39.9936975,-83.169225,,,OH,,false,true,false,openstreetmap
+9C,soccer,pitch,39.993149,-83.1687445,,,OH,,false,true,false,openstreetmap
+9D,soccer,pitch,39.9931586,-83.1692453,,,OH,,false,true,false,openstreetmap
+9E,soccer,pitch,40.0517338,-82.9290828,,,OH,,false,true,false,openstreetmap
+9W,soccer,pitch,40.0518939,-82.9296743,,,OH,,false,true,false,openstreetmap
+A,soccer,pitch,40.09999,-83.1826535,,,OH,,false,true,false,openstreetmap
+B,soccer,pitch,40.1000761,-83.1814009,,,OH,,false,true,false,openstreetmap
+BGSU Men's Soccer Field,soccer,pitch,41.3788004,-83.6244612,,,OH,,false,true,false,openstreetmap
+BGSU Womens Soccer Field,soccer,pitch,41.377344,-83.6247093,,,OH,,false,true,false,openstreetmap
+Ballaban Field,soccer,pitch,39.2103427,-84.5061124,,,OH,,false,true,false,openstreetmap
+Bath Soccer Field,soccer,pitch,40.7732044,-84.0566128,,,OH,,false,true,false,openstreetmap
+Baujan Field,soccer,pitch,39.7380693,-84.1779432,,,OH,,false,true,false,openstreetmap
+Beaverdam Village Park,soccer,pitch,40.8302128,-83.9735159,,,OH,,false,true,false,openstreetmap
+Beaverdam Village Park,soccer,pitch,40.8299979,-83.9741121,,,OH,,false,true,false,openstreetmap
+Bill Edwards Field,soccer,pitch,39.9420602,-83.8178539,,,OH,,false,true,false,openstreetmap
+Bill Kuntz Field,soccer,pitch,39.2560247,-84.7714272,,,OH,,false,true,false,openstreetmap
+Bluffton Soccer Field,soccer,pitch,40.8987746,-83.9021066,,,OH,,false,true,false,openstreetmap
+Boardman Soccer Association,soccer,sports_centre,41.0569542,-80.6879559,,,OH,,false,true,false,openstreetmap
+Bobby Kramig Field,soccer,pitch,39.5198504,-84.7306657,,,OH,,false,true,false,openstreetmap
+Broughton Memorial Field,soccer,pitch,39.0590176,-84.2302606,,,OH,,false,true,false,openstreetmap
+Buenger Field,soccer,pitch,39.1263306,-84.4824343,,,OH,,false,true,false,openstreetmap
+C,soccer,pitch,40.1001346,-83.1804514,,,OH,,false,true,false,openstreetmap
+CHS Soccer Field,soccer,pitch,38.8037076,-82.979541,,,OH,,false,true,false,openstreetmap
+Cafaro Family Field,soccer,pitch,41.109983,-80.6449004,,,OH,,false,true,false,openstreetmap
+Carl-Dale Soccer Field,soccer,pitch,40.8127543,-81.931617,,,OH,,false,true,false,openstreetmap
+Charlie Gilhart Field,soccer,pitch,39.4400206,-83.8170056,,,OH,,false,true,false,openstreetmap
+City of Athens Soccer Fields,soccer,pitch,39.3356864,-82.1169833,,,OH,,false,true,false,openstreetmap
+Cochrane Field,soccer,pitch,41.3788154,-83.625421,,,OH,,false,true,false,openstreetmap
+Colerain Soccer Field,soccer,pitch,39.230665,-84.6034103,,,OH,,false,true,false,openstreetmap
+Community Soccer Stadium,soccer,pitch,40.8729872,-82.2855976,,,OH,,false,true,false,openstreetmap
+Conway Field,soccer,pitch,41.4849909,-81.5597318,,,OH,,false,true,false,openstreetmap
+Corcoran Field,soccer,pitch,39.1485263,-84.4785177,,,OH,,false,true,false,openstreetmap
+Cub Cadet Field,soccer,pitch,41.0743861,-81.5118349,,,OH,,false,true,false,openstreetmap
+D,soccer,pitch,40.1002259,-83.179298,,,OH,,false,true,false,openstreetmap
+Darree Soccer Fields,soccer,pitch,40.0981644,-83.1961993,,,OH,,false,true,false,openstreetmap
+DeHaven Feild,soccer,stadium,41.0504831,-83.6551516,,,OH,,false,true,false,openstreetmap
+DeHaven Field,soccer,pitch,41.0504872,-83.6551968,,,OH,,false,true,false,openstreetmap
+Deeds Field,soccer,pitch,40.5556164,-81.4985516,,,OH,,false,true,false,openstreetmap
+Denison Practice Soccer Field,soccer,pitch,40.0755995,-82.5189081,,,OH,,false,true,false,openstreetmap
+Dewitt/Good Auxiliary Field,soccer,pitch,39.1677361,-84.3995135,,,OH,,false,true,false,openstreetmap
+East Soccer Field,soccer,pitch,40.8257814,-81.2493492,,,OH,,false,true,false,openstreetmap
+FIELD 1,soccer,pitch,40.0678653,-82.936138,,,OH,,false,true,false,openstreetmap
+FIELD 10A,soccer,pitch,40.067535,-82.9399803,,,OH,,false,true,false,openstreetmap
+FIELD 10B,soccer,pitch,40.0671155,-82.9400308,,,OH,,false,true,false,openstreetmap
+FIELD 2,soccer,pitch,40.0677709,-82.9349897,,,OH,,false,true,false,openstreetmap
+FIELD 3,soccer,pitch,40.0688196,-82.933979,,,OH,,false,true,false,openstreetmap
+FIELD 4,soccer,pitch,40.0688892,-82.9348615,,,OH,,false,true,false,openstreetmap
+FIELD 5,soccer,pitch,40.069282,-82.9358853,,,OH,,false,true,false,openstreetmap
+FIELD 6,soccer,pitch,40.0693485,-82.9367482,,,OH,,false,true,false,openstreetmap
+FIELD 7A,soccer,pitch,40.0684196,-82.9383949,,,OH,,false,true,false,openstreetmap
+FIELD 7B,soccer,pitch,40.0679178,-82.9384546,,,OH,,false,true,false,openstreetmap
+FIELD 8A,soccer,pitch,40.0684732,-82.9391252,,,OH,,false,true,false,openstreetmap
+FIELD 8B,soccer,pitch,40.0679715,-82.9391849,,,OH,,false,true,false,openstreetmap
+FIELD 9A,soccer,pitch,40.0685277,-82.9398524,,,OH,,false,true,false,openstreetmap
+FIELD 9B,soccer,pitch,40.068026,-82.9399122,,,OH,,false,true,false,openstreetmap
+Farmer Jim's Sports Complex,soccer,pitch,41.2994338,-80.7327284,,,OH,,false,true,false,openstreetmap
+Ferguson Field,soccer,pitch,40.862127,-82.3269239,,,OH,,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.067461,-82.8437821,,,OH,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.4118592,-84.2134368,,,OH,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.069605,-82.8415543,,,OH,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.4116666,-84.2123835,,,OH,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.4090589,-84.2136072,,,OH,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.0687553,-82.8404211,,,OH,,false,true,false,openstreetmap
+Field 4,soccer,pitch,40.0702269,-82.8418158,,,OH,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.4086312,-84.2136822,,,OH,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.5410273,-84.1663191,,,OH,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.4088019,-84.2149373,,,OH,,false,true,false,openstreetmap
+Field 6,soccer,pitch,40.0709928,-82.8430753,,,OH,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.4116237,-84.2114021,,,OH,,false,true,false,openstreetmap
+Field 7,soccer,pitch,40.0718208,-82.8431247,,,OH,,false,true,false,openstreetmap
+Field 8,soccer,pitch,40.0722501,-82.8432064,,,OH,,false,true,false,openstreetmap
+Field F,soccer,pitch,39.5408895,-84.1654623,,,OH,,false,true,false,openstreetmap
+Field R,soccer,pitch,39.5387256,-84.1650197,,,OH,,false,true,false,openstreetmap
+Field T,soccer,pitch,39.5390596,-84.1640041,,,OH,,false,true,false,openstreetmap
+Field V,soccer,pitch,39.5409203,-84.1636978,,,OH,,false,true,false,openstreetmap
+Field X,soccer,pitch,39.5413448,-84.1651133,,,OH,,false,true,false,openstreetmap
+FirstEnergy Stadium,soccer,stadium,41.0743614,-81.5117121,,,OH,,false,true,false,openstreetmap
+Fred Graham Field,soccer,pitch,40.1219639,-82.0044814,,,OH,,false,true,false,openstreetmap
+Fred Shults Field,soccer,pitch,41.2993173,-82.2248183,,,OH,,false,true,false,openstreetmap
+Gardner Field,soccer,pitch,41.016868,-83.6391105,,,OH,,false,true,false,openstreetmap
+Gibson Field,soccer,pitch,41.0823175,-80.6412842,,,OH,,false,true,false,openstreetmap
+Goshen Youth Soccer Fields,soccer,sports_centre,39.1986043,-84.13551,,,OH,,false,true,false,openstreetmap
+Gowdy Field,soccer,pitch,39.9822362,-83.0237098,,,OH,,false,true,false,openstreetmap
+Graham Memorial Soccer Stadium,soccer,stadium,41.053283,-83.6674143,,,OH,,false,true,false,openstreetmap
+Green Devil's Soccer Field,soccer,pitch,38.9416852,-83.589771,,,OH,,false,true,false,openstreetmap
+Hilliard Athletic Complex,soccer,pitch,40.0247782,-83.1824084,,,OH,,false,true,false,openstreetmap
+Hummer Soccer Field #1,soccer,pitch,39.2064982,-84.50714,,,OH,,false,true,false,openstreetmap
+Hummer Soccer Field #2,soccer,pitch,39.2055088,-84.5078406,,,OH,,false,true,false,openstreetmap
+Hummer Soccer Field #3,soccer,pitch,39.2054553,-84.5068766,,,OH,,false,true,false,openstreetmap
+Instructional Field 10,soccer,pitch,39.3652393,-84.3044527,,,OH,,false,true,false,openstreetmap
+Instructional Field 8,soccer,pitch,39.3649006,-84.3042166,,,OH,,false,true,false,openstreetmap
+Instructional Field 9,soccer,pitch,39.3655009,-84.3039943,,,OH,,false,true,false,openstreetmap
+Jean Byars Field,soccer,pitch,39.1155444,-84.5553354,,,OH,,false,true,false,openstreetmap
+John Ankeney Soccer Complex,soccer,pitch,39.7017393,-84.0235111,,,OH,,false,true,false,openstreetmap
+Johnston Fire Station Soccer Fields,soccer,pitch,41.3871685,-80.6605473,,,OH,,false,true,false,openstreetmap
+Johnston Fire Station Soccer Fields,soccer,pitch,41.3853651,-80.6604035,,,OH,,false,true,false,openstreetmap
+K1,soccer,pitch,39.7023368,-84.02226,,,OH,,false,true,false,openstreetmap
+K2,soccer,pitch,39.701537,-84.0207417,,,OH,,false,true,false,openstreetmap
+K3,soccer,pitch,39.7012169,-84.0207763,,,OH,,false,true,false,openstreetmap
+K4,soccer,pitch,39.7012981,-84.0222507,,,OH,,false,true,false,openstreetmap
+K5,soccer,pitch,39.7008952,-84.0208004,,,OH,,false,true,false,openstreetmap
+Kilbourne Run Sports Park,soccer,sports_centre,40.0688193,-82.9358715,,,OH,,false,true,false,openstreetmap
+King Field at Pioneer Park,soccer,pitch,40.8287596,-81.3797974,,,OH,,false,true,false,openstreetmap
+Kingdom Sports Soccer Field,soccer,pitch,38.7375892,-82.9838132,,,OH,,false,true,false,openstreetmap
+Kingdom Sports Soccer Field,soccer,pitch,38.7372277,-82.9839694,,,OH,,false,true,false,openstreetmap
+Kingdom Sports Soccer Field,soccer,pitch,38.7372201,-82.9837092,,,OH,,false,true,false,openstreetmap
+Lakemore Youth Soccer Field,soccer,pitch,41.0186379,-81.4354385,,,OH,,false,true,false,openstreetmap
+Logan-Hocking School District,soccer,pitch,39.524783,-82.3759793,,,OH,,false,true,false,openstreetmap
+Logan-Hocking School District,soccer,pitch,39.5256172,-82.3757601,,,OH,,false,true,false,openstreetmap
+Lower Field,soccer,pitch,39.1669507,-84.4000195,,,OH,,false,true,false,openstreetmap
+Marathon Field,soccer,pitch,41.0168827,-83.6399698,,,OH,,false,true,false,openstreetmap
+Marching Band Practice Field,soccer,pitch,39.7401237,-84.1844658,,,OH,,false,true,false,openstreetmap
+McLaughlin Field,soccer,pitch,41.481928,-81.7050376,,,OH,,false,true,false,openstreetmap
+Mercy Health Training Center,soccer,sports_centre,39.1690024,-84.2715026,,,OH,,false,true,false,openstreetmap
+Midview Soccer Leauge Complex,soccer,sports_centre,41.2499838,-82.0629653,,,OH,,false,true,false,openstreetmap
+Mount Gilead Soccer Complex,soccer,sports_centre,40.556155,-82.8202768,,,OH,,false,true,false,openstreetmap
+Newton Soccer Fields,soccer,pitch,40.0551676,-84.3384576,,,OH,,false,true,false,openstreetmap
+North Avenue Soccer Complex,soccer,sports_centre,41.1220967,-81.4386509,,,OH,,false,true,false,openstreetmap
+Northeast Soccer Field,soccer,pitch,40.8260533,-81.2493161,,,OH,,false,true,false,openstreetmap
+Northwest Soccer Field,soccer,pitch,40.8260929,-81.2500773,,,OH,,false,true,false,openstreetmap
+Olney soccer field,soccer,pitch,39.9854325,-81.1515905,,,OH,,false,true,false,openstreetmap
+P,soccer,pitch,39.4133033,-84.2400111,,,OH,,false,true,false,openstreetmap
+PAL Soccer/Baseball Field,soccer,pitch,41.6875874,-83.5226629,,,OH,,false,true,false,openstreetmap
+PWHS Soccer Field,soccer,pitch,38.7176576,-83.0508961,,,OH,,false,true,false,openstreetmap
+Paul Hotmer Field,soccer,stadium,41.6586963,-83.610963,,,OH,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,41.714533,-83.7603585,,,OH,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,41.7103719,-83.7609998,,,OH,,false,true,false,openstreetmap
+R,soccer,pitch,39.4136465,-84.2407951,,,OH,,false,true,false,openstreetmap
+Rams Youth Soccer Fields,soccer,pitch,40.7634724,-82.4900226,,,OH,,false,true,false,openstreetmap
+Rams Youth Soccer Fields,soccer,pitch,40.7623587,-82.4901895,,,OH,,false,true,false,openstreetmap
+Rick Neitzelt Stadium,soccer,pitch,40.8591699,-81.4886082,,,OH,,false,true,false,openstreetmap
+Rip Rap Road Park,soccer,park,39.851468,-84.1720744,,,OH,,false,true,false,openstreetmap
+Rugby Field,soccer,pitch,38.8780337,-82.3764405,,,OH,,false,true,false,openstreetmap
+Ryan Field,soccer,pitch,40.5832218,-84.1917328,,,OH,,false,true,false,openstreetmap
+S,soccer,pitch,39.4124372,-84.2406683,,,OH,,false,true,false,openstreetmap
+Soccer City,soccer,sports_centre,39.2308704,-84.6308916,,,OH,,false,true,false,openstreetmap
+Soccer City,soccer,sports_centre,39.2322826,-84.6292016,,,OH,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.8277032,-81.3764581,,,OH,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,40.8720918,-84.6088255,,,OH,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,39.3657805,-84.303276,,,OH,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,40.8727048,-84.6075463,,,OH,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,39.3661166,-84.3025969,,,OH,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,40.8721217,-84.6075195,,,OH,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,39.3653953,-84.3019586,,,OH,,false,true,false,openstreetmap
+Soccer Field 4,soccer,pitch,40.8715447,-84.60749,,,OH,,false,true,false,openstreetmap
+Soccer Field 4,soccer,pitch,39.3650795,-84.3026354,,,OH,,false,true,false,openstreetmap
+Soccer Field 5,soccer,pitch,39.3646183,-84.3033397,,,OH,,false,true,false,openstreetmap
+Soccer Field 6,soccer,pitch,39.3643577,-84.303848,,,OH,,false,true,false,openstreetmap
+Soccer Field 7,soccer,pitch,39.365182,-84.3037035,,,OH,,false,true,false,openstreetmap
+Soccer Field Complex,soccer,pitch,39.4147864,-81.4463162,,,OH,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,40.0435345,-83.0301347,,,OH,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,39.2341966,-84.6008136,,,OH,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,39.6544933,-84.0686655,,,OH,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,39.6544445,-84.0679592,,,OH,,false,true,false,openstreetmap
+Southeast Soccer Field,soccer,pitch,40.8255427,-81.249392,,,OH,,false,true,false,openstreetmap
+Southwest Soccer Field,soccer,pitch,40.8256919,-81.2501123,,,OH,,false,true,false,openstreetmap
+Springboro Community City Schools,soccer,pitch,39.5352127,-84.2397847,,,OH,,false,true,false,openstreetmap
+Stuart Field,soccer,pitch,39.7360345,-84.1715654,,,OH,,false,true,false,openstreetmap
+Student Recreation Field 1,soccer,pitch,41.1425498,-81.3367954,,,OH,,false,true,false,openstreetmap
+Student Recreation Field 2,soccer,pitch,41.1435998,-81.3351976,,,OH,,false,true,false,openstreetmap
+T,soccer,pitch,39.4127654,-84.2413886,,,OH,,false,true,false,openstreetmap
+Teays Valley Youth Soccer Association,soccer,pitch,39.7271143,-82.9655951,,,OH,,false,true,false,openstreetmap
+The Soccer Fields at Easton,soccer,sports_centre,40.0512967,-82.9287657,,,OH,,false,true,false,openstreetmap
+Training Pitch #1,soccer,pitch,39.1686673,-84.2706659,,,OH,,false,true,false,openstreetmap
+Training Pitch #2,soccer,pitch,39.1686305,-84.2716959,,,OH,,false,true,false,openstreetmap
+Training Pitch #3,soccer,pitch,39.1677179,-84.2713899,,,OH,,false,true,false,openstreetmap
+Trautman Field,soccer,pitch,40.0123151,-83.0275888,,,OH,,false,true,false,openstreetmap
+U10 Soccer Field,soccer,pitch,40.8015079,-83.5167465,,,OH,,false,true,false,openstreetmap
+U10 Soccer Field,soccer,pitch,40.8011444,-83.5167521,,,OH,,false,true,false,openstreetmap
+U12 Soccer Field,soccer,pitch,40.8002035,-83.5156078,,,OH,,false,true,false,openstreetmap
+U15 Soccer Field,soccer,pitch,40.8013302,-83.5161215,,,OH,,false,true,false,openstreetmap
+U6 Soccer Field,soccer,pitch,40.8004504,-83.5160334,,,OH,,false,true,false,openstreetmap
+U6 Soccer Field,soccer,pitch,40.8003312,-83.5160384,,,OH,,false,true,false,openstreetmap
+U8 Soccer Field,soccer,pitch,40.8003613,-83.515146,,,OH,,false,true,false,openstreetmap
+U8 Soccer Field,soccer,pitch,40.8000989,-83.5151537,,,OH,,false,true,false,openstreetmap
+Upper Field,soccer,pitch,39.1684883,-84.4008755,,,OH,,false,true,false,openstreetmap
+Ursuline Academy,soccer,pitch,39.2772135,-84.3638913,,,OH,,false,true,false,openstreetmap
+V,soccer,pitch,39.4118898,-84.2415079,,,OH,,false,true,false,openstreetmap
+Veterans Park Field 1,soccer,pitch,41.5170415,-83.3534926,,,OH,,false,true,false,openstreetmap
+Veterans Park Field 2,soccer,pitch,41.5168783,-83.3528447,,,OH,,false,true,false,openstreetmap
+Veterans Park Field 3,soccer,pitch,41.516943,-83.3521462,,,OH,,false,true,false,openstreetmap
+W,soccer,pitch,39.4114212,-84.2417867,,,OH,,false,true,false,openstreetmap
+WHS Soccer Field,soccer,pitch,38.7266425,-82.8521587,,,OH,,false,true,false,openstreetmap
+WRA Chapel Street Fields,soccer,pitch,41.2465971,-81.4395916,,,OH,,false,true,false,openstreetmap
+Watkins Memorial High School Soccer Field,soccer,pitch,39.9663713,-82.6506863,,,OH,,false,true,false,openstreetmap
+Wertz Stadium,soccer,pitch,40.1492616,-84.2344514,,,OH,,false,true,false,openstreetmap
+X,soccer,pitch,39.410809,-84.2421805,,,OH,,false,true,false,openstreetmap
+Yellow Jacket Soccer Complex,soccer,pitch,39.7566141,-83.8166558,,,OH,,false,true,false,openstreetmap
+Yellow Jacket Soccer Complex,soccer,pitch,39.7558348,-83.8185255,,,OH,,false,true,false,openstreetmap
+Yellow Jacket Soccer Complex,soccer,pitch,39.754935,-83.8166857,,,OH,,false,true,false,openstreetmap
+Z,soccer,pitch,39.4101103,-84.2424615,,,OH,,false,true,false,openstreetmap
+Zimmerman Field,soccer,pitch,39.938159,-83.8137744,,,OH,,false,true,false,openstreetmap
+athletic field,soccer,pitch,41.6234348,-81.2035125,,,OH,,false,true,false,openstreetmap
+lacrosse field,soccer,pitch,39.5386979,-84.1639302,,,OH,,false,true,false,openstreetmap
+Springhill Sports Complex,soccer,sports_centre,40.9700446,-81.4868406,3749 Fortuna Drive,Akron,OH,44312,false,true,false,openstreetmap
+Waldron Soccer Park,soccer,sports_centre,39.060047,-84.2236042,1447 Clough Pike,Batavia,OH,45103,false,true,false,openstreetmap
+Cochrane Soccer Stadium,soccer,stadium,41.3788093,-83.6255281,,Bowling Green,OH,43403,false,true,false,openstreetmap
+FC Cincinnati Team Store,soccer,pitch,39.1114568,-84.5157293,1433 Vine Street,Cincinnati,OH,45202,false,true,false,openstreetmap
+FC Cincinnati Team Store,soccer,pitch,39.1119152,-84.5218386,,Cincinnati,OH,45202,false,true,false,openstreetmap
+TQL Stadium,soccer,stadium,39.1111334,-84.5222941,1501 Central Parkway,Cincinnati,OH,45214,false,true,false,openstreetmap
+Columbus Crew SC Administrative Offices,soccer,pitch,40.0088073,-82.9913633,1 Black and Gold Boulevard,Columbus,OH,43211,false,true,false,openstreetmap
+Historic Crew Stadium,soccer,stadium,40.0095233,-82.9911358,1 Black and Gold Boulevard,Columbus,OH,43211,false,true,false,openstreetmap
+ScottsMiracle-Gro Field,soccer,stadium,39.9683979,-83.0167215,96 Columbus Crew Way,Columbus,OH,43215,false,true,false,openstreetmap
+Club Ohio;Club Ohio Soccer Training Center,soccer,sports_centre,40.0760649,-83.1788112,6891 Rings Road,Dublin,OH,43016,false,true,false,openstreetmap
+Fairfield Youth Playfields,soccer,pitch,39.3442977,-84.5657662,4920 River Road,Fairfield,OH,45014,false,true,false,openstreetmap
+Mansfield Crew Futbol Club,soccer,sports_centre,40.7720621,-82.5573611,National Parkway,Mansfield,OH,44906,false,true,false,openstreetmap
+On Goal,soccer,sports_centre,39.1420911,-84.2590257,920 Round Bottom Road,Milford,OH,45150,false,true,false,openstreetmap
+Soccer Sportsplex,soccer,sports_centre,41.389991,-81.968147,31515 Lorain Road,North Olmsted,OH,44070,false,true,false,openstreetmap
+TOCA Soccer & Sports Center Westlake,soccer,sports_centre,41.4706421,-81.8792718,23409 Detroit Road,Westlake,OH,44145,false,true,false,openstreetmap

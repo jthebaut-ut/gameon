@@ -1,0 +1,57 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anchor D Stadium,football,stadium,36.5919187,-101.6394334,,,OK,,false,true,false,openstreetmap
+Antlers High School Football Stadium,football,pitch,34.222886,-95.6237148,,,OK,,false,true,false,openstreetmap
+Ator Field,football,pitch,36.2792362,-95.8566688,,,OK,,false,true,false,openstreetmap
+Burford Field,football,pitch,34.8312524,-97.6147284,,,OK,,false,true,false,openstreetmap
+Cameron Football Field,football,pitch,34.6068679,-98.4367156,,,OK,,false,true,false,openstreetmap
+Carl Wooten Field,football,pitch,36.591951,-101.639365,,,OK,,false,true,false,openstreetmap
+Chad Richison Stadium,football,stadium,35.66149,-97.4709326,,,OK,,false,true,false,openstreetmap
+Conger Field,football,pitch,35.0231588,-97.3594147,,,OK,,false,true,false,openstreetmap
+Coweta Tigers' Football Field,football,pitch,35.9510313,-95.6381394,,,OK,,false,true,false,openstreetmap
+Coyle Football Field,football,pitch,35.9486996,-97.2321478,,,OK,,false,true,false,openstreetmap
+D. Bruce Selby Stadium,football,stadium,36.3841426,-97.8883427,,,OK,,false,true,false,openstreetmap
+Exchange Bank Stadium,football,stadium,36.3643549,-96.0148193,,,OK,,false,true,false,openstreetmap
+HA Chapman Stadium,football,stadium,36.1487466,-95.9438837,,,OK,,false,true,false,openstreetmap
+Halliburton Stadium,football,stadium,34.5098048,-97.968616,,,OK,,false,true,false,openstreetmap
+Hap Dunlap Field,football,pitch,36.3643711,-96.0142881,,,OK,,false,true,false,openstreetmap
+Harris Willingham Field,football,pitch,35.2560985,-96.9462646,,,OK,,false,true,false,openstreetmap
+Hatbox North,football,pitch,35.750713,-95.4108806,,,OK,,false,true,false,openstreetmap
+Hatbox South,football,pitch,35.7495052,-95.4109196,,,OK,,false,true,false,openstreetmap
+Hennessey High School Football Field,football,pitch,36.1111657,-97.888919,,,OK,,false,true,false,openstreetmap
+JB Earp Football Field,football,pitch,36.4245458,-94.7995024,,,OK,,false,true,false,openstreetmap
+Jim Harris Field,football,pitch,35.440087,-97.3561547,,,OK,,false,true,false,openstreetmap
+Jim Thorpe Stadium,football,pitch,35.3408696,-96.935005,,,OK,,false,true,false,openstreetmap
+John Carter Field,football,pitch,35.2586219,-94.4720573,,,OK,,false,true,false,openstreetmap
+Lexington Football,football,pitch,35.0217203,-97.3257799,,,OK,,false,true,false,openstreetmap
+Milam Stadium,football,pitch,35.5359609,-98.7108092,,,OK,,false,true,false,openstreetmap
+Morrison Football Field,football,pitch,36.2903897,-97.0172375,,,OK,,false,true,false,openstreetmap
+Norman Public Schools,football,pitch,35.2215659,-97.4557285,,,OK,,false,true,false,openstreetmap
+Norman Public Schools,football,pitch,35.2443967,-97.4492181,,,OK,,false,true,false,openstreetmap
+Norman Public Schools,football,pitch,35.2140713,-97.4694725,,,OK,,false,true,false,openstreetmap
+Norris Field,football,pitch,34.7720548,-96.6599184,,,OK,,false,true,false,openstreetmap
+OBA Football Field,football,pitch,36.4026327,-97.951776,,,OK,,false,true,false,openstreetmap
+Ogle Field,football,pitch,35.4591613,-95.5334239,,,OK,,false,true,false,openstreetmap
+Owen Field,football,pitch,35.2058518,-97.4423312,,,OK,,false,true,false,openstreetmap
+Palmer-Morris Field,football,pitch,34.9495862,-96.5253838,,,OK,,false,true,false,openstreetmap
+Patriot Football Field,football,pitch,35.5113103,-97.7613253,,,OK,,false,true,false,openstreetmap
+Paul Bell Football Field,football,pitch,35.2795859,-95.585316,,,OK,,false,true,false,openstreetmap
+Pryor Tigers Football Field,football,pitch,36.3059611,-95.3314359,,,OK,,false,true,false,openstreetmap
+Rita Young Memorial Stadium,football,pitch,34.0340834,-94.7409641,,,OK,,false,true,false,openstreetmap
+Robert Kalsu Field,football,pitch,35.4458334,-97.4385677,,,OK,,false,true,false,openstreetmap
+Savage Stadium,football,pitch,35.2690646,-96.9445165,,,OK,,false,true,false,openstreetmap
+Skelly Field,football,pitch,36.1488846,-95.9437805,,,OK,,false,true,false,openstreetmap
+Tecumseh High Schoool Practice Field,football,pitch,35.2669123,-96.9431379,,,OK,,false,true,false,openstreetmap
+Telstar North Football Complex,football,pitch,35.4884683,-97.3592027,,,OK,,false,true,false,openstreetmap
+Telstar North Football Complex,football,pitch,35.4889411,-97.3599205,,,OK,,false,true,false,openstreetmap
+Telstar North Football Complex,football,pitch,35.4889475,-97.3604264,,,OK,,false,true,false,openstreetmap
+Telstar North Football Complex,football,pitch,35.4890543,-97.3613343,,,OK,,false,true,false,openstreetmap
+Union Public Schools,football,pitch,36.0697686,-95.8638445,,,OK,,false,true,false,openstreetmap
+W.E. Anderson Stadium,football,stadium,35.9475067,-97.2615659,,,OK,,false,true,false,openstreetmap
+Waller Football Field,football,pitch,36.4003181,-97.9118576,,,OK,,false,true,false,openstreetmap
+Waurika Eagles,football,pitch,34.1649004,-98.0101288,,,OK,,false,true,false,openstreetmap
+Webbers Falls High School Football Field,football,pitch,35.5084962,-95.1309726,,,OK,,false,true,false,openstreetmap
+Rougher Village,football,stadium,35.7724031,-95.3330912,3200 East Shawnee Bypass,Muskogee,OK,74403,false,true,false,openstreetmap
+Gaylord Family - Oklahoma Memorial Stadium,football,stadium,35.205667,-97.4422563,1185 Asp Avenue,Norman,OK,73019,false,true,false,openstreetmap
+Boone Pickens Stadium,football,stadium,36.1256711,-97.0667189,700 West Hall of Fame Avenue,Stillwater,OK,74075,false,true,false,openstreetmap
+Doc Wadley Stadium,football,pitch,35.9286122,-94.9678574,1487 North Grand Avenue,Tahlequah,OK,74464,false,true,false,openstreetmap
+Thompson Field,football,pitch,35.8467111,-95.0006971,22272 South 500 Road,Tahlequah,OK,74464,false,true,false,openstreetmap

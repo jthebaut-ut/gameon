@@ -11,7 +11,7 @@ struct PickupBulkImportResult {
 
 enum PickupBulkImportService {
     @MainActor
-    static func loadPreview(from url: URL, viewModel: MapViewModel) async throws -> [PickupImportPreparedRow] {
+    static func loadPreview(from url: URL, viewModel: MapViewModel) async throws -> [PickupBulkImportPreparedRow] {
 #if DEBUG
         print("[PickupBulkImport] loadPreviewStarted file=\(url.lastPathComponent)")
 #endif
@@ -19,17 +19,17 @@ enum PickupBulkImportService {
         defer {
             if didAccess { url.stopAccessingSecurityScopedResource() }
         }
-        let rawRows = try PickupCSVParser.parseFile(at: url)
-        let rows = await PickupImportValidation.validate(rawRows: rawRows, viewModel: viewModel)
+        let rawRows = try PickupBulkImportParser.parseFile(at: url)
+        let rows = await PickupBulkImportValidator.validate(rawRows: rawRows, viewModel: viewModel)
 #if DEBUG
-        let summary = PickupImportValidation.summary(for: rows)
+        let summary = PickupBulkImportValidator.summary(for: rows)
         print("[PickupBulkImport] previewReady total=\(summary.totalCount) importable=\(summary.importableCount)")
 #endif
         return rows
     }
 
     @MainActor
-    static func importRows(_ rows: [PickupImportPreparedRow], viewModel: MapViewModel) async -> PickupBulkImportResult {
+    static func importRows(_ rows: [PickupBulkImportPreparedRow], viewModel: MapViewModel) async -> PickupBulkImportResult {
         let candidates = rows.filter { $0.status.isImportable }
 #if DEBUG
         print("[PickupBulkInsert] started rows=\(candidates.count)")
@@ -39,12 +39,12 @@ enum PickupBulkImportService {
 
         for row in candidates {
             guard let start = row.gameStartAt,
-                  let end = row.endTime,
                   let coordinate = row.coordinate,
                   let playersNeeded = row.playersNeeded else {
                 failed.append((row.rowNumber, "Row was not fully validated."))
                 continue
             }
+            let end = row.endTime ?? PickupGameModels.defaultPickupEndTime(forStart: start)
 
             do {
 #if DEBUG

@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+East Side Elementary Basketball Courts,basketball,pitch,45.6589156,-110.5511511,,,MT,,false,true,false,openstreetmap
+M Street courts,basketball,pitch,45.6718532,-110.5509521,,,MT,,false,true,false,openstreetmap
+Pache Court,basketball,pitch,47.528707,-114.0806375,,,MT,,false,true,false,openstreetmap
+Winans Basketball Courts,basketball,pitch,45.6534076,-110.5678956,,,MT,,false,true,false,openstreetmap
+Yellowstone Fitness,basketball,fitness_centre,45.786439,-108.5562327,1595 Grand Avenue,Billings,MT,59102,false,true,false,openstreetmap

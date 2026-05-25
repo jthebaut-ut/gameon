@@ -1,0 +1,9 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,pickleball,pitch,36.0225809,-115.0934015,,,NV,,false,true,false,openstreetmap
+2,pickleball,pitch,36.0225806,-115.0932376,,,NV,,false,true,false,openstreetmap
+3,pickleball,pitch,36.0225784,-115.0930705,,,NV,,false,true,false,openstreetmap
+4,pickleball,pitch,36.0225767,-115.0929031,,,NV,,false,true,false,openstreetmap
+5,pickleball,pitch,36.0224367,-115.0929029,,,NV,,false,true,false,openstreetmap
+6,pickleball,pitch,36.022439,-115.0930708,,,NV,,false,true,false,openstreetmap
+7,pickleball,pitch,36.0224398,-115.0932375,,,NV,,false,true,false,openstreetmap
+8,pickleball,pitch,36.0224421,-115.0934022,,,NV,,false,true,false,openstreetmap

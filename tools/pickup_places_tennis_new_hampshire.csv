@@ -1,0 +1,44 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Dana Ball Memorial Tennis Courts,tennis,pitch,42.8832764,-71.3290618,,,NH,,false,true,false,openstreetmap
+Dartmouth College Tennis Courts,tennis,sports_centre,43.7015414,-72.2802051,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0165073,-71.0023878,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0165437,-71.0025634,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0165793,-71.0027342,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0168273,-71.0022656,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0168608,-71.0024423,,,NH,,false,true,false,openstreetmap
+Exeter High School,tennis,pitch,43.0168955,-71.0026137,,,NH,,false,true,false,openstreetmap
+Gateway Hills Tennis Court,tennis,pitch,42.7125737,-71.4611268,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9767835,-70.9458926,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9766355,-70.9449173,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.976662,-70.9450896,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9766885,-70.9452693,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.976716,-70.9454424,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9769858,-70.9450064,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9770123,-70.9451794,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9770398,-70.9453578,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9774264,-70.9457146,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9774548,-70.9458849,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9774802,-70.9460625,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.9771045,-70.9457991,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.977132,-70.9459748,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,tennis,pitch,42.977158,-70.9461532,,,NH,,false,true,false,openstreetmap
+South Hampton Tennis Court,tennis,pitch,42.8819642,-70.9718706,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9380907,-70.8511816,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.911831,-71.0768575,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9115662,-71.0763793,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9118613,-71.0766674,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9118914,-71.0764714,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9115382,-71.076573,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9115056,-71.0767624,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9240879,-71.0562395,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,43.0934112,-70.8790305,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9705809,-70.9926132,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9726627,-70.9930992,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9737118,-70.995927,,,NH,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,42.9721151,-70.9949065,,,NH,,false,true,false,openstreetmap
+Topliff Courts,tennis,sports_centre,43.7027305,-72.285174,,,NH,,false,true,false,openstreetmap
+University of New Hampshire,tennis,sports_centre,43.1399526,-70.9399806,,,NH,,false,true,false,openstreetmap
+New England Tennis Courts,tennis,pitch,44.1693636,-71.7641522,2 Easton Valley Rd,Franconia,NH,03580,false,true,false,openstreetmap
+Alexis Boss Tennis Center,tennis,pitch,43.7010746,-72.2790369,6 Summer Court,Hanover,NH,03755,true,false,false,openstreetmap
+Seacoast Tennis Club,tennis,sports_centre,42.9891313,-70.8322936,36 Birch Road,North Hampton,NH,03862,false,true,false,openstreetmap
+Waterville Valley Tennis Center,tennis,sports_centre,43.9579071,-71.5076337,86 Boulder Path Road,Waterville Valley,NH,03215,false,true,false,openstreetmap

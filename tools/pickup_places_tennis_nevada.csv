@@ -1,0 +1,10 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Centennial High School Courts,tennis,pitch,36.277812,-115.3169425,,,NV,,false,true,false,openstreetmap
+Darling Tennis Center,tennis,stadium,36.1799453,-115.2766192,,,NV,,false,true,false,openstreetmap
+Frank and Vicki Fertitta Tennis Complex,tennis,pitch,36.1086113,-115.147465,,,NV,,false,true,false,openstreetmap
+McArthur Tennis Center,tennis,sports_centre,39.5471626,-119.80952,,,NV,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,36.5999041,-114.4830443,,,NV,,false,true,false,openstreetmap
+Tennis Court at Overton Park,tennis,pitch,36.5409004,-114.4407493,,,NV,,false,true,false,openstreetmap
+Weston Hills Park Tennis Courts,tennis,pitch,36.0757347,-114.9813417,,,NV,,false,true,false,openstreetmap
+Woodtrail Tennis Court,tennis,pitch,39.5468985,-119.7093387,,,NV,,false,true,false,openstreetmap
+Reno Municipal Tennis Center,tennis,sports_centre,39.4992405,-119.8132583,2601 Plumas Street,Reno,NV,89509,false,true,false,openstreetmap

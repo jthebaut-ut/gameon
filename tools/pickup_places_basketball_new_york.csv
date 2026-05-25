@@ -1,0 +1,106 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,basketball,pitch,40.8186671,-73.8706877,,,NY,,false,true,false,openstreetmap
+1,basketball,pitch,40.8659761,-73.8972951,,,NY,,false,true,false,openstreetmap
+2,basketball,pitch,40.8184706,-73.8705719,,,NY,,false,true,false,openstreetmap
+2,basketball,pitch,40.8659,-73.8971209,,,NY,,false,true,false,openstreetmap
+3,basketball,pitch,40.8184558,-73.8707536,,,NY,,false,true,false,openstreetmap
+5th street basketball court,basketball,pitch,42.1362611,-77.0499066,,,NY,,false,true,false,openstreetmap
+71st Street Basketball Courts,basketball,pitch,40.7804395,-73.9876901,,,NY,,false,true,false,openstreetmap
+76th Street Basketball Courts,basketball,pitch,40.7831407,-73.9849923,,,NY,,false,true,false,openstreetmap
+Activity Court,basketball,pitch,41.9879658,-74.5043094,,,NY,,false,true,false,openstreetmap
+Activity-Athletic Center,basketball,sports_centre,40.7463961,-73.648333,,,NY,,false,true,false,openstreetmap
+Albert M. White Gymnasium,basketball,sports_centre,42.6509975,-73.7786013,,,NY,,false,true,false,openstreetmap
+Albertson Park Basketball Court,basketball,pitch,40.765152,-73.6507824,,,NY,,false,true,false,openstreetmap
+Alfred E. Smith Outdoor Basketball Court,basketball,pitch,40.7122805,-73.9972808,,,NY,,false,true,false,openstreetmap
+Basketball,basketball,pitch,43.0875171,-77.5166192,,,NY,,false,true,false,openstreetmap
+Basketball Court,basketball,sports_centre,43.0170723,-78.967605,,,NY,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,43.1245086,-73.7455981,,,NY,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,40.6516417,-73.5616912,,,NY,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,42.352656,-73.7967629,,,NY,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.6842671,-73.8311021,,,NY,,false,true,false,openstreetmap
+Basketball Courts,basketball,pitch,42.5707449,-77.6956028,,,NY,,false,true,false,openstreetmap
+Basketball Courts and Playground,basketball,pitch,41.0111764,-73.7839731,,,NY,,false,true,false,openstreetmap
+Basketball courts,basketball,pitch,40.8375669,-73.9487918,,,NY,,false,true,false,openstreetmap
+Basteball Court,basketball,pitch,41.2528483,-73.954268,,,NY,,false,true,false,openstreetmap
+Bayport Commons Basketball Court,basketball,pitch,40.7385877,-73.0585659,,,NY,,false,true,false,openstreetmap
+Bayville Community Center Basketball Court,basketball,pitch,40.9105101,-73.5726074,,,NY,,false,true,false,openstreetmap
+Bob Lanier Court in the Reilly Center,basketball,stadium,42.0794954,-78.4849716,,,NY,,false,true,false,openstreetmap
+Boces Basketball Court,basketball,pitch,42.1104691,-79.3880572,,,NY,,false,true,false,openstreetmap
+Bronx Park Basketball Courts,basketball,pitch,40.8510706,-73.8704525,,,NY,,false,true,false,openstreetmap
+Brooklyn Basketball Training Center,basketball,sports_centre,40.6837063,-73.9774625,,,NY,,false,true,false,openstreetmap
+Camp Basketball Court,basketball,pitch,41.3095807,-73.571003,,,NY,,false,true,false,openstreetmap
+Canal Street Basketball Court,basketball,pitch,40.7255976,-74.0115312,,,NY,,false,true,false,openstreetmap
+Centre Island Beach Basketball Court,basketball,pitch,40.911624,-73.5327515,,,NY,,false,true,false,openstreetmap
+Charles Vachris Basketball Court,basketball,pitch,40.810655,-73.6797036,,,NY,,false,true,false,openstreetmap
+Chelsea Waterside Basketball Court,basketball,pitch,40.7495313,-74.0071679,,,NY,,false,true,false,openstreetmap
+"Christopher ""Biggie"" Wallace Courts",basketball,sports_centre,40.6816592,-73.9594306,,,NY,,false,true,false,openstreetmap
+Coral Park's Basketball Court,basketball,pitch,40.8440515,-73.3665353,,,NY,,false,true,false,openstreetmap
+Donny’s Court,basketball,pitch,40.8578065,-73.6347644,,,NY,,false,true,false,openstreetmap
+Erwin Park Basketball Court,basketball,pitch,43.4819392,-75.3271402,,,NY,,false,true,false,openstreetmap
+Fastbreak Basketball Center,basketball,sports_centre,40.5205042,-74.2368806,,,NY,,false,true,false,openstreetmap
+Forest Lake Camp basketball court,basketball,pitch,43.5626908,-73.7728691,,,NY,,false,true,false,openstreetmap
+"Frank ""The Brick"" Brickowski Court",basketball,pitch,40.9045722,-73.5416294,,,NY,,false,true,false,openstreetmap
+Garrett Dunsmoor Memorial Basketball Courts,basketball,pitch,43.4605501,-76.525279,,,NY,,false,true,false,openstreetmap
+Gaynor Park Basketball Court,basketball,pitch,40.8751305,-73.1650072,,,NY,,false,true,false,openstreetmap
+Granny Road Park Basketball Courts,basketball,pitch,40.8505433,-72.9587555,,,NY,,false,true,false,openstreetmap
+Greg Marius Court,basketball,pitch,40.8295641,-73.9364599,,,NY,,false,true,false,openstreetmap
+Gutenberg Playground,basketball,pitch,40.7634998,-73.9902521,,,NY,,false,true,false,openstreetmap
+Handball Court,basketball,pitch,40.651497,-73.5619942,,,NY,,false,true,false,openstreetmap
+Harrison Street Basketball Court,basketball,pitch,40.7187853,-74.0129472,,,NY,,false,true,false,openstreetmap
+Hickory Hill Basketball Court,basketball,pitch,42.7426521,-78.7506585,,,NY,,false,true,false,openstreetmap
+John Jay Basketball Courts,basketball,pitch,40.7689379,-73.949725,,,NY,,false,true,false,openstreetmap
+JumpShotz,basketball,pitch,40.5351817,-74.2397842,,,NY,,false,true,false,openstreetmap
+Kingdome,basketball,pitch,40.799678,-73.9490984,,,NY,,false,true,false,openstreetmap
+Lakeside Commons,basketball,pitch,43.4439359,-76.5476035,,,NY,,false,true,false,openstreetmap
+Lambert Basketball Court,basketball,pitch,42.4505812,-79.3311347,,,NY,,false,true,false,openstreetmap
+Locust Lane Basketball Court,basketball,pitch,42.8572813,-73.8082903,,,NY,,false,true,false,openstreetmap
+Longmeadow Estates Court,basketball,pitch,40.860097,-73.2797454,,,NY,,false,true,false,openstreetmap
+Loop Road Athletic Complex,basketball,sports_centre,43.0575469,-75.4087571,,,NY,,false,true,false,openstreetmap
+Marist College Basketball Court,basketball,pitch,41.7220387,-73.9279767,,,NY,,false,true,false,openstreetmap
+Mazella Court,basketball,pitch,43.0633703,-76.1011194,,,NY,,false,true,false,openstreetmap
+McDonough Field House,basketball,sports_centre,42.697054,-73.6818271,,,NY,,false,true,false,openstreetmap
+Meadow Lakes Basketball,basketball,pitch,43.0143585,-78.6767752,,,NY,,false,true,false,openstreetmap
+Memorial Park Basketball Court,basketball,pitch,41.0882295,-73.9162014,,,NY,,false,true,false,openstreetmap
+NYC Parks,basketball,pitch,40.8204253,-73.9468372,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7684869,-73.9949531,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7684201,-73.9947903,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7833078,-73.9848608,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7830993,-73.9850427,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7829843,-73.9850507,,,NY,,false,true,false,openstreetmap
+New York City Department of Parks and Recreation,basketball,pitch,40.7832463,-73.9851332,,,NY,,false,true,false,openstreetmap
+Noyes Basketball Court,basketball,pitch,42.4460809,-76.4880139,,,NY,,false,true,false,openstreetmap
+Orange Street Basketball Courts,basketball,pitch,42.6556621,-73.7537177,,,NY,,false,true,false,openstreetmap
+PO David Willis Basketball Court,basketball,pitch,40.7498925,-74.0002947,,,NY,,false,true,false,openstreetmap
+PS75 Playground,basketball,playground,40.7956454,-73.974942,,,NY,,false,true,false,openstreetmap
+Patriots Park Basket Ball Court,basketball,pitch,41.080936,-73.8587567,,,NY,,false,true,false,openstreetmap
+Poko Plex,basketball,pitch,44.37627,-73.4547673,,,NY,,false,true,false,openstreetmap
+Saint Dominic's Church Basketball Court,basketball,pitch,40.8686186,-73.5285323,,,NY,,false,true,false,openstreetmap
+School 42 Basketball Court,basketball,pitch,43.2317644,-77.6250247,,,NY,,false,true,false,openstreetmap
+Seaver Gym,basketball,pitch,42.2054359,-79.4607593,,,NY,,false,true,false,openstreetmap
+Seely Place Basketball Courts,basketball,pitch,40.9941815,-73.8151224,,,NY,,false,true,false,openstreetmap
+Senior Basketball Court,basketball,pitch,42.6353197,-77.0724106,,,NY,,false,true,false,openstreetmap
+Sobelsohn Basketball Court,basketball,pitch,40.7099293,-73.8351881,,,NY,,false,true,false,openstreetmap
+St. Gertrude's Parish Center Basketball Court,basketball,pitch,40.9089156,-73.5667419,,,NY,,true,false,false,openstreetmap
+St. Paul's Fieldhouse,basketball,pitch,40.7262298,-73.6483566,295 Stewart Avenue,,NY,,false,true,false,openstreetmap
+Sunset Park Basketball Court,basketball,pitch,40.6526136,-73.4602753,,,NY,,false,true,false,openstreetmap
+Tabler Basketball,basketball,pitch,40.9102586,-73.125405,,,NY,,false,true,false,openstreetmap
+The Eastman Reserve,basketball,pitch,43.2013433,-77.6376956,,,NY,,false,true,false,openstreetmap
+Theodore Roosevelt Memorial Park Basketball Court,basketball,pitch,40.8768103,-73.5349231,,,NY,,false,true,false,openstreetmap
+Thomas E Farrell Baseball Complex,basketball,sports_centre,43.0336584,-77.6631452,,,NY,,false,true,false,openstreetmap
+Three Point Challenge,basketball,pitch,40.5733903,-73.9810874,,,NY,,false,true,false,openstreetmap
+Tosh Collins,basketball,sports_centre,42.8486891,-78.8111849,,,NY,,false,true,false,openstreetmap
+Valhalla Courts,basketball,sports_centre,40.6361332,-74.020456,,,NY,,false,true,false,openstreetmap
+Veterans Park Basketball Court,basketball,pitch,42.1019958,-79.3030561,,,NY,,false,true,false,openstreetmap
+Village of Kinderhook,basketball,pitch,42.3963988,-73.7036389,,,NY,,false,true,false,openstreetmap
+Waterloo Community Center Basketball Court,basketball,pitch,42.903144,-76.8681621,,,NY,,false,true,false,openstreetmap
+West 186th Street Basketball Court,basketball,pitch,40.8518765,-73.9309383,,,NY,,false,true,false,openstreetmap
+shaner field,basketball,pitch,42.0632499,-78.1715057,,,NY,,false,true,false,openstreetmap
+MADE HMBL Gym,basketball,pitch,40.6971947,-73.9739632,24 Carlton Avenue,Brooklyn,NY,11205,false,true,false,openstreetmap
+Ehrenreich-Austin Playground,basketball,park,40.7155055,-73.8368589,7633 Austin Street,Forest Hills,NY,11375,false,true,false,openstreetmap
+The Cage,basketball,pitch,43.0508524,-74.3393158,110 East Fulton Street,Gloversville,NY,12078,false,true,false,openstreetmap
+Ithaca B-Ball,basketball,pitch,42.4722156,-76.4092221,57 Hall Road,Ithaca,NY,14850,false,true,false,openstreetmap
+Manning & Napier Varsity Gym,basketball,sports_centre,43.1161334,-77.5098485,3690 East Avenue,Rochester,NY,14618,false,true,false,openstreetmap
+Broadview Arena,basketball,sports_centre,43.0001635,-78.7812148,80 Coventry Loop,University at Buffalo,NY,14260,false,true,false,openstreetmap
+Fox Den Park,basketball,park,41.2822498,-73.8456283,1680 Jacob Rd,Yorktown Heights,NY,10598,false,true,false,openstreetmap
+Kensington Woods,basketball,park,41.3297275,-73.8580697,1725 Emma Lane,Yorktown Heights,NY,10598,false,true,false,openstreetmap
+Railroad Park,basketball,park,41.2716183,-73.7800477,1826 Commerce Street,Yorktown Heights,NY,10598,false,true,false,openstreetmap

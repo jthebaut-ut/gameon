@@ -1,0 +1,46 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+8,football,pitch,40.8876971,-96.6170866,,,NE,,false,true,false,openstreetmap
+Aldrich Field,football,pitch,40.8001472,-96.6417373,,,NE,,false,true,false,openstreetmap
+Ashland Football Field,football,pitch,41.04148,-96.36455,,,NE,,false,true,false,openstreetmap
+Avigael Track & Field,football,pitch,40.785526,-99.7393122,,,NE,,false,true,false,openstreetmap
+Battle Creek High School Football Field,football,pitch,41.9945592,-97.6041905,,,NE,,false,true,false,openstreetmap
+Beechner Field,football,pitch,40.8071468,-96.6898846,,,NE,,false,true,false,openstreetmap
+Bellevue East Chieftains,football,pitch,41.1454031,-95.9057122,,,NE,,false,true,false,openstreetmap
+Brittenham Field Entrance,football,park,41.0764316,-100.5230174,,,NE,,false,true,false,openstreetmap
+Brittenham Football Field,football,pitch,41.0757665,-100.5234396,,,NE,,false,true,false,openstreetmap
+Buena Vista Bison,football,pitch,41.2136167,-96.0022541,,,NE,,false,true,false,openstreetmap
+Cowboy Field,football,pitch,41.2563094,-96.1300159,,,NE,,false,true,false,openstreetmap
+Davis Aviators,football,pitch,41.3334541,-96.1188362,,,NE,,false,true,false,openstreetmap
+Ed Colleran Field,football,pitch,41.6853256,-98.3602784,,,NE,,false,true,false,openstreetmap
+Elkhorn Field,football,pitch,41.2710856,-96.2258955,,,NE,,false,true,false,openstreetmap
+Elkhorn North Football & Soccer Practice Field,football,pitch,41.2989899,-96.1949224,,,NE,,false,true,false,openstreetmap
+Elkhorn South STORM,football,pitch,41.2436188,-96.2293499,,,NE,,false,true,false,openstreetmap
+Elliott Field,football,pitch,42.8183582,-103.0003356,,,NE,,false,true,false,openstreetmap
+Flag Football #1,football,pitch,41.1851032,-96.0150797,,,NE,,false,true,false,openstreetmap
+Flag Football #2,football,pitch,41.1844468,-96.013528,,,NE,,false,true,false,openstreetmap
+Flag Football #3,football,pitch,41.1844703,-96.0125144,,,NE,,false,true,false,openstreetmap
+Flag Football #4,football,pitch,41.184446,-96.0096322,,,NE,,false,true,false,openstreetmap
+Football Practice Field,football,pitch,40.4763355,-95.7289913,,,NE,,false,true,false,openstreetmap
+Hastings College Football Field,football,pitch,40.596075,-98.3687556,,,NE,,false,true,false,openstreetmap
+Joe Greeno Field,football,pitch,40.7128476,-99.0943995,,,NE,,false,true,false,openstreetmap
+Manchester Football Field,football,pitch,41.2834833,-96.1878296,,,NE,,false,true,false,openstreetmap
+Marching Band Practice Field,football,pitch,42.2431328,-97.0120299,,,NE,,false,true,false,openstreetmap
+Ogallala High School Field,football,pitch,41.1304521,-101.7142421,,,NE,,false,true,false,openstreetmap
+Ogallala Public School District,football,pitch,41.130457,-101.7142339,,,NE,,false,true,false,openstreetmap
+Omaha Bryan Bears,football,pitch,41.1778254,-95.9810161,,,NE,,false,true,false,openstreetmap
+Omaha Burke Bulldogs,football,pitch,41.2607922,-96.1067518,,,NE,,false,true,false,openstreetmap
+Pioneers,football,pitch,40.678255,-95.8803635,,,NE,,false,true,false,openstreetmap
+Practice Field,football,pitch,42.2447748,-97.0165212,,,NE,,false,true,false,openstreetmap
+Practice Field,football,pitch,42.2457905,-97.0164476,,,NE,,false,true,false,openstreetmap
+Ralston Rams,football,pitch,41.1990107,-96.0483602,,,NE,,false,true,false,openstreetmap
+Robert Cunningham Memorial Field,football,pitch,42.2434945,-97.0139703,,,NE,,false,true,false,openstreetmap
+Seacrest Field,football,stadium,40.8003402,-96.6194324,,,NE,,false,true,false,openstreetmap
+Seacrest Field,football,pitch,40.8002508,-96.6189387,,,NE,,false,true,false,openstreetmap
+Seemann Stadium,football,pitch,41.2621995,-95.9436716,,,NE,,false,true,false,openstreetmap
+Simon Field,football,pitch,40.6244247,-96.9477759,,,NE,,false,true,false,openstreetmap
+Thunderbird Stadium,football,pitch,41.1645446,-95.9349505,,,NE,,false,true,false,openstreetmap
+Tom Osborne Field,football,pitch,40.8206299,-96.7056354,,,NE,,false,true,false,openstreetmap
+"University of Nebraska, Lincoln - Practice Field",football,pitch,40.8229219,-96.7040578,,,NE,,false,true,false,openstreetmap
+Weiland Field,football,pitch,40.2092268,-100.6225457,,,NE,,false,true,false,openstreetmap
+Woody Greeno Track and Field Facility,football,pitch,40.8384473,-96.6449742,,,NE,,false,true,false,openstreetmap
+Memorial Stadium,football,stadium,40.8207192,-96.705565,1 Memorial Stadium Drive,Lincoln,NE,68588,false,true,false,openstreetmap

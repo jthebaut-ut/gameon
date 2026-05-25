@@ -1,0 +1,8 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Markham Place Courts,pickleball,pitch,40.3391375,-74.0455259,,,NJ,,false,true,false,openstreetmap
+Pickleball,pickleball,pitch,40.9299144,-74.736764,,,NJ,,false,true,false,openstreetmap
+Pickleball Court,pickleball,pitch,40.2617002,-74.6316467,,,NJ,,false,true,false,openstreetmap
+Venue Pickleball Courts,pickleball,pitch,40.3622547,-74.4564004,,,NJ,,false,true,false,openstreetmap
+The Pickle Jar,pickleball,sports_centre,40.5320119,-74.6424364,315 Roycefield Road,Hillsborough,NJ,08844,false,true,false,openstreetmap
+Picklr,pickleball,pitch,39.6969025,-74.2651744,205 Route 72 West,Manahawkin,NJ,08050,false,true,false,openstreetmap
+Pickle Juice,pickleball,pitch,39.3515292,-74.4782944,5038 Wellington Avenue,Ventnor City,NJ,08406,false,true,false,openstreetmap

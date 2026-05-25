@@ -1,0 +1,100 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,41.2935262,-96.1044433,,,NE,,false,true,false,openstreetmap
+1,soccer,pitch,40.7688699,-96.7310416,,,NE,,false,true,false,openstreetmap
+10,soccer,pitch,40.888857,-96.6138239,,,NE,,false,true,false,openstreetmap
+10,soccer,pitch,41.2935253,-96.1026264,,,NE,,false,true,false,openstreetmap
+11,soccer,pitch,40.8877667,-96.6150004,,,NE,,false,true,false,openstreetmap
+11,soccer,pitch,41.294758,-96.1026209,,,NE,,false,true,false,openstreetmap
+11,soccer,pitch,41.2943019,-96.1026229,,,NE,,false,true,false,openstreetmap
+12,soccer,pitch,41.2957492,-96.1026599,,,NE,,false,true,false,openstreetmap
+13,soccer,pitch,41.2968577,-96.1026211,,,NE,,false,true,false,openstreetmap
+14,soccer,pitch,41.2935156,-96.1018261,,,NE,,false,true,false,openstreetmap
+15,soccer,pitch,41.2945739,-96.1018209,,,NE,,false,true,false,openstreetmap
+2,soccer,pitch,41.2946231,-96.1045096,,,NE,,false,true,false,openstreetmap
+2,soccer,pitch,40.7688559,-96.7318619,,,NE,,false,true,false,openstreetmap
+3,soccer,pitch,41.295768,-96.1045013,,,NE,,false,true,false,openstreetmap
+3,soccer,pitch,40.7697984,-96.7318927,,,NE,,false,true,false,openstreetmap
+4,soccer,pitch,41.2968594,-96.1044825,,,NE,,false,true,false,openstreetmap
+4,soccer,pitch,40.7698356,-96.7328991,,,NE,,false,true,false,openstreetmap
+5,soccer,pitch,40.8887232,-96.6188186,,,NE,,false,true,false,openstreetmap
+5,soccer,pitch,41.29792,-96.1044831,,,NE,,false,true,false,openstreetmap
+5,soccer,pitch,40.7698408,-96.7337552,,,NE,,false,true,false,openstreetmap
+6,soccer,pitch,41.2935186,-96.1035323,,,NE,,false,true,false,openstreetmap
+6,soccer,pitch,40.7689291,-96.733522,,,NE,,false,true,false,openstreetmap
+7,soccer,pitch,41.2955829,-96.1035308,,,NE,,false,true,false,openstreetmap
+7,soccer,pitch,41.2960238,-96.1035295,,,NE,,false,true,false,openstreetmap
+7,soccer,pitch,40.7689222,-96.7348317,,,NE,,false,true,false,openstreetmap
+8,soccer,pitch,41.2968564,-96.1035284,,,NE,,false,true,false,openstreetmap
+8,soccer,pitch,40.7672736,-96.7350863,,,NE,,false,true,false,openstreetmap
+9,soccer,pitch,40.8888859,-96.6149513,,,NE,,false,true,false,openstreetmap
+9,soccer,pitch,41.2979198,-96.1035244,,,NE,,false,true,false,openstreetmap
+9,soccer,pitch,40.7672786,-96.7356295,,,NE,,false,true,false,openstreetmap
+Aldrich School Soccer Field,soccer,pitch,41.2639208,-96.1705668,,,NE,,false,true,false,openstreetmap
+Barbara Hibner Field,soccer,pitch,40.8379405,-96.699613,,,NE,,false,true,false,openstreetmap
+Caniglia Field,soccer,pitch,41.2571094,-96.0073543,,,NE,,false,true,false,openstreetmap
+Championship Field,soccer,pitch,40.8866514,-96.6235142,,,NE,,false,true,false,openstreetmap
+Christensen Field Soccer Complex,soccer,pitch,41.4460596,-96.5269928,,,NE,,false,true,false,openstreetmap
+City of Omaha,soccer,pitch,41.2168397,-96.1566784,,,NE,,false,true,false,openstreetmap
+City of Omaha,soccer,pitch,41.215395,-96.1598369,,,NE,,false,true,false,openstreetmap
+City of Omaha,soccer,pitch,41.2161609,-96.1582499,,,NE,,false,true,false,openstreetmap
+Cornhusker Council Soccer Field,soccer,pitch,40.8036582,-96.5553943,,,NE,,false,true,false,openstreetmap
+D,soccer,pitch,40.8892336,-96.6239522,,,NE,,false,true,false,openstreetmap
+Discovery Soccer Complex,soccer,sports_centre,41.2027975,-96.1231813,,,NE,,false,true,false,openstreetmap
+Holy Cross Field,soccer,pitch,41.2367408,-96.0038905,,,NE,,false,true,false,openstreetmap
+MN Soccer,soccer,pitch,41.2526309,-96.1412746,,,NE,,false,true,false,openstreetmap
+Millard Park South Soccer Field,soccer,pitch,41.1835653,-96.1717405,,,NE,,false,true,false,openstreetmap
+Morrison Stadium,soccer,pitch,41.2648808,-95.9393221,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 1,soccer,pitch,41.1570954,-96.0474556,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 10,soccer,pitch,41.1583659,-96.0509857,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 11,soccer,pitch,41.1575006,-96.0518663,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 12,soccer,pitch,41.1582664,-96.0518081,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 13,soccer,pitch,41.1586481,-96.0518155,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 14,soccer,pitch,41.158622,-96.0552407,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 15,soccer,pitch,41.1593907,-96.0552146,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 16,soccer,pitch,41.1602324,-96.0552462,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 18,soccer,pitch,41.1595804,-96.0563068,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 2,soccer,pitch,41.1576333,-96.0473676,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 3,soccer,pitch,41.1569808,-96.0481894,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 4,soccer,pitch,41.1571995,-96.0481515,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 5,soccer,pitch,41.1574155,-96.0481109,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 6,soccer,pitch,41.1578439,-96.0480428,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 8,soccer,pitch,41.1574298,-96.0490449,,,NE,,false,true,false,openstreetmap
+Papillion Soccer Complex 9,soccer,pitch,41.1582603,-96.0490118,,,NE,,false,true,false,openstreetmap
+Robert Den Hartog Soccer Field,soccer,pitch,40.7998399,-96.6163197,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.3071932,-96.0865713,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.2770018,-96.0742535,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1443271,-96.0769724,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1454498,-96.0769628,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1407609,-96.0769624,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1853601,-96.1597093,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1987024,-96.0501204,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.261505,-96.129686,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.2716291,-96.2298691,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.2379194,-96.2035469,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.2394569,-96.1621305,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.3301545,-96.1667667,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.0999816,-96.0420104,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.2066226,-95.9612489,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.128905,-95.9534854,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,41.1350909,-95.9563953,,,NE,,false,true,false,openstreetmap
+Soccer,soccer,pitch,40.8562146,-96.6875168,,,NE,,false,true,false,openstreetmap
+Soccer #1,soccer,pitch,41.1864379,-96.0128515,,,NE,,false,true,false,openstreetmap
+Soccer #10,soccer,pitch,41.1843666,-96.0111768,,,NE,,false,true,false,openstreetmap
+Soccer #13,soccer,pitch,41.1852341,-96.0183261,,,NE,,false,true,false,openstreetmap
+Soccer #14,soccer,pitch,41.1863597,-96.0183304,,,NE,,false,true,false,openstreetmap
+Soccer #2,soccer,pitch,41.1864279,-96.0119438,,,NE,,false,true,false,openstreetmap
+Soccer #3,soccer,pitch,41.1864178,-96.0110346,,,NE,,false,true,false,openstreetmap
+Soccer #4,soccer,pitch,41.1864178,-96.0101269,,,NE,,false,true,false,openstreetmap
+Soccer #5,soccer,pitch,41.1850687,-96.01186,,,NE,,false,true,false,openstreetmap
+Soccer #6,soccer,pitch,41.1850707,-96.0111482,,,NE,,false,true,false,openstreetmap
+Soccer #7,soccer,pitch,41.1850585,-96.0104599,,,NE,,false,true,false,openstreetmap
+Soccer #8,soccer,pitch,41.1850696,-96.0098055,,,NE,,false,true,false,openstreetmap
+Soccer #9,soccer,pitch,41.1843687,-96.0117307,,,NE,,false,true,false,openstreetmap
+Soccer Area,soccer,pitch,41.1722661,-96.1455826,,,NE,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,42.243923,-97.0120314,,,NE,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.8392981,-96.7294755,,,NE,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,41.3589868,-95.9579907,,,NE,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,40.6015785,-98.3980562,,,NE,,false,true,false,openstreetmap
+Torpin's Soccer Field,soccer,pitch,42.4712739,-98.6427489,,,NE,,false,true,false,openstreetmap
+YMCA Soccer Fields,soccer,pitch,40.2621552,-96.7303286,,,NE,,false,true,false,openstreetmap
+YMCA Soccer Fields,soccer,pitch,40.2607597,-96.7304021,,,NE,,false,true,false,openstreetmap

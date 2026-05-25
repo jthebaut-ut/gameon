@@ -1,0 +1,15 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,35.1618618,-103.7353976,,,NM,,false,true,false,openstreetmap
+Basketball,basketball,pitch,35.1644344,-103.7365454,,,NM,,false,true,false,openstreetmap
+Boy's Gymnasium,basketball,sports_centre,32.4290215,-104.2344628,,,NM,,false,true,false,openstreetmap
+Eagle Ranch Apartments North Basketball Court,basketball,pitch,35.183818,-106.6694823,,,NM,,false,true,false,openstreetmap
+General Camp Park BasketballCourt,basketball,pitch,32.1102156,-103.1839529,,,NM,,false,true,false,openstreetmap
+Gymnasium Complex,basketball,sports_centre,32.431516,-104.2642454,,,NM,,false,true,false,openstreetmap
+Haynes Park Basketball Court,basketball,pitch,35.222779,-106.6616735,,,NM,,false,true,false,openstreetmap
+Haynes Park Basketball Court,basketball,pitch,35.2229318,-106.661671,,,NM,,false,true,false,openstreetmap
+Haynes Park Basketball Court,basketball,pitch,35.222566,-106.6616494,,,NM,,false,true,false,openstreetmap
+New Mexico State Basketball Practice Gym,basketball,fitness_centre,32.2830782,-106.7417708,1810 East University Avenue,,NM,,false,true,false,openstreetmap
+Pan American Center,basketball,pitch,32.283999,-106.7422274,1810 East University Avenue,,NM,,false,true,false,openstreetmap
+Rotary Park Basketball Half Courts,basketball,pitch,35.1699543,-106.538473,,,NM,,false,true,false,openstreetmap
+School Basketball Court,basketball,pitch,34.5207058,-106.244816,,,NM,,false,true,false,openstreetmap
+WPA Gym Basketball Courts,basketball,sports_centre,34.1137355,-107.2420878,,,NM,,false,true,false,openstreetmap

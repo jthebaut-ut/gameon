@@ -1,0 +1,52 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bear Pen Park Tennis Court,tennis,pitch,33.739923,-90.7569931,,,MS,,false,true,false,openstreetmap
+Clarkco State Park,tennis,pitch,32.1039345,-88.69776,,,MS,,false,true,false,openstreetmap
+Clarkco State Park,tennis,pitch,32.1039432,-88.697916,,,MS,,false,true,false,openstreetmap
+Elks Lodge,tennis,pitch,31.1911658,-89.3008727,,,MS,,false,true,false,openstreetmap
+Elks Lodge,tennis,pitch,31.1911145,-89.3007181,,,MS,,false,true,false,openstreetmap
+Forrest County Agricultural High School,tennis,pitch,31.0711248,-89.1879966,,,MS,,false,true,false,openstreetmap
+Greenwood Country Club,tennis,pitch,33.5086256,-90.1528123,,,MS,,false,true,false,openstreetmap
+Greenwood Country Club,tennis,pitch,33.5086493,-90.1524093,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5912029,-89.2030738,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5911886,-89.2029129,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.591175,-89.2027569,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5911576,-89.2025922,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5915449,-89.2025485,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5915574,-89.2027103,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5915759,-89.2028662,,,MS,,false,true,false,openstreetmap
+Jones County Junior College,tennis,pitch,31.5915884,-89.203028,,,MS,,false,true,false,openstreetmap
+Leland Town and Raquet Club,tennis,sports_centre,33.4082994,-90.9193317,,,MS,,false,true,false,openstreetmap
+North Forrest High School,tennis,pitch,31.4117441,-89.3288785,,,MS,,false,true,false,openstreetmap
+North Forrest High School,tennis,pitch,31.4117402,-89.3287241,,,MS,,false,true,false,openstreetmap
+Ranger Tennis Courts at the ROC,tennis,sports_centre,34.622964,-89.974923,,,MS,,false,true,false,openstreetmap
+Richton Recreational Park,tennis,pitch,31.345833,-88.9343206,,,MS,,false,true,false,openstreetmap
+Richton Recreational Park,tennis,pitch,31.3458357,-88.9341467,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,33.5288411,-90.1755427,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.2734064,-90.0347189,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.2172329,-90.1485663,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.2172325,-90.1487225,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.2168978,-90.1485656,,,MS,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,32.2168968,-90.1487205,,,MS,,false,true,false,openstreetmap
+Tennis Courts 2,tennis,pitch,33.741939,-90.7290242,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3054604,-89.3442783,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3054681,-89.3448563,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3058947,-89.3438834,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3058993,-89.3440779,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3059005,-89.344271,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3059039,-89.3444641,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3062625,-89.3438793,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3062694,-89.3440739,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3062694,-89.3442656,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3062763,-89.3444574,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3054582,-89.3440873,,,MS,,false,true,false,openstreetmap
+The Raquet Club of Hattiesburg,tennis,pitch,31.3054684,-89.3446632,,,MS,,false,true,false,openstreetmap
+University of Southern Mississippi,tennis,sports_centre,31.326336,-89.3438857,,,MS,,false,true,false,openstreetmap
+University of Southern Mississippi,tennis,sports_centre,31.326324,-89.3449727,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3049769,-89.2960683,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3049769,-89.2958752,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3049781,-89.2956801,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3053041,-89.2956821,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3053081,-89.2958746,,,MS,,false,true,false,openstreetmap
+William Carey University,tennis,pitch,31.3053069,-89.2960681,,,MS,,false,true,false,openstreetmap
+Willis Terry Tennis Complex,tennis,sports_centre,31.2816576,-89.3211251,1001 Parkway Boulevard,Hattiesburg,MS,39402,false,true,false,openstreetmap
+Palmer/Salloum Tennis Center,tennis,stadium,34.3656986,-89.5414196,42 Magnolia Drive,University,MS,38677,false,true,false,openstreetmap

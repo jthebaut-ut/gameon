@@ -1,0 +1,289 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,baseball,pitch,38.937987,-94.3088377,,,MO,,false,true,false,openstreetmap
+10,baseball,pitch,38.9352588,-94.3081242,,,MO,,false,true,false,openstreetmap
+11,baseball,pitch,38.9346365,-94.3090673,,,MO,,false,true,false,openstreetmap
+12,baseball,pitch,38.934574,-94.3082016,,,MO,,false,true,false,openstreetmap
+13,baseball,pitch,38.9326464,-94.3094721,,,MO,,false,true,false,openstreetmap
+14,baseball,pitch,38.9325661,-94.3083151,,,MO,,false,true,false,openstreetmap
+15,baseball,pitch,38.9317404,-94.3095737,,,MO,,false,true,false,openstreetmap
+16,baseball,pitch,38.9316609,-94.3084137,,,MO,,false,true,false,openstreetmap
+2,baseball,pitch,38.9379151,-94.3076144,,,MO,,false,true,false,openstreetmap
+3,baseball,pitch,38.9370136,-94.3089401,,,MO,,false,true,false,openstreetmap
+4,baseball,pitch,38.9369418,-94.3077094,,,MO,,false,true,false,openstreetmap
+5,baseball,pitch,38.9364147,-94.3067408,,,MO,,false,true,false,openstreetmap
+6,baseball,pitch,38.9363479,-94.3051799,,,MO,,false,true,false,openstreetmap
+7,baseball,pitch,38.9352261,-94.3068591,,,MO,,false,true,false,openstreetmap
+8,baseball,pitch,38.9351168,-94.3053047,,,MO,,false,true,false,openstreetmap
+9,baseball,pitch,38.9353001,-94.309004,,,MO,,false,true,false,openstreetmap
+AJ Conway,baseball,pitch,39.2624962,-94.5185101,,,MO,,false,true,false,openstreetmap
+AJ Ferguson,baseball,pitch,39.2605477,-94.5197685,,,MO,,false,true,false,openstreetmap
+AJ Harris,baseball,pitch,39.2619205,-94.5170701,,,MO,,false,true,false,openstreetmap
+AJ Karaff,baseball,pitch,39.2627883,-94.519932,,,MO,,false,true,false,openstreetmap
+AJ Rea,baseball,pitch,39.2610097,-94.5168969,,,MO,,false,true,false,openstreetmap
+AJ Slavik,baseball,pitch,39.2605351,-94.5184616,,,MO,,false,true,false,openstreetmap
+AJ Spruytte,baseball,pitch,39.2631249,-94.5185477,,,MO,,false,true,false,openstreetmap
+AJ Taylor,baseball,pitch,39.2629029,-94.5193907,,,MO,,false,true,false,openstreetmap
+AJ Vick,baseball,pitch,39.2630589,-94.5177824,,,MO,,false,true,false,openstreetmap
+AJ Wiar,baseball,pitch,39.2633269,-94.5196983,,,MO,,false,true,false,openstreetmap
+Adzick Field,baseball,pitch,38.6490455,-90.3477671,,,MO,,false,true,false,openstreetmap
+All-Star Field,baseball,pitch,38.6580139,-90.2220296,,,MO,,false,true,false,openstreetmap
+American Legion Baseball Complex,baseball,pitch,39.0163757,-94.2417389,,,MO,,false,true,false,openstreetmap
+American Legion Baseball Complex,baseball,pitch,39.0172413,-94.2417406,,,MO,,false,true,false,openstreetmap
+American Legion Baseball Complex,baseball,pitch,39.0171797,-94.2406438,,,MO,,false,true,false,openstreetmap
+American Legion Baseball Complex,baseball,pitch,39.0162304,-94.2407583,,,MO,,false,true,false,openstreetmap
+Antimi Sports Complex,baseball,sports_centre,38.9773136,-92.3611362,,,MO,,false,true,false,openstreetmap
+BB-1,baseball,pitch,38.6064565,-90.2681599,,,MO,,false,true,false,openstreetmap
+BB-9C,baseball,pitch,38.6070369,-90.2446362,,,MO,,false,true,false,openstreetmap
+Ball Field 4,baseball,pitch,38.7974726,-90.4811308,,,MO,,false,true,false,openstreetmap
+Ballfield #1,baseball,pitch,38.5870662,-90.5153738,,,MO,,false,true,false,openstreetmap
+Ballfield #2,baseball,pitch,38.587564,-90.5160082,,,MO,,false,true,false,openstreetmap
+Baseball Diamond #1,baseball,pitch,39.0297504,-94.3333006,,,MO,,false,true,false,openstreetmap
+Baseball Diamond #2,baseball,pitch,39.0297543,-94.3318653,,,MO,,false,true,false,openstreetmap
+Baseball Diamond #3,baseball,pitch,39.0286391,-94.3319206,,,MO,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,39.0181669,-94.5359335,,,MO,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,38.9985487,-94.122305,,,MO,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,38.6326185,-90.2783007,,,MO,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,38.9985243,-94.121031,,,MO,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,38.6314263,-90.278469,,,MO,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,38.9987051,-94.118809,,,MO,,false,true,false,openstreetmap
+Baseball Field #3,baseball,pitch,38.6313796,-90.2771576,,,MO,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,38.9986806,-94.1174036,,,MO,,false,true,false,openstreetmap
+Baseball Field #4,baseball,pitch,38.6323814,-90.2770436,,,MO,,false,true,false,openstreetmap
+Baseball Field #5,baseball,pitch,38.9977366,-94.1189131,,,MO,,false,true,false,openstreetmap
+Baseball Field #6,baseball,pitch,38.9977115,-94.1173278,,,MO,,false,true,false,openstreetmap
+Baseball Park Hub,baseball,park,36.2401881,-90.0409315,,,MO,,false,true,false,openstreetmap
+Baseball practice field,baseball,pitch,37.0562972,-93.5542406,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #1,baseball,pitch,38.5265608,-90.4380041,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #2,baseball,pitch,38.5265504,-90.4392917,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #3,baseball,pitch,38.5251809,-90.4389945,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #4,baseball,pitch,38.5242327,-90.4375683,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #5,baseball,pitch,38.5243293,-90.4398485,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #6,baseball,pitch,38.5237003,-90.4416223,,,MO,,false,true,false,openstreetmap
+Baseball/Softball #7,baseball,pitch,38.5248961,-90.4437062,,,MO,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,38.564375,-90.4107199,,,MO,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,36.7779709,-90.4325161,,,MO,,false,true,false,openstreetmap
+Bearcat Baseball Field,baseball,pitch,40.3526383,-94.8880693,,,MO,,false,true,false,openstreetmap
+Black Field,baseball,pitch,38.9761898,-92.360794,,,MO,,false,true,false,openstreetmap
+Black Field,baseball,pitch,39.0106779,-92.2959865,,,MO,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,38.9778069,-92.3607831,,,MO,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,38.9724187,-92.359955,,,MO,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,39.0103905,-92.294469,,,MO,,false,true,false,openstreetmap
+Blue Field,baseball,pitch,38.9447877,-92.2834919,,,MO,,false,true,false,openstreetmap
+Blue Springs South High School Baseball Field,baseball,pitch,39.0032516,-94.2552742,,,MO,,false,true,false,openstreetmap
+Blue Young Field,baseball,pitch,38.6916658,-93.2096171,,,MO,,false,true,false,openstreetmap
+Bob Case Field,baseball,pitch,38.6908904,-93.2096451,,,MO,,false,true,false,openstreetmap
+Brown Field,baseball,pitch,40.5171794,-92.5182091,,,MO,,false,true,false,openstreetmap
+Buck O'Neil Tribute Park,baseball,pitch,39.0900622,-94.5649236,,,MO,,false,true,false,openstreetmap
+Bullpens,baseball,pitch,38.5645299,-90.4107417,,,MO,,false,true,false,openstreetmap
+Burleigh Grimes Field,baseball,pitch,40.0762746,-93.5980025,,,MO,,false,true,false,openstreetmap
+Cadet Park Baseball Field,baseball,pitch,38.6416093,-90.4679379,,,MO,,false,true,false,openstreetmap
+Canton Baseball Field,baseball,pitch,40.1356052,-91.5295202,,,MO,,false,true,false,openstreetmap
+Canton Softball Field,baseball,pitch,40.1356767,-91.5288215,,,MO,,false,true,false,openstreetmap
+Capaha Ballfield,baseball,pitch,37.3134726,-89.5369314,,,MO,,false,true,false,openstreetmap
+Cardinals Care Baseball Field,baseball,pitch,38.6693859,-90.2770077,,,MO,,false,true,false,openstreetmap
+Chaminade Baseball Field,baseball,pitch,38.6507268,-90.4103266,,,MO,,false,true,false,openstreetmap
+City Baseball/Softball Field,baseball,pitch,40.4080374,-95.5105996,,,MO,,false,true,false,openstreetmap
+Coach Bob Smith Baseball Field,baseball,pitch,36.6217757,-93.2401971,,,MO,,false,true,false,openstreetmap
+Comfort Field,baseball,pitch,39.1940979,-94.6673494,,,MO,,false,true,false,openstreetmap
+Creekside Baseball Complex,baseball,sports_centre,39.2292065,-94.7647869,,,MO,,false,true,false,openstreetmap
+Crowder College Baseball Field,baseball,pitch,36.8150498,-94.3655816,,,MO,,false,true,false,openstreetmap
+Crowder College Softball Field,baseball,pitch,36.8161316,-94.3673408,,,MO,,false,true,false,openstreetmap
+David Schick Instructional Field,baseball,pitch,38.689634,-93.2107157,,,MO,,false,true,false,openstreetmap
+Delmo Park,baseball,park,36.2544781,-90.0288812,,,MO,,false,true,false,openstreetmap
+Diamond 1,baseball,pitch,38.6470177,-90.3434077,,,MO,,false,true,false,openstreetmap
+Diamond 10,baseball,pitch,38.6481599,-90.3477092,,,MO,,false,true,false,openstreetmap
+Diamond 2,baseball,pitch,38.6464593,-90.3437637,,,MO,,false,true,false,openstreetmap
+Diamond 3,baseball,pitch,38.6493359,-90.3436397,,,MO,,false,true,false,openstreetmap
+Diamond 4,baseball,pitch,38.64984,-90.3433639,,,MO,,false,true,false,openstreetmap
+Diamond 5,baseball,pitch,38.6481739,-90.3460828,,,MO,,false,true,false,openstreetmap
+Diamond 6,baseball,pitch,38.6483039,-90.3470045,,,MO,,false,true,false,openstreetmap
+Diamond 8,baseball,pitch,38.6475788,-90.3475212,,,MO,,false,true,false,openstreetmap
+Diamond 9,baseball,pitch,38.64769,-90.3468432,,,MO,,false,true,false,openstreetmap
+Doug E. Yuille Field,baseball,pitch,38.7775702,-94.264306,,,MO,,false,true,false,openstreetmap
+Dubb Ford Field,baseball,pitch,36.041359,-90.1180766,,,MO,,false,true,false,openstreetmap
+Eagles Baseball Field,baseball,pitch,39.7858957,-94.8319244,,,MO,,false,true,false,openstreetmap
+Eagles Baseball Field,baseball,pitch,39.7863492,-94.8311452,,,MO,,false,true,false,openstreetmap
+East Field,baseball,pitch,39.2024389,-92.1470229,,,MO,,false,true,false,openstreetmap
+Elementary Boys Baseball Field,baseball,pitch,38.7214344,-92.0863776,,,MO,,false,true,false,openstreetmap
+Elks Ballfield,baseball,pitch,37.7896875,-90.4103446,,,MO,,false,true,false,openstreetmap
+Estes Baseball Field,baseball,pitch,39.1506136,-92.6817438,,,MO,,false,true,false,openstreetmap
+Eureka High School Baseball Field,baseball,pitch,38.5135602,-90.6266256,,,MO,,false,true,false,openstreetmap
+Eureka High School Softball Field,baseball,pitch,38.5137087,-90.6253475,,,MO,,false,true,false,openstreetmap
+Evangel University Baseball Field,baseball,pitch,37.2246617,-93.2650987,,,MO,,false,true,false,openstreetmap
+Fairfax Baseball Field,baseball,pitch,40.3461572,-95.3949451,,,MO,,false,true,false,openstreetmap
+Field #1,baseball,pitch,38.5184843,-90.4318413,,,MO,,false,true,false,openstreetmap
+Field #1 Rotary's Diamond,baseball,pitch,38.5394546,-90.9856595,,,MO,,false,true,false,openstreetmap
+Field #2,baseball,pitch,38.5171798,-90.431095,,,MO,,false,true,false,openstreetmap
+Field #2,baseball,pitch,38.6914271,-93.2107379,,,MO,,false,true,false,openstreetmap
+Field #2 Jaycee's Diamond,baseball,pitch,38.5394674,-90.9866214,,,MO,,false,true,false,openstreetmap
+Field #3,baseball,pitch,38.5177718,-90.431432,,,MO,,false,true,false,openstreetmap
+Field #4,baseball,pitch,38.5171654,-90.4321665,,,MO,,false,true,false,openstreetmap
+Field 01B,baseball,pitch,38.667808,-90.2239711,,,MO,,false,true,false,openstreetmap
+Field 02B,baseball,pitch,38.6668064,-90.2217323,,,MO,,false,true,false,openstreetmap
+Field 03B,baseball,pitch,38.6649462,-90.218886,,,MO,,false,true,false,openstreetmap
+Field 04B,baseball,pitch,38.6649551,-90.2164428,,,MO,,false,true,false,openstreetmap
+Field 05B,baseball,pitch,38.6654379,-90.2241148,,,MO,,false,true,false,openstreetmap
+Field 1,baseball,pitch,37.1142297,-93.4686921,,,MO,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.935125,-92.4004771,,,MO,,false,true,false,openstreetmap
+Field 1,baseball,pitch,39.0685695,-93.7296896,,,MO,,false,true,false,openstreetmap
+Field 1,baseball,pitch,38.9766187,-90.9729835,,,MO,,false,true,false,openstreetmap
+Field 1,baseball,pitch,37.2197187,-93.2537884,,,MO,,false,true,false,openstreetmap
+Field 12,baseball,pitch,39.1123293,-94.3650553,,,MO,,false,true,false,openstreetmap
+Field 13,baseball,pitch,39.1117495,-94.3657308,,,MO,,false,true,false,openstreetmap
+Field 14,baseball,pitch,39.1112225,-94.3649946,,,MO,,false,true,false,openstreetmap
+Field 2,baseball,pitch,39.067743,-93.7295416,,,MO,,false,true,false,openstreetmap
+Field 2,baseball,pitch,38.9766323,-90.9718475,,,MO,,false,true,false,openstreetmap
+Field 2,baseball,pitch,37.2208101,-93.2537417,,,MO,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.9360097,-92.4022606,,,MO,,false,true,false,openstreetmap
+Field 3,baseball,pitch,39.0678537,-93.7305276,,,MO,,false,true,false,openstreetmap
+Field 3,baseball,pitch,38.975695,-90.9706436,,,MO,,false,true,false,openstreetmap
+Field 3,baseball,pitch,37.2211984,-93.2547652,,,MO,,false,true,false,openstreetmap
+Field 4,baseball,pitch,39.0668777,-93.730528,,,MO,,false,true,false,openstreetmap
+Field 4,baseball,pitch,38.9754166,-90.9691684,,,MO,,false,true,false,openstreetmap
+Field 4,baseball,pitch,37.2208304,-93.2558595,,,MO,,false,true,false,openstreetmap
+Field 5,baseball,pitch,39.1114158,-94.3718128,,,MO,,false,true,false,openstreetmap
+Field 5,baseball,pitch,38.9352873,-92.4034051,,,MO,,false,true,false,openstreetmap
+Field 5,baseball,pitch,37.2197377,-93.2558879,,,MO,,false,true,false,openstreetmap
+Field 6,baseball,pitch,39.1125473,-94.3717804,,,MO,,false,true,false,openstreetmap
+Field 6,baseball,pitch,38.9351785,-92.4024907,,,MO,,false,true,false,openstreetmap
+Field 6,baseball,pitch,36.9426697,-93.923321,,,MO,,false,true,false,openstreetmap
+Field 7,baseball,pitch,38.9335273,-92.4024175,,,MO,,false,true,false,openstreetmap
+Field 8,baseball,pitch,38.9334268,-92.4033489,,,MO,,false,true,false,openstreetmap
+Field 9/10,baseball,pitch,38.9363941,-92.4047883,,,MO,,false,true,false,openstreetmap
+Field No. 1,baseball,pitch,38.7986485,-90.4835246,,,MO,,false,true,false,openstreetmap
+Field No. 2,baseball,pitch,38.7975327,-90.4837653,,,MO,,false,true,false,openstreetmap
+Field No. 3,baseball,pitch,38.7990932,-90.4827454,,,MO,,false,true,false,openstreetmap
+Field Number 1,baseball,pitch,38.5311819,-90.3728434,,,MO,,false,true,false,openstreetmap
+Field Number 2,baseball,pitch,38.5321248,-90.3729933,,,MO,,false,true,false,openstreetmap
+Field Number 3,baseball,pitch,38.5332465,-90.3727734,,,MO,,false,true,false,openstreetmap
+Girls Softball Field,baseball,pitch,38.7237839,-92.0860972,,,MO,,false,true,false,openstreetmap
+Gold Field,baseball,pitch,39.0096378,-92.2963172,,,MO,,false,true,false,openstreetmap
+Gold Field,baseball,pitch,38.944844,-92.2821852,,,MO,,false,true,false,openstreetmap
+Grace UMC Baseball Diamond,baseball,pitch,38.9042824,-94.3255985,,,MO,,false,true,false,openstreetmap
+Graff Field,baseball,pitch,39.7893234,-93.0709428,,,MO,,false,true,false,openstreetmap
+Green #1,baseball,pitch,39.4225122,-92.4793777,,,MO,,false,true,false,openstreetmap
+Green #2,baseball,pitch,39.4225007,-92.4783799,,,MO,,false,true,false,openstreetmap
+Green #3,baseball,pitch,39.4226917,-92.4762082,,,MO,,false,true,false,openstreetmap
+Green #4,baseball,pitch,39.4215712,-92.4762127,,,MO,,false,true,false,openstreetmap
+Green #5,baseball,pitch,39.4221108,-92.4743801,,,MO,,false,true,false,openstreetmap
+Green #6,baseball,pitch,39.4228799,-92.4780227,,,MO,,false,true,false,openstreetmap
+Green Field,baseball,pitch,38.9769457,-92.3607748,,,MO,,false,true,false,openstreetmap
+Green Field,baseball,pitch,38.9701007,-92.3581005,,,MO,,false,true,false,openstreetmap
+Green Field,baseball,pitch,39.0088018,-92.295802,,,MO,,false,true,false,openstreetmap
+Griffin Field,baseball,pitch,40.0789025,-93.6006283,,,MO,,false,true,false,openstreetmap
+Hal Loughary Baseball Field,baseball,pitch,37.8457755,-90.4781177,,,MO,,false,true,false,openstreetmap
+Hammons Field,baseball,stadium,37.2114823,-93.279843,,,MO,,false,true,false,openstreetmap
+Heine Meine Field,baseball,pitch,38.5447525,-90.2740363,,,MO,,false,true,false,openstreetmap
+High School Boys Baseball Field,baseball,pitch,38.7239228,-92.0846907,,,MO,,false,true,false,openstreetmap
+Hurley High School Baseball Field,baseball,pitch,36.926851,-93.4991951,,,MO,,false,true,false,openstreetmap
+Indian Park Baseball Park,baseball,pitch,36.2404574,-90.0418324,,,MO,,false,true,false,openstreetmap
+Jack Buck Field,baseball,pitch,38.6664761,-90.3219261,,,MO,,false,true,false,openstreetmap
+James R. Crane Stadium,baseball,pitch,38.7577537,-93.7493752,,,MO,,false,true,false,openstreetmap
+Jim Edmonds Field,baseball,pitch,38.6245195,-90.2585184,,,MO,,false,true,false,openstreetmap
+Joe Becker Memorial Stadium,baseball,stadium,37.0896464,-94.4984257,,,MO,,false,true,false,openstreetmap
+John Mais Field,baseball,pitch,38.6941559,-93.209722,,,MO,,false,true,false,openstreetmap
+Johnson Field,baseball,pitch,40.078653,-93.6018487,,,MO,,false,true,false,openstreetmap
+Junior Long Field,baseball,pitch,39.7896559,-92.8781802,,,MO,,false,true,false,openstreetmap
+KREI Field,baseball,pitch,37.7921195,-90.4101048,,,MO,,false,true,false,openstreetmap
+Kansas City Royals,baseball,pitch,39.0516554,-94.4802562,,,MO,,false,true,false,openstreetmap
+Kelly Baseball Field,baseball,pitch,38.6464988,-90.3133809,,,MO,,false,true,false,openstreetmap
+Kimes Field,baseball,pitch,36.7313998,-91.8473974,,,MO,,false,true,false,openstreetmap
+Knights of Columbus Field,baseball,pitch,38.5498582,-91.0302535,,,MO,,false,true,false,openstreetmap
+Knob Noster R8 Sports Complex,baseball,sports_centre,38.7777236,-93.5620901,,,MO,,false,true,false,openstreetmap
+Lafayette High School Softball Field,baseball,pitch,38.5947379,-90.6326657,,,MO,,false,true,false,openstreetmap
+Larry A Marshall Ball Field,baseball,pitch,38.4309813,-92.8546465,,,MO,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,36.7328026,-91.8467064,,,MO,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,39.7809264,-94.847328,,,MO,,false,true,false,openstreetmap
+Little League #1,baseball,pitch,39.029495,-94.3299102,,,MO,,false,true,false,openstreetmap
+Little League #2,baseball,pitch,39.0288139,-94.329923,,,MO,,false,true,false,openstreetmap
+Little League #3,baseball,pitch,39.028786,-94.3308392,,,MO,,false,true,false,openstreetmap
+Loyola Park,baseball,pitch,39.0297298,-94.5702843,,,MO,,false,true,false,openstreetmap
+MBU Baseball Field,baseball,pitch,38.64322,-90.4606079,,,MO,,false,true,false,openstreetmap
+MBU Softball Field,baseball,pitch,38.6435594,-90.4614478,,,MO,,false,true,false,openstreetmap
+Mandy Thomas Field,baseball,pitch,38.6903595,-93.2108305,,,MO,,false,true,false,openstreetmap
+Mark L. McHenry Park-Baseball Fields,baseball,sports_centre,39.2567856,-94.7318262,,,MO,,false,true,false,openstreetmap
+McCabe Field,baseball,pitch,38.6427961,-90.4750471,,,MO,,false,true,false,openstreetmap
+McLaughlin Field,baseball,pitch,38.5496268,-90.9979237,,,MO,,false,true,false,openstreetmap
+Mckelvey Primary Baseball Field,baseball,pitch,38.6935284,-90.4638406,,,MO,,false,true,false,openstreetmap
+Memphis City Field,baseball,pitch,40.4626229,-92.1640689,,,MO,,false,true,false,openstreetmap
+Monkey Mountain Sports Complex,baseball,sports_centre,39.0146291,-94.1701801,,,MO,,false,true,false,openstreetmap
+Murphy Field,baseball,pitch,38.8525344,-91.9358644,,,MO,,false,true,false,openstreetmap
+Newland Field,baseball,pitch,40.5173393,-92.5197539,,,MO,,false,true,false,openstreetmap
+Nichols Park Baseball field,baseball,pitch,37.217001,-93.3173158,,,MO,,false,true,false,openstreetmap
+North Baseball Field,baseball,pitch,38.68847,-90.4693182,,,MO,,false,true,false,openstreetmap
+North Field,baseball,pitch,38.6922687,-93.210853,,,MO,,false,true,false,openstreetmap
+North Field,baseball,pitch,39.2103601,-92.1269511,,,MO,,false,true,false,openstreetmap
+North Field,baseball,pitch,38.5652618,-90.4103981,,,MO,,false,true,false,openstreetmap
+Orange Field,baseball,pitch,38.9784883,-92.3612597,,,MO,,false,true,false,openstreetmap
+Orange Field,baseball,pitch,38.9725628,-92.3586691,,,MO,,false,true,false,openstreetmap
+Osage Beach Baseball Field 1,baseball,pitch,38.15029,-92.5988503,,,MO,,false,true,false,openstreetmap
+Osage Beach Baseball Field 2,baseball,pitch,38.1492966,-92.5973162,,,MO,,false,true,false,openstreetmap
+Oscar Twillman Field,baseball,pitch,38.9730853,-92.7579804,,,MO,,false,true,false,openstreetmap
+Otterville Highschool Baseball field,baseball,pitch,38.7054615,-93.0033151,,,MO,,false,true,false,openstreetmap
+Ozzie Smith Field,baseball,pitch,38.6462372,-90.2215912,,,MO,,false,true,false,openstreetmap
+PAL Memorial Park,baseball,pitch,38.6074359,-90.2255265,,,MO,,false,true,false,openstreetmap
+Palmer Nichols Field,baseball,pitch,38.6931406,-93.2097468,,,MO,,false,true,false,openstreetmap
+Paul Waxie Hernandez Fields,baseball,sports_centre,39.0790703,-94.5890437,,,MO,,false,true,false,openstreetmap
+Piburn Field,baseball,pitch,39.3413183,-94.2207408,,,MO,,false,true,false,openstreetmap
+Pixie Field,baseball,pitch,39.801948,-91.5376889,,,MO,,false,true,false,openstreetmap
+Platte Ridge Park-Baseball Fields,baseball,sports_centre,39.4022478,-94.7993722,,,MO,,false,true,false,openstreetmap
+Pleasant Hill Recreation Complex,baseball,park,38.7818847,-94.2502618,,,MO,,false,true,false,openstreetmap
+Pop Barklage Field,baseball,pitch,38.5637633,-91.0279024,,,MO,,false,true,false,openstreetmap
+Purple Field,baseball,pitch,38.976943,-92.3618325,,,MO,,false,true,false,openstreetmap
+Purple Field,baseball,pitch,38.9709903,-92.3577547,,,MO,,false,true,false,openstreetmap
+R.H. Jones Memorial Park,baseball,park,36.2284852,-90.0577348,,,MO,,false,true,false,openstreetmap
+Red Field,baseball,pitch,38.9777876,-92.3619142,,,MO,,false,true,false,openstreetmap
+Red Field,baseball,pitch,38.9701916,-92.3595232,,,MO,,false,true,false,openstreetmap
+Red Field,baseball,pitch,39.0089705,-92.2945203,,,MO,,false,true,false,openstreetmap
+Richard Vansell Little League Field,baseball,pitch,38.7109091,-93.2475493,,,MO,,false,true,false,openstreetmap
+Riverview Gardens Baseball Field,baseball,pitch,38.7538514,-90.2147509,,,MO,,false,true,false,openstreetmap
+Ronsick Field,baseball,pitch,38.5653729,-91.0230803,,,MO,,false,true,false,openstreetmap
+Saint Clair High School Baseball Field,baseball,pitch,38.3340092,-90.9799866,,,MO,,false,true,false,openstreetmap
+Saucier Field,baseball,pitch,38.8487415,-91.9577963,,,MO,,false,true,false,openstreetmap
+Shelter 3 Baseball Field,baseball,pitch,38.9869513,-94.3260726,,,MO,,false,true,false,openstreetmap
+Sheridan Stadium,baseball,pitch,38.6262744,-90.270562,,,MO,,false,true,false,openstreetmap
+Silver Field,baseball,pitch,38.9788631,-92.3615037,,,MO,,false,true,false,openstreetmap
+Softball Diamond #4,baseball,pitch,39.0283792,-94.3291273,,,MO,,false,true,false,openstreetmap
+Softball Diamond #5,baseball,pitch,39.0275496,-94.3280783,,,MO,,false,true,false,openstreetmap
+Softball Diamond #5,baseball,pitch,39.0275665,-94.3291375,,,MO,,false,true,false,openstreetmap
+Softball Diamond #7,baseball,pitch,39.0276241,-94.3270294,,,MO,,false,true,false,openstreetmap
+Softball Diamond #8,baseball,pitch,39.0275399,-94.3258714,,,MO,,false,true,false,openstreetmap
+Softball Diamond #9,baseball,pitch,39.0275261,-94.3248771,,,MO,,false,true,false,openstreetmap
+South Field,baseball,pitch,39.209407,-92.1270337,,,MO,,false,true,false,openstreetmap
+Southeast Softball Complex,baseball,pitch,37.3259115,-89.5242822,,,MO,,false,true,false,openstreetmap
+Spirt Field,baseball,pitch,38.7949332,-90.2019824,,,MO,,false,true,false,openstreetmap
+Stars Park,baseball,pitch,38.631281,-90.2257781,,,MO,,false,true,false,openstreetmap
+Stars Park,baseball,pitch,38.6317654,-90.2255446,,,MO,,false,true,false,openstreetmap
+Steggall Field,baseball,pitch,40.5166215,-92.5195523,,,MO,,false,true,false,openstreetmap
+T-Ball Diamond,baseball,pitch,37.6471844,-91.5462287,,,MO,,false,true,false,openstreetmap
+Talley Stadium,baseball,pitch,39.2545602,-94.4094512,,,MO,,false,true,false,openstreetmap
+Teeball Field,baseball,pitch,39.1506641,-94.5717667,,,MO,,false,true,false,openstreetmap
+The Little K,baseball,pitch,39.0529168,-94.4800699,,,MO,,false,true,false,openstreetmap
+Tony LaRussa Ball Field,baseball,pitch,38.6132063,-90.2038284,,,MO,,false,true,false,openstreetmap
+UMSL Baseball Field,baseball,pitch,38.7055639,-90.3080971,,,MO,,false,true,false,openstreetmap
+Upper Moberly Little League FIeld,baseball,pitch,40.0843618,-93.6252165,,,MO,,false,true,false,openstreetmap
+V1,baseball,pitch,38.4252086,-90.9591206,,,MO,,false,true,false,openstreetmap
+V2,baseball,pitch,38.4252106,-90.9579484,,,MO,,false,true,false,openstreetmap
+V3,baseball,pitch,38.4242566,-90.9579145,,,MO,,false,true,false,openstreetmap
+V4,baseball,pitch,38.4242558,-90.9591475,,,MO,,false,true,false,openstreetmap
+V5,baseball,pitch,38.4254786,-90.9602698,,,MO,,false,true,false,openstreetmap
+"Walter Greene, Sr. Memorial Baseball Field",baseball,pitch,38.6815812,-90.2762834,,,MO,,false,true,false,openstreetmap
+Watkins Field,baseball,pitch,36.7314014,-91.848649,,,MO,,false,true,false,openstreetmap
+Weber Field,baseball,pitch,38.6433621,-90.5025988,,,MO,,false,true,false,openstreetmap
+West Baseball Field,baseball,pitch,38.6237975,-90.5328144,,,MO,,false,true,false,openstreetmap
+West Baseball Field,baseball,pitch,38.6241433,-90.5360185,,,MO,,false,true,false,openstreetmap
+West Field,baseball,pitch,39.2027313,-92.1474325,,,MO,,false,true,false,openstreetmap
+Westside Optimist Club Youth Baseball Complex,baseball,sports_centre,37.1966653,-93.3442969,,,MO,,false,true,false,openstreetmap
+Whitfield Baseball Field,baseball,pitch,38.6530838,-90.4834348,,,MO,,false,true,false,openstreetmap
+Yadier Molina Field,baseball,pitch,38.6693729,-90.2950624,,,MO,,false,true,false,openstreetmap
+Yellow Field,baseball,pitch,38.9762039,-92.3617811,,,MO,,false,true,false,openstreetmap
+Yellow Field,baseball,pitch,38.9712552,-92.3594865,,,MO,,false,true,false,openstreetmap
+batting cages,baseball,pitch,38.5669339,-90.3293894,,,MO,,false,true,false,openstreetmap
+American Legion Baseball Fields,baseball,sports_centre,38.9442898,-92.2829434,,Columbia,MO,,false,true,false,openstreetmap
+Atkins Ballfields,baseball,sports_centre,39.0094345,-92.2951889,5220 North Oakland Gravel Road,Columbia,MO,65202,false,true,false,openstreetmap
+AJ Wilson Sports Complex,baseball,sports_centre,39.2621134,-94.5180991,9217 North Brighton Avenue,Kansas City,MO,64156,false,true,false,openstreetmap
+Kauffman Stadium,baseball,stadium,39.0515001,-94.4804963,1 Royal Way,Kansas City,MO,,false,true,false,openstreetmap
+Carshield Field,baseball,stadium,38.8204498,-90.6800154,900 TR Huges Boulevard,O'Fallon,MO,63366,false,true,false,openstreetmap
+Lou Brock Sports Complex,baseball,sports_centre,38.7865555,-90.5071447,1780 Mary Sibley Drive,Saint Charles,MO,63301,false,true,false,openstreetmap
+Busch Stadium,baseball,stadium,38.6225611,-90.1929993,700 Clark Avenue,Saint Louis,MO,63101,false,true,false,openstreetmap
+DW Baseball Company,baseball,pitch,38.5604368,-91.0108697,4 Lafayette Street,Washington,MO,63090,false,true,false,openstreetmap

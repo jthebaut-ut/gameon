@@ -1,0 +1,34 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Anthony and Lyndy Marnell III Baseball Clubhouse,baseball,pitch,36.11107,-115.1469222,,,NV,,false,true,false,openstreetmap
+Baseball Field #1,baseball,pitch,36.0751558,-114.9810095,,,NV,,false,true,false,openstreetmap
+Baseball Field #2,baseball,pitch,36.0744029,-114.9810139,,,NV,,false,true,false,openstreetmap
+Baseball field at Overton Park,baseball,pitch,36.5407937,-114.4396211,,,NV,,false,true,false,openstreetmap
+Bighorn Park,baseball,sports_centre,35.9932723,-114.8291722,,,NV,,false,true,false,openstreetmap
+CSN Baseball,baseball,pitch,36.0081578,-114.9670541,,,NV,,false,true,false,openstreetmap
+Cashman Field,baseball,stadium,36.1798884,-115.1297866,,,NV,,false,true,false,openstreetmap
+Centennial High School Baseball Field,baseball,pitch,36.2805893,-115.3195218,,,NV,,false,true,false,openstreetmap
+Clark County Fair Grounds Sports Complex Baseball Field 1,baseball,pitch,36.6033201,-114.4668934,,,NV,,false,true,false,openstreetmap
+Clark County Fairgrouds Sports Complex Baseball Field 2,baseball,pitch,36.6025554,-114.4663959,,,NV,,false,true,false,openstreetmap
+Earl E. Wilson Baseball Stadium,baseball,stadium,36.1114311,-115.1476412,,,NV,,false,true,false,openstreetmap
+Ernie Hall Field,baseball,pitch,40.8430589,-115.7554414,,,NV,,false,true,false,openstreetmap
+Faith Lutheran Baseball Field,baseball,pitch,36.1559374,-115.3180596,,,NV,,false,true,false,openstreetmap
+Freedom Park,baseball,park,36.1790452,-115.1027568,,,NV,,false,true,false,openstreetmap
+Greater Nevada Field,baseball,pitch,39.5288348,-119.8080005,,,NV,,false,true,false,openstreetmap
+Herrera Complex Field A,baseball,pitch,40.845102,-115.7572878,,,NV,,false,true,false,openstreetmap
+Herrera Complex Field B,baseball,pitch,40.8454771,-115.7563589,,,NV,,false,true,false,openstreetmap
+James Lee Park Baseball Field,baseball,pitch,39.0842053,-119.7876255,,,NV,,false,true,false,openstreetmap
+Joe Parr,baseball,pitch,38.9962787,-119.1592429,,,NV,,false,true,false,openstreetmap
+Joe Parr,baseball,pitch,38.9943652,-119.1606393,,,NV,,false,true,false,openstreetmap
+KUMP Field,baseball,pitch,40.8436472,-115.7580908,,,NV,,false,true,false,openstreetmap
+Las Vegas Ballpark,baseball,pitch,36.1529623,-115.3294428,,,NV,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,40.7094673,-116.1195178,,,NV,,false,true,false,openstreetmap
+Len Horen Field,baseball,pitch,40.8438435,-115.7553349,,,NV,,false,true,false,openstreetmap
+Majestic Park,baseball,park,36.2294693,-115.3120898,,,NV,,false,true,false,openstreetmap
+Newton Baseball Field,baseball,pitch,40.8411316,-115.7560444,,,NV,,false,true,false,openstreetmap
+Potosi Park,baseball,park,36.1398188,-115.2139932,,,NV,,false,true,false,openstreetmap
+Preston Field,baseball,pitch,39.2519326,-119.9691354,,,NV,,false,true,false,openstreetmap
+Silverada Little League Field,baseball,sports_centre,39.2382552,-119.5818744,,,NV,,false,true,false,openstreetmap
+Sun Valley Baseball Field,baseball,pitch,39.5990245,-119.7842462,,,NV,,false,true,false,openstreetmap
+William P. Peccole Field,baseball,pitch,36.150851,-115.2474262,,,NV,,false,true,false,openstreetmap
+Old Silver Bowl,baseball,sports_centre,36.0873988,-115.0090197,5600 Wiesner Way,Henderson,NV,89122,false,true,false,openstreetmap
+Terrace Sports Complex,baseball,park,39.5432864,-119.8923726,2525 Robb Drive,Reno,NV,89523,false,true,false,openstreetmap

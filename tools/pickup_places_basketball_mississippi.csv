@@ -1,0 +1,16 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court,basketball,pitch,33.5123999,-90.1657578,,,MS,,false,true,false,openstreetmap
+Friendship Park,basketball,pitch,31.3189426,-89.2828463,,,MS,,false,true,false,openstreetmap
+High School Gymnasium,basketball,pitch,34.9476777,-88.9073642,,,MS,,false,true,false,openstreetmap
+Howard Coliseum,basketball,pitch,34.6258692,-89.9749798,,,MS,,false,true,false,openstreetmap
+Humphrey Coliseum,basketball,stadium,33.4614846,-88.7938995,55 Coliseum Blvd,,MS,39762,false,true,false,openstreetmap
+Landers Center,basketball,stadium,34.9270974,-89.9965483,,,MS,,false,true,false,openstreetmap
+Old Helena School Community Park,basketball,pitch,30.9928976,-89.2601648,,,MS,,false,true,false,openstreetmap
+R Jess Brown Park,basketball,pitch,32.3104046,-90.2038324,,,MS,,false,true,false,openstreetmap
+Rec Courts at the Roc,basketball,sports_centre,34.6236737,-89.9749975,,,MS,,false,true,false,openstreetmap
+South Mississippi Correctional Institution,basketball,pitch,31.1753402,-88.6060551,,,MS,,false,true,false,openstreetmap
+St. Patrick Basketball Gymnasium,basketball,pitch,30.5526468,-89.0216282,,,MS,,false,true,false,openstreetmap
+Thames Elementary School,basketball,pitch,31.3136703,-89.3365123,,,MS,,false,true,false,openstreetmap
+Walter Sillers Coliseum,basketball,stadium,33.749069,-90.7342065,,,MS,,false,true,false,openstreetmap
+West Elementary Basketball Court,basketball,pitch,30.3983256,-88.5480734,,,MS,,false,true,false,openstreetmap
+Tad Smith Coliseum,basketball,stadium,34.3621532,-89.5393253,100 Coliseum Loop,University,MS,38677,false,true,false,openstreetmap

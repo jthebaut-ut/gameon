@@ -1,0 +1,7 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Churchill County Jr. High School Field,soccer,pitch,39.468207,-118.779984,,,NV,,false,true,false,openstreetmap
+John Hogg Soccer Complex,soccer,pitch,40.8455969,-115.785084,,,NV,,false,true,false,openstreetmap
+Logan Field,soccer,pitch,38.0595618,-117.2231335,,,NV,,false,true,false,openstreetmap
+Peter Johann Soccer Field,soccer,pitch,36.1125632,-115.1469057,,,NV,,false,true,false,openstreetmap
+Robert Miller Soccer Building,soccer,pitch,36.1130543,-115.146564,,,NV,,false,true,false,openstreetmap
+Soccer City,soccer,pitch,39.5070493,-119.8002369,,,NV,,false,true,false,openstreetmap

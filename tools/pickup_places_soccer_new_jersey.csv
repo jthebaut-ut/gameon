@@ -1,0 +1,184 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1A,soccer,pitch,40.8656703,-74.7276181,,,NJ,,false,true,false,openstreetmap
+1B,soccer,pitch,40.8651386,-74.7275565,,,NJ,,false,true,false,openstreetmap
+2A,soccer,pitch,40.8652337,-74.7263526,,,NJ,,false,true,false,openstreetmap
+2B,soccer,pitch,40.8657395,-74.7264082,,,NJ,,false,true,false,openstreetmap
+3A,soccer,pitch,40.8644151,-74.7274456,,,NJ,,false,true,false,openstreetmap
+3B,soccer,pitch,40.8638804,-74.7273869,,,NJ,,false,true,false,openstreetmap
+4A,soccer,pitch,40.864474,-74.7262903,,,NJ,,false,true,false,openstreetmap
+4B,soccer,pitch,40.8639813,-74.7262365,,,NJ,,false,true,false,openstreetmap
+5-A-Side Pitch,soccer,pitch,40.5352156,-74.6209831,,,NJ,,false,true,false,openstreetmap
+Ackerman Field,soccer,pitch,40.9425617,-73.9588772,,,NJ,,false,true,false,openstreetmap
+Army Turf Field,soccer,pitch,40.8657345,-74.4121653,,,NJ,,false,true,false,openstreetmap
+Barry Barclay Field,soccer,pitch,40.3700068,-74.5321724,,,NJ,,false,true,false,openstreetmap
+Barry Barclay Field,soccer,pitch,40.3698454,-74.532924,,,NJ,,false,true,false,openstreetmap
+Becton Dickinson Field,soccer,pitch,40.6965217,-74.413026,,,NJ,,false,true,false,openstreetmap
+Bobby's Run Elementary School,soccer,pitch,39.9724174,-74.7871258,,,NJ,,false,true,false,openstreetmap
+Boy's Soccer and Boy's Lacrosse Practice Field,soccer,pitch,39.7601006,-75.2933103,,,NJ,,false,true,false,openstreetmap
+Chyzowych Soccer Field,soccer,pitch,40.7386705,-74.2683996,,,NJ,,false,true,false,openstreetmap
+College of Saint Elizabeth,soccer,pitch,40.7774111,-74.4420079,,,NJ,,false,true,false,openstreetmap
+Competition Soccer Field,soccer,pitch,41.0850629,-74.1786227,,,NJ,,false,true,false,openstreetmap
+Crestview Soccer Field,soccer,pitch,39.440066,-74.4996189,,,NJ,,false,true,false,openstreetmap
+Crystal Lake Fields,soccer,pitch,39.9033427,-75.0482655,,,NJ,,false,true,false,openstreetmap
+Crystal Lake Fields,soccer,pitch,39.9041443,-75.0484888,,,NJ,,false,true,false,openstreetmap
+D.J. Bentz Memorial Soccer Complex,soccer,sports_centre,39.6616699,-75.0795997,,,NJ,,false,true,false,openstreetmap
+Dioguardi Field,soccer,pitch,40.8684258,-74.1969372,,,NJ,,false,true,false,openstreetmap
+Doc Cramner Sports Complex,soccer,pitch,39.6943557,-74.2837945,,,NJ,,false,true,false,openstreetmap
+Egan Field,soccer,pitch,40.8304411,-74.2889179,,,NJ,,false,true,false,openstreetmap
+Elm Street Small Side Soccer Field,soccer,pitch,40.7834731,-74.4038811,,,NJ,,false,true,false,openstreetmap
+Emmett Travel Field,soccer,pitch,40.7840653,-74.4039139,,,NJ,,false,true,false,openstreetmap
+Essex County Soccer Field,soccer,pitch,40.7344739,-74.1443404,,,NJ,,false,true,false,openstreetmap
+Evergreen Park Soccer Field,soccer,pitch,40.4062331,-74.1176692,,,NJ,,false,true,false,openstreetmap
+F10,soccer,pitch,40.2561676,-74.6629972,,,NJ,,false,true,false,openstreetmap
+F11,soccer,pitch,40.256378,-74.6621845,,,NJ,,false,true,false,openstreetmap
+F12,soccer,pitch,40.2581517,-74.6631575,,,NJ,,false,true,false,openstreetmap
+F13,soccer,pitch,40.2586589,-74.6635293,,,NJ,,false,true,false,openstreetmap
+FDU Soccer Field,soccer,pitch,40.9027931,-74.0267576,,,NJ,,false,true,false,openstreetmap
+Field #1,soccer,pitch,40.8750947,-74.160887,,,NJ,,false,true,false,openstreetmap
+Field #2,soccer,pitch,40.8752446,-74.1600771,,,NJ,,false,true,false,openstreetmap
+Field #3,soccer,pitch,40.8742007,-74.1604815,,,NJ,,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.2818654,-74.7473566,,,NJ,,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.1525935,-74.6309026,,,NJ,,false,true,false,openstreetmap
+Field 10,soccer,pitch,40.2814501,-74.7436485,,,NJ,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.8654881,-74.7263804,,,NJ,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.2814962,-74.7479612,,,NJ,,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.1523383,-74.6301107,,,NJ,,false,true,false,openstreetmap
+Field 2 (11v11),soccer,pitch,39.6619503,-75.0803674,,,NJ,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.8641475,-74.7274163,,,NJ,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.2811264,-74.7485588,,,NJ,,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.1520777,-74.6292325,,,NJ,,false,true,false,openstreetmap
+Field 3 (Micro),soccer,pitch,39.6628305,-75.0805113,,,NJ,,false,true,false,openstreetmap
+Field 4,soccer,pitch,40.8642276,-74.7262634,,,NJ,,false,true,false,openstreetmap
+Field 4,soccer,pitch,40.2818829,-74.7488758,,,NJ,,false,true,false,openstreetmap
+Field 4,soccer,pitch,40.153508,-74.6276065,,,NJ,,false,true,false,openstreetmap
+Field 4 (8v8),soccer,pitch,39.6607841,-75.0797383,,,NJ,,false,true,false,openstreetmap
+Field 5,soccer,pitch,40.2841039,-74.7445795,,,NJ,,false,true,false,openstreetmap
+Field 5,soccer,pitch,40.1531689,-74.6264875,,,NJ,,false,true,false,openstreetmap
+Field 5,soccer,pitch,40.8621608,-74.7270224,,,NJ,,false,true,false,openstreetmap
+Field 6,soccer,pitch,40.8620829,-74.7258754,,,NJ,,false,true,false,openstreetmap
+Field 6,soccer,pitch,40.2846734,-74.7443854,,,NJ,,false,true,false,openstreetmap
+Field 6 (Micro),soccer,pitch,39.660624,-75.0792209,,,NJ,,false,true,false,openstreetmap
+Field 7,soccer,pitch,40.2852427,-74.744199,,,NJ,,false,true,false,openstreetmap
+Field 7,soccer,pitch,40.8612885,-74.726891,,,NJ,,false,true,false,openstreetmap
+Field 8,soccer,pitch,40.2858133,-74.7440136,,,NJ,,false,true,false,openstreetmap
+Field 9,soccer,pitch,40.2839486,-74.742897,,,NJ,,false,true,false,openstreetmap
+Field C,soccer,pitch,39.7485895,-75.3188425,,,NJ,,false,true,false,openstreetmap
+Field D,soccer,pitch,39.747609,-75.3186678,,,NJ,,false,true,false,openstreetmap
+Field F,soccer,pitch,39.7485715,-75.3198839,,,NJ,,false,true,false,openstreetmap
+Field G,soccer,pitch,39.7477762,-75.3198368,,,NJ,,false,true,false,openstreetmap
+Field M,soccer,pitch,39.7474576,-75.3228933,,,NJ,,false,true,false,openstreetmap
+Football / Soccer Field,soccer,pitch,40.8373555,-74.5688327,,,NJ,,false,true,false,openstreetmap
+Forest Hills Soccer Field,soccer,pitch,39.893997,-74.2023392,,,NJ,,false,true,false,openstreetmap
+Freshman Sports,soccer,pitch,40.9289452,-74.7350639,,,NJ,,false,true,false,openstreetmap
+Friendship Field,soccer,pitch,40.1522624,-74.66935,,,NJ,,false,true,false,openstreetmap
+Friendship Field,soccer,pitch,40.9023877,-74.5149919,,,NJ,,false,true,false,openstreetmap
+Girl's Lacrosse and Girl's Soccer Practice Field,soccer,pitch,39.7631173,-75.292899,,,NJ,,false,true,false,openstreetmap
+Grass Back,soccer,pitch,40.8544017,-74.5082825,,,NJ,,false,true,false,openstreetmap
+Grass Front,soccer,pitch,40.855012,-74.5088583,,,NJ,,false,true,false,openstreetmap
+Harold Poore Track and Field,soccer,pitch,40.3244427,-74.7936735,,,NJ,,false,true,false,openstreetmap
+Harrison Field,soccer,pitch,40.8503925,-74.286314,,,NJ,,false,true,false,openstreetmap
+Hesse Field,soccer,pitch,40.278909,-74.0040756,,,NJ,,false,true,false,openstreetmap
+Huff Ave Soccer Field,soccer,pitch,40.5357797,-74.5865308,,,NJ,,false,true,false,openstreetmap
+Intramural & Lower Soccer Field,soccer,pitch,40.8557325,-74.5793718,,,NJ,,false,true,false,openstreetmap
+Jose Marti Field,soccer,pitch,40.7665821,-74.0373987,,,NJ,,false,true,false,openstreetmap
+Junior Soccer Field,soccer,pitch,40.9290186,-74.2963633,,,NJ,,false,true,false,openstreetmap
+Junior Varsity Soccer Field,soccer,pitch,39.6620979,-75.0832354,,,NJ,,false,true,false,openstreetmap
+Lincoln Park Soccer Field,soccer,pitch,40.5345667,-74.5851652,,,NJ,,false,true,false,openstreetmap
+Lower Soccer Field,soccer,pitch,40.8837781,-74.5053568,,,NJ,,false,true,false,openstreetmap
+Lurker Park Main Soccer Field,soccer,pitch,40.8319846,-74.3456118,,,NJ,,false,true,false,openstreetmap
+Maple Field,soccer,pitch,40.9857791,-74.1100596,,,NJ,,false,true,false,openstreetmap
+Martucci Field,soccer,pitch,40.733937,-74.0711418,,,NJ,,false,true,false,openstreetmap
+Mayor Lewis & Lynn DeBell Field,soccer,pitch,40.8222803,-74.3073398,,,NJ,,false,true,false,openstreetmap
+McNair Academic High School-Soccer Field,soccer,pitch,40.7265425,-74.0903479,,,NJ,,false,true,false,openstreetmap
+Midget soccer,soccer,pitch,40.6572016,-74.2411434,,,NJ,,false,true,false,openstreetmap
+Montville Park Soccer,soccer,pitch,40.8958241,-74.363728,,,NJ,,false,true,false,openstreetmap
+Montville Park Soccer,soccer,pitch,40.896503,-74.3640679,,,NJ,,false,true,false,openstreetmap
+Montville Park Soccer,soccer,pitch,40.8965178,-74.3634813,,,NJ,,false,true,false,openstreetmap
+NJCU Practice Soccer Field,soccer,pitch,40.7031284,-74.10257,,,NJ,,false,true,false,openstreetmap
+NJCU Soccer Field,soccer,pitch,40.7042479,-74.1033822,,,NJ,,false,true,false,openstreetmap
+Ocean County Stadium,soccer,pitch,40.0114993,-74.1673771,,,NJ,,false,true,false,openstreetmap
+Parsippany Soccer Club,soccer,pitch,40.8423988,-74.4046207,,,NJ,,false,true,false,openstreetmap
+Passaic River Park Front Soccer Field (Lower Field),soccer,pitch,40.6916796,-74.4310395,,,NJ,,false,true,false,openstreetmap
+Passaic River Park Front Soccer Field (Upper Field),soccer,pitch,40.6922383,-74.4323472,,,NJ,,false,true,false,openstreetmap
+Pee Wee Soccer Field,soccer,pitch,40.9215284,-74.2838392,,,NJ,,false,true,false,openstreetmap
+Pennington School Soccer Field,soccer,pitch,40.3287284,-74.794708,,,NJ,,false,true,false,openstreetmap
+Pittser Field,soccer,pitch,40.8608605,-74.2004401,,,NJ,,false,true,false,openstreetmap
+Plummer Field,soccer,pitch,40.3425537,-74.6531874,,,NJ,,false,true,false,openstreetmap
+REC Soccer Field,soccer,park,40.8985344,-74.3636937,,,NJ,,false,true,false,openstreetmap
+Ramapo Practice Soccer Field,soccer,pitch,40.9953711,-74.1903788,,,NJ,,false,true,false,openstreetmap
+Ritzer Field,soccer,pitch,40.7368007,-74.2655941,,,NJ,,false,true,false,openstreetmap
+Robert L. McNulty Memorial Soccer Field,soccer,pitch,40.7037177,-74.102066,,,NJ,,false,true,false,openstreetmap
+Roberts Stadium,soccer,stadium,40.3460657,-74.6460465,,,NJ,,false,true,false,openstreetmap
+SOC1,soccer,pitch,40.2560144,-74.632504,,,NJ,,false,true,false,openstreetmap
+SOC2,soccer,pitch,40.2565006,-74.6315655,,,NJ,,false,true,false,openstreetmap
+Sherrerd Field,soccer,pitch,40.3414534,-74.6513292,,,NJ,,false,true,false,openstreetmap
+Soccer,soccer,pitch,40.9294082,-74.73566,,,NJ,,false,true,false,openstreetmap
+Soccer 1,soccer,pitch,40.4892608,-74.4261174,,,NJ,,false,true,false,openstreetmap
+Soccer 2,soccer,pitch,40.4915366,-74.4234445,,,NJ,,false,true,false,openstreetmap
+Soccer 4,soccer,pitch,40.4915532,-74.4214793,,,NJ,,false,true,false,openstreetmap
+Soccer Coliseum at Teaneck Armory,soccer,sports_centre,40.9109653,-73.9965423,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.6444453,-74.320936,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.6723598,-74.3159004,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.5555888,-74.8390042,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.5552362,-74.8396202,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.5560881,-74.8398174,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,41.0106955,-73.9811089,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.941992,-74.210355,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.9466015,-74.2996069,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,41.0191152,-74.246217,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.967264,-74.236145,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.967078,-74.2367933,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.9673576,-74.2555074,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.9290982,-74.2956691,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.9445444,-74.3101506,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.922019,-74.2846186,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.9460268,-74.221928,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.2887195,-73.9906127,,,NJ,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,40.2873252,-73.9901788,,,NJ,,false,true,false,openstreetmap
+Soccer Field (OASJV),soccer,pitch,40.6714007,-74.2981148,,,NJ,,false,true,false,openstreetmap
+Soccer Field (OASV),soccer,pitch,40.6722532,-74.2983867,,,NJ,,false,true,false,openstreetmap
+Soccer Field 1,soccer,pitch,40.8237332,-74.4844038,,,NJ,,false,true,false,openstreetmap
+Soccer Field 2,soccer,pitch,40.8243052,-74.484491,,,NJ,,false,true,false,openstreetmap
+Soccer Field 3,soccer,pitch,40.8242182,-74.4840218,,,NJ,,false,true,false,openstreetmap
+Soccer Fields,soccer,pitch,39.7909644,-75.1218849,,,NJ,,false,true,false,openstreetmap
+Soccer Overlay,soccer,pitch,40.8556066,-74.5080055,,,NJ,,false,true,false,openstreetmap
+Soccer field (OASSS),soccer,pitch,40.6707725,-74.2978182,,,NJ,,false,true,false,openstreetmap
+Southside Field,soccer,pitch,40.6217381,-74.351411,,,NJ,,false,true,false,openstreetmap
+Sports Illustrated Stadium,soccer,stadium,40.7368642,-74.1502736,,,NJ,,false,true,false,openstreetmap
+Sycamore Field,soccer,pitch,40.6433376,-74.3296739,,,NJ,,false,true,false,openstreetmap
+The Cage,soccer,pitch,40.9276238,-73.9668997,,,NJ,,false,true,false,openstreetmap
+Timberlane Fields,soccer,pitch,40.3277868,-74.8091743,,,NJ,,false,true,false,openstreetmap
+Todd Johnson Field,soccer,pitch,40.8982959,-74.4826767,,,NJ,,false,true,false,openstreetmap
+Toms River Football Club,soccer,sports_hall;pitch,40.0169548,-74.2346367,,,NJ,,false,true,false,openstreetmap
+Townsquare Field,soccer,pitch,40.9081282,-74.5595776,,,NJ,,false,true,false,openstreetmap
+Truman Soccer Field,soccer,pitch,41.0297815,-74.2478378,,,NJ,,false,true,false,openstreetmap
+Upper Soccer Field,soccer,pitch,40.8566503,-74.5796159,,,NJ,,false,true,false,openstreetmap
+Upper Soccer Field,soccer,pitch,40.8836466,-74.5074357,,,NJ,,false,true,false,openstreetmap
+Varsity Soccer,soccer,pitch,39.6635253,-75.0814217,,,NJ,,false,true,false,openstreetmap
+Veterans Field,soccer,pitch,40.8295595,-74.2918469,,,NJ,,false,true,false,openstreetmap
+Veterans Memorial Field,soccer,pitch,40.8359971,-74.2558008,,,NJ,,false,true,false,openstreetmap
+Volunteers Field,soccer,pitch,40.8297602,-74.2906305,,,NJ,,false,true,false,openstreetmap
+WOHS Soccer Field,soccer,pitch,40.8053732,-74.2619418,,,NJ,,false,true,false,openstreetmap
+William Wilt Soccer Complex,soccer,sports_centre,39.7389912,-75.205652,,,NJ,,false,true,false,openstreetmap
+Woodcrest Swim Club Soccer Field,soccer,pitch,39.8761521,-74.9940551,,,NJ,,false,true,false,openstreetmap
+decou,soccer,pitch,39.8663201,-74.9601696,,,NJ,,false,true,false,openstreetmap
+tempary for BTE,soccer,pitch,40.6646978,-74.2670901,,,NJ,,false,true,false,openstreetmap
+tempary for BTE,soccer,pitch,40.6646305,-74.2675969,,,NJ,,false,true,false,openstreetmap
+tempary for BTE,soccer,pitch,40.6646416,-74.2675277,,,NJ,,false,true,false,openstreetmap
+tempary for BTE,soccer,pitch,40.6647564,-74.2666563,,,NJ,,false,true,false,openstreetmap
+tempary for BTE,soccer,pitch,40.6647671,-74.2665858,,,NJ,,false,true,false,openstreetmap
+⚽,soccer,pitch,40.6659775,-74.2729403,,,NJ,,false,true,false,openstreetmap
+⚽,soccer,pitch,40.6646984,-74.2670906,,,NJ,,false,true,false,openstreetmap
+Hitchcock field stadium,soccer,stadium,40.8681629,-74.0760937,365 Boulevard,Hasbrouck Heights,NJ,07604,false,true,false,openstreetmap
+Ultra Footy LLC,soccer,pitch,40.8089665,-74.3411653,93 Dorsa Avenue,Livingston,NJ,07039,false,true,false,openstreetmap
+Sports Domain Academy,soccer,sports_centre,40.8175552,-74.2104451,14 Depot Square,Montclair,NJ,07042,false,true,false,openstreetmap
+James Zadroga Field,soccer,pitch,40.7868755,-74.1230937,Schuyler Avenue,North Arlington,NJ,07031,false,true,false,openstreetmap
+Five Below,soccer,pitch,40.461603,-74.464912,949 US Route 1,North Brunswick,NJ,08902,false,true,false,openstreetmap
+Soccer Zone USA,soccer,pitch,40.8646161,-74.3960616,120 Baldwin Road,Parsippany,NJ,07054,false,true,false,openstreetmap
+Twin Pines Recreation Area,soccer,sports_centre,40.3097748,-74.7589055,255 Lawrenceville - Pennington Road,Pennington,NJ,08534,false,true,false,openstreetmap
+Field 1,soccer,pitch,40.9596623,-74.2456309,1530 Alps Road,Wayne,NJ,07470,false,true,false,openstreetmap
+Field 2,soccer,pitch,40.9587507,-74.2454494,1530 Alps Road,Wayne,NJ,07470,false,true,false,openstreetmap
+Field 3,soccer,pitch,40.9587381,-74.2444958,1530 Alps Road,Wayne,NJ,07470,false,true,false,openstreetmap
+Sportfriends Small-Sided Turf Field,soccer,pitch,40.9219668,-74.2833301,35 Wayne Street,Wayne,NJ,07470,false,true,false,openstreetmap
+TSF Academy,soccer,pitch,40.973113,-74.2694637,970 Black Oak Ridge Road,Wayne,NJ,07470,false,true,false,openstreetmap
+Wayne Soccer Club,soccer,pitch,40.968638,-74.2555967,52-64 Geoffrey Way,Wayne,NJ,07470,false,true,false,openstreetmap

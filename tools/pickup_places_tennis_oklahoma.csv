@@ -1,0 +1,19 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Choctaw Yellow Jackets Tennis Courts,tennis,sports_centre,35.4768908,-97.277018,,,OK,,false,true,false,openstreetmap
+Dr. Joe W. Hanson Park Tennis Court,tennis,pitch,36.3063576,-96.4618801,,,OK,,false,true,false,openstreetmap
+Edmond Center Court,tennis,sports_centre,35.640218,-97.4929301,,,OK,,false,true,false,openstreetmap
+Greer Park,tennis,sports_centre,34.6166181,-98.4388436,,,OK,,false,true,false,openstreetmap
+Jenks Tennis,tennis,sports_centre,36.0310641,-95.971612,,,OK,,false,true,false,openstreetmap
+Meadowlake Tennis Courts,tennis,pitch,36.3734339,-97.8918736,,,OK,,false,true,false,openstreetmap
+Methodist Student Center Tennis Courts,tennis,stadium,36.5960961,-101.6389426,,,OK,,false,true,false,openstreetmap
+Michael D. Case Tennis Center,tennis,sports_centre,36.1503054,-95.9509056,,,OK,,false,true,false,openstreetmap
+Michael and Anne Greenwood Tennis Center,tennis,sports_centre,36.1295869,-97.0685014,,,OK,,false,true,false,openstreetmap
+Oscar Parker Tennis Court,tennis,pitch,34.7724855,-96.6624317,,,OK,,false,true,false,openstreetmap
+Owasso Public Tennis Courts,tennis,pitch,36.2799616,-95.822231,,,OK,,false,true,false,openstreetmap
+Santa Fe Family Life Center,tennis,sports_centre,35.5358408,-97.5109199,6300 North Santa Fe Avenue,,OK,73118,false,true,false,openstreetmap
+Streich-Henry Tennis Complex,tennis,pitch,34.6036136,-98.4366987,,,OK,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,35.213239,-97.4536936,,,OK,,false,true,false,openstreetmap
+Tennis Courts,tennis,sports_centre,35.0292425,-97.9580999,,,OK,,false,true,false,openstreetmap
+University of Oklahoma,tennis,pitch,35.1959475,-97.4430016,,,OK,,false,true,false,openstreetmap
+Gregg Wadley Tennis Pavilion,tennis,sports_centre,35.1873688,-97.4476143,500 Imhoff Road,Norman,OK,73019,false,true,false,openstreetmap
+Case Tennis Center,tennis,sports_centre,36.086476,-95.9143433,5302 South Hudson Avenue East,Tulsa,OK,74135,false,true,false,openstreetmap

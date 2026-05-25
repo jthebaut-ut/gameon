@@ -1,0 +1,118 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+1,soccer,pitch,35.5894004,-97.5881537,,,OK,,false,true,false,openstreetmap
+1,soccer,pitch,36.0220727,-95.9958971,,,OK,,false,true,false,openstreetmap
+1,soccer,pitch,36.0528528,-95.9870868,,,OK,,false,true,false,openstreetmap
+10,soccer,pitch,35.4580263,-97.380345,,,OK,,false,true,false,openstreetmap
+10,soccer,pitch,36.0201278,-95.9964571,,,OK,,false,true,false,openstreetmap
+10,soccer,pitch,36.0487609,-95.9883362,,,OK,,false,true,false,openstreetmap
+10E,soccer,pitch,35.588019,-97.5906517,,,OK,,false,true,false,openstreetmap
+10E,soccer,pitch,35.5880116,-97.5903331,,,OK,,false,true,false,openstreetmap
+11,soccer,pitch,35.4584077,-97.3808557,,,OK,,false,true,false,openstreetmap
+11,soccer,pitch,35.5899035,-97.5919655,,,OK,,false,true,false,openstreetmap
+11,soccer,pitch,36.019468,-95.9962251,,,OK,,false,true,false,openstreetmap
+11,soccer,pitch,36.0487609,-95.9874437,,,OK,,false,true,false,openstreetmap
+12,soccer,pitch,35.5892423,-97.5917947,,,OK,,false,true,false,openstreetmap
+12,soccer,pitch,35.4551181,-97.3770958,,,OK,,false,true,false,openstreetmap
+12,soccer,pitch,36.018635,-95.9958361,,,OK,,false,true,false,openstreetmap
+13,soccer,pitch,35.4558062,-97.3779914,,,OK,,false,true,false,openstreetmap
+13,soccer,pitch,35.5886427,-97.5918305,,,OK,,false,true,false,openstreetmap
+13,soccer,pitch,36.0187665,-95.9947413,,,OK,,false,true,false,openstreetmap
+14,soccer,pitch,35.4564717,-97.3786821,,,OK,,false,true,false,openstreetmap
+14,soccer,pitch,35.5880248,-97.5918467,,,OK,,false,true,false,openstreetmap
+15,soccer,pitch,35.5900091,-97.5931681,,,OK,,false,true,false,openstreetmap
+15,soccer,pitch,35.4584562,-97.3797651,,,OK,,false,true,false,openstreetmap
+15,soccer,pitch,36.0204292,-95.9954398,,,OK,,false,true,false,openstreetmap
+16,soccer,pitch,35.5894013,-97.5931548,,,OK,,false,true,false,openstreetmap
+16,soccer,pitch,35.4588553,-97.3802816,,,OK,,false,true,false,openstreetmap
+16,soccer,pitch,36.0201355,-95.9953406,,,OK,,false,true,false,openstreetmap
+17,soccer,pitch,35.4579245,-97.3782407,,,OK,,false,true,false,openstreetmap
+17,soccer,pitch,35.588802,-97.5931594,,,OK,,false,true,false,openstreetmap
+17,soccer,pitch,36.0226098,-95.9952519,,,OK,,false,true,false,openstreetmap
+18,soccer,pitch,35.5881092,-97.5930217,,,OK,,false,true,false,openstreetmap
+18,soccer,pitch,35.4589521,-97.3790542,,,OK,,false,true,false,openstreetmap
+18,soccer,pitch,36.0225943,-95.9948398,,,OK,,false,true,false,openstreetmap
+19,soccer,pitch,36.0225867,-95.9944759,,,OK,,false,true,false,openstreetmap
+2,soccer,pitch,35.5888191,-97.5879065,,,OK,,false,true,false,openstreetmap
+2,soccer,pitch,36.0211552,-95.9955754,,,OK,,false,true,false,openstreetmap
+2,soccer,pitch,36.0518231,-95.9870746,,,OK,,false,true,false,openstreetmap
+3,soccer,pitch,35.5880766,-97.5879886,,,OK,,false,true,false,openstreetmap
+3,soccer,pitch,36.0233485,-95.9946746,,,OK,,false,true,false,openstreetmap
+3,soccer,pitch,36.0507782,-95.9871136,,,OK,,false,true,false,openstreetmap
+4,soccer,pitch,35.5898576,-97.5893661,,,OK,,false,true,false,openstreetmap
+4,soccer,pitch,36.0233439,-95.9954948,,,OK,,false,true,false,openstreetmap
+4,soccer,pitch,36.0528552,-95.9862703,,,OK,,false,true,false,openstreetmap
+5,soccer,pitch,35.4573382,-97.3805644,,,OK,,false,true,false,openstreetmap
+5,soccer,pitch,35.5890105,-97.5893849,,,OK,,false,true,false,openstreetmap
+5,soccer,pitch,36.0233681,-95.9963367,,,OK,,false,true,false,openstreetmap
+5,soccer,pitch,36.0518288,-95.9862613,,,OK,,false,true,false,openstreetmap
+6,soccer,pitch,35.4576092,-97.3810782,,,OK,,false,true,false,openstreetmap
+6,soccer,pitch,35.5881326,-97.5893112,,,OK,,false,true,false,openstreetmap
+6,soccer,pitch,36.0233719,-95.9971843,,,OK,,false,true,false,openstreetmap
+6,soccer,pitch,36.0507734,-95.9863,,,OK,,false,true,false,openstreetmap
+7,soccer,pitch,35.4579167,-97.3814833,,,OK,,false,true,false,openstreetmap
+7,soccer,pitch,36.0223097,-95.9970794,,,OK,,false,true,false,openstreetmap
+7,soccer,pitch,36.0528568,-95.9854698,,,OK,,false,true,false,openstreetmap
+7E,soccer,pitch,35.5900312,-97.5904072,,,OK,,false,true,false,openstreetmap
+7W,soccer,pitch,35.5900472,-97.5907253,,,OK,,false,true,false,openstreetmap
+8,soccer,pitch,36.021434,-95.9968815,,,OK,,false,true,false,openstreetmap
+8,soccer,pitch,36.0518264,-95.9854686,,,OK,,false,true,false,openstreetmap
+8E,soccer,pitch,35.5895222,-97.5904146,,,OK,,false,true,false,openstreetmap
+8W,soccer,pitch,35.5895332,-97.5907354,,,OK,,false,true,false,openstreetmap
+9,soccer,pitch,35.4576315,-97.3799499,,,OK,,false,true,false,openstreetmap
+9,soccer,pitch,36.0207787,-95.9966718,,,OK,,false,true,false,openstreetmap
+9,soccer,pitch,36.0507831,-95.9854864,,,OK,,false,true,false,openstreetmap
+9E,soccer,pitch,35.5885638,-97.5904079,,,OK,,false,true,false,openstreetmap
+9W,soccer,pitch,35.5885725,-97.5907304,,,OK,,false,true,false,openstreetmap
+A,soccer,pitch,35.5888054,-97.5855352,,,OK,,false,true,false,openstreetmap
+B,soccer,pitch,35.5880721,-97.585491,,,OK,,false,true,false,openstreetmap
+C,soccer,pitch,35.5889837,-97.5864559,,,OK,,false,true,false,openstreetmap
+City of Choctaw soccer field,soccer,pitch,35.4942456,-97.2631451,,,OK,,false,true,false,openstreetmap
+Collinsville Soccer Field,soccer,pitch,36.342602,-95.8308154,,,OK,,false,true,false,openstreetmap
+Colton's Field,soccer,pitch,33.9733614,-96.3690649,,,OK,,false,true,false,openstreetmap
+D,soccer,pitch,35.5882291,-97.5865041,,,OK,,false,true,false,openstreetmap
+Dan DeLoache Field,soccer,pitch,35.9219589,-94.9604974,,,OK,,false,true,false,openstreetmap
+E,soccer,pitch,35.588209,-97.5860555,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #1,soccer,pitch,35.6667769,-97.503355,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #10,soccer,pitch,35.6644474,-97.4999543,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #11,soccer,pitch,35.6643687,-97.5012407,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #12,soccer,pitch,35.6643697,-97.5025632,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #13,soccer,pitch,35.6643278,-97.5036535,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #14,soccer,pitch,35.6635206,-97.5034646,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #15,soccer,pitch,35.6627502,-97.5034759,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #16,soccer,pitch,35.6618636,-97.5034815,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #2,soccer,pitch,35.6651024,-97.5032642,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #3,soccer,pitch,35.6669595,-97.5022593,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #4,soccer,pitch,35.6660704,-97.502326,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #5,soccer,pitch,35.6652132,-97.5022059,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #6,soccer,pitch,35.6667188,-97.5010883,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #7,soccer,pitch,35.665514,-97.5011055,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #8,soccer,pitch,35.6661997,-97.499915,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Field #9,soccer,pitch,35.6653717,-97.4999452,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Fields #17,soccer,pitch,35.6608213,-97.5032527,,,OK,,false,true,false,openstreetmap
+Edmond Soccer Club Fields #18,soccer,pitch,35.6608098,-97.504144,,,OK,,false,true,false,openstreetmap
+Enid Soccer Complex,soccer,sports_centre,36.4123736,-97.8993208,,,OK,,false,true,false,openstreetmap
+F,soccer,pitch,35.5879238,-97.5860488,,,OK,,false,true,false,openstreetmap
+Harwell Field,soccer,pitch,36.1517463,-95.9430464,,,OK,,false,true,false,openstreetmap
+John Crain Field,soccer,pitch,35.188532,-97.4487462,,,OK,,false,true,false,openstreetmap
+Kirkland Soccer Field #1,soccer,pitch,36.0534301,-95.7802944,,,OK,,false,true,false,openstreetmap
+Kirkland Soccer Field #2,soccer,pitch,36.052314,-95.7802949,,,OK,,false,true,false,openstreetmap
+Lawton Soccer Club,soccer,sports_centre,34.5905351,-98.3758453,,,OK,,false,true,false,openstreetmap
+Norman Public Schools,soccer,pitch,35.2457297,-97.4483698,,,OK,,false,true,false,openstreetmap
+Norman Public Schools,soccer,pitch,35.2150971,-97.4088196,,,OK,,false,true,false,openstreetmap
+OBU Soccer and Lacrosse Fields,soccer,pitch,35.364774,-96.9359243,,,OK,,false,true,false,openstreetmap
+Oologah Soccer Fields,soccer,pitch,36.4300917,-95.7196651,,,OK,,false,true,false,openstreetmap
+Sapulpa Soccer,soccer,sports_centre,35.9803191,-96.1353335,,,OK,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,34.7699487,-96.657993,,,OK,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,35.0302012,-97.9581778,,,OK,,false,true,false,openstreetmap
+Soccer Practice Field,soccer,pitch,35.0279831,-97.957549,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 1,soccer,pitch,35.347072,-97.5997728,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 2,soccer,pitch,35.3477661,-97.5985867,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 3,soccer,pitch,35.3477714,-97.5972323,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 4,soccer,pitch,35.3469515,-97.5985813,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 5,soccer,pitch,35.3469569,-97.5972327,,,OK,,false,true,false,openstreetmap
+South Lakes Soccer Complex Field 6,soccer,pitch,35.3459383,-97.5980941,,,OK,,false,true,false,openstreetmap
+Thompson Soccer Field,soccer,pitch,35.6595664,-97.4703262,,,OK,,false,true,false,openstreetmap
+Waller Soccer Field,soccer,pitch,36.4003254,-97.9108877,,,OK,,false,true,false,openstreetmap
+Whitlock Sports Complex,soccer,pitch,35.7856835,-95.2630677,,,OK,,false,true,false,openstreetmap
+Blitz Academy FC,soccer,pitch,36.0918373,-95.8682127,4931 South Mingo Road East,Tulsa,OK,74146,false,true,false,openstreetmap
+SoccerCity Tulsa,soccer,sports_centre,36.0776514,-95.8427875,5817 South 118th East Avenue,Tulsa,OK,74146,false,true,false,openstreetmap

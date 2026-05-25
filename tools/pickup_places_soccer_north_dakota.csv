@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+American Legion Soccer Complex,soccer,sports_centre,46.8866744,-96.8030363,,,ND,,false,true,false,openstreetmap
+Bronson Field,soccer,pitch,47.9264499,-97.0674063,,,ND,,false,true,false,openstreetmap
+Dacotah Field,soccer,pitch,46.9003233,-96.8009482,,,ND,,false,true,false,openstreetmap
+Optimist Soccer Complex,soccer,sports_centre,48.260183,-101.3127562,,,ND,,false,true,false,openstreetmap
+Pepsi Soccer Complex at Hector Airport,soccer,sports_centre,46.9156848,-96.8329808,,,ND,,false,true,false,openstreetmap

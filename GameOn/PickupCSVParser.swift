@@ -1,7 +1,7 @@
 import Compression
 import Foundation
 
-struct PickupImportRawRow: Identifiable, Equatable {
+struct PickupBulkImportRawRow: Identifiable, Equatable {
     let id = UUID()
     let rowNumber: Int
     let values: [String: String]
@@ -11,7 +11,7 @@ struct PickupImportRawRow: Identifiable, Equatable {
     }
 }
 
-enum PickupImportParseError: LocalizedError {
+enum PickupBulkImportParseError: LocalizedError {
     case emptyFile
     case unsupportedFileType
     case missingHeader([String])
@@ -34,7 +34,12 @@ enum PickupImportParseError: LocalizedError {
     }
 }
 
-enum PickupCSVParser {
+enum PickupBulkImportParser {
+    static let templateResourceName = "FanGeoPickupGamesTemplate"
+    static let templateResourceExtension = "xlsx"
+    private static let preferredXLSXWorksheetName = "Pickup Games Upload"
+    private static let ignoredXLSXWorksheetNames: Set<String> = ["Instructions", "Allowed Values"]
+
     static let requiredHeaders = [
         "title",
         "sport",
@@ -44,12 +49,42 @@ enum PickupCSVParser {
         "address",
         "city",
         "state",
+        "country",
         "players_needed",
+        "play_environment",
+        "participant_preference",
+        "is_free",
         "max_players",
         "end_time"
     ]
 
-    static func parseFile(at url: URL) throws -> [PickupImportRawRow] {
+    private static let fallbackSheetRequiredHeaders = [
+        "title",
+        "sport",
+        "game_start_at",
+        "address",
+        "city",
+        "state"
+    ]
+
+    static func bundledTemplateFileURL() throws -> URL {
+        let bundle = Bundle.main
+        if let url = bundle.url(forResource: templateResourceName, withExtension: templateResourceExtension) {
+            return url
+        }
+        for subdirectory in ["Templates", "Resources/Templates"] {
+            if let url = bundle.url(
+                forResource: templateResourceName,
+                withExtension: templateResourceExtension,
+                subdirectory: subdirectory
+            ) {
+                return url
+            }
+        }
+        throw PickupBulkImportParseError.invalidXLSX("The official FanGeo pickup games template is missing from the app bundle.")
+    }
+
+    static func parseFile(at url: URL) throws -> [PickupBulkImportRawRow] {
         let ext = url.pathExtension.lowercased()
 #if DEBUG
         print("[PickupBulkImport] parseStarted ext=\(ext)")
@@ -60,38 +95,52 @@ enum PickupCSVParser {
         case "xlsx":
             return try parseXLSX(data: Data(contentsOf: url))
         default:
-            throw PickupImportParseError.unsupportedFileType
+            throw PickupBulkImportParseError.unsupportedFileType
         }
     }
 
-    static func parseCSV(data: Data) throws -> [PickupImportRawRow] {
-        guard !data.isEmpty else { throw PickupImportParseError.emptyFile }
+    static func parseCSV(data: Data) throws -> [PickupBulkImportRawRow] {
+        guard !data.isEmpty else { throw PickupBulkImportParseError.emptyFile }
         guard let text = String(data: data, encoding: .utf8) else {
-            throw PickupImportParseError.invalidTextEncoding
+            throw PickupBulkImportParseError.invalidTextEncoding
         }
         let rows = csvRows(from: text)
         return try rawRows(fromTable: rows)
     }
 
-    static func parseXLSX(data: Data) throws -> [PickupImportRawRow] {
-        guard !data.isEmpty else { throw PickupImportParseError.emptyFile }
+    static func parseXLSX(data: Data) throws -> [PickupBulkImportRawRow] {
+        guard !data.isEmpty else { throw PickupBulkImportParseError.emptyFile }
         let archive = try MinimalXLSXArchive(data: data)
         let stringsXML = archive.stringEntry(named: "xl/sharedStrings.xml") ?? ""
         let sharedStrings = XLSXSheetParser.sharedStrings(from: stringsXML)
-        let sheetName = archive.firstWorksheetName()
-        guard let sheetXML = archive.stringEntry(named: sheetName) else {
-            throw PickupImportParseError.invalidXLSX("The first worksheet was not found.")
+        let worksheets = archive.worksheets()
+        let worksheetTables = worksheets.compactMap { worksheet -> (worksheet: XLSXWorksheet, table: [[String]])? in
+            guard let table = table(for: worksheet, archive: archive, sharedStrings: sharedStrings) else { return nil }
+            return (worksheet, table)
         }
-        return try rawRows(fromTable: XLSXSheetParser.table(from: sheetXML, sharedStrings: sharedStrings))
+#if DEBUG
+        print("[PickupBulkImport] workbookSheets=\(worksheets.map(\.name).joined(separator: ","))")
+        logRawRows(for: worksheetTables)
+#endif
+        guard let selected = selectWorksheet(from: worksheetTables) else {
+            throw PickupBulkImportParseError.invalidXLSX("No worksheet with pickup game headers was found.")
+        }
+#if DEBUG
+        print("[PickupBulkImport] selectedSheet=\(selected.name)")
+#endif
+        return try rawRows(fromTable: selected.table)
     }
 
-    private static func rawRows(fromTable rows: [[String]]) throws -> [PickupImportRawRow] {
-        guard let headerRow = rows.first else { throw PickupImportParseError.emptyFile }
+    private static func rawRows(fromTable rows: [[String]]) throws -> [PickupBulkImportRawRow] {
+        guard let headerRow = rows.first else { throw PickupBulkImportParseError.emptyFile }
         let headers = headerRow.map { normalizeHeader($0) }
+#if DEBUG
+        print("[PickupBulkImport] detectedHeaders=\(headers.filter { !$0.isEmpty }.joined(separator: ","))")
+#endif
         let missing = requiredHeaders.filter { !headers.contains($0) }
-        guard missing.isEmpty else { throw PickupImportParseError.missingHeader(missing) }
+        guard missing.isEmpty else { throw PickupBulkImportParseError.missingHeader(missing) }
 
-        var output: [PickupImportRawRow] = []
+        var output: [PickupBulkImportRawRow] = []
         for (offset, row) in rows.dropFirst().enumerated() {
             let hasAnyValue = row.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             guard hasAnyValue else { continue }
@@ -99,7 +148,7 @@ enum PickupCSVParser {
             for (index, header) in headers.enumerated() where !header.isEmpty {
                 values[header] = index < row.count ? row[index] : ""
             }
-            output.append(PickupImportRawRow(rowNumber: offset + 2, values: values))
+            output.append(PickupBulkImportRawRow(rowNumber: offset + 2, values: values))
         }
 
 #if DEBUG
@@ -114,6 +163,44 @@ enum PickupCSVParser {
             .lowercased()
             .replacingOccurrences(of: " ", with: "_")
     }
+
+    private static func selectWorksheet(
+        from worksheetTables: [(worksheet: XLSXWorksheet, table: [[String]])]
+    ) -> (name: String, table: [[String]])? {
+        if let preferred = worksheetTables.first(where: { $0.worksheet.name == preferredXLSXWorksheetName }) {
+            return (preferred.worksheet.name, preferred.table)
+        }
+
+        for candidate in worksheetTables where !ignoredXLSXWorksheetNames.contains(candidate.worksheet.name) {
+            guard let headerRow = candidate.table.first else { continue }
+            let headers = Set(headerRow.map { normalizeHeader($0) })
+            if fallbackSheetRequiredHeaders.allSatisfy(headers.contains) {
+                return (candidate.worksheet.name, candidate.table)
+            }
+        }
+
+        return nil
+    }
+
+    private static func table(
+        for worksheet: XLSXWorksheet,
+        archive: MinimalXLSXArchive,
+        sharedStrings: [String]
+    ) -> [[String]]? {
+        guard let sheetXML = archive.stringEntry(named: worksheet.path) else { return nil }
+        return XLSXSheetParser.table(from: sheetXML, sharedStrings: sharedStrings)
+    }
+
+#if DEBUG
+    private static func logRawRows(for worksheetTables: [(worksheet: XLSXWorksheet, table: [[String]])]) {
+        for candidate in worksheetTables {
+            for (offset, row) in candidate.table.prefix(10).enumerated() {
+                let values = row.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.joined(separator: "|")
+                print("[PickupBulkImport] rawRow\(offset + 1)=\(candidate.worksheet.name):\(values)")
+            }
+        }
+    }
+#endif
 
     private static func csvRows(from text: String) -> [[String]] {
         var rows: [[String]] = []
@@ -169,34 +256,39 @@ enum PickupCSVParser {
     }
 }
 
+private struct XLSXWorksheet {
+    let name: String
+    let path: String
+}
+
 private enum XLSXSheetParser {
-    static func sharedStrings(from xml: String) -> [String] {
+    nonisolated static func sharedStrings(from xml: String) -> [String] {
         guard !xml.isEmpty else { return [] }
-        return matches(pattern: #"<si[\s\S]*?</si>"#, in: xml).map { item in
-            matches(pattern: #"<t(?:\s[^>]*)?>([\s\S]*?)</t>"#, in: item)
-                .map(xmlUnescape)
+        return XLSXXML.elements(named: "si", in: xml).map { item in
+            XLSXXML.elementContents(named: "t", in: item)
+                .map(XLSXXML.unescape)
                 .joined()
         }
     }
 
-    static func table(from xml: String, sharedStrings: [String]) -> [[String]] {
-        matches(pattern: #"<row[\s\S]*?</row>"#, in: xml).map { rowXML in
+    nonisolated static func table(from xml: String, sharedStrings: [String]) -> [[String]] {
+        XLSXXML.elements(named: "row", in: xml).map { rowXML in
             var cellsByIndex: [Int: String] = [:]
-            for cellXML in matches(pattern: #"<c\b[\s\S]*?</c>"#, in: rowXML) {
-                guard let ref = firstCapture(pattern: #"r="([A-Z]+)\d+""#, in: cellXML),
+            for cellXML in XLSXXML.elements(named: "c", in: rowXML) {
+                guard let ref = XLSXXML.firstCapture(pattern: #"r="([A-Z]+)\d+""#, in: cellXML),
                       let columnIndex = columnIndex(from: ref) else { continue }
-                let type = firstCapture(pattern: #"t="([^"]+)""#, in: cellXML)
+                let type = XLSXXML.firstCapture(pattern: #"t="([^"]+)""#, in: cellXML)
                 let value: String
                 if type == "inlineStr" {
-                    value = matches(pattern: #"<t(?:\s[^>]*)?>([\s\S]*?)</t>"#, in: cellXML)
-                        .map(xmlUnescape)
+                    value = XLSXXML.elementContents(named: "t", in: cellXML)
+                        .map(XLSXXML.unescape)
                         .joined()
                 } else {
-                    let raw = firstCapture(pattern: #"<v>([\s\S]*?)</v>"#, in: cellXML) ?? ""
+                    let raw = XLSXXML.elementContents(named: "v", in: cellXML).first ?? ""
                     if type == "s", let index = Int(raw), index >= 0, index < sharedStrings.count {
                         value = sharedStrings[index]
                     } else {
-                        value = xmlUnescape(raw)
+                        value = XLSXXML.unescape(raw)
                     }
                 }
                 cellsByIndex[columnIndex] = value
@@ -207,7 +299,7 @@ private enum XLSXSheetParser {
         }
     }
 
-    private static func columnIndex(from letters: String) -> Int? {
+    private nonisolated static func columnIndex(from letters: String) -> Int? {
         var value = 0
         for scalar in letters.unicodeScalars {
             let n = Int(scalar.value) - 64
@@ -216,8 +308,22 @@ private enum XLSXSheetParser {
         }
         return value - 1
     }
+}
 
-    private static func matches(pattern: String, in text: String) -> [String] {
+private enum XLSXXML {
+    nonisolated static func elements(named name: String, in text: String) -> [String] {
+        let escaped = NSRegularExpression.escapedPattern(for: name)
+        let pattern = #"<(?:[A-Za-z0-9_]+:)?"# + escaped + #"\b[\s\S]*?</(?:[A-Za-z0-9_]+:)?"# + escaped + #">|<(?:[A-Za-z0-9_]+:)?"# + escaped + #"\b[^>]*/>"#
+        return matches(pattern: pattern, in: text)
+    }
+
+    nonisolated static func elementContents(named name: String, in text: String) -> [String] {
+        let escaped = NSRegularExpression.escapedPattern(for: name)
+        let pattern = #"<(?:[A-Za-z0-9_]+:)?"# + escaped + #"(?:\s[^>]*)?>([\s\S]*?)</(?:[A-Za-z0-9_]+:)?"# + escaped + #">"#
+        return matches(pattern: pattern, in: text)
+    }
+
+    nonisolated static func matches(pattern: String, in text: String) -> [String] {
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return [] }
         let range = NSRange(text.startIndex..<text.endIndex, in: text)
         return regex.matches(in: text, options: [], range: range).compactMap { match in
@@ -227,11 +333,16 @@ private enum XLSXSheetParser {
         }
     }
 
-    private static func firstCapture(pattern: String, in text: String) -> String? {
+    nonisolated static func firstCapture(pattern: String, in text: String) -> String? {
         matches(pattern: pattern, in: text).first
     }
 
-    private static func xmlUnescape(_ raw: String) -> String {
+    nonisolated static func attributeValue(_ name: String, in xml: String) -> String? {
+        let escaped = NSRegularExpression.escapedPattern(for: name)
+        return firstCapture(pattern: "(?:\\b|:)\(escaped)=\"([^\"]*)\"", in: xml).map(unescape)
+    }
+
+    nonisolated static func unescape(_ raw: String) -> String {
         raw
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&lt;", with: "<")
@@ -247,7 +358,7 @@ private struct MinimalXLSXArchive {
     init(data: Data) throws {
         self.entries = try Self.readEntries(from: data)
         guard !entries.isEmpty else {
-            throw PickupImportParseError.invalidXLSX("The workbook archive is empty.")
+            throw PickupBulkImportParseError.invalidXLSX("The workbook archive is empty.")
         }
     }
 
@@ -256,16 +367,63 @@ private struct MinimalXLSXArchive {
         return String(data: data, encoding: .utf8)
     }
 
-    func firstWorksheetName() -> String {
+    func worksheets() -> [XLSXWorksheet] {
+        guard let workbookXML = stringEntry(named: "xl/workbook.xml") else {
+            return fallbackWorksheets()
+        }
+        let relationships = workbookRelationships()
+        let sheets = XLSXXML.elements(named: "sheet", in: workbookXML).compactMap { sheetXML -> XLSXWorksheet? in
+            guard let name = XLSXXML.attributeValue("name", in: sheetXML) else { return nil }
+            let relationshipID = XLSXXML.attributeValue("r:id", in: sheetXML)
+            let path = relationshipID.flatMap { relationships[$0] }
+            return XLSXWorksheet(name: name, path: path ?? fallbackWorksheetPath(for: sheetXML))
+        }
+        return sheets.isEmpty ? fallbackWorksheets() : sheets
+    }
+
+    private func workbookRelationships() -> [String: String] {
+        guard let relsXML = stringEntry(named: "xl/_rels/workbook.xml.rels") else { return [:] }
+        var relationships: [String: String] = [:]
+        for relXML in XLSXXML.elements(named: "Relationship", in: relsXML) {
+            guard let id = XLSXXML.attributeValue("Id", in: relXML),
+                  let target = XLSXXML.attributeValue("Target", in: relXML) else { continue }
+            relationships[id] = normalizedWorkbookTarget(target)
+        }
+        return relationships
+    }
+
+    private func normalizedWorkbookTarget(_ target: String) -> String {
+        let trimmed = target.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("/") {
+            return String(trimmed.dropFirst())
+        }
+        if trimmed.hasPrefix("xl/") {
+            return trimmed
+        }
+        return "xl/" + trimmed
+    }
+
+    private func fallbackWorksheetPath(for sheetXML: String) -> String {
+        if let sheetID = XLSXXML.attributeValue("sheetId", in: sheetXML),
+           let index = Int(sheetID), index > 0 {
+            return "xl/worksheets/sheet\(index).xml"
+        }
+        return fallbackWorksheets().first?.path ?? "xl/worksheets/sheet1.xml"
+    }
+
+    private func fallbackWorksheets() -> [XLSXWorksheet] {
         entries.keys
             .filter { $0.hasPrefix("xl/worksheets/sheet") && $0.hasSuffix(".xml") }
             .sorted()
-            .first ?? "xl/worksheets/sheet1.xml"
+            .enumerated()
+            .map { offset, path in
+                XLSXWorksheet(name: "Sheet \(offset + 1)", path: path)
+            }
     }
 
     private static func readEntries(from data: Data) throws -> [String: Data] {
         guard let eocd = findEndOfCentralDirectory(in: data) else {
-            throw PickupImportParseError.invalidXLSX("ZIP directory was not found.")
+            throw PickupBulkImportParseError.invalidXLSX("ZIP directory was not found.")
         }
         let entryCount = Int(data.uint16LE(at: eocd + 10))
         let centralDirectoryOffset = Int(data.uint32LE(at: eocd + 16))
@@ -305,7 +463,7 @@ private struct MinimalXLSXArchive {
         uncompressedSize: Int
     ) throws -> Data {
         guard archive.uint32LE(at: localHeaderOffset) == 0x04034b50 else {
-            throw PickupImportParseError.invalidXLSX("A worksheet entry was malformed.")
+            throw PickupBulkImportParseError.invalidXLSX("A worksheet entry was malformed.")
         }
         let nameLength = Int(archive.uint16LE(at: localHeaderOffset + 26))
         let extraLength = Int(archive.uint16LE(at: localHeaderOffset + 28))
@@ -317,7 +475,7 @@ private struct MinimalXLSXArchive {
         case 8:
             return try inflate(compressed, uncompressedSize: uncompressedSize)
         default:
-            throw PickupImportParseError.invalidXLSX("Unsupported XLSX compression method \(method).")
+            throw PickupBulkImportParseError.invalidXLSX("Unsupported XLSX compression method \(method).")
         }
     }
 
@@ -336,7 +494,7 @@ private struct MinimalXLSXArchive {
             }
         }
         guard decoded > 0 else {
-            throw PickupImportParseError.invalidXLSX("A compressed worksheet could not be expanded.")
+            throw PickupBulkImportParseError.invalidXLSX("A compressed worksheet could not be expanded.")
         }
         output.removeSubrange(decoded..<output.count)
         return output

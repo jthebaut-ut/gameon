@@ -1,0 +1,228 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,soccer,pitch,38.5467199,-90.4386008,,,MO,,false,true,false,openstreetmap
+#2,soccer,pitch,38.5478192,-90.4394011,,,MO,,false,true,false,openstreetmap
+#3,soccer,pitch,38.5478471,-90.4385099,,,MO,,false,true,false,openstreetmap
+#4,soccer,pitch,38.5467283,-90.4376501,,,MO,,false,true,false,openstreetmap
+#5,soccer,pitch,38.5456133,-90.4384523,,,MO,,false,true,false,openstreetmap
+#6,soccer,pitch,38.5457281,-90.4375284,,,MO,,false,true,false,openstreetmap
+1,soccer,pitch,38.9389463,-94.3120613,,,MO,,false,true,false,openstreetmap
+10,soccer,pitch,38.9405211,-94.3138619,,,MO,,false,true,false,openstreetmap
+11,soccer,pitch,38.9413643,-94.3130479,,,MO,,false,true,false,openstreetmap
+12,soccer,pitch,38.9404263,-94.3124809,,,MO,,false,true,false,openstreetmap
+2,soccer,pitch,38.9388304,-94.3105266,,,MO,,false,true,false,openstreetmap
+3,soccer,pitch,38.9387531,-94.3095891,,,MO,,false,true,false,openstreetmap
+4,soccer,pitch,38.93884,-94.3083516,,,MO,,false,true,false,openstreetmap
+5,soccer,pitch,38.9399091,-94.3111761,,,MO,,false,true,false,openstreetmap
+6,soccer,pitch,38.9397565,-94.3092077,,,MO,,false,true,false,openstreetmap
+7,soccer,pitch,38.9405625,-94.3111124,,,MO,,false,true,false,openstreetmap
+8,soccer,pitch,38.9404737,-94.3096278,,,MO,,false,true,false,openstreetmap
+9,soccer,pitch,38.9401564,-94.3148051,,,MO,,false,true,false,openstreetmap
+Amherst Field,soccer,pitch,38.6673208,-90.2904719,,,MO,,false,true,false,openstreetmap
+Bearcat Pitch,soccer,pitch,40.3513448,-94.8916231,,,MO,,false,true,false,openstreetmap
+Berra Park Soccer Field,soccer,pitch,38.6179623,-90.2782368,,,MO,,false,true,false,openstreetmap
+Betty and Bobby Allison Recreation Fields,soccer,stadium,37.2031521,-93.277063,,,MO,,false,true,false,openstreetmap
+Blackwell Field,soccer,pitch,39.7341332,-91.3934891,,,MO,,false,true,false,openstreetmap
+Blue #1,soccer,pitch,39.4214697,-92.4795884,,,MO,,false,true,false,openstreetmap
+Blue #2,soccer,pitch,39.4214668,-92.4787291,,,MO,,false,true,false,openstreetmap
+Blue #3,soccer,pitch,39.4214641,-92.4779147,,,MO,,false,true,false,openstreetmap
+Blue 3 Field,soccer,pitch,38.9412571,-92.766744,,,MO,,false,true,false,openstreetmap
+Blue Springs South HS Soccer Field,soccer,pitch,39.0020267,-94.2492449,,,MO,,false,true,false,openstreetmap
+C-1,soccer,pitch,38.9702933,-92.361245,,,MO,,false,true,false,openstreetmap
+C-10,soccer,pitch,38.976452,-92.3639816,,,MO,,false,true,false,openstreetmap
+C-11,soccer,pitch,38.9757926,-92.3639527,,,MO,,false,true,false,openstreetmap
+C-12,soccer,pitch,38.9737495,-92.3638864,,,MO,,false,true,false,openstreetmap
+C-13,soccer,pitch,38.9703992,-92.3642888,,,MO,,false,true,false,openstreetmap
+C-14,soccer,pitch,38.9707281,-92.365484,,,MO,,false,true,false,openstreetmap
+C-15,soccer,pitch,38.9710277,-92.3665666,,,MO,,false,true,false,openstreetmap
+C-16/17,soccer,pitch,38.9700492,-92.3660035,,,MO,,false,true,false,openstreetmap
+C-18,soccer,pitch,38.9688704,-92.3637238,,,MO,,false,true,false,openstreetmap
+C-19,soccer,pitch,38.9689214,-92.3622991,,,MO,,false,true,false,openstreetmap
+C-2,soccer,pitch,38.9713947,-92.3613429,,,MO,,false,true,false,openstreetmap
+C-3,soccer,pitch,38.971401,-92.3623542,,,MO,,false,true,false,openstreetmap
+C-4,soccer,pitch,38.9728939,-92.36174,,,MO,,false,true,false,openstreetmap
+C-5,soccer,pitch,38.9740006,-92.3615974,,,MO,,false,true,false,openstreetmap
+C-6,soccer,pitch,38.9751994,-92.3620737,,,MO,,false,true,false,openstreetmap
+C-7,soccer,pitch,38.9733739,-92.3628384,,,MO,,false,true,false,openstreetmap
+C-8,soccer,pitch,38.9743157,-92.3628853,,,MO,,false,true,false,openstreetmap
+C-9,soccer,pitch,38.9771188,-92.3640108,,,MO,,false,true,false,openstreetmap
+Cadet Park Soccer Field,soccer,pitch,38.6431452,-90.4680523,,,MO,,false,true,false,openstreetmap
+Cardinal Field,soccer,pitch,37.8440316,-90.4796568,,,MO,,false,true,false,openstreetmap
+Chaminade Sports Field,soccer,pitch,38.6509157,-90.4117079,,,MO,,false,true,false,openstreetmap
+ChaminadeSoccer Field,soccer,pitch,38.6511136,-90.408889,,,MO,,false,true,false,openstreetmap
+Children's Mercy Victory Field,soccer,pitch,39.0113116,-94.5202106,,,MO,,false,true,false,openstreetmap
+Columbia Pride Soccer Complex,soccer,sports_centre,39.0016019,-92.3074761,,,MO,,false,true,false,openstreetmap
+Creve Coeur Championship Field 1,soccer,pitch,38.7172375,-90.4916393,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 10,soccer,pitch,38.7146841,-90.4918695,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 11,soccer,pitch,38.7148009,-90.4928017,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 12,soccer,pitch,38.7136768,-90.4920776,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 13,soccer,pitch,38.7137898,-90.493027,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 2,soccer,pitch,38.716751,-90.490493,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 3,soccer,pitch,38.7177913,-90.4902805,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 4,soccer,pitch,38.71767,-90.489331,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 5,soccer,pitch,38.716638,-90.4895436,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 6,soccer,pitch,38.7143968,-90.4895214,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 7,soccer,pitch,38.7133336,-90.4897521,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 8,soccer,pitch,38.7134508,-90.4906908,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field 9,soccer,pitch,38.7145079,-90.4904651,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field A Grass,soccer,pitch,38.7183816,-90.4919726,,,MO,,false,true,false,openstreetmap
+Creve Coeur Field B Grass,soccer,pitch,38.7183093,-90.4913792,,,MO,,false,true,false,openstreetmap
+Czapla Field,soccer,pitch,38.5897657,-90.4231062,,,MO,,false,true,false,openstreetmap
+DeSoto Park Soccer Fields,soccer,pitch,38.639729,-90.2066891,,,MO,,false,true,false,openstreetmap
+Eureka High School Soccer Field,soccer,pitch,38.5129007,-90.6252188,,,MO,,false,true,false,openstreetmap
+Falcon Field,soccer,pitch,38.6455306,-90.30309,,,MO,,false,true,false,openstreetmap
+Father Frey Field,soccer,pitch,38.7349972,-90.43556,,,MO,,false,true,false,openstreetmap
+Field #1q;Field #1,soccer,pitch,38.669645,-90.394152,,,MO,,false,true,false,openstreetmap
+Field #1q;Field #3,soccer,pitch,38.6695431,-90.3934989,,,MO,,false,true,false,openstreetmap
+Field #2,soccer,pitch,38.6694737,-90.3923896,,,MO,,false,true,false,openstreetmap
+Field #4,soccer,pitch,38.669578,-90.3929315,,,MO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.0091563,-94.5183234,,,MO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.6832527,-93.2932948,,,MO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.2318779,-94.5081861,,,MO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,39.1086964,-94.3710908,,,MO,,false,true,false,openstreetmap
+Field 1,soccer,pitch,37.2063778,-93.4061531,,,MO,,false,true,false,openstreetmap
+Field 10,soccer,pitch,39.1132669,-94.3664819,,,MO,,false,true,false,openstreetmap
+Field 10,soccer,pitch,37.2105587,-93.4070833,,,MO,,false,true,false,openstreetmap
+Field 11,soccer,pitch,39.2295594,-94.5098611,,,MO,,false,true,false,openstreetmap
+Field 11,soccer,pitch,37.2092353,-93.4082755,,,MO,,false,true,false,openstreetmap
+Field 12,soccer,pitch,37.2107765,-93.4082447,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.010299,-94.5185182,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.6832417,-93.2944107,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.2315585,-94.5080849,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,38.7454416,-90.7539227,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,39.108735,-94.3719211,,,MO,,false,true,false,openstreetmap
+Field 2,soccer,pitch,37.2064136,-93.4070349,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.0112868,-94.517834,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.683268,-93.2954366,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.2303602,-94.509262,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,39.110026,-94.3710567,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,38.7455281,-90.7530622,,,MO,,false,true,false,openstreetmap
+Field 3,soccer,pitch,37.2064264,-93.4078993,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.0114435,-94.518862,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.6831949,-93.296447,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.2308338,-94.5089126,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,38.745614,-90.7522016,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,39.110061,-94.3718923,,,MO,,false,true,false,openstreetmap
+Field 4,soccer,pitch,37.2064425,-93.4087563,,,MO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.0136212,-94.5198508,,,MO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,38.6818605,-93.2965214,,,MO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,39.2295376,-94.5091741,,,MO,,false,true,false,openstreetmap
+Field 5,soccer,pitch,37.2093838,-93.4053882,,,MO,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.0121972,-94.521662,,,MO,,false,true,false,openstreetmap
+Field 6,soccer,pitch,38.6818203,-93.2954331,,,MO,,false,true,false,openstreetmap
+Field 6,soccer,pitch,39.2291394,-94.5090608,,,MO,,false,true,false,openstreetmap
+Field 6,soccer,pitch,37.2105373,-93.40536,,,MO,,false,true,false,openstreetmap
+Field 7,soccer,pitch,38.6818161,-93.2943548,,,MO,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.2287906,-94.5088879,,,MO,,false,true,false,openstreetmap
+Field 7,soccer,pitch,39.1133342,-94.3681155,,,MO,,false,true,false,openstreetmap
+Field 7,soccer,pitch,37.2093923,-93.4062371,,,MO,,false,true,false,openstreetmap
+Field 8,soccer,pitch,38.6818475,-93.2932548,,,MO,,false,true,false,openstreetmap
+Field 8,soccer,pitch,39.113991,-94.3680611,,,MO,,false,true,false,openstreetmap
+Field 8,soccer,pitch,37.2105475,-93.4062069,,,MO,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.2304233,-94.5074035,,,MO,,false,true,false,openstreetmap
+Field 9,soccer,pitch,39.1138811,-94.3664561,,,MO,,false,true,false,openstreetmap
+Field 9,soccer,pitch,37.2094041,-93.4071101,,,MO,,false,true,false,openstreetmap
+Field Caring,soccer,pitch,36.8680857,-94.3584684,,,MO,,false,true,false,openstreetmap
+Field Faith,soccer,pitch,36.866483,-94.3575506,,,MO,,false,true,false,openstreetmap
+Field Honesty,soccer,pitch,36.8675287,-94.358321,,,MO,,false,true,false,openstreetmap
+Field Number 5,soccer,pitch,38.5332401,-90.374285,,,MO,,false,true,false,openstreetmap
+Field Number 6,soccer,pitch,38.5332152,-90.3751344,,,MO,,false,true,false,openstreetmap
+Field Respect,soccer,pitch,36.8668197,-94.3583505,,,MO,,false,true,false,openstreetmap
+Field Responsibililty,soccer,pitch,36.866501,-94.3569042,,,MO,,false,true,false,openstreetmap
+Firley Soccer Field,soccer,pitch,38.865318,-91.9517225,,,MO,,false,true,false,openstreetmap
+Franke Soccer Fields,soccer,pitch,38.9772084,-94.3453519,,,MO,,false,true,false,openstreetmap
+Franke Soccer Fields,soccer,pitch,38.9762677,-94.3453063,,,MO,,false,true,false,openstreetmap
+Franke Soccer Fields,soccer,pitch,38.9754679,-94.3453947,,,MO,,false,true,false,openstreetmap
+Franke Soccer Fields,soccer,pitch,38.9781098,-94.3452781,,,MO,,false,true,false,openstreetmap
+Green 6 Field,soccer,pitch,38.9382072,-92.7701947,,,MO,,false,true,false,openstreetmap
+Hemingway Field,soccer,pitch,39.1949136,-94.6693049,,,MO,,false,true,false,openstreetmap
+Hermann Stadium,soccer,pitch,38.6345724,-90.2304394,,,MO,,false,true,false,openstreetmap
+Kline Field,soccer,pitch,38.6416435,-90.4783212,,,MO,,false,true,false,openstreetmap
+LSHS Soccer Field,soccer,pitch,38.905785,-94.3642236,,,MO,,false,true,false,openstreetmap
+Langenberg Field,soccer,pitch,38.6418355,-90.2863478,,,MO,,false,true,false,openstreetmap
+Lindell Field,soccer,pitch,38.6448948,-90.281369,,,MO,,false,true,false,openstreetmap
+Lions Soccer Complex,soccer,pitch,37.9245551,-91.772399,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 1,soccer,pitch,38.6992416,-90.4994506,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 2,soccer,pitch,38.6974795,-90.5006637,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 3,soccer,pitch,38.6982048,-90.5008457,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 4,soccer,pitch,38.6990365,-90.5010626,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 5,soccer,pitch,38.7004873,-90.5007157,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 6,soccer,pitch,38.7012094,-90.5005404,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 7,soccer,pitch,38.7010071,-90.4992251,,,MO,,false,true,false,openstreetmap
+Lou Fusz Field 8,soccer,pitch,38.7002847,-90.4993977,,,MO,,false,true,false,openstreetmap
+Lou Fusz Grass Field,soccer,pitch,38.6967061,-90.5001819,,,MO,,false,true,false,openstreetmap
+Lou Fusz Grass Field,soccer,pitch,38.6960706,-90.4999976,,,MO,,false,true,false,openstreetmap
+MCC Blue River Lakers Soccer Field,soccer,pitch,39.0817593,-94.3339373,,,MO,,false,true,false,openstreetmap
+Mark L. McHenry Park-Soccer Fields,soccer,sports_centre,39.2613373,-94.7331736,,,MO,,false,true,false,openstreetmap
+McKelvey Soccer Field,soccer,pitch,38.6946342,-90.4640723,,,MO,,false,true,false,openstreetmap
+McKelvey Soccer Field,soccer,pitch,38.6942984,-90.4640615,,,MO,,false,true,false,openstreetmap
+Mesa Soccer Field,soccer,pitch,38.6327627,-90.4726452,,,MO,,false,true,false,openstreetmap
+North Field,soccer,pitch,39.7411582,-94.2523418,,,MO,,false,true,false,openstreetmap
+Nottingham High School Field,soccer,pitch,38.5876487,-90.305603,,,MO,,false,true,false,openstreetmap
+Orange 5 Field,soccer,pitch,38.9396577,-92.7672321,,,MO,,false,true,false,openstreetmap
+Pitney Field,soccer,pitch,39.7291194,-91.3936209,,,MO,,false,true,false,openstreetmap
+Platte Ridge Park-Soccer Fields,soccer,sports_centre,39.3984391,-94.7961547,,,MO,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.7445616,-93.7298388,,,MO,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.7445029,-93.7288147,,,MO,,false,true,false,openstreetmap
+Practice Field,soccer,pitch,38.7444404,-93.7278245,,,MO,,false,true,false,openstreetmap
+Purple 7 Field,soccer,pitch,38.9391879,-92.7717008,,,MO,,false,true,false,openstreetmap
+Recess Field,soccer,pitch,38.6542917,-90.4831156,,,MO,,false,true,false,openstreetmap
+Recreation Field,soccer,pitch,37.9499002,-90.9295184,,,MO,,false,true,false,openstreetmap
+Red 1 Field,soccer,pitch,38.9424831,-92.769977,,,MO,,false,true,false,openstreetmap
+Reed Kepner Field,soccer,pitch,39.1054151,-93.1911553,,,MO,,false,true,false,openstreetmap
+Riverside Stadium,soccer,stadium,39.1635426,-94.6371219,,,MO,,false,true,false,openstreetmap
+Riverview Gardens Soccer Field,soccer,pitch,38.7538155,-90.2160947,,,MO,,false,true,false,openstreetmap
+S-5,soccer,pitch,38.6079064,-90.2541475,,,MO,,false,true,false,openstreetmap
+S-6,soccer,pitch,38.6075088,-90.2489707,,,MO,,false,true,false,openstreetmap
+S1,soccer,pitch,38.4252527,-90.9624745,,,MO,,false,true,false,openstreetmap
+S2,soccer,pitch,38.4260538,-90.9630587,,,MO,,false,true,false,openstreetmap
+Soccer #1,soccer,pitch,38.5234734,-90.4378165,,,MO,,false,true,false,openstreetmap
+Soccer #1,soccer,pitch,38.6369935,-90.276581,,,MO,,false,true,false,openstreetmap
+Soccer #2,soccer,pitch,38.5235678,-90.4388326,,,MO,,false,true,false,openstreetmap
+Soccer #2,soccer,pitch,38.6378463,-90.2762934,,,MO,,false,true,false,openstreetmap
+Soccer #3,soccer,pitch,38.5234301,-90.4397643,,,MO,,false,true,false,openstreetmap
+Soccer #3,soccer,pitch,38.6374494,-90.2756528,,,MO,,false,true,false,openstreetmap
+Soccer #3 Field,soccer,pitch,38.6646392,-90.3214317,,,MO,,false,true,false,openstreetmap
+Soccer #4,soccer,pitch,38.5234628,-90.4407075,,,MO,,false,true,false,openstreetmap
+Soccer #4,soccer,pitch,38.6370422,-90.2749905,,,MO,,false,true,false,openstreetmap
+Soccer #4 Field,soccer,pitch,38.6643679,-90.3200711,,,MO,,false,true,false,openstreetmap
+Soccer #5,soccer,pitch,38.5233871,-90.441874,,,MO,,false,true,false,openstreetmap
+Soccer #6,soccer,pitch,38.5249425,-90.4411518,,,MO,,false,true,false,openstreetmap
+Soccer #7,soccer,pitch,38.526368,-90.4413174,,,MO,,false,true,false,openstreetmap
+Soccer #8,soccer,pitch,38.5258235,-90.4431272,,,MO,,false,true,false,openstreetmap
+Soccer Field,soccer,pitch,38.5432225,-90.391778,,,MO,,false,true,false,openstreetmap
+Soccer Field #1,soccer,pitch,39.0321712,-94.335088,,,MO,,false,true,false,openstreetmap
+Soccer Field #2,soccer,pitch,39.0314295,-94.3363102,,,MO,,false,true,false,openstreetmap
+Soccer Field #3,soccer,pitch,39.030681,-94.3360917,,,MO,,false,true,false,openstreetmap
+Soccer Field #4,soccer,pitch,39.0307648,-94.3348323,,,MO,,false,true,false,openstreetmap
+Soccer Field #5,soccer,pitch,39.0298644,-94.3346533,,,MO,,false,true,false,openstreetmap
+Soccer Field #6,soccer,pitch,39.0299362,-94.3355435,,,MO,,false,true,false,openstreetmap
+Soccer Field #7,soccer,pitch,39.0300062,-94.3363294,,,MO,,false,true,false,openstreetmap
+Soccer Practice Fields,soccer,pitch,38.8664976,-91.9515193,,,MO,,false,true,false,openstreetmap
+South Field,soccer,pitch,39.7404422,-94.2523487,,,MO,,false,true,false,openstreetmap
+St. Cletus Soccer Field,soccer,pitch,38.801835,-90.536782,,,MO,,false,true,false,openstreetmap
+St. Louis Place Soccer Field,soccer,pitch,38.647426,-90.2054816,,,MO,,false,true,false,openstreetmap
+Sunderland Field,soccer,pitch,37.2210359,-93.2867311,,,MO,,false,true,false,openstreetmap
+Toyota Stadium,soccer,stadium,38.5466856,-90.4389322,,,MO,,false,true,false,openstreetmap
+Trenton Soccer Field,soccer,pitch,40.0778263,-93.6032812,,,MO,,false,true,false,openstreetmap
+University of Missouri,soccer,pitch,38.9358618,-92.3397814,,,MO,,false,true,false,openstreetmap
+Vandy Intramural Field,soccer,pitch,38.6363492,-90.2409695,,,MO,,false,true,false,openstreetmap
+Varsity Soccer Field,soccer,pitch,38.6426024,-90.472477,,,MO,,false,true,false,openstreetmap
+Vetta Sports Complex,soccer,sports_centre,38.5110666,-90.3699316,,,MO,,false,true,false,openstreetmap
+Westminster Practice Field,soccer,pitch,38.8474516,-91.9588287,,,MO,,false,true,false,openstreetmap
+Whitfield Soccer Field,soccer,pitch,38.6549421,-90.4806954,,,MO,,false,true,false,openstreetmap
+Wilfred C. Bourke Athletic Field,soccer,pitch,39.0314016,-94.570727,,,MO,,false,true,false,openstreetmap
+Yellow 2 Field,soccer,pitch,38.9424819,-92.7684589,,,MO,,false,true,false,openstreetmap
+ZSports,soccer,pitch,38.8467794,-94.3591842,,,MO,,false,true,false,openstreetmap
+Missouri Soccer Park,soccer,sports_centre,38.9402612,-92.7693503,1734 West Ashley Road,Boonville,MO,65233,false,true,false,openstreetmap
+Worldwide Technologies Soccer Park,soccer,sports_centre,38.5467859,-90.4386113,1 Soccer Park Road,Fenton,MO,63026,false,true,false,openstreetmap
+CPKC Stadium,soccer,stadium,39.1195414,-94.5665307,Kansas City Current Way,Kansas City,MO,64120,false,true,false,openstreetmap
+The Soccer Box,soccer,pitch,39.1917429,-94.5467715,5369 Northeast Antioch Road,Kansas City,MO,64119,false,true,false,openstreetmap
+Paragon Star,soccer,sports_centre,38.9412587,-94.4416624,1401 Northwest River Road,Lee's Summit,MO,64081,false,true,false,openstreetmap
+Vetta Sports - Manchester,soccer,sports_centre,38.5899218,-90.5006956,150 Enchanted Parkway,Manchester,MO,63021,false,true,false,openstreetmap
+Creve Coeur Park Soccer Complex,soccer,sports_centre,38.7157579,-90.491135,2350 Creve Coeur Mill Rd,Maryland Heights,MO,63146,false,true,false,openstreetmap
+Field 1,soccer,pitch,38.7453551,-90.7547855,901 Caledonia Dr,O'Fallon,MO,63368,false,true,false,openstreetmap
+Missouri Rush Soccer Complex,soccer,sports_centre,38.7447238,-90.7538195,901 Caledonia Parkway,O'Fallon,MO,63368,false,true,false,openstreetmap
+Frick Park Soccer Fields,soccer,pitch,39.00277,-94.1439885,1101 Southeast 12th Street,Oak Grove,MO,64075,false,true,false,openstreetmap
+Kansas City Current,soccer,pitch,39.1652735,-94.6366368,1 Northwest Teal Rising Way,Riverside,MO,64150,false,true,false,openstreetmap
+The University of Kansas Health System Training Center,soccer,sports_centre,39.1638965,-94.6334282,1 Northwest Teal Rising Way,Riverside,MO,64150,false,true,false,openstreetmap
+Energizer Park,soccer,stadium,38.6313272,-90.2103113,2019 Market Street,Saint Louis,MO,63103,false,true,false,openstreetmap

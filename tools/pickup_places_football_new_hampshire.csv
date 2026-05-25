@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alumni Field,football,pitch,42.9401181,-72.3171656,,,NH,,false,true,false,openstreetmap
+Barnard Park Football Field,football,pitch,43.0128401,-71.5886567,,,NH,,false,true,false,openstreetmap
+Branch-Merriman Field,football,pitch,43.6973277,-72.2839992,,,NH,,false,true,false,openstreetmap
+Commissioners Field,football,pitch,43.2194997,-70.9351729,,,NH,,false,true,false,openstreetmap
+Elliot Field,football,pitch,42.7392878,-71.4732619,,,NH,,false,true,false,openstreetmap
+Exeter High School,football,pitch,43.0209141,-70.9999261,,,NH,,false,true,false,openstreetmap
+Exeter High School,football,pitch,43.0206877,-71.0003394,,,NH,,false,true,false,openstreetmap
+Football Practice/Intramural Field,football,pitch,42.9806964,-71.508359,,,NH,,false,true,false,openstreetmap
+Grappone Field,football,pitch,42.9832909,-71.5028365,,,NH,,false,true,false,openstreetmap
+Guzzo Family Field,football,pitch,43.1907241,-71.5714706,,,NH,,false,true,false,openstreetmap
+Leonard Field,football,pitch,43.4390253,-71.8218012,,,NH,,false,true,false,openstreetmap
+Manchester Cubs,football,pitch,42.9823393,-71.4539621,,,NH,,false,true,false,openstreetmap
+Marrion Field,football,pitch,43.6746895,-72.0395879,,,NH,,false,true,false,openstreetmap
+Maryn Football Field,football,pitch,43.3778858,-72.1785681,,,NH,,false,true,false,openstreetmap
+Memorial Field,football,pitch,42.8995337,-71.3110701,,,NH,,false,true,false,openstreetmap
+Mooradian Field,football,pitch,43.1385469,-70.93922,,,NH,,false,true,false,openstreetmap
+Motta Field,football,pitch,42.7477467,-71.5065237,,,NH,,false,true,false,openstreetmap
+Panther Field,football,pitch,43.7628524,-71.6824149,,,NH,,false,true,false,openstreetmap
+Pinkerton Field 5,football,pitch,42.892677,-71.3135426,,,NH,,false,true,false,openstreetmap
+Thibault Field,football,pitch,42.9911305,-71.4890958,,,NH,,false,true,false,openstreetmap
+Thomas S. Preston Memorial Field,football,pitch,42.9375469,-71.5010611,,,NH,,false,true,false,openstreetmap
+West Memorial Field,football,pitch,42.9858845,-71.4729583,,,NH,,false,true,false,openstreetmap
+Youth Flag Football,football,pitch,43.0723522,-70.944782,,,NH,,false,true,false,openstreetmap
+Blackman Fields,football,pitch,43.6989295,-72.2780308,5 Summer Court,Hanover,NH,03755,false,true,false,openstreetmap
+Memorial Field,football,pitch,43.7012989,-72.2842463,4 Crosby Street,Hanover,NH,03755,false,true,false,openstreetmap
+Football field,football,pitch,42.7775524,-72.0512205,231 Mountian Road,Rindge,NH,03461,false,true,false,openstreetmap

@@ -14,9 +14,11 @@
 		F8BC7B352FA6AE0400248180 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = F8BC7B342FA6AE0400248180 /* Realtime */; };
 		F8BC7B372FA6AE0400248180 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = F8BC7B362FA6AE0400248180 /* Storage */; };
 		F8BC7B392FA6AE0400248180 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = F8BC7B382FA6AE0400248180 /* Supabase */; };
+		F8D4122A2FCE100000000001 /* FanGeoPickupGamesTemplate.xlsx in Resources */ = {isa = PBXBuildFile; fileRef = F8D412292FCE100000000001 /* FanGeoPickupGamesTemplate.xlsx */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F8D412292FCE100000000001 /* FanGeoPickupGamesTemplate.xlsx */ = {isa = PBXFileReference; lastKnownFileType = archive.xlsx; path = Resources/Templates/FanGeoPickupGamesTemplate.xlsx; sourceTree = SOURCE_ROOT; };
 		F8E47F382FA66B2400CAEA00 /* GameOn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GameOn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -146,6 +148,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F8D4122A2FCE100000000001 /* FanGeoPickupGamesTemplate.xlsx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -284,7 +287,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = GameOn/GameOn.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L7BJ8772ZC;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
@@ -340,7 +343,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = GameOn/GameOn.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = L7BJ8772ZC;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;

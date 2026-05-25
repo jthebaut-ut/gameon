@@ -1,0 +1,11 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+ARCOS Competition Soccer Field,soccer,pitch,47.4891652,-111.2697838,,,MT,,false,true,false,openstreetmap
+Bella Vista Field,soccer,pitch,46.8466165,-114.0617465,,,MT,,false,true,false,openstreetmap
+Columbus Youth Soccer Field,soccer,pitch,45.6451545,-109.2512189,,,MT,,false,true,false,openstreetmap
+Fandrich Football Field,soccer,pitch,46.3225662,-111.5207394,,,MT,,false,true,false,openstreetmap
+Laurel Middle School Football Field,soccer,pitch,45.6779171,-108.7602869,,,MT,,false,true,false,openstreetmap
+Soccer/Intramural Field,soccer,pitch,46.0108178,-112.56246,,,MT,,false,true,false,openstreetmap
+South Campus Stadium,soccer,pitch,46.8479381,-113.996184,,,MT,,false,true,false,openstreetmap
+Wendy's Field,soccer,pitch,45.7955314,-108.551529,,,MT,,false,true,false,openstreetmap
+Dickerson Soccer Field,soccer,sports_centre,45.6613644,-110.5834709,,Livingston,MT,59047,false,true,false,openstreetmap
+Polson Soccer Fields,soccer,sports_centre,47.6853519,-114.1283285,311 Ridgewater Drive,Polson,MT,59860-8547,false,true,false,openstreetmap

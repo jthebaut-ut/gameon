@@ -1,0 +1,27 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,tennis,pitch,41.1946061,-96.134573,,,NE,,false,true,false,openstreetmap
+Chautauqua Tennis Courts,tennis,pitch,40.2512929,-96.7411969,,,NE,,false,true,false,openstreetmap
+Hanscom Brandeis Tennis Center,tennis,sports_centre,41.2397152,-95.9592587,,,NE,,false,true,false,openstreetmap
+Indoor Tennis Racquetball & Squash,tennis,sports_centre,41.302829,-96.1018391,,,NE,,false,true,false,openstreetmap
+Lindeken Tennis Court,tennis,pitch,42.7104033,-103.0099866,,,NE,,false,true,false,openstreetmap
+Regency Lake & Tennis Club,tennis,pitch,41.2531015,-96.0747347,,,NE,,false,true,false,openstreetmap
+Ridgefield Park Tennis court,tennis,pitch,41.2725333,-96.1127242,,,NE,,false,true,false,openstreetmap
+Sid and Hazel Dillion Tennis Center,tennis,pitch,40.8385454,-96.6979493,,,NE,,false,true,false,openstreetmap
+Skutt Catholic Tennis Courts,tennis,sports_centre,41.2312304,-96.1567121,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,40.8670488,-96.7124929,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.2544315,-96.1081472,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.2578114,-96.0928791,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.2085641,-96.0548565,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.2685491,-95.9636435,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.324421,-96.0898545,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.1945581,-96.1343868,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,41.1977114,-96.080606,,,NE,,false,true,false,openstreetmap
+Tennis,tennis,pitch,40.842248,-96.7284129,,,NE,,false,true,false,openstreetmap
+Tennis & Basketball,tennis,pitch,40.838216,-96.7215414,,,NE,,false,true,false,openstreetmap
+Tennis (Indoor),tennis,pitch,41.2726867,-96.0997938,,,NE,,false,true,false,openstreetmap
+Tennis (Private),tennis,pitch,40.8026164,-96.5853247,,,NE,,false,true,false,openstreetmap
+Tennis Club Bldg,tennis,pitch,41.295558,-96.1077538,,,NE,,false,true,false,openstreetmap
+Tennis Court,tennis,pitch,41.2876023,-96.2915914,,,NE,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,42.1025106,-102.8676279,,,NE,,false,true,false,openstreetmap
+Tennis Courts,tennis,pitch,40.2025868,-100.6372923,,,NE,,false,true,false,openstreetmap
+UNO Dome,tennis,sports_centre,41.2312132,-96.0172828,,,NE,,false,true,false,openstreetmap

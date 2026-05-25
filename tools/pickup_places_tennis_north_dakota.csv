@@ -1,0 +1,3 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Bud Jacobi Tennis Complex,tennis,pitch,47.9262009,-97.0748368,,,ND,,false,true,false,openstreetmap
+Bud Jacobi Tennis Complex,tennis,pitch,47.9261975,-97.0750312,,,ND,,false,true,false,openstreetmap

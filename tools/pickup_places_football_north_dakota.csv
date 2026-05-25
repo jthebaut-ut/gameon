@@ -1,0 +1,28 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Alerus Center,football,stadium,47.9108765,-97.091329,,,ND,,false,true,false,openstreetmap
+Bob Tatum FIeld,football,pitch,45.9975318,-98.5171696,,,ND,,false,true,false,openstreetmap
+Colfax Municipal Field,football,pitch,46.4716977,-96.8763081,,,ND,,false,true,false,openstreetmap
+Dan Smrekar Football Field,football,pitch,46.8699476,-100.785984,,,ND,,false,true,false,openstreetmap
+Ernie Gates Field,football,pitch,46.9153904,-98.7141922,,,ND,,false,true,false,openstreetmap
+Farmers Union Insurance Field,football,pitch,46.9075752,-97.2073193,,,ND,,false,true,false,openstreetmap
+Frank Vertin Field,football,pitch,46.278181,-96.6115645,,,ND,,false,true,false,openstreetmap
+Grover Field,football,pitch,46.8838817,-96.7704488,,,ND,,false,true,false,openstreetmap
+Hanna Field,football,pitch,46.9329826,-98.0010794,,,ND,,false,true,false,openstreetmap
+Hillsboro Public Schools,football,pitch,47.4021819,-97.052124,,,ND,,false,true,false,openstreetmap
+Jerlow Field,football,pitch,46.6466954,-97.0098462,,,ND,,false,true,false,openstreetmap
+Jerome Berg Field,football,pitch,47.5049266,-97.3166486,,,ND,,false,true,false,openstreetmap
+Kidder County Football,football,pitch,46.8493608,-99.913364,,,ND,,false,true,false,openstreetmap
+Lefty Faris Field,football,pitch,46.8180766,-100.9009053,,,ND,,false,true,false,openstreetmap
+Miller Field,football,pitch,46.8330221,-100.7578493,,,ND,,false,true,false,openstreetmap
+North Sargent Field,football,pitch,46.2238068,-97.6652834,,,ND,,false,true,false,openstreetmap
+Practice Field,football,pitch,47.5049822,-97.3189521,,,ND,,false,true,false,openstreetmap
+Randy Vigen Field,football,pitch,47.6362819,-97.0639744,,,ND,,false,true,false,openstreetmap
+Rod Oksendahl Field,football,pitch,48.7873659,-97.618473,,,ND,,false,true,false,openstreetmap
+Rollie Greeno Field,football,pitch,46.9117841,-98.6962475,,,ND,,false,true,false,openstreetmap
+Shelly Ellig Field,football,pitch,46.9159559,-98.0157851,,,ND,,false,true,false,openstreetmap
+Team Makers Athletic Field,football,pitch,46.8983091,-96.7986689,,,ND,,false,true,false,openstreetmap
+Tollefson Field,football,pitch,47.511447,-97.8328839,,,ND,,false,true,false,openstreetmap
+Tyler Field,football,pitch,47.7314639,-97.577586,,,ND,,false,true,false,openstreetmap
+name=Beach High School,football,pitch,46.9244772,-104.0035561,,,ND,,false,true,false,openstreetmap
+Les Christianson Sports Complex,football,sports_centre,48.8331212,-100.443805,,Bottineau,ND,58318,false,true,false,openstreetmap
+Cushman Field,football,pitch,47.9013262,-97.0611274,1900 South 25th Street,Grand Forks,ND,58201,false,true,false,openstreetmap

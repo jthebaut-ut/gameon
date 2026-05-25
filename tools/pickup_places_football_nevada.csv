@@ -1,0 +1,15 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Centennial High School Football Field,football,pitch,36.2789869,-115.3170162,,,NV,,false,true,false,openstreetmap
+Colts Football Field,football,pitch,39.5070793,-119.7851087,,,NV,,false,true,false,openstreetmap
+Dave Stout Field,football,pitch,40.8459111,-115.7587912,,,NV,,false,true,false,openstreetmap
+Faith Lutheran Football Field,football,pitch,36.1563529,-115.316448,,,NV,,false,true,false,openstreetmap
+Fertitta Field,football,stadium,36.0800341,-115.3175157,,,NV,,false,true,false,openstreetmap
+Fertitta Football Complex,football,sports_centre,36.1103981,-115.1475102,,,NV,,false,true,false,openstreetmap
+Frank Nails Field,football,pitch,36.1455064,-115.0300597,,,NV,,false,true,false,openstreetmap
+Freedom Field,football,pitch,35.9889589,-115.1508243,,,NV,,false,true,false,openstreetmap
+Jeff Keel Stadium,football,pitch,36.5853527,-114.4571292,,,NV,,false,true,false,openstreetmap
+Las Vegas Raiders,football,pitch,36.0887306,-115.1845013,,,NV,,false,true,false,openstreetmap
+Las Vegas Raiders practice fields,football,pitch,35.9729395,-115.1465821,,,NV,,false,true,false,openstreetmap
+Mackay Stadium,football,stadium,39.5468566,-119.8173655,,,NV,,false,true,false,openstreetmap
+Matt Trontel Field,football,pitch,40.8461416,-115.7571823,,,NV,,false,true,false,openstreetmap
+Sam Boyd Stadium,football,stadium,36.0861751,-115.0167361,7000 East Russell Road,Las Vegas,NV,89122,false,true,false,openstreetmap

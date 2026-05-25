@@ -1,0 +1,15 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball Court at Overton Park,basketball,pitch,36.5409017,-114.4409654,,,NV,,false,true,false,openstreetmap
+Basketball court,basketball,pitch,35.9697514,-114.8388218,,,NV,,false,true,false,openstreetmap
+Campus Housing Basketball Courts,basketball,pitch,36.1022001,-115.1409134,,,NV,,false,true,false,openstreetmap
+Campus Housing Basketball Courts,basketball,pitch,36.1026899,-115.1400829,,,NV,,false,true,false,openstreetmap
+Hoop City Las Vegas,basketball,pitch,36.0483051,-115.1819716,,,NV,,false,true,false,openstreetmap
+Lawlor Events Center,basketball,stadium,39.545074,-119.818301,,,NV,,false,true,false,openstreetmap
+Mendenhall Center,basketball,pitch,36.1037734,-115.1438546,,,NV,,false,true,false,openstreetmap
+Orleans Arena,basketball,pitch,36.1058268,-115.2022782,4500 W Tropicana ave,,NV,89103,false,true,false,openstreetmap
+Sport Court of Las Vegas,basketball,pitch,36.1407223,-115.242359,,,NV,,false,true,false,openstreetmap
+Weston Hills Park Basketball Court,basketball,pitch,36.074245,-114.9804936,,,NV,,false,true,false,openstreetmap
+Woodtrail Basketball Courts,basketball,pitch,39.546722,-119.7095182,,,NV,,false,true,false,openstreetmap
+Incline Village Recreation Center,basketball,fitness_centre,39.2435418,-119.9427066,980 Incline Way,Incline Village,NV,89451,false,true,false,openstreetmap
+Cox Pavilion,basketball,stadium,36.1042641,-115.1433888,4505 South Maryland Parkway,Las Vegas,NV,89154,false,true,false,openstreetmap
+Thomas & Mack Center,basketball,stadium,36.1048956,-115.1442885,4505 South Maryland Parkway,Las Vegas,NV,89154,false,true,false,openstreetmap

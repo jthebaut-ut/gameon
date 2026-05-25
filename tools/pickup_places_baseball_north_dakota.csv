@@ -1,0 +1,52 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+All-Terrain Field,baseball,pitch,46.8533954,-96.8128799,,,ND,,false,true,false,openstreetmap
+BNG Team Field,baseball,pitch,46.8525682,-96.811773,,,ND,,false,true,false,openstreetmap
+Bill's Field,baseball,pitch,47.0536997,-96.9370971,,,ND,,false,true,false,openstreetmap
+Bismarck Municipal Ballpark,baseball,pitch,46.803906,-100.7955606,,,ND,,false,true,false,openstreetmap
+Brandenburg Realty Field,baseball,pitch,46.8525697,-96.8128926,,,ND,,false,true,false,openstreetmap
+Charlie Brown Memorial Baseball Field,baseball,pitch,46.9341782,-97.9990393,,,ND,,false,true,false,openstreetmap
+Corbet Field,baseball,pitch,48.2316854,-101.2755469,,,ND,,false,true,false,openstreetmap
+Cummings Feild,baseball,pitch,46.1378238,-98.0822113,,,ND,,false,true,false,openstreetmap
+Dakota College at Bottineau Field,baseball,pitch,48.8338502,-100.4402709,,,ND,,false,true,false,openstreetmap
+Dakota Community Bank & Trust Ballpark,baseball,stadium,46.8729651,-102.7861582,,,ND,,false,true,false,openstreetmap
+Dakota Park 3rd Baseball Diamond,baseball,pitch,48.1665409,-103.6465621,,,ND,,false,true,false,openstreetmap
+Dewey Nelson Field,baseball,pitch,47.1530451,-97.5728834,,,ND,,false,true,false,openstreetmap
+Dwyer Field,baseball,pitch,46.8325138,-100.7594579,,,ND,,false,true,false,openstreetmap
+Exchange Club Field,baseball,pitch,46.863183,-96.9111784,,,ND,,false,true,false,openstreetmap
+Frost Field,baseball,pitch,47.3201769,-97.7126022,,,ND,,false,true,false,openstreetmap
+Gayle Miller Softball Complex,baseball,pitch,46.2812507,-96.6134891,,,ND,,false,true,false,openstreetmap
+Goldman Field,baseball,pitch,47.26946,-101.7752933,,,ND,,false,true,false,openstreetmap
+Harold Kraft Memorial Field,baseball,pitch,47.9010825,-97.0642022,,,ND,,false,true,false,openstreetmap
+Heglie Field,baseball,pitch,46.6681517,-96.8110594,,,ND,,false,true,false,openstreetmap
+Hillsboro Public Schools,baseball,pitch,47.4024479,-97.0505498,,,ND,,false,true,false,openstreetmap
+Hog Field,baseball,pitch,46.9753298,-96.879345,,,ND,,false,true,false,openstreetmap
+Horton Ford Field,baseball,pitch,46.9768143,-97.3936305,,,ND,,false,true,false,openstreetmap
+Jack Berg Memorial Baseball Field,baseball,pitch,46.9201099,-104.01209,,,ND,,false,true,false,openstreetmap
+Jack Brown Stadium,baseball,pitch,46.8973677,-98.7054733,,,ND,,false,true,false,openstreetmap
+Jack Williams Stadium,baseball,pitch,46.8892318,-96.7760514,,,ND,,false,true,false,openstreetmap
+John Randall Baseball Field,baseball,pitch,46.2690097,-96.5997692,,,ND,,false,true,false,openstreetmap
+Johnson Farms Field,baseball,pitch,46.9076084,-97.208971,,,ND,,false,true,false,openstreetmap
+Kretchman Memorial Field,baseball,pitch,46.1038717,-97.632153,,,ND,,false,true,false,openstreetmap
+Lampert & Karna Field,baseball,pitch,47.9621817,-101.7981443,,,ND,,false,true,false,openstreetmap
+Mandan Veterans Memorial Ballpark,baseball,pitch,46.8207089,-100.8959774,,,ND,,false,true,false,openstreetmap
+McCormick Field,baseball,pitch,46.843064,-96.8533953,,,ND,,false,true,false,openstreetmap
+Mel Johnson Field,baseball,pitch,46.3832041,-96.8054262,,,ND,,false,true,false,openstreetmap
+Melvin Schauch Memorial Field,baseball,pitch,46.5760382,-96.8054697,,,ND,,false,true,false,openstreetmap
+Omoth Field,baseball,pitch,47.1533405,-97.5704968,,,ND,,false,true,false,openstreetmap
+Orky Dahl Memorial Field,baseball,pitch,46.2231475,-97.6558118,,,ND,,false,true,false,openstreetmap
+Patriot Pride Field,baseball,pitch,47.499284,-97.3473097,,,ND,,false,true,false,openstreetmap
+Paul Karlstad Softball Complex,baseball,pitch,47.5051773,-97.3735135,,,ND,,false,true,false,openstreetmap
+Progressive Ag Futures Field,baseball,pitch,46.6437246,-97.0071832,,,ND,,false,true,false,openstreetmap
+Progressive Ag Options Field,baseball,pitch,46.6437149,-97.0084025,,,ND,,false,true,false,openstreetmap
+Rabon Baseball Field,baseball,pitch,48.1605715,-103.6133947,,,ND,,false,true,false,openstreetmap
+Sanderson Field,baseball,pitch,46.0573561,-97.5103227,,,ND,,false,true,false,openstreetmap
+Scheels Field,baseball,pitch,46.8534109,-96.8117756,,,ND,,false,true,false,openstreetmap
+Scott Berry Field,baseball,pitch,47.5034938,-97.3183595,,,ND,,false,true,false,openstreetmap
+Spartan Stadium,baseball,pitch,46.9026688,-96.7920156,,,ND,,false,true,false,openstreetmap
+Starion Field,baseball,pitch,46.8405554,-96.8536929,,,ND,,false,true,false,openstreetmap
+Teamsters Field,baseball,pitch,46.8417871,-96.8526954,,,ND,,false,true,false,openstreetmap
+Tharaldson Field,baseball,pitch,46.8431648,-96.8554819,,,ND,,false,true,false,openstreetmap
+Tharaldson Lodging Companies Softball Diamond,baseball,pitch,46.9153965,-98.0179313,,,ND,,false,true,false,openstreetmap
+The Ball Yard,baseball,sports_centre,46.8565554,-96.8433692,,,ND,,false,true,false,openstreetmap
+Veterans Memorial Stadium,baseball,stadium,47.5035237,-97.318332,,,ND,,false,true,false,openstreetmap
+Young Field,baseball,pitch,46.8607547,-96.908904,,,ND,,false,true,false,openstreetmap

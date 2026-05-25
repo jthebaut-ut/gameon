@@ -1,0 +1,14 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Canyon Road Tennis Courts,tennis,sports_centre,35.8858635,-106.3024676,,,NM,,false,true,false,openstreetmap
+Frank Ortiz Dog Run,tennis,dog_park,35.6973322,-105.9639954,,,NM,,false,true,false,openstreetmap
+Gene Speer Tennis Complex,tennis,pitch,33.1338542,-107.2522498,118 West 4th Avenue,,NM,,false,true,false,openstreetmap
+Lobo Tennis Club,tennis,fitness_centre,35.0650603,-106.6301161,1416 University Boulevard Southeast,,NM,,false,true,false,openstreetmap
+Myrtle Street Tennis Court,tennis,sports_centre,35.8830065,-106.2968806,,,NM,,false,true,false,openstreetmap
+NMSU Tennis Center,tennis,fitness_centre,32.2767213,-106.7426319,1800 Wells Street,,NM,,false,true,false,openstreetmap
+NMT Tennis Courts,tennis,sports_centre,34.0645376,-106.9057438,,,NM,,false,true,false,openstreetmap
+Sedillo Park Tennis Courts,tennis,sports_centre,34.069154,-106.8976811,,,NM,,false,true,false,openstreetmap
+Urban Park Tennis Courts,tennis,sports_centre,35.8933671,-106.3245027,,,NM,,false,true,false,openstreetmap
+Jerry Cline Tennis Center,tennis,fitness_centre,35.0957236,-106.5671894,7001 Constitution Avenue Northeast,Albuquerque,NM,87110,false,true,false,openstreetmap
+Quail Ridge,tennis,pitch,36.4697492,-105.5948023,88 NM 150,El Prado,NM,,false,true,false,openstreetmap
+Tennis Center,tennis,sports_centre,32.2764324,-106.7427017,1800 Wells Street,Las Cruces,NM,88003,false,true,false,openstreetmap
+Nageezi indoor tennis court and athletic center,tennis,sports_centre,36.2611494,-107.7421657,11543 US 550,Nageezi,NM,87037,false,true,false,openstreetmap

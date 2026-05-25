@@ -1,0 +1,22 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BHS Football Field,football,pitch,46.3558266,-104.2790648,,,MT,,false,true,false,openstreetmap
+Bob Green Field,football,pitch,46.0112226,-112.5596632,,,MT,,false,true,false,openstreetmap
+Bobcat Stadium,football,stadium,45.6589025,-111.0494295,,,MT,,false,true,false,openstreetmap
+Bulldog Memorial Stadium,football,pitch,45.9978718,-112.4976445,,,MT,,false,true,false,openstreetmap
+Herb Klindt Field,football,pitch,45.7961356,-108.5563377,,,MT,,false,true,false,openstreetmap
+Highwood Schools Football Field,football,pitch,47.583177,-110.7990899,,,MT,,false,true,false,openstreetmap
+Hoffman Field.,football,sports_centre,46.1226706,-107.5534079,,,MT,,false,true,false,openstreetmap
+Laurel HighSchool Practice Field,football,pitch,45.6773288,-108.7686147,,,MT,,false,true,false,openstreetmap
+Longhorn Field,football,stadium,47.8239554,-110.6675551,,,MT,,false,true,false,openstreetmap
+Mike Granbois Memorial Field,football,pitch,48.1123586,-105.2074664,,,MT,,false,true,false,openstreetmap
+Naranche Stadium,football,pitch,46.0094613,-112.5340027,,,MT,,false,true,false,openstreetmap
+Park City HIgh School Football Field,football,pitch,45.6282822,-108.9178419,,,MT,,false,true,false,openstreetmap
+Plainsmean Field,football,pitch,48.7948927,-105.4072395,,,MT,,false,true,false,openstreetmap
+Practice Football Field,football,pitch,47.0030907,-114.4847796,,,MT,,false,true,false,openstreetmap
+Reed Point High School Football Field,football,stadium,45.7048773,-109.5492101,,,MT,,false,true,false,openstreetmap
+Reed Point High School Football Field,football,pitch,45.7047252,-109.5492239,,,MT,,false,true,false,openstreetmap
+Rocky Boy Schools Football Field,football,pitch,48.2566051,-109.7773956,,,MT,,false,true,false,openstreetmap
+Shepherd High School Football Field and Track,football,pitch,45.9409808,-108.3451122,,,MT,,false,true,false,openstreetmap
+The Pitch,football,pitch,46.8477695,-114.0592511,,,MT,,false,true,false,openstreetmap
+Tweet Field,football,pitch,47.6026573,-110.2770274,,,MT,,false,true,false,openstreetmap
+Washington-Grizzly Stadium,football,stadium,46.8640033,-113.9814776,1 Campus Drive,Missoula,MT,59812,false,true,false,openstreetmap

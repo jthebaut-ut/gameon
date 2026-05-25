@@ -1,0 +1,43 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Aggie Memorial Stadium,football,stadium,32.2796399,-106.7411219,,,NM,,false,true,false,openstreetmap
+Aggie Memorial Stadium,football,pitch,32.2796361,-106.7411115,1810 East University Avenue,,NM,,false,true,false,openstreetmap
+Al Whitehead Field,football,pitch,34.1776993,-103.3552553,,,NM,,false,true,false,openstreetmap
+Ball Park,football,pitch,33.1456666,-107.2500552,,,NM,,false,true,false,openstreetmap
+Ben Rios Field,football,pitch,35.1308483,-106.6993642,,,NM,,false,true,false,openstreetmap
+Bulldog Field,football,pitch,32.8241416,-104.4395252,,,NM,,false,true,false,openstreetmap
+Bulldogs,football,pitch,32.8404753,-104.4169404,,,NM,,false,true,false,openstreetmap
+Capital Jaguars,football,pitch,35.6221284,-106.044087,,,NM,,false,true,false,openstreetmap
+Clovis High School Freshman Academy Football Field,football,pitch,34.4118794,-103.226466,,,NM,,false,true,false,openstreetmap
+Coyote Field,football,pitch,33.2452193,-103.3214748,,,NM,,false,true,false,openstreetmap
+Dons Football Field,football,pitch,35.5899394,-105.2230037,,,NM,,false,true,false,openstreetmap
+Eagle's Field,football,pitch,34.5990374,-105.2050847,,,NM,,false,true,false,openstreetmap
+Eunice Cardinal Field,football,pitch,32.4394737,-103.1677323,,,NM,,false,true,false,openstreetmap
+Field of Dreams,football,stadium,32.3181609,-106.8099067,2501 Tashiro Drive,,NM,,false,true,false,openstreetmap
+Football practice field,football,pitch,32.2792063,-106.742998,,,NM,,false,true,false,openstreetmap
+Future Bulldogs #1,football,pitch,32.8251281,-104.4395175,,,NM,,false,true,false,openstreetmap
+Future Bulldogs #2,football,pitch,32.8248419,-104.4395195,,,NM,,false,true,false,openstreetmap
+Greyhound Stadium,football,stadium,34.2524025,-103.2441072,,,NM,,false,true,false,openstreetmap
+Jal Practice Feild,football,pitch,32.1133424,-103.1894846,,,NM,,false,true,false,openstreetmap
+Laab's Field,football,pitch,33.6446995,-105.8805148,,,NM,,false,true,false,openstreetmap
+Mountaineer Field,football,pitch,33.7096937,-108.7606669,,,NM,,false,true,false,openstreetmap
+NMSU Soccer Field - Artificial Turf,football,pitch,32.2804967,-106.7429621,,,NM,,false,true,false,openstreetmap
+New James Field,football,pitch,32.7741633,-108.2974485,,,NM,,false,true,false,openstreetmap
+Newcomb High football field,football,pitch,36.2776165,-108.7097789,,,NM,,false,true,false,openstreetmap
+Raton High School Football Field,football,pitch,36.8860653,-104.4497295,,,NM,,false,true,false,openstreetmap
+Roadrunner Field,football,pitch,35.6774119,-105.9589749,,,NM,,false,true,false,openstreetmap
+San Jon PS Football Field,football,pitch,35.1083608,-103.3251134,,,NM,,false,true,false,openstreetmap
+Sullivan Field,football,pitch,35.8846084,-106.3202577,855 Diamond Drive,,NM,,false,true,false,openstreetmap
+Taos High School Football Field,football,pitch,36.3928187,-105.5750244,,,NM,,false,true,false,openstreetmap
+Tiger Stadium,football,stadium,32.895052,-105.9480822,,,NM,,false,true,false,openstreetmap
+WM Football Field,football,pitch,35.0954509,-106.7120263,,,NM,,false,true,false,openstreetmap
+Wilson Stadium,football,stadium,35.0848146,-106.507708,,,NM,,false,true,false,openstreetmap
+Wool Bowl,football,pitch,33.4122783,-104.516952,,,NM,,false,true,false,openstreetmap
+Milne Field,football,pitch,35.0756301,-106.6345262,1200 Hazeldine Avenue Southeast,Albuquerque,NM,87106,false,true,false,openstreetmap
+Nusenda Community Stadium,football,stadium,35.093373,-106.7584558,1601 Arroyo Vista Boulevard Northwest,Albuquerque,NM,87120,false,true,false,openstreetmap
+University Stadium,football,stadium,35.0669259,-106.6282456,1414 University Boulevard Southeast,Albuquerque,NM,87106,false,true,false,openstreetmap
+Wilson Field,football,pitch,35.0846608,-106.5077154,12200 Lomas Boulevard Northeast,Albuquerque,NM,87112,false,true,false,openstreetmap
+Cardinal Stadium,football,pitch,35.6048085,-105.2164218,,Las Vegas,NM,,false,true,false,openstreetmap
+Perkins Field,football,pitch,35.6001921,-105.2238223,,Las Vegas,NM,,false,true,false,openstreetmap
+Perkins Stadium,football,stadium,35.6002121,-105.2238313,,Las Vegas,NM,87701,false,true,false,openstreetmap
+Maverick Stadium,football,stadium,32.3504196,-108.7131818,,Lordsburg,NM,,false,true,false,openstreetmap
+Hot Springs Tiger Stadium,football,stadium,33.1452941,-107.2503964,1801 N Pershing Street,Truth or Consequences,NM,87901,false,true,false,openstreetmap

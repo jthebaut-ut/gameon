@@ -1,0 +1,232 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,baseball,pitch,35.302883,-80.8331768,,,NC,,false,true,false,openstreetmap
+#2,baseball,pitch,35.3026926,-80.8319731,,,NC,,false,true,false,openstreetmap
+#3,baseball,pitch,35.3016807,-80.8322118,,,NC,,false,true,false,openstreetmap
+#4,baseball,pitch,35.3018751,-80.833455,,,NC,,false,true,false,openstreetmap
+1,baseball,pitch,35.259453,-82.7056683,,,NC,,false,true,false,openstreetmap
+2,baseball,pitch,35.2586972,-82.7056636,,,NC,,false,true,false,openstreetmap
+3,baseball,pitch,35.2579949,-82.7057637,,,NC,,false,true,false,openstreetmap
+4,baseball,pitch,35.2579124,-82.7067801,,,NC,,false,true,false,openstreetmap
+5,baseball,pitch,35.259008,-82.7069686,,,NC,,false,true,false,openstreetmap
+6,baseball,pitch,35.2591468,-82.70491,,,NC,,false,true,false,openstreetmap
+A,baseball,pitch,35.0663475,-80.7395052,,,NC,,false,true,false,openstreetmap
+Abbey Yard Baseball Field,baseball,pitch,35.2595006,-81.039631,,,NC,,false,true,false,openstreetmap
+All-Star Field,baseball,pitch,36.4363,-81.4691088,,,NC,,false,true,false,openstreetmap
+Aquadale Youth League,baseball,pitch,35.2275909,-80.2220026,,,NC,,false,true,false,openstreetmap
+Asheville High Baseball Field,baseball,pitch,35.5706672,-82.552071,,,NC,,false,true,false,openstreetmap
+Atrium Health Ballpark,baseball,sports_centre,35.4982972,-80.6271427,,,NC,,false,true,false,openstreetmap
+B,baseball,pitch,35.0652828,-80.7392014,,,NC,,false,true,false,openstreetmap
+Babe Ruth Field,baseball,pitch,35.0041652,-80.7108555,,,NC,,false,true,false,openstreetmap
+Ballfield #1,baseball,pitch,35.1646645,-80.7046362,,,NC,,false,true,false,openstreetmap
+Ballfield #2,baseball,pitch,35.1652953,-80.7051879,,,NC,,false,true,false,openstreetmap
+Barnes Field,baseball,pitch,35.840141,-77.0669607,,,NC,,false,true,false,openstreetmap
+Barton College Baseball,baseball,pitch,35.7441437,-77.9136776,,,NC,,false,true,false,openstreetmap
+Baseball #1,baseball,pitch,35.1945863,-80.8415526,,,NC,,false,true,false,openstreetmap
+Baseball #2,baseball,pitch,35.1950751,-80.841209,,,NC,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,35.0618338,-78.6957468,,,NC,,false,true,false,openstreetmap
+Batting Cage,baseball,yes,36.267541,-76.2106622,,,NC,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,35.7085403,-78.6108379,,,NC,,false,true,false,openstreetmap
+Batting Range,baseball,pitch,34.6951909,-77.0678257,,,NC,,false,true,false,openstreetmap
+Bauer Baseball Field,baseball,pitch,36.0144777,-77.7774256,,,NC,,false,true,false,openstreetmap
+Beaver Field,baseball,pitch,36.2113182,-81.6928074,,,NC,,false,true,false,openstreetmap
+Bill Durham Athletic Field,baseball,pitch,35.878852,-79.4374007,,,NC,,false,true,false,openstreetmap
+Bob Gryder Stadium,baseball,pitch,35.91792,-81.1875419,,,NC,,false,true,false,openstreetmap
+Bob Walton Field,baseball,pitch,35.1426631,-80.802386,,,NC,,false,true,false,openstreetmap
+Bonner-Ballard Field,baseball,pitch,34.5316109,-79.2968699,,,NC,,false,true,false,openstreetmap
+Boshamer Stadium,baseball,stadium,35.9063494,-79.0431444,,,NC,,false,true,false,openstreetmap
+Brevard College Softball Field,baseball,pitch,35.235864,-82.7229397,,,NC,,false,true,false,openstreetmap
+Brooks Field,baseball,stadium,34.2218815,-77.8733865,,,NC,,false,true,false,openstreetmap
+Bryson Field,baseball,pitch,35.905815,-79.0432514,,,NC,,false,true,false,openstreetmap
+Buck Fraley Baseball Field,baseball,pitch,35.3825168,-81.3763226,,,NC,,false,true,false,openstreetmap
+Buck Hardee Field,baseball,pitch,34.2031743,-77.9370947,,,NC,,false,true,false,openstreetmap
+Buck Leonard Park,baseball,pitch,35.9344822,-77.804796,,,NC,,false,true,false,openstreetmap
+Burlington Athletic Stadium,baseball,stadium,36.0873942,-79.4097479,,,NC,,false,true,false,openstreetmap
+Burrus Field,baseball,pitch,35.2644569,-75.5266206,,,NC,,false,true,false,openstreetmap
+C.B. Huss Recreation Complex Baseball,baseball,pitch,35.2410306,-81.0743516,,,NC,,false,true,false,openstreetmap
+C.B. Huss Recreation Complex Tee Ball,baseball,pitch,35.2416644,-81.0739659,,,NC,,false,true,false,openstreetmap
+Cameron Yards,baseball,pitch,35.1004391,-80.855493,,,NC,,false,true,false,openstreetmap
+Carl W. Price Stadium,baseball,pitch,35.8489123,-80.0785872,,,NC,,false,true,false,openstreetmap
+Catamount Softball Complex,baseball,pitch,35.3134599,-83.188166,,,NC,,false,true,false,openstreetmap
+Childress Field,baseball,pitch,35.3006852,-83.1807746,,,NC,,false,true,false,openstreetmap
+Christopher Baseball Stadium,baseball,stadium,34.9874076,-80.4417046,,,NC,,false,true,false,openstreetmap
+Clifford Hurt Memorial Stadium,baseball,pitch,35.2323876,-80.1283581,,,NC,,false,true,false,openstreetmap
+Coach Sean Schultz Field,baseball,pitch,35.1949473,-80.8092923,,,NC,,false,true,false,openstreetmap
+Cochrane Middle School baseball field,baseball,pitch,35.2470724,-80.7484787,,,NC,,false,true,false,openstreetmap
+Connor Field,baseball,pitch,35.9733682,-80.0866894,,,NC,,false,true,false,openstreetmap
+Contance S. Griffin Field,baseball,pitch,36.0565527,-79.7987823,,,NC,,false,true,false,openstreetmap
+Coombs Field Baseball Stadium,baseball,pitch,35.9980695,-78.9442494,,,NC,,false,true,false,openstreetmap
+Crater Park T Ball Field,baseball,pitch,36.2431393,-80.8482233,,,NC,,false,true,false,openstreetmap
+Craven Stadium,baseball,stadium,35.7410967,-79.6542666,,,NC,,false,true,false,openstreetmap
+Dail Softball Stadium,baseball,pitch,35.7822971,-78.6705252,,,NC,,false,true,false,openstreetmap
+David L. Henderson Baseball Facility,baseball,pitch,35.4020825,-81.9750822,,,NC,,false,true,false,openstreetmap
+Davis Field,baseball,pitch,36.5156753,-81.122748,,,NC,,false,true,false,openstreetmap
+Doak Field,baseball,pitch,35.7871807,-78.6795766,,,NC,,false,true,false,openstreetmap
+Durham Bulls Athletic Park,baseball,pitch,35.9917679,-78.9038737,,,NC,,false,true,false,openstreetmap
+Durham Bulls Miracle League Park,baseball,pitch,35.9904128,-78.9067057,,,NC,,false,true,false,openstreetmap
+Dwight Frady Field,baseball,pitch,35.241932,-81.0247115,,,NC,,false,true,false,openstreetmap
+Ed Price Baseball Field,baseball,pitch,36.0017962,-80.0275778,,,NC,,false,true,false,openstreetmap
+Eli Whitney Ball Field,baseball,pitch,35.9057767,-79.3010995,,,NC,,false,true,false,openstreetmap
+Elingburg Field,baseball,pitch,36.1551581,-79.8337077,,,NC,,false,true,false,openstreetmap
+Ellendale Elementary Ballfield,baseball,pitch,35.9277483,-81.2784801,,,NC,,false,true,false,openstreetmap
+Field #1,baseball,pitch,36.3301087,-79.6710068,,,NC,,false,true,false,openstreetmap
+Field #1,baseball,pitch,35.7513082,-79.6871875,,,NC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,36.3303199,-79.6699231,,,NC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,36.4185777,-80.719653,,,NC,,false,true,false,openstreetmap
+Field #2,baseball,pitch,35.7518443,-79.6873687,,,NC,,false,true,false,openstreetmap
+Field #3,baseball,pitch,36.3310886,-79.6704945,,,NC,,false,true,false,openstreetmap
+Field #3,baseball,pitch,36.4181427,-80.7204363,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.7816471,-78.821247,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.092325,-84.0281464,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.1032377,-80.9770567,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.0014459,-80.7108454,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.2120006,-80.9143414,,,NC,,false,true,false,openstreetmap
+Field 1,baseball,pitch,35.648599,-77.7750403,,,NC,,false,true,false,openstreetmap
+Field 10,baseball,pitch,35.1038208,-80.9795762,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.779807,-78.8212767,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.092591,-84.0263789,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.1027873,-80.9765641,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.0019704,-80.7106744,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.2131631,-80.91443,,,NC,,false,true,false,openstreetmap
+Field 2,baseball,pitch,35.6492225,-77.7739528,,,NC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,35.7795702,-78.8234782,,,NC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,35.1022226,-80.9777031,,,NC,,false,true,false,openstreetmap
+Field 3,baseball,pitch,35.0927587,-84.0251397,,,NC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,35.7803194,-78.8244438,,,NC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,35.0934055,-84.0254563,,,NC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,35.1028103,-80.9781734,,,NC,,false,true,false,openstreetmap
+Field 4,baseball,pitch,35.0033485,-80.7112995,,,NC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,35.7827453,-78.8305629,,,NC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,35.0932874,-84.0241079,,,NC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,35.1022952,-80.9790867,,,NC,,false,true,false,openstreetmap
+Field 5,baseball,pitch,35.0036335,-80.7127867,,,NC,,false,true,false,openstreetmap
+Field 6,baseball,pitch,35.783884,-78.8305045,,,NC,,false,true,false,openstreetmap
+Field 6,baseball,pitch,35.1025657,-80.979188,,,NC,,false,true,false,openstreetmap
+Field 6,baseball,pitch,35.0038225,-80.7136209,,,NC,,false,true,false,openstreetmap
+Field 7,baseball,pitch,35.7852793,-78.8309474,,,NC,,false,true,false,openstreetmap
+Field 7,baseball,pitch,35.1022721,-80.9796244,,,NC,,false,true,false,openstreetmap
+Field 7,baseball,pitch,35.0041323,-80.7124393,,,NC,,false,true,false,openstreetmap
+Field 8,baseball,pitch,35.1015777,-80.978831,,,NC,,false,true,false,openstreetmap
+Field 8,baseball,pitch,35.0045135,-80.7134667,,,NC,,false,true,false,openstreetmap
+Field 9,baseball,pitch,35.1034198,-80.9790371,,,NC,,false,true,false,openstreetmap
+Field A,baseball,pitch,35.2243728,-82.2506967,,,NC,,false,true,false,openstreetmap
+Field B,baseball,pitch,35.2238142,-82.2506281,,,NC,,false,true,false,openstreetmap
+Field C,baseball,pitch,35.2236815,-82.249919,,,NC,,false,true,false,openstreetmap
+Fighting Beluga Field,baseball,pitch,35.3377007,-79.5523988,,,NC,,false,true,false,openstreetmap
+Finch Field,baseball,pitch,35.9126871,-80.0621685,,,NC,,false,true,false,openstreetmap
+Five County Stadium,baseball,park,35.8171377,-78.2713684,,,NC,,false,true,false,openstreetmap
+Forest View Elementary School,baseball,pitch,35.9887173,-78.9901813,,,NC,,false,true,false,openstreetmap
+Founders Field,baseball,pitch,35.1117384,-80.798925,,,NC,,false,true,false,openstreetmap
+Freedom Park Softball Field,baseball,pitch,35.7465198,-81.719503,,,NC,,false,true,false,openstreetmap
+Gene Hooks Field,baseball,pitch,36.1298851,-80.2519754,,,NC,,false,true,false,openstreetmap
+Gil Coan Field,baseball,pitch,35.2375626,-82.7239377,,,NC,,false,true,false,openstreetmap
+"Gil Murdock, Jr. Baseball Field",baseball,pitch,35.1571581,-80.7803666,,,NC,,false,true,false,openstreetmap
+Gilliland Field,baseball,pitch,36.3856369,-79.7618335,,,NC,,false,true,false,openstreetmap
+Greene County Sports Complex,baseball,pitch,35.4569988,-77.6896794,,,NC,,false,true,false,openstreetmap
+Guy Smith Stadium,baseball,stadium,35.6028865,-77.3950451,,,NC,,false,true,false,openstreetmap
+Henderson Baseball Field,baseball,pitch,35.8285246,-82.5539992,,,NC,,false,true,false,openstreetmap
+Henkel-Alley Field,baseball,stadium,35.6890709,-81.2463043,,,NC,,false,true,false,openstreetmap
+Hennon Stadium,baseball,stadium,35.3007393,-83.1807746,,,NC,,false,true,false,openstreetmap
+Henry Gaylor Field,baseball,pitch,34.8992439,-78.054222,,,NC,,false,true,false,openstreetmap
+Hinson Field,baseball,pitch,35.4155825,-80.6154094,,,NC,,false,true,false,openstreetmap
+Hood Field,baseball,pitch,35.580155,-80.810809,,,NC,,false,true,false,openstreetmap
+Hough High School Baseball Field,baseball,pitch,35.4662402,-80.8311421,,,NC,,false,true,false,openstreetmap
+"J.W. ""Monk"" Nelson Field",baseball,pitch,36.119983,-80.1505734,,,NC,,false,true,false,openstreetmap
+Jack Sink Field,baseball,pitch,35.1692379,-80.8319603,,,NC,,false,true,false,openstreetmap
+Jake Wade Field,baseball,pitch,35.1929356,-80.8102367,,,NC,,false,true,false,openstreetmap
+Jarrett Field,baseball,pitch,36.5127234,-81.1240345,,,NC,,false,true,false,openstreetmap
+Jim Perry Stadium,baseball,pitch,35.4100482,-78.7352848,,,NC,,false,true,false,openstreetmap
+Jim Tully Field,baseball,pitch,35.1124748,-80.7991174,,,NC,,false,true,false,openstreetmap
+Jim and Bettie Smith Stadium,baseball,stadium,36.2114828,-81.6928347,233 Broyhill Inn Lane,,NC,,false,true,false,openstreetmap
+Jt Baseball field,baseball,pitch,35.268202,-80.8403505,,,NC,,false,true,false,openstreetmap
+"Julian H. Robertson, Jr. Stadium",baseball,stadium,35.6667541,-80.484863,,,NC,,false,true,false,openstreetmap
+Keith Field,baseball,pitch,35.192321,-80.8083836,,,NC,,false,true,false,openstreetmap
+Kiser-Chapman Field,baseball,pitch,35.1920403,-80.8103209,,,NC,,false,true,false,openstreetmap
+Krites Field,baseball,pitch,36.044071,-80.2512027,,,NC,,false,true,false,openstreetmap
+L.P. Frans Stadium,baseball,stadium,35.7488269,-81.3787624,,,NC,,false,true,false,openstreetmap
+Lady Trojans Softball Field,baseball,pitch,36.5146489,-81.1228388,,,NC,,false,true,false,openstreetmap
+Latham Field Park,baseball,pitch,36.108068,-79.507987,,,NC,,false,true,false,openstreetmap
+Lewis Field,baseball,pitch,35.5936841,-77.3678303,,,NC,,false,true,false,openstreetmap
+Luper Park,baseball,pitch,36.0994222,-79.8567989,,,NC,,false,true,false,openstreetmap
+M.P. McAllister Field,baseball,pitch,35.3996499,-80.4329544,,,NC,,false,true,false,openstreetmap
+M.S. Deal Stadium,baseball,stadium,35.7988054,-81.438386,,,NC,,false,true,false,openstreetmap
+Mando Field,baseball,pitch,35.9055649,-80.5607563,,,NC,,false,true,false,openstreetmap
+McBane Field,baseball,pitch,36.0931412,-79.8854084,,,NC,,false,true,false,openstreetmap
+McClintock Middle School Baseball Field,baseball,pitch,35.1814155,-80.768943,,,NC,,false,true,false,openstreetmap
+McCormick Field,baseball,pitch,35.5872776,-82.5492369,,,NC,,false,true,false,openstreetmap
+McCray Ballfield,baseball,pitch,36.1704836,-79.3862666,,,NC,,false,true,false,openstreetmap
+McNair Field,baseball,pitch,35.3386128,-81.8692759,,,NC,,false,true,false,openstreetmap
+Miller Field,baseball,pitch,36.4196649,-80.7202401,,,NC,,false,true,false,openstreetmap
+Miracle Fields League,baseball,pitch,34.2981134,-77.8648883,,,NC,,false,true,false,openstreetmap
+Miracle League Field,baseball,pitch,36.001222,-80.0296306,,,NC,,false,true,false,openstreetmap
+Miracle League of Franklin County,baseball,pitch,36.0578558,-78.4943239,,,NC,,false,true,false,openstreetmap
+Mount Tabor Baseball Field,baseball,pitch,36.1263722,-80.316423,,,NC,,false,true,false,openstreetmap
+Newell Athletic Baseball Field,baseball,pitch,35.6436782,-82.2977747,,,NC,,false,true,false,openstreetmap
+North Belmont Park Ball 1,baseball,pitch,35.2927665,-81.0697359,,,NC,,false,true,false,openstreetmap
+North Belmont Park Ball 2,baseball,pitch,35.2937468,-81.0691507,,,NC,,false,true,false,openstreetmap
+Oak City Ballpark,baseball,pitch,35.9603615,-77.3091256,,,NC,,false,true,false,openstreetmap
+Ocracoke Community Park,baseball,pitch,35.1094579,-75.9694971,,,NC,,false,true,false,openstreetmap
+Old Coast Guard baseball field,baseball,pitch,35.2583811,-75.52429,,,NC,,false,true,false,openstreetmap
+Penn Wright Baseball Stadium,baseball,stadium,36.0511621,-79.7538511,,,NC,,false,true,false,openstreetmap
+Puck O'Neal Field,baseball,pitch,34.7377049,-76.7353507,,,NC,,false,true,false,openstreetmap
+Rea Road Field,baseball,pitch,35.0822412,-80.8157646,,,NC,,false,true,false,openstreetmap
+Reid Park Ball,baseball,pitch,35.2486407,-81.0472737,,,NC,,false,true,false,openstreetmap
+Richard Curenton Field,baseball,pitch,35.5661586,-82.5830339,,,NC,,false,true,false,openstreetmap
+Robersonville Playfield,baseball,pitch,35.826926,-77.2627353,,,NC,,false,true,false,openstreetmap
+Robert and Mariam Hayes Stadium,baseball,pitch,35.3080763,-80.7389544,,,NC,,false,true,false,openstreetmap
+Ron Christopher Stadium & Plyler Field,baseball,pitch,34.9873998,-80.4416213,,,NC,,false,true,false,openstreetmap
+Rotary Field,baseball,pitch,36.4355081,-81.4677071,,,NC,,false,true,false,openstreetmap
+Rural Hall Fire & Rescue Field,baseball,pitch,36.2421901,-80.2892189,,,NC,,false,true,false,openstreetmap
+S. M. Jones Field,baseball,pitch,35.1411773,-76.7796826,,,NC,,false,true,false,openstreetmap
+Salem College Women's Softball Field,baseball,pitch,36.0832086,-80.2395755,,,NC,,false,true,false,openstreetmap
+Salem Fork Ball Field,baseball,pitch,36.4002201,-80.7820124,,,NC,,false,true,false,openstreetmap
+Scarborough Field and Moore Williams Field House,baseball,pitch,35.2039118,-78.0721673,,,NC,,false,true,false,openstreetmap
+Shamrock Baseball Field,baseball,pitch,36.1045401,-80.3920582,,,NC,,false,true,false,openstreetmap
+Softball #1,baseball,pitch,35.1953733,-80.8418195,,,NC,,false,true,false,openstreetmap
+Softball 3,baseball,pitch,35.180393,-80.9094781,,,NC,,false,true,false,openstreetmap
+Softball 4,baseball,pitch,35.1805234,-80.908322,,,NC,,false,true,false,openstreetmap
+Softball field,baseball,pitch,35.8214562,-78.7660003,,,NC,,false,true,false,openstreetmap
+Stirrup Creek Baseball Field,baseball,pitch,35.9249925,-78.8191508,,,NC,,false,true,false,openstreetmap
+Stoner White Baseball Stadium,baseball,stadium,36.122817,-79.8356132,3801 Jaycee Park Drive,,NC,,false,true,false,openstreetmap
+Swaim Complex,baseball,sports_centre,36.1356461,-80.0419405,,,NC,,false,true,false,openstreetmap
+Tarboro Municipal Stadium,baseball,pitch,35.9082017,-77.5348985,,,NC,,false,true,false,openstreetmap
+Ted Leonard Park Baseball Field,baseball,pitch,36.1045021,-79.9108777,,,NC,,false,true,false,openstreetmap
+Tee Ball Field 1,baseball,pitch,35.0013706,-80.7114744,,,NC,,false,true,false,openstreetmap
+Tee Ball Field 2,baseball,pitch,35.0017418,-80.7114403,,,NC,,false,true,false,openstreetmap
+"The Barn, LLC",baseball,sports_centre,36.2712114,-76.2836217,,,NC,,false,true,false,openstreetmap
+Thelonious Monk Park,baseball,pitch,35.9296674,-77.799135,,,NC,,false,true,false,openstreetmap
+Tiger Field,baseball,pitch,35.9451564,-79.076611,,,NC,,false,true,false,openstreetmap
+Truist Point,baseball,stadium,35.9592993,-80.0117401,301 North Elm Street,,NC,,false,true,false,openstreetmap
+Truist Stadium,baseball,stadium,36.0918953,-80.2550825,,,NC,,false,true,false,openstreetmap
+Tuckaseege Park Ball 1,baseball,pitch,35.2817984,-81.0139181,,,NC,,false,true,false,openstreetmap
+Tuckaseege Park Ball 2,baseball,pitch,35.2818389,-81.0131224,,,NC,,false,true,false,openstreetmap
+Tuckaseege Park Ball 3,baseball,pitch,35.2825365,-81.0132276,,,NC,,false,true,false,openstreetmap
+UNCG Baseball Stadium,baseball,pitch,36.0676907,-79.8133665,,,NC,,false,true,false,openstreetmap
+UNCG Softball Field,baseball,pitch,36.0700519,-79.8141187,,,NC,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,36.4348263,-81.4674395,,,NC,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,35.2724471,-81.5347776,,,NC,,false,true,false,openstreetmap
+Wakefield Baseball Venue,baseball,pitch,35.9455734,-78.5721257,,,NC,,false,true,false,openstreetmap
+Wallburg Fields,baseball,sports_centre,36.0061248,-80.1426184,,,NC,,false,true,false,openstreetmap
+Western Alamance Middle School Baseball Field,baseball,pitch,36.1605909,-79.5003308,,,NC,,false,true,false,openstreetmap
+White Plains Ballfield,baseball,pitch,36.4441727,-80.6352773,,,NC,,false,true,false,openstreetmap
+Whittington Field,baseball,pitch,35.1877454,-80.8466852,,,NC,,false,true,false,openstreetmap
+Wilson Field,baseball,pitch,35.5041608,-80.8409271,,,NC,,false,true,false,openstreetmap
+Winston-Salem Nationals,baseball,pitch,36.0855925,-80.3646049,,,NC,,false,true,false,openstreetmap
+World War Memorial Stadium,baseball,stadium,36.0797873,-79.7778397,510 Yanceyville Street,,NC,,false,true,false,openstreetmap
+Yeti Baseball Park,baseball,pitch,35.2779622,-81.4923692,,,NC,,false,true,false,openstreetmap
+field 6,baseball,pitch,35.0937423,-84.0231348,,,NC,,false,true,false,openstreetmap
+Bailey Elementary Ball Field,baseball,pitch,35.7818824,-78.1170105,6288 Pine Street,Bailey,NC,27807,false,true,false,openstreetmap
+USA Baseball National Training Complex,baseball,stadium,35.7969281,-78.8926029,200 Brooks Park Lane,Cary,NC,27519,false,true,false,openstreetmap
+Truist Field,baseball,stadium,35.2282737,-80.8487765,324 South Mint Street,Charlotte,NC,28202,false,true,false,openstreetmap
+Durham Bulls Athletic Park,baseball,stadium,35.9915661,-78.9039272,409 Blackwell Street,Durham,NC,27701,false,true,false,openstreetmap
+Segra Stadium,baseball,stadium,35.056082,-78.8833509,460 Hay Street,Fayetteville,NC,28301,false,true,false,openstreetmap
+First National Bank Field,baseball,stadium,36.0764668,-79.7951641,408 Bellemeade Street,Greensboro,NC,27401,false,true,false,openstreetmap
+Kerr Street Park Baseball Diamond,baseball,pitch,34.7449898,-77.4355462,36 Kerr Street,Jacksonville,NC,28540,false,true,false,openstreetmap
+White Oak High School baseball diamond,baseball,pitch,34.7678703,-77.3461921,1001 Piney Green Road,Jacksonville,NC,28546,false,true,false,openstreetmap
+Grainger Stadium,baseball,stadium,35.270148,-77.5741304,401 East Grainger Avenue,Kinston,NC,28501,false,true,false,openstreetmap
+Joe Ferebee Baseball Field,baseball,pitch,35.4873291,-80.2784976,27508 Gibson Lake Drive,Misenheimer,NC,28109,false,true,false,openstreetmap
+Northwest Forsyth Little League Fields,baseball,pitch,36.1200818,-80.4171634,1400 Runabout Road,Pfafftown,NC,27040,false,true,false,openstreetmap
+Newman Park,baseball,stadium,35.6916668,-80.4877618,Summit Avenue,Salisbury,NC,,false,true,false,openstreetmap
+E.P. Godwin Stadium,baseball,stadium,34.1922682,-77.9436254,121 Shipyard Boulevard,Wilmington,NC,28412,false,true,false,openstreetmap
+Fleming Stadium,baseball,stadium,35.7187219,-77.9300456,300 Stadium Street Southwest,Wilson,NC,27893,false,true,false,openstreetmap
+David F. Couch Ballpark,baseball,stadium,36.1297735,-80.2521926,401 Deacon Boulevard,Winston-Salem,NC,27105,false,true,false,openstreetmap
+Five County Stadium,baseball,stadium,35.8171801,-78.2704356,1501 Nc 39 Hwy,Zebulon,NC,27597,false,true,false,openstreetmap

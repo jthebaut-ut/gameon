@@ -1,0 +1,34 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Charlotte Yeoman Sports Complex,baseball,sports_centre,46.1287793,-112.9331578,,,MT,,false,true,false,openstreetmap
+Dehler Park,baseball,stadium,45.7907745,-108.5109326,,,MT,,false,true,false,openstreetmap
+Field 1,baseball,pitch,45.7659548,-108.5838909,,,MT,,false,true,false,openstreetmap
+Field 2,baseball,pitch,45.7653804,-108.5847157,,,MT,,false,true,false,openstreetmap
+Field 3,baseball,pitch,45.764806,-108.5839028,,,MT,,false,true,false,openstreetmap
+Field 4,baseball,pitch,45.7669311,-108.5854304,,,MT,,false,true,false,openstreetmap
+Field 5,baseball,pitch,45.7652682,-108.5822963,,,MT,,false,true,false,openstreetmap
+Field 6,baseball,pitch,45.7690767,-108.5847753,,,MT,,false,true,false,openstreetmap
+Field 7,baseball,pitch,45.7684411,-108.58542,,,MT,,false,true,false,openstreetmap
+Field 8,baseball,pitch,45.7683445,-108.583739,,,MT,,false,true,false,openstreetmap
+Field 9,baseball,pitch,45.7679167,-108.5846189,,,MT,,false,true,false,openstreetmap
+Flathead Beacon Field,baseball,pitch,48.1036219,-114.0899165,,,MT,,false,true,false,openstreetmap
+Fowler Field,baseball,pitch,45.7841352,-111.1711605,,,MT,,false,true,false,openstreetmap
+Infield,baseball,pitch,48.1042146,-114.6628446,,,MT,,false,true,false,openstreetmap
+Joe Pirtz Field,baseball,pitch,45.7668749,-108.582542,,,MT,,false,true,false,openstreetmap
+Kindrick Legion Field,baseball,pitch,46.5992917,-112.0271971,,,MT,,false,true,false,openstreetmap
+Legion Field at Hero's Park,baseball,pitch,45.691171,-111.0339564,,,MT,,false,true,false,openstreetmap
+Lindborg-Cregg Legion Field,baseball,pitch,46.8570757,-114.062106,,,MT,,false,true,false,openstreetmap
+Miller Field,baseball,pitch,45.7847538,-111.170793,,,MT,,false,true,false,openstreetmap
+Miners Field,baseball,pitch,45.9786077,-112.5439493,,,MT,,false,true,false,openstreetmap
+Missoula Batting Cages,baseball,pitch,46.8443839,-114.0503357,,,MT,,false,true,false,openstreetmap
+Nevin's Field,baseball,pitch,48.5617675,-113.0185783,,,MT,,false,true,false,openstreetmap
+New Laurel Baseball Fields,baseball,pitch,45.6751692,-108.766599,,,MT,,false,true,false,openstreetmap
+Old Baseball Field,baseball,pitch,48.104298,-114.6627483,,,MT,,false,true,false,openstreetmap
+Rose Park Baseball Field,baseball,pitch,45.7849329,-108.5714114,,,MT,,false,true,false,openstreetmap
+Scobey Baseball Field,baseball,pitch,48.7944872,-105.4229153,,,MT,,false,true,false,openstreetmap
+Scobey Little League Field,baseball,pitch,48.7939395,-105.424661,,,MT,,false,true,false,openstreetmap
+Smith Field,baseball,pitch,45.7857767,-111.1710245,,,MT,,false,true,false,openstreetmap
+Three Legends Stadium,baseball,stadium,45.9784523,-112.5440653,,,MT,,false,true,false,openstreetmap
+Urbaska Field,baseball,pitch,45.7956917,-108.557992,,,MT,,false,true,false,openstreetmap
+Welch Field,baseball,pitch,45.783146,-111.1710126,,,MT,,false,true,false,openstreetmap
+Glacier Bank Ballpark,baseball,stadium,48.2973523,-114.3375491,25 McDermott Lane,Kalispell,MT,59901,false,true,false,openstreetmap
+Ogren Park at Allegiance Field,baseball,stadium,46.8736068,-114.0069244,700 Cregg Lane,Missoula,MT,59801,false,true,false,openstreetmap

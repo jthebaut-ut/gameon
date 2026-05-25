@@ -1,0 +1,98 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+#1,baseball,pitch,41.1863953,-96.0156249,,,NE,,false,true,false,openstreetmap
+#1,baseball,pitch,41.1870031,-96.0329558,,,NE,,false,true,false,openstreetmap
+#2,baseball,pitch,41.1853328,-96.015872,,,NE,,false,true,false,openstreetmap
+#2,baseball,pitch,41.1877281,-96.032915,,,NE,,false,true,false,openstreetmap
+#3,baseball,pitch,41.1853337,-96.0172091,,,NE,,false,true,false,openstreetmap
+#3,baseball,pitch,41.1877476,-96.0339248,,,NE,,false,true,false,openstreetmap
+#4,baseball,pitch,41.1863156,-96.017214,,,NE,,false,true,false,openstreetmap
+#4,baseball,pitch,41.1869605,-96.0339501,,,NE,,false,true,false,openstreetmap
+#5,baseball,pitch,41.1851925,-96.0129494,,,NE,,false,true,false,openstreetmap
+1,baseball,pitch,40.862394,-96.6504918,,,NE,,false,true,false,openstreetmap
+1,baseball,pitch,42.004736,-97.4161954,,,NE,,false,true,false,openstreetmap
+2,baseball,pitch,40.8624116,-96.6494835,,,NE,,false,true,false,openstreetmap
+2,baseball,pitch,42.0041409,-97.4169849,,,NE,,false,true,false,openstreetmap
+3,baseball,pitch,40.863184,-96.6494991,,,NE,,false,true,false,openstreetmap
+3,baseball,pitch,42.0047262,-97.4177835,,,NE,,false,true,false,openstreetmap
+4,baseball,pitch,42.0049742,-97.4206756,,,NE,,false,true,false,openstreetmap
+5,baseball,pitch,42.0057173,-97.4241458,,,NE,,false,true,false,openstreetmap
+Al Veys Youth Sports Complex,baseball,sports_centre,41.1937664,-96.0109676,6506 South 60th Street,,NE,,false,true,false,openstreetmap
+Anderson Field,baseball,pitch,41.2064134,-96.1249002,,,NE,,false,true,false,openstreetmap
+Ashland Ball Fields,baseball,pitch,41.0433447,-96.3636128,,,NE,,false,true,false,openstreetmap
+Ashland Ball Fields,baseball,pitch,41.0443914,-96.3637959,,,NE,,false,true,false,openstreetmap
+Augie Nelson Field,baseball,pitch,40.5038095,-98.9428282,,,NE,,false,true,false,openstreetmap
+Backstop East,baseball,pitch,41.1515218,-96.033895,,,NE,,false,true,false,openstreetmap
+Backstop North,baseball,pitch,41.156988,-96.0464909,,,NE,,false,true,false,openstreetmap
+Backstop South,baseball,pitch,41.1565835,-96.0468825,,,NE,,false,true,false,openstreetmap
+Backstop West,baseball,pitch,41.1515328,-96.0351756,,,NE,,false,true,false,openstreetmap
+Baldwin Field,baseball,pitch,41.1393822,-95.9097607,,,NE,,false,true,false,openstreetmap
+Baseball Field,baseball,pitch,40.470669,-95.7371318,,,NE,,false,true,false,openstreetmap
+Baseball Practice Field,baseball,pitch,41.1666062,-95.9370176,,,NE,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,41.1515477,-96.0361308,,,NE,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,41.2472435,-95.923729,,,NE,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,41.1428562,-95.9300835,,,NE,,false,true,false,openstreetmap
+Bellevue West Baseball,baseball,pitch,41.1648273,-95.937185,,,NE,,false,true,false,openstreetmap
+Berry Hill Neighborhood Baseball diamond,baseball,pitch,42.0513004,-97.4512429,,,NE,,false,true,false,openstreetmap
+Bill Wood Field,baseball,pitch,41.1514697,-100.7618299,,,NE,,false,true,false,openstreetmap
+Chip Bowley Field,baseball,pitch,41.2404001,-95.9452018,,,NE,,false,true,false,openstreetmap
+Christenson Field Diamond,baseball,pitch,40.283653,-96.7511952,,,NE,,false,true,false,openstreetmap
+Don E. Nordberg Field,baseball,pitch,41.1066741,-97.6018557,,,NE,,false,true,false,openstreetmap
+Don Roddy Field,baseball,pitch,41.1482915,-95.9065248,,,NE,,false,true,false,openstreetmap
+Duncan Field,baseball,pitch,40.583301,-98.3749588,,,NE,,false,true,false,openstreetmap
+Elkhorn North Baseball Field,baseball,pitch,41.300107,-96.1952758,,,NE,,false,true,false,openstreetmap
+Felling Field,baseball,pitch,40.2008864,-100.6159822,,,NE,,false,true,false,openstreetmap
+Fricke Field,baseball,pitch,41.1517076,-96.0373565,,,NE,,false,true,false,openstreetmap
+Halleck West Field,baseball,pitch,41.1539514,-96.0397636,,,NE,,false,true,false,openstreetmap
+Hawks Field,baseball,pitch,40.8229318,-96.7133379,,,NE,,false,true,false,openstreetmap
+Hawks Field at Haymarket Park,baseball,stadium,40.8230114,-96.7133427,,,NE,,false,true,false,openstreetmap
+Holy Cross Field,baseball,pitch,41.2364133,-96.003834,,,NE,,false,true,false,openstreetmap
+Holy Cross Field,baseball,pitch,41.23697,-96.0038729,,,NE,,false,true,false,openstreetmap
+Hoskins Community Baseball Field,baseball,pitch,42.1067622,-97.306925,,,NE,,false,true,false,openstreetmap
+JCC Ballfields,baseball,pitch,41.2572475,-96.113228,,,NE,,false,true,false,openstreetmap
+Jack Anderson Ball Park,baseball,pitch,41.0433553,-96.3645955,,,NE,,false,true,false,openstreetmap
+Jack Anderson Ball Park,baseball,pitch,41.0444581,-96.3651244,,,NE,,false,true,false,openstreetmap
+Jaycee Field,baseball,pitch,40.4916198,-98.949649,,,NE,,false,true,false,openstreetmap
+Kerrie Orozco Memorial Ball Field,baseball,pitch,41.3148035,-95.9476901,,,NE,,false,true,false,openstreetmap
+LHS Baseball Field,baseball,pitch,40.8052457,-96.687812,,,NE,,false,true,false,openstreetmap
+Legion Ball Park,baseball,pitch,40.9316665,-100.1532408,,,NE,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,41.1342905,-101.7236139,,,NE,,false,true,false,openstreetmap
+Legion Field,baseball,pitch,40.1629444,-97.5845504,,,NE,,false,true,false,openstreetmap
+MN Baseball,baseball,pitch,41.2524528,-96.1396797,,,NE,,false,true,false,openstreetmap
+Manchester Little League Field,baseball,pitch,41.2841992,-96.1877403,,,NE,,false,true,false,openstreetmap
+Mike Farber Memorial Field,baseball,pitch,42.0027711,-96.2462523,,,NE,,false,true,false,openstreetmap
+Millard West Baseball Field,baseball,pitch,41.2043263,-96.1917132,,,NE,,false,true,false,openstreetmap
+Moeller Park,baseball,pitch,41.422978,-96.4980723,,,NE,,false,true,false,openstreetmap
+Osceola Baseball Diamond,baseball,pitch,41.1640112,-97.5473831,,,NE,,false,true,false,openstreetmap
+Papillion Landing Sports Complex 5,baseball,pitch,41.1561479,-96.0536563,,,NE,,false,true,false,openstreetmap
+Papillion Landing Sports Complex 6,baseball,pitch,41.1552082,-96.0536603,,,NE,,false,true,false,openstreetmap
+Papio Bay #1,baseball,pitch,41.150809,-96.0303215,,,NE,,false,true,false,openstreetmap
+Papio Bay #2,baseball,pitch,41.1510009,-96.031624,,,NE,,false,true,false,openstreetmap
+Papio Bay #3,baseball,pitch,41.1517283,-96.0310224,,,NE,,false,true,false,openstreetmap
+Papio Bay #4,baseball,pitch,41.1523779,-96.0284946,,,NE,,false,true,false,openstreetmap
+Patriot Park Youth Softball and Baseball Complex,baseball,pitch,40.726216,-99.0196135,,,NE,,false,true,false,openstreetmap
+Patriot Park Youth Softball and Baseball Complex,baseball,pitch,40.7241369,-99.0202549,,,NE,,false,true,false,openstreetmap
+Pete Carlin Field,baseball,pitch,41.6856024,-98.3602872,,,NE,,false,true,false,openstreetmap
+Pete Chapman Baseball,baseball,pitch,42.245245,-97.0124048,,,NE,,false,true,false,openstreetmap
+Pete Chapman Softball,baseball,pitch,42.2450118,-97.0140006,,,NE,,false,true,false,openstreetmap
+Petersen East,baseball,pitch,41.1554768,-96.026594,,,NE,,false,true,false,openstreetmap
+Petersen T-Ball East,baseball,pitch,41.1550263,-96.0284049,,,NE,,false,true,false,openstreetmap
+Petersen T-Ball West,baseball,pitch,41.1552099,-96.0290146,,,NE,,false,true,false,openstreetmap
+Petersen West,baseball,pitch,41.1557838,-96.0287596,,,NE,,false,true,false,openstreetmap
+Platteview High School Baseball Field,baseball,pitch,41.0909929,-96.0779778,,,NE,,false,true,false,openstreetmap
+Plattsmouth High School Baseball Field,baseball,pitch,40.9981978,-95.9041758,,,NE,,false,true,false,openstreetmap
+Robert Den Hartog Field,baseball,pitch,40.8009475,-96.6171107,,,NE,,false,true,false,openstreetmap
+Sedlacek Memorial Complex,baseball,park,41.2932282,-96.0201316,,,NE,,false,true,false,openstreetmap
+Sherman Field,baseball,pitch,40.7904904,-96.7178526,,,NE,,false,true,false,openstreetmap
+Skutt Baseball,baseball,pitch,41.2275223,-96.155152,,,NE,,false,true,false,openstreetmap
+Softball Field,baseball,pitch,40.471634,-95.737111,,,NE,,false,true,false,openstreetmap
+St. Stephen's Baseball Diamond,baseball,pitch,41.2025189,-96.1740156,,,NE,,false,true,false,openstreetmap
+Ultimate Baseball Academy,baseball,pitch,41.217831,-96.1026235,,,NE,,false,true,false,openstreetmap
+Westerhoff Field,baseball,pitch,40.9436268,-96.9891011,,,NE,,false,true,false,openstreetmap
+Bellamy Park,baseball,sports_centre,40.8546338,-99.9834374,Railroad Road,Cozad,NE,69130,false,true,false,openstreetmap
+Charles Schwab Field Omaha,baseball,pitch,41.2669542,-95.9315935,1200 Mike Fahey Street,Omaha,NE,68102,false,true,false,openstreetmap
+Grover Little League,baseball,pitch,41.2294797,-96.0114487,6402 Grover Street,Omaha,NE,68106,false,true,false,openstreetmap
+Grover Little League,baseball,pitch,41.2287695,-96.0114091,6402 Grover Street,Omaha,NE,68106,false,true,false,openstreetmap
+Grover Little League,baseball,pitch,41.2285558,-96.0106521,6402 Grover Street,Omaha,NE,68106,false,true,false,openstreetmap
+Sam Crawford Field,baseball,stadium,41.2093598,-96.6142081,501 East 5th Street,Wahoo,NE,68066,false,true,false,openstreetmap
+Weston Ball Field,baseball,pitch,41.1949759,-96.7423855,645 Plum Street,Weston,NE,68070,false,true,false,openstreetmap
+Beaver Creek Ball Diamond,baseball,pitch,40.8588927,-97.5893426,,York,NE,,false,true,false,openstreetmap

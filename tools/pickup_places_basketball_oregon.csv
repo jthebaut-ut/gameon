@@ -1,0 +1,29 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+BHS Gymnasium,basketball,pitch,45.615228,-123.1125272,,,OR,,false,true,false,openstreetmap
+Berkeley Basketball Court,basketball,pitch,44.044796,-123.1331027,,,OR,,false,true,false,openstreetmap
+Campus Life Basketball court,basketball,pitch,42.4321162,-123.0522782,,,OR,,false,true,false,openstreetmap
+Chase Village Basketball Court,basketball,pitch,44.0557685,-123.0596476,,,OR,,false,true,false,openstreetmap
+Chiles Center,basketball,stadium,45.5750956,-122.7285035,,,OR,,false,true,false,openstreetmap
+Conestoga Gym,basketball,sports_hall,45.4485634,-122.8061817,,,OR,,false,true,false,openstreetmap
+Covered Area,basketball,pitch,45.5062028,-122.6516343,,,OR,,true,false,false,openstreetmap
+Eagle Point High School Court,basketball,pitch,42.4754951,-122.8034779,,,OR,,false,true,false,openstreetmap
+Fermin's Court,basketball,pitch,45.5987853,-122.9965286,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,basketball,pitch,42.310583,-122.8684138,,,OR,,false,true,false,openstreetmap
+Fichtner Mainwaring Park,basketball,pitch,42.3105603,-122.8686067,,,OR,,false,true,false,openstreetmap
+Fowler Covered Basketball Court,basketball,pitch,45.4320332,-122.7882927,,,OR,,false,true,false,openstreetmap
+Hoover Elementry School,basketball,pitch,42.3210921,-122.8394138,,,OR,,false,true,false,openstreetmap
+Hoover Elementry School,basketball,pitch,42.3210872,-122.8391463,,,OR,,false,true,false,openstreetmap
+Incline Sports,basketball,pitch,44.0897497,-123.057972,,,OR,,true,false,false,openstreetmap
+Luuwit View Basketball Court,basketball,pitch,45.5505249,-122.5292989,,,OR,,false,true,false,openstreetmap
+Madrona Park Basketball Court,basketball,pitch,45.5585951,-122.6927077,,,OR,,false,true,false,openstreetmap
+No Just the Ball,basketball,pitch,42.9692447,-123.1592962,,,OR,,false,true,false,openstreetmap
+Ochoco Pointe Basketball Court,basketball,pitch,44.3127817,-120.8336413,,,OR,,false,true,false,openstreetmap
+Oregon Park Basketball Court,basketball,pitch,45.5280391,-122.634854,,,OR,,false,true,false,openstreetmap
+Sigma Chi Court,basketball,pitch,44.0384549,-123.0712649,,,OR,,false,true,false,openstreetmap
+Thata Chi Court,basketball,pitch,44.0392622,-123.0755939,,,OR,,false,true,false,openstreetmap
+The Covered Structure,basketball,pitch,45.5290897,-122.6191754,,,OR,,false,true,false,openstreetmap
+Washington Park Basketball Court,basketball,pitch,44.0372359,-123.0988314,,,OR,,false,true,false,openstreetmap
+Willamalane Park and Recreation District,basketball,pitch,44.0525306,-123.024879,,,OR,,false,true,false,openstreetmap
+basketball,basketball,pitch,45.8586294,-122.8302761,,,OR,,false,true,false,openstreetmap
+redwood park basketball court,basketball,pitch,42.4238359,-123.3662492,,,OR,,false,true,false,openstreetmap
+Saint Anthony Gymnasium,basketball,sports_centre,45.4285091,-122.7777258,9835 Southwest McKenzie Street,Tigard,OR,97223,false,true,false,openstreetmap

@@ -1,0 +1,6 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Billings West High School Tennis Courts,tennis,pitch,45.7726254,-108.5695196,,,MT,,false,true,false,openstreetmap
+Geraldine Public Courts,tennis,pitch,47.6028898,-110.2715084,,,MT,,false,true,false,openstreetmap
+West Valley Courts,tennis,pitch,46.1534871,-113.0202098,,,MT,,false,true,false,openstreetmap
+tennis,tennis,pitch,46.6384712,-114.0838039,,,MT,,false,true,false,openstreetmap
+Old Fort Park Tennis Courts,tennis,stadium,47.8224134,-110.6614247,2090 River Street,Fort Benton,MT,59442,false,true,false,openstreetmap

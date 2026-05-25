@@ -1,0 +1,111 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Abbot Field,baseball,pitch,42.8698588,-71.3704963,,,NH,,false,true,false,openstreetmap
+Al Lemire Field,baseball,pitch,42.9965822,-71.4396388,,,NH,,false,true,false,openstreetmap
+Alumni Field,baseball,pitch,42.9397735,-72.3190221,,,NH,,false,true,false,openstreetmap
+Alumni-Wentworth Field,baseball,pitch,43.085646,-70.7851374,,,NH,,false,true,false,openstreetmap
+Arthur Donati Memorial Field,baseball,pitch,43.0893581,-71.4643731,,,NH,,false,true,false,openstreetmap
+Atkinson Park Baseball Field,baseball,pitch,42.8376111,-71.175249,,,NH,,false,true,false,openstreetmap
+Batting Cage,baseball,pitch,42.8466763,-72.2659378,,,NH,,false,true,false,openstreetmap
+Batting Cages,baseball,pitch,43.2379408,-70.8968894,,,NH,,false,true,false,openstreetmap
+Beede Field,baseball,pitch,43.2741823,-71.5899432,,,NH,,false,true,false,openstreetmap
+Bill Bates Memorial Field,baseball,pitch,43.363517,-72.1774276,,,NH,,false,true,false,openstreetmap
+Bill Johnson Diamond,baseball,pitch,42.8634602,-71.6323448,,,NH,,false,true,false,openstreetmap
+Bolton Field,baseball,pitch,43.055774,-71.6932447,,,NH,,false,true,false,openstreetmap
+Brown Field,baseball,pitch,42.8699633,-72.3326416,,,NH,,false,true,false,openstreetmap
+Burke Field,baseball,pitch,43.8951194,-71.1554221,,,NH,,false,true,false,openstreetmap
+Busch Field,baseball,pitch,42.822659,-71.4855153,,,NH,,false,true,false,openstreetmap
+Civic Field,baseball,pitch,43.6404601,-72.3080962,,,NH,,false,true,false,openstreetmap
+Cole Field,baseball,pitch,42.8462321,-72.267349,,,NH,,false,true,false,openstreetmap
+Community Field,baseball,pitch,42.8122304,-72.02217,,,NH,,false,true,false,openstreetmap
+Couture Ball Field,baseball,pitch,44.4416719,-71.5285588,,,NH,,false,true,false,openstreetmap
+David Drescher Field,baseball,pitch,42.7249744,-71.4787144,,,NH,,false,true,false,openstreetmap
+Delta Dental Stadium,baseball,stadium,42.9814577,-71.4663502,,,NH,,false,true,false,openstreetmap
+Dover North,baseball,pitch,43.203732,-70.884923,,,NH,,false,true,false,openstreetmap
+Dublin Ball Field,baseball,pitch,42.9041115,-72.0619791,,,NH,,false,true,false,openstreetmap
+Exeter High School,baseball,pitch,43.0209803,-71.0022824,,,NH,,false,true,false,openstreetmap
+Exeter High School,baseball,pitch,43.0144596,-71.004073,,,NH,,false,true,false,openstreetmap
+Farm Field,baseball,pitch,42.8697083,-71.3695695,,,NH,,false,true,false,openstreetmap
+Field 1,baseball,pitch,43.3679004,-72.3314501,,,NH,,false,true,false,openstreetmap
+Field 2,baseball,pitch,42.9011741,-71.3136565,,,NH,,false,true,false,openstreetmap
+Field A,baseball,pitch,42.7948154,-71.2755188,,,NH,,false,true,false,openstreetmap
+Field C,baseball,pitch,42.7942649,-71.2739258,,,NH,,false,true,false,openstreetmap
+Finkle Field,baseball,pitch,44.1812669,-71.9162875,,,NH,,false,true,false,openstreetmap
+Forrest Field,baseball,pitch,42.8693959,-71.3736512,,,NH,,false,true,false,openstreetmap
+Forrest Hicks Field,baseball,pitch,44.4192675,-71.4781751,,,NH,,false,true,false,openstreetmap
+Foss Wasson Baseball Field,baseball,pitch,42.9213524,-71.0073072,,,NH,,false,true,false,openstreetmap
+Founders Field,baseball,pitch,42.8699048,-71.3726525,,,NH,,false,true,false,openstreetmap
+Hale Field,baseball,pitch,42.8700377,-71.3735127,,,NH,,false,true,false,openstreetmap
+Hank Center Memorial Field,baseball,pitch,42.7613566,-71.4267848,,,NH,,false,true,false,openstreetmap
+Hawkins Field,baseball,pitch,42.9629719,-71.5439231,,,NH,,false,true,false,openstreetmap
+Hislop Field,baseball,pitch,43.0919123,-70.7696695,,,NH,,false,true,false,openstreetmap
+Hugo Trentini Memorial Field,baseball,pitch,42.8300661,-71.6355688,,,NH,,false,true,false,openstreetmap
+James I. Scamman Field,baseball,pitch,43.0406607,-70.8965668,,,NH,,false,true,false,openstreetmap
+Jamie Welch Memorial Field,baseball,pitch,43.3162789,-71.6173426,,,NH,,false,true,false,openstreetmap
+John Abood Field,baseball,pitch,42.9629968,-71.4485692,,,NH,,false,true,false,openstreetmap
+Joseph A. Bergeron Memorial Field,baseball,pitch,42.7597256,-71.2014475,,,NH,,false,true,false,openstreetmap
+Keay Field,baseball,pitch,43.3305725,-70.9352766,,,NH,,false,true,false,openstreetmap
+Keene State College Baseball,baseball,pitch,42.9178206,-72.2811511,,,NH,,false,true,false,openstreetmap
+Kenneth R. Day Memorial Field,baseball,pitch,42.9122317,-71.124281,,,NH,,false,true,false,openstreetmap
+Keyes Memorial Field,baseball,pitch,42.837082,-71.6574107,,,NH,,false,true,false,openstreetmap
+Lane Field,baseball,pitch,42.845987,-72.2666896,,,NH,,false,true,false,openstreetmap
+Leary Field,baseball,pitch,43.0710978,-70.7581833,,,NH,,false,true,false,openstreetmap
+Linda Libby Ball Field,baseball,pitch,42.7590082,-71.5006518,,,NH,,false,true,false,openstreetmap
+Lindon Memorial Field,baseball,pitch,42.9798952,-71.0720717,,,NH,,false,true,false,openstreetmap
+Lions Field,baseball,pitch,42.7639152,-71.4346023,,,NH,,false,true,false,openstreetmap
+Little Fenway,baseball,pitch,43.4608289,-71.2300908,,,NH,,false,true,false,openstreetmap
+Little League Field,baseball,pitch,43.3669761,-72.3336508,,,NH,,false,true,false,openstreetmap
+Locke Lake Ballfield,baseball,pitch,43.3797319,-71.2422899,,,NH,,false,true,false,openstreetmap
+Louis Street Baseball Field,baseball,pitch,42.9971343,-71.5034663,,,NH,,false,true,false,openstreetmap
+Matt Dube Field,baseball,pitch,42.7306655,-71.4766174,,,NH,,false,true,false,openstreetmap
+McCollum Field,baseball,pitch,42.892695,-71.6774644,,,NH,,false,true,false,openstreetmap
+McDermott Field,baseball,pitch,42.8686726,-71.3719523,,,NH,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,43.0408397,-70.894607,,,NH,,false,true,false,openstreetmap
+Memorial Field,baseball,pitch,44.4766069,-71.1867649,,,NH,,false,true,false,openstreetmap
+Michael Briggs Memorial Field,baseball,pitch,43.2111617,-71.3629778,,,NH,,false,true,false,openstreetmap
+Michael Zapenas Field,baseball,pitch,42.7595044,-71.500401,,,NH,,false,true,false,openstreetmap
+Mickey Hanagan Field,baseball,pitch,42.978599,-71.4399618,,,NH,,false,true,false,openstreetmap
+Minor League Field,baseball,pitch,42.7506169,-71.3411135,,,NH,,false,true,false,openstreetmap
+NHSP Baseball,baseball,pitch,43.2274639,-71.5609472,,,NH,,false,true,false,openstreetmap
+Nelson Field,baseball,pitch,42.8721013,-71.3711168,,,NH,,false,true,false,openstreetmap
+New Hampshire State Prison Baseball,baseball,pitch,43.2274917,-71.5609036,,,NH,,false,true,false,openstreetmap
+Newcomb Field,baseball,pitch,42.7460203,-71.314765,,,NH,,false,true,false,openstreetmap
+Nichols Field,baseball,pitch,42.7341442,-71.5849922,,,NH,,false,true,false,openstreetmap
+North Common Baseball Field,baseball,pitch,42.7700442,-71.4714898,,,NH,,false,true,false,openstreetmap
+O'Hara Field,baseball,pitch,42.87803,-71.323685,,,NH,,false,true,false,openstreetmap
+Ohrt T-Ball Field,baseball,pitch,42.9631281,-71.4478721,,,NH,,false,true,false,openstreetmap
+PEP Russel Field,baseball,pitch,42.8816141,-70.9723557,,,NH,,false,true,false,openstreetmap
+Parish Field,baseball,pitch,43.7640789,-71.6815737,,,NH,,false,true,false,openstreetmap
+Perkins Field,baseball,pitch,42.869932,-71.3743298,,,NH,,false,true,false,openstreetmap
+Peter Psaledas Field,baseball,pitch,42.9627284,-71.4476612,,,NH,,false,true,false,openstreetmap
+Phillips Exeter Academy,baseball,pitch,42.9759044,-70.9459542,,,NH,,false,true,false,openstreetmap
+Pinkerton Athletic Field 1,baseball,pitch,42.896966,-71.3197033,,,NH,,false,true,false,openstreetmap
+Piscataquog River Park Baseball field,baseball,pitch,42.9863902,-71.4869542,,,NH,,false,true,false,openstreetmap
+Presidents Field,baseball,pitch,42.8691014,-71.3725802,,,NH,,false,true,false,openstreetmap
+Purington Memorial FIeld,baseball,park,43.1333358,-71.7191145,,,NH,,false,true,false,openstreetmap
+Raiders Softball Field,baseball,pitch,42.7407517,-71.4523617,,,NH,,false,true,false,openstreetmap
+Ray Cross Field,baseball,pitch,42.9844516,-71.4521851,,,NH,,false,true,false,openstreetmap
+Richard P. Flynn Memorial Field,baseball,pitch,42.7522357,-71.4546607,,,NH,,false,true,false,openstreetmap
+Robert C. Blinn Memorial Field,baseball,pitch,42.7495313,-71.3408534,,,NH,,false,true,false,openstreetmap
+Robert H. Murray Memorial Field,baseball,pitch,42.7683305,-71.4750096,,,NH,,false,true,false,openstreetmap
+Roger's Memorial Field,baseball,pitch,42.7916305,-71.3014465,,,NH,,false,true,false,openstreetmap
+Ronald L. Jackson Field,baseball,pitch,42.7581658,-71.5022087,,,NH,,false,true,false,openstreetmap
+Rookie Field,baseball,pitch,42.8706468,-71.373776,,,NH,,false,true,false,openstreetmap
+Senior League Popwarner Field,baseball,pitch,42.7488666,-71.342687,,,NH,,false,true,false,openstreetmap
+Smith Field,baseball,pitch,43.6535092,-72.3067295,,,NH,,false,true,false,openstreetmap
+Softball,baseball,pitch,43.071618,-70.9462505,,,NH,,false,true,false,openstreetmap
+Sousa Field,baseball,pitch,42.7519678,-71.4249789,,,NH,,false,true,false,openstreetmap
+Student Rec Field,baseball,pitch,43.1388872,-70.9438993,,,NH,,false,true,false,openstreetmap
+Sullivan Park,baseball,pitch,42.984413,-71.5031261,,,NH,,false,true,false,openstreetmap
+Town Hall Field,baseball,pitch,43.1748695,-71.8223676,,,NH,,false,true,false,openstreetmap
+Varsity Baseball Field,baseball,pitch,43.18996,-71.5707102,,,NH,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,42.8786773,-71.3229199,,,NH,,false,true,false,openstreetmap
+Veterans Field,baseball,pitch,42.7597551,-71.2025091,,,NH,,false,true,false,openstreetmap
+Waugaman Field,baseball,pitch,42.7335081,-71.5839462,,,NH,,false,true,false,openstreetmap
+Wells Field,baseball,pitch,43.5994253,-71.7212232,,,NH,,false,true,false,openstreetmap
+Woodloc Park Little League Field #2,baseball,pitch,42.8380088,-71.1785614,,,NH,,false,true,false,openstreetmap
+Woodlock Park Little League Field,baseball,pitch,42.8364833,-71.177137,,,NH,,false,true,false,openstreetmap
+Zimmer Field,baseball,pitch,42.7949268,-71.2746525,,,NH,,false,true,false,openstreetmap
+Red Rolfe Field at Biondi Park,baseball,pitch,43.7018195,-72.2827188,16 South Park Street,Hanover,NH,03755,false,true,false,openstreetmap
+Manchester Cal Ripken,baseball,pitch,42.9866948,-71.4346662,313 Tarrytown Road,Manchester,NH,03103,false,true,false,openstreetmap
+A. B. Athletic Development,baseball,sports_centre,42.7423347,-71.4928289,3 Progress Avenue,Nashua,NH,03062,false,true,false,openstreetmap
+Pappas Field,baseball,pitch,42.7780304,-72.054659,144 University Road,Rindge,NH,03461,false,true,false,openstreetmap

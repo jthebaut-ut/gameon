@@ -1,0 +1,2 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+East Mesa pickleball courts,pickleball,pitch,32.3395134,-106.7208476,,,NM,,false,true,false,openstreetmap

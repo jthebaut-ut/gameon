@@ -1,0 +1,47 @@
+name,sport,place_type,latitude,longitude,address,city,state,zip,indoor,outdoor,verified,source
+Basketball,basketball,pitch,41.2990728,-96.1690105,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.0908407,-95.9432822,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2576129,-96.0932789,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.20872,-96.0550948,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2778936,-95.9449533,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2518435,-96.19452,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.3245271,-96.0900194,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1970852,-96.0810127,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1314306,-96.0364536,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1364053,-95.9639098,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1278971,-95.9617839,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2801422,-95.9441917,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2069886,-95.9435359,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.2011684,-95.9390576,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1468983,-95.9343077,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1476866,-96.0593413,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.186338,-95.9306322,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.133713,-95.9090178,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1130171,-95.8790801,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,41.1225024,-95.9626728,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.9127395,-96.5233394,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.7320281,-96.6699656,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.7334757,-96.6700522,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.7532502,-96.6987155,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8720016,-96.6698508,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8733283,-96.6796636,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8485029,-96.7219539,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8484936,-96.7275544,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.868223,-96.7328015,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8684213,-96.7313093,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.8560528,-96.6891159,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.9152388,-96.5326709,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.7886182,-96.7509135,,,NE,,false,true,false,openstreetmap
+Basketball,basketball,pitch,40.470291,-95.7341488,,,NE,,false,true,false,openstreetmap
+Basketball (2),basketball,pitch,41.3292177,-96.1689425,,,NE,,false,true,false,openstreetmap
+Basketball (2),basketball,pitch,40.7919578,-96.6663736,,,NE,,false,true,false,openstreetmap
+Basketball (3),basketball,pitch,41.2896867,-96.1378208,,,NE,,false,true,false,openstreetmap
+Basketball (3),basketball,pitch,40.907426,-96.5234299,,,NE,,false,true,false,openstreetmap
+Basketball Court,basketball,pitch,41.3886983,-96.4787752,,,NE,,false,true,false,openstreetmap
+Berry Hill Neighborhood basketball court,basketball,pitch,42.0512792,-97.450657,,,NE,,false,true,false,openstreetmap
+Bryant Center,basketball,sports_centre,41.2794984,-95.947819,,,NE,,false,true,false,openstreetmap
+Millard Park South Basketball Court,basketball,pitch,41.1832881,-96.1717934,,,NE,,false,true,false,openstreetmap
+Multi-Sport Court,basketball,pitch,40.8444709,-96.292847,,,NE,,false,true,false,openstreetmap
+Pinnacle Bank Arena,basketball,events_centre,40.8178805,-96.7125309,400 Pinnacle Arena Drive,,NE,68508,false,true,false,openstreetmap
+Spring Hill Park Court,basketball,pitch,41.1792566,-96.1640614,,,NE,,false,true,false,openstreetmap
+Truman Center,basketball,fitness_centre,40.2603839,-96.7858774,,,NE,,false,true,false,openstreetmap
