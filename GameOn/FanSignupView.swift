@@ -318,7 +318,7 @@ struct FanSignupView: View {
             UserAvatarView(
                 avatarThumbnailURL: nil,
                 avatarURL: "",
-                avatarDisplayRefreshToken: UUID(),
+                avatarDisplayRefreshToken: UserAvatarView.placeholderRefreshToken,
                 displayName: displayNameDraft,
                 email: email,
                 size: 64,

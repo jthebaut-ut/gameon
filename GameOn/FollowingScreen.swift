@@ -38,6 +38,8 @@ struct FollowingScreen: View {
     @State private var selectedGoingMode: GoingParticipationMode = .venueGames
     @State private var selectedGoingVenueTab: GoingVenueTab = .games
     @State private var selectedGoingGamesTab: GoingGamesTab = .playing
+    @State private var cachedGoingVenueGameItems: [FollowingGoingDisplayItem] = []
+    @State private var cachedPlayingGameCards: [PickupGameJoinRequestCardDisplay] = []
 
     private let followingMyPickupMinuteTicker = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
@@ -64,6 +66,7 @@ struct FollowingScreen: View {
             }
         }
         .onAppear {
+            rebuildFollowingDisplayCaches(reason: "appear")
             if suppressInitialAutoRefresh && !didHandleInitialAutoRefresh {
                 didHandleInitialAutoRefresh = true
                 return
@@ -73,6 +76,7 @@ struct FollowingScreen: View {
             Task { await reloadFollowingDataForCurrentUser() }
         }
         .onChange(of: viewModel.currentUserAuthId) { _, newId in
+            rebuildFollowingDisplayCaches(reason: "authChanged")
             guard isFollowingTabSelected else { return }
             if newId != nil {
                 Task { await reloadFollowingDataForCurrentUser() }
@@ -107,7 +111,26 @@ struct FollowingScreen: View {
             }
         }
         .onChange(of: viewModel.isAuthenticatedForSocialFeatures) { _, _ in
+            rebuildFollowingDisplayCaches(reason: "socialAuthChanged")
             Task { await syncFollowingAfterAuthChange() }
+        }
+        .onChange(of: viewModel.followingTabGoingItems.count) { _, _ in
+            rebuildFollowingDisplayCaches(reason: "goingItemsChanged")
+        }
+        .onChange(of: viewModel.myPickupGameJoinRequestCards) { _, _ in
+            rebuildFollowingDisplayCaches(reason: "pickupJoinCardsChanged")
+        }
+        .onChange(of: isFollowingTabSelected) { _, visible in
+#if DEBUG
+            let started = CFAbsoluteTimeGetCurrent()
+#endif
+            if visible {
+                rebuildFollowingDisplayCaches(reason: "followingTabVisible")
+            }
+#if DEBUG
+            let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+            print("[TabRenderPerf] tab=going visible=\(visible) renderMs=\(String(format: "%.2f", ms))")
+#endif
         }
         .alert(item: $followingPickupWithdrawConfirm) { state in
             Alert(
@@ -474,12 +497,24 @@ struct FollowingScreen: View {
     }
 
     private var goingVenueGameItems: [FollowingGoingDisplayItem] {
+        cachedGoingVenueGameItems
+    }
+
+    private func rebuildFollowingDisplayCaches(reason: String) {
+#if DEBUG
+        let started = CFAbsoluteTimeGetCurrent()
+#endif
         let sorted = MapViewModel.sortFollowingGoingItemsChronologically(
             viewModel.followingTabGoingItems
-            .filter(\.isActiveGoingTabPlan)
+                .filter(\.isActiveGoingTabPlan)
         )
+        cachedGoingVenueGameItems = sorted
+        cachedPlayingGameCards = viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }
         logGoingTabSortDebug(sorted)
-        return sorted
+#if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        print("[RenderPerf] view=FollowingScreen renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
+#endif
     }
 
     private func logGoingTabSortDebug(_ items: [FollowingGoingDisplayItem]) {
@@ -685,7 +720,7 @@ struct FollowingScreen: View {
     }
 
     private var playingGameCards: [PickupGameJoinRequestCardDisplay] {
-        viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }
+        cachedPlayingGameCards
     }
 
     private var pickupHostingTabBadge: String? {
@@ -1037,11 +1072,26 @@ struct FollowingScreen: View {
         if !viewModel.incomingPickupGameInvites.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(viewModel.incomingPickupGameInvites) { item in
-                    pickupGameInviteCard(item)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    EquatableRenderCard(token: pickupInviteRenderToken(for: item)) {
+                        pickupGameInviteCard(item)
+                    }
+                    .equatable()
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
                 }
             }
         }
+    }
+
+    private func pickupInviteRenderToken(for item: PickupGameInviteDisplay) -> PickupInviteRenderToken {
+        PickupInviteRenderToken(
+            id: item.id,
+            game: item.game,
+            inviterName: pickupInviteInviterName(item),
+            inviterAvatarThumbnailURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
+            inviterAvatarURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
+            isBusy: pickupInviteResponseInFlightId == item.id,
+            colorScheme: followingColorScheme
+        )
     }
 
     private func pickupGameInviteCard(_ item: PickupGameInviteDisplay) -> some View {
@@ -1176,7 +1226,11 @@ struct FollowingScreen: View {
         UserAvatarView(
             avatarThumbnailURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
             avatarURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
-            avatarDisplayRefreshToken: UUID(),
+            avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                userId: item.invite.inviter_user_id,
+                thumbnailURL: item.inviterProfile?.avatar_thumbnail_url,
+                avatarURL: item.inviterProfile?.avatar_url
+            ),
             displayName: pickupInviteInviterName(item),
             email: item.inviterProfile?.email ?? "",
             size: size,
@@ -1205,36 +1259,48 @@ struct FollowingScreen: View {
             } else {
                 ForEach(viewModel.myPickupGamesForSettings) { row in
                     let pendingHere = viewModel.organizerPendingPickupJoinRequests(for: row.id)
-                    SettingsPickupMyGameListCard(
-                        viewModel: viewModel,
-                        row: row,
-                        pendingJoinCount: pendingHere,
-                        withdrawnJoinRows: viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? [],
-                        now: followingMyPickupClockTick,
-                        colorScheme: followingColorScheme,
-                        onEdit: {
-                            logFollowingMyPickupGames(action: "editTap", selectedGameId: row.id)
-                            followingMyPickupFormMode = .edit(row)
-                        },
-                        onDelete: {
-                            logFollowingMyPickupGames(action: "cancelGameTap", selectedGameId: row.id)
-                            followingMyPickupDeleteTarget = row
-                        },
-                        onManageRequests: {
-                            logFollowingMyPickupGames(action: "manageRequestsTap", selectedGameId: row.id)
-                            followingMyPickupOrganizerRequestsGame = row
-                        },
-                        displayStyle: .followingCompact,
-                        onOpenDetails: {
-                            logFollowingMyPickupGames(action: "openDetailSheet", selectedGameId: row.id)
-                            followingMyPickupDetailGame = row
-                        },
-                        onInvite: {
-                            logFollowingMyPickupGames(action: "inviteTap", selectedGameId: row.id)
-                            followingPickupInviteGame = row
-                        }
-                    )
-                    .environmentObject(chatViewModel)
+                    let withdrawnRows = viewModel.pickupOrganizerWithdrawnRequestsByGameId[row.id] ?? []
+                    EquatableRenderCard(
+                        token: PickupHostedCardRenderToken(
+                            row: row,
+                            pendingJoinCount: pendingHere,
+                            withdrawnJoinRows: withdrawnRows,
+                            now: followingMyPickupClockTick,
+                            colorScheme: followingColorScheme
+                        )
+                    ) {
+                        SettingsPickupMyGameListCard(
+                            viewModel: viewModel,
+                            row: row,
+                            pendingJoinCount: pendingHere,
+                            withdrawnJoinRows: withdrawnRows,
+                            now: followingMyPickupClockTick,
+                            colorScheme: followingColorScheme,
+                            onEdit: {
+                                logFollowingMyPickupGames(action: "editTap", selectedGameId: row.id)
+                                followingMyPickupFormMode = .edit(row)
+                            },
+                            onDelete: {
+                                logFollowingMyPickupGames(action: "cancelGameTap", selectedGameId: row.id)
+                                followingMyPickupDeleteTarget = row
+                            },
+                            onManageRequests: {
+                                logFollowingMyPickupGames(action: "manageRequestsTap", selectedGameId: row.id)
+                                followingMyPickupOrganizerRequestsGame = row
+                            },
+                            displayStyle: .followingCompact,
+                            onOpenDetails: {
+                                logFollowingMyPickupGames(action: "openDetailSheet", selectedGameId: row.id)
+                                followingMyPickupDetailGame = row
+                            },
+                            onInvite: {
+                                logFollowingMyPickupGames(action: "inviteTap", selectedGameId: row.id)
+                                followingPickupInviteGame = row
+                            }
+                        )
+                        .environmentObject(chatViewModel)
+                    }
+                    .equatable()
                 }
 
                 if !viewModel.myRemovedPickupGamesForSettings.isEmpty {
@@ -2532,7 +2598,11 @@ private struct PickupGameInviteDetailSheet: View {
             UserAvatarView(
                 avatarThumbnailURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_thumbnail_url),
                 avatarURL: ImageDisplayURL.canonicalStorageURLString(item.inviterProfile?.avatar_url),
-                avatarDisplayRefreshToken: UUID(),
+                avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                    userId: item.invite.inviter_user_id,
+                    thumbnailURL: item.inviterProfile?.avatar_thumbnail_url,
+                    avatarURL: item.inviterProfile?.avatar_url
+                ),
                 displayName: inviterName,
                 email: item.inviterProfile?.email ?? "",
                 size: 44,
@@ -2666,6 +2736,37 @@ private func decodeInterestedOnlyUUIDs(from encoded: String) -> Set<UUID> {
         }
     }
     return out
+}
+
+private struct EquatableRenderCard<Token: Equatable, Content: View>: View, Equatable {
+    let token: Token
+    let content: () -> Content
+
+    static func == (lhs: EquatableRenderCard<Token, Content>, rhs: EquatableRenderCard<Token, Content>) -> Bool {
+        lhs.token == rhs.token
+    }
+
+    var body: some View {
+        content()
+    }
+}
+
+private struct PickupInviteRenderToken: Equatable {
+    let id: UUID
+    let game: PickupGameRow
+    let inviterName: String
+    let inviterAvatarThumbnailURL: String
+    let inviterAvatarURL: String
+    let isBusy: Bool
+    let colorScheme: ColorScheme
+}
+
+private struct PickupHostedCardRenderToken: Equatable {
+    let row: PickupGameRow
+    let pendingJoinCount: Int
+    let withdrawnJoinRows: [PickupGameRequestRow]
+    let now: Date
+    let colorScheme: ColorScheme
 }
 
 private func encodeInterestedOnlyUUIDs(_ set: Set<UUID>) -> String {

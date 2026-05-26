@@ -127,8 +127,9 @@ struct FriendsTabView: View {
     @State private var showingBlockedUsersSheet = false
     @State private var manualFriendLookupDraft: String = ""
     @State private var friendDirectorySearchText = ""
-    @State private var inviteGamePickerFriend: ChatViewModel.FriendDisplay?
-    @State private var inviteInFlightFriendId: UUID?
+    @State private var chatConversationFriendsSnapshot: [ChatViewModel.FriendDisplay] = []
+    @State private var friendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
+    @State private var filteredFriendsDirectoryItemsSnapshot: [ChatViewModel.FriendDisplay] = []
     /// Programmatic push (in-app DM banner → Chat tab → ``DirectChatView``).
     @State private var dmBannerNavigationFriend: UserPreview?
 
@@ -144,35 +145,15 @@ struct FriendsTabView: View {
     }
 
     private var chatConversationFriends: [ChatViewModel.FriendDisplay] {
-        viewModel.friends.filter(\.isConversationBacked)
+        chatConversationFriendsSnapshot
     }
 
     private var friendsDirectoryItems: [ChatViewModel.FriendDisplay] {
-        viewModel.friends
-            .filter { !$0.preview.isDeleted }
-            .sorted {
-                $0.preview.displayName.localizedCaseInsensitiveCompare($1.preview.displayName) == .orderedAscending
-            }
+        friendsDirectoryItemsSnapshot
     }
 
     private var filteredFriendsDirectoryItems: [ChatViewModel.FriendDisplay] {
-        let query = friendDirectorySearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !query.isEmpty else { return friendsDirectoryItems }
-        return friendsDirectoryItems.filter { item in
-            item.preview.displayName.lowercased().contains(query)
-                || (item.preview.username?.lowercased().contains(query) == true)
-        }
-    }
-
-    private var invitableHostedPickupGames: [PickupGameRow] {
-        mapViewModel.myPickupGamesForSettings.filter { $0.isPickupGameInvitable() }
-    }
-
-    private var inviteGamePickerPresentedBinding: Binding<Bool> {
-        Binding(
-            get: { inviteGamePickerFriend != nil },
-            set: { if !$0 { inviteGamePickerFriend = nil } }
-        )
+        filteredFriendsDirectoryItemsSnapshot
     }
 
     var body: some View {
@@ -226,30 +207,18 @@ struct FriendsTabView: View {
         .sheet(isPresented: $showingBlockedUsersSheet) {
             BlockedUsersSheet(viewModel: viewModel)
         }
-        .confirmationDialog(
-            "Invite to game",
-            isPresented: inviteGamePickerPresentedBinding,
-            titleVisibility: .visible
-        ) {
-            if let friend = inviteGamePickerFriend {
-                ForEach(invitableHostedPickupGames) { game in
-                    Button(game.title) {
-                        Task { await inviteFriend(friend, to: game) }
-                    }
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        }
         .onChange(of: isTabSelected) { _, on in
             handleTabSelectedChange(on)
         }
         .onAppear {
             handleAppear()
         }
-        .onChange(of: viewModel.friends.count) { _, _ in
+        .onChange(of: viewModel.friends) { _, _ in
+            rebuildFriendDisplaySnapshots(reason: "friendsChanged")
             logFriendsDirectoryLoadedCount()
         }
         .onChange(of: friendDirectorySearchText) { _, query in
+            rebuildFriendDisplaySnapshots(reason: "searchChanged")
             logFriendsDirectorySearchQuery(query)
         }
         .onChange(of: viewModel.pendingDmOpenPreview) { _, preview in
@@ -261,15 +230,30 @@ struct FriendsTabView: View {
 
     private func handleTabSelectedChange(_ on: Bool) {
         guard on else { return }
+#if DEBUG
+        let started = CFAbsoluteTimeGetCurrent()
+#endif
+        rebuildFriendDisplaySnapshots(reason: "chatTabSelected")
+#if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        print("[TabRenderPerf] tab=chat visible=true renderMs=\(String(format: "%.2f", ms))")
+#endif
         UIPerformanceDiagnostics.signpost("DM inbox open", "source=tabSelected")
         consumePendingDmOpenPreviewIfNeeded()
         Task {
             await viewModel.ensureSignedInSocialRealtimeIfNeeded()
-            await loadHostedPickupGamesForFriendInvites()
         }
     }
 
     private func handleAppear() {
+#if DEBUG
+        let started = CFAbsoluteTimeGetCurrent()
+#endif
+        rebuildFriendDisplaySnapshots(reason: "appear")
+#if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        print("[TabRenderPerf] tab=chat visible=\(isTabSelected) renderMs=\(String(format: "%.2f", ms))")
+#endif
         if isTabSelected {
             UIPerformanceDiagnostics.signpost("DM inbox open", "source=onAppear")
         }
@@ -278,11 +262,40 @@ struct FriendsTabView: View {
         Task {
             await viewModel.refreshInboxSummariesIfNeeded()
             await viewModel.refreshFriendRequestListsOnly()
-            await loadHostedPickupGamesForFriendInvites()
             if isTabSelected {
                 await viewModel.ensureSignedInSocialRealtimeIfNeeded()
             }
         }
+    }
+
+    private func rebuildFriendDisplaySnapshots(reason: String) {
+#if DEBUG
+        let started = CFAbsoluteTimeGetCurrent()
+#endif
+        let friends = viewModel.friends
+        let conversations = friends.filter(\.isConversationBacked)
+        let directory = friends
+            .filter { !$0.preview.isDeleted }
+            .sorted {
+                $0.preview.displayName.localizedCaseInsensitiveCompare($1.preview.displayName) == .orderedAscending
+            }
+        let query = friendDirectorySearchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let filtered: [ChatViewModel.FriendDisplay]
+        if query.isEmpty {
+            filtered = directory
+        } else {
+            filtered = directory.filter { item in
+                item.preview.displayName.lowercased().contains(query)
+                    || (item.preview.username?.lowercased().contains(query) == true)
+            }
+        }
+        chatConversationFriendsSnapshot = conversations
+        friendsDirectoryItemsSnapshot = directory
+        filteredFriendsDirectoryItemsSnapshot = filtered
+#if DEBUG
+        let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
+        print("[RenderPerf] view=FriendsTabView renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
+#endif
     }
 
     @ViewBuilder
@@ -356,11 +369,15 @@ struct FriendsTabView: View {
                 }
             }
         }
+        .onAppear {
+            logChatInboxAdPlacement()
+        }
     }
 
     private func chatsInboxList(layoutWidth: CGFloat) -> some View {
-        List {
-            ForEach(ChatInboxAdPlacement.listItems(for: chatConversationFriends)) { item in
+        let inboxItems = ChatInboxAdPlacement.listItems(for: chatConversationFriends)
+        return List {
+            ForEach(inboxItems) { item in
                 chatInboxListRow(item, layoutWidth: layoutWidth)
             }
         }
@@ -397,6 +414,7 @@ struct FriendsTabView: View {
             }
         case .nativeAd:
             if isTabSelected {
+                let _ = logChatNativeAdInserted()
                 CompactNativeAdCard(
                     placement: "chat.inboxFeed",
                     hostTabRaw: "chat",
@@ -408,6 +426,7 @@ struct FriendsTabView: View {
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
             } else {
+                let _ = logChatNativeAdSkipped(reason: "tabNotSelected")
                 Color.clear
                     .frame(maxWidth: .infinity)
                     .frame(height: CompactNativeAdLayout.preferredHeight)
@@ -420,15 +439,30 @@ struct FriendsTabView: View {
     }
 
     private func logChatInboxAdPlacement() {
-#if DEBUG
         guard AdDiagnostics.enabled else { return }
-        print("[ChatInboxAdDebug] conversationCount=\(chatConversationFriends.count)")
+        let conversationCount = chatConversationFriends.count
+        let shouldInsert = ChatInboxAdPlacement.shouldInsertNativeAd(conversationCount: conversationCount)
+        print("[NativeAdDebug] placement=chat.inboxFeed conversationCount=\(conversationCount)")
+        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(shouldInsert ? ChatInboxAdPlacement.insertedAfterConversationPosition : -1)")
+        if let reason = ChatInboxAdPlacement.skippedReason(conversationCount: conversationCount) {
+            print("[NativeAdDebug] placement=chat.inboxFeed skippedReason=\(reason)")
+        }
+        print("[ChatInboxAdDebug] conversationCount=\(conversationCount)")
         print("[ChatInboxAdDebug] insertionIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
         print("[ChatInboxAdDebug] debugOverride=\(ChatInboxAdPlacement.debugOverrideEnabled)")
         print("[ChatInboxAdDebug] enabled=true")
         print("[ChatInboxAdDebug] insertedAfterIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
         print("[ChatInboxAdDebug] dmThreadAds=false")
-#endif
+    }
+
+    private func logChatNativeAdInserted() {
+        guard AdDiagnostics.enabled else { return }
+        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
+    }
+
+    private func logChatNativeAdSkipped(reason: String) {
+        guard AdDiagnostics.enabled else { return }
+        print("[NativeAdDebug] placement=chat.inboxFeed skippedReason=\(reason)")
     }
 
     private var friendsDirectoryList: some View {
@@ -437,44 +471,69 @@ struct FriendsTabView: View {
                 ContentUnavailableView(
                     "No friends yet",
                     systemImage: "person.2",
-                    description: Text("Accepted FanGeo friends will appear here.")
+                    description: Text("Add fans to start building your sports circle.")
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    Section {
-                        TextField("Search friends", text: $friendDirectorySearchText)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        friendsDirectorySearchField
 
-                    Section {
                         if filteredFriendsDirectoryItems.isEmpty {
                             Text("No friends match your search.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
-                                .padding(.vertical, 18)
+                                .padding(.vertical, 28)
                         } else {
-                            ForEach(filteredFriendsDirectoryItems) { item in
-                                friendDirectoryRow(item)
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.adaptive(minimum: 158, maximum: 220), spacing: 12, alignment: .top)
+                                ],
+                                spacing: 12
+                            ) {
+                                ForEach(filteredFriendsDirectoryItems) { item in
+                                    friendDirectoryCard(item)
+                                }
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .padding(.bottom, 110)
                 }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
                 .background(chatRootBackground)
                 .refreshable {
                     await viewModel.refreshFriendRequestListsOnly()
                     await viewModel.refreshInboxSummaries()
-                    await loadHostedPickupGamesForFriendInvites()
                 }
                 .onAppear {
                     logFriendsDirectoryLoadedCount()
                 }
             }
         }
+    }
+
+    private var friendsDirectorySearchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(FGColor.mutedText(colorScheme))
+            TextField("Search friends", text: $friendDirectorySearchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .font(.subheadline.weight(.medium))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(FGColor.cardBackground(colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.92))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(0.45), lineWidth: 1)
+        }
+        .softCardShadow()
     }
 
     private var requestsList: some View {
@@ -512,84 +571,25 @@ struct FriendsTabView: View {
     }
 
     private func friendRow(_ item: ChatViewModel.FriendDisplay) -> some View {
-        HStack(spacing: 12) {
-            ProfileAvatarView(preview: item.preview, size: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.preview.displayName)
-                    .font(.subheadline.weight(.semibold))
-                if let subtitle = item.subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                if item.unreadCount > 0 {
-                    Text(item.unreadCount > 99 ? "99+ unread" : "\(item.unreadCount) unread")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.red)
-                }
-            }
-            Spacer(minLength: 0)
-            Text(Self.inboxTimeLabel(item.lastMessageAt))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.vertical, 2)
+        ChatFriendInboxRow(item: item, timeLabel: Self.inboxTimeLabel(item.lastMessageAt))
+            .equatable()
     }
 
-    private func friendDirectoryRow(_ item: ChatViewModel.FriendDisplay) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                ProfileAvatarView(preview: item.preview, size: 44, profileTapContext: "friends_directory_avatar")
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.preview.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(FGColor.primaryText(colorScheme))
-                    Text(friendDirectorySubtitle(for: item))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-            }
+    private func friendDirectoryCard(_ item: ChatViewModel.FriendDisplay) -> some View {
+        FriendDirectoryCard(
+            item: item,
+            colorScheme: colorScheme,
+            onProfile: { openFriendProfile(from: $0) },
+            onMessage: { openMessage(from: $0) }
+        )
+        .equatable()
+    }
 
-            HStack(spacing: 8) {
-                Button {
-                    openMessage(from: item)
-                } label: {
-                    Label("Message", systemImage: "bubble.left.and.bubble.right.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-
-                if !invitableHostedPickupGames.isEmpty {
-                    Button {
-                        handleInviteTapped(for: item)
-                    } label: {
-                        if inviteInFlightFriendId == item.id {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Label("Invite to game", systemImage: "sportscourt.fill")
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .disabled(inviteInFlightFriendId != nil)
-                }
-
-                Button {
-                    mapViewModel.presentPublicProfile(userId: item.id, context: "friends_directory_view_profile")
-                } label: {
-                    Label("View profile", systemImage: "person.crop.circle")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-            .labelStyle(.titleAndIcon)
-            .font(.caption.weight(.semibold))
+    private var friendDirectoryCardBackground: AnyShapeStyle {
+        if colorScheme == .dark {
+            return AnyShapeStyle(.ultraThinMaterial)
         }
-        .padding(.vertical, 6)
+        return AnyShapeStyle(Color.white.opacity(0.94))
     }
 
     private func friendDirectorySubtitle(for item: ChatViewModel.FriendDisplay) -> String {
@@ -607,32 +607,11 @@ struct FriendsTabView: View {
         dmBannerNavigationFriend = item.preview
     }
 
-    private func handleInviteTapped(for item: ChatViewModel.FriendDisplay) {
+    private func openFriendProfile(from item: ChatViewModel.FriendDisplay) {
 #if DEBUG
-        print("[FriendsDirectoryDebug] inviteTapped=\(item.id.uuidString.lowercased())")
+        print("[FriendsDirectoryDebug] cardTapped=\(item.id.uuidString.lowercased())")
 #endif
-        let games = invitableHostedPickupGames
-        guard let only = games.first else { return }
-        if games.count == 1 {
-            Task { await inviteFriend(item, to: only) }
-        } else {
-            inviteGamePickerFriend = item
-        }
-    }
-
-    private func inviteFriend(_ friend: ChatViewModel.FriendDisplay, to game: PickupGameRow) async {
-        inviteInFlightFriendId = friend.id
-        defer { inviteInFlightFriendId = nil }
-        _ = await mapViewModel.createPickupGameInvites(
-            game: game,
-            inviteeUserIds: [friend.id],
-            message: nil
-        )
-    }
-
-    private func loadHostedPickupGamesForFriendInvites() async {
-        guard mapViewModel.canFanUsePickupGamesUI else { return }
-        await mapViewModel.loadMyPickupGamesForSettings()
+        mapViewModel.presentPublicProfile(userId: item.id, context: "friends_directory_card")
     }
 
     private func logFriendsDirectoryLoadedCount() {
@@ -745,6 +724,119 @@ struct FriendsTabView: View {
         df.locale = .autoupdatingCurrent
         df.setLocalizedDateFormatFromTemplate("MMM d")
         return df.string(from: date)
+    }
+}
+
+private struct ChatFriendInboxRow: View, Equatable {
+    let item: ChatViewModel.FriendDisplay
+    let timeLabel: String
+
+    static func == (lhs: ChatFriendInboxRow, rhs: ChatFriendInboxRow) -> Bool {
+        lhs.item == rhs.item && lhs.timeLabel == rhs.timeLabel
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ProfileAvatarView(preview: item.preview, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.preview.displayName)
+                    .font(.subheadline.weight(.semibold))
+                if let subtitle = item.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                if item.unreadCount > 0 {
+                    Text(item.unreadCount > 99 ? "99+ unread" : "\(item.unreadCount) unread")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.red)
+                }
+            }
+            Spacer(minLength: 0)
+            Text(timeLabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+private struct FriendDirectoryCard: View, Equatable {
+    let item: ChatViewModel.FriendDisplay
+    let colorScheme: ColorScheme
+    let onProfile: (ChatViewModel.FriendDisplay) -> Void
+    let onMessage: (ChatViewModel.FriendDisplay) -> Void
+
+    static func == (lhs: FriendDirectoryCard, rhs: FriendDirectoryCard) -> Bool {
+        lhs.item == rhs.item && lhs.colorScheme == rhs.colorScheme
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Button {
+                onProfile(item)
+            } label: {
+                VStack(spacing: 10) {
+                    ProfileAvatarView(preview: item.preview, size: 74, profileTapContext: "friends_directory_avatar")
+                        .padding(.top, 4)
+
+                    VStack(spacing: 3) {
+                        Text(item.preview.displayName)
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(FGColor.primaryText(colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.86)
+
+                        Text(subtitle)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.86)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 38)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                onMessage(item)
+            } label: {
+                Label("Message", systemImage: "bubble.left.fill")
+                    .font(.caption.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+            .background(FGColor.accentBlue, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 178)
+        .background(cardBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(FGColor.divider(colorScheme).opacity(colorScheme == .dark ? 0.34 : 0.52), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .softCardShadow()
+    }
+
+    private var subtitle: String {
+        let handle = item.preview.username?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !handle.isEmpty {
+            return FanGeoHandleRules.displayHandle(stored: handle)
+        }
+        return "FanGeo friend"
+    }
+
+    private var cardBackground: AnyShapeStyle {
+        if colorScheme == .dark {
+            return AnyShapeStyle(.ultraThinMaterial)
+        }
+        return AnyShapeStyle(Color.white.opacity(0.94))
     }
 }
 
@@ -924,7 +1016,11 @@ private struct AddFriendSearchResultRow: View {
                 UserAvatarView(
                     avatarThumbnailURL: target.avatarThumbnailURL,
                     avatarURL: target.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
+                    avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                        userId: target.entityId,
+                        thumbnailURL: target.avatarThumbnailURL,
+                        avatarURL: target.avatarURL
+                    ),
                     displayName: target.displayName,
                     email: "",
                     size: 36,

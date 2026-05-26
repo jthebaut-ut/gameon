@@ -43,7 +43,7 @@ private struct DiscoverPredictionSheetContext: Identifiable {
     }
 }
 
-private enum PickupGameMapMarkerActivity {
+private enum PickupGameMapMarkerActivity: Equatable {
     case low
     case medium
     case high
@@ -112,6 +112,7 @@ private struct PickupGameMapMarker: View {
     var demandBadgeText: String?
     var isSelected = false
     var isCluster = false
+    var allowsPulse = true
     var count: Int?
 
     @Environment(\.colorScheme) private var colorScheme
@@ -134,13 +135,19 @@ private struct PickupGameMapMarker: View {
     }
 
     var body: some View {
+        let shouldPulse = allowsPulse && activity != .low
         ZStack {
             Circle()
                 .stroke(accentColor.opacity(activity.pulseOpacity), lineWidth: activity == .high ? 3 : 2)
                 .frame(width: baseSize + 18, height: baseSize + 18)
-                .scaleEffect(pulse ? 1.22 : 0.98)
+                .scaleEffect(shouldPulse && pulse ? 1.22 : 0.98)
                 .opacity(activity.pulseOpacity)
-                .animation(.easeInOut(duration: activity == .high ? 1.05 : 1.35).repeatForever(autoreverses: true), value: pulse)
+                .animation(
+                    shouldPulse
+                        ? .easeInOut(duration: activity == .high ? 1.05 : 1.35).repeatForever(autoreverses: true)
+                        : nil,
+                    value: pulse
+                )
 
             Circle()
                 .fill(accentColor.opacity(activity.glowOpacity))
@@ -213,7 +220,7 @@ private struct PickupGameMapMarker: View {
         .scaleEffect(scale)
         .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isSelected)
         .onAppear {
-            pulse = activity != .low
+            pulse = shouldPulse
             demandBadgeVisible = demandBadgeText != nil && !isCluster
 #if DEBUG
             print("[MapSportIconDebug] reusedSportChipIcon=\(reusedSportChipIcon)")
@@ -222,11 +229,142 @@ private struct PickupGameMapMarker: View {
 #endif
         }
         .onChange(of: activity) { _, next in
-            pulse = next != .low
+            pulse = allowsPulse && next != .low
         }
         .onChange(of: demandBadgeText) { _, next in
             demandBadgeVisible = next != nil && !isCluster
         }
+    }
+}
+
+private struct PickupPlaceClusterSheetView: View {
+    let cluster: PickupPlaceCluster
+    let currentUserLocation: CLLocationCoordinate2D?
+    let onHostGameHere: (PickupPlaceRow) -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    private var title: String {
+        "\(cluster.count) pickup \(cluster.count == 1 ? "place" : "places")"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(cluster.rows) { place in
+                        pickupPlaceClusterRow(place)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+            }
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(FGTypography.metadata.weight(.semibold))
+                }
+            }
+        }
+    }
+
+    private func pickupPlaceClusterRow(_ place: PickupPlaceRow) -> some View {
+        let sport = place.primarySport
+        let type = place.placeType?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let location = pickupPlaceClusterLocationText(place)
+        let distance = pickupPlaceClusterDistanceText(place)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: pickupPlaceClusterSportSymbol(for: place))
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(FGColor.accentBlue)
+                    .frame(width: 38, height: 38)
+                    .background(
+                        Circle()
+                            .fill(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10))
+                    )
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(place.name)
+                        .font(FGTypography.body.weight(.heavy))
+                        .foregroundStyle(FGColor.primaryText(colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text([sport, type].filter { !$0.isEmpty }.joined(separator: " • "))
+                        .font(FGTypography.caption.weight(.semibold))
+                        .foregroundStyle(FGColor.secondaryText(colorScheme))
+                        .lineLimit(2)
+
+                    if !location.isEmpty {
+                        Label(location, systemImage: "mappin.circle.fill")
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    if let distance {
+                        Label(distance, systemImage: "location.fill")
+                            .font(FGTypography.caption.weight(.semibold))
+                            .foregroundStyle(FGColor.accentGreen)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                onHostGameHere(place)
+            } label: {
+                Text("Host game here")
+                    .font(FGTypography.metadata.weight(.heavy))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(FGColor.accentBlue)
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.12 : 0.42), lineWidth: 1)
+        }
+    }
+
+    private func pickupPlaceClusterLocationText(_ place: PickupPlaceRow) -> String {
+        [place.city, place.state, place.zip]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
+
+    private func pickupPlaceClusterDistanceText(_ place: PickupPlaceRow) -> String? {
+        guard let currentUserLocation else { return nil }
+        let origin = CLLocation(latitude: currentUserLocation.latitude, longitude: currentUserLocation.longitude)
+        let destination = CLLocation(latitude: place.latitude, longitude: place.longitude)
+        let miles = origin.distance(from: destination) / 1609.344
+        guard miles.isFinite else { return nil }
+        if miles < 0.1 {
+            return "Nearby"
+        }
+        return String(format: "%.1f mi away", miles)
+    }
+
+    private func pickupPlaceClusterSportSymbol(for place: PickupPlaceRow) -> String {
+        let text = ([place.primarySport, place.placeType ?? ""] + place.sportTags)
+            .joined(separator: " ")
+            .lowercased()
+        if text.contains("soccer") { return "soccerball" }
+        if text.contains("basketball") { return "basketball.fill" }
+        if text.contains("baseball") || text.contains("softball") { return "baseball.fill" }
+        if text.contains("tennis") || text.contains("pickleball") { return "figure.tennis" }
+        if text.contains("volleyball") { return "volleyball.fill" }
+        return "sportscourt.fill"
     }
 }
 
@@ -401,10 +539,14 @@ struct DiscoverScreen: View {
     @State private var discoverBottomAdLoaded = false
     @State private var discoverBottomAdRetryToken = 0
     @State private var discoverBottomAdRetryTask: Task<Void, Never>?
+    @State private var discoverBottomAdNoFillRetryCount = 0
+    @State private var discoverBottomAdBackoffUntil: Date?
     @State private var showDiscoverSportMoreSheet = false
     @State private var pickupGameDetailNav: PickupDetailNavigationToken?
     @State private var pickupHostPrefillPlace: PickupPlaceRow?
     @State private var pickupPostCreateInviteGame: PickupGameRow?
+    @State private var pickupPlaceClusterForSheet: PickupPlaceCluster?
+    @State private var pendingPickupPlaceHostFromClusterDismiss: PickupPlaceRow?
     @State private var discoverWeather: DiscoverWeather?
     @State private var discoverWeatherRefreshTask: Task<Void, Never>?
     @State private var isDiscoverHomeCrowdToggleInFlight = false
@@ -412,9 +554,83 @@ struct DiscoverScreen: View {
     @State private var venueDetailOpenStartedAt: CFAbsoluteTime?
     @Namespace private var discoverModeToggleNamespace
     private let livePulseThreshold = 16
+    @State private var discoverAnnotationCache = DiscoverAnnotationCache.empty
 
     private var isPickupPlacesMode: Bool {
         viewModel.discoverMapContentMode == .pickupGames && viewModel.discoverPickupSubMode == .places
+    }
+
+    private struct DiscoverAnnotationCacheKey: Equatable {
+        let mode: String
+        let pickupSubMode: String
+        let selectedDay: Int
+        let selectedSport: String
+        let searchText: String
+        let mapDisplayMode: String
+        let visibleLatitudeBucket: String
+        let cameraCenterBucket: String
+        let venueSnapshotKey: String
+        let barsCount: Int
+        let pickupGamesFingerprint: String
+        let pickupPlacesFingerprint: String
+    }
+
+    private struct DiscoverAnnotationCounts: Equatable {
+        let venue: Int
+        let pickupGames: Int
+        let pickupPlaces: Int
+
+        var pickupTotal: Int {
+            pickupGames + pickupPlaces
+        }
+
+        func renderedCount(mode: DiscoverMapContentMode) -> Int {
+            mode == .pickupGames ? pickupTotal : venue
+        }
+    }
+
+    private struct DiscoverAnnotationCache {
+        let key: DiscoverAnnotationCacheKey?
+        let venueClusters: [VenueCluster]
+        let pickupGameClusters: [PickupGameCluster]
+        let pickupPlaceClusters: [PickupPlaceCluster]
+        let counts: DiscoverAnnotationCounts
+
+        static let empty = DiscoverAnnotationCache(
+            key: nil,
+            venueClusters: [],
+            pickupGameClusters: [],
+            pickupPlaceClusters: [],
+            counts: DiscoverAnnotationCounts(venue: 0, pickupGames: 0, pickupPlaces: 0)
+        )
+    }
+
+    private struct VenueMapPinDisplayValues {
+        let gamesToday: [SportsEvent]
+        let goingTotal: Int
+        let effectiveMode: MapViewModel.MapPinDisplayMode
+        let isSelected: Bool
+        let hasLiveNow: Bool
+        let energy: Int
+        let wantsEnriched: Bool
+        let tint: Color
+    }
+
+    private struct VenueClusterDisplayValues {
+        let energy: (maxScore: Int, dominantSport: String?)
+        let displayState: ClusterDisplayState
+        let tint: Color
+        let isActive: Bool
+    }
+
+    private struct PickupMapMarkerDisplayValues {
+        let needed: Int
+        let isSelected: Bool
+        let badgeValue: String?
+        let activity: PickupGameMapMarkerActivity
+        let allowsPulse: Bool
+        let accentColor: Color
+        let reusedSportChipIcon: Bool
     }
 
     private var acceptedFriendUserIDs: Set<UUID> {
@@ -771,6 +987,18 @@ struct DiscoverScreen: View {
             .sheet(item: $clusterForSheet) { cluster in
                 discoverClusterVenuesSheet(cluster: cluster)
             }
+            .sheet(
+                item: $pickupPlaceClusterForSheet,
+                onDismiss: openPendingPickupPlaceHostFromClusterIfNeeded
+            ) { cluster in
+                PickupPlaceClusterSheetView(
+                    cluster: cluster,
+                    currentUserLocation: viewModel.currentUserLocation,
+                    onHostGameHere: hostPickupGameFromPickupPlaceClusterSheet
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
     }
 
     private var discoverScreenWithPrimarySheets: some View {
@@ -827,37 +1055,10 @@ struct DiscoverScreen: View {
     }
 
     private var discoverScreenCore: some View {
-        GeometryReader { layoutGeo in
-            let layoutWidth = layoutGeo.size.width
-            ZStack(alignment: .top) {
-                mapLayer
-
-            }
-            .overlay(alignment: .top) {
-                discoverFixedTopOverlay(layoutWidth: layoutWidth)
-            }
-            .overlay(alignment: .bottom) {
-                discoverFixedBottomOverlay(layoutWidth: layoutWidth)
-                    .opacity(showDatePicker ? 0.36 : 1)
-                    .blur(radius: showDatePicker ? 1.25 : 0)
-                    .allowsHitTesting(!showDatePicker)
-                    .animation(.easeInOut(duration: 0.24), value: showDatePicker)
-            }
-            .overlay {
-                if showDatePicker {
-                    discoverMapDatePickerOverlay
-                }
-            }
-        .onAppear {
-            discoverLogLayoutDebug(layoutWidth: layoutWidth)
-        }
-        }
+        discoverScreenCoreBase
         .alert(
             "FanGeo",
-            isPresented: Binding(
-                get: { fanFeatureGateAlertMessage != nil },
-                set: { if !$0 { fanFeatureGateAlertMessage = nil } }
-            )
+            isPresented: fanFeatureGateAlertBinding
         ) {
             Button("OK", role: .cancel) {
                 fanFeatureGateAlertMessage = nil
@@ -866,21 +1067,9 @@ struct DiscoverScreen: View {
             Text(fanFeatureGateAlertMessage ?? "")
         }
         .task {
-            viewModel.reloadVenueUserRatingsFromStorage()
-            viewModel.logDiscoverAuthGateDebug()
-            await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_enter")
-            viewModel.logBusinessOwnerSessionFlags(context: "discover_enter")
+            await handleDiscoverCoreTask()
         }
-        .onAppear {
-            isCalendarOverlayPresented = showDatePicker
-            viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
-            discoverLogRedesignDebug()
-            scheduleDiscoverWeatherRefresh(force: true)
-            Task {
-                await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
-                viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
-            }
-        }
+        .onAppear(perform: handleDiscoverCoreAppear)
         .onChange(of: viewModel.currentUserLocation?.latitude) { _, _ in
             scheduleDiscoverWeatherRefresh(force: false)
         }
@@ -977,6 +1166,13 @@ struct DiscoverScreen: View {
                 }
             }
         }
+        .onChange(of: discoverAnnotationInvalidationToken) { _, _ in
+            rebuildDiscoverAnnotationCache(reason: "annotationInvalidation")
+        }
+        .onChange(of: isDiscoverTabSelected) { _, visible in
+            guard visible else { return }
+            rebuildDiscoverAnnotationCache(reason: "discoverTabVisible")
+        }
         .onChange(of: viewModel.pendingFollowingMapVenueID) { _, id in
             guard id != nil else { return }
             Task {
@@ -1008,6 +1204,68 @@ struct DiscoverScreen: View {
             } else {
                 resumeDiscoverSelectionAfterFanLoginIfNeeded(wasActive: wasActive, isActive: isActive)
             }
+        }
+    }
+
+    private var discoverScreenCoreBase: AnyView {
+        AnyView(
+            GeometryReader { layoutGeo in
+                discoverScreenMapLayout(layoutWidth: layoutGeo.size.width)
+            }
+        )
+    }
+
+    private func discoverScreenMapLayout(layoutWidth: CGFloat) -> some View {
+        ZStack(alignment: .top) {
+            mapLayer
+        }
+        .overlay(alignment: .top) {
+            discoverFixedTopOverlay(layoutWidth: layoutWidth)
+        }
+        .overlay(alignment: .bottom) {
+            discoverFixedBottomOverlay(layoutWidth: layoutWidth)
+                .opacity(showDatePicker ? 0.36 : 1)
+                .blur(radius: showDatePicker ? 1.25 : 0)
+                .allowsHitTesting(!showDatePicker)
+                .animation(.easeInOut(duration: 0.24), value: showDatePicker)
+        }
+        .overlay {
+            if showDatePicker {
+                discoverMapDatePickerOverlay
+            }
+        }
+        .onAppear {
+            discoverLogLayoutDebug(layoutWidth: layoutWidth)
+        }
+    }
+
+    private var fanFeatureGateAlertBinding: Binding<Bool> {
+        Binding(
+            get: { fanFeatureGateAlertMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    fanFeatureGateAlertMessage = nil
+                }
+            }
+        )
+    }
+
+    private func handleDiscoverCoreTask() async {
+        viewModel.reloadVenueUserRatingsFromStorage()
+        viewModel.logDiscoverAuthGateDebug()
+        await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_enter")
+        viewModel.logBusinessOwnerSessionFlags(context: "discover_enter")
+    }
+
+    private func handleDiscoverCoreAppear() {
+        rebuildDiscoverAnnotationCache(reason: "appear")
+        isCalendarOverlayPresented = showDatePicker
+        viewModel.clampDiscoverMapSelectedDateToMinimumCalendarDayIfNeeded()
+        discoverLogRedesignDebug()
+        scheduleDiscoverWeatherRefresh(force: true)
+        Task {
+            await viewModel.ensureBusinessOwnerSessionFlagsIfPossible(context: "discover_on_appear")
+            viewModel.logBusinessOwnerSessionFlags(context: "discover_on_appear")
         }
     }
 
@@ -1469,20 +1727,22 @@ struct DiscoverScreen: View {
     private func mapDepthStyledCluster<Content: View>(
         id: String,
         tint: Color,
+        isActive: Bool,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        content()
+        let shouldAnimate = isDiscoverTabSelected && isActive
+        return content()
             .background {
                 Circle()
-                    .fill(tint.opacity(0.10))
-                    .scaleEffect(1.18)
-                    .blur(radius: 3)
+                    .fill(tint.opacity(isActive ? 0.10 : 0.06))
+                    .scaleEffect(isActive ? 1.18 : 1.10)
+                    .blur(radius: isActive ? 3 : 0)
                     .allowsHitTesting(false)
             }
-            .shadow(color: tint.opacity(0.16), radius: 8, y: 3)
+            .shadow(color: tint.opacity(isActive ? 0.16 : 0.08), radius: isActive ? 8 : 5, y: 3)
             .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
             .transition(.scale(scale: 0.96).combined(with: .opacity))
-            .animation(.spring(response: 0.34, dampingFraction: 0.82), value: id)
+            .animation(shouldAnimate ? .spring(response: 0.34, dampingFraction: 0.82) : nil, value: id)
             .onAppear { logMapDepthCluster(id: id) }
     }
 
@@ -1512,8 +1772,7 @@ struct DiscoverScreen: View {
         return (mode, energy, true)
     }
 
-    @ViewBuilder
-    private func singleVenueMapPinButton(bar: BarVenue) -> some View {
+    private func venueMapPinDisplayValues(for bar: BarVenue) -> VenueMapPinDisplayValues {
         let pinSnapshot = viewModel.discoverMapRenderSnapshot.venuePinsByID[bar.id]
         let gamesToday = pinSnapshot?.selectedDayGames ?? viewModel.selectedDayEventsForMap(bar)
         let goingTotal = pinSnapshot?.goingTotal ?? gamesToday.reduce(0) { total, game in
@@ -1522,6 +1781,42 @@ struct DiscoverScreen: View {
             }
             return total
         }
+        let pin = venueMarkerPinPresentation(
+            bar: bar,
+            gamesToday: gamesToday,
+            base: viewModel.mapPinDisplayMode,
+            energyOverride: pinSnapshot?.pinEnergyScore
+        )
+        let hasLiveNow = pinSnapshot?.hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+        return VenueMapPinDisplayValues(
+            gamesToday: gamesToday,
+            goingTotal: goingTotal,
+            effectiveMode: pin.mode,
+            isSelected: viewModel.selectedBar?.id == bar.id,
+            hasLiveNow: hasLiveNow,
+            energy: pin.energy,
+            wantsEnriched: pin.wantsEnriched,
+            tint: hasLiveNow || pin.energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
+        )
+    }
+
+    private func venueClusterDisplayValues(for cluster: VenueCluster) -> VenueClusterDisplayValues {
+        let clusterSnapshot = viewModel.discoverMapRenderSnapshot.venueClustersByID[cluster.id]
+        let energy = clusterSnapshot.map {
+            (maxScore: $0.maxEnergyScore, dominantSport: $0.dominantSport)
+        } ?? viewModel.clusterVenueAnnotationEnergy(cluster: cluster)
+        return VenueClusterDisplayValues(
+            energy: energy,
+            displayState: clusterDisplayState(cluster),
+            tint: energy.maxScore > 0 ? FGColor.accentGreen : FGColor.accentBlue,
+            isActive: energy.maxScore >= livePulseThreshold
+        )
+    }
+
+    @ViewBuilder
+    private func singleVenueMapPinButton(bar: BarVenue) -> some View {
+        let pinSnapshot = viewModel.discoverMapRenderSnapshot.venuePinsByID[bar.id]
+        let display = venueMapPinDisplayValues(for: bar)
 
 #if DEBUG
         let _: Void = {
@@ -1530,27 +1825,17 @@ struct DiscoverScreen: View {
         }()
 #endif
 
-        let pin = venueMarkerPinPresentation(
-            bar: bar,
-            gamesToday: gamesToday,
-            base: viewModel.mapPinDisplayMode,
-            energyOverride: pinSnapshot?.pinEnergyScore
-        )
-        let effectiveMode = pin.mode
-        let isSelected = viewModel.selectedBar?.id == bar.id
-        let hasLiveNow = pinSnapshot?.hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
-
 #if DEBUG
         let _: Void = {
-            guard pin.wantsEnriched else { return }
+            guard display.wantsEnriched, isDiscoverTabSelected else { return }
             let style: String = {
-                switch effectiveMode {
+                switch display.effectiveMode {
                 case .simple: return "simple"
                 case .compact: return "compact"
                 case .detailed: return "detailed"
                 }
             }()
-            DebugLogGate.noisy("[MapMarker] venue=\(bar.name) games=\(gamesToday.count)/\(bar.games.count) score=\(pin.energy) style=\(style)")
+            DebugLogGate.noisy("[MapMarker] venue=\(bar.name) games=\(display.gamesToday.count)/\(bar.games.count) score=\(display.energy) style=\(style)")
         }()
 #endif
 
@@ -1563,32 +1848,32 @@ struct DiscoverScreen: View {
         } label: {
             mapDepthStyledMarker(
                 id: bar.id.uuidString.lowercased(),
-                isSelected: isSelected,
-                tint: hasLiveNow || pin.energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
+                isSelected: display.isSelected,
+                tint: display.tint
             ) {
                 Group {
                     switch venuePinDisplayState(bar) {
                     case .gameScheduled:
-                        switch effectiveMode {
+                        switch display.effectiveMode {
                         case .simple:
-                            simpleMapPin(bar: bar, gamesToday: gamesToday)
+                            simpleMapPin(bar: bar, gamesToday: display.gamesToday)
 
                         case .compact:
                             compactMapPin(
                                 bar: bar,
-                                gamesToday: gamesToday,
-                                goingTotal: goingTotal,
-                                liveScore: pin.energy,
-                                hasLiveNow: hasLiveNow
+                                gamesToday: display.gamesToday,
+                                goingTotal: display.goingTotal,
+                                liveScore: display.energy,
+                                hasLiveNow: display.hasLiveNow
                             )
 
                         case .detailed:
                             detailedMapPin(
                                 bar: bar,
-                                gamesToday: gamesToday,
-                                goingTotal: goingTotal,
-                                liveScore: pin.energy,
-                                hasLiveNow: hasLiveNow
+                                gamesToday: display.gamesToday,
+                                goingTotal: display.goingTotal,
+                                liveScore: display.energy,
+                                hasLiveNow: display.hasLiveNow
                             )
                         }
                     case .noGameScheduled:
@@ -1596,9 +1881,9 @@ struct DiscoverScreen: View {
                     }
                 }
             }
-            .saturation(isSelected ? 0.82 : 0.66)
-            .brightness(isSelected ? -0.01 : -0.035)
-            .opacity(isSelected ? 0.96 : 0.82)
+            .saturation(display.isSelected ? 0.82 : 0.66)
+            .brightness(display.isSelected ? -0.01 : -0.035)
+            .opacity(display.isSelected ? 0.96 : 0.82)
         }
         .buttonStyle(.plain)
     }
@@ -1606,22 +1891,21 @@ struct DiscoverScreen: View {
     @ViewBuilder
     private func multiVenueClusterAnnotation(cluster: VenueCluster) -> some View {
         let clusterSnapshot = viewModel.discoverMapRenderSnapshot.venueClustersByID[cluster.id]
-        let energy = clusterSnapshot.map {
-            (maxScore: $0.maxEnergyScore, dominantSport: $0.dominantSport)
-        } ?? viewModel.clusterVenueAnnotationEnergy(cluster: cluster)
-        let displayState = clusterDisplayState(cluster)
+        let display = venueClusterDisplayValues(for: cluster)
 #if DEBUG
         let _: Void = {
-            guard clusterSnapshot != nil else { return }
+            guard clusterSnapshot != nil, isDiscoverTabSelected else { return }
             DebugLogGate.noisy("[DiscoverMapSnapshotDebug] usingClusterSnapshot=true")
         }()
 #endif
         Button {
             FGInteractionHaptics.selection()
             #if DEBUG
-            print(
-                "[DiscoverMap] cluster tap id=\(cluster.id) count=\(cluster.count) maxEnergy=\(energy.maxScore) center=(\(cluster.coordinate.latitude),\(cluster.coordinate.longitude))"
-            )
+            if isDiscoverTabSelected {
+                print(
+                    "[DiscoverMap] cluster tap id=\(cluster.id) count=\(cluster.count) maxEnergy=\(display.energy.maxScore) center=(\(cluster.coordinate.latitude),\(cluster.coordinate.longitude))"
+                )
+            }
             #endif
             withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
                 viewModel.zoomTowardCluster(center: cluster.coordinate)
@@ -1630,13 +1914,14 @@ struct DiscoverScreen: View {
         } label: {
             mapDepthStyledCluster(
                 id: cluster.id,
-                tint: energy.maxScore > 0 ? FGColor.accentGreen : FGColor.accentBlue
+                tint: display.tint,
+                isActive: display.isActive
             ) {
                 clusterMapPin(
                     cluster: cluster,
-                    maxEnergy: energy.maxScore,
-                    dominantSport: energy.dominantSport,
-                    displayState: displayState
+                    maxEnergy: display.energy.maxScore,
+                    dominantSport: display.energy.dominantSport,
+                    displayState: display.displayState
                 )
             }
             .saturation(0.68)
@@ -1658,6 +1943,18 @@ struct DiscoverScreen: View {
     }
 
     private var discoverPickupClustersForMap: [PickupGameCluster] {
+        discoverAnnotationCache.pickupGameClusters
+    }
+
+    private var discoverPickupPlaceClustersForMap: [PickupPlaceCluster] {
+        discoverAnnotationCache.pickupPlaceClusters
+    }
+
+    private var discoverVenueClustersForMap: [VenueCluster] {
+        discoverAnnotationCache.venueClusters
+    }
+
+    private func buildDiscoverPickupClustersForMap() -> [PickupGameCluster] {
         guard viewModel.discoverPickupSubMode == .games else { return [] }
         let rows = viewModel.pickupGamesForDiscoverMap.filter { row in
             guard let lat = row.latitude, let lon = row.longitude else { return false }
@@ -1666,30 +1963,154 @@ struct DiscoverScreen: View {
         return viewModel.clusteredPickupGamesForDiscoverMap(rows: rows)
     }
 
-    private var discoverPickupPlaceClustersForMap: [PickupPlaceCluster] {
+    private func buildDiscoverPickupPlaceClustersForMap() -> [PickupPlaceCluster] {
         guard isPickupPlacesMode else { return [] }
         return viewModel.clusteredPickupPlacesForDiscoverMap(
             rows: viewModel.pickupPlacesVisibleAsMapPins(for: viewModel.currentMapRegionBounds())
         )
     }
 
-    private var discoverVenueClustersForMap: [VenueCluster] {
+    private func buildDiscoverVenueClustersForMap() -> [VenueCluster] {
         let snapshotClusters = viewModel.discoverMapRenderSnapshotVenueClustersForMap()
         if !snapshotClusters.isEmpty {
 #if DEBUG
-            DebugLogGate.noisy("[PerfPhase1B] mapUsingSnapshotClusters count=\(snapshotClusters.count)")
-            DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(snapshotClusters.count)")
-            DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=snapshot")
+            if isDiscoverTabSelected {
+                DebugLogGate.noisy("[PerfPhase1B] mapUsingSnapshotClusters count=\(snapshotClusters.count)")
+                DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(snapshotClusters.count)")
+                DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=snapshot")
+            }
 #endif
             return snapshotClusters
         }
         let fallback = viewModel.clusteredBars()
 #if DEBUG
-        DebugLogGate.noisy("[PerfPhase1B] mapUsingFallbackClusters count=\(fallback.count)")
-        DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(fallback.count)")
-        DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=fallback")
+        if isDiscoverTabSelected {
+            DebugLogGate.noisy("[PerfPhase1B] mapUsingFallbackClusters count=\(fallback.count)")
+            DebugLogGate.noisy("[CommunityVenueDebug] clusteredVenueCount=\(fallback.count)")
+            DebugLogGate.noisy("[CommunityVenueDebug] displayMode=\(viewModel.mapDisplayMode.rawValue) selectedSport=\(viewModel.selectedSport) loadedBars=\(viewModel.bars.count) visibleBars=\(viewModel.mapVisibleBars.count) source=fallback")
+        }
 #endif
         return fallback
+    }
+
+    private func rebuildDiscoverAnnotationCache(reason: String) {
+        let key = discoverAnnotationCacheKey()
+        if discoverAnnotationCache.key == key {
+#if DEBUG
+            if isDiscoverTabSelected {
+                DebugLogGate.noisy("[MapPerf] cacheHit=true clusterRebuildReason=\(reason)")
+                DebugLogGate.noisy("[MapPerf] cachedAnnotationCount=\(discoverAnnotationCache.counts.renderedCount(mode: viewModel.discoverMapContentMode))")
+            }
+#endif
+            return
+        }
+
+        let venueClusters = buildDiscoverVenueClustersForMap()
+        let pickupGameClusters = buildDiscoverPickupClustersForMap()
+        let pickupPlaceClusters = buildDiscoverPickupPlaceClustersForMap()
+        let counts = DiscoverAnnotationCounts(
+            venue: venueClusters.count,
+            pickupGames: pickupGameClusters.count,
+            pickupPlaces: pickupPlaceClusters.count
+        )
+
+        discoverAnnotationCache = DiscoverAnnotationCache(
+            key: key,
+            venueClusters: venueClusters,
+            pickupGameClusters: pickupGameClusters,
+            pickupPlaceClusters: pickupPlaceClusters,
+            counts: counts
+        )
+
+#if DEBUG
+        if isDiscoverTabSelected {
+            DebugLogGate.noisy("[MapPerf] cacheHit=false clusterRebuildReason=\(reason)")
+            DebugLogGate.noisy("[MapPerf] cachedAnnotationCount=\(counts.renderedCount(mode: viewModel.discoverMapContentMode))")
+            DebugLogGate.noisy("[MapPerf] animationsReduced=true")
+        }
+#endif
+    }
+
+    private func discoverAnnotationCacheKey() -> DiscoverAnnotationCacheKey {
+        let selectedDay = Int(Calendar.current.startOfDay(for: viewModel.selectedDate).timeIntervalSince1970 / 86_400)
+        let region = viewModel.cameraPosition.region
+        let centerBucket = [
+            String(format: "%.3f", region?.center.latitude ?? 0),
+            String(format: "%.3f", region?.center.longitude ?? 0)
+        ].joined(separator: ",")
+        return DiscoverAnnotationCacheKey(
+            mode: viewModel.discoverMapContentMode.rawValue,
+            pickupSubMode: viewModel.discoverPickupSubMode.rawValue,
+            selectedDay: selectedDay,
+            selectedSport: viewModel.selectedSport,
+            searchText: viewModel.debouncedDiscoverSearchText,
+            mapDisplayMode: viewModel.mapDisplayMode.rawValue,
+            visibleLatitudeBucket: String(format: "%.4f", viewModel.visibleLatitudeDelta),
+            cameraCenterBucket: centerBucket,
+            venueSnapshotKey: venueSnapshotAnnotationFingerprint(),
+            barsCount: viewModel.bars.count,
+            pickupGamesFingerprint: pickupGamesAnnotationFingerprint(),
+            pickupPlacesFingerprint: pickupPlacesAnnotationFingerprint()
+        )
+    }
+
+    private var discoverAnnotationInvalidationToken: String {
+        discoverAnnotationCacheFingerprint(discoverAnnotationCacheKey())
+    }
+
+    private func discoverAnnotationCacheFingerprint(_ key: DiscoverAnnotationCacheKey) -> String {
+        [
+            key.mode,
+            key.pickupSubMode,
+            "\(key.selectedDay)",
+            key.selectedSport,
+            key.searchText,
+            key.mapDisplayMode,
+            key.visibleLatitudeBucket,
+            key.cameraCenterBucket,
+            key.venueSnapshotKey,
+            "\(key.barsCount)",
+            key.pickupGamesFingerprint,
+            key.pickupPlacesFingerprint
+        ].joined(separator: "|")
+    }
+
+    private func venueSnapshotAnnotationFingerprint() -> String {
+        let snapshotKey = viewModel.discoverMapRenderSnapshot.key
+        return [
+            snapshotKey.mapDisplayMode.rawValue,
+            snapshotKey.selectedSport,
+            snapshotKey.selectedDay,
+            snapshotKey.searchText,
+            snapshotKey.visibleLatitudeDeltaBucket,
+            "\(snapshotKey.venueCount)",
+            "\(snapshotKey.eventRowCount)"
+        ].joined(separator: ":")
+    }
+
+    private func pickupGamesAnnotationFingerprint() -> String {
+        viewModel.pickupGamesForDiscoverMap.prefix(96).map { row in
+            [
+                row.id.uuidString.lowercased(),
+                String(format: "%.4f", row.latitude ?? 0),
+                String(format: "%.4f", row.longitude ?? 0),
+                row.status,
+                "\(row.approved_join_count ?? -1)"
+            ].joined(separator: ":")
+        }
+        .joined(separator: "|")
+    }
+
+    private func pickupPlacesAnnotationFingerprint() -> String {
+        viewModel.pickupPlacesForDiscoverMap.prefix(96).map { place in
+            [
+                place.id.uuidString.lowercased(),
+                String(format: "%.4f", place.latitude),
+                String(format: "%.4f", place.longitude),
+                place.sportTags.joined(separator: ",")
+            ].joined(separator: ":")
+        }
+        .joined(separator: "|")
     }
 
     private func logPickupMapDebug(pickupGamesCount: Int, isPickupModeActive: Bool, annotationsRendered: Int) {
@@ -1697,6 +2118,31 @@ struct DiscoverScreen: View {
         DebugLogGate.noisy("[PickupMapDebug] pickupGames count=\(pickupGamesCount)")
         DebugLogGate.noisy("[PickupMapDebug] isPickupModeActive=\(isPickupModeActive)")
         DebugLogGate.noisy("[PickupMapDebug] annotationsRendered=\(annotationsRendered)")
+#endif
+    }
+
+    private func pickupMarkerAllowsPulse(isSelected: Bool, activity: PickupGameMapMarkerActivity) -> Bool {
+        isDiscoverTabSelected && (isSelected || activity == .high)
+    }
+
+    private func pickupMapMarkerDisplayValues(for row: PickupGameRow) -> PickupMapMarkerDisplayValues {
+        let needed = pickupPlayersNeededDisplay(row)
+        let isSelected = viewModel.selectedPickupGameForMap?.id == row.id
+        let activity = pickupMarkerActivity(for: row)
+        return PickupMapMarkerDisplayValues(
+            needed: needed,
+            isSelected: isSelected,
+            badgeValue: pickupDemandBadgeText(for: needed),
+            activity: activity,
+            allowsPulse: pickupMarkerAllowsPulse(isSelected: isSelected, activity: activity),
+            accentColor: viewModel.colorForSport(row.sport),
+            reusedSportChipIcon: mapSportIconReusesSportChipIcon(row.sport)
+        )
+    }
+
+    private func logDiscoverMapPerf(annotationCount: Int, source: String) {
+#if DEBUG
+        DebugLogGate.noisy("[MapPerf] annotationCount=\(annotationCount) diffApplied=true fullReload=false source=\(source)")
 #endif
     }
 
@@ -1750,12 +2196,19 @@ struct DiscoverScreen: View {
         let pickupPlaceClusters = discoverPickupPlaceClustersForMap
         let venueClusters = discoverVenueClustersForMap
         let isPickupModeActive = viewModel.discoverMapContentMode == .pickupGames
-        let _: Void = logDiscoverModeFilteringDebug()
-        let _: Void = logPickupMapDebug(
-            pickupGamesCount: viewModel.pickupGamesForDiscoverMap.count,
-            isPickupModeActive: isPickupModeActive,
-            annotationsRendered: isPickupModeActive ? pickupClusters.count + pickupPlaceClusters.count : 0
-        )
+        let _: Void = {
+            guard isDiscoverTabSelected else { return }
+            logDiscoverModeFilteringDebug()
+            logDiscoverMapPerf(
+                annotationCount: isPickupModeActive ? pickupClusters.count + pickupPlaceClusters.count : venueClusters.count,
+                source: viewModel.discoverMapContentMode.rawValue
+            )
+            logPickupMapDebug(
+                pickupGamesCount: viewModel.pickupGamesForDiscoverMap.count,
+                isPickupModeActive: isPickupModeActive,
+                annotationsRendered: isPickupModeActive ? pickupClusters.count + pickupPlaceClusters.count : 0
+            )
+        }()
 
         return Map(position: $viewModel.cameraPosition) {
             if discoverMapShowsUserAnnotation() {
@@ -1825,6 +2278,7 @@ struct DiscoverScreen: View {
             dismissDiscoverSearchKeyboard()
             viewModel.visibleLatitudeDelta = context.region.span.latitudeDelta
             viewModel.cameraPosition = .region(context.region)
+            rebuildDiscoverAnnotationCache(reason: "cameraEnd")
 
             let region = context.region
 #if DEBUG
@@ -1904,8 +2358,9 @@ struct DiscoverScreen: View {
     }
     
     private var showDiscoverVisibleSearchEmptyHint: Bool {
-        let pickupAnnotationsCount = discoverPickupClustersForMap.count + discoverPickupPlaceClustersForMap.count
-        let venueAnnotationsCount = discoverVenueClustersForMap.count
+        let counts = discoverAnnotationCache.counts
+        let pickupAnnotationsCount = counts.pickupTotal
+        let venueAnnotationsCount = counts.venue
         let renderedAnnotationsCount = viewModel.discoverMapContentMode == .pickupGames
             ? pickupAnnotationsCount
             : venueAnnotationsCount
@@ -2071,8 +2526,8 @@ struct DiscoverScreen: View {
 
             if isDiscoverTabSelected {
                 discoverBottomAdStrip(layoutWidth: layoutWidth)
-                    .padding(.top, 6)
-                    .padding(.bottom, 8)
+                    .padding(.top, discoverBottomAdLoaded ? 6 : 0)
+                    .padding(.bottom, discoverBottomAdLoaded ? 8 : 0)
             }
 
             Color.clear
@@ -3116,10 +3571,8 @@ struct DiscoverScreen: View {
     }
 
     private func pickupGameMapPinButton(row: PickupGameRow) -> some View {
-        let needed = pickupPlayersNeededDisplay(row)
-        let isSelected = viewModel.selectedPickupGameForMap?.id == row.id
-        let badgeValue = pickupDemandBadgeText(for: needed)
-        logPickupBadgeDebug(row: row, playersNeeded: needed, badgeValue: badgeValue)
+        let display = pickupMapMarkerDisplayValues(for: row)
+        logPickupBadgeDebug(row: row, playersNeeded: display.needed, badgeValue: display.badgeValue ?? "none")
         return Button {
             FGInteractionHaptics.selection()
             withAnimation(.spring(response: 0.45, dampingFraction: 0.86)) {
@@ -3128,17 +3581,18 @@ struct DiscoverScreen: View {
         } label: {
             PickupGameMapMarker(
                 sport: row.sport,
-                accentColor: viewModel.colorForSport(row.sport),
+                accentColor: display.accentColor,
                 markerType: "pickup",
-                reusedSportChipIcon: mapSportIconReusesSportChipIcon(row.sport),
-                activity: pickupMarkerActivity(for: row),
-                demandBadgeText: badgeValue,
-                isSelected: isSelected
+                reusedSportChipIcon: display.reusedSportChipIcon,
+                activity: display.activity,
+                demandBadgeText: display.badgeValue,
+                isSelected: display.isSelected,
+                allowsPulse: display.allowsPulse
             )
-            .zIndex(isSelected ? 30 : 10)
+            .zIndex(display.isSelected ? 30 : 10)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Pickup \(row.sport), \(needed) spots open, \(row.title)")
+        .accessibilityLabel("Pickup \(row.sport), \(display.needed) spots open, \(row.title)")
     }
 
     private func pickupPlacePrimarySport(_ place: PickupPlaceRow) -> String {
@@ -3177,7 +3631,7 @@ struct DiscoverScreen: View {
                 Circle()
                     .fill(Color.gray.opacity(colorScheme == .dark ? 0.22 : 0.16))
                     .frame(width: isSelected ? 46 : 40, height: isSelected ? 46 : 40)
-                    .blur(radius: 3)
+                    .blur(radius: isSelected && isDiscoverTabSelected ? 3 : 0)
 
                 Circle()
                     .fill(colorScheme == .dark ? Color.black.opacity(0.82) : Color.white.opacity(0.92))
@@ -3192,7 +3646,7 @@ struct DiscoverScreen: View {
                     .font(.system(size: isSelected ? 16 : 14, weight: .semibold, design: .rounded))
                     .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.82) : Color.gray.opacity(0.86))
             }
-            .animation(.spring(response: 0.28, dampingFraction: 0.78), value: isSelected)
+            .animation(isDiscoverTabSelected ? .spring(response: 0.28, dampingFraction: 0.78) : nil, value: isSelected)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(sportLabel) pickup place, \(place.name)")
@@ -3202,15 +3656,13 @@ struct DiscoverScreen: View {
     private func multiPickupPlaceClusterAnnotation(cluster: PickupPlaceCluster) -> some View {
         Button {
             FGInteractionHaptics.selection()
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-                viewModel.zoomTowardCluster(center: cluster.coordinate)
-            }
+            openPickupPlaceClusterSheet(cluster)
         } label: {
             ZStack {
                 Circle()
                     .fill(Color.gray.opacity(colorScheme == .dark ? 0.24 : 0.16))
                     .frame(width: 48, height: 48)
-                    .blur(radius: 4)
+                    .blur(radius: 0)
                 Circle()
                     .fill(colorScheme == .dark ? Color.black.opacity(0.82) : Color.white.opacity(0.92))
                     .frame(width: 36, height: 36)
@@ -3231,6 +3683,7 @@ struct DiscoverScreen: View {
     @ViewBuilder
     private func multiPickupGameClusterAnnotation(cluster: PickupGameCluster) -> some View {
         let sportHint = dominantPickupClusterSport(cluster.rows)
+        let activity = pickupMarkerActivity(for: cluster.rows)
         Button {
             FGInteractionHaptics.selection()
             withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
@@ -3242,8 +3695,9 @@ struct DiscoverScreen: View {
                 accentColor: viewModel.colorForSport(sportHint ?? ""),
                 markerType: "pickupCluster",
                 reusedSportChipIcon: mapSportIconReusesSportChipIcon(sportHint ?? ""),
-                activity: pickupMarkerActivity(for: cluster.rows),
+                activity: activity,
                 isCluster: true,
+                allowsPulse: pickupMarkerAllowsPulse(isSelected: false, activity: activity),
                 count: cluster.count
             )
         }
@@ -3352,6 +3806,30 @@ struct DiscoverScreen: View {
         print("[PickupHostPrefillDebug] openingHostFlow=true placeId=\(place.id.uuidString.lowercased())")
 #endif
         pickupHostPrefillPlace = place
+    }
+
+    private func openPickupPlaceClusterSheet(_ cluster: PickupPlaceCluster) {
+#if DEBUG
+        print("[PickupPlaceClusterDebug] tappedClusterCount=\(cluster.count)")
+        print("[PickupPlaceClusterDebug] openedSheet=true")
+#endif
+        viewModel.selectedPickupPlaceForMap = nil
+        pickupPlaceClusterForSheet = cluster
+    }
+
+    private func hostPickupGameFromPickupPlaceClusterSheet(_ place: PickupPlaceRow) {
+#if DEBUG
+        print("[PickupPlaceClusterDebug] selectedPlaceId=\(place.id.uuidString.lowercased())")
+        print("[PickupPlaceClusterDebug] hostGameHereTapped=true")
+#endif
+        pendingPickupPlaceHostFromClusterDismiss = place
+        pickupPlaceClusterForSheet = nil
+    }
+
+    private func openPendingPickupPlaceHostFromClusterIfNeeded() {
+        guard let place = pendingPickupPlaceHostFromClusterDismiss else { return }
+        pendingPickupPlaceHostFromClusterDismiss = nil
+        openPickupHostFlow(from: place)
     }
 
     private func discoverPickupPreviewCard(
@@ -3788,7 +4266,8 @@ struct DiscoverScreen: View {
     private func discoverBottomAdStrip(layoutWidth: CGFloat) -> some View {
         let availableWidth = discoverAdBannerAvailableWidth(for: layoutWidth)
         let bannerSize = discoverAdaptiveBannerSize(for: layoutWidth)
-        let adUnitID = AdMobConfiguration.bannerAdUnitID
+        let adUnitID = AdMobConfiguration.bannerAdUnitID(for: "discover.bottomStrip")
+        let visibleHeight = discoverBottomAdLoaded ? bannerSize.height : 0
         let _ = discoverLogAdBannerDebug(
             adUnitID: adUnitID,
             availableWidth: availableWidth,
@@ -3817,28 +4296,30 @@ struct DiscoverScreen: View {
                         )
                 }
 
-            if !discoverBottomAdLoaded {
-                Text(discoverTopAdLoadFailed ? "Sponsored" : "Ad loading")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.secondaryText(colorScheme).opacity(0.74))
-                    .tracking(0.3)
-                    .allowsHitTesting(false)
-            }
-
             AdaptiveBannerView(
                 placement: "discover.bottomStrip",
                 adUnitID: adUnitID,
                 layoutWidth: availableWidth,
+                requestBackoffUntil: discoverBottomAdBackoffUntil,
                 onAdLoaded: {
                     discoverBottomAdRetryTask?.cancel()
                     discoverBottomAdRetryTask = nil
+                    discoverBottomAdNoFillRetryCount = 0
+                    discoverBottomAdBackoffUntil = nil
                     discoverTopAdLoadFailed = false
                     discoverBottomAdLoaded = true
                 },
-                onAdFailed: { _ in
+                onAdFailed: { error in
+                    let failureReason = AdDebugDiagnostics.loadFailedReason(for: error)
+                    AdDebugDiagnostics.logCollapsedAdSpace(
+                        format: "banner",
+                        placement: "discover.bottomStrip",
+                        unitID: adUnitID,
+                        error: error
+                    )
                     discoverTopAdLoadFailed = true
                     discoverBottomAdLoaded = false
-                    scheduleDiscoverBottomAdRetry()
+                    scheduleDiscoverBottomAdRetry(failureReason: failureReason, unitID: adUnitID)
                 }
             )
             .id(discoverBottomAdRetryToken)
@@ -3847,42 +4328,77 @@ struct DiscoverScreen: View {
             .allowsHitTesting(discoverBottomAdLoaded)
             .accessibilityElement(children: .contain)
         }
-        .frame(width: bannerSize.width, height: bannerSize.height, alignment: .center)
+        .frame(width: bannerSize.width, height: visibleHeight, alignment: .center)
         .fixedSize(horizontal: true, vertical: true)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.16) : Color.black.opacity(0.07), lineWidth: 0.75)
         }
-        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.18 : 0.07), radius: 10, y: 4)
-        .opacity(0.94)
+        .shadow(color: Color.black.opacity(discoverBottomAdLoaded ? (colorScheme == .dark ? 0.18 : 0.07) : 0), radius: 10, y: 4)
+        .opacity(discoverBottomAdLoaded ? 0.94 : 0)
         .accessibilityHidden(!discoverBottomAdLoaded)
         .zIndex(8)
         .frame(maxWidth: .infinity, alignment: .center)
         .allowsHitTesting(discoverBottomAdLoaded)
     }
 
-    private func scheduleDiscoverBottomAdRetry() {
+    private func scheduleDiscoverBottomAdRetry(
+        failureReason: AdDebugDiagnostics.AdLoadFailedReason,
+        unitID: String
+    ) {
         discoverBottomAdRetryTask?.cancel()
+        let delaySeconds: TimeInterval
+        if failureReason == .noFill {
+            discoverBottomAdNoFillRetryCount += 1
+            switch discoverBottomAdNoFillRetryCount {
+            case 1:
+                delaySeconds = 30
+            case 2:
+                delaySeconds = 60
+            default:
+                delaySeconds = 120
+            }
+        } else {
+            delaySeconds = 30
+        }
+        discoverBottomAdBackoffUntil = Date().addingTimeInterval(delaySeconds)
+        AdDebugDiagnostics.logRetryScheduled(
+            format: "banner",
+            placement: "discover.bottomStrip",
+            unitID: unitID,
+            delaySeconds: delaySeconds,
+            retryBackoffCount: discoverBottomAdNoFillRetryCount,
+            failureReason: failureReason
+        )
         discoverBottomAdRetryTask = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(30))
+            try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
             guard !Task.isCancelled else { return }
+            discoverBottomAdBackoffUntil = nil
             discoverTopAdLoadFailed = false
             discoverBottomAdRetryToken += 1
         }
     }
 
     private func discoverLogAdBannerDebug(adUnitID: String, availableWidth: CGFloat, bannerSize: CGSize, containerSize: CGSize) {
-        AdDebugDiagnostics.logEvent(
+        let dedupeKey = [
+            adUnitID,
+            String(format: "%.0f", Double(availableWidth)),
+            String(format: "%.0f", Double(bannerSize.width)),
+            String(format: "%.0f", Double(bannerSize.height))
+        ].joined(separator: "|")
+        AdDebugDiagnostics.logEventOnce(
             event: "discoverStripLayout",
             format: "banner",
             placement: "discover.bottomStrip",
+            dedupeKey: dedupeKey,
             fields: [
-                "availableWidth": String(format: "%.1f", availableWidth),
-                "adaptiveBannerW": String(format: "%.1f", bannerSize.width),
-                "adaptiveBannerH": String(format: "%.1f", bannerSize.height),
-                "containerW": String(format: "%.1f", containerSize.width),
-                "containerH": String(format: "%.1f", containerSize.height),
+                "availableWidth": String(format: "%.1f", Double(availableWidth)),
+                "adaptiveBannerW": String(format: "%.1f", Double(bannerSize.width)),
+                "adaptiveBannerH": String(format: "%.1f", Double(bannerSize.height)),
+                "containerW": String(format: "%.1f", Double(containerSize.width)),
+                "containerH": String(format: "%.1f", Double(containerSize.height)),
                 "zeroAvailableWidth": "\(availableWidth <= 0)",
                 "iPad": "\(UIDevice.current.userInterfaceIdiom == .pad)"
             ]
@@ -7939,7 +8455,7 @@ struct DiscoverScreen: View {
         .padding(.vertical, 7)
         .background {
             ZStack {
-                if hasLiveNow || liveScore >= livePulseThreshold {
+                if isDiscoverTabSelected && (hasLiveNow || liveScore >= livePulseThreshold) {
                     LivePulseView(
                         isTrending: hasLiveNow || liveScore >= 40
                     )
@@ -8009,7 +8525,7 @@ struct DiscoverScreen: View {
                         .frame(width: 36, height: 36)
                         .background {
                             ZStack {
-                                if hasLiveNow || liveScore >= livePulseThreshold {
+                                if isDiscoverTabSelected && (hasLiveNow || liveScore >= livePulseThreshold) {
                                     LivePulseView(
                                         isTrending: hasLiveNow || liveScore >= 40
                                     )

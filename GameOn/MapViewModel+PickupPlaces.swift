@@ -11,6 +11,8 @@ private let pickupPlacesSelectColumnsWithSportTags =
 private let pickupPlacesSelectColumnsWithSport =
     "id,name,place_type,sport,city,state,zip,latitude,longitude"
 
+private let pickupPlacesMapFetchLimit = 500
+
 private struct PickupPlaceTaggedDBRow: Decodable {
     let id: UUID
     let name: String?
@@ -46,11 +48,13 @@ nonisolated struct PickupPlaceCluster: Identifiable {
 extension MapViewModel {
     private var pickupPlacesCurrentFetchKey: String {
         guard let bounds = currentMapRegionBounds() else { return "no-bounds" }
+        let sportKey = pickupPlacesServerSportTerms(for: selectedSport).joined(separator: ",")
         return [
             String(format: "%.4f", bounds.minLat),
             String(format: "%.4f", bounds.maxLat),
             String(format: "%.4f", bounds.minLon),
-            String(format: "%.4f", bounds.maxLon)
+            String(format: "%.4f", bounds.maxLon),
+            sportKey.isEmpty ? "all-sports" : sportKey
         ].joined(separator: "|")
     }
 
@@ -109,56 +113,214 @@ extension MapViewModel {
         }
 
         isLoadingPickupPlacesForMap = true
+        let startedAt = Date()
+        let sportTerms = pickupPlacesServerSportTerms(for: selectedSport)
+        let sportLog = sportTerms.isEmpty ? "All" : sportTerms.joined(separator: ",")
 #if DEBUG
         print("[PickupPlacesDebug] fetchStarted=true bounds=\(fetchKey)")
+        print("[PickupPlacesPerf] bounds=\(fetchKey)")
+        print("[PickupPlacesPerf] sport=\(sportLog)")
 #endif
         do {
-            let taggedRows: [PickupPlaceTaggedDBRow] = try await supabase
-                .from("pickup_places")
-                .select(pickupPlacesSelectColumnsWithSportTags)
-                .gte("latitude", value: bounds.minLat)
-                .lte("latitude", value: bounds.maxLat)
-                .gte("longitude", value: bounds.minLon)
-                .lte("longitude", value: bounds.maxLon)
-                .limit(500)
-                .execute()
-                .value
-            await publishPickupPlaces(mappedPickupPlaceRows(taggedRows), fetchKey: fetchKey)
+            let taggedRows = try await fetchPickupPlaceTaggedRowsForMap(bounds: bounds, sportTerms: sportTerms)
+            await publishPickupPlaces(mappedPickupPlaceRows(taggedRows), fetchKey: fetchKey, startedAt: startedAt)
         } catch {
 #if DEBUG
             print("[PickupPlacesDebug] sportTagsFetchFailed=\(error)")
 #endif
             do {
-                let sportRows: [PickupPlaceSportDBRow] = try await supabase
-                    .from("pickup_places")
-                    .select(pickupPlacesSelectColumnsWithSport)
-                    .gte("latitude", value: bounds.minLat)
-                    .lte("latitude", value: bounds.maxLat)
-                    .gte("longitude", value: bounds.minLon)
-                    .lte("longitude", value: bounds.maxLon)
-                    .limit(500)
-                    .execute()
-                    .value
-                await publishPickupPlaces(mappedPickupPlaceRows(sportRows), fetchKey: fetchKey)
+                let sportRows = try await fetchPickupPlaceSportRowsForMap(bounds: bounds, sportTerms: sportTerms)
+                await publishPickupPlaces(mappedPickupPlaceRows(sportRows), fetchKey: fetchKey, startedAt: startedAt)
             } catch {
                 pickupPlacesForDiscoverMap = []
                 lastPickupPlacesFetchKey = nil
                 isLoadingPickupPlacesForMap = false
 #if DEBUG
                 print("[PickupPlacesDebug] rowsLoaded=0 error=\(error)")
+                print("[PickupPlacesPerf] rowsLoaded=0")
+                print("[PickupPlacesPerf] durationMs=\(pickupPlacesPerfDurationMs(since: startedAt))")
 #endif
             }
         }
     }
 
-    private func publishPickupPlaces(_ rows: [PickupPlaceRow], fetchKey: String) async {
+    private func fetchPickupPlaceTaggedRowsForMap(
+        bounds: (minLat: Double, maxLat: Double, minLon: Double, maxLon: Double),
+        sportTerms: [String]
+    ) async throws -> [PickupPlaceTaggedDBRow] {
+        if let sportFilter = pickupPlacesSportTagsOrFilter(terms: sportTerms) {
+            return try await supabase
+                .from("pickup_places")
+                .select(pickupPlacesSelectColumnsWithSportTags)
+                .gte("latitude", value: bounds.minLat)
+                .lte("latitude", value: bounds.maxLat)
+                .gte("longitude", value: bounds.minLon)
+                .lte("longitude", value: bounds.maxLon)
+                .or(sportFilter)
+                .limit(pickupPlacesMapFetchLimit)
+                .execute()
+                .value
+        }
+
+        return try await supabase
+            .from("pickup_places")
+            .select(pickupPlacesSelectColumnsWithSportTags)
+            .gte("latitude", value: bounds.minLat)
+            .lte("latitude", value: bounds.maxLat)
+            .gte("longitude", value: bounds.minLon)
+            .lte("longitude", value: bounds.maxLon)
+            .limit(pickupPlacesMapFetchLimit)
+            .execute()
+            .value
+    }
+
+    private func fetchPickupPlaceSportRowsForMap(
+        bounds: (minLat: Double, maxLat: Double, minLon: Double, maxLon: Double),
+        sportTerms: [String]
+    ) async throws -> [PickupPlaceSportDBRow] {
+        if let sportFilter = pickupPlacesSportOrFilter(terms: sportTerms) {
+            return try await supabase
+                .from("pickup_places")
+                .select(pickupPlacesSelectColumnsWithSport)
+                .gte("latitude", value: bounds.minLat)
+                .lte("latitude", value: bounds.maxLat)
+                .gte("longitude", value: bounds.minLon)
+                .lte("longitude", value: bounds.maxLon)
+                .or(sportFilter)
+                .limit(pickupPlacesMapFetchLimit)
+                .execute()
+                .value
+        }
+
+        return try await supabase
+            .from("pickup_places")
+            .select(pickupPlacesSelectColumnsWithSport)
+            .gte("latitude", value: bounds.minLat)
+            .lte("latitude", value: bounds.maxLat)
+            .gte("longitude", value: bounds.minLon)
+            .lte("longitude", value: bounds.maxLon)
+            .limit(pickupPlacesMapFetchLimit)
+            .execute()
+            .value
+    }
+
+    private func publishPickupPlaces(_ rows: [PickupPlaceRow], fetchKey: String, startedAt: Date) async {
         pickupPlacesForDiscoverMap = rows
         lastPickupPlacesFetchKey = fetchKey
         isLoadingPickupPlacesForMap = false
 #if DEBUG
         print("[PickupPlacesDebug] rowsLoaded=\(rows.count)")
+        print("[PickupPlacesPerf] rowsLoaded=\(rows.count)")
+        print("[PickupPlacesPerf] durationMs=\(pickupPlacesPerfDurationMs(since: startedAt))")
 #endif
         pruneSelectedPickupPlaceIfNeeded()
+    }
+
+    private func pickupPlacesServerSportTerms(for rawSport: String) -> [String] {
+        let trimmed = rawSport.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != "All" else { return [] }
+
+        var terms: [String] = []
+        func add(_ raw: String) {
+            let normalized = pickupPlacesNormalizedSportTerm(raw)
+            guard !normalized.isEmpty, !terms.contains(normalized) else { return }
+            terms.append(normalized)
+        }
+
+        add(trimmed)
+        add(AppSportCatalog.displayLabel(forSportToken: trimmed))
+
+        switch pickupPlacesNormalizedSportTerm(trimmed) {
+        case "nba", "basketball":
+            add("basketball")
+            add("nba")
+        case "nfl", "football", "american_football":
+            add("football")
+            add("american_football")
+            add("nfl")
+        case "nhl", "hockey":
+            add("hockey")
+            add("nhl")
+        case "soccer", "mls":
+            add("soccer")
+            add("mls")
+        case "formula_1", "formula_one", "f1":
+            add("formula_1")
+            add("formula 1")
+            add("f1")
+        case "ping_pong", "table_tennis", "pingpong":
+            add("ping_pong")
+            add("table_tennis")
+            add("pingpong")
+        default:
+            break
+        }
+
+        return terms
+    }
+
+    private func pickupPlacesNormalizedSportTerm(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: "&", with: "and")
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+            .joined(separator: "_")
+    }
+
+    private func pickupPlacesSportTagsOrFilter(terms: [String]) -> String? {
+        let filters = pickupPlacesSportTagFilterTerms(from: terms)
+            .map { "sport_tags.cs.\(pickupPlacesPostgrestArrayLiteral(for: $0))" }
+        return filters.isEmpty ? nil : filters.joined(separator: ",")
+    }
+
+    private func pickupPlacesSportTagFilterTerms(from terms: [String]) -> [String] {
+        var expanded: [String] = []
+        func add(_ raw: String) {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty, !expanded.contains(trimmed) else { return }
+            expanded.append(trimmed)
+        }
+
+        for term in terms {
+            add(term)
+            let spaced = term.replacingOccurrences(of: "_", with: " ")
+            add(spaced)
+            add(spaced.capitalized)
+            if term.count <= 5 {
+                add(term.uppercased())
+            }
+        }
+
+        return expanded
+    }
+
+    private func pickupPlacesSportOrFilter(terms: [String]) -> String? {
+        let filters = terms.map { "sport.ilike.\(pickupPlacesPostgrestIlikeToken($0))" }
+        return filters.isEmpty ? nil : filters.joined(separator: ",")
+    }
+
+    private func pickupPlacesPostgrestArrayLiteral(for raw: String) -> String {
+        let escaped = raw
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "{\"\(escaped)\"}"
+    }
+
+    private func pickupPlacesPostgrestIlikeToken(_ raw: String) -> String {
+        let escaped = raw
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "*", with: "\\*")
+            .replacingOccurrences(of: ",", with: "\\,")
+            .replacingOccurrences(of: "(", with: "\\(")
+            .replacingOccurrences(of: ")", with: "\\)")
+            .replacingOccurrences(of: ":", with: "\\:")
+            .replacingOccurrences(of: ".", with: "\\.")
+        return "*\(escaped)*"
+    }
+
+    private func pickupPlacesPerfDurationMs(since startedAt: Date) -> Int {
+        max(0, Int(Date().timeIntervalSince(startedAt) * 1000))
     }
 
     func pickupPlacesVisibleAsMapPins(for bounds: (minLat: Double, maxLat: Double, minLon: Double, maxLon: Double)? = nil) -> [PickupPlaceRow] {

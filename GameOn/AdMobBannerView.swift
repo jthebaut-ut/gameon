@@ -4,9 +4,28 @@ import GoogleMobileAds
 import UIKit
 import UserMessagingPlatform
 
-// Set to true while actively debugging ad consent/loading. Keep false for normal DEBUG/TestFlight use.
+// Verbose ad diagnostics are limited to developer/internal builds; App Store users should not see ad debug logs.
 enum AdDiagnostics {
-    static let enabled = false
+    private static var didLogTestDeviceConfiguration = false
+
+    static var enabled: Bool {
+#if DEBUG
+        return true
+#else
+        return sandboxReceiptURL?.lastPathComponent == "sandboxReceipt"
+#endif
+    }
+
+    private static var sandboxReceiptURL: URL? {
+        Bundle.main.value(forKey: "appStoreReceiptURL") as? URL
+    }
+
+    static func logStartupTestDeviceConfigurationIfNeeded() {
+        guard enabled, !didLogTestDeviceConfiguration else { return }
+        didLogTestDeviceConfiguration = true
+        let identifiers = MobileAds.shared.requestConfiguration.testDeviceIdentifiers ?? []
+        print("[AdDebug] testDeviceConfigured=\(!identifiers.isEmpty || AdMobConfiguration.usesTestAds) requestConfiguration.testDeviceIdentifiers=\(identifiers) testDeviceIdentifierCount=\(identifiers.count)")
+    }
 }
 
 // MARK: - Ad unit configuration (test in DEBUG, production in RELEASE)
@@ -23,6 +42,9 @@ enum AdMobConfiguration {
     static let productionApplicationID = "ca-app-pub-9637364906993742~5547329973"
     static let productionBannerAdUnitID = "ca-app-pub-9637364906993742/6964124517"
     static let productionNativeAdUnitID: String? = "ca-app-pub-9637364906993742/7885775201"
+    private static let developerTestDeviceIdentifiers = [
+        "5221eb346221e44cb542638866e39d10"
+    ]
 
     static var usesTestAds: Bool {
         #if DEBUG
@@ -30,6 +52,14 @@ enum AdMobConfiguration {
         #else
         false
         #endif
+    }
+
+    static var testDeviceIdentifiers: [String] {
+        AdDiagnostics.enabled ? developerTestDeviceIdentifiers : []
+    }
+
+    static func configureRequestConfiguration() {
+        MobileAds.shared.requestConfiguration.testDeviceIdentifiers = testDeviceIdentifiers
     }
 
     /// DEBUG-only manual switch for the Google Mobile Ads native validator UI.
@@ -60,6 +90,33 @@ enum AdMobConfiguration {
         return unit
     }
 
+    static func bannerAdUnitID(for placement: String) -> String {
+        let unit = shouldUseOfficialTestUnit(format: "banner", placement: placement)
+            ? testBannerAdUnitID
+            : productionBannerAdUnitID
+        logUnitSelection(format: "banner", unitID: unit)
+        return unit
+    }
+
+    static func nativeAdUnitID(for placement: String) -> String {
+        let unit = shouldUseOfficialTestUnit(format: "native", placement: placement)
+            ? testNativeAdUnitID
+            : (productionNativeAdUnitID ?? testNativeAdUnitID)
+        logUnitSelection(format: "native", unitID: unit)
+        return unit
+    }
+
+    private static func shouldUseOfficialTestUnit(format: String, placement: String) -> Bool {
+        guard AdDiagnostics.enabled else { return false }
+        switch (format, placement) {
+        case ("banner", "discover.bottomStrip"),
+             ("native", "chat.inboxFeed"):
+            return true
+        default:
+            return usesTestAds
+        }
+    }
+
     static var nativeAdsUseTemporaryTestUnitInRelease: Bool {
         !usesTestAds && productionNativeAdUnitID == nil
     }
@@ -80,7 +137,7 @@ enum AdRuntimeDevice {
 
     /// DEBUG builds use Google test ad units, which are safe on physical devices.
     static var testDeviceConfigured: Bool {
-        AdMobConfiguration.usesTestAds
+        AdMobConfiguration.usesTestAds || !AdMobConfiguration.testDeviceIdentifiers.isEmpty
     }
 }
 
@@ -135,6 +192,8 @@ enum GoogleMobileAdsBootstrap {
     static func startIfNeeded() {
         guard !didStart else { return }
         didStart = true
+        AdMobConfiguration.configureRequestConfiguration()
+        AdDiagnostics.logStartupTestDeviceConfigurationIfNeeded()
         AdMobDiagnostics.logBootstrap()
         AdDebugDiagnostics.logConsent("attStatus=\(AdDebugDiagnostics.currentATTStatusLabel())")
         Task {

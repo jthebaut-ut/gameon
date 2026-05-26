@@ -739,6 +739,13 @@ extension MapViewModel {
         )
 #endif
         mergePickupInsertedLocally(row)
+        FanGeoAnalyticsService.recordGameCreated(
+            gameId: row.id,
+            city: row.city,
+            region: row.state,
+            country: nil,
+            sport: row.sport
+        )
         await awardFanXP(
             userId: uid,
             amount: 20,

@@ -41,8 +41,16 @@ enum ChatInboxAdPlacement {
 #endif
     }
 
+    static func shouldInsertNativeAd(conversationCount: Int) -> Bool {
+        conversationCount > adAfterConversationIndex
+    }
+
+    static func skippedReason(conversationCount: Int) -> String? {
+        shouldInsertNativeAd(conversationCount: conversationCount) ? nil : "notEnoughRows"
+    }
+
     static func listItems(for friends: [ChatViewModel.FriendDisplay]) -> [ChatInboxListItem] {
-        guard friends.count > adAfterConversationIndex else {
+        guard shouldInsertNativeAd(conversationCount: friends.count) else {
             return friends.map { .conversation($0) }
         }
 

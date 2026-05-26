@@ -1023,6 +1023,7 @@ extension MapViewModel {
         }
 
         if isInterested {
+            FanGeoAnalyticsService.recordGameJoined(gameId: venueEventID)
             await scheduleGameReminderIfPossible(venueEventID: venueEventID)
         } else {
             await cancelGameReminder(venueEventID: venueEventID)

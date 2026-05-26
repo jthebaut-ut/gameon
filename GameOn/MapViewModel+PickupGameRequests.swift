@@ -780,6 +780,7 @@ extension MapViewModel {
 #if DEBUG
             print("[PickupRequest] request created game=\(pickupGameId.uuidString.lowercased())")
 #endif
+            FanGeoAnalyticsService.recordGameJoined(gameId: pickupGameId)
             pickupMyLatestJoinRequestByGameId[pickupGameId] = row
             refreshPickupJoinCachesAfterMutation()
             await refreshPickupGamesForDiscoverMap(force: true)

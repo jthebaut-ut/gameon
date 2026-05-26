@@ -142,14 +142,14 @@ private struct SmoothCachedSocialAvatarImage: View {
             imageOpacity = 0
             uiImage = nil
 
-            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
+            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url, bucket: .avatar) {
                 guard !Task.isCancelled else { return }
                 uiImage = cached
                 imageOpacity = 1
                 return
             }
 
-            guard let loaded = await DiscoverMapImageCache.shared.image(for: url),
+            guard let loaded = await DiscoverMapImageCache.shared.image(for: url, bucket: .avatar),
                   !Task.isCancelled else { return }
             uiImage = loaded
             withAnimation(.easeOut(duration: 0.22)) {

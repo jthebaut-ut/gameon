@@ -439,7 +439,11 @@ struct PublicProfileEditorialHero: View {
         return UserAvatarView(
             avatarThumbnailURL: data.avatarThumbnailURL,
             avatarURL: data.avatarURL ?? "",
-            avatarDisplayRefreshToken: UUID(),
+            avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                userId: data.userId,
+                thumbnailURL: data.avatarThumbnailURL,
+                avatarURL: data.avatarURL
+            ),
             displayName: data.displayName,
             email: "",
             size: diameter,
@@ -852,7 +856,11 @@ struct PublicProfileGridMutualFansCard: View {
                             UserAvatarView(
                                 avatarThumbnailURL: fan.avatarURL,
                                 avatarURL: fan.avatarURL ?? "",
-                                avatarDisplayRefreshToken: UUID(),
+                                avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                                    userId: fan.userId,
+                                    thumbnailURL: fan.avatarURL,
+                                    avatarURL: fan.avatarURL
+                                ),
                                 displayName: fan.displayName,
                                 email: "",
                                 size: 34,

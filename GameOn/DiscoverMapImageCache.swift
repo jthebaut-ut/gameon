@@ -3,34 +3,42 @@ import UIKit
 
 /// Small in-memory image cache for Discover map thumbnails and “going” avatars (reduces `AsyncImage` refetch/flicker).
 actor DiscoverMapImageCache {
-    static let shared = DiscoverMapImageCache()
-
-    private var storage: [URL: UIImage] = [:]
-    private var inFlight: [URL: Task<UIImage?, Never>] = [:]
-    private var order: [URL] = []
-    private let maxEntries = 72
-
-    func cachedImage(for url: URL) -> UIImage? {
-        storage[url]
+    enum Bucket: Hashable {
+        case venue
+        case avatar
     }
 
-    func image(for url: URL) async -> UIImage? {
-        if let existing = storage[url] {
+    static let shared = DiscoverMapImageCache()
+
+    private var storage: [Bucket: [URL: UIImage]] = [:]
+    private var inFlight: [Bucket: [URL: Task<UIImage?, Never>]] = [:]
+    private var order: [Bucket: [URL]] = [:]
+    private let maxEntriesByBucket: [Bucket: Int] = [
+        .venue: 96,
+        .avatar: 160
+    ]
+
+    func cachedImage(for url: URL, bucket: Bucket = .venue) -> UIImage? {
+        storage[bucket]?[url] ?? storage[.venue]?[url]
+    }
+
+    func image(for url: URL, bucket: Bucket = .venue) async -> UIImage? {
+        if let existing = cachedImage(for: url, bucket: bucket) {
             #if DEBUG
-            print("[ImageCacheDebug] cacheHit url=\(url.absoluteString)")
+            print("[ImageCacheDebug] cacheHit bucket=\(bucket) url=\(url.absoluteString)")
             #endif
             return existing
         }
 
-        if let existingTask = inFlight[url] {
+        if let existingTask = inFlight[bucket]?[url] {
             #if DEBUG
-            print("[ImageCacheDebug] inFlightJoin url=\(url.absoluteString)")
+            print("[ImageCacheDebug] inFlightJoin bucket=\(bucket) url=\(url.absoluteString)")
             #endif
             return await existingTask.value
         }
 
         #if DEBUG
-        print("[ImageCacheDebug] fetchStart url=\(url.absoluteString)")
+        print("[ImageCacheDebug] fetchStart bucket=\(bucket) url=\(url.absoluteString)")
         let t0 = Date()
         #endif
 
@@ -45,54 +53,62 @@ actor DiscoverMapImageCache {
             }
         }
 
-        inFlight[url] = task
+        inFlight[bucket, default: [:]][url] = task
         let decoded = await task.value
-        inFlight.removeValue(forKey: url)
+        inFlight[bucket]?[url] = nil
 
         #if DEBUG
         let ms = Int(Date().timeIntervalSince(t0) * 1000)
-        print("[ImageCacheDebug] fetchFinished url=\(url.absoluteString) ms=\(ms)")
+        print("[ImageCacheDebug] fetchFinished bucket=\(bucket) url=\(url.absoluteString) ms=\(ms)")
         #endif
 
         guard let ui = decoded else {
             return nil
         }
-        if storage.count >= maxEntries, let old = order.first {
-            storage.removeValue(forKey: old)
-            order.removeFirst()
-        }
-        storage[url] = ui
-        order.append(url)
+        storeDecoded(ui, for: url, bucket: bucket)
         return ui
     }
 
-    func prefetch(urls: [URL]) async {
+    func prefetch(urls: [URL], bucket: Bucket = .venue) async {
         for url in urls.prefix(8) {
-            _ = await image(for: url)
+            _ = await image(for: url, bucket: bucket)
         }
     }
 
     func invalidate(urls: [URL]) {
         for url in urls {
-            storage.removeValue(forKey: url)
-            inFlight[url]?.cancel()
-            inFlight.removeValue(forKey: url)
+            for bucket in maxEntriesByBucket.keys {
+                storage[bucket]?[url] = nil
+                inFlight[bucket]?[url]?.cancel()
+                inFlight[bucket]?[url] = nil
+            }
         }
         let removed = Set(urls)
-        order.removeAll { removed.contains($0) }
+        for bucket in maxEntriesByBucket.keys {
+            order[bucket]?.removeAll { removed.contains($0) }
+        }
     }
 
-    func store(_ image: UIImage, for urls: [URL]) {
+    func store(_ image: UIImage, for urls: [URL], bucket: Bucket = .venue) {
         for url in urls {
-            if storage[url] == nil {
-                if storage.count >= maxEntries, let old = order.first {
-                    storage.removeValue(forKey: old)
-                    order.removeFirst()
-                }
-                order.append(url)
-            }
-            storage[url] = image
+            storeDecoded(image, for: url, bucket: bucket)
         }
+    }
+
+    private func storeDecoded(_ image: UIImage, for url: URL, bucket: Bucket) {
+        var bucketStorage = storage[bucket] ?? [:]
+        var bucketOrder = order[bucket] ?? []
+        if bucketStorage[url] == nil {
+            let maxEntries = maxEntriesByBucket[bucket] ?? 96
+            if bucketStorage.count >= maxEntries, let old = bucketOrder.first {
+                bucketStorage.removeValue(forKey: old)
+                bucketOrder.removeFirst()
+            }
+            bucketOrder.append(url)
+        }
+        bucketStorage[url] = image
+        storage[bucket] = bucketStorage
+        order[bucket] = bucketOrder
     }
 }
 

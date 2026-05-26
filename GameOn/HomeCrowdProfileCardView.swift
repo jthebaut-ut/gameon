@@ -261,7 +261,11 @@ struct HomeCrowdProfileCardView: View {
                 UserAvatarView(
                     avatarThumbnailURL: fan.avatarURL,
                     avatarURL: fan.avatarURL ?? "",
-                    avatarDisplayRefreshToken: UUID(),
+                    avatarDisplayRefreshToken: UserAvatarView.stableRefreshToken(
+                        userId: fan.userId,
+                        thumbnailURL: fan.avatarURL,
+                        avatarURL: fan.avatarURL
+                    ),
                     displayName: fan.displayName,
                     email: "",
                     size: 30,

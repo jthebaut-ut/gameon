@@ -496,6 +496,7 @@ extension MapViewModel {
                     .value
 
                 RateLimitService.recordVenueEventCommentSend(venueEventId: venueEventID, body: cleanText)
+                FanGeoAnalyticsService.recordCommentPosted(venueEventId: venueEventID)
                 #if DEBUG
                 print("[GameChatPerf] server insert completed event=\(venueEventID) local=\(localCommentID) server=\(row.id?.uuidString ?? "nil")")
                 #endif

@@ -402,7 +402,11 @@ private struct PickupOrganizerApprovedRosterStripView: View {
         let fullRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
         let thumb: String? = thumbRaw.isEmpty ? nil : thumbRaw
         let full = fullRaw.isEmpty ? "" : fullRaw
-        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[userId] ?? UUID()
+        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[userId] ?? UserAvatarView.stableRefreshToken(
+            userId: userId,
+            thumbnailURL: thumb,
+            avatarURL: full
+        )
         let fallback: UserAvatarView.FallbackStyle = colorScheme == .dark ? .darkCardTranslucent : .lightOnWhiteChrome
 
         Button {
@@ -1179,7 +1183,11 @@ private struct SettingsPickupWithdrawnJoinRow: View {
         let fullRaw = ImageDisplayURL.canonicalStorageURLString(profile?.avatar_url)
         let thumb: String? = thumbRaw.isEmpty ? nil : thumbRaw
         let full = fullRaw.isEmpty ? "" : fullRaw
-        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[request.requester_user_id] ?? UUID()
+        let token = viewModel.pickupJoinRequesterAvatarTokenByUserId[request.requester_user_id] ?? UserAvatarView.stableRefreshToken(
+            userId: request.requester_user_id,
+            thumbnailURL: thumb,
+            avatarURL: full
+        )
 
         HStack(alignment: .top, spacing: 12) {
             PublicProfileAvatarTap(

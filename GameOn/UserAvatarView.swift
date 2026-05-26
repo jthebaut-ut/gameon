@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 import UIKit
 
@@ -70,6 +71,31 @@ struct UserAvatarView: View {
     }
 }
 
+extension UserAvatarView {
+    static let placeholderRefreshToken = UUID(uuid: (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+    static func stableRefreshToken(
+        userId: UUID,
+        thumbnailURL: String?,
+        avatarURL: String?,
+        versionSuffix: String = ""
+    ) -> UUID {
+        let material = "\(userId.uuidString.lowercased())|\(thumbnailURL ?? "")|\(avatarURL ?? "")|\(versionSuffix)"
+        let digest = Insecure.MD5.hash(data: Data(material.utf8))
+        return digest.withUnsafeBytes { raw in
+            let bytes = raw.bindMemory(to: UInt8.self)
+            return UUID(
+                uuid: (
+                    bytes[0], bytes[1], bytes[2], bytes[3],
+                    bytes[4], bytes[5], bytes[6], bytes[7],
+                    bytes[8], bytes[9], bytes[10], bytes[11],
+                    bytes[12], bytes[13], bytes[14], bytes[15]
+                )
+            )
+        }
+    }
+}
+
 private struct SmoothCachedAvatarImage: View {
     let url: URL
     let size: CGFloat
@@ -93,7 +119,7 @@ private struct SmoothCachedAvatarImage: View {
             imageOpacity = 0
             uiImage = nil
 
-            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url) {
+            if let cached = await DiscoverMapImageCache.shared.cachedImage(for: url, bucket: .avatar) {
                 guard !Task.isCancelled else { return }
                 uiImage = cached
                 imageOpacity = 1
@@ -103,7 +129,7 @@ private struct SmoothCachedAvatarImage: View {
                 return
             }
 
-            guard let loaded = await DiscoverMapImageCache.shared.image(for: url),
+            guard let loaded = await DiscoverMapImageCache.shared.image(for: url, bucket: .avatar),
                   !Task.isCancelled else { return }
             uiImage = loaded
 #if DEBUG

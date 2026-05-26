@@ -44,12 +44,13 @@ struct CompactNativeAdCard: View {
     @State private var adFailed = false
 
     var body: some View {
+        let adUnitID = AdMobConfiguration.nativeAdUnitID(for: placement)
         Group {
             if !adFailed {
                 CompactNativeAdRepresentable(
                     placement: placement,
                     hostTabRaw: hostTabRaw,
-                    adUnitID: AdMobConfiguration.nativeAdUnitID,
+                    adUnitID: adUnitID,
                     slotIndex: slotIndex,
                     layoutWidth: layoutWidth,
                     prefersLightChrome: prefersLightChrome,
@@ -61,6 +62,7 @@ struct CompactNativeAdCard: View {
                         } else {
                             adLoaded = true
                         }
+                        logNativeAdDebug("adLoaded collapsed=false unitID=\(adUnitID)")
                         onAdLoaded?()
 #if DEBUG
                         guard AdDiagnostics.enabled else { return }
@@ -73,24 +75,33 @@ struct CompactNativeAdCard: View {
 #endif
                     },
                     onAdFailed: { error in
+                        AdDebugDiagnostics.logCollapsedAdSpace(
+                            format: "native",
+                            placement: placement,
+                            unitID: adUnitID,
+                            error: error
+                        )
+                        logNativeAdDebug("adFailed collapsed=true unitID=\(adUnitID) error=\(error.localizedDescription)")
                         adFailed = true
                         adLoaded = false
                         onAdFailed?(error)
                     }
                 )
                 .frame(maxWidth: .infinity)
-                .frame(height: CompactNativeAdLayout.preferredHeight)
+                .frame(height: adLoaded ? CompactNativeAdLayout.preferredHeight : 0)
                 .background(Color.clear)
                 .opacity(adLoaded ? 1 : 0)
                 .allowsHitTesting(adLoaded)
+                .clipped()
                 .onAppear {
+                    logNativeAdDebug("mounted=true collapsed=\(!adLoaded) unitID=\(adUnitID) layoutWidth=\(String(format: "%.1f", Double(layoutWidth)))")
                     AdDebugDiagnostics.logEvent(
                         event: "swiftUIHostAppear",
                         format: "native",
                         placement: placement,
                         fields: [
                             "slotIndex": "\(slotIndex)",
-                            "layoutWidth": String(format: "%.1f", layoutWidth),
+                            "layoutWidth": String(format: "%.1f", Double(layoutWidth)),
                             "zeroLayoutWidth": "\(layoutWidth <= 0)",
                             "hostTab": hostTabRaw,
                             "hostTabOffscreenPreserved": "\(AdDebugContext.isTabOffscreenPreserved(tabRaw: hostTabRaw))",
@@ -101,8 +112,14 @@ struct CompactNativeAdCard: View {
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Sponsored advertisement")
+                .accessibilityHidden(!adLoaded)
             }
         }
+    }
+
+    private func logNativeAdDebug(_ message: String) {
+        guard AdDiagnostics.enabled else { return }
+        print("[NativeAdDebug] placement=\(placement) \(message)")
     }
 }
 
@@ -208,13 +225,25 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
         }
 
         func loadIfNeeded(adUnitID: String, slotIndex: Int, layoutWidth: CGFloat) {
-            guard adLoader == nil, nativeAd == nil else { return }
+            guard adLoader == nil, nativeAd == nil else {
+                logNativeAdDebug("skippedReason=alreadyLoadingOrLoaded collapsed=false unitID=\(adUnitID)")
+                return
+            }
             guard isHostTabVisible else {
+                logNativeAdDebug("skippedReason=hostTabHidden collapsed=true unitID=\(adUnitID)")
                 return
             }
             let requestLayoutWidth = max(layoutWidth, CompactNativeAdLayout.minimumRequestDimension)
 
             guard GoogleMobileAdsBootstrap.canRequestAds else {
+                logNativeAdDebug("skippedReason=consentNotReady collapsed=true unitID=\(adUnitID)")
+                AdDebugDiagnostics.logRequestDeferred(
+                    format: "native",
+                    placement: placement,
+                    unitID: adUnitID,
+                    reason: .consentNotReady,
+                    message: "Consent flow has not allowed ad requests yet."
+                )
                 guard !isWaitingForConsent else { return }
                 isWaitingForConsent = true
                 GoogleMobileAdsBootstrap.runWhenAdsCanBeRequested { [weak self] in
@@ -241,7 +270,9 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
                 ]
             )
 
-            guard let root = AdMobRootViewController.topViewController() else {
+            let root = AdMobRootViewController.topViewController()
+            logNativeAdDebug("rootViewControllerAvailable=\(root != nil) collapsed=true unitID=\(adUnitID)")
+            guard let root else {
                 AdDebugDiagnostics.logMissingRootViewController(
                     format: "native",
                     placement: placement,
@@ -253,6 +284,7 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
 
             currentAdUnitID = adUnitID
             requestStartedAt = Date()
+            logNativeAdDebug("requestStart unitID=\(adUnitID) collapsed=true slotIndex=\(slotIndex)")
             AdDebugDiagnostics.logRequestStart(
                 format: "native",
                 placement: placement,
@@ -297,12 +329,14 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             nativeAd.delegate = self
             hostView?.populate(with: nativeAd)
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            logNativeAdDebug("adLoaded unitID=\(currentAdUnitID ?? "unknown") collapsed=false")
             AdDebugDiagnostics.logResponseSuccess(
                 format: "native",
                 placement: placement,
                 unitID: currentAdUnitID,
                 elapsedMs: elapsed,
-                adSize: CGSize(width: CompactNativeAdHostView.preferredHeight, height: CompactNativeAdHostView.preferredHeight)
+                adSize: CGSize(width: CompactNativeAdHostView.preferredHeight, height: CompactNativeAdHostView.preferredHeight),
+                responseInfo: nativeAd.responseInfo
             )
             AdDebugDiagnostics.logViewSnapshot(
                 phase: "didReceiveAd",
@@ -324,12 +358,14 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
                 return
             }
             let elapsed = requestStartedAt.map { Date().timeIntervalSince($0) * 1000 }
+            logNativeAdDebug("adFailed unitID=\(currentAdUnitID ?? "unknown") collapsed=true error=\(error.localizedDescription)")
             AdDebugDiagnostics.logResponseFailure(
                 format: "native",
                 placement: placement,
                 unitID: currentAdUnitID,
                 error: error,
-                elapsedMs: elapsed
+                elapsedMs: elapsed,
+                responseInfo: nil
             )
             AdDebugDiagnostics.logViewSnapshot(
                 phase: "didFailToReceiveAd",
@@ -344,6 +380,11 @@ private struct CompactNativeAdRepresentable: UIViewRepresentable {
             )
             onAdFailed(error)
             teardown()
+        }
+
+        private func logNativeAdDebug(_ message: String) {
+            guard AdDiagnostics.enabled else { return }
+            print("[NativeAdDebug] placement=\(placement) \(message)")
         }
     }
 }

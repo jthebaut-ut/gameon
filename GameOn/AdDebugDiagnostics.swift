@@ -31,6 +31,18 @@ enum AdDebugContext {
 // MARK: - Deep AdMob diagnostics ([AdDebug] — quiet by default; enable `AdDiagnostics.enabled` for ad debugging)
 
 enum AdDebugDiagnostics {
+    private static var loggedUnitSelectionKeys: Set<String> = []
+    private static var loggedEventOnceKeys: Set<String> = []
+
+    enum AdLoadFailedReason: String {
+        case noFill = "no_fill"
+        case network
+        case consentNotReady = "consent_not_ready"
+        case rootViewControllerMissing = "root_view_controller_missing"
+        case configurationIssue = "configuration_issue"
+        case unknown
+    }
+
     // MARK: Bootstrap / plist verification
 
     static func logBootstrap() {
@@ -53,6 +65,7 @@ enum AdDebugDiagnostics {
                 "appIDMatch": "\(plistAppID == configuredAppID)",
                 "usesTestAds": "\(AdMobConfiguration.usesTestAds)",
                 "testDeviceConfigured": "\(AdRuntimeDevice.testDeviceConfigured)",
+                "testDeviceIdentifierCount": "\(AdMobConfiguration.testDeviceIdentifiers.count)",
                 "deviceIsPhysical": "\(!AdRuntimeDevice.isSimulator)",
                 "buildIsDebug": buildIsDebugDescription(),
                 "bannerUnit": AdMobConfiguration.bannerAdUnitID,
@@ -102,6 +115,8 @@ enum AdDebugDiagnostics {
     }
 
     static func logUnitSelection(format: String, unitID: String) {
+        let key = "\(format)|\(unitID)|\(AdMobConfiguration.usesTestAds)"
+        guard loggedUnitSelectionKeys.insert(key).inserted else { return }
         log(
             event: "unitSelected",
             format: format,
@@ -126,9 +141,11 @@ enum AdDebugDiagnostics {
     ) {
         var fields: [String: String] = [
             "unitID": unitID,
+            "requestStarted": "true",
             "visibleTab": AdDebugContext.visibleTab,
             "attStatus": currentATTStatusLabel()
         ]
+        fields.merge(runtimeTestDeviceFields()) { _, new in new }
         if let adSize {
             fields["adSizeW"] = fmt(adSize.width)
             fields["adSizeH"] = fmt(adSize.height)
@@ -156,20 +173,25 @@ enum AdDebugDiagnostics {
         unitID: String?,
         elapsedMs: Double?,
         adSize: CGSize? = nil,
-        slotSize: CGSize? = nil
+        slotSize: CGSize? = nil,
+        responseInfo: ResponseInfo? = nil
     ) {
         var fields: [String: String] = [
             "unitID": unitID ?? "unknown",
             "fill": "success",
+            "requestSuccess": "true",
             "visibleTab": AdDebugContext.visibleTab,
             "attStatus": currentATTStatusLabel()
         ]
+        fields.merge(runtimeTestDeviceFields()) { _, new in new }
+        fields.merge(responseInfoFields(responseInfo)) { _, new in new }
         if let elapsedMs {
             fields["elapsedMs"] = String(format: "%.0f", elapsedMs)
         }
         if let adSize {
             fields["adSizeW"] = fmt(adSize.width)
             fields["adSizeH"] = fmt(adSize.height)
+            fields["loadedAdSize"] = "\(fmt(adSize.width))x\(fmt(adSize.height))"
         }
         if let slotSize {
             fields["slotW"] = fmt(slotSize.width)
@@ -183,17 +205,110 @@ enum AdDebugDiagnostics {
         placement: String,
         unitID: String?,
         error: Error,
-        elapsedMs: Double? = nil
+        elapsedMs: Double? = nil,
+        responseInfo: ResponseInfo? = nil
     ) {
         var fields = gadErrorFields(error)
+        let reason = classifyAdLoadFailure(error)
         fields["unitID"] = unitID ?? "unknown"
         fields["fill"] = "failure"
+        fields["requestFailed"] = "true"
+        fields["loadFailedReason"] = reason.rawValue
         fields["visibleTab"] = AdDebugContext.visibleTab
         fields["attStatus"] = currentATTStatusLabel()
+        fields.merge(runtimeTestDeviceFields()) { _, new in new }
+        fields.merge(responseInfoFields(responseInfo)) { _, new in new }
         if let elapsedMs {
             fields["elapsedMs"] = String(format: "%.0f", elapsedMs)
         }
         log(event: "responseFailure", format: format, placement: placement, fields: fields)
+    }
+
+    static func logRequestDeferred(
+        format: String,
+        placement: String,
+        unitID: String?,
+        reason: AdLoadFailedReason,
+        message: String
+    ) {
+        log(
+            event: "requestDeferred",
+            format: format,
+            placement: placement,
+            fields: [
+                "unitID": unitID ?? "unknown",
+                "loadFailedReason": reason.rawValue,
+                "errorCode": "n/a",
+                "errorMessage": message,
+                "visibleTab": AdDebugContext.visibleTab,
+                "attStatus": currentATTStatusLabel()
+            ]
+        )
+    }
+
+    static func logCollapsedAdSpace(format: String, placement: String, unitID: String?, error: Error) {
+        let reason = classifyAdLoadFailure(error)
+        var fields = gadErrorFields(error)
+        fields["unitID"] = unitID ?? "unknown"
+        fields["loadFailedReason"] = reason.rawValue
+        fields["collapsedNoFill"] = "\(reason == .noFill)"
+        log(event: "adSpaceCollapsed", format: format, placement: placement, fields: fields)
+    }
+
+    static func logRequestSuppressed(
+        format: String,
+        placement: String,
+        unitID: String?,
+        reason: String,
+        fields extraFields: [String: String] = [:]
+    ) {
+        var fields = extraFields
+        fields["unitID"] = unitID ?? "unknown"
+        fields["reason"] = reason
+        log(event: "requestSuppressed", format: format, placement: placement, fields: fields)
+    }
+
+    static func logRetryScheduled(
+        format: String,
+        placement: String,
+        unitID: String?,
+        delaySeconds: TimeInterval,
+        retryBackoffCount: Int,
+        failureReason: AdLoadFailedReason
+    ) {
+        log(
+            event: "retryScheduled",
+            format: format,
+            placement: placement,
+            fields: [
+                "unitID": unitID ?? "unknown",
+                "delaySeconds": String(format: "%.0f", delaySeconds),
+                "retryBackoffCount": "\(retryBackoffCount)",
+                "loadFailedReason": failureReason.rawValue
+            ]
+        )
+    }
+
+    static func logAdLoaded(format: String, placement: String, unitID: String?) {
+        log(
+            event: "adLoaded",
+            format: format,
+            placement: placement,
+            fields: ["unitID": unitID ?? "unknown"]
+        )
+    }
+
+    static func logConsentBecameReadyReload(format: String, placement: String, unitID: String?) {
+        log(
+            event: "consentReadyReload",
+            format: format,
+            placement: placement,
+            fields: [
+                "unitID": unitID ?? "unknown",
+                "consentBecameReadyReload": "true",
+                "visibleTab": AdDebugContext.visibleTab
+            ]
+        )
     }
 
     static func logMissingRootViewController(format: String, placement: String, unitID: String?) {
@@ -203,6 +318,9 @@ enum AdDebugDiagnostics {
             placement: placement,
             fields: [
                 "unitID": unitID ?? "unknown",
+                "loadFailedReason": AdLoadFailedReason.rootViewControllerMissing.rawValue,
+                "errorCode": "n/a",
+                "errorMessage": "Root view controller is missing.",
                 "visibleTab": AdDebugContext.visibleTab,
                 "keyWindowPresent": "\(AdMobRootViewController.bestKeyWindow() != nil)"
             ]
@@ -323,6 +441,18 @@ enum AdDebugDiagnostics {
         log(event: event, format: format, placement: placement, fields: fields)
     }
 
+    static func logEventOnce(
+        event: String,
+        format: String,
+        placement: String,
+        dedupeKey: String,
+        fields: [String: String] = [:]
+    ) {
+        let key = "\(event)|\(format)|\(placement)|\(dedupeKey)"
+        guard loggedEventOnceKeys.insert(key).inserted else { return }
+        log(event: event, format: format, placement: placement, fields: fields)
+    }
+
     // MARK: Internals
 
     private static func log(
@@ -340,10 +470,12 @@ enum AdDebugDiagnostics {
     private static func gadErrorFields(_ error: Error) -> [String: String] {
         var fields: [String: String] = [:]
         let ns = error as NSError
+        let errorMessage = ns.localizedDescription
+            .replacingOccurrences(of: "\n", with: " ")
         fields["errorDomain"] = ns.domain
         fields["errorCode"] = "\(ns.code)"
-        fields["errorDescription"] = ns.localizedDescription
-            .replacingOccurrences(of: "\n", with: " ")
+        fields["errorDescription"] = errorMessage
+        fields["errorMessage"] = errorMessage
 
         if let reason = ns.localizedFailureReason {
             fields["failureReason"] = reason.replacingOccurrences(of: "\n", with: " ")
@@ -366,6 +498,75 @@ enum AdDebugDiagnostics {
             fields["userInfo.\(key)"] = String(rendered.prefix(280))
         }
         return fields
+    }
+
+    private static func runtimeTestDeviceFields() -> [String: String] {
+        let identifiers = MobileAds.shared.requestConfiguration.testDeviceIdentifiers ?? []
+        return [
+            "isTestDevice": "\(AdRuntimeDevice.testDeviceConfigured)",
+            "testDeviceIdentifiersCount": "\(identifiers.count)",
+            "requestConfiguration.testDeviceIdentifiers": identifiers.isEmpty ? "[]" : identifiers.joined(separator: ",")
+        ]
+    }
+
+    private static func responseInfoFields(_ responseInfo: ResponseInfo?) -> [String: String] {
+        guard let responseInfo else {
+            return [
+                "responseInfo.responseIdentifier": "nil",
+                "mediationAdapterClassName": "nil"
+            ]
+        }
+        return [
+            "responseInfo.responseIdentifier": responseInfo.responseIdentifier ?? "nil",
+            "mediationAdapterClassName": responseInfo.loadedAdNetworkResponseInfo?.adNetworkClassName ?? "nil"
+        ]
+    }
+
+    static func loadFailedReason(for error: Error) -> AdLoadFailedReason {
+        classifyAdLoadFailure(error)
+    }
+
+    private static func classifyAdLoadFailure(_ error: Error) -> AdLoadFailedReason {
+        let ns = error as NSError
+        let text = [
+            ns.domain,
+            ns.localizedDescription,
+            ns.localizedFailureReason ?? "",
+            ns.localizedRecoverySuggestion ?? "",
+            (ns.userInfo[NSUnderlyingErrorKey] as? NSError)?.localizedDescription ?? ""
+        ]
+        .joined(separator: " ")
+        .lowercased()
+
+        if text.contains("root view controller") {
+            return .rootViewControllerMissing
+        }
+        if text.contains("no fill") || text.contains("no ad to show") || text.contains("no ad") {
+            return .noFill
+        }
+        if ns.code == 1 && text.contains("google") {
+            return .noFill
+        }
+        if ns.code == 2
+            || text.contains("network")
+            || text.contains("internet")
+            || text.contains("connection")
+            || text.contains("timed out")
+            || text.contains("timeout") {
+            return .network
+        }
+        if ns.code == 0
+            || ns.code == 8
+            || ns.code == 10
+            || ns.code == 12
+            || text.contains("invalid request")
+            || text.contains("invalid ad")
+            || text.contains("ad unit")
+            || text.contains("application identifier")
+            || text.contains("configured") {
+            return .configurationIssue
+        }
+        return .unknown
     }
 
     static func currentATTStatusLabel() -> String {
@@ -402,7 +603,7 @@ enum AdDebugDiagnostics {
     }
 
     private static func fmt(_ value: CGFloat) -> String {
-        String(format: "%.1f", value)
+        String(format: "%.1f", Double(value))
     }
 }
 

@@ -45,6 +45,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            FanGeoAnalyticsService.recordAppOpen()
             #if DEBUG
             print("[LaunchPathDebug] ContentViewMounted=true")
             print("[LaunchPathDebug] isBootstrapping=\(bootstrapCoordinator.isBootstrapping)")
@@ -58,6 +59,7 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
+            FanGeoAnalyticsService.touchLastActive()
             Task {
                 if viewModel.hasAuthenticatedVenueOwnerSession
                     || viewModel.currentUserIsBusinessAccount

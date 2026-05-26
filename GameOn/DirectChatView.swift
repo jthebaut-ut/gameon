@@ -982,6 +982,7 @@ private final class DirectChatPresenter: ObservableObject {
                 diagnosticCorrelationId: correlationId
             )
             RateLimitService.recordDirectChatSend(conversationId: conversationId, body: trimmed)
+            FanGeoAnalyticsService.recordDMSent(conversationId: conversationId)
 #if DEBUG
             if let sendStartedAt = dmLatencySendTimesByLocalID[localId] {
                 dmLatencySendTimesByServerID[row.id] = sendStartedAt
