@@ -156,7 +156,7 @@ enum FanGeoAnalyticsService {
                 let now = isoTimestamp(Date())
 
                 if updateLastActive {
-                    try? await supabase
+                    _ = try? await supabase
                         .from("user_profiles")
                         .update(LastActivePayload(last_active_at: now))
                         .eq("id", value: userId.uuidString)

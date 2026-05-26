@@ -28,6 +28,16 @@ private struct PickupGameAnonDiagnosticProbeRow: Decodable {
     let remove_after_at: String?
 }
 
+private struct PickupDiscoverVisibilityEvaluation {
+    let included: Bool
+    let rejectionReason: String
+    let gameDate: Date?
+    let withinVisibleRegion: Bool
+    let filteredByBounds: Bool
+    let filteredByDate: Bool
+    let filteredBySport: Bool
+}
+
 private func pickupDebugYMD(_ d: Date) -> String {
     let c = Calendar.current
     let y = c.component(.year, from: d)
@@ -337,7 +347,12 @@ extension MapViewModel {
     func refreshPickupGamesForDiscoverMap(force: Bool = false, preservePickupCalendarDotDatesCache: Bool = false) async {
         if let existing = refreshPickupGamesForDiscoverMapCoalescingTask {
             await existing.value
-            return
+            if !force { return }
+            // A forced refresh usually follows a mutation. Do not let an older
+            // in-flight read satisfy it, because that can republish stale rows.
+            while refreshPickupGamesForDiscoverMapCoalescingTask != nil {
+                await Task.yield()
+            }
         }
         let capturedForce = force
         let capturedPreserve = preservePickupCalendarDotDatesCache
@@ -351,6 +366,58 @@ extension MapViewModel {
         refreshPickupGamesForDiscoverMapCoalescingTask = work
         await work.value
         refreshPickupGamesForDiscoverMapCoalescingTask = nil
+    }
+
+    func refreshPickupGameAfterDiscoverPickupPlaceCreate(_ row: PickupGameRow) async {
+#if DEBUG
+        print("[PickupCreateRefreshDebug] source=pickupPlaceCreate")
+        print("[PickupCreateRefreshDebug] insertedGameId=\(row.id.uuidString.lowercased())")
+#endif
+        if let createdStart = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) {
+            selectedDate = createdStart
+        }
+
+        discoverMapContentMode = .pickupGames
+        discoverPickupSubMode = .games
+        selectedBar = nil
+        selectedPickupPlaceForMap = nil
+
+        mergePickupInsertedLocally(row)
+        let localMerge = pickupGamesForDiscoverMap.contains { $0.id == row.id }
+        pickupGameCalendarDotDatesCache.removeAll()
+        invalidatePickupGameClusterAnnotationCache()
+        invalidateCalendarTabEventsListCache()
+        markPickupDiscoverMapDataDirtyForNextRefresh()
+
+#if DEBUG
+        print("[PickupCreateRefreshDebug] localMerge=\(localMerge)")
+        print("[PickupCreateRefreshDebug] cacheInvalidated=true")
+        print("[PickupCreateRefreshDebug] selectedDate=\(pickupDebugYMD(Calendar.current.startOfDay(for: selectedDate)))")
+        print("[PickupCreateRefreshDebug] mapRefreshStarted=true")
+#endif
+        await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: false)
+
+        // Keep the just-created game visible even if Supabase read-after-write
+        // replication or an older refresh briefly misses it.
+        mergePickupInsertedLocally(row)
+        if let currentUserAuthId, row.creator_user_id == currentUserAuthId {
+            await loadMyPickupGamesForSettings()
+        }
+
+        recomputeCalendarDotDates(force: true)
+#if DEBUG
+        print("[PickupCreateRefreshDebug] calendarRefreshStarted=true")
+#endif
+        loadDiscoverCalendarDots(around: selectedDate, reason: "pickup_place_create")
+
+        let visibleRow = pickupGamesVisibleAsMapPins(for: currentMapRegionBounds())
+            .first { $0.id == row.id }
+        if let visibleRow {
+            selectPickupGameOnMap(visibleRow)
+        }
+#if DEBUG
+        print("[PickupCreateRefreshDebug] visibleOnMapAfterRefresh=\(visibleRow != nil)")
+#endif
     }
 
     private func performRefreshPickupGamesForDiscoverMap(force: Bool, preservePickupCalendarDotDatesCache: Bool) async {
@@ -407,7 +474,7 @@ extension MapViewModel {
             var dropWrongDay = 0
             var dropRemoveAfterPast = 0
             var dropNotVisible = 0
-            var dropFull = 0
+            var fullRowsIncluded = 0
             var filtered: [PickupGameRow] = []
             filtered.reserveCapacity(rows.count)
             for row in rows {
@@ -430,16 +497,25 @@ extension MapViewModel {
                     continue
                 }
                 if row.isPickupFullForDiscover {
-                    dropFull += 1
-                    continue
+                    fullRowsIncluded += 1
                 }
                 filtered.append(row)
+#if DEBUG
+                logPickupVisibilityDebug(
+                    row: row,
+                    includedInDiscover: true,
+                    excludedBecauseFull: false,
+                    selectedDay: dayStart,
+                    requestStatus: nil
+                )
+#endif
             }
 
 #if DEBUG
             let sportFilter = requestSport == "All" ? "(none)" : requestSport
+            print("[PickupVisibilityDebug] serverRowsLoaded=\(rows.count)")
             print(
-                "[DiscoverPickupDiag] op=mapRefreshDay table=pickup_games selectedCalendarDay=\(pickupDebugYMD(dayStart)) dayStartISO=\(startISO) dayEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(requestSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) afterClientFilterCount=\(filtered.count) clientDrop_parseStart=\(dropParseStart) wrongDay=\(dropWrongDay) removeAfterPast=\(dropRemoveAfterPast) notVisible=\(dropNotVisible) full=\(dropFull)"
+                "[DiscoverPickupDiag] op=mapRefreshDay table=pickup_games selectedCalendarDay=\(pickupDebugYMD(dayStart)) dayStartISO=\(startISO) dayEndExclusiveISO=\(endISO) nowISO=\(nowISO) selectedSport=\(requestSport) sqlFilters=status:active is_visible:true game_start_at:[\(startISO),\(endISO)) remove_after_at:(is.null OR gt(\(nowISO))) sport:\(sportFilter) rawRowCount=\(rows.count) afterClientFilterCount=\(filtered.count) clientDrop_parseStart=\(dropParseStart) wrongDay=\(dropWrongDay) removeAfterPast=\(dropRemoveAfterPast) notVisible=\(dropNotVisible) fullIncluded=\(fullRowsIncluded)"
             )
             print("[DiscoverPickupDiag] NOTE map query uses same remove_after_at OR-null filter as calendar dots.")
             for (i, row) in rows.prefix(5).enumerated() {
@@ -986,31 +1062,166 @@ extension MapViewModel {
             return da > db
         }
 
-        if shouldIncludePickupRowOnDiscoverMap(row) {
+        let visibility = pickupDiscoverVisibilityEvaluation(for: row)
+#if DEBUG
+        logPickupDiscoverVisibility(row: row, evaluation: visibility)
+#endif
+        if visibility.included {
             if let i = pickupGamesForDiscoverMap.firstIndex(where: { $0.id == row.id }) {
                 pickupGamesForDiscoverMap[i] = row
             } else {
                 pickupGamesForDiscoverMap.append(row)
             }
+            invalidatePickupGameClusterAnnotationCache()
         } else {
+            let previousCount = pickupGamesForDiscoverMap.count
             pickupGamesForDiscoverMap.removeAll { $0.id == row.id }
+            if pickupGamesForDiscoverMap.count != previousCount {
+                invalidatePickupGameClusterAnnotationCache()
+            }
         }
     }
 
     private func shouldIncludePickupRowOnDiscoverMap(_ row: PickupGameRow) -> Bool {
-        guard row.status == "active", row.is_visible else { return false }
-        guard !row.isPickupFullForDiscover else { return false }
+        pickupDiscoverVisibilityEvaluation(for: row).included
+    }
+
+    private func pickupDiscoverVisibilityEvaluation(for row: PickupGameRow) -> PickupDiscoverVisibilityEvaluation {
+        let bounds = currentMapRegionBounds()
+        let withinVisibleRegion: Bool = {
+            guard let bounds, let lat = row.latitude, let lon = row.longitude else { return false }
+            return lat >= bounds.minLat && lat <= bounds.maxLat && lon >= bounds.minLon && lon <= bounds.maxLon
+        }()
+        let filteredByBounds = bounds != nil && !withinVisibleRegion
+        let status = row.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard status == "active", row.is_visible else {
+            return PickupDiscoverVisibilityEvaluation(
+                included: false,
+                rejectionReason: status == "active" ? "notVisible" : "status:\(status)",
+                gameDate: PickupGameModels.parseSupabaseTimestamptz(row.game_start_at),
+                withinVisibleRegion: withinVisibleRegion,
+                filteredByBounds: filteredByBounds,
+                filteredByDate: false,
+                filteredBySport: false
+            )
+        }
         let now = Date()
         if let rem = row.remove_after_at,
            let remd = PickupGameModels.parseSupabaseTimestamptz(rem),
            remd <= now {
-            return false
+            return PickupDiscoverVisibilityEvaluation(
+                included: false,
+                rejectionReason: "removeAfterPast",
+                gameDate: PickupGameModels.parseSupabaseTimestamptz(row.game_start_at),
+                withinVisibleRegion: withinVisibleRegion,
+                filteredByBounds: filteredByBounds,
+                filteredByDate: false,
+                filteredBySport: false
+            )
         }
         let cal = Calendar.current
-        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else { return false }
-        guard cal.isDate(start, inSameDayAs: selectedDate) else { return false }
-        if selectedSport != "All", row.sport != selectedSport { return false }
-        return true
+        guard let start = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at) else {
+            return PickupDiscoverVisibilityEvaluation(
+                included: false,
+                rejectionReason: "invalidGameDate",
+                gameDate: nil,
+                withinVisibleRegion: withinVisibleRegion,
+                filteredByBounds: filteredByBounds,
+                filteredByDate: true,
+                filteredBySport: false
+            )
+        }
+        let filteredByDate = !cal.isDate(start, inSameDayAs: selectedDate)
+        guard !filteredByDate else {
+            return PickupDiscoverVisibilityEvaluation(
+                included: false,
+                rejectionReason: "date",
+                gameDate: start,
+                withinVisibleRegion: withinVisibleRegion,
+                filteredByBounds: filteredByBounds,
+                filteredByDate: true,
+                filteredBySport: false
+            )
+        }
+        let filteredBySport = !pickupDiscoverSport(row.sport, matchesSelectedSport: selectedSport)
+        guard !filteredBySport else {
+            return PickupDiscoverVisibilityEvaluation(
+                included: false,
+                rejectionReason: "sport",
+                gameDate: start,
+                withinVisibleRegion: withinVisibleRegion,
+                filteredByBounds: filteredByBounds,
+                filteredByDate: false,
+                filteredBySport: true
+            )
+        }
+        return PickupDiscoverVisibilityEvaluation(
+            included: true,
+            rejectionReason: "none",
+            gameDate: start,
+            withinVisibleRegion: withinVisibleRegion,
+            filteredByBounds: filteredByBounds,
+            filteredByDate: false,
+            filteredBySport: false
+        )
+    }
+
+    private func pickupDiscoverSport(_ gameSport: String, matchesSelectedSport selectedSport: String) -> Bool {
+        let selected = selectedSport.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard selected.localizedCaseInsensitiveCompare("All") != .orderedSame else { return true }
+        let sport = gameSport.trimmingCharacters(in: .whitespacesAndNewlines)
+        return sport.localizedCaseInsensitiveCompare(selected) == .orderedSame
+            || SportFilterCatalog.storedSport(sport, matchesSearchQuery: selected)
+    }
+
+    private func logPickupDiscoverVisibility(row: PickupGameRow, evaluation: PickupDiscoverVisibilityEvaluation) {
+#if DEBUG
+        print("[PickupDiscoverVisibilityDebug] insertedGameID=\(row.id.uuidString.lowercased())")
+        print("[PickupDiscoverVisibilityDebug] included=\(evaluation.included)")
+        print("[PickupDiscoverVisibilityDebug] rejectionReason=\(evaluation.rejectionReason)")
+        print("[PickupDiscoverVisibilityDebug] selectedDate=\(pickupDebugYMD(Calendar.current.startOfDay(for: selectedDate)))")
+        if let gameDate = evaluation.gameDate {
+            print("[PickupDiscoverVisibilityDebug] gameDate=\(pickupDebugYMD(Calendar.current.startOfDay(for: gameDate)))")
+        } else {
+            print("[PickupDiscoverVisibilityDebug] gameDate=nil")
+        }
+        print("[PickupDiscoverVisibilityDebug] selectedSport=\(selectedSport)")
+        print("[PickupDiscoverVisibilityDebug] gameSport=\(row.sport)")
+        print("[PickupDiscoverVisibilityDebug] withinVisibleRegion=\(evaluation.withinVisibleRegion)")
+        print("[PickupDiscoverVisibilityDebug] filteredByBounds=\(evaluation.filteredByBounds)")
+        print("[PickupDiscoverVisibilityDebug] filteredByDate=\(evaluation.filteredByDate)")
+        print("[PickupDiscoverVisibilityDebug] filteredBySport=\(evaluation.filteredBySport)")
+        logPickupVisibilityDebug(
+            row: row,
+            includedInDiscover: evaluation.included,
+            excludedBecauseFull: false,
+            selectedDay: Calendar.current.startOfDay(for: selectedDate),
+            requestStatus: nil
+        )
+#endif
+    }
+
+    private func logPickupVisibilityDebug(
+        row: PickupGameRow,
+        includedInDiscover: Bool,
+        excludedBecauseFull: Bool,
+        selectedDay: Date,
+        requestStatus: String?
+    ) {
+#if DEBUG
+        let gameDay = PickupGameModels.parseSupabaseTimestamptz(row.game_start_at)
+            .map { Calendar.current.startOfDay(for: $0) }
+        print("[PickupVisibilityDebug] gameId=\(row.id.uuidString.lowercased())")
+        print("[PickupVisibilityDebug] rosterFull=\(row.isPickupFullForDiscover)")
+        print("[PickupVisibilityDebug] excludedBecauseFull=\(excludedBecauseFull)")
+        print("[PickupVisibilityDebug] includedInDiscover=\(includedInDiscover)")
+        print("[PickupVisibilityDebug] creatorCanReadGame=\(currentUserAuthId == row.creator_user_id)")
+        print("[PickupVisibilityDebug] selectedDate=\(pickupDebugYMD(selectedDay))")
+        print("[PickupVisibilityDebug] gameDate=\(gameDay.map(pickupDebugYMD) ?? "nil")")
+        if let requestStatus {
+            print("[PickupVisibilityDebug] requestStatus=\(requestStatus)")
+        }
+#endif
     }
 
     private func applySoftRemovedPickupGameLocally(id: UUID) {

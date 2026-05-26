@@ -143,6 +143,7 @@ final class LaunchWarmPreloadCoordinator {
                     if viewModel.canFanUsePickupGamesUI {
                         await viewModel.loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
                         await viewModel.loadIncomingPickupGameInvites()
+                        await viewModel.ensurePickupInviteRealtimeIfNeeded()
                     }
                 }
             }
@@ -181,6 +182,7 @@ final class LaunchWarmPreloadCoordinator {
                         await viewModel.loadMyPickupGameJoinRequestsForFollowing(reason: "startupPrefetch")
                         await viewModel.loadMyPickupGamesForSettings()
                         await viewModel.loadIncomingPickupGameInvites()
+                        await viewModel.ensurePickupInviteRealtimeIfNeeded()
                     }
                 }
             }

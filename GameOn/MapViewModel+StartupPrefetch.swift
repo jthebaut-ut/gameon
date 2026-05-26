@@ -135,6 +135,7 @@ extension MapViewModel {
         await enforceFanSingleSessionOnForeground()
         await startFanSingleSessionRealtimeIfNeeded()
         await loadPendingPickupGameJoinRequestCountForCreator()
+        await ensurePickupInviteRealtimeIfNeeded()
 
         await MainActor.run {
             lastLightweightStartupPrefetchAt = Date()

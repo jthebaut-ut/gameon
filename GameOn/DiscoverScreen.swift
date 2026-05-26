@@ -614,6 +614,7 @@ struct DiscoverScreen: View {
         let energy: Int
         let wantsEnriched: Bool
         let tint: Color
+        let displayClass: VenuePinDisplayClass
     }
 
     private struct VenueClusterDisplayValues {
@@ -621,6 +622,7 @@ struct DiscoverScreen: View {
         let displayState: ClusterDisplayState
         let tint: Color
         let isActive: Bool
+        let displayClass: VenuePinDisplayClass
     }
 
     private struct PickupMapMarkerDisplayValues {
@@ -969,10 +971,6 @@ struct DiscoverScreen: View {
                         }
                     ) {
                         pickupHostPrefillPlace = nil
-                        Task {
-                            await viewModel.loadMyPickupGamesForSettings()
-                            await viewModel.refreshPickupGamesForDiscoverMap(force: true)
-                        }
                     }
                 }
             }
@@ -1273,25 +1271,43 @@ struct DiscoverScreen: View {
     private func discoverClusterVenuesSheet(cluster: VenueCluster) -> some View {
         NavigationStack {
             List {
-                ForEach(cluster.bars.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) { bar in
+                ForEach(sortedClusterBarsForSheet(cluster.bars)) { bar in
+                    let displayClass = venuePinDisplayClass(for: bar)
                     Button {
                         clusterForSheet = nil
                         withAnimation(.spring()) {
                             viewModel.centerMap(on: bar)
                         }
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(bar.name)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text(bar.address)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(2)
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(bar.name)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(bar.address)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            venueClusterSheetStatusPill(displayClass)
+                                .padding(.top, 1)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 2)
+                        .background {
+                            if displayClass == .proVenue {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(red: 1.0, green: 0.82, blue: 0.30).opacity(colorScheme == .dark ? 0.10 : 0.07))
+                                    .padding(.horizontal, -8)
+                                    .padding(.vertical, -5)
+                            }
+                        }
                     }
-                    .listRowBackground(FGColor.cardBackground(colorScheme))
+                    .listRowBackground(clusterSheetRowBackground(displayClass: displayClass))
+                    .onAppear {
+                        logVenueClusterSheetDebug(bar: bar, displayClass: displayClass)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -1661,6 +1677,13 @@ struct DiscoverScreen: View {
         case noGameScheduled
     }
 
+    private enum VenuePinDisplayClass: String {
+        case unclaimedCommunity
+        case claimedCommunity
+        case businessVenue
+        case proVenue
+    }
+
     private enum ClusterDisplayState {
         case gameScheduled
         case noGameScheduled
@@ -1746,6 +1769,238 @@ struct DiscoverScreen: View {
             .onAppear { logMapDepthCluster(id: id) }
     }
 
+    private func venuePinDisplayClass(for bar: BarVenue) -> VenuePinDisplayClass {
+        if venueIsProForPinDisplay(bar) {
+            return .proVenue
+        }
+
+        let origin = bar.originType?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() ?? ""
+        if origin == "community" {
+            return bar.hasBusinessVerifiedFeatures ? .claimedCommunity : .unclaimedCommunity
+        }
+        if origin == "business" || bar.businessId != nil || bar.hasBusinessVerifiedFeatures {
+            return .businessVenue
+        }
+        return .businessVenue
+    }
+
+    private func venueClusterDisplayClass(for cluster: VenueCluster) -> VenuePinDisplayClass {
+        let classes = cluster.bars.map { venuePinDisplayClass(for: $0) }
+        if classes.contains(.proVenue) { return .proVenue }
+        if classes.contains(.businessVenue) { return .businessVenue }
+        if classes.contains(.claimedCommunity) { return .claimedCommunity }
+        return .unclaimedCommunity
+    }
+
+    private func venuePinDisplayPriority(_ displayClass: VenuePinDisplayClass) -> Int {
+        switch displayClass {
+        case .proVenue:
+            return 0
+        case .businessVenue, .claimedCommunity:
+            return 1
+        case .unclaimedCommunity:
+            return 2
+        }
+    }
+
+    private func sortedClusterBarsForSheet(_ bars: [BarVenue]) -> [BarVenue] {
+        bars.sorted { lhs, rhs in
+            let lhsClass = venuePinDisplayClass(for: lhs)
+            let rhsClass = venuePinDisplayClass(for: rhs)
+            let lp = venuePinDisplayPriority(lhsClass)
+            let rp = venuePinDisplayPriority(rhsClass)
+            if lp != rp { return lp < rp }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    private func venueIsProForPinDisplay(_ bar: BarVenue) -> Bool {
+        let ownerCandidates = [
+            bar.ownerEmail,
+            bar.venueOwnerEmailRaw,
+            bar.businessOwnerEmailRaw,
+            bar.contactEmailRaw
+        ]
+        if ownerCandidates.contains(where: { OwnerBusinessEmail.normalized($0 ?? "") == "venue30@venue30.com" }) {
+            return true
+        }
+        return bar.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            .caseInsensitiveCompare("Venue30") == .orderedSame
+    }
+
+    private func venuePinTint(for displayClass: VenuePinDisplayClass, hasLiveNow: Bool, energy: Int) -> Color {
+        if displayClass == .proVenue {
+            return Color(red: 0.95, green: 0.73, blue: 0.22)
+        }
+        return hasLiveNow || energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
+    }
+
+    private func venueClusterTint(for displayClass: VenuePinDisplayClass, energy: Int) -> Color {
+        if displayClass == .proVenue {
+            return Color(red: 0.95, green: 0.73, blue: 0.22)
+        }
+        if displayClass == .businessVenue || displayClass == .claimedCommunity {
+            return energy > 0 ? FGColor.accentGreen : FGColor.accentBlue
+        }
+        return energy > 0 ? FGColor.accentGreen : Color.gray
+    }
+
+    private func venuePinClaimStatusLabel(for displayClass: VenuePinDisplayClass) -> String {
+        switch displayClass {
+        case .unclaimedCommunity:
+            return "unclaimed"
+        case .claimedCommunity:
+            return "approvedCommunityClaim"
+        case .businessVenue:
+            return "businessVenue"
+        case .proVenue:
+            return "proVenue"
+        }
+    }
+
+    private func logVenuePinDisplayDebug(bar: BarVenue, displayClass: VenuePinDisplayClass) {
+#if DEBUG
+        guard isDiscoverTabSelected else { return }
+        DebugLogGate.noisy("[VenuePinDisplayDebug] venueId=\(bar.id.uuidString.lowercased())")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] venueName=\(bar.name)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] ownerEmail=\(bar.ownerEmail ?? bar.venueOwnerEmailRaw ?? bar.businessOwnerEmailRaw ?? "nil")")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] businessId=\(bar.businessId?.uuidString.lowercased() ?? "nil")")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] source=\(bar.originType ?? "nil")")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] claimStatus=\(venuePinClaimStatusLabel(for: displayClass))")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] displayClass=\(displayClass.rawValue)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] isPro=\(displayClass == .proVenue)")
+#endif
+    }
+
+    private func logVenueClusterDisplayDebug(cluster: VenueCluster, displayClass: VenuePinDisplayClass) {
+#if DEBUG
+        guard isDiscoverTabSelected else { return }
+        let containsPro = cluster.bars.contains { venuePinDisplayClass(for: $0) == .proVenue }
+        let containsClaimed = cluster.bars.contains {
+            let displayClass = venuePinDisplayClass(for: $0)
+            return displayClass == .claimedCommunity || displayClass == .businessVenue || displayClass == .proVenue
+        }
+        DebugLogGate.noisy("[VenuePinDisplayDebug] clusterId=\(cluster.id)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] clusterDisplayClass=\(displayClass.rawValue)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] clusterContainsPro=\(containsPro)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] clusterContainsClaimed=\(containsClaimed)")
+#endif
+    }
+
+    private func logVenueClusterSheetDebug(bar: BarVenue, displayClass: VenuePinDisplayClass) {
+#if DEBUG
+        DebugLogGate.noisy("[VenuePinDisplayDebug] sheetVenueName=\(bar.name)")
+        DebugLogGate.noisy("[VenuePinDisplayDebug] sheetDisplayClass=\(displayClass.rawValue)")
+#endif
+    }
+
+    private func venueClusterSheetStatusTitle(_ displayClass: VenuePinDisplayClass) -> String {
+        switch displayClass {
+        case .unclaimedCommunity:
+            return "Community"
+        case .claimedCommunity:
+            return "Claimed"
+        case .businessVenue:
+            return "Business"
+        case .proVenue:
+            return "Pro"
+        }
+    }
+
+    private func venueClusterSheetStatusTint(_ displayClass: VenuePinDisplayClass) -> Color {
+        switch displayClass {
+        case .unclaimedCommunity:
+            return Color.gray
+        case .claimedCommunity, .businessVenue:
+            return colorScheme == .dark ? Color.white.opacity(0.88) : Color.black.opacity(0.84)
+        case .proVenue:
+            return Color(red: 0.95, green: 0.73, blue: 0.22)
+        }
+    }
+
+    private func clusterSheetRowBackground(displayClass: VenuePinDisplayClass) -> Color {
+        if displayClass == .proVenue {
+            return Color(red: 1.0, green: 0.82, blue: 0.30).opacity(colorScheme == .dark ? 0.09 : 0.055)
+        }
+        return FGColor.cardBackground(colorScheme)
+    }
+
+    private func venueClusterSheetStatusPill(_ displayClass: VenuePinDisplayClass) -> some View {
+        let title = venueClusterSheetStatusTitle(displayClass)
+        let tint = venueClusterSheetStatusTint(displayClass)
+        let isDarkClass = displayClass == .claimedCommunity || displayClass == .businessVenue
+        return Text(title)
+            .font(.system(size: 10, weight: .heavy, design: .rounded))
+            .lineLimit(1)
+            .foregroundStyle(isDarkClass ? Color.white.opacity(0.94) : tint)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background {
+                Capsule(style: .continuous)
+                    .fill(
+                        isDarkClass
+                            ? Color.black.opacity(colorScheme == .dark ? 0.62 : 0.78)
+                            : tint.opacity(colorScheme == .dark ? 0.18 : 0.12)
+                    )
+            }
+            .overlay {
+                Capsule(style: .continuous)
+                    .strokeBorder(tint.opacity(displayClass == .proVenue ? 0.46 : 0.22), lineWidth: 0.8)
+            }
+    }
+
+    private func venuePinChrome<Content: View>(
+        displayClass: VenuePinDisplayClass,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack(alignment: .topTrailing) {
+            content()
+                .overlay {
+                    if displayClass == .proVenue {
+                        Circle()
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.96),
+                                        FGColor.accentGreen.opacity(0.72)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.6
+                            )
+                            .padding(-3)
+                    }
+                }
+                .shadow(
+                    color: displayClass == .proVenue ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.22) : .clear,
+                    radius: 9,
+                    y: 2
+                )
+
+            if displayClass == .proVenue {
+                Text("Pro")
+                    .font(.system(size: 8, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color.black.opacity(0.90))
+                    .lineLimit(1)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(red: 1.0, green: 0.82, blue: 0.30))
+                    )
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.55), lineWidth: 0.6)
+                    }
+                    .offset(x: 8, y: -8)
+                    .accessibilityHidden(true)
+            }
+        }
+    }
+
     /// Chooses pin chrome from **venue + cached engagement** first; map zoom (`mapPinDisplayMode`) only caps density. Multi-game / trending venues never stay on the tiny sport-only pin at wide zoom.
     private func venueMarkerPinPresentation(
         bar: BarVenue,
@@ -1788,6 +2043,7 @@ struct DiscoverScreen: View {
             energyOverride: pinSnapshot?.pinEnergyScore
         )
         let hasLiveNow = pinSnapshot?.hasLiveNow ?? viewModel.hasLiveVenueEventNow(for: bar, events: gamesToday)
+        let displayClass = venuePinDisplayClass(for: bar)
         return VenueMapPinDisplayValues(
             gamesToday: gamesToday,
             goingTotal: goingTotal,
@@ -1796,7 +2052,12 @@ struct DiscoverScreen: View {
             hasLiveNow: hasLiveNow,
             energy: pin.energy,
             wantsEnriched: pin.wantsEnriched,
-            tint: hasLiveNow || pin.energy >= livePulseThreshold ? FGColor.accentGreen : FGColor.accentBlue
+            tint: venuePinTint(
+                for: displayClass,
+                hasLiveNow: hasLiveNow,
+                energy: pin.energy
+            ),
+            displayClass: displayClass
         )
     }
 
@@ -1805,11 +2066,13 @@ struct DiscoverScreen: View {
         let energy = clusterSnapshot.map {
             (maxScore: $0.maxEnergyScore, dominantSport: $0.dominantSport)
         } ?? viewModel.clusterVenueAnnotationEnergy(cluster: cluster)
+        let displayClass = venueClusterDisplayClass(for: cluster)
         return VenueClusterDisplayValues(
             energy: energy,
             displayState: clusterDisplayState(cluster),
-            tint: energy.maxScore > 0 ? FGColor.accentGreen : FGColor.accentBlue,
-            isActive: energy.maxScore >= livePulseThreshold
+            tint: venueClusterTint(for: displayClass, energy: energy.maxScore),
+            isActive: displayClass == .proVenue || energy.maxScore >= livePulseThreshold,
+            displayClass: displayClass
         )
     }
 
@@ -1851,7 +2114,7 @@ struct DiscoverScreen: View {
                 isSelected: display.isSelected,
                 tint: display.tint
             ) {
-                Group {
+                venuePinChrome(displayClass: display.displayClass) {
                     switch venuePinDisplayState(bar) {
                     case .gameScheduled:
                         switch display.effectiveMode {
@@ -1877,13 +2140,16 @@ struct DiscoverScreen: View {
                             )
                         }
                     case .noGameScheduled:
-                        noGameScheduledMapPin()
+                        noGameScheduledMapPin(displayClass: display.displayClass)
                     }
                 }
             }
             .saturation(display.isSelected ? 0.82 : 0.66)
             .brightness(display.isSelected ? -0.01 : -0.035)
             .opacity(display.isSelected ? 0.96 : 0.82)
+            .onAppear {
+                logVenuePinDisplayDebug(bar: bar, displayClass: display.displayClass)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -1921,12 +2187,16 @@ struct DiscoverScreen: View {
                     cluster: cluster,
                     maxEnergy: display.energy.maxScore,
                     dominantSport: display.energy.dominantSport,
-                    displayState: display.displayState
+                    displayState: display.displayState,
+                    displayClass: display.displayClass
                 )
             }
             .saturation(0.68)
             .brightness(-0.03)
             .opacity(0.82)
+            .onAppear {
+                logVenueClusterDisplayDebug(cluster: cluster, displayClass: display.displayClass)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -2089,7 +2359,8 @@ struct DiscoverScreen: View {
     }
 
     private func pickupGamesAnnotationFingerprint() -> String {
-        viewModel.pickupGamesForDiscoverMap.prefix(96).map { row in
+        let rows = Array(viewModel.pickupGamesForDiscoverMap.prefix(96))
+        return (["count:\(viewModel.pickupGamesForDiscoverMap.count)"] + rows.map { row in
             [
                 row.id.uuidString.lowercased(),
                 String(format: "%.4f", row.latitude ?? 0),
@@ -2097,7 +2368,7 @@ struct DiscoverScreen: View {
                 row.status,
                 "\(row.approved_join_count ?? -1)"
             ].joined(separator: ":")
-        }
+        })
         .joined(separator: "|")
     }
 
@@ -8404,17 +8675,37 @@ struct DiscoverScreen: View {
             }
     }
 
-    private func noGameScheduledMapPin() -> some View {
-        Image(systemName: "building.2.fill")
+    private func noGameScheduledMapPin(displayClass: VenuePinDisplayClass) -> some View {
+        let isUnclaimedCommunity = displayClass == .unclaimedCommunity
+        let isPro = displayClass == .proVenue
+        let fill: Color = {
+            if isUnclaimedCommunity {
+                return Color.gray.opacity(0.62)
+            }
+            return colorScheme == .dark ? Color(red: 0.03, green: 0.06, blue: 0.09) : Color(red: 0.02, green: 0.05, blue: 0.08)
+        }()
+        let stroke: Color = isPro
+            ? Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.76)
+            : Color.white.opacity(isUnclaimedCommunity ? 0.18 : 0.28)
+
+        return Image(systemName: "building.2.fill")
             .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(Color.white.opacity(0.92))
             .frame(width: 38, height: 38)
             .background(
                 Circle()
-                    .fill(Color.gray.opacity(0.62))
-                    .shadow(radius: 4)
+                    .fill(fill)
+                    .shadow(
+                        color: isPro ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.20) : .black.opacity(0.18),
+                        radius: isPro ? 8 : 4,
+                        y: isPro ? 2 : 0
+                    )
             )
-            .opacity(0.6)
+            .overlay {
+                Circle()
+                    .strokeBorder(stroke, lineWidth: isPro ? 1.2 : 0.8)
+            }
+            .opacity(isUnclaimedCommunity ? 0.6 : 0.92)
     }
 
     private func compactMapPin(
@@ -8595,66 +8886,96 @@ struct DiscoverScreen: View {
         cluster: VenueCluster,
         maxEnergy: Int,
         dominantSport: String?,
-        displayState: ClusterDisplayState
+        displayState: ClusterDisplayState,
+        displayClass: VenuePinDisplayClass
     ) -> some View {
         let caption = viewModel.mapClusterEnergyCaption(maxScore: maxEnergy)
-        return VStack(spacing: 3) {
-            if case .gameScheduled = displayState,
-               let sport = dominantSport,
-               maxEnergy > 0 {
-                let sportTint = mapSportIconTint(for: sport)
-                let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
-                MapSportChipIconGlyph(
-                    sport: sport,
-                    emojiSize: 20,
-                    symbolSize: 15,
-                    frameSize: 26
-                )
-                    .padding(5)
-                    .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
-                    .onAppear {
-                        logMapSportIconDebug(sport: sport, markerType: "venueCluster")
-                    }
-            } else if case .noGameScheduled = displayState {
-                Image(systemName: "building.2.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.9))
-                    .padding(5)
-                    .background(Circle().fill(Color.gray.opacity(0.8)))
+        let isUnclaimedCommunity = displayClass == .unclaimedCommunity
+        let isPro = displayClass == .proVenue
+        let useDarkFill = !isUnclaimedCommunity || displayState == .gameScheduled
+        let fill = useDarkFill ? Color.black : Color.gray.opacity(0.72)
+        let iconBackground = useDarkFill ? Color.white.opacity(0.13) : Color.gray.opacity(0.8)
+
+        return ZStack(alignment: .topTrailing) {
+            VStack(spacing: 3) {
+                if case .gameScheduled = displayState,
+                   let sport = dominantSport,
+                   maxEnergy > 0 {
+                    let sportTint = mapSportIconTint(for: sport)
+                    let reusedSportChipIcon = mapSportIconReusesSportChipIcon(sport)
+                    MapSportChipIconGlyph(
+                        sport: sport,
+                        emojiSize: 20,
+                        symbolSize: 15,
+                        frameSize: 26
+                    )
+                        .padding(5)
+                        .background(Circle().fill((reusedSportChipIcon ? sportTint : Color.white).opacity(0.16)))
+                        .onAppear {
+                            logMapSportIconDebug(sport: sport, markerType: "venueCluster")
+                        }
+                } else if case .noGameScheduled = displayState {
+                    Image(systemName: "building.2.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .padding(5)
+                        .background(Circle().fill(iconBackground))
+                }
+
+                Text("\(cluster.count)")
+                    .font(.headline)
+                    .fontWeight(.bold)
+
+                Text("venues")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+
+                if case .gameScheduled = displayState, maxEnergy > 0 {
+                    Text("\(maxEnergy)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.yellow.opacity(0.95))
+                }
+
+                if case .gameScheduled = displayState, let caption {
+                    Text(caption)
+                        .font(.system(size: 9, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
             }
-
-            Text("\(cluster.count)")
-                .font(.headline)
-                .fontWeight(.bold)
-
-            Text("venues")
-                .font(.caption2)
-                .fontWeight(.bold)
-
-            if case .gameScheduled = displayState, maxEnergy > 0 {
-                Text("\(maxEnergy)")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.yellow.opacity(0.95))
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 7)
+            .frame(minWidth: 58, minHeight: 58)
+            .background(
+                Circle()
+                    .fill(fill)
+                    .shadow(color: isPro ? Color(red: 1.0, green: 0.78, blue: 0.26).opacity(0.22) : .black.opacity(0.18), radius: isPro ? 9 : 7, y: 2)
+            )
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        isPro ? Color(red: 1.0, green: 0.82, blue: 0.30).opacity(0.76) : Color.white.opacity(useDarkFill ? 0.22 : 0.10),
+                        lineWidth: isPro ? 1.4 : 0.8
+                    )
             }
+            .opacity(useDarkFill ? 1 : 0.62)
 
-            if case .gameScheduled = displayState, let caption {
-                Text(caption)
-                    .font(.system(size: 9, weight: .bold))
+            if isPro {
+                Text("Pro")
+                    .font(.system(size: 8, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Color.black.opacity(0.90))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color(red: 1.0, green: 0.82, blue: 0.30))
+                    )
+                    .offset(x: 8, y: -7)
             }
         }
-        .foregroundStyle(.white)
-        .multilineTextAlignment(.center)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 7)
-        .frame(minWidth: 58, minHeight: 58)
-        .background(
-            Circle()
-                .fill(displayState == .gameScheduled ? Color.black : Color.gray.opacity(0.72))
-                .shadow(radius: 7)
-        )
-        .opacity(displayState == .gameScheduled ? 1 : 0.62)
     }
 
     private func topVibeText(for venueEventID: UUID) -> String? {

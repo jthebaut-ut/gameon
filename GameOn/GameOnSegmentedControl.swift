@@ -84,9 +84,13 @@ struct GameOnSegmentedControl<Selection: Hashable>: View {
 
                     if let badge = tab.badge, !badge.isEmpty {
                         Text(badge)
-                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(isSelected ? tint : Color.orange.opacity(0.95))
-                            .padding(.horizontal, 7)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                            .multilineTextAlignment(.center)
+                            .frame(minWidth: 72, minHeight: 18, alignment: .center)
+                            .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(Color.orange.opacity(colorScheme == .dark ? 0.18 : 0.12), in: Capsule())
                             .accessibilityLabel(badge)

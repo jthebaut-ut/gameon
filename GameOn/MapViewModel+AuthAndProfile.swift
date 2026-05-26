@@ -673,6 +673,7 @@ extension MapViewModel {
             await self?.removeAllVenueEventCommentsRealtimeListeners()
             await self?.stopPickupJoinRequestBadgeRealtime()
             await self?.stopFollowingPickupRealtime()
+            await self?.stopPickupInviteRealtime()
         }
 
         venueOwnerEmail = ""

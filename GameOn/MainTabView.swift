@@ -250,6 +250,7 @@ struct MainTabView: View {
                     accountTabVisible: selectedTab == .account,
                     forceRefresh: true
                 )
+                Task { await viewModel.ensurePickupInviteRealtimeIfNeeded() }
             }
             Task { await syncChatAuthState() }
         }
@@ -1305,6 +1306,7 @@ struct MainTabView: View {
         }
 
         if viewModel.canFanUsePickupGamesUI {
+            await viewModel.restartPickupInviteRealtimeAfterForeground()
             if currentTab == .calendar {
                 await viewModel.refreshCalendarTabPickupSources()
             } else if currentTab == .following {

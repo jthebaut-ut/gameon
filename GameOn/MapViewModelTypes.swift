@@ -1227,7 +1227,7 @@ enum PickupFollowingJoinRequestPillKind: String, Equatable {
         switch self {
         case .pending: return "Pending"
         case .approved: return "Approved"
-        case .declined: return "Declined"
+        case .declined: return "Rejected"
         case .cancelled: return "Cancelled"
         case .withdrawing: return "Withdrawing…"
         case .canceledByOrganizer: return "Canceled"

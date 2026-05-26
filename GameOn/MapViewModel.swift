@@ -833,6 +833,11 @@ final class MapViewModel: ObservableObject {
     /// Realtime: requester’s join rows + followed pickup games (Following → Games to Play).
     var pickupFollowingRealtimeTask: Task<Void, Never>?
     var pickupFollowingRealtimeChannel: RealtimeChannelV2?
+    /// Realtime: incoming pickup-game invites for the signed-in invitee (Going badges + invite bell).
+    var pickupInviteRealtimeTask: Task<Void, Never>?
+    var pickupInviteRealtimeChannel: RealtimeChannelV2?
+    var pickupInviteRealtimeDebounceTask: Task<Void, Never>?
+    var pickupInviteRealtimeBoundUserId: UUID?
     /// Fan single-device session enforcement (`user_profiles.active_session_id`).
     var fanSingleSessionRealtimeChannel: RealtimeChannelV2?
     var fanSingleSessionRealtimeTask: Task<Void, Never>?

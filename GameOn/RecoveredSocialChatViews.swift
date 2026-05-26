@@ -412,13 +412,13 @@ struct FriendsTabView: View {
                     Label("Delete", systemImage: "trash")
                 }
             }
-        case .nativeAd:
+        case .nativeAd(let slot):
             if isTabSelected {
-                let _ = logChatNativeAdInserted()
+                let _ = logChatNativeAdInserted(slot)
                 CompactNativeAdCard(
                     placement: "chat.inboxFeed",
                     hostTabRaw: "chat",
-                    slotIndex: ChatInboxAdPlacement.nativeAdSlotIndex,
+                    slotIndex: slot.slotIndex,
                     layoutWidth: max(280, layoutWidth)
                 )
                 .frame(maxWidth: .infinity)
@@ -441,23 +441,24 @@ struct FriendsTabView: View {
     private func logChatInboxAdPlacement() {
         guard AdDiagnostics.enabled else { return }
         let conversationCount = chatConversationFriends.count
-        let shouldInsert = ChatInboxAdPlacement.shouldInsertNativeAd(conversationCount: conversationCount)
+        let insertionIndexes = ChatInboxAdPlacement.insertionPositions(for: conversationCount)
+        let renderedInsertionIndexes = insertionIndexes.map(String.init).joined(separator: ",")
         print("[NativeAdDebug] placement=chat.inboxFeed conversationCount=\(conversationCount)")
-        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(shouldInsert ? ChatInboxAdPlacement.insertedAfterConversationPosition : -1)")
+        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(insertionIndexes.first ?? -1)")
         if let reason = ChatInboxAdPlacement.skippedReason(conversationCount: conversationCount) {
             print("[NativeAdDebug] placement=chat.inboxFeed skippedReason=\(reason)")
         }
         print("[ChatInboxAdDebug] conversationCount=\(conversationCount)")
-        print("[ChatInboxAdDebug] insertionIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
+        print("[ChatInboxAdDebug] insertionIndexes=[\(renderedInsertionIndexes)]")
+        print("[ChatInboxAdDebug] adsInsertedCount=\(insertionIndexes.count)")
         print("[ChatInboxAdDebug] debugOverride=\(ChatInboxAdPlacement.debugOverrideEnabled)")
         print("[ChatInboxAdDebug] enabled=true")
-        print("[ChatInboxAdDebug] insertedAfterIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
         print("[ChatInboxAdDebug] dmThreadAds=false")
     }
 
-    private func logChatNativeAdInserted() {
+    private func logChatNativeAdInserted(_ slot: ChatInboxNativeAdSlot) {
         guard AdDiagnostics.enabled else { return }
-        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(ChatInboxAdPlacement.insertedAfterConversationPosition)")
+        print("[NativeAdDebug] placement=chat.inboxFeed insertedAtIndex=\(slot.insertedAfterConversationPosition)")
     }
 
     private func logChatNativeAdSkipped(reason: String) {

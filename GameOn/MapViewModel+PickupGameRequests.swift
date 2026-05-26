@@ -8,10 +8,25 @@ private let pickupGameInvitesSelectColumns =
     "id,pickup_game_id,inviter_user_id,invitee_user_id,status,message,created_at,responded_at"
 
 private let pickupFollowingOrganizerCanceledUserClearedKeyPrefix = "gameon.following.pickupOrganizerCanceledClearedIds."
+private let pickupFollowingRejectedUserClearedKeyPrefix = "gameon.following.pickupRejectedClearedRequestIds."
+
+private func pickupRequestDebugYMD(_ d: Date) -> String {
+    let c = Calendar.current
+    let y = c.component(.year, from: d)
+    let m = c.component(.month, from: d)
+    let day = c.component(.day, from: d)
+    return String(format: "%04d-%02d-%02d", y, m, day)
+}
 
 private struct PickupGameRequestStatusOnly: Decodable {
     let pickup_game_id: UUID
     let status: String
+}
+
+private struct PickupGameRequestRequesterOnly: Decodable {
+    let id: UUID
+    let requester_user_id: UUID
+    let status: String?
 }
 
 private struct CreatePickupGameInvitesParams: Encodable {
@@ -269,6 +284,205 @@ extension MapViewModel {
         }
     }
 
+    func ensurePickupInviteRealtimeIfNeeded() async {
+        guard canFanUsePickupGamesUI, let uid = currentUserAuthId else {
+            await stopPickupInviteRealtime()
+            return
+        }
+
+        if pickupInviteRealtimeTask != nil,
+           pickupInviteRealtimeChannel != nil,
+           pickupInviteRealtimeBoundUserId == uid {
+            return
+        }
+
+        await stopPickupInviteRealtime()
+        pickupInviteRealtimeTask = Task { [weak self] in
+            guard let self else { return }
+            await self.runPickupInviteRealtimeLoop(userId: uid)
+        }
+    }
+
+    func restartPickupInviteRealtimeAfterForeground() async {
+#if DEBUG
+        print("[PickupInviteRealtimeDebug] reconnectOnForeground=true")
+#endif
+        await stopPickupInviteRealtime()
+        await ensurePickupInviteRealtimeIfNeeded()
+        await loadIncomingPickupGameInvites(forceRefresh: true)
+    }
+
+    func stopPickupInviteRealtime() async {
+        pickupInviteRealtimeDebounceTask?.cancel()
+        pickupInviteRealtimeDebounceTask = nil
+
+        if let task = pickupInviteRealtimeTask {
+            task.cancel()
+            _ = await task.result
+            pickupInviteRealtimeTask = nil
+        }
+
+        if let ch = pickupInviteRealtimeChannel {
+            await supabase.removeChannel(ch)
+            pickupInviteRealtimeChannel = nil
+        }
+        pickupInviteRealtimeBoundUserId = nil
+    }
+
+    private func runPickupInviteRealtimeLoop(userId: UUID) async {
+        guard !Task.isCancelled else { return }
+
+        let channel = supabase.channel("pickup-game-invites-\(userId.uuidString.lowercased())")
+        pickupInviteRealtimeChannel = channel
+        let recipientFilter = RealtimePostgresFilter.eq("invitee_user_id", value: userId.uuidString.lowercased())
+        let inserts = channel.postgresChange(
+            InsertAction.self,
+            schema: "public",
+            table: "pickup_game_invites",
+            filter: recipientFilter
+        )
+        let updates = channel.postgresChange(
+            UpdateAction.self,
+            schema: "public",
+            table: "pickup_game_invites",
+            filter: recipientFilter
+        )
+        let deletes = channel.postgresChange(
+            DeleteAction.self,
+            schema: "public",
+            table: "pickup_game_invites",
+            filter: recipientFilter
+        )
+
+        do {
+            try await channel.subscribeWithError()
+            pickupInviteRealtimeBoundUserId = userId
+#if DEBUG
+            print("[PickupInviteRealtimeDebug] subscribeStarted userId=\(userId.uuidString.lowercased())")
+#endif
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { [weak self] in
+                    await self?.consumePickupInviteInsertRealtime(inserts, userId: userId)
+                }
+                group.addTask { [weak self] in
+                    await self?.consumePickupInviteUpdateRealtime(updates, userId: userId)
+                }
+                group.addTask { [weak self] in
+                    await self?.consumePickupInviteDeleteRealtime(deletes, userId: userId)
+                }
+            }
+        } catch {
+            if !(error is CancellationError) {
+#if DEBUG
+                print("[PickupInviteRealtimeDebug] subscribeError=\(error.localizedDescription)")
+#endif
+            }
+        }
+
+        if pickupInviteRealtimeChannel === channel {
+            pickupInviteRealtimeChannel = nil
+            pickupInviteRealtimeBoundUserId = nil
+            await supabase.removeChannel(channel)
+        }
+    }
+
+    private func consumePickupInviteInsertRealtime(
+        _ stream: AsyncStream<InsertAction>,
+        userId: UUID
+    ) async {
+        let decoder = JSONDecoder()
+        for await action in stream {
+            guard !Task.isCancelled else { break }
+            let invite = try? action.decodeRecord(as: PickupGameInviteRow.self, decoder: decoder)
+            handlePickupInviteRealtimeEvent(
+                event: "insert",
+                invite: invite,
+                userId: userId,
+                showToast: true
+            )
+        }
+    }
+
+    private func consumePickupInviteUpdateRealtime(
+        _ stream: AsyncStream<UpdateAction>,
+        userId: UUID
+    ) async {
+        let decoder = JSONDecoder()
+        for await action in stream {
+            guard !Task.isCancelled else { break }
+            let invite = try? action.decodeRecord(as: PickupGameInviteRow.self, decoder: decoder)
+            handlePickupInviteRealtimeEvent(
+                event: "update",
+                invite: invite,
+                userId: userId,
+                showToast: false
+            )
+        }
+    }
+
+    private func consumePickupInviteDeleteRealtime(
+        _ stream: AsyncStream<DeleteAction>,
+        userId: UUID
+    ) async {
+        let decoder = JSONDecoder()
+        for await action in stream {
+            guard !Task.isCancelled else { break }
+            let invite = try? action.decodeOldRecord(as: PickupGameInviteRow.self, decoder: decoder)
+            handlePickupInviteRealtimeEvent(
+                event: "delete",
+                invite: invite,
+                userId: userId,
+                showToast: false
+            )
+        }
+    }
+
+    private func handlePickupInviteRealtimeEvent(
+        event: String,
+        invite: PickupGameInviteRow?,
+        userId: UUID,
+        showToast: Bool
+    ) {
+        let recipientMatches = invite?.invitee_user_id == userId || invite == nil
+#if DEBUG
+        print("[PickupInviteRealtimeDebug] event=\(event) inviteId=\(invite?.id.uuidString.lowercased() ?? "unknown")")
+        print("[PickupInviteRealtimeDebug] recipientMatches=\(recipientMatches)")
+#endif
+        guard recipientMatches else { return }
+
+        if showToast {
+            showSocialActionToast("New game invite", isError: false)
+#if DEBUG
+            print("[PickupInviteRealtimeDebug] toastShown=true")
+#endif
+        } else {
+#if DEBUG
+            print("[PickupInviteRealtimeDebug] toastShown=false")
+#endif
+        }
+        scheduleDebouncedIncomingPickupInviteRealtimeRefresh()
+    }
+
+    private func scheduleDebouncedIncomingPickupInviteRealtimeRefresh() {
+        pickupInviteRealtimeDebounceTask?.cancel()
+        pickupInviteRealtimeDebounceTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 180_000_000)
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled else { return }
+#if DEBUG
+            print("[PickupInviteRealtimeDebug] refreshStarted=true")
+#endif
+            await self.loadIncomingPickupGameInvites(forceRefresh: true)
+#if DEBUG
+            print("[PickupInviteRealtimeDebug] inviteCount=\(self.incomingPickupGameInvites.count)")
+            print("[PickupInviteRealtimeDebug] badgeUpdated=true")
+#endif
+        }
+    }
+
     func respondToPickupGameInvite(_ invite: PickupGameInviteRow, status: String) async {
         guard canFanUsePickupGamesUI else {
             logBusinessUserGateBlocked(action: "respondPickupInvite")
@@ -337,6 +551,21 @@ extension MapViewModel {
         showSocialActionToast("Removed from history", isError: false)
     }
 
+    func markPickupFollowingRejectedRequestCleared(requestId: UUID, pickupGameId: UUID) {
+        guard let uid = currentUserAuthId else { return }
+        var cleared = Self.readPickupFollowingRejectedUserClearedSet(userId: uid)
+        cleared.insert(requestId)
+        Self.writePickupFollowingRejectedUserClearedSet(userId: uid, ids: cleared)
+        myPickupGameJoinRequestCards.removeAll { $0.id == requestId && $0.pickupGameId == pickupGameId && $0.pill == .declined }
+        pickupFollowingUnreadActivityGameIds.remove(pickupGameId)
+        pickupActivityCount = pickupFollowingUnreadActivityGameIds.count
+        hasUnreadPickupActivity = pickupActivityCount > 0
+#if DEBUG
+        print("[PickupPlayingDebug] clearRejected requestId=\(requestId.uuidString.lowercased())")
+#endif
+        showSocialActionToast("Removed rejected request", isError: false)
+    }
+
     private static func readPickupFollowingOrganizerCanceledUserClearedSet(userId: UUID) -> Set<UUID> {
         let raw = UserDefaults.standard.string(forKey: pickupFollowingOrganizerCanceledUserClearedKeyPrefix + userId.uuidString.lowercased()) ?? ""
         return Set(
@@ -350,6 +579,21 @@ extension MapViewModel {
         let capped = ids.sorted { $0.uuidString < $1.uuidString }.prefix(240)
         let raw = capped.map { $0.uuidString.lowercased() }.joined(separator: ",")
         UserDefaults.standard.set(raw, forKey: pickupFollowingOrganizerCanceledUserClearedKeyPrefix + userId.uuidString.lowercased())
+    }
+
+    private static func readPickupFollowingRejectedUserClearedSet(userId: UUID) -> Set<UUID> {
+        let raw = UserDefaults.standard.string(forKey: pickupFollowingRejectedUserClearedKeyPrefix + userId.uuidString.lowercased()) ?? ""
+        return Set(
+            raw.split(separator: ",")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .compactMap { UUID(uuidString: $0) }
+        )
+    }
+
+    private static func writePickupFollowingRejectedUserClearedSet(userId: UUID, ids: Set<UUID>) {
+        let capped = ids.sorted { $0.uuidString < $1.uuidString }.prefix(240)
+        let raw = capped.map { $0.uuidString.lowercased() }.joined(separator: ",")
+        UserDefaults.standard.set(raw, forKey: pickupFollowingRejectedUserClearedKeyPrefix + userId.uuidString.lowercased())
     }
 
     private static let pickupCanceledVisibilityLogISO8601: ISO8601DateFormatter = {
@@ -969,27 +1213,45 @@ extension MapViewModel {
             logBusinessUserGateBlocked(action: "joinPickupGame")
             throw PickupGameClientError.businessAccountsCannotUsePickupGames
         }
+        var updateSucceeded = false
+        var requesterLookupSucceeded = false
+        var refetchStarted = false
 #if DEBUG
         print("[PickupRequest] approve requested id=\(requestId.uuidString.lowercased())")
+        print("[PickupApprovalDebug] action=approve requestId=\(requestId.uuidString.lowercased())")
 #endif
         do {
-            let requestRows: [PickupGameRequestRow] = try await supabase
+            let requestRows: [PickupGameRequestRequesterOnly] = try await supabase
                 .from("pickup_game_requests")
-                .select("id,requester_user_id")
+                .select("id,requester_user_id,status")
                 .eq("id", value: requestId.uuidString.lowercased())
                 .limit(1)
                 .execute()
                 .value
+            requesterLookupSucceeded = true
             let requesterId = requestRows.first?.requester_user_id
+            let requesterStatus = requestRows.first?.status ?? "unknown"
+#if DEBUG
+            print("[PickupApprovalDebug] decodeFailed=false error=")
+            print("[PickupApprovalDebug] requesterStatus=\(requesterStatus)")
+            print("[PickupApprovalDebug] updateStarted=true")
+#endif
 
             try await supabase
                 .from("pickup_game_requests")
                 .update(PickupJoinRequestStatusUpdate(status: "approved"))
                 .eq("id", value: requestId.uuidString.lowercased())
                 .execute()
+            updateSucceeded = true
+#if DEBUG
+            print("[PickupApprovalDebug] updateSucceeded=true")
+            print("[PickupApprovalDebug] refetchStarted=true")
+#endif
+            refetchStarted = true
             try await refreshPickupGameRowFromServerAndMerge(id: pickupGameId)
 #if DEBUG
             print("[PickupRequest] approve completed id=\(requestId.uuidString.lowercased())")
+            print("[PickupApprovalDebug] refetchSucceeded=true")
 #endif
             if let requesterId {
                 await awardFanXP(
@@ -1008,7 +1270,14 @@ extension MapViewModel {
             await loadOrganizerApprovedPickupJoinersForSettings(gameIds: [pickupGameId])
             await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
             pickupOrganizerRequestsSyncGeneration &+= 1
+            showSocialActionToast("Request approved.", isError: false)
         } catch {
+#if DEBUG
+            print("[PickupApprovalDebug] updateSucceeded=\(updateSucceeded)")
+            print("[PickupApprovalDebug] decodeFailed=\(!requesterLookupSucceeded) error=\(error.localizedDescription)")
+            print("[PickupApprovalDebug] refetchStarted=\(refetchStarted)")
+            print("[PickupApprovalDebug] refetchSucceeded=false")
+#endif
             if isPickupGameFullPostgresError(error) {
 #if DEBUG
                 print("[PickupRequest] game full id=\(pickupGameId.uuidString.lowercased())")
@@ -1023,18 +1292,50 @@ extension MapViewModel {
             logBusinessUserGateBlocked(action: "joinPickupGame")
             throw PickupGameClientError.businessAccountsCannotUsePickupGames
         }
+        var updateSucceeded = false
+        var refetchStarted = false
 #if DEBUG
         print("[PickupRequest] reject requested id=\(requestId.uuidString.lowercased())")
+        print("[PickupApprovalDebug] action=reject requestId=\(requestId.uuidString.lowercased())")
+        print("[PickupApprovalDebug] updateStarted=true")
 #endif
-        try await supabase
-            .from("pickup_game_requests")
-            .update(PickupJoinRequestStatusUpdate(status: "rejected"))
-            .eq("id", value: requestId.uuidString.lowercased())
-            .execute()
+        do {
+            try await supabase
+                .from("pickup_game_requests")
+                .update(PickupJoinRequestStatusUpdate(status: "rejected"))
+                .eq("id", value: requestId.uuidString.lowercased())
+                .execute()
+            updateSucceeded = true
+#if DEBUG
+            print("[PickupApprovalDebug] updateSucceeded=true")
+            print("[PickupApprovalDebug] decodeFailed=false error=")
+            print("[PickupApprovalDebug] requesterStatus=rejected")
+            print("[PickupApprovalDebug] refetchStarted=true")
+#endif
+        } catch {
+#if DEBUG
+            print("[PickupApprovalDebug] updateSucceeded=\(updateSucceeded)")
+            print("[PickupApprovalDebug] decodeFailed=false error=\(error.localizedDescription)")
+            print("[PickupApprovalDebug] refetchSucceeded=false")
+#endif
+            throw error
+        }
 #if DEBUG
         print("[PickupRequest] reject completed id=\(requestId.uuidString.lowercased())")
 #endif
-        try await refreshPickupGameRowFromServerAndMerge(id: pickupGameId)
+        do {
+            refetchStarted = true
+            try await refreshPickupGameRowFromServerAndMerge(id: pickupGameId)
+#if DEBUG
+            print("[PickupApprovalDebug] refetchSucceeded=true")
+#endif
+        } catch {
+#if DEBUG
+            print("[PickupApprovalDebug] refetchStarted=\(refetchStarted)")
+            print("[PickupApprovalDebug] refetchSucceeded=false")
+#endif
+            throw error
+        }
         refreshPickupJoinCachesAfterMutation()
         await refreshPickupGamesForDiscoverMap(force: true)
         recomputeCalendarDotDates()
@@ -1043,6 +1344,7 @@ extension MapViewModel {
         await loadOrganizerApprovedPickupJoinersForSettings(gameIds: [pickupGameId])
         await loadPendingPickupGameJoinRequestCountForCreator(resyncRealtimeSubscription: false)
         pickupOrganizerRequestsSyncGeneration &+= 1
+        showSocialActionToast("Request rejected.", isError: false)
     }
 
     private func isPickupGameFullPostgresError(_ error: Error) -> Bool {
@@ -1247,6 +1549,7 @@ extension MapViewModel {
 
 #if DEBUG
         print("[TabPerfDebug] followingJoinRequestsRefreshStarted reason=\(reason)")
+        print("[PickupPlayingDebug] loadStarted=true")
 #endif
 
         let baseline = pickupFollowingCaptureActivityBaseline()
@@ -1286,6 +1589,12 @@ extension MapViewModel {
                 await stopFollowingPickupRealtime()
 #if DEBUG
                 print("[GamesToPlayDebug] approvedRequestsCount=0 activeApprovedGamesCount=0 filteredExpiredGamesCount=0 finalGamesToPlayCount=0 reason=no_requests")
+                print("[PickupPlayingDebug] requestsLoaded=0")
+                print("[PickupPlayingDebug] statuses=")
+                print("[PickupPlayingDebug] pendingCount=0")
+                print("[PickupPlayingDebug] approvedCount=0")
+                print("[PickupPlayingDebug] rejectedCount=0")
+                print("[PickupPlayingDebug] hiddenRejectedCount=0")
 #endif
                 invalidateCalendarTabEventsListCache()
                 logPickupActivityBadgeDebug()
@@ -1315,6 +1624,9 @@ extension MapViewModel {
             for g in games {
                 gameById[g.id] = g
             }
+#if DEBUG
+            print("[PickupVisibilityDebug] serverRowsLoaded=\(games.count)")
+#endif
 
             var mergedGameRowById: [UUID: PickupGameRow] = priorFollowingPickupGamesCache
             for (k, v) in gameById {
@@ -1330,14 +1642,21 @@ extension MapViewModel {
                 return a.pickup_game_id.uuidString < b.pickup_game_id.uuidString
             }
 
+            var pendingRequestsCount = 0
             var approvedRequestsCount = 0
+            var rejectedRequestsCount = 0
+            var hiddenRejectedCount = 0
             var activeApprovedGamesCount = 0
             var filteredExpiredGamesCount = 0
 
             for (_, req) in latestJoinByPickupGameId {
                 let st = req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                if st == "pending" { pendingRequestsCount += 1 }
                 if st == "approved" { approvedRequestsCount += 1 }
+                if st == "rejected" { rejectedRequestsCount += 1 }
             }
+            let statusSummary = Self.pickupPlayingStatusSummary(latestJoinByPickupGameId.values)
+            let userClearedRejectedRequests = Self.readPickupFollowingRejectedUserClearedSet(userId: uid)
 
             var statusByGameId: [UUID: String] = [:]
             var cards: [PickupGameJoinRequestCardDisplay] = []
@@ -1345,12 +1664,28 @@ extension MapViewModel {
 
             for req in sortedLatestEntries {
                 let st = req.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                if st == "rejected" || st == "cancelled" || st == "withdrawn" { continue }
+                if st == "cancelled" || st == "withdrawn" { continue }
+                if st == "rejected", userClearedRejectedRequests.contains(req.id) {
+                    hiddenRejectedCount += 1
+#if DEBUG
+                    print("[PickupVisibilityDebug] gameId=\(req.pickup_game_id.uuidString.lowercased())")
+                    print("[PickupVisibilityDebug] includedInPlaying=false")
+                    print("[PickupVisibilityDebug] requesterCanReadGame=\(gameById[req.pickup_game_id] != nil)")
+                    print("[PickupVisibilityDebug] requestStatus=\(st)")
+#endif
+                    continue
+                }
 
                 statusByGameId[req.pickup_game_id] = st
 
-                guard let game = gameById[req.pickup_game_id] else {
+                guard let game = gameById[req.pickup_game_id] ?? mergedGameRowById[req.pickup_game_id] else {
                     if st == "approved" { filteredExpiredGamesCount += 1 }
+#if DEBUG
+                    print("[PickupVisibilityDebug] gameId=\(req.pickup_game_id.uuidString.lowercased())")
+                    print("[PickupVisibilityDebug] includedInPlaying=false")
+                    print("[PickupVisibilityDebug] requesterCanReadGame=false")
+                    print("[PickupVisibilityDebug] requestStatus=\(st)")
+#endif
                     continue
                 }
 
@@ -1363,6 +1698,18 @@ extension MapViewModel {
                         // Keep expired-but-approved games on the list so joiners can post organizer ratings.
                     }
                 }
+#if DEBUG
+                let gameDay = PickupGameModels.parseSupabaseTimestamptz(game.game_start_at)
+                    .map { Calendar.current.startOfDay(for: $0) }
+                print("[PickupVisibilityDebug] gameId=\(game.id.uuidString.lowercased())")
+                print("[PickupVisibilityDebug] rosterFull=\(game.isPickupFullForDiscover)")
+                print("[PickupVisibilityDebug] includedInPlaying=true")
+                print("[PickupVisibilityDebug] requesterCanReadGame=\(gameById[game.id] != nil)")
+                print("[PickupVisibilityDebug] creatorCanReadGame=\(currentUserAuthId == game.creator_user_id)")
+                print("[PickupVisibilityDebug] requestStatus=\(st)")
+                print("[PickupVisibilityDebug] selectedDate=\(pickupRequestDebugYMD(Calendar.current.startOfDay(for: selectedDate)))")
+                print("[PickupVisibilityDebug] gameDate=\(gameDay.map(pickupRequestDebugYMD) ?? "nil")")
+#endif
 
                 let pill = pillKindForFollowingPickupRequest(status: req.status)
                 let rawName = pickupCreatorDisplayLabel(for: game.creator_user_id)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -1471,6 +1818,12 @@ extension MapViewModel {
             print("[GamesToPlayDebug] filteredExpiredGamesCount=\(filteredExpiredGamesCount)")
             print("[GamesToPlayDebug] finalActiveGamesToPlayCount=\(activeGamesToPlayCount)")
             print("[GamesToPlayDebug] finalOrganizerCanceledVisibleCount=\(organizerCanceledVisibleCount)")
+            print("[PickupPlayingDebug] requestsLoaded=\(latestJoinByPickupGameId.count)")
+            print("[PickupPlayingDebug] statuses=\(statusSummary)")
+            print("[PickupPlayingDebug] pendingCount=\(pendingRequestsCount)")
+            print("[PickupPlayingDebug] approvedCount=\(approvedRequestsCount)")
+            print("[PickupPlayingDebug] rejectedCount=\(rejectedRequestsCount)")
+            print("[PickupPlayingDebug] hiddenRejectedCount=\(hiddenRejectedCount)")
 #endif
 
             pickupGamesFollowingTabCache = mergedGameRowById
@@ -1513,6 +1866,15 @@ extension MapViewModel {
 
         guard pickupFollowingActivityPrimed else { return nil }
         return lastJoinStatusRefreshAt
+    }
+
+    private static func pickupPlayingStatusSummary(_ requests: Dictionary<UUID, PickupGameRequestRow>.Values) -> String {
+        var counts: [String: Int] = [:]
+        for request in requests {
+            let status = request.status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            counts[status.isEmpty ? "unknown" : status, default: 0] += 1
+        }
+        return counts.keys.sorted().map { "\($0):\(counts[$0] ?? 0)" }.joined(separator: ",")
     }
 
     private func pillKindForFollowingPickupRequest(status: String) -> PickupFollowingJoinRequestPillKind {

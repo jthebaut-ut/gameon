@@ -509,11 +509,19 @@ struct FollowingScreen: View {
                 .filter(\.isActiveGoingTabPlan)
         )
         cachedGoingVenueGameItems = sorted
-        cachedPlayingGameCards = viewModel.myPickupGameJoinRequestCards.filter { $0.pill == .approved }
+        cachedPlayingGameCards = viewModel.myPickupGameJoinRequestCards.filter { card in
+            switch card.pill {
+            case .pending, .approved, .declined:
+                return true
+            case .cancelled, .withdrawing, .canceledByOrganizer:
+                return false
+            }
+        }
         logGoingTabSortDebug(sorted)
 #if DEBUG
         let ms = (CFAbsoluteTimeGetCurrent() - started) * 1000
         print("[RenderPerf] view=FollowingScreen renderMs=\(String(format: "%.2f", ms)) rebuildReason=\(reason)")
+        print("[PickupPlayingDebug] visiblePlayingCount=\(cachedPlayingGameCards.count)")
 #endif
     }
 
@@ -726,8 +734,7 @@ struct FollowingScreen: View {
     private var pickupHostingTabBadge: String? {
         let count = viewModel.pendingPickupGameJoinRequestCount
         guard count > 0 else { return nil }
-        if count == 1 { return "1 waiting" }
-        return count > 9 ? "9+ waiting" : "\(count) waiting"
+        return count > 9 ? "9+ Pending" : "\(count) Pending"
     }
 
     private var pickupInvitesTabBadge: String? {
@@ -1687,6 +1694,7 @@ struct FollowingScreen: View {
         let now = Date()
         let pickupStarted = PickupGameModels.parseSupabaseTimestamptz(card.game_start_at).map { now >= $0 } ?? false
         let isOrganizerCanceled = card.pill == .canceledByOrganizer
+        let isRejected = card.pill == .declined
 
         return VStack(alignment: .leading, spacing: FGSpacing.sm) {
             HStack(alignment: .top, spacing: FGSpacing.sm) {
@@ -1715,6 +1723,11 @@ struct FollowingScreen: View {
                             .foregroundStyle(Color.red.opacity(followingColorScheme == .dark ? 0.9 : 0.78))
                             .fixedSize(horizontal: false, vertical: true)
                         Text(viewModel.pickupHistoryAutoClearCaption(forPickupGameId: card.pickupGameId))
+                            .font(FGTypography.caption)
+                            .foregroundStyle(FGColor.secondaryText(followingColorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else if isRejected {
+                        Text("The organizer declined this request. You can clear it from your Playing list.")
                             .font(FGTypography.caption)
                             .foregroundStyle(FGColor.secondaryText(followingColorScheme))
                             .fixedSize(horizontal: false, vertical: true)
@@ -1782,7 +1795,7 @@ struct FollowingScreen: View {
                     .foregroundStyle(FGColor.mutedText(followingColorScheme))
             }
 
-            if card.pill == .pending || card.pill == .approved {
+            if card.pill == .pending || card.pill == .approved || isRejected {
                 Group {
                     if card.pill == .pending {
                         Button(role: .destructive) {
@@ -1805,7 +1818,7 @@ struct FollowingScreen: View {
                         .buttonStyle(.bordered)
                         .tint(Color.red.opacity(0.92))
                         .disabled(followingPickupWithdrawInFlight)
-                    } else {
+                    } else if card.pill == .approved {
                         Button(role: .destructive) {
                             let rid = viewModel.pickupJoinRequestLatestByPickupGameIdForFan[card.pickupGameId]?.id ?? card.id
 #if DEBUG
@@ -1826,6 +1839,20 @@ struct FollowingScreen: View {
                         .buttonStyle(.bordered)
                         .tint(Color.red.opacity(0.92))
                         .disabled(followingPickupWithdrawInFlight)
+                    } else {
+                        Button {
+                            viewModel.markPickupFollowingRejectedRequestCleared(
+                                requestId: card.id,
+                                pickupGameId: card.pickupGameId
+                            )
+                        } label: {
+                            Text("Clear")
+                                .font(FGTypography.metadata.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(Color.gray.opacity(0.9))
                     }
                 }
                 .padding(.top, 4)
@@ -1919,13 +1946,13 @@ struct FollowingScreen: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(.ultraThinMaterial)
-                if isOrganizerCanceled {
+                if isOrganizerCanceled || isRejected {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
                         .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.red.opacity(followingColorScheme == .dark ? 0.22 : 0.12),
-                                    Color.red.opacity(followingColorScheme == .dark ? 0.12 : 0.06)
+                                    (isOrganizerCanceled ? Color.red : Color.gray).opacity(followingColorScheme == .dark ? 0.22 : 0.12),
+                                    (isOrganizerCanceled ? Color.red : Color.gray).opacity(followingColorScheme == .dark ? 0.12 : 0.06)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

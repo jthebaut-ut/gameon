@@ -28,7 +28,8 @@ private enum DiscoverVenueFastPinSelect {
 
 private enum DiscoverVenueLightweightPinSelect {
     nonisolated static let columns =
-        "id,venue_name,latitude,longitude,city,state,admin_status,community_type,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url"
+        "id,venue_name,latitude,longitude,city,state,admin_status,owner_email,business_id,origin_type,community_type,place_type,sport_tags,supporter_country,features,screen_count,serves_food,has_wifi,has_garden,has_projector,pet_friendly,venue_identity_key,cover_photo_url,menu_photo_url,cover_photo_thumbnail_url,menu_photo_thumbnail_url" +
+        ",businesses!venues_business_id_fkey(owner_email,admin_status)"
 }
 
 private let discoverVenueActiveLegacySafeOrFilter = "admin_status.is.null,admin_status.eq.active"

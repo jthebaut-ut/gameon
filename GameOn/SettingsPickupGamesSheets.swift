@@ -2382,6 +2382,7 @@ struct SettingsPickupGameFormView: View {
         let desc = description.trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {
+            var createdFromPickupPlace: PickupGameRow?
             switch mode {
             case .add:
                 if !skipConflictCheck {
@@ -2425,6 +2426,9 @@ struct SettingsPickupGameFormView: View {
                     gameFormat: gameFormat
                 )
                 onCreated?(created)
+                if appliedPickupPlacePrefill != nil {
+                    createdFromPickupPlace = created
+                }
             case .edit(let row):
                 let gameStartISO = PickupGameModels.encodeSupabaseTimestamptz(start)
                 let endISO = PickupGameModels.encodeSupabaseTimestamptz(end)
@@ -2454,7 +2458,11 @@ struct SettingsPickupGameFormView: View {
                 )
                 try await viewModel.updatePickupGame(id: row.id, full: patch)
             }
-            await viewModel.refreshPickupGamesForDiscoverMap(force: true)
+            if let createdFromPickupPlace {
+                await viewModel.refreshPickupGameAfterDiscoverPickupPlaceCreate(createdFromPickupPlace)
+            } else {
+                await viewModel.refreshPickupGamesForDiscoverMap(force: true)
+            }
             onFinished()
             dismiss()
         } catch {
