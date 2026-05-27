@@ -754,6 +754,10 @@ final class MapViewModel: ObservableObject {
     var pickupDiscoverCoordinatorDirty: Bool = true
     /// Last visible-bounds window loaded from `public.pickup_places`.
     var lastPickupPlacesFetchKey: String?
+    var pickupPlacesRegionalCache: [String: (rows: [PickupPlaceRow], fetchedAt: Date)] = [:]
+    var pickupPlacesDiscoverRequestID: UUID?
+    var pickupGamesDiscoverCache: [String: (rows: [PickupGameRow], fetchedAt: Date)] = [:]
+    var pickupGamesDiscoverRequestID: UUID?
 
     // MARK: - Following tab (global; independent of Discover map region)
 

@@ -476,6 +476,7 @@ struct MainTabView: View {
             "tab switch",
             "from=\(tabSwitchFromTab?.rawValue ?? "unknown") to=\(tab.rawValue) reason=\(reason)"
         )
+        print("[TabSwitchPerf] begin from=\(tabSwitchFromTab?.rawValue ?? "unknown") to=\(tab.rawValue) cached=\(tabSwitchCachedData ?? false) reason=\(reason)")
 #if DEBUG
         print("[UISmoothnessDebug] tabTransition=\(tabSwitchFromTab?.rawValue ?? "unknown")->\(tab.rawValue)")
         print("[TabPerfDebug] selectedTab=\(tab.rawValue)")
@@ -489,6 +490,7 @@ struct MainTabView: View {
         let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
         let from = tabSwitchFromTab?.rawValue ?? "unknown"
         UIPerformanceDiagnostics.log("tabSwitch from=\(from) to=\(tab.rawValue) ms=\(ms) cached=\(usedCachedData)")
+        print("[TabSwitchPerf] firstContentVisible from=\(from) to=\(tab.rawValue) durationMs=\(ms) cached=\(usedCachedData)")
         switch tab {
         case .chat:
             UIPerformanceDiagnostics.signpost("DM inbox open", "ms=\(ms)")
@@ -518,6 +520,7 @@ struct MainTabView: View {
         if let last = lastTabPreloadAt[tab],
            Date().timeIntervalSince(last) < Self.tabPreloadFreshnessInterval,
            warmAtStart {
+            print("[TabSwitchPerf] preloadSkipped tab=\(tab.rawValue) reason=fresh cached=true")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
             print("[TabPreloadDebug] warm=true")
@@ -526,6 +529,7 @@ struct MainTabView: View {
             return
         }
         if tabPreloadTasks[tab] != nil {
+            print("[TabSwitchPerf] preloadSkipped tab=\(tab.rawValue) reason=inFlight cached=\(warmAtStart)")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
             print("[TabPreloadDebug] warm=\(warmAtStart)")
@@ -535,6 +539,7 @@ struct MainTabView: View {
         }
 
         let startedAt = Date()
+        print("[TabSwitchPerf] preloadStarted tab=\(tab.rawValue) cached=\(warmAtStart) reason=\(reason)")
 #if DEBUG
         print("[TabPreloadDebug] tab=\(tab.rawValue)")
         print("[TabPreloadDebug] warm=\(warmAtStart)")
@@ -545,6 +550,7 @@ struct MainTabView: View {
             let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
             lastTabPreloadAt[tab] = Date()
             tabPreloadTasks[tab] = nil
+            print("[TabSwitchPerf] preloadFinished tab=\(tab.rawValue) durationMs=\(ms)")
 #if DEBUG
             print("[TabPreloadDebug] tab=\(tab.rawValue)")
             print("[TabPreloadDebug] durationMs=\(ms)")
@@ -752,6 +758,7 @@ struct MainTabView: View {
     private func schedulePostAuthBadgeRefresh(reason: String, force: Bool = false) {
         guard viewModel.isAuthenticatedForSocialFeatures,
               let userId = viewModel.currentUserAuthId else {
+            print("[NotificationPerf] badgeRefreshSkipped reason=noAuthenticatedUser trigger=\(reason)")
 #if DEBUG
             print("[BadgeLoginRefreshDebug] skipped because no authenticated user reason=\(reason)")
 #endif
@@ -763,6 +770,7 @@ struct MainTabView: View {
 #endif
 
         if postAuthBadgeRefreshTask != nil, postAuthBadgeRefreshUserId == userId {
+            print("[NotificationPerf] badgeRefreshCoalesced trigger=\(reason) userId=\(userId.uuidString.lowercased())")
 #if DEBUG
             print("[BadgeLoginRefreshDebug] coalesced reason=\(reason) userId=\(userId.uuidString.lowercased())")
 #endif
@@ -773,6 +781,7 @@ struct MainTabView: View {
            lastPostAuthBadgeRefreshUserId == userId,
            let lastPostAuthBadgeRefreshAt,
            Date().timeIntervalSince(lastPostAuthBadgeRefreshAt) < Self.postAuthBadgeRefreshThrottleInterval {
+            print("[NotificationPerf] badgeRefreshSkipped reason=throttled trigger=\(reason) userId=\(userId.uuidString.lowercased())")
 #if DEBUG
             print("[BadgeLoginRefreshDebug] throttled reason=\(reason) userId=\(userId.uuidString.lowercased())")
 #endif
@@ -780,6 +789,7 @@ struct MainTabView: View {
         }
 
         postAuthBadgeRefreshTask?.cancel()
+        print("[NotificationPerf] badgeRefreshScheduled trigger=\(reason) force=\(force)")
         postAuthBadgeRefreshUserId = userId
         postAuthBadgeRefreshTask = Task { @MainActor in
             do {
@@ -808,14 +818,17 @@ struct MainTabView: View {
     private func runPostAuthBadgeRefresh(userId: UUID, reason: String) async {
         guard viewModel.isAuthenticatedForSocialFeatures,
               viewModel.currentUserAuthId == userId else {
+            print("[NotificationPerf] badgeRefreshSkipped reason=sessionChanged trigger=\(reason)")
 #if DEBUG
             print("[BadgeLoginRefreshDebug] skipped because no authenticated user reason=\(reason)")
 #endif
             return
         }
 
+        let startedAt = Date()
         lastPostAuthBadgeRefreshAt = Date()
         lastPostAuthBadgeRefreshUserId = userId
+        print("[NotificationPerf] badgeRefreshStarted trigger=\(reason)")
 
         await chatViewModel.refreshFriendRequestListsOnly()
 #if DEBUG
@@ -847,6 +860,8 @@ struct MainTabView: View {
             "[BadgeLoginRefreshDebug] tab badge updated friendRequests=\(chatViewModel.pendingBadgeCount) dmUnread=\(chatViewModel.unreadDirectMessageCount) pickupInvites=\(viewModel.incomingPickupGameInvites.count) hostedPickupRequests=\(viewModel.pendingPickupGameJoinRequestCount) playingPickupCards=\(viewModel.myPickupGameJoinRequestCards.count)"
         )
 #endif
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[NotificationPerf] badgeRefreshFinished trigger=\(reason) durationMs=\(ms) friendRequests=\(chatViewModel.pendingBadgeCount) dmUnread=\(chatViewModel.unreadDirectMessageCount) pickupInvites=\(viewModel.incomingPickupGameInvites.count)")
     }
 
     private func logBottomTabStructure() {

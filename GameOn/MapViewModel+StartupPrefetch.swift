@@ -170,6 +170,56 @@ extension MapViewModel {
 #endif
     }
 
+    func warmPreloadRegionalDiscoverCaches(chatViewModel: ChatViewModel) async {
+        let startedAt = Date()
+        print("[StartupWarmCache] regionalWarmStart mode=\(discoverMapContentMode.rawValue) sport=\(selectedSport)")
+
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { @MainActor [weak self] in
+                guard let self else { return }
+                if self.bars.isEmpty {
+                    print("[StartupWarmCache] task=nearbyVenues cacheHit=false")
+                    await self.refreshDiscoverCoreInBackground()
+                } else {
+                    print("[StartupWarmCache] task=nearbyVenues cacheHit=true rows=\(self.bars.count)")
+                    guard self.discoverMapContentMode == .venues else { return }
+                    let requestID = UUID()
+                    self.discoverSelectedDayRefreshRequestID = requestID
+                    await self.refreshDiscoverSelectedDayVenueEventsForCurrentContext(requestID: requestID)
+                }
+            }
+
+            group.addTask { @MainActor [weak self] in
+                guard let self, self.canFanUsePickupGamesUI else {
+                    print("[StartupWarmCache] task=pickupGames skipped reason=featureUnavailable")
+                    return
+                }
+                await self.warmPreloadPickupGamesForCurrentContext()
+            }
+
+            group.addTask { @MainActor [weak self] in
+                guard let self else { return }
+                await self.warmPreloadPickupPlacesForCurrentRegion()
+            }
+
+            group.addTask { @MainActor [weak self, weak chatViewModel] in
+                guard let self, let chatViewModel else { return }
+                guard self.isAuthenticatedForSocialFeatures else {
+                    print("[StartupWarmCache] task=notificationBadges skipped reason=notAuthenticated")
+                    return
+                }
+                let chatResult = await chatViewModel.prefetchLightweightStartupChatData()
+                if self.canFanUsePickupGamesUI {
+                    await self.loadIncomingPickupGameInvites()
+                }
+                print("[StartupWarmCache] task=notificationBadges skippedReason=\(chatResult.skippedReason ?? "none")")
+            }
+        }
+
+        let ms = Int(Date().timeIntervalSince(startedAt) * 1000)
+        print("[StartupWarmCache] regionalWarmEnd ms=\(ms)")
+    }
+
     func refreshFollowingTodayVenueEventPlansLightweight(forceRefresh: Bool = false) async {
         if !forceRefresh, let inFlight = followingTodayPlansLoadTask {
             await inFlight.value

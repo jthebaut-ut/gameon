@@ -6,6 +6,8 @@ let pickupGamesSelectColumns =
     "id,creator_user_id,creator_email,title,sport,description,game_format,skill_level,game_start_at,end_time,address,city,state,latitude,longitude,is_visible,players_needed,play_environment,participant_preference,is_free,entry_fee_amount,max_players,status,approved_join_count,cleanup_delay_hours,remove_after_at,created_at,updated_at"
 
 private let pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix = "gameon.settings.pickupOrganizerHistoryClearedIds."
+private let pickupGamesDiscoverCacheTTL: TimeInterval = 150
+private let pickupGamesDiscoverCacheMaxEntries = 16
 
 private struct PickupGameCalendarRow: Decodable {
     let id: UUID?
@@ -58,6 +60,37 @@ extension MapViewModel {
         f.formatOptions = [.withInternetDateTime]
         return f
     }()
+
+    private func pickupGamesDiscoverCacheKey(dayStart: Date, sport: String) -> String {
+        let regionKey: String
+        if let bounds = currentMapRegionBounds() {
+            regionKey = [
+                String(format: "%.3f", bounds.minLat),
+                String(format: "%.3f", bounds.maxLat),
+                String(format: "%.3f", bounds.minLon),
+                String(format: "%.3f", bounds.maxLon)
+            ].joined(separator: ",")
+        } else {
+            regionKey = "no-region"
+        }
+        return "pickupGames|\(pickupDebugYMD(dayStart))|\(sport)|\(regionKey)"
+    }
+
+    private func storePickupGamesDiscoverCache(_ rows: [PickupGameRow], cacheKey: String) {
+        pickupGamesDiscoverCache[cacheKey] = (rows: rows, fetchedAt: Date())
+        prunePickupGamesDiscoverCacheIfNeeded()
+    }
+
+    private func prunePickupGamesDiscoverCacheIfNeeded() {
+        guard pickupGamesDiscoverCache.count > pickupGamesDiscoverCacheMaxEntries else { return }
+        let sorted = pickupGamesDiscoverCache
+            .map { ($0.key, $0.value.fetchedAt) }
+            .sorted { $0.1 < $1.1 }
+        let dropCount = pickupGamesDiscoverCache.count - pickupGamesDiscoverCacheMaxEntries
+        for index in 0..<max(0, dropCount) {
+            pickupGamesDiscoverCache.removeValue(forKey: sorted[index].0)
+        }
+    }
 
     private static func readPickupOrganizerSettingsHistoryUserClearedIds(userId: UUID) -> Set<UUID> {
         let raw = UserDefaults.standard.string(forKey: pickupOrganizerSettingsHistoryUserClearedIdsKeyPrefix + userId.uuidString.lowercased()) ?? ""
@@ -346,6 +379,7 @@ extension MapViewModel {
     /// Coalesces concurrent refresh calls onto one in-flight task (later callers await the same work).
     func refreshPickupGamesForDiscoverMap(force: Bool = false, preservePickupCalendarDotDatesCache: Bool = false) async {
         if let existing = refreshPickupGamesForDiscoverMapCoalescingTask {
+            print("[PickupGamesWarmCache] coalesced=true force=\(force)")
             await existing.value
             if !force { return }
             // A forced refresh usually follows a mutation. Do not let an older
@@ -366,6 +400,19 @@ extension MapViewModel {
         refreshPickupGamesForDiscoverMapCoalescingTask = work
         await work.value
         refreshPickupGamesForDiscoverMapCoalescingTask = nil
+    }
+
+    func warmPreloadPickupGamesForCurrentContext() async {
+        let dayStart = Calendar.current.startOfDay(for: selectedDate)
+        let sport = selectedSport
+        let cacheKey = pickupGamesDiscoverCacheKey(dayStart: dayStart, sport: sport)
+        if let cached = pickupGamesDiscoverCache[cacheKey],
+           Date().timeIntervalSince(cached.fetchedAt) < pickupGamesDiscoverCacheTTL {
+            print("[PickupGamesWarmCache] warmCacheHit=true key=\(cacheKey) rows=\(cached.rows.count)")
+            return
+        }
+        print("[PickupGamesWarmCache] warmFetchStarted key=\(cacheKey)")
+        await refreshPickupGamesForDiscoverMap(force: true, preservePickupCalendarDotDatesCache: true)
     }
 
     func refreshPickupGameAfterDiscoverPickupPlaceCreate(_ row: PickupGameRow) async {
@@ -436,12 +483,31 @@ extension MapViewModel {
         let dayStart = cal.startOfDay(for: selectedDate)
         let requestSport = selectedSport
         let requestID = UUID()
+        let cacheKey = pickupGamesDiscoverCacheKey(dayStart: dayStart, sport: requestSport)
+        pickupGamesDiscoverRequestID = requestID
         pickupDiscoverEnrichmentRequestID = requestID
         guard let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else {
-            pickupGamesForDiscoverMap = []
             isLoadingPickupGamesForMap = false
             markPickupDiscoverMapDataDirtyForNextRefresh()
+            print("[PickupGamesWarmCache] skipped reason=invalidDay preservedRows=\(pickupGamesForDiscoverMap.count)")
             return
+        }
+        let cached = pickupGamesDiscoverCache[cacheKey]
+        let cachedIsFresh = cached.map { Date().timeIntervalSince($0.fetchedAt) < pickupGamesDiscoverCacheTTL } ?? false
+        if !force, let cached {
+            pickupGamesForDiscoverMap = cached.rows
+            pickupDiscoverCoordinatorDirty = false
+            isLoadingPickupGamesForMap = false
+            invalidatePickupGameClusterAnnotationCache()
+            print("[PickupGamesWarmCache] immediateCachePublish=true key=\(cacheKey) rows=\(cached.rows.count) fresh=\(cachedIsFresh)")
+            if cachedIsFresh {
+                if let sel = selectedPickupGameForMap, !cached.rows.contains(where: { $0.id == sel.id }) {
+                    clearPickupMapSelection()
+                }
+                return
+            }
+        } else {
+            print("[PickupGamesWarmCache] cacheHit=false key=\(cacheKey)")
         }
         let now = Date()
         let rawRecentFloor = cal.date(byAdding: .day, value: -1, to: now) ?? now
@@ -541,9 +607,15 @@ extension MapViewModel {
             print("[DiscoverPickupPublic] pickupMapRowsFiltered=\(filtered.count) forSelectedCalendarDay")
 #endif
 
+            guard pickupGamesDiscoverRequestID == requestID else {
+                print("[PickupGamesWarmCache] staleDiscard=true key=\(cacheKey)")
+                return
+            }
+            storePickupGamesDiscoverCache(filtered, cacheKey: cacheKey)
             pickupGamesForDiscoverMap = filtered
             pickupDiscoverCoordinatorDirty = false
             isLoadingPickupGamesForMap = false
+            print("[PickupGamesWarmCache] networkPublish=true key=\(cacheKey) rows=\(filtered.count)")
             print("[PickupPerf] coreRowsPublished count=\(filtered.count)")
             print("[PickupPerf] primaryLoadingClearedBeforeEnrichment=true")
             if !preservePickupCalendarDotDatesCache {
@@ -569,7 +641,10 @@ extension MapViewModel {
             }
             invalidateCalendarTabEventsListCache()
         } catch {
-            isLoadingPickupGamesForMap = false
+            if pickupGamesDiscoverRequestID == requestID {
+                isLoadingPickupGamesForMap = false
+            }
+            print("[PickupGamesWarmCache] networkFailedPreservedRows=\(pickupGamesForDiscoverMap.count) key=\(cacheKey)")
 #if DEBUG
             print("[PickupGames] refreshDiscover failed:", error)
 #endif

@@ -79,6 +79,11 @@ final class LaunchWarmPreloadCoordinator {
         await runTier2Prefetch(viewModel: viewModel, chatViewModel: chatViewModel)
         guard !Task.isCancelled else { return }
 
+        await runWarmTask(tier: 3, name: "regionalDiscoverWarmCache", delayMs: 520) {
+            await viewModel.warmPreloadRegionalDiscoverCaches(chatViewModel: chatViewModel)
+        }
+        guard !Task.isCancelled else { return }
+
         await runWarmTask(tier: 2, name: "pokesBadge", delayMs: 120) {
             let canReceive = await MainActor.run { viewModel.canReceiveProfilePokes }
             guard canReceive else { return }

@@ -992,8 +992,10 @@ final class ChatViewModel: ObservableObject {
 
     /// Refreshes friend request rows + chip map + pending badge without reloading DM inbox.
     func refreshFriendRequestListsOnly() async {
+        let startedAt = Date()
         guard let me = try? await service.currentUserId() else {
             clearForSignOut()
+            print("[NotificationPerf] chatFriendRequestsSkipped reason=missingSession")
             return
         }
         noteAuthenticatedChatSession(userId: me, source: "friendRequests")
@@ -1025,6 +1027,7 @@ final class ChatViewModel: ObservableObject {
                 }
 
             pendingBadgeCount = incomingRequests.filter { $0.friendship.isPendingStatus }.count
+            print("[NotificationPerf] chatFriendRequestsFinished durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000)) pending=\(pendingBadgeCount)")
 #if DEBUG
             print("[BadgeSyncDebug] tab badge updated")
 #endif
@@ -1032,13 +1035,16 @@ final class ChatViewModel: ObservableObject {
             applyFriendshipChipStates(me: me, accepted: accRows, incoming: inRows, outgoing: outRows)
         } catch {
             // Keep existing lists; next refresh or realtime will retry.
+            print("[NotificationPerf] chatFriendRequestsFailed durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000)) error=\(error.localizedDescription)")
         }
     }
 
     /// Refreshes the Chat tab badge for unread peer DMs (no friendship / request counts).
     func refreshUnreadDirectMessageCount() async {
+        let startedAt = Date()
         guard let me = try? await directChatService.currentUserId() else {
             clearForSignOut()
+            print("[NotificationPerf] chatUnreadSkipped reason=missingSession")
             return
         }
         noteAuthenticatedChatSession(userId: me, source: "unreadDirectMessageCount")
@@ -1047,9 +1053,11 @@ final class ChatViewModel: ObservableObject {
         print("[RealtimeChainDebug] refreshStarted table=conversation_read_state key=unreadDirectMessageCount")
         #endif
         guard let n = try? await directChatService.fetchUnreadDirectMessageCount(currentUserId: me) else {
+            print("[NotificationPerf] chatUnreadFailed durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000))")
             return
         }
         await setUnreadDirectMessageCountAndSyncAppIcon(n, source: "rpc_total_refresh")
+        print("[NotificationPerf] chatUnreadFinished durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000)) unread=\(n)")
 #if DEBUG
         print("[RealtimeChainDebug] refreshSucceeded table=conversation_read_state key=unreadDirectMessageCount")
         print("[UnreadBadgeDebug] conversationId=rpc_total_refresh")
@@ -1062,6 +1070,7 @@ final class ChatViewModel: ObservableObject {
     /// Launch warm path: refreshes only the DM unread badge and inbox summaries, never message bodies.
     func prefetchLightweightStartupChatData() async -> StartupChatPrefetchResult {
         if let inFlight = startupLightweightPrefetchTask {
+            print("[NotificationPerf] chatStartupPrefetchCoalesced=true")
 #if DEBUG
             print("[StartupPrefetchDebug] skippedReason=chatInFlight")
 #endif
@@ -1069,6 +1078,7 @@ final class ChatViewModel: ObservableObject {
         }
         if let lastStartupLightweightPrefetchAt,
            Date().timeIntervalSince(lastStartupLightweightPrefetchAt) < startupLightweightPrefetchTTL {
+            print("[NotificationPerf] chatStartupPrefetchSkipped reason=freshCache")
 #if DEBUG
             print("[StartupPrefetchDebug] skippedReason=chatFreshCache")
 #endif
@@ -1090,11 +1100,13 @@ final class ChatViewModel: ObservableObject {
             return await self.runLightweightStartupChatPrefetch()
         }
         startupLightweightPrefetchTask = task
+        let startedAt = Date()
         let result = await task.value
         startupLightweightPrefetchTask = nil
         if result.skippedReason == nil {
             lastStartupLightweightPrefetchAt = Date()
         }
+        print("[NotificationPerf] chatStartupPrefetchFinished durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000)) skippedReason=\(result.skippedReason ?? "none")")
         return result
     }
 

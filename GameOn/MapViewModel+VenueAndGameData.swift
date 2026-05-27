@@ -1905,6 +1905,7 @@ extension MapViewModel {
         var appliedCachedRows = false
         if let cached = discoverSelectedDayVenueEventsCache[cacheKey],
            Date().timeIntervalSince(cached.fetchedAt) < 90 {
+            print("[VenueGamesWarmCache] selectedDayCacheHit=true key=\(cacheKey) rows=\(cached.rows.count)")
             await applyDiscoverSelectedDayVenueRows(
                 cached.rows,
                 venueRows: venueRows,
@@ -1931,9 +1932,12 @@ extension MapViewModel {
             #if DEBUG
             print("[CalendarPerf] Cached selected-day events applied date=\(selectedDay) rows=\(cached.rows.count)")
             #endif
+        } else {
+            print("[VenueGamesWarmCache] selectedDayCacheHit=false key=\(cacheKey)")
         }
 
         do {
+            print("[VenueGamesWarmCache] refreshStarted key=\(cacheKey)")
             let fetchedVenueEventRows = try await fetchVenueEventRowsForDiscover(
                 venueIds: venueIds,
                 ownerEmails: ownerEmails,
@@ -1948,6 +1952,7 @@ extension MapViewModel {
                 selectedDay: selectedDay,
                 sport: selectedSportSnapshot
             ) else {
+                print("[VenueGamesWarmCache] staleDiscard=true key=\(cacheKey)")
                 #if DEBUG
                 print("[CalendarPerf] Ignored stale date refresh result date=\(selectedDay) sport=\(selectedSportSnapshot)")
                 #endif
@@ -1956,6 +1961,7 @@ extension MapViewModel {
 
             discoverSelectedDayVenueEventsCache[cacheKey] = (rows: fetchedVenueEventRows, fetchedAt: Date())
             pruneDiscoverSelectedDayVenueEventsCacheIfNeeded()
+            print("[VenueGamesWarmCache] networkPublish=true key=\(cacheKey) rows=\(fetchedVenueEventRows.count)")
 
             await applyDiscoverSelectedDayVenueRows(
                 fetchedVenueEventRows,
@@ -2403,6 +2409,7 @@ extension MapViewModel {
                     && entry.queryLimit >= limit
             }) {
                 let filtered = filterVenueRows(entry.rows, within: requestedBounds)
+                print("[DiscoverWarmCache] venueCacheHit=true key=\(entry.key) rows=\(filtered.count)")
                 #if DEBUG
                 print("[DiscoverRegionJumpDebug] cacheHit=true")
                 print("[Perf] Venue viewport cache hit key=\(entry.key) requestedRows=\(filtered.count) cachedRows=\(entry.rows.count)")
@@ -2418,6 +2425,7 @@ extension MapViewModel {
 
         let coverageBounds = expandedViewportBounds(for: requestedBounds)
         let cacheKey = discoverViewportVenueCacheKey(for: coverageBounds, source: source)
+        print("[DiscoverWarmCache] venueCacheHit=false key=\(cacheKey)")
         #if DEBUG
         print("[DiscoverRegionJumpDebug] cacheMiss=true")
         print("[Perf] Venue viewport cache miss key=\(cacheKey)")
@@ -2451,6 +2459,7 @@ extension MapViewModel {
             rows: fetchedRows,
             fetchedAt: Date()
         )
+        print("[DiscoverWarmCache] venueCacheStored key=\(cacheKey) rows=\(fetchedRows.count)")
         pruneDiscoverViewportVenueRowsCacheIfNeeded()
         return filteredRows
     }

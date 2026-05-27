@@ -12,6 +12,8 @@ private let pickupPlacesSelectColumnsWithSport =
     "id,name,place_type,sport,city,state,zip,latitude,longitude"
 
 private let pickupPlacesMapFetchLimit = 500
+private let pickupPlacesRegionalCacheTTL: TimeInterval = 180
+private let pickupPlacesRegionalCacheMaxEntries = 12
 
 private struct PickupPlaceTaggedDBRow: Decodable {
     let id: UUID
@@ -102,17 +104,35 @@ extension MapViewModel {
     func refreshPickupPlacesForDiscoverMap(force: Bool = false) async {
         guard force || (discoverMapContentMode == .pickupGames && discoverPickupSubMode == .places) else { return }
         guard let bounds = currentMapRegionBounds() else {
-            pickupPlacesForDiscoverMap = []
             isLoadingPickupPlacesForMap = false
+            print("[PickupPlacesWarmCache] skipped reason=noBounds preservedRows=\(pickupPlacesForDiscoverMap.count)")
             return
         }
 
         let fetchKey = pickupPlacesCurrentFetchKey
         if !force, fetchKey == lastPickupPlacesFetchKey, !pickupPlacesForDiscoverMap.isEmpty {
+            print("[PickupPlacesWarmCache] cacheHit=true reason=alreadyVisible key=\(fetchKey) rows=\(pickupPlacesForDiscoverMap.count)")
             return
         }
 
-        isLoadingPickupPlacesForMap = true
+        let requestID = UUID()
+        pickupPlacesDiscoverRequestID = requestID
+        let cached = pickupPlacesRegionalCache[fetchKey]
+        let cachedIsFresh = cached.map { Date().timeIntervalSince($0.fetchedAt) < pickupPlacesRegionalCacheTTL } ?? false
+        if !force, let cached {
+            pickupPlacesForDiscoverMap = cached.rows
+            lastPickupPlacesFetchKey = fetchKey
+            isLoadingPickupPlacesForMap = false
+            print("[PickupPlacesWarmCache] immediateCachePublish=true key=\(fetchKey) rows=\(cached.rows.count) fresh=\(cachedIsFresh)")
+            if cachedIsFresh {
+                pruneSelectedPickupPlaceIfNeeded()
+                return
+            }
+        } else {
+            isLoadingPickupPlacesForMap = true
+            print("[PickupPlacesWarmCache] cacheHit=false key=\(fetchKey)")
+        }
+
         let startedAt = Date()
         let sportTerms = pickupPlacesServerSportTerms(for: selectedSport)
         let sportLog = sportTerms.isEmpty ? "All" : sportTerms.joined(separator: ",")
@@ -123,23 +143,66 @@ extension MapViewModel {
 #endif
         do {
             let taggedRows = try await fetchPickupPlaceTaggedRowsForMap(bounds: bounds, sportTerms: sportTerms)
-            await publishPickupPlaces(mappedPickupPlaceRows(taggedRows), fetchKey: fetchKey, startedAt: startedAt)
+            await publishPickupPlaces(
+                mappedPickupPlaceRows(taggedRows),
+                fetchKey: fetchKey,
+                requestID: requestID,
+                startedAt: startedAt
+            )
         } catch {
 #if DEBUG
             print("[PickupPlacesDebug] sportTagsFetchFailed=\(error)")
 #endif
             do {
                 let sportRows = try await fetchPickupPlaceSportRowsForMap(bounds: bounds, sportTerms: sportTerms)
-                await publishPickupPlaces(mappedPickupPlaceRows(sportRows), fetchKey: fetchKey, startedAt: startedAt)
+                await publishPickupPlaces(
+                    mappedPickupPlaceRows(sportRows),
+                    fetchKey: fetchKey,
+                    requestID: requestID,
+                    startedAt: startedAt
+                )
             } catch {
-                pickupPlacesForDiscoverMap = []
-                lastPickupPlacesFetchKey = nil
-                isLoadingPickupPlacesForMap = false
+                if pickupPlacesDiscoverRequestID == requestID {
+                    isLoadingPickupPlacesForMap = false
+                }
+                print("[PickupPlacesWarmCache] networkFailedPreservedRows=\(pickupPlacesForDiscoverMap.count) key=\(fetchKey)")
 #if DEBUG
                 print("[PickupPlacesDebug] rowsLoaded=0 error=\(error)")
                 print("[PickupPlacesPerf] rowsLoaded=0")
                 print("[PickupPlacesPerf] durationMs=\(pickupPlacesPerfDurationMs(since: startedAt))")
 #endif
+            }
+        }
+    }
+
+    func warmPreloadPickupPlacesForCurrentRegion() async {
+        guard let bounds = currentMapRegionBounds() else {
+            print("[PickupPlacesWarmCache] warmSkipped reason=noBounds")
+            return
+        }
+        let fetchKey = pickupPlacesCurrentFetchKey
+        if let cached = pickupPlacesRegionalCache[fetchKey],
+           Date().timeIntervalSince(cached.fetchedAt) < pickupPlacesRegionalCacheTTL {
+            print("[PickupPlacesWarmCache] warmCacheHit=true key=\(fetchKey) rows=\(cached.rows.count)")
+            return
+        }
+
+        let sportTerms = pickupPlacesServerSportTerms(for: selectedSport)
+        let startedAt = Date()
+        print("[PickupPlacesWarmCache] warmFetchStarted key=\(fetchKey)")
+        do {
+            let taggedRows = try await fetchPickupPlaceTaggedRowsForMap(bounds: bounds, sportTerms: sportTerms)
+            let rows = mappedPickupPlaceRows(taggedRows)
+            storePickupPlacesRegionalCache(rows, fetchKey: fetchKey)
+            print("[PickupPlacesWarmCache] warmFetchCompleted rows=\(rows.count) durationMs=\(pickupPlacesPerfDurationMs(since: startedAt))")
+        } catch {
+            do {
+                let sportRows = try await fetchPickupPlaceSportRowsForMap(bounds: bounds, sportTerms: sportTerms)
+                let rows = mappedPickupPlaceRows(sportRows)
+                storePickupPlacesRegionalCache(rows, fetchKey: fetchKey)
+                print("[PickupPlacesWarmCache] warmFetchCompleted rows=\(rows.count) durationMs=\(pickupPlacesPerfDurationMs(since: startedAt)) fallback=true")
+            } catch {
+                print("[PickupPlacesWarmCache] warmFetchFailed key=\(fetchKey) error=\(error.localizedDescription)")
             }
         }
     }
@@ -204,16 +267,38 @@ extension MapViewModel {
             .value
     }
 
-    private func publishPickupPlaces(_ rows: [PickupPlaceRow], fetchKey: String, startedAt: Date) async {
+    private func publishPickupPlaces(_ rows: [PickupPlaceRow], fetchKey: String, requestID: UUID, startedAt: Date) async {
+        guard pickupPlacesDiscoverRequestID == requestID else {
+            print("[PickupPlacesWarmCache] staleDiscard=true key=\(fetchKey)")
+            return
+        }
+        storePickupPlacesRegionalCache(rows, fetchKey: fetchKey)
         pickupPlacesForDiscoverMap = rows
         lastPickupPlacesFetchKey = fetchKey
         isLoadingPickupPlacesForMap = false
+        print("[PickupPlacesWarmCache] networkPublish=true key=\(fetchKey) rows=\(rows.count)")
 #if DEBUG
         print("[PickupPlacesDebug] rowsLoaded=\(rows.count)")
         print("[PickupPlacesPerf] rowsLoaded=\(rows.count)")
         print("[PickupPlacesPerf] durationMs=\(pickupPlacesPerfDurationMs(since: startedAt))")
 #endif
         pruneSelectedPickupPlaceIfNeeded()
+    }
+
+    private func storePickupPlacesRegionalCache(_ rows: [PickupPlaceRow], fetchKey: String) {
+        pickupPlacesRegionalCache[fetchKey] = (rows: rows, fetchedAt: Date())
+        prunePickupPlacesRegionalCacheIfNeeded()
+    }
+
+    private func prunePickupPlacesRegionalCacheIfNeeded() {
+        guard pickupPlacesRegionalCache.count > pickupPlacesRegionalCacheMaxEntries else { return }
+        let sorted = pickupPlacesRegionalCache
+            .map { ($0.key, $0.value.fetchedAt) }
+            .sorted { $0.1 < $1.1 }
+        let dropCount = pickupPlacesRegionalCache.count - pickupPlacesRegionalCacheMaxEntries
+        for index in 0..<max(0, dropCount) {
+            pickupPlacesRegionalCache.removeValue(forKey: sorted[index].0)
+        }
     }
 
     private func pickupPlacesServerSportTerms(for rawSport: String) -> [String] {

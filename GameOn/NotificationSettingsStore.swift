@@ -37,12 +37,29 @@ final class NotificationSettingsStore: ObservableObject {
     private var gameReminderService: GameReminderNotificationService {
         GameReminderNotificationService.shared
     }
+    private var authorizationRefreshTask: Task<Void, Never>?
 
     init() {
         print("[NotificationSettingsStoreDebug] initialized")
     }
 
     func refreshGameNotificationAuthorizationState() async {
+        if let authorizationRefreshTask {
+            print("[NotificationPerf] authorizationRefreshCoalesced=true")
+            await authorizationRefreshTask.value
+            return
+        }
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.performGameNotificationAuthorizationRefresh()
+        }
+        authorizationRefreshTask = task
+        await task.value
+        authorizationRefreshTask = nil
+    }
+
+    private func performGameNotificationAuthorizationRefresh() async {
+        let startedAt = Date()
         print("[NotificationSettingsDebug] load authorizationState notifyBeforeGame=\(notifyBeforeGame) reminderMinutesBefore=\(reminderMinutesBefore) repeatGameReminder=\(repeatGameReminder) repeatEveryMinutes=\(repeatEveryMinutes)")
         let status = await gameReminderService.authorizationStatus()
         switch status {
@@ -57,6 +74,7 @@ final class NotificationSettingsStore: ObservableObject {
         @unknown default:
             notificationPermissionMessage = "Could not read notification permission status."
         }
+        print("[NotificationPerf] authorizationRefreshFinished durationMs=\(Int(Date().timeIntervalSince(startedAt) * 1000))")
     }
 
     func setGameNotificationsEnabled(_ enabled: Bool) async -> Bool {
