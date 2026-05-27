@@ -213,7 +213,6 @@ struct BusinessUsageCenterView: View {
                 proFeatureRow(title: "Unlimited venue listings", value: "∞ Unlimited", enabled: status?.unlimitedVenues == true)
                 proFeatureRow(title: "Unlimited hosted games", value: "∞ Unlimited", enabled: status?.unlimitedHosting == true)
                 proFeatureRow(title: "Statistics enabled", value: "Enabled", enabled: status?.statisticsEnabled == true)
-                proFeatureRow(title: "Sponsored visibility enabled", value: "Enabled", enabled: status?.sponsoredEnabled == true)
             }
         }
     }
@@ -1155,7 +1154,7 @@ struct VenueOwnerDashboardView: View {
     private func businessProStatusSubtitle(for status: BusinessVenueGamePostingStatus?) -> String {
         guard let status else { return "Checking server-controlled Business Pro access..." }
         guard status.businessProActive else {
-            return "Unlock unlimited venue listings, hosted games, statistics, and sponsored visibility."
+            return "Unlock unlimited venue listings, hosted games, and statistics."
         }
         if let days = status.daysRemaining, days <= 14 {
             return days == 1 ? "Business Pro expires in 1 day" : "Business Pro expires in \(days) days"

@@ -1802,7 +1802,7 @@ struct SettingsScreen: View {
             return "Checking server-controlled access..."
         }
         guard status.businessProActive else {
-            return "Upgrade for venues, hosted games, statistics, and sponsored visibility."
+            return "Upgrade for unlimited venues, hosted games, and statistics."
         }
         if let days = status.daysRemaining, days <= 14 {
             return days == 1 ? "Expires in 1 day" : "Expires in \(days) days"
