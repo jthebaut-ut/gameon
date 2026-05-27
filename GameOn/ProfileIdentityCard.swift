@@ -108,6 +108,8 @@ struct ProfileIdentityCard: View {
     @State private var isSponsoredProfilePlacementLoading = false
     @State private var lastSponsoredProfilePlacementRefreshAt: Date?
     @State private var showSponsoredPromotionSupportSheet = false
+    @AppStorage("profileSponsoredPlacement.lastVenueId") private var lastSponsoredProfileVenueIDRaw = ""
+    @AppStorage("profileSponsoredPlacement.lastPlacementId") private var lastSponsoredProfilePlacementIDRaw = ""
 
     private static let bioCharacterLimit = 160
     private static let incomingPokesHighlightsLimit = 50
@@ -1408,7 +1410,7 @@ struct ProfileIdentityCard: View {
         }
         let locationTargets = await sponsoredProfileResolvedLocationTargets(userLocation: userLocation)
         do {
-            let placement = try await sponsoredPlacementService.fetchProfileRecommendedPlacement(
+            let placements = try await sponsoredPlacementService.fetchProfileRecommendedPlacements(
                 country: locationTargets.country,
                 state: locationTargets.state,
                 city: locationTargets.city,
@@ -1420,7 +1422,7 @@ struct ProfileIdentityCard: View {
                 return
             }
             await MainActor.run {
-                let recommendation = activeSponsoredProfileRecommendation(from: placement, userLocation: userLocation)
+                let recommendation = activeSponsoredProfileRecommendation(from: placements, userLocation: userLocation)
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
                     sponsoredProfileRecommendation = recommendation
                 }
@@ -1539,24 +1541,90 @@ struct ProfileIdentityCard: View {
     }
 
     private func activeSponsoredProfileRecommendation(
-        from paidPlacement: SponsoredProfileVenueRecommendation?,
+        from paidPlacements: [SponsoredProfileVenueRecommendation],
         userLocation: CLLocationCoordinate2D?
     ) -> SponsoredProfileVenueRecommendation? {
-        guard let paidPlacement else {
+        guard !paidPlacements.isEmpty else {
             print("[SponsoredPlacementDebug] exclusionReason=noActivePlacementReturned")
+            print("[SponsoredPlacementRotation] eligibleCount=0")
             return nil
         }
         let now = Date()
-        let eligibility = paidPlacement.regionalEligibility(for: userLocation, now: now)
-        print("[SponsoredPlacementDebug] placementId=\(paidPlacement.placementID.uuidString.lowercased())")
-        print("[SponsoredPlacementDebug] venueId=\(paidPlacement.venue.id.uuidString.lowercased()) venueName=\(paidPlacement.venue.name)")
-        print("[SponsoredPlacementDebug] starts_at=\(paidPlacement.startsAtRaw ?? "nil") ends_at=\(paidPlacement.endsAtRaw ?? "nil") currentTime=\(Self.sponsoredPlacementDebugDateFormatter.string(from: now))")
-        print("[SponsoredPlacementDebug] userLat=\(userLocation.map { "\($0.latitude)" } ?? "nil") userLng=\(userLocation.map { "\($0.longitude)" } ?? "nil")")
-        print("[SponsoredPlacementDebug] radiusCheck=\(eligibility.isEligible) distanceMiles=\(eligibility.distanceMiles.map { String(format: "%.2f", $0) } ?? "nil") radiusMiles=\(paidPlacement.targetRadiusMiles.map { "\($0)" } ?? "nil")")
-        if !eligibility.isEligible {
-            print("[SponsoredPlacementDebug] exclusionReason=\(eligibility.reason)")
+        var eligiblePlacements: [SponsoredProfileVenueRecommendation] = []
+
+        for paidPlacement in paidPlacements {
+            let eligibility = paidPlacement.regionalEligibility(for: userLocation, now: now)
+            print("[SponsoredPlacementDebug] placementId=\(paidPlacement.placementID.uuidString.lowercased())")
+            print("[SponsoredPlacementDebug] venueId=\(paidPlacement.venue.id.uuidString.lowercased()) venueName=\(paidPlacement.venue.name)")
+            print("[SponsoredPlacementDebug] starts_at=\(paidPlacement.startsAtRaw ?? "nil") ends_at=\(paidPlacement.endsAtRaw ?? "nil") currentTime=\(Self.sponsoredPlacementDebugDateFormatter.string(from: now))")
+            print("[SponsoredPlacementDebug] userLat=\(userLocation.map { "\($0.latitude)" } ?? "nil") userLng=\(userLocation.map { "\($0.longitude)" } ?? "nil")")
+            print("[SponsoredPlacementDebug] radiusCheck=\(eligibility.isEligible) distanceMiles=\(eligibility.distanceMiles.map { String(format: "%.2f", $0) } ?? "nil") radiusMiles=\(paidPlacement.targetRadiusMiles.map { "\($0)" } ?? "nil")")
+            if eligibility.isEligible {
+                eligiblePlacements.append(paidPlacement)
+            } else {
+                print("[SponsoredPlacementDebug] exclusionReason=\(eligibility.reason)")
+            }
         }
-        return eligibility.isEligible ? paidPlacement : nil
+
+        let selected = weightedSponsoredProfilePlacement(from: eligiblePlacements)
+        if let selected {
+            lastSponsoredProfileVenueIDRaw = selected.venue.id.uuidString.lowercased()
+            lastSponsoredProfilePlacementIDRaw = selected.placementID.uuidString.lowercased()
+        }
+        return selected
+    }
+
+    private func weightedSponsoredProfilePlacement(
+        from eligiblePlacements: [SponsoredProfileVenueRecommendation]
+    ) -> SponsoredProfileVenueRecommendation? {
+        print("[SponsoredPlacementRotation] eligibleCount=\(eligiblePlacements.count)")
+        guard !eligiblePlacements.isEmpty else { return nil }
+
+        for placement in eligiblePlacements {
+            print("[SponsoredPlacementRotation] placementId=\(placement.placementID.uuidString.lowercased()) venueName=\(placement.venue.name) priority_weight=\(placement.priorityWeight)")
+        }
+
+        let lastVenueId = lastSponsoredProfileVenueIDRaw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let rotationPool: [SponsoredProfileVenueRecommendation]
+        if eligiblePlacements.count > 1, !lastVenueId.isEmpty {
+            let withoutRecentVenue = eligiblePlacements.filter {
+                $0.venue.id.uuidString.lowercased() != lastVenueId
+            }
+            if withoutRecentVenue.isEmpty {
+                rotationPool = eligiblePlacements
+            } else {
+                rotationPool = withoutRecentVenue
+                let recentlyExcluded = eligiblePlacements
+                    .filter { $0.venue.id.uuidString.lowercased() == lastVenueId }
+                    .map { "\($0.placementID.uuidString.lowercased()):\($0.venue.name)" }
+                    .joined(separator: ",")
+                print("[SponsoredPlacementRotation] recentlyExcludedPlacement=\(recentlyExcluded.isEmpty ? "none" : recentlyExcluded)")
+            }
+        } else {
+            rotationPool = eligiblePlacements
+            print("[SponsoredPlacementRotation] recentlyExcludedPlacement=none")
+        }
+
+        let totalWeight = rotationPool.reduce(0) { $0 + $1.priorityWeight }
+        print("[SponsoredPlacementRotation] totalWeight=\(totalWeight)")
+        guard totalWeight > 0 else {
+            let selected = rotationPool.first
+            print("[SponsoredPlacementRotation] selectedPlacement=\(selected?.placementID.uuidString.lowercased() ?? "nil") venueName=\(selected?.venue.name ?? "nil")")
+            return selected
+        }
+
+        var ticket = Int.random(in: 1...totalWeight)
+        for placement in rotationPool {
+            ticket -= placement.priorityWeight
+            if ticket <= 0 {
+                print("[SponsoredPlacementRotation] selectedPlacement=\(placement.placementID.uuidString.lowercased()) venueName=\(placement.venue.name)")
+                return placement
+            }
+        }
+
+        let selected = rotationPool.last
+        print("[SponsoredPlacementRotation] selectedPlacement=\(selected?.placementID.uuidString.lowercased() ?? "nil") venueName=\(selected?.venue.name ?? "nil")")
+        return selected
     }
 
     private func sponsoredProfileFallbackPromotion() -> SponsoredProfileFallbackPromotion? {
@@ -1624,7 +1692,8 @@ struct ProfileIdentityCard: View {
             endsAtRaw: nil,
             targetLatitude: nil,
             targetLongitude: nil,
-            targetRadiusMiles: nil
+            targetRadiusMiles: nil,
+            priorityWeight: 1
         )
     }
 
@@ -3068,13 +3137,13 @@ private final class SponsoredPlacementService {
         self.client = client
     }
 
-    func fetchProfileRecommendedPlacement(
+    func fetchProfileRecommendedPlacements(
         country: String?,
         state: String?,
         city: String?,
         sport: String?,
         userLocation: CLLocationCoordinate2D?
-    ) async throws -> SponsoredProfileVenueRecommendation? {
+    ) async throws -> [SponsoredProfileVenueRecommendation] {
         print("[SponsoredPlacementDebug] queryExecuting=true rpc=get_active_sponsored_placement table=public.sponsored_placements placementKey=profile_recommended_near_you country=\(normalizedTarget(country) ?? "nil") state=\(normalizedTarget(state) ?? "nil") city=\(normalizedTarget(city) ?? "nil") sport=\(normalizedTarget(sport) ?? "nil")")
         let rows: [SponsoredPlacementRPCRow] = try await client
             .rpc(
@@ -3096,14 +3165,14 @@ private final class SponsoredPlacementService {
             print("[SponsoredPlacementDebug] placementId=\(row.id.uuidString.lowercased())")
             print("[SponsoredPlacementDebug] venueId=\(row.venue_id.uuidString.lowercased()) venueName=\(row.venue_name ?? "nil")")
             print("[SponsoredPlacementDebug] starts_at=\(row.starts_at ?? "nil") ends_at=\(row.ends_at ?? "nil")")
+            print("[SponsoredPlacementRotation] placementId=\(row.id.uuidString.lowercased()) venueName=\(row.venue_name ?? "nil") priority_weight=\(row.resolvedPriorityWeight)")
         }
 
-        guard let row = rows.first,
-              let recommendation = row.recommendation(userLocation: userLocation) else {
+        let recommendations = rows.compactMap { $0.recommendation(userLocation: userLocation) }
+        if recommendations.isEmpty {
             print("[SponsoredPlacementDebug] exclusionReason=\(rows.isEmpty ? "rpcReturnedNoRows" : "invalidPlacementVenuePayload")")
-            return nil
         }
-        return recommendation
+        return recommendations
     }
 
     static func distanceLine(from userLocation: CLLocationCoordinate2D?, to venue: BarVenue) -> String {
@@ -3184,6 +3253,12 @@ private struct SponsoredPlacementRPCRow: Decodable {
     let menu_photo_thumbnail_url: String?
     let sport_tags: [String]?
     let fans_going_count: Int?
+    let priority_weight: Int?
+
+    var resolvedPriorityWeight: Int {
+        let weight = priority_weight ?? 1
+        return weight > 0 ? weight : 1
+    }
 
     func recommendation(userLocation: CLLocationCoordinate2D?) -> SponsoredProfileVenueRecommendation? {
         let venueName = trimmed(venue_name)
@@ -3239,7 +3314,8 @@ private struct SponsoredPlacementRPCRow: Decodable {
             endsAtRaw: ends_at,
             targetLatitude: target_lat,
             targetLongitude: target_lng,
-            targetRadiusMiles: target_radius_miles
+            targetRadiusMiles: target_radius_miles,
+            priorityWeight: resolvedPriorityWeight
         )
     }
 
@@ -3288,6 +3364,7 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
     let targetLatitude: Double?
     let targetLongitude: Double?
     let targetRadiusMiles: Double?
+    let priorityWeight: Int
 
     var id: UUID { placementID }
     var sourceDebugLabel: String { isSponsored ? "sponsored" : "organic" }
@@ -3362,7 +3439,7 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
         guard let startsAt = SponsoredPlacementService.parseSupabaseTimestamp(startsAtRaw),
               let endsAt = SponsoredPlacementService.parseSupabaseTimestamp(endsAtRaw),
               startsAt <= now,
-              endsAt > now else {
+              endsAt >= now else {
             return .blocked(reason: "outsideActiveDateWindow")
         }
 
@@ -3393,7 +3470,8 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
             endsAtRaw: endsAtRaw,
             targetLatitude: targetLatitude,
             targetLongitude: targetLongitude,
-            targetRadiusMiles: targetRadiusMiles
+            targetRadiusMiles: targetRadiusMiles,
+            priorityWeight: priorityWeight
         )
     }
 }
@@ -3448,72 +3526,23 @@ private struct SponsoredProfileRecommendationCard: View {
     @State private var glowPulse = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             header
 
-            HStack(alignment: .top, spacing: 18) {
+            titleBlock
+
+            HStack(alignment: .top, spacing: 16) {
                 venueImage
 
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(recommendation.title)
-                            .font(.system(size: 20, weight: .heavy, design: .rounded))
-                            .foregroundStyle(FGColor.primaryText(colorScheme))
-                            .lineLimit(2)
-
-                        Text(recommendation.gameLine)
-                            .font(.system(size: 13.5, weight: .semibold, design: .rounded))
-                            .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            .lineLimit(1)
-                    }
-
-                    HStack(spacing: 8) {
-                        Label(recommendation.distanceLine, systemImage: "location.fill")
-                            .labelStyle(.titleAndIcon)
-                        Text("•")
-                        fansGoingRow
-                    }
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme))
-
-                    sportChips
-
-                    Button(action: onTap) {
-                        HStack(spacing: 8) {
-                            Text(recommendation.ctaLabel)
-                                .font(.system(size: 13.5, weight: .bold, design: .rounded))
-                            Spacer(minLength: 0)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11.5, weight: .heavy))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 17)
-                        .padding(.vertical, 11)
-                        .background(
-                            LinearGradient(
-                                colors: [
-                                    FGColor.accentBlue.opacity(0.98),
-                                    FGColor.accentGreen.opacity(0.92)
-                                ],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.8)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(recommendation.ctaLabel), \(recommendation.venue.name)")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                metadataPanel
             }
+
+            ctaButton
         }
-        .padding(18)
-        .padding(.top, 4)
-        .frame(minHeight: 164)
+        .padding(.horizontal, 22)
+        .padding(.top, 21)
+        .padding(.bottom, 22)
+        .frame(minHeight: 320)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
         .overlay {
@@ -3574,6 +3603,100 @@ private struct SponsoredProfileRecommendationCard: View {
         .accessibilityLabel("\(recommendation.isSponsored ? "Sponsored " : "")recommendation, \(recommendation.venue.name), \(recommendation.gameLine)")
     }
 
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(recommendation.title)
+                .font(.system(size: 23, weight: .heavy, design: .rounded))
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(recommendation.gameLine)
+                .font(.system(size: 14.5, weight: .semibold, design: .rounded))
+                .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.trailing, 4)
+    }
+
+    private var metadataPanel: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            metadataRow
+            sportChips
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 13)
+        .padding(.vertical, 13)
+        .frame(maxWidth: .infinity, minHeight: 115, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.44))
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.34), lineWidth: 0.8)
+        }
+    }
+
+    private var metadataRow: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Label(recommendation.distanceLine, systemImage: "location.fill")
+                .labelStyle(.titleAndIcon)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 6) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 10.5, weight: .bold))
+                fansGoingRow
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+        .foregroundStyle(FGColor.mutedText(colorScheme))
+    }
+
+    private var ctaButton: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Text(recommendation.ctaLabel)
+                    .font(.system(size: 14.5, weight: .heavy, design: .rounded))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .heavy))
+                    .frame(width: 24, height: 24)
+                    .background(Color.white.opacity(0.17), in: Circle())
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(
+                LinearGradient(
+                    colors: [
+                        sponsorPurple.opacity(0.98),
+                        FGColor.accentBlue.opacity(0.96),
+                        FGColor.accentGreen.opacity(0.90)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.22), lineWidth: 0.9)
+            }
+            .shadow(color: sponsorPurple.opacity(colorScheme == .dark ? 0.24 : 0.16), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 2)
+        .accessibilityLabel("\(recommendation.ctaLabel), \(recommendation.venue.name)")
+    }
+
     private func runRevealAnimationIfNeeded() {
         guard !hasRevealed else { return }
         if reduceMotion {
@@ -3628,17 +3751,18 @@ private struct SponsoredProfileRecommendationCard: View {
         return Group {
             if !chips.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 9) {
+                    HStack(spacing: 8) {
                         ForEach(chips, id: \.self) { chip in
                             HStack(spacing: 5) {
                                 Image(systemName: sportChipIcon(for: chip))
-                                    .font(.system(size: 10.5, weight: .bold))
+                                    .font(.system(size: 10, weight: .bold))
                                 Text(chip)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                                    .font(.system(size: 10.5, weight: .bold, design: .rounded))
+                                    .lineLimit(1)
                             }
                             .foregroundStyle(FGColor.secondaryText(colorScheme))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5.5)
                             .background(
                                 LinearGradient(
                                     colors: [
@@ -3672,23 +3796,39 @@ private struct SponsoredProfileRecommendationCard: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center, spacing: 10) {
             Text("Recommended Near You")
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
             Spacer(minLength: 8)
             if recommendation.isSponsored {
-                Text("Sponsored")
-                    .font(.system(size: 9.5, weight: .bold, design: .rounded))
-                    .foregroundStyle(FGColor.mutedText(colorScheme).opacity(0.78))
-                    .textCase(.uppercase)
-                    .tracking(0.5)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color.white.opacity(colorScheme == .dark ? 0.045 : 0.42), in: Capsule())
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 8, weight: .heavy))
+                    Text("Sponsored")
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .textCase(.uppercase)
+                        .tracking(0.55)
+                }
+                    .foregroundStyle(sponsorPurple.opacity(colorScheme == .dark ? 0.95 : 0.88))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                sponsorPurple.opacity(colorScheme == .dark ? 0.15 : 0.12),
+                                FGColor.accentBlue.opacity(colorScheme == .dark ? 0.10 : 0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: Capsule()
+                    )
                     .overlay {
                         Capsule()
-                            .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.08 : 0.45), lineWidth: 0.6)
+                            .strokeBorder(sponsorPurple.opacity(colorScheme == .dark ? 0.30 : 0.20), lineWidth: 0.8)
                     }
             }
         }
@@ -3705,13 +3845,13 @@ private struct SponsoredProfileRecommendationCard: View {
             }
             venueImageAtmosphere
         }
-        .frame(width: 118, height: 118)
-        .clipShape(RoundedRectangle(cornerRadius: 23, style: .continuous))
+        .frame(width: 150, height: 115)
+        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 23, style: .continuous)
+            RoundedRectangle(cornerRadius: 25, style: .continuous)
                 .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.15 : 0.58), lineWidth: 0.9)
         }
-        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.18 : 0.10), radius: 10, y: 5)
+        .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.20 : 0.12), radius: 13, y: 6)
     }
 
     private var venueImagePlaceholder: some View {
@@ -3752,7 +3892,8 @@ private struct SponsoredProfileRecommendationCard: View {
 
     private var fansGoingRow: some View {
         Text(recommendation.fansGoingText)
-            .lineLimit(1)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var cardBackground: some View {
