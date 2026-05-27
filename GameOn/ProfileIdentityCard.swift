@@ -105,6 +105,8 @@ struct ProfileIdentityCard: View {
     @State private var trophyAnimationTask: Task<Void, Never>?
     @State private var sponsoredVenueDetail: BarVenue?
     @State private var sponsoredProfileRecommendation: SponsoredProfileVenueRecommendation?
+    @State private var isSponsoredProfilePlacementLoading = false
+    @State private var lastSponsoredProfilePlacementRefreshAt: Date?
     @State private var showSponsoredPromotionSupportSheet = false
 
     private static let bioCharacterLimit = 160
@@ -118,6 +120,12 @@ struct ProfileIdentityCard: View {
     private static let favoriteTeamsCarouselHeight: CGFloat = 178
     private static let favoriteTeamsHomeCrowdBottomSpacing: CGFloat = 8
     private static let profileMajorSectionSpacing: CGFloat = 22
+    private static let sponsoredPlacementRefreshDebounceSeconds: TimeInterval = 0.75
+    private static let sponsoredPlacementDebugDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     private let profilePokesService = ProfilePokesService()
     private let friendSuggestionsService = FriendSuggestionsService()
@@ -266,6 +274,10 @@ struct ProfileIdentityCard: View {
 #endif
     }
 
+    private func logSponsoredProfileBodyRender() {
+        print("[SponsoredPlacementDebug] profileBodyRender=true isAccountTabActive=\(isAccountTabActive) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(shouldBlockFanIdentityCardForBusiness)")
+    }
+
     private func loadProfileStatsIfNeeded() async {
         guard isAccountTabActive, let userId = viewModel.currentUserAuthId else { return }
         let email = await viewModel.strictNormalizedSessionEmailForSocialTables()
@@ -300,10 +312,12 @@ struct ProfileIdentityCard: View {
 
     var body: some View {
         let _: Void = logFanUpdatesStoreMigrationDebug()
+        let _: Void = logSponsoredProfileBodyRender()
 
         if shouldBlockFanIdentityCardForBusiness {
             EmptyView()
                 .onAppear {
+                    print("[SponsoredPlacementDebug] profileIdentityCardBypassed=true reason=businessProfileContext")
 #if DEBUG
                     print("[BusinessDashboardCleanup] FAN_LEVEL_CARD_BLOCKED_FOR_BUSINESS")
 #endif
@@ -363,6 +377,7 @@ struct ProfileIdentityCard: View {
             .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.22 : 0.07), radius: 22, y: 12)
             .shadow(color: FGColor.accentBlue.opacity(colorScheme == .dark ? 0.035 : 0.055), radius: 18, y: 3)
             .onAppear {
+                print("[SponsoredPlacementDebug] profileIdentityCardAppeared=true isAccountTabActive=\(isAccountTabActive)")
 #if DEBUG
                 print("[ProfileIdentityCardDebug] layout=modern_light_social_profile")
                 print("[ProfileBioDebug] identityCardDisplayedBio=\(bioLine)")
@@ -373,6 +388,7 @@ struct ProfileIdentityCard: View {
                 DebugLogGate.debug("[PokesConsolidation] propsUIRemoved")
                 DebugLogGate.debug("[PokesConsolidation] primarySocialSurface=pokes")
                 FanReputationEngine.log(reputation)
+                refreshSponsoredProfilePlacement(reason: "profileAppear")
             }
             .onChange(of: viewModel.currentUserBio) { _, newValue in
 #if DEBUG
@@ -399,7 +415,11 @@ struct ProfileIdentityCard: View {
                 await loadProfileStatsIfNeeded()
             }
             .task(id: sponsoredPlacementLoadToken) {
-                await loadSponsoredProfileRecommendation()
+                print("[SponsoredPlacementDebug] profileTaskStarted=true token=\(sponsoredPlacementLoadToken)")
+                await loadSponsoredProfileRecommendation(reason: "profileTask")
+                if Task.isCancelled {
+                    print("[SponsoredPlacementDebug] taskCancelledAfterLoader=true reason=profileTask")
+                }
             }
             .sheet(isPresented: $showSponsoredPromotionSupportSheet) {
                 ContactGameOnSupportSheet(
@@ -477,9 +497,17 @@ struct ProfileIdentityCard: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active, isAccountTabActive else { return }
+                guard phase == .active else {
+                    print("[SponsoredPlacementDebug] foregroundRefreshSkipped=true reason=scenePhaseInactive phase=\(String(describing: phase))")
+                    return
+                }
+                guard isAccountTabActive else {
+                    print("[SponsoredPlacementDebug] foregroundRefreshSkipped=true reason=accountTabInactive")
+                    return
+                }
                 Task {
                     await refreshIncomingPokesLive(reason: "foreground")
+                    await loadSponsoredProfileRecommendation(reason: "foreground")
                 }
             }
             .onChange(of: selectedAvatarItem) { _, item in
@@ -488,9 +516,11 @@ struct ProfileIdentityCard: View {
             }
             .onChange(of: viewModel.currentUserLocation?.latitude) { _, _ in
                 refreshSponsoredPlacementDistanceIfNeeded()
+                refreshSponsoredProfilePlacement(reason: "currentUserLatitudeChanged")
             }
             .onChange(of: viewModel.currentUserLocation?.longitude) { _, _ in
                 refreshSponsoredPlacementDistanceIfNeeded()
+                refreshSponsoredProfilePlacement(reason: "currentUserLongitudeChanged")
             }
             .onChange(of: editedUsername) { _, newValue in
                 let normalized = FanGeoHandleRules.normalizeForStorage(newValue)
@@ -1348,22 +1378,49 @@ struct ProfileIdentityCard: View {
         }
     }
 
-    private func loadSponsoredProfileRecommendation() async {
-        guard isAccountTabActive, viewModel.isLoggedIn else {
+    private func loadSponsoredProfileRecommendation(reason: String) async {
+        print("[SponsoredPlacementDebug] loaderStarted=true reason=\(reason) isAccountTabActive=\(isAccountTabActive) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") taskCancelled=\(Task.isCancelled)")
+        guard !Task.isCancelled else {
+            print("[SponsoredPlacementDebug] exclusionReason=taskCancelledBeforeFetch reason=\(reason)")
+            return
+        }
+        guard isAccountTabActive else {
+            print("[SponsoredPlacementDebug] exclusionReason=accountTabInactive")
+            return
+        }
+        guard viewModel.isLoggedIn else {
+            print("[SponsoredPlacementDebug] exclusionReason=noAuthSession")
             sponsoredProfileRecommendation = nil
             return
         }
+        guard viewModel.currentUserAuthId != nil || !viewModel.currentUserEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            print("[SponsoredPlacementDebug] exclusionReason=noAuthSession authId=nil emailEmpty=true")
+            sponsoredProfileRecommendation = nil
+            return
+        }
+        guard beginSponsoredPlacementLoadIfAllowed(reason: reason) else { return }
+        defer { finishSponsoredPlacementLoad(reason: reason) }
 
+        let userLocation = await currentSponsoredPlacementUserLocation(reason: "profileRecommendationLoad")
+        guard !Task.isCancelled else {
+            print("[SponsoredPlacementDebug] exclusionReason=taskCancelledAfterLocation reason=\(reason)")
+            return
+        }
+        let locationTargets = await sponsoredProfileResolvedLocationTargets(userLocation: userLocation)
         do {
             let placement = try await sponsoredPlacementService.fetchProfileRecommendedPlacement(
-                country: sponsoredProfileCountryTarget,
-                state: sponsoredProfileStateTarget,
-                city: sponsoredProfileCityTarget,
+                country: locationTargets.country,
+                state: locationTargets.state,
+                city: locationTargets.city,
                 sport: sponsoredProfileSportTarget,
-                userLocation: viewModel.currentUserLocation
+                userLocation: userLocation
             )
+            if Task.isCancelled {
+                print("[SponsoredPlacementDebug] exclusionReason=taskCancelledAfterQuery reason=\(reason)")
+                return
+            }
             await MainActor.run {
-                let recommendation = activeSponsoredProfileRecommendation(from: placement)
+                let recommendation = activeSponsoredProfileRecommendation(from: placement, userLocation: userLocation)
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) {
                     sponsoredProfileRecommendation = recommendation
                 }
@@ -1380,6 +1437,11 @@ struct ProfileIdentityCard: View {
         } catch {
             await MainActor.run {
                 sponsoredProfileRecommendation = nil
+                if error is CancellationError {
+                    print("[SponsoredPlacementDebug] exclusionReason=taskCancelledDuringFetch reason=\(reason)")
+                } else {
+                    print("[SponsoredPlacementDebug] exclusionReason=loadFailed error=\(error.localizedDescription)")
+                }
 #if DEBUG
                 print("[SponsoredProfileDebug] source=fallback")
                 print("[SponsoredProfileDebug] fallbackBusinessPromotion=true")
@@ -1389,20 +1451,112 @@ struct ProfileIdentityCard: View {
         }
     }
 
+    private func beginSponsoredPlacementLoadIfAllowed(reason: String) -> Bool {
+        if isSponsoredProfilePlacementLoading {
+            print("[SponsoredPlacementDebug] exclusionReason=alreadyLoading reason=\(reason)")
+            return false
+        }
+
+        let now = Date()
+        if let lastSponsoredProfilePlacementRefreshAt,
+           now.timeIntervalSince(lastSponsoredProfilePlacementRefreshAt) < Self.sponsoredPlacementRefreshDebounceSeconds {
+            print("[SponsoredPlacementDebug] exclusionReason=skippedDueToRefreshDebounce reason=\(reason) elapsed=\(String(format: "%.2f", now.timeIntervalSince(lastSponsoredProfilePlacementRefreshAt)))")
+            return false
+        }
+
+        isSponsoredProfilePlacementLoading = true
+        lastSponsoredProfilePlacementRefreshAt = now
+        print("[SponsoredPlacementDebug] loadAllowed=true reason=\(reason)")
+        return true
+    }
+
+    private func finishSponsoredPlacementLoad(reason: String) {
+        isSponsoredProfilePlacementLoading = false
+        print("[SponsoredPlacementDebug] loaderFinished=true reason=\(reason)")
+    }
+
+    private func currentSponsoredPlacementUserLocation(reason: String) async -> CLLocationCoordinate2D? {
+        if SponsoredProfileVenueRecommendation.hasValidLocation(viewModel.currentUserLocation) {
+            logSponsoredPlacementUserLocation(viewModel.currentUserLocation, source: "cachedCurrentUserLocation", reason: reason)
+            return viewModel.currentUserLocation
+        }
+
+        let refreshed = await viewModel.refreshCurrentUserLocationIfAuthorized(timeoutSeconds: 4)
+        if refreshed, SponsoredProfileVenueRecommendation.hasValidLocation(viewModel.currentUserLocation) {
+            logSponsoredPlacementUserLocation(viewModel.currentUserLocation, source: "deviceLocationRefresh", reason: reason)
+            return viewModel.currentUserLocation
+        }
+
+        if let homeCrowdCoordinate = sponsoredProfileHomeCrowdCoordinate(),
+           SponsoredProfileVenueRecommendation.hasValidLocation(homeCrowdCoordinate) {
+            logSponsoredPlacementUserLocation(homeCrowdCoordinate, source: "homeCrowdVenue", reason: reason)
+            return homeCrowdCoordinate
+        } else if viewModel.currentUserHomeCrowdVenueId != nil {
+            print("[SponsoredPlacementDebug] exclusionReason=missingVenue reason=homeCrowdVenueCoordinateUnavailable venueId=\(viewModel.currentUserHomeCrowdVenueId?.uuidString.lowercased() ?? "nil")")
+        }
+
+        logSponsoredPlacementUserLocation(nil, source: refreshed ? "deviceLocationInvalid" : "noAuthorizedDeviceLocation", reason: reason)
+        print("[SponsoredPlacementDebug] exclusionReason=missingLocation reason=\(refreshed ? "deviceLocationInvalid" : "noAuthorizedDeviceLocation")")
+        return nil
+    }
+
+    private func sponsoredProfileHomeCrowdCoordinate() -> CLLocationCoordinate2D? {
+        guard let homeCrowdVenueId = viewModel.currentUserHomeCrowdVenueId else { return nil }
+        return uniqueOrganicRecommendationCandidates()
+            .first(where: { $0.id == homeCrowdVenueId })?
+            .coordinate
+    }
+
+    private func sponsoredProfileResolvedLocationTargets(
+        userLocation: CLLocationCoordinate2D?
+    ) async -> (city: String?, state: String?, country: String?) {
+        var city = sponsoredProfileCityTarget
+        var state = sponsoredProfileStateTarget
+        var country = sponsoredProfileCountryTarget
+
+        if (city?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            || (state?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+           let userLocation,
+           SponsoredProfileVenueRecommendation.hasValidLocation(userLocation) {
+            let fields = await viewModel.reverseGeocodeAddressFields(for: userLocation)
+            city = city?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? city : fields.city
+            state = state?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? state : fields.state
+        }
+
+        if (country?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true),
+           let userLocation,
+           SponsoredProfileVenueRecommendation.hasValidLocation(userLocation) {
+            country = await reverseGeocodeSponsoredPlacementCountry(for: userLocation)
+        }
+
+        print("[SponsoredPlacementDebug] targetCity=\(city ?? "nil") targetState=\(state ?? "nil") targetCountry=\(country ?? "nil")")
+        return (city, state, country)
+    }
+
+    private func reverseGeocodeSponsoredPlacementCountry(for _: CLLocationCoordinate2D) async -> String? {
+        print("[SponsoredPlacementDebug] countrySource=defaultCountryCodeForCurrentDevice")
+        return BusinessLocationCountryPolicy.defaultCountryCode
+    }
+
     private func activeSponsoredProfileRecommendation(
-        from paidPlacement: SponsoredProfileVenueRecommendation?
+        from paidPlacement: SponsoredProfileVenueRecommendation?,
+        userLocation: CLLocationCoordinate2D?
     ) -> SponsoredProfileVenueRecommendation? {
-        guard let paidPlacement else { return nil }
-        let isEligible = paidPlacement.isEligibleActiveRegionalSponsor(
-            for: viewModel.currentUserLocation,
-            now: Date()
-        )
-#if DEBUG
-        print("[SponsoredProfileDebug] activeSponsorExists=\(isEligible)")
-        print("[SponsoredProfileDebug] userLocationValid=\(SponsoredProfileVenueRecommendation.hasValidLocation(viewModel.currentUserLocation))")
-        print("[SponsoredProfileDebug] campaignRadiusMiles=\(paidPlacement.targetRadiusMiles.map { "\($0)" } ?? "nil")")
-#endif
-        return isEligible ? paidPlacement : nil
+        guard let paidPlacement else {
+            print("[SponsoredPlacementDebug] exclusionReason=noActivePlacementReturned")
+            return nil
+        }
+        let now = Date()
+        let eligibility = paidPlacement.regionalEligibility(for: userLocation, now: now)
+        print("[SponsoredPlacementDebug] placementId=\(paidPlacement.placementID.uuidString.lowercased())")
+        print("[SponsoredPlacementDebug] venueId=\(paidPlacement.venue.id.uuidString.lowercased()) venueName=\(paidPlacement.venue.name)")
+        print("[SponsoredPlacementDebug] starts_at=\(paidPlacement.startsAtRaw ?? "nil") ends_at=\(paidPlacement.endsAtRaw ?? "nil") currentTime=\(Self.sponsoredPlacementDebugDateFormatter.string(from: now))")
+        print("[SponsoredPlacementDebug] userLat=\(userLocation.map { "\($0.latitude)" } ?? "nil") userLng=\(userLocation.map { "\($0.longitude)" } ?? "nil")")
+        print("[SponsoredPlacementDebug] radiusCheck=\(eligibility.isEligible) distanceMiles=\(eligibility.distanceMiles.map { String(format: "%.2f", $0) } ?? "nil") radiusMiles=\(paidPlacement.targetRadiusMiles.map { "\($0)" } ?? "nil")")
+        if !eligibility.isEligible {
+            print("[SponsoredPlacementDebug] exclusionReason=\(eligibility.reason)")
+        }
+        return eligibility.isEligible ? paidPlacement : nil
     }
 
     private func sponsoredProfileFallbackPromotion() -> SponsoredProfileFallbackPromotion? {
@@ -1438,6 +1592,18 @@ struct ProfileIdentityCard: View {
         )
         guard nextDistance != current.distanceLine else { return }
         sponsoredProfileRecommendation = current.withDistanceLine(nextDistance)
+    }
+
+    private func refreshSponsoredProfilePlacement(reason: String) {
+        Task {
+            print("[SponsoredPlacementDebug] refreshRequested reason=\(reason)")
+            await loadSponsoredProfileRecommendation(reason: reason)
+        }
+    }
+
+    private func logSponsoredPlacementUserLocation(_ location: CLLocationCoordinate2D?, source: String, reason: String) {
+        print("[SponsoredPlacementDebug] locationSource=\(source) reason=\(reason)")
+        print("[SponsoredPlacementDebug] userLat=\(location.map { "\($0.latitude)" } ?? "nil") userLng=\(location.map { "\($0.longitude)" } ?? "nil")")
     }
 
     private func organicProfileRecommendation() -> SponsoredProfileVenueRecommendation? {
@@ -2909,6 +3075,7 @@ private final class SponsoredPlacementService {
         sport: String?,
         userLocation: CLLocationCoordinate2D?
     ) async throws -> SponsoredProfileVenueRecommendation? {
+        print("[SponsoredPlacementDebug] queryExecuting=true rpc=get_active_sponsored_placement table=public.sponsored_placements placementKey=profile_recommended_near_you country=\(normalizedTarget(country) ?? "nil") state=\(normalizedTarget(state) ?? "nil") city=\(normalizedTarget(city) ?? "nil") sport=\(normalizedTarget(sport) ?? "nil")")
         let rows: [SponsoredPlacementRPCRow] = try await client
             .rpc(
                 "get_active_sponsored_placement",
@@ -2923,8 +3090,17 @@ private final class SponsoredPlacementService {
             .execute()
             .value
 
+        print("[SponsoredPlacementDebug] activePlacementsFetched=\(rows.count)")
+        print("[SponsoredPlacementDebug] currentTime=\(Self.debugDateFormatter.string(from: Date()))")
+        for row in rows {
+            print("[SponsoredPlacementDebug] placementId=\(row.id.uuidString.lowercased())")
+            print("[SponsoredPlacementDebug] venueId=\(row.venue_id.uuidString.lowercased()) venueName=\(row.venue_name ?? "nil")")
+            print("[SponsoredPlacementDebug] starts_at=\(row.starts_at ?? "nil") ends_at=\(row.ends_at ?? "nil")")
+        }
+
         guard let row = rows.first,
               let recommendation = row.recommendation(userLocation: userLocation) else {
+            print("[SponsoredPlacementDebug] exclusionReason=\(rows.isEmpty ? "rpcReturnedNoRows" : "invalidPlacementVenuePayload")")
             return nil
         }
         return recommendation
@@ -2959,6 +3135,12 @@ private final class SponsoredPlacementService {
         plain.formatOptions = [.withInternetDateTime]
         return plain.date(from: trimmed)
     }
+
+    private static let debugDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     private func normalizedTarget(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -3006,11 +3188,17 @@ private struct SponsoredPlacementRPCRow: Decodable {
     func recommendation(userLocation: CLLocationCoordinate2D?) -> SponsoredProfileVenueRecommendation? {
         let venueName = trimmed(venue_name)
         let placementTitle = trimmed(title)
-        guard !venueName.isEmpty || !placementTitle.isEmpty else { return nil }
+        guard !venueName.isEmpty || !placementTitle.isEmpty else {
+            print("[SponsoredPlacementDebug] exclusionReason=missingVenue placementId=\(id.uuidString.lowercased()) venueId=\(venue_id.uuidString.lowercased())")
+            return nil
+        }
 
         let sport = trimmed(primary_sport)
         let resolvedSport = sport.isEmpty ? "Sports" : sport
         let coordinate = CLLocationCoordinate2D(latitude: latitude ?? 0, longitude: longitude ?? 0)
+        if !CLLocationCoordinate2DIsValid(coordinate) || (abs(coordinate.latitude) <= 0.0001 && abs(coordinate.longitude) <= 0.0001) {
+            print("[SponsoredPlacementDebug] exclusionReason=missingVenueLocation placementId=\(id.uuidString.lowercased()) venueId=\(venue_id.uuidString.lowercased()) venueName=\(venueName.isEmpty ? placementTitle : venueName)")
+        }
         let subtitleLine = trimmed(subtitle)
         let bar = BarVenue(
             id: venue_id,
@@ -3146,6 +3334,13 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
         for userLocation: CLLocationCoordinate2D?,
         now: Date
     ) -> Bool {
+        regionalEligibility(for: userLocation, now: now).isEligible
+    }
+
+    func regionalEligibility(
+        for userLocation: CLLocationCoordinate2D?,
+        now: Date
+    ) -> SponsoredPlacementRegionalEligibility {
         guard isSponsored,
               let userLocation,
               Self.hasValidLocation(userLocation),
@@ -3153,21 +3348,34 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
               let targetLongitude,
               let targetRadiusMiles,
               targetRadiusMiles > 0 else {
-            return false
+            if !isSponsored {
+                return .blocked(reason: "notSponsoredPlacement")
+            }
+            if !Self.hasValidLocation(userLocation) {
+                return .blocked(reason: "missingUserDeviceLocation")
+            }
+            if targetLatitude == nil || targetLongitude == nil {
+                return .blocked(reason: "missingCampaignCenter")
+            }
+            return .blocked(reason: "missingCampaignRadius")
         }
         guard let startsAt = SponsoredPlacementService.parseSupabaseTimestamp(startsAtRaw),
               let endsAt = SponsoredPlacementService.parseSupabaseTimestamp(endsAtRaw),
               startsAt <= now,
               endsAt > now else {
-            return false
+            return .blocked(reason: "outsideActiveDateWindow")
         }
 
         let campaignCenter = CLLocationCoordinate2D(latitude: targetLatitude, longitude: targetLongitude)
-        guard CLLocationCoordinate2DIsValid(campaignCenter) else { return false }
+        guard CLLocationCoordinate2DIsValid(campaignCenter) else {
+            return .blocked(reason: "invalidCampaignCenter")
+        }
         let origin = CLLocation(latitude: userLocation.latitude, longitude: userLocation.longitude)
         let center = CLLocation(latitude: campaignCenter.latitude, longitude: campaignCenter.longitude)
         let miles = origin.distance(from: center) / 1609.344
         return miles <= targetRadiusMiles
+            ? .eligible(distanceMiles: miles)
+            : .blocked(reason: "outsideCampaignRadius", distanceMiles: miles)
     }
 
     func withDistanceLine(_ distanceLine: String) -> SponsoredProfileVenueRecommendation {
@@ -3187,6 +3395,20 @@ private struct SponsoredProfileVenueRecommendation: Identifiable {
             targetLongitude: targetLongitude,
             targetRadiusMiles: targetRadiusMiles
         )
+    }
+}
+
+private struct SponsoredPlacementRegionalEligibility {
+    let isEligible: Bool
+    let reason: String
+    let distanceMiles: Double?
+
+    static func eligible(distanceMiles: Double) -> SponsoredPlacementRegionalEligibility {
+        SponsoredPlacementRegionalEligibility(isEligible: true, reason: "eligible", distanceMiles: distanceMiles)
+    }
+
+    static func blocked(reason: String, distanceMiles: Double? = nil) -> SponsoredPlacementRegionalEligibility {
+        SponsoredPlacementRegionalEligibility(isEligible: false, reason: reason, distanceMiles: distanceMiles)
     }
 }
 

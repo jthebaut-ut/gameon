@@ -166,6 +166,26 @@ final class ChatViewModel: ObservableObject {
         try? await service.currentUserId()
     }
 
+    private func noteAuthenticatedChatSession(userId: UUID, source: String) {
+        currentUserAuthId = userId
+        requiresSignIn = false
+#if DEBUG
+        let email = mapViewModel?.authenticatedSocialEmailForUI ?? ""
+        let isBusiness = mapViewModel?.currentUserIsBusinessAccount == true
+            || mapViewModel?.isVenueOwnerLoggedIn == true
+            || mapViewModel?.hasAuthenticatedVenueOwnerSession == true
+        let hasUserProfile = mapViewModel?.userProfileExistsForPresentation == true
+            || mapViewModel?.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            || mapViewModel?.currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        print("[ChatAuthGate] chatViewModelAuthenticated source=\(source)")
+        print("[ChatAuthGate] hasSession=true")
+        print("[ChatAuthGate] userEmail=\(email.isEmpty ? "nil" : email)")
+        print("[ChatAuthGate] isBusinessAccount=\(isBusiness)")
+        print("[ChatAuthGate] hasUserProfile=\(hasUserProfile)")
+        print("[ChatAuthGate] reasonBlocked=none")
+#endif
+    }
+
     private func ignoreCancellationIfNeeded(_ error: Error, context: String) -> Bool {
         guard error is CancellationError else { return false }
         #if DEBUG
@@ -976,6 +996,7 @@ final class ChatViewModel: ObservableObject {
             clearForSignOut()
             return
         }
+        noteAuthenticatedChatSession(userId: me, source: "friendRequests")
         await reloadModerationBlockSets()
         do {
             async let accepted = service.fetchAcceptedFriendships(for: me)
@@ -1007,7 +1028,7 @@ final class ChatViewModel: ObservableObject {
 #if DEBUG
             print("[BadgeSyncDebug] tab badge updated")
 #endif
-            currentUserAuthId = me
+            noteAuthenticatedChatSession(userId: me, source: "friendRequestsLoaded")
             applyFriendshipChipStates(me: me, accepted: accRows, incoming: inRows, outgoing: outRows)
         } catch {
             // Keep existing lists; next refresh or realtime will retry.
@@ -1020,6 +1041,7 @@ final class ChatViewModel: ObservableObject {
             clearForSignOut()
             return
         }
+        noteAuthenticatedChatSession(userId: me, source: "unreadDirectMessageCount")
         let prior = unreadDirectMessageCount
         #if DEBUG
         print("[RealtimeChainDebug] refreshStarted table=conversation_read_state key=unreadDirectMessageCount")
@@ -1119,6 +1141,7 @@ final class ChatViewModel: ObservableObject {
             clearForSignOut()
             return
         }
+        noteAuthenticatedChatSession(userId: me, source: "inboxSummaries")
         await reloadModerationBlockSets()
         do {
             let rows = try await directChatService.fetchInboxSummaries()
@@ -1168,7 +1191,7 @@ final class ChatViewModel: ObservableObject {
             let totalUnread = visible.reduce(0) { $0 + $1.unreadCount }
             await setUnreadDirectMessageCountAndSyncAppIcon(totalUnread, source: "refresh_inbox_summaries")
             lastInboxLoadAt = Date()
-            currentUserAuthId = me
+            noteAuthenticatedChatSession(userId: me, source: "inboxSummariesLoaded")
         } catch {
             // Keep existing list on transient failures; unread badge may be stale until next refresh.
         }
@@ -1267,6 +1290,7 @@ final class ChatViewModel: ObservableObject {
                 await stopInboxRealtimeListener()
                 await stopFriendshipsRealtimeListener()
             }
+            noteAuthenticatedChatSession(userId: me, source: "fullRefresh")
             await reloadModerationBlockSets()
             async let accepted = service.fetchAcceptedFriendships(for: me)
             async let incoming = service.fetchIncomingFriendRequestsVisible(for: me)
@@ -1343,7 +1367,7 @@ final class ChatViewModel: ObservableObject {
             requiresSignIn = false
             lastLoadAt = Date()
             lastInboxLoadAt = Date()
-            currentUserAuthId = me
+            noteAuthenticatedChatSession(userId: me, source: "fullRefreshLoaded")
             applyFriendshipChipStates(
                 me: me,
                 accepted: accRows,

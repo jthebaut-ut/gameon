@@ -178,6 +178,26 @@ struct FriendsTabView: View {
         filteredFriendsDirectoryItemsSnapshot
     }
 
+    private var isBusinessChatAccount: Bool {
+        mapViewModel.currentUserIsBusinessAccount
+            || mapViewModel.isVenueOwnerLoggedIn
+            || mapViewModel.hasAuthenticatedVenueOwnerSession
+    }
+
+    private var hasChatAuthSession: Bool {
+        mapViewModel.canUsePrivateChat || viewModel.currentUserAuthId != nil
+    }
+
+    private var hasRegularUserProfileForChatGate: Bool {
+        mapViewModel.userProfileExistsForPresentation
+            || !mapViewModel.currentUserDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !mapViewModel.currentUserUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var shouldShowChatSignInRequired: Bool {
+        !hasChatAuthSession
+    }
+
     var body: some View {
         NavigationStack {
             chatRootContent
@@ -247,6 +267,18 @@ struct FriendsTabView: View {
             guard preview != nil else { return }
             consumePendingDmOpenPreviewIfNeeded()
         }
+        .onChange(of: viewModel.requiresSignIn) { _, _ in
+            logChatAuthGate(reason: "requiresSignInChanged")
+        }
+        .onChange(of: viewModel.currentUserAuthId) { _, _ in
+            logChatAuthGate(reason: "chatUserAuthIdChanged")
+        }
+        .onChange(of: mapViewModel.currentUserAuthId) { _, _ in
+            logChatAuthGate(reason: "mapUserAuthIdChanged")
+        }
+        .onChange(of: mapViewModel.currentUserIsBusinessAccount) { _, _ in
+            logChatAuthGate(reason: "businessAccountChanged")
+        }
         .modifier(ChatErrorAlertsModifier(viewModel: viewModel))
     }
 
@@ -280,6 +312,7 @@ struct FriendsTabView: View {
             UIPerformanceDiagnostics.signpost("DM inbox open", "source=onAppear")
         }
         viewModel.mapViewModel = mapViewModel
+        logChatAuthGate(reason: "appear")
         consumePendingDmOpenPreviewIfNeeded()
         Task {
             await viewModel.refreshInboxSummariesIfNeeded()
@@ -322,7 +355,7 @@ struct FriendsTabView: View {
 
     @ViewBuilder
     private var chatRootContent: some View {
-        if viewModel.requiresSignIn {
+        if shouldShowChatSignInRequired {
             chatSignInRequiredView
         } else if viewModel.isLoading && viewModel.friends.isEmpty && viewModel.incomingRequests.isEmpty {
             ProgressView("Loading…")
@@ -341,6 +374,19 @@ struct FriendsTabView: View {
             systemImage: "person.crop.circle.badge.questionmark",
             description: Text("Use your account tab to sign in, then open Chat again.")
         )
+    }
+
+    private func logChatAuthGate(reason: String) {
+#if DEBUG
+        let hasSession = hasChatAuthSession
+        let reasonBlocked = hasSession ? "none" : "missingSupabaseSession"
+        print("[ChatAuthGate] reason=\(reason)")
+        print("[ChatAuthGate] hasSession=\(hasSession)")
+        print("[ChatAuthGate] userEmail=\(mapViewModel.authenticatedSocialEmailForUI.isEmpty ? "nil" : mapViewModel.authenticatedSocialEmailForUI)")
+        print("[ChatAuthGate] isBusinessAccount=\(isBusinessChatAccount)")
+        print("[ChatAuthGate] hasUserProfile=\(hasRegularUserProfileForChatGate)")
+        print("[ChatAuthGate] reasonBlocked=\(reasonBlocked)")
+#endif
     }
 
     private var chatSectionPicker: some View {

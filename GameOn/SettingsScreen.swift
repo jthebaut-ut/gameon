@@ -281,6 +281,7 @@ struct SettingsScreen: View {
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
                         .onAppear {
+                            print("[SponsoredPlacementDebug] accountProfileBranch=businessHero profileIdentityCardRendered=false reason=businessAccountProfileContext isAccountTabSelected=\(isAccountTabSelected)")
 #if DEBUG
                             print("[BusinessDashboardCleanup] blockedFanIdentityCardForBusiness=true")
 #endif
@@ -292,6 +293,9 @@ struct SettingsScreen: View {
                         )
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
+                        .onAppear {
+                            print("[SponsoredPlacementDebug] accountProfileBranch=fanIdentityCard profileIdentityCardRendered=true isAccountTabSelected=\(isAccountTabSelected) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil")")
+                        }
                     } else {
                         SettingsUnifiedAccountEntryCard(
                             onSignIn: {
@@ -308,6 +312,9 @@ struct SettingsScreen: View {
                         )
                         .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
                         .listRowBackground(Color.clear)
+                        .onAppear {
+                            print("[SponsoredPlacementDebug] accountProfileBranch=signedOut profileIdentityCardRendered=false reason=noAuthSession isAccountTabSelected=\(isAccountTabSelected)")
+                        }
                     }
                 }
 
@@ -590,6 +597,7 @@ struct SettingsScreen: View {
                 }
             }
             .onAppear {
+                print("[SponsoredPlacementDebug] accountScreenAppeared=true isAccountTabSelected=\(isAccountTabSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
                 if isAccountTabSelected {
                     UIPerformanceDiagnostics.signpost("Profile tab open", "source=onAppear")
                 }
@@ -604,6 +612,7 @@ struct SettingsScreen: View {
             }
         }
         .onChange(of: isAccountTabSelected) { _, isSelected in
+            print("[SponsoredPlacementDebug] accountTabSelectionChanged isSelected=\(isSelected) isLoggedIn=\(viewModel.isLoggedIn) authId=\(viewModel.currentUserAuthId?.uuidString.lowercased() ?? "nil") businessContext=\(isBusinessAccountProfileContext)")
             if isSelected {
                 UIPerformanceDiagnostics.signpost("Profile tab open", "source=tabSelected")
             }
