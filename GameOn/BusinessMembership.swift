@@ -109,22 +109,33 @@ struct BusinessVenueGamePostingStatus: Equatable {
 }
 
 @MainActor
-final class BusinessProEntitlementManager: ObservableObject {
-    static let shared = BusinessProEntitlementManager()
-    static let productID = "fangeo_business_pro_monthly"
+final class BusinessProPurchaseService: ObservableObject {
+    static let shared = BusinessProPurchaseService()
+    static let productID = "com.fangeo.businesspro.monthly"
 
     @Published private(set) var product: Product?
-    @Published private(set) var businessProActive = false
     @Published private(set) var isLoadingProduct = false
     @Published private(set) var isPurchasing = false
+    @Published private(set) var isRestoring = false
     @Published private(set) var productLoadFailed = false
     @Published var purchaseMessage = ""
 
     private var didLoadProducts = false
     private var updatesTask: Task<Void, Never>?
 
+    /// Compatibility value for older call sites. Business Pro activation must come from Supabase entitlements only.
+    var businessProActive: Bool { false }
+
     var canPurchase: Bool {
-        product != nil && !isPurchasing
+        product != nil && !isLoadingProduct && !isPurchasing
+    }
+
+    var billingUnavailableMessage: String {
+        "Business Pro billing is coming soon."
+    }
+
+    var manageSubscriptionURL: URL? {
+        URL(string: "https://apps.apple.com/account/subscriptions")
     }
 
     private init() {
@@ -141,7 +152,6 @@ final class BusinessProEntitlementManager: ObservableObject {
     }
 
     func prepare() async {
-        await refreshPurchasedEntitlements()
         await loadProductIfNeeded()
     }
 
@@ -157,21 +167,36 @@ final class BusinessProEntitlementManager: ObservableObject {
             product = products.first(where: { $0.id == Self.productID })
             productLoadFailed = product == nil
             if product == nil {
-                purchaseMessage = "Subscription coming soon"
+                purchaseMessage = billingUnavailableMessage
+#if DEBUG
+                print("[BusinessProPurchase] productLoad productId=\(Self.productID) found=false")
+#endif
+            } else {
+#if DEBUG
+                print("[BusinessProPurchase] productLoad productId=\(Self.productID) found=true")
+#endif
             }
         } catch {
             product = nil
             productLoadFailed = true
-            purchaseMessage = "Subscription coming soon"
+            purchaseMessage = billingUnavailableMessage
+#if DEBUG
+            print("[BusinessProPurchase] productLoad error=\(error.localizedDescription)")
+#endif
         }
     }
 
     @discardableResult
     func purchaseBusinessPro() async -> Bool {
-        print("[BusinessMembershipDebug] purchaseStarted=true")
+        await loadProductIfNeeded()
+#if DEBUG
+        print("[BusinessProPurchase] purchaseStarted productId=\(Self.productID)")
+#endif
         guard let product else {
-            purchaseMessage = "Subscription coming soon"
-            print("[BusinessMembershipDebug] purchaseFailed=product_unavailable")
+            purchaseMessage = billingUnavailableMessage
+#if DEBUG
+            print("[BusinessProPurchase] purchaseUnavailable reason=product_not_found")
+#endif
             return false
         }
 
@@ -183,59 +208,103 @@ final class BusinessProEntitlementManager: ObservableObject {
             switch result {
             case .success(let verification):
                 let transaction = try verified(verification)
+                await sendTransactionToBackendPlaceholder(transaction)
                 await transaction.finish()
-                businessProActive = true
-                purchaseMessage = "FanGeo Business Pro is active."
-                print("[BusinessMembershipDebug] purchaseSucceeded=true")
+                purchaseMessage = "Purchase received. Activation will be verified shortly."
+#if DEBUG
+                print("[BusinessProPurchase] purchaseSucceeded transactionId=\(transaction.id)")
+                print("[BusinessProPurchase] localUnlock=false sourceOfTruth=supabase")
+#endif
                 return true
             case .pending:
                 purchaseMessage = "Purchase pending."
-                print("[BusinessMembershipDebug] purchaseFailed=pending")
+#if DEBUG
+                print("[BusinessProPurchase] purchasePending=true")
+#endif
                 return false
             case .userCancelled:
                 purchaseMessage = ""
-                print("[BusinessMembershipDebug] purchaseFailed=user_cancelled")
+#if DEBUG
+                print("[BusinessProPurchase] purchaseCancelled=true")
+#endif
                 return false
             @unknown default:
                 purchaseMessage = "Purchase unavailable."
-                print("[BusinessMembershipDebug] purchaseFailed=unknown_result")
+#if DEBUG
+                print("[BusinessProPurchase] purchaseFailed=unknown_result")
+#endif
                 return false
             }
         } catch {
             purchaseMessage = error.localizedDescription
-            print("[BusinessMembershipDebug] purchaseFailed=\(error.localizedDescription)")
+#if DEBUG
+            print("[BusinessProPurchase] purchaseFailed error=\(error.localizedDescription)")
+#endif
             return false
         }
     }
 
     func restorePurchases() async {
+        isRestoring = true
+        defer { isRestoring = false }
         do {
+#if DEBUG
+            print("[BusinessProPurchase] restoreStarted=true")
+#endif
             try await AppStore.sync()
-            await refreshPurchasedEntitlements()
-            purchaseMessage = businessProActive ? "Purchases restored." : "No active Business Pro purchase found."
+            let foundBusinessProTransaction = await sendCurrentBusinessProTransactionsToBackendPlaceholder()
+            purchaseMessage = foundBusinessProTransaction
+                ? "Purchase received. Activation will be verified shortly."
+                : "No Business Pro purchases found."
+#if DEBUG
+            print("[BusinessProPurchase] restoreFinished foundBusinessProTransaction=\(foundBusinessProTransaction)")
+            print("[BusinessProPurchase] localUnlock=false sourceOfTruth=supabase")
+#endif
         } catch {
             purchaseMessage = error.localizedDescription
+#if DEBUG
+            print("[BusinessProPurchase] restoreFailed error=\(error.localizedDescription)")
+#endif
         }
     }
 
     func refreshPurchasedEntitlements() async {
-        var active = false
-        for await result in Transaction.currentEntitlements {
-            guard let transaction = try? verified(result) else { continue }
-            if transaction.productID == Self.productID {
-                active = true
-                break
-            }
-        }
-        businessProActive = active
+#if DEBUG
+        print("[BusinessProPurchase] refreshPurchasedEntitlements localUnlock=false")
+#endif
     }
 
     private func handleTransactionUpdate(_ result: VerificationResult<Transaction>) async {
         guard let transaction = try? verified(result) else { return }
         if transaction.productID == Self.productID {
-            businessProActive = true
+            await sendTransactionToBackendPlaceholder(transaction)
             await transaction.finish()
+#if DEBUG
+            print("[BusinessProPurchase] transactionUpdate transactionId=\(transaction.id)")
+            print("[BusinessProPurchase] localUnlock=false sourceOfTruth=supabase")
+#endif
         }
+    }
+
+    @discardableResult
+    private func sendCurrentBusinessProTransactionsToBackendPlaceholder() async -> Bool {
+        var foundBusinessProTransaction = false
+        for await result in Transaction.currentEntitlements {
+            guard let transaction = try? verified(result), transaction.productID == Self.productID else {
+                continue
+            }
+            foundBusinessProTransaction = true
+            await sendTransactionToBackendPlaceholder(transaction)
+        }
+        return foundBusinessProTransaction
+    }
+
+    private func sendTransactionToBackendPlaceholder(_ transaction: Transaction) async {
+#if DEBUG
+        print("[BusinessProPurchase] backendPlaceholder notImplemented=true")
+        print("[BusinessProPurchase] transactionId=\(transaction.id) originalId=\(transaction.originalID) productId=\(transaction.productID)")
+#endif
+        // Real activation must be performed later by backend App Store Server validation updating Supabase.
     }
 
     private func verified<T>(_ result: VerificationResult<T>) throws -> T {
@@ -247,3 +316,5 @@ final class BusinessProEntitlementManager: ObservableObject {
         }
     }
 }
+
+typealias BusinessProEntitlementManager = BusinessProPurchaseService

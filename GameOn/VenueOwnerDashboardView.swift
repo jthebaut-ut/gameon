@@ -192,7 +192,7 @@ struct BusinessUsageCenterView: View {
                 )
                 if anyFreeLimitReached {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(monthlyHostLimitReached ? "Monthly limit reached." : "Limit reached.")
+                        Text(monthlyHostLimitReached ? "Monthly hosted game limit reached." : "Venue limit reached.")
                             .font(.caption.weight(.black))
                             .foregroundStyle(FGColor.dangerRed)
                         Text(limitReachedMessage)
@@ -328,7 +328,7 @@ struct BusinessUsageCenterView: View {
         guard let status else { return nil }
         if status.businessProActive {
             if status.planType == "pro_promo" {
-                return "Included through Nov 30, 2026"
+                return "Business Pro included through Nov 30, 2026."
             }
             if let formatted = formattedBusinessProExpiry(status.proExpiresAt) {
                 return "Expires \(formatted)"
@@ -351,9 +351,9 @@ struct BusinessUsageCenterView: View {
 
     private var limitReachedMessage: String {
         if monthlyHostLimitReached {
-            return "Hosted games are temporarily locked until the next monthly reset."
+            return "Monthly hosted game limit reached. Upgrade to Business Pro for unlimited hosted games."
         }
-        return "Add Venue is locked until more capacity is available or Business Pro is active."
+        return "Venue limit reached. Upgrade to Business Pro for unlimited venue listings."
     }
 
     private func normalizedPlanStatus(_ raw: String) -> String {
@@ -1314,7 +1314,9 @@ struct VenueOwnerDashboardView: View {
             },
             onRefreshVenues: {},
             showsManagedVenuesSection: false,
-            isStatisticsProActive: businessStatisticsAccessGranted
+            isStatisticsProActive: businessStatisticsAccessGranted,
+            isAddVenueAllowed: businessCanCreateVenueFromServer,
+            isHostedGameAllowed: businessCanHostGameFromServer
         )
         .onAppear {
             logBusinessDashboardDebug()
@@ -1345,6 +1347,16 @@ struct VenueOwnerDashboardView: View {
 
     private var businessStatisticsAccessGranted: Bool {
         businessMembershipStatus?.statisticsEnabled == true
+    }
+
+    private var businessCanCreateVenueFromServer: Bool {
+        guard let status = businessMembershipStatus else { return true }
+        return status.unlimitedVenues || status.businessVenueCount < max(1, status.venueLimit)
+    }
+
+    private var businessCanHostGameFromServer: Bool {
+        guard let status = businessMembershipStatus else { return true }
+        return status.unlimitedHosting || status.monthlyHostedGameCount < max(1, status.monthlyHostLimit)
     }
 
     private var businessStatisticsProRefreshToken: String {
@@ -1509,6 +1521,16 @@ struct VenueOwnerDashboardView: View {
         }
         guard !venueOwnerGamesAndAnalyticsLocked else { return }
         clearManageGamesBanners()
+        guard tab != .add || businessCanHostGameFromServer else {
+            manageGamesFeedback = ""
+            manageGamesError = "Monthly hosted game limit reached. Upgrade to Business Pro for unlimited hosted games."
+            showBusinessUsageSheet = true
+            withAnimation(.spring()) {
+                selectedSection = .games
+                manageGamesListTab = .scheduled
+            }
+            return
+        }
         manageGamesListTab = tab
         if tab == .add {
             initializeAddGameScheduleFromDefaults()
@@ -1608,14 +1630,19 @@ struct VenueOwnerDashboardView: View {
         print("[AddLocationForm] initialized fresh")
         print("[AddLocationForm] opened from businessDashboard")
 #endif
-        if businessMembershipStatus?.freeVenueListingLimitReached == true {
-            addLocationSubmitBanner = "Venue listing limit reached. Add Venue is locked until Business Pro is active."
-            showBusinessUsageSheet = true
-            return
+        Task {
+            await refreshBusinessStatisticsProStatus(reason: "addVenueQuickAction")
+            await MainActor.run {
+                guard businessCanCreateVenueFromServer else {
+                    addLocationSubmitBanner = "Venue limit reached. Upgrade to Business Pro for unlimited venue listings."
+                    showBusinessUsageSheet = true
+                    return
+                }
+                addLocationSubmitBanner = nil
+                addLocationSheetFormState.reset(reason: "businessDashboard")
+                showAddLocationSheet = true
+            }
         }
-        addLocationSubmitBanner = nil
-        addLocationSheetFormState.reset(reason: "businessDashboard")
-        showAddLocationSheet = true
     }
 
     private func logBusinessDashboardRouteDebug() {
@@ -3878,18 +3905,13 @@ struct VenueOwnerDashboardView: View {
 
     private var manageGamesTabbedExperience: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Picker("", selection: $manageGamesListTab) {
-                Text("Scheduled").tag(ManageGamesListTab.scheduled)
-                Text("Add Game").tag(ManageGamesListTab.add)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .onChange(of: manageGamesListTab) { oldTab, newTab in
-#if DEBUG
-                print("[ManageGamesDebug] manageGamesListTab changed \(oldTab.rawValue) → \(newTab.rawValue)")
-#endif
-                guard newTab == .add, oldTab != .add else { return }
-                initializeAddGameScheduleFromDefaults()
+            HStack(spacing: 8) {
+                manageGamesTabButton(title: "Scheduled", tab: .scheduled, isLocked: false)
+                manageGamesTabButton(
+                    title: "Add Game",
+                    tab: .add,
+                    isLocked: !businessCanHostGameFromServer
+                )
             }
 
             if !manageGamesFeedback.isEmpty {
@@ -3990,6 +4012,46 @@ struct VenueOwnerDashboardView: View {
                 }
             )
         }
+    }
+
+    private func manageGamesTabButton(title: String, tab: ManageGamesListTab, isLocked: Bool) -> some View {
+        let isSelected = manageGamesListTab == tab
+        return Button {
+#if DEBUG
+            print("[ManageGamesDebug] manageGamesListTab tapped \(tab.rawValue) locked=\(isLocked)")
+#endif
+            guard !isLocked else {
+                manageGamesFeedback = ""
+                manageGamesError = "Monthly hosted game limit reached. Upgrade to Business Pro for unlimited hosted games."
+                showBusinessUsageSheet = true
+                return
+            }
+            guard manageGamesListTab != tab else { return }
+            manageGamesListTab = tab
+            if tab == .add {
+                initializeAddGameScheduleFromDefaults()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2.weight(.bold))
+                }
+                Text(title)
+                    .font(.caption.weight(.bold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 9)
+            .background(
+                isSelected
+                    ? AnyShapeStyle(Color.accentColor)
+                    : AnyShapeStyle(FGAdaptiveSurface.capsuleUnselected)
+            )
+            .foregroundStyle(isSelected ? Color.white : (isLocked ? FGColor.secondaryText(colorScheme) : FGColor.primaryText(colorScheme)))
+            .clipShape(Capsule(style: .continuous))
+            .opacity(isLocked ? 0.62 : 1)
+        }
+        .buttonStyle(.plain)
     }
 
     private var manageGamesListPane: some View {
@@ -4113,6 +4175,15 @@ struct VenueOwnerDashboardView: View {
                 importFromLiveGamesPane
             }
 
+            if !businessCanHostGameFromServer {
+                Text("Monthly hosted game limit reached. Upgrade to Business Pro for unlimited hosted games.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(FGColor.dangerRed)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(FGColor.dangerRed.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+
             addGameFormFields
         }
         .onAppear {
@@ -4166,7 +4237,7 @@ struct VenueOwnerDashboardView: View {
 
     private var saveGameListingDisabled: Bool {
         isSavingNewGame
-            || businessMembershipStatus?.freeMonthlyVenueGameLimitReached == true
+            || !businessCanHostGameFromServer
             || (manualGameRequiresStructuredTeams && !manualStructuredTeamsAreValid)
     }
 
@@ -5394,11 +5465,13 @@ struct VenueOwnerDashboardView: View {
         await MainActor.run {
             businessMembershipStatus = membershipStatus
         }
-        if membershipStatus.freeLimitReached {
+        let canHostAfterRefresh = membershipStatus.unlimitedHosting
+            || membershipStatus.monthlyHostedGameCount < max(1, membershipStatus.monthlyHostLimit)
+        if !canHostAfterRefresh {
             await MainActor.run {
                 isSavingNewGame = false
                 manageGamesFeedback = ""
-                manageGamesError = "Monthly limit reached. Add Game is temporarily locked until the next monthly reset."
+                manageGamesError = "Monthly hosted game limit reached. Upgrade to Business Pro for unlimited hosted games."
             }
             return
         }

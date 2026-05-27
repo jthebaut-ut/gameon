@@ -173,6 +173,8 @@ struct BusinessVenueDashboardOverviewView: View {
     let onRefreshVenues: () -> Void
     let showsManagedVenuesSection: Bool
     let isStatisticsProActive: Bool
+    let isAddVenueAllowed: Bool
+    let isHostedGameAllowed: Bool
 
     private var hasManagedVenues: Bool {
         data.managedVenueCount > 0
@@ -207,11 +209,29 @@ struct BusinessVenueDashboardOverviewView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    BusinessVenueDashboardActionCard(title: L10n.t("add_venue", languageCode: appLanguageRaw), systemImage: "plus.circle.fill", tint: FGColor.accentBlue, action: handleAddVenueTapped)
                     BusinessVenueDashboardActionCard(title: "Usage", systemImage: "chart.line.uptrend.xyaxis", tint: FGColor.accentBlue, action: onUsage)
+                    BusinessVenueDashboardActionCard(
+                        title: L10n.t("add_venue", languageCode: appLanguageRaw),
+                        subtitle: isAddVenueAllowed ? nil : "Limit reached",
+                        systemImage: isAddVenueAllowed ? "plus.circle.fill" : "lock.fill",
+                        tint: isAddVenueAllowed ? FGColor.accentBlue : Color.gray,
+                        badgeText: isAddVenueAllowed ? nil : "PRO",
+                        isPremium: !isAddVenueAllowed,
+                        isLimited: !isAddVenueAllowed,
+                        action: handleAddVenueTapped
+                    )
                     if hasManagedVenues {
                         BusinessVenueDashboardActionCard(title: L10n.t("venue_details", languageCode: appLanguageRaw), systemImage: "photo.on.rectangle.angled", tint: FGColor.accentBlue, action: onAddGame)
-                        BusinessVenueDashboardActionCard(title: L10n.t("manage_games", languageCode: appLanguageRaw), systemImage: "sportscourt", tint: FGColor.accentGreen, action: onTonightGames)
+                        BusinessVenueDashboardActionCard(
+                            title: L10n.t("manage_games", languageCode: appLanguageRaw),
+                            subtitle: isHostedGameAllowed ? nil : "Add locked",
+                            systemImage: isHostedGameAllowed ? "sportscourt" : "lock.fill",
+                            tint: isHostedGameAllowed ? FGColor.accentGreen : Color.gray,
+                            badgeText: isHostedGameAllowed ? nil : "PRO",
+                            isPremium: !isHostedGameAllowed,
+                            isLimited: !isHostedGameAllowed,
+                            action: isHostedGameAllowed ? onTonightGames : onUsage
+                        )
                         BusinessVenueDashboardActionCard(
                             title: L10n.t("statistics", languageCode: appLanguageRaw),
                             subtitle: isStatisticsProActive ? nil : "Business Pro",
@@ -232,7 +252,7 @@ struct BusinessVenueDashboardOverviewView: View {
 
     private func handleAddVenueTapped() {
 #if DEBUG
-        print("[BusinessDashboardDebug] addVenueQuickActionTapped=true")
+        print("[BusinessDashboardDebug] addVenueQuickActionTapped=true allowed=\(isAddVenueAllowed)")
 #endif
         onAddVenue()
     }
@@ -550,7 +570,7 @@ private struct BusinessVenueDashboardActionCard: View {
             .opacity(isLimited ? 0.86 : 1)
         }
         .buttonStyle(.plain)
-        .accessibilityHint(isLimited ? "Business Pro analytics" : "")
+        .accessibilityHint(isLimited ? "Business Pro required" : "")
     }
 
     private var actionCardBackground: some ShapeStyle {

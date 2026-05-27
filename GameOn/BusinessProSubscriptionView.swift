@@ -1,8 +1,11 @@
 import SwiftUI
+import StoreKit
 
 struct BusinessProSubscriptionView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.openURL) private var openURL
+    @ObservedObject private var purchaseService = BusinessProPurchaseService.shared
 
     private let proFeatures = [
         "Unlimited venue listings",
@@ -27,6 +30,9 @@ struct BusinessProSubscriptionView: View {
             .padding(20)
         }
         .background(background)
+        .task {
+            await purchaseService.prepare()
+        }
     }
 
     private var header: some View {
@@ -61,14 +67,15 @@ struct BusinessProSubscriptionView: View {
                 badgeColor: FGColor.accentYellow
             )
 
-            Text("Unlimited venue listings and hosted games FREE until November 30, 2026")
+            Text("Business Pro included through Nov 30, 2026.")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(FGColor.primaryText(colorScheme))
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Then $19.99/month")
+            Text(futureBillingText)
                 .font(.caption.weight(.heavy))
                 .foregroundStyle(FGColor.secondaryText(colorScheme))
+                .fixedSize(horizontal: false, vertical: true)
 
             planFeatureList(proFeatures, tint: FGColor.accentGreen)
         }
@@ -174,6 +181,75 @@ struct BusinessProSubscriptionView: View {
 
     private var actionButtons: some View {
         VStack(spacing: 10) {
+            if !purchaseService.purchaseMessage.isEmpty {
+                Text(purchaseService.purchaseMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(messageTint)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(messageTint.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+
+            Button {
+                Task {
+                    await purchaseService.purchaseBusinessPro()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    if purchaseService.isLoadingProduct || purchaseService.isPurchasing {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                    Text(purchaseButtonTitle)
+                        .font(.headline.weight(.bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .foregroundStyle(.white)
+                .background(purchaseButtonBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .opacity(purchaseService.canPurchase ? 1 : 0.62)
+            }
+            .buttonStyle(.plain)
+            .disabled(!purchaseService.canPurchase)
+
+            Button {
+                Task {
+                    await purchaseService.restorePurchases()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    if purchaseService.isRestoring {
+                        ProgressView()
+                    }
+                    Text("Restore Purchases")
+                        .font(.subheadline.weight(.bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .foregroundStyle(FGColor.primaryText(colorScheme))
+                .background(FGAdaptiveSurface.capsuleUnselected, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(purchaseService.isRestoring)
+
+            if let manageSubscriptionURL = purchaseService.manageSubscriptionURL {
+                Button {
+#if DEBUG
+                    print("[BusinessProPurchase] manageSubscriptionTapped=true")
+#endif
+                    openURL(manageSubscriptionURL)
+                } label: {
+                    Text("Manage Subscription")
+                        .font(.subheadline.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .foregroundStyle(FGColor.accentBlue)
+                        .background(FGColor.accentBlue.opacity(colorScheme == .dark ? 0.16 : 0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+
             Button {
                 dismiss()
             } label: {
@@ -193,6 +269,41 @@ struct BusinessProSubscriptionView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var futureBillingText: String {
+        guard let product = purchaseService.product else {
+            return purchaseService.billingUnavailableMessage
+        }
+        return "Future Apple subscription: \(product.displayPrice) / month"
+    }
+
+    private var purchaseButtonTitle: String {
+        if purchaseService.isPurchasing { return "Processing..." }
+        if purchaseService.isLoadingProduct { return "Checking Billing..." }
+        guard let product = purchaseService.product else {
+            return purchaseService.billingUnavailableMessage
+        }
+        return "Prepare Business Pro Billing - \(product.displayPrice)"
+    }
+
+    private var messageTint: Color {
+        purchaseService.product == nil ? Color.orange : FGColor.accentGreen
+    }
+
+    private var purchaseButtonBackground: LinearGradient {
+        if purchaseService.canPurchase {
+            return LinearGradient(
+                colors: [FGColor.accentBlue, FGColor.accentGreen],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+        return LinearGradient(
+            colors: [Color.gray.opacity(0.72), Color.gray.opacity(0.54)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 
     private var background: some View {

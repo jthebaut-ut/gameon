@@ -1763,7 +1763,9 @@ struct SettingsScreen: View {
                 Task { await refreshSettingsManagedVenuesSection() }
             },
             showsManagedVenuesSection: true,
-            isStatisticsProActive: settingsBusinessStatisticsAccessGranted
+            isStatisticsProActive: settingsBusinessStatisticsAccessGranted,
+            isAddVenueAllowed: settingsBusinessCanCreateVenueFromServer,
+            isHostedGameAllowed: settingsBusinessCanHostGameFromServer
         )
         .onAppear {
             logSettingsInlineBusinessDashboardDebug()
@@ -1783,6 +1785,16 @@ struct SettingsScreen: View {
 
     private var settingsBusinessStatisticsAccessGranted: Bool {
         settingsBusinessMembershipStatus?.statisticsEnabled == true
+    }
+
+    private var settingsBusinessCanCreateVenueFromServer: Bool {
+        guard let status = settingsBusinessMembershipStatus else { return true }
+        return status.unlimitedVenues || status.businessVenueCount < max(1, status.venueLimit)
+    }
+
+    private var settingsBusinessCanHostGameFromServer: Bool {
+        guard let status = settingsBusinessMembershipStatus else { return true }
+        return status.unlimitedHosting || status.monthlyHostedGameCount < max(1, status.monthlyHostLimit)
     }
 
     private var settingsBusinessProRowSubtitle: String {
@@ -2418,7 +2430,13 @@ struct SettingsScreen: View {
                 return
             }
 
+            await refreshSettingsBusinessProStatus()
             await MainActor.run {
+                guard settingsBusinessCanCreateVenueFromServer else {
+                    addLocationSubmitBanner = "Venue limit reached. Upgrade to Business Pro for unlimited venue listings."
+                    showBusinessUsageSheet = true
+                    return
+                }
                 presentAddLocationSheet(reason: action)
             }
         }
